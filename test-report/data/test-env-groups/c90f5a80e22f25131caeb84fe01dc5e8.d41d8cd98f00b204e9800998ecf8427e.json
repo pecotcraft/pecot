@@ -1,0 +1,1 @@
+{"id":"c90f5a80e22f25131caeb84fe01dc5e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/generated-files.test.ts#viteConfigSource の theme の public/ テーマ名に引用符を含む場合は、文字列を壊さずにエスケープして書く","name":"テーマ名に引用符を含む場合は、文字列を壊さずにエスケープして書く","status":"passed","testResultsByEnv":{"default":"913e141a24d6eb7d08841cac305e1182"}}

@@ -1,0 +1,1 @@
+{"id":"007871723d60a4026bcc8ec6fd8aa95a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check リリースの種類 release_type が nx のリポジトリに params を渡すと、unexpected の項目を返す","name":"release_type が nx のリポジトリに params を渡すと、unexpected の項目を返す","status":"passed","testResultsByEnv":{"default":"5c8b2e8bf78bb6a00525da93093f9e35"}}

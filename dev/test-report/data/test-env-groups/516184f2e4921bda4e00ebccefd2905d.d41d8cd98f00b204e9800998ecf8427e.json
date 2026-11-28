@@ -1,0 +1,1 @@
+{"id":"516184f2e4921bda4e00ebccefd2905d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#runMcpServe SIGTERM または SIGINT を受けたときは、終了処理を呼び出してから、明示的にプロセスを終了する","name":"SIGTERM または SIGINT を受けたときは、終了処理を呼び出してから、明示的にプロセスを終了する","status":"passed","testResultsByEnv":{"default":"d4c18a965dbfbda82d7354d2f74b96af"}}

@@ -1,0 +1,1 @@
+{"id":"1a1c949b62dc5e0ce6e6758765ff139e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/issue-surface.test.ts#extractIssueSurface OpenAPI の paths が存在しない 場合は、REST の項目を出力しない","name":"OpenAPI の paths が存在しない 場合は、REST の項目を出力しない","status":"passed","testResultsByEnv":{"default":"a6b54a255f9102b76f37b8e72a0ee215"}}

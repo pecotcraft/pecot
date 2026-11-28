@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not read the default branch of acme/demo: resource not found: http://127.0.0.1:35417/repos/acme/demo"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-not-found\",\"detail\":\"could not read the default branch of acme/demo: resource not found: http://127.0.0.1:35417/repos/acme/demo\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-not-found",
+    "detail": "could not read the default branch of acme/demo: resource not found: http://127.0.0.1:35417/repos/acme/demo"
+  },
+  "isError": true
+}

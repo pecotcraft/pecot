@@ -1,0 +1,1 @@
+{"id":"bde134e90328359cddd501fac77689d2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/readiness-json.test.ts#readinessJson スタック先と理由のコードが存在しない場合は、null として JSON に出力する","name":"スタック先と理由のコードが存在しない場合は、null として JSON に出力する","status":"passed","testResultsByEnv":{"default":"fa2aa3cd89c6ea67b67710ee621e9031"}}

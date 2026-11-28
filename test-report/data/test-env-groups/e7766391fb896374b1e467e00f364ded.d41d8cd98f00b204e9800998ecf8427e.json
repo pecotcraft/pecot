@@ -1,0 +1,1 @@
+{"id":"e7766391fb896374b1e467e00f364ded.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create draft を付けて message で打つと、ドラフトの PR を作る","name":"draft を付けて message で打つと、ドラフトの PR を作る","status":"passed","testResultsByEnv":{"default":"aafa1134a1fd2a9e32710c16e02df74e"}}

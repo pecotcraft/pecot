@@ -1,0 +1,8 @@
+:iface-id: PV-SLIDE-DEV
+:iface-plugin: pecot-visual
+:iface-kind: MCP
+
+Start Slidev preview
+========================================
+
+.. iface-defs:: pecot-visual PV-SLIDE-DEV

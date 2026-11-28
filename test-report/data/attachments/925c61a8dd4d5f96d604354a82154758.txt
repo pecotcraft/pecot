@@ -1,0 +1,5 @@
+To /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_run_cmd_nx_failure_after_0/origin.git
+ * [new branch]      release/run-1-1 -> release/run-1-1
+ * [new tag]         v1.0.0 -> v1.0.0
+nx failed after push
+landed: 4962cb75e81860b862f89e158d94fa5ab96379ea (fast-forward)

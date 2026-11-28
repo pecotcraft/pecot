@@ -1,0 +1,1 @@
+{"id":"4570b091b77b75aa850bdc95cfd68b7c.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#Release が無いと、添付もワークフローの起動もせずに非ゼロ終了する","name":"Release が無いと、添付もワークフローの起動もせずに非ゼロ終了する","status":"passed","testResultsByEnv":{"default":"10d887a60388f2ecf08ce26b28c18ebb"}}

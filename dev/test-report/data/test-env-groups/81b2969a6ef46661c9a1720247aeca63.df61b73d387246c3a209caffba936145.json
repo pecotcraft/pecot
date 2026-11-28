@@ -1,0 +1,1 @@
+{"id":"81b2969a6ef46661c9a1720247aeca63.df61b73d387246c3a209caffba936145","fullName":".githooks.tests.test_pages_release#test_units_fail_for_wrong_release_group","name":"nx.json のグループが no-pattern の場合、単位の決定で理由を示す例外が発生する","status":"passed","testResultsByEnv":{"default":"fa5509c3a020251a9c1fd78cb965977d"}}

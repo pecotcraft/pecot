@@ -1,0 +1,1 @@
+{"id":"29bcfa9521689f5dc3a8f0502bca9673.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/store-layout.test.ts#themeStoreDirectory url が違う場合は別の置き場になり、タグだけが違う場合は同じ階層の別ディレクトリになる","name":"url が違う場合は別の置き場になり、タグだけが違う場合は同じ階層の別ディレクトリになる","status":"passed","testResultsByEnv":{"default":"a368f7136acd3487a57493c31333661f"}}

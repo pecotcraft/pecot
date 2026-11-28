@@ -1,0 +1,1 @@
+{"id":"84dd4abcd6e1161c7ce02b7eb60b0283.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/failure.test.ts#実採取した awscli の失敗 実際の awscli の失敗 SSO プロファイル（トークン未取得） は、auth-expired と判定する","name":"実際の awscli の失敗 SSO プロファイル（トークン未取得） は、auth-expired と判定する","status":"passed","testResultsByEnv":{"default":"acb4eefe5bedc93b2a71b3af9668faca"}}

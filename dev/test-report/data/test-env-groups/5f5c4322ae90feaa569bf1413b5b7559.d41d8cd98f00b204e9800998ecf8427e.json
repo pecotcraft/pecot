@@ -1,0 +1,1 @@
+{"id":"5f5c4322ae90feaa569bf1413b5b7559.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites 進行の欄の値だけを持つ項目は、その値だけを取り出す","name":"進行の欄の値だけを持つ項目は、その値だけを取り出す","status":"passed","testResultsByEnv":{"default":"06a2549ef9978bdbb8840cbd4949055b"}}

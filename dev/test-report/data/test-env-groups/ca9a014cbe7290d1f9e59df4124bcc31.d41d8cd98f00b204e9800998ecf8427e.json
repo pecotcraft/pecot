@@ -1,0 +1,1 @@
+{"id":"ca9a014cbe7290d1f9e59df4124bcc31.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#パスの一部に npm を含む scripts は、違反として返さない","name":"パスの一部に npm を含む scripts は、違反として返さない","status":"passed","testResultsByEnv":{"default":"c4a29d90fb821af697b6e0bd4eeec2ab"}}

@@ -1,0 +1,1 @@
+{"id":"a16b3f4aacce2535bcc353a1107c42cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#runMcpServe JSON-RPC として不正な行を受け取った場合は、標準エラー出力へ 1 行出力する","name":"JSON-RPC として不正な行を受け取った場合は、標準エラー出力へ 1 行出力する","status":"passed","testResultsByEnv":{"default":"ad0e07a87c9e83ccb046d2224ce26ccd"}}

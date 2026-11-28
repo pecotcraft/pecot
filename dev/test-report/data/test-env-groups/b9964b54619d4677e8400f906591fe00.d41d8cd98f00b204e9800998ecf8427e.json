@@ -1,0 +1,1 @@
+{"id":"b9964b54619d4677e8400f906591fe00.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/annotations.test.ts#effects against mcp.annotations effects が read だけなのに readOnlyHint が false だと、検証エラーにする","name":"effects が read だけなのに readOnlyHint が false だと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"8298bcf06fb1ed38594220d077399dd2"}}

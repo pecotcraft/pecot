@@ -1,0 +1,1 @@
+{"id":"4f8e79af5b65dac013f4242dd26f75e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/validate-clicks.test.ts#minClicks が 3 で clicks が 2 だと、insufficientClicks を返す","name":"minClicks が 3 で clicks が 2 だと、insufficientClicks を返す","status":"passed","testResultsByEnv":{"default":"3124a86e115d92f3f62fb0db11c377d2"}}

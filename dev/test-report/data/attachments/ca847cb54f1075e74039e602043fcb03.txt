@@ -1,0 +1,4 @@
+warning: could not check Dependabot alerts. The release is not blocked.
+  reason: acme/demo: GitHub API error: 502 Bad Gateway
+count: open code scanning alerts: 0
+count: open secret scanning alerts: 0

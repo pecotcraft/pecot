@@ -1,0 +1,1 @@
+{"id":"094a11a19c0f65afc27dbe692e3acfa1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#linkNodeModules (張り直し) 実ディレクトリの中身を破棄して作り直し、2 回続けて実行しても同じ結果になる","name":"実ディレクトリの中身を破棄して作り直し、2 回続けて実行しても同じ結果になる","status":"passed","testResultsByEnv":{"default":"78b3e1fe8db23ef6dcd36c943198f801"}}

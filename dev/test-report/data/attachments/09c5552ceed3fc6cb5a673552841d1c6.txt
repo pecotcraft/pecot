@@ -1,0 +1,8 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_severity_rejects_unknown_0/suite/sample.bats
+1..1
+# pecot-description: 誤った段階のテストです。
+not ok 1 誤った段階 # in 99 ms
+# (from function `severity' in file .githooks/scripts/test_report/bats/pecot-bats/load.bash, line 24,
+#  in test file suite/sample.bats, line 7)
+#   `severity high' failed
+# severity: 段階は blocker・critical・normal・minor・trivial のどれかを渡してください（渡された値: high）

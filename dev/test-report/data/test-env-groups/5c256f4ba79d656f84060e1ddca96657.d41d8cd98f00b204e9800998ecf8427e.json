@@ -1,0 +1,1 @@
+{"id":"5c256f4ba79d656f84060e1ddca96657.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#validateInput string-list の入力は、要素のどれかの先頭が - なら拒否する","name":"string-list の入力は、要素のどれかの先頭が - なら拒否する","status":"passed","testResultsByEnv":{"default":"14265ca0b2e89b196b941cab22f2ef59"}}

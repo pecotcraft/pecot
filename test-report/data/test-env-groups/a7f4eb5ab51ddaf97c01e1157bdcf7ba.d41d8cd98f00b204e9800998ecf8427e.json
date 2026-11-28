@@ -1,0 +1,1 @@
+{"id":"a7f4eb5ab51ddaf97c01e1157bdcf7ba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-tracker.test.ts#renderTrackerBody と parseTrackerEntries CRLF の本文は改行をそろえて読み、書き直すと LF の本文に戻る","name":"CRLF の本文は改行をそろえて読み、書き直すと LF の本文に戻る","status":"passed","testResultsByEnv":{"default":"ecca6c6a9f5cd8dcfad933bcaa380c91"}}

@@ -1,0 +1,1 @@
+{"id":"e1dc27aa8cd93e221572c5527603eeff.88fbe2415c2cf2afbc50a20daa9a9570","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_the_githooks_lanes_that_read_the_change","name":"libs/workflow-core/src/commands-shared/output.ts を変更すると、それを読む githooks のレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"d19d1973f0824908b1438ed34a68007a"}}

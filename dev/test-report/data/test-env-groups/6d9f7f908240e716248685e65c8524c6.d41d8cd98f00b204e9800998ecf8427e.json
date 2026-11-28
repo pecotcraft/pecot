@@ -1,0 +1,1 @@
+{"id":"6d9f7f908240e716248685e65c8524c6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync open の Tracker のボード登録に失敗すると、error の行を出して step を失敗にする","name":"open の Tracker のボード登録に失敗すると、error の行を出して step を失敗にする","status":"passed","testResultsByEnv":{"default":"35352f78c1c1b2dbf7392895a825e3be"}}

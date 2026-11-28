@@ -1,0 +1,1 @@
+{"id":"1614bd53ba309c58904c9ae382d5a818.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_plugin_validate#test_fixture_repo_passes","name":"壊す前の最小構成のリポジトリを検証すると、終了コード 0 で終了する","status":"passed","testResultsByEnv":{"default":"97be840359303499c143be29e633f165"}}

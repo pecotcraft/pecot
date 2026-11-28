@@ -1,0 +1,4 @@
+error: invalid reference: invalid-format
+  accepted forms:
+    - full: 'owner/repo/N'
+    - short: 'N' (with a base repository)

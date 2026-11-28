@@ -1,0 +1,1 @@
+{"id":"8bff6d3b4e0c310bc41926a591190cca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#createRepositoryReference owner が不正なら、例外が発生する","name":"owner が不正なら、例外が発生する","status":"passed","testResultsByEnv":{"default":"7eb602983f7ae1a0e4cb2feb329c9bf4"}}

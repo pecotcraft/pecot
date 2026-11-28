@@ -1,0 +1,1 @@
+{"id":"3a4a28c5dff4eb29da055a331618d68b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 書体が Inter と Noto Sans JP で和文を含むセルには、警告を返さない","name":"書体が Inter と Noto Sans JP で和文を含むセルには、警告を返さない","status":"passed","testResultsByEnv":{"default":"89f73c0be939d00f41ed65fdb446bb8f"}}

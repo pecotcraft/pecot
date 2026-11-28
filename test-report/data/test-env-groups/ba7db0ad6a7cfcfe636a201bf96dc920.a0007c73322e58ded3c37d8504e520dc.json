@@ -1,0 +1,1 @@
+{"id":"ba7db0ad6a7cfcfe636a201bf96dc920.a0007c73322e58ded3c37d8504e520dc","fullName":".githooks.tests.test_bats_report#test_explains_rejects_bad_value","name":"explains に 空 の値を渡すと、その @test を失敗にする","status":"passed","testResultsByEnv":{"default":"9cd07bfbb9f872c1ab365b754e729914"}}

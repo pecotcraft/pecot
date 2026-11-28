@@ -1,0 +1,1 @@
+{"id":"21409b1c08338c9afc23d9d7790fa45f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#成功して結果の行を出さないと、標準出力の最初の空でない行を content の最初の text にする","name":"成功して結果の行を出さないと、標準出力の最初の空でない行を content の最初の text にする","status":"passed","testResultsByEnv":{"default":"feaa3f901492aa51edfb6c3c9828fbae"}}

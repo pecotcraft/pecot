@@ -1,0 +1,1 @@
+{"id":"1f5debaa64d0cfbbeee09ed5196215db.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyJapaneseFontFix a:rPr の直下に a:latin がある場合は、a:ea を a:latin の直後に挿入する","name":"a:rPr の直下に a:latin がある場合は、a:ea を a:latin の直後に挿入する","status":"passed","testResultsByEnv":{"default":"004d6157364812fbfbbce413e2f86072"}}

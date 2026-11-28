@@ -1,0 +1,1 @@
+{"id":"55f04b4bc7aad9101f57b9e0cd5d42ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 未編集プレースホルダの検出と正当な `<...>` の通過（#962） 日本語のプレースホルダは、書式のエラーにする","name":"日本語のプレースホルダは、書式のエラーにする","status":"passed","testResultsByEnv":{"default":"47cfe288c11dc63e900336d6594e1c78"}}

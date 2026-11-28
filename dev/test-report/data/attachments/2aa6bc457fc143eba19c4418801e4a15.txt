@@ -1,0 +1,3 @@
+count: Issues to close: 2
+warning: Issue #10 not found; skipped
+closed: Issue #12

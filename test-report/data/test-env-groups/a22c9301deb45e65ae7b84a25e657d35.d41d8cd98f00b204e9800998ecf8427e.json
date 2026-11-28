@@ -1,0 +1,1 @@
+{"id":"a22c9301deb45e65ae7b84a25e657d35.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 未編集プレースホルダの検出と正当な `<...>` の通過（#962） HTML タグ形状に見える ASCII 語のプレースホルダも通さない","name":"HTML タグ形状に見える ASCII 語のプレースホルダも通さない","status":"passed","testResultsByEnv":{"default":"098fa35ec842f60281830a91f17ec7c2"}}

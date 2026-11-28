@@ -1,0 +1,2 @@
+error: could not read PR acme/demo/11: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:40065/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500

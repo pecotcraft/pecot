@@ -1,0 +1,1 @@
+{"id":"c8f33cabaa2216b8cc02eb99fad88cd2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#listOpenDependabotAlerts の next 429 が返ると、GitHubRateLimitError を発生させる","name":"429 が返ると、GitHubRateLimitError を発生させる","status":"passed","testResultsByEnv":{"default":"fe8d04637a52faa615146c3377605cfd"}}

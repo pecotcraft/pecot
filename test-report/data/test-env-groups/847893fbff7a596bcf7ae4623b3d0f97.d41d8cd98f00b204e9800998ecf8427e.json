@@ -1,0 +1,1 @@
+{"id":"847893fbff7a596bcf7ae4623b3d0f97.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ pr-merge-state-draft を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ pr-merge-state-draft を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"1b57bfd3555208f4b7bc16d7229e1aa6"}}

@@ -1,0 +1,1 @@
+{"id":"f40f01d6e78b90b2e3ee217b8c3ef54b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-key.test.ts#computeSlideHash 同一入力からは同一ハッシュを返す","name":"同一入力からは同一ハッシュを返す","status":"passed","testResultsByEnv":{"default":"edbe6fb01c2d52d11b041978ae7fa6ae"}}

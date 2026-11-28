@@ -1,0 +1,1 @@
+{"id":"695c9f27c7b6a6e7ea0559995b2199a5.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#記録の dist.fingerprint が dist-fingerprint.mjs の値と一致","name":"記録の dist.fingerprint が dist-fingerprint.mjs の値と一致","status":"passed","testResultsByEnv":{"default":"5e9a679de356c58cd8e81e1c2bdfbe74"}}

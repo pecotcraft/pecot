@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: eslint not run: /tmp/pecotv-test-file-tools-AtaQ6E/talk/pages/cover.md\\n  eslint timed out (over 30 seconds).\\n  No eslint result exists for this file, so violations have not been detected.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: eslint not run: /tmp/pecotv-test-file-tools-AtaQ6E/talk/pages/cover.md\n  eslint timed out (over 30 seconds).\n  No eslint result exists for this file, so violations have not been detected."
+    }
+  }
+}

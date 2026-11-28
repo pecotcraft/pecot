@@ -1,0 +1,1 @@
+{"id":"be2ca6950771ab1bf0f8c02ebabae24e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 宣言ごとの許す書体 (T051) 先頭に使える書体は、宣言の本文の書体と和文の書体の両方にする","name":"先頭に使える書体は、宣言の本文の書体と和文の書体の両方にする","status":"passed","testResultsByEnv":{"default":"c4d7600fc893c68e4485d76fec343eb2"}}

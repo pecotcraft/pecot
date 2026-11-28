@@ -1,0 +1,1 @@
+{"id":"9cd893bf1a7533f80ee44b5a3cb92ca4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/names.test.ts#読むだけの動詞と effects 名前が read_only の語を含んでいても、effects が read だけなら、検証エラーにしない","name":"名前が read_only の語を含んでいても、effects が read だけなら、検証エラーにしない","status":"passed","testResultsByEnv":{"default":"ca4b9755ee4ae24219fc6e73009359e0"}}

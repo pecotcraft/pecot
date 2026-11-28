@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "no difference between origin/release and origin/develop: there is nothing to release"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"no difference between origin/release and origin/develop: there is nothing to release\",\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"}}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "no difference between origin/release and origin/develop: there is nothing to release",
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  },
+  "isError": true
+}

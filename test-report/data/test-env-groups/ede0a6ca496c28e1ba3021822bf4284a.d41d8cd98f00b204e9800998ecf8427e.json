@@ -1,0 +1,1 @@
+{"id":"ede0a6ca496c28e1ba3021822bf4284a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ release-merge-state-base-mismatch を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ release-merge-state-base-mismatch を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"40d222f4d87d8ed80fb5e99eaf1feb2b"}}

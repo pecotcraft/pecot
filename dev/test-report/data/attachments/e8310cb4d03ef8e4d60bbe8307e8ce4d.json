@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.projects: the last page of list_projects has a next page; read it with after and add it to reads.projects"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.projects\",\"code\":\"read-required\",\"message\":\"the last page of list_projects has a next page; read it with after and add it to reads.projects\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.projects",
+        "code": "read-required",
+        "message": "the last page of list_projects has a next page; read it with after and add it to reads.projects"
+      }
+    ]
+  }
+}

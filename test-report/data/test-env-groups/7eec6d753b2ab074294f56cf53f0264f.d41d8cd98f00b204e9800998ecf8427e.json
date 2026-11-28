@@ -1,0 +1,1 @@
+{"id":"7eec6d753b2ab074294f56cf53f0264f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#linkNodeModules (テーマ) scope 付きのテーマ名の場合は、その scope だけを実ディレクトリにして、配下を 1 本ずつ張る","name":"scope 付きのテーマ名の場合は、その scope だけを実ディレクトリにして、配下を 1 本ずつ張る","status":"passed","testResultsByEnv":{"default":"153a1d7dfdec68f5bfeff470c6dda076"}}

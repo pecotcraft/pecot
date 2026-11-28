@@ -1,0 +1,1 @@
+{"id":"21cadb111e1a3a32d577e66e8df4d9df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql 500 でも errors があれば errors[0] の repr のとき、GitHubAPIError が発生する","name":"500 でも errors があれば errors[0] の repr のとき、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"bd64dc5b7b510cb99434459a01359ec1"}}

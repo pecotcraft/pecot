@@ -1,0 +1,1 @@
+{"id":"749b8a8c6cc47b1d7223e5f2e8a5424a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-surface.test.ts#issueCoverageSchema id が存在しない項目 を含む項目は、スキーマの検証で拒否する","name":"id が存在しない項目 を含む項目は、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"3befcbb0db1cab49483c0d2e0dfd2cab"}}

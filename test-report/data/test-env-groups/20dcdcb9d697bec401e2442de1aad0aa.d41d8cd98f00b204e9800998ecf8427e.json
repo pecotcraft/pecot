@@ -1,0 +1,1 @@
+{"id":"20dcdcb9d697bec401e2442de1aad0aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 作業の跡があり、列 Ready と判定 blocked の組み合わせは、食い違いを返す","name":"作業の跡があり、列 Ready と判定 blocked の組み合わせは、食い違いを返す","status":"passed","testResultsByEnv":{"default":"5bf84a009256b25970fccd5de48ff891"}}

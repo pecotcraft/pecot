@@ -1,0 +1,1 @@
+{"id":"f4c801e9e1c63394b4e86fb28383e80b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#ensureWorkDirectory 番号だけを指定した場合でも、作業ディレクトリを作成できる","name":"番号だけを指定した場合でも、作業ディレクトリを作成できる","status":"passed","testResultsByEnv":{"default":"aabf3fd73ab4b8c81e2bedb993a022d6"}}

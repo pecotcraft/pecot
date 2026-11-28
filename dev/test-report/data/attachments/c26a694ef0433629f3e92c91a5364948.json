@@ -1,0 +1,70 @@
+[
+  {
+    "name": "project",
+    "value": "fixture-project"
+  },
+  {
+    "name": "lane",
+    "value": "test-release"
+  },
+  {
+    "name": "epic",
+    "value": "fixture-project"
+  },
+  {
+    "name": "Node.js",
+    "value": "v24.22.1"
+  },
+  {
+    "name": "framework",
+    "value": "vitest"
+  },
+  {
+    "name": "language",
+    "value": "javascript"
+  },
+  {
+    "name": "host",
+    "value": "f2b287e9a649"
+  },
+  {
+    "name": "thread",
+    "value": "vitest-worker-1"
+  },
+  {
+    "name": "_fallbackTestCaseId",
+    "value": "7964c9d5bf25c165488e68577bb08371"
+  },
+  {
+    "name": "package",
+    "value": "@pecot/interface-spec-src.tests.fixtures.report-labels.outcomes.fixture.ts"
+  },
+  {
+    "name": "tag",
+    "value": "SM-ONE-03"
+  },
+  {
+    "name": "severity",
+    "value": "trivial"
+  },
+  {
+    "name": "parentSuite",
+    "value": "tests/fixtures/report-labels/outcomes.fixture.ts"
+  },
+  {
+    "name": "suite",
+    "value": "結果"
+  },
+  {
+    "name": "feature",
+    "value": "SM-ONE"
+  },
+  {
+    "name": "story",
+    "value": "SM-ONE-03"
+  },
+  {
+    "name": "layer",
+    "value": "integration"
+  }
+]

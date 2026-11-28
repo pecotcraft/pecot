@@ -1,0 +1,1 @@
+{"id":"bf99f95cbc7166e657a6fe060b4e46e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#配布物の tgz を npm install できる","name":"配布物の tgz を npm install できる","status":"passed","testResultsByEnv":{"default":"c48fcf988b802d7b32570be768a0fdc7"}}

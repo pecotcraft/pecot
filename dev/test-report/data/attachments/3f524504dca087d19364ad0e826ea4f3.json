@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.comments: read the comments of acme/demo/7 with issue_read (method get_comments) and pass its result as reads.comments"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.comments\",\"code\":\"read-required\",\"message\":\"read the comments of acme/demo/7 with issue_read (method get_comments) and pass its result as reads.comments\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.comments",
+        "code": "read-required",
+        "message": "read the comments of acme/demo/7 with issue_read (method get_comments) and pass its result as reads.comments"
+      }
+    ]
+  }
+}

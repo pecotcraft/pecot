@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "acme/demo is a monorepo\n  specify package (available: pkg-a)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"acme/demo is a monorepo\\n  specify package (available: pkg-a)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "acme/demo is a monorepo\n  specify package (available: pkg-a)"
+  },
+  "isError": true
+}

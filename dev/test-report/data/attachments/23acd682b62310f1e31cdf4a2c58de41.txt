@@ -1,0 +1,7 @@
+checks: skipped
+lanes: success
+lint: skip
+lint=skip なのに checks の job が skipped ではありません。
+checks (lint): failure
+tests (p:test-cli): success
+tests (q:test-hooks): success

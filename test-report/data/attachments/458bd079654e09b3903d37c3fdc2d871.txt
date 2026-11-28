@@ -1,0 +1,4 @@
+セッション 'pecot-base-parallel-a:wt1-pecot' を作成しました
+セッション 'pecot-base-parallel-a:wt2-pecot' を作成しました
+セッション 'pecot-base-parallel-a:wt3-pecot' を作成しました
+セッション 'pecot-base-parallel-a:wt4-pecot' を作成しました

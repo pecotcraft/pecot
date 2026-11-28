@@ -1,0 +1,1 @@
+{"id":"2852fae74be8855cda2d6f118ca17030.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight バージョンを省略して CHANGELOG にバージョンが存在しなければ、ReleaseError に包んで投げる","name":"バージョンを省略して CHANGELOG にバージョンが存在しなければ、ReleaseError に包んで投げる","status":"passed","testResultsByEnv":{"default":"ded8016b6acef9bbb69ecc9790e35fc5"}}

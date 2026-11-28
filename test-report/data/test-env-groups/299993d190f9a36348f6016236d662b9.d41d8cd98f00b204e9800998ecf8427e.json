@@ -1,0 +1,1 @@
+{"id":"299993d190f9a36348f6016236d662b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#isNodeModulesLinkCurrent (印との比較) テーマの項目が node_modules から削除されている場合は、false を返す","name":"テーマの項目が node_modules から削除されている場合は、false を返す","status":"passed","testResultsByEnv":{"default":"b1e11759209553629f86338c104c87c2"}}

@@ -1,0 +1,1 @@
+{"id":"dfc033a204c5a0cf8802c7e2fc963baa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/allure-reporter.test.ts#osName /etc/os-release が存在しないと、/usr/lib/os-release の PRETTY_NAME の値を返す","name":"/etc/os-release が存在しないと、/usr/lib/os-release の PRETTY_NAME の値を返す","status":"passed","testResultsByEnv":{"default":"f39758e3b206a02029f8e94498eb61c7"}}

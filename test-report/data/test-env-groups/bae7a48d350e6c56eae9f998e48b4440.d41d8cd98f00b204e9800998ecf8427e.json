@@ -1,0 +1,1 @@
+{"id":"bae7a48d350e6c56eae9f998e48b4440.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init-detection.test.ts#UserPromptSubmit pecot 以外のスラッシュコマンド（/help）のとき、init が発火しない","name":"pecot 以外のスラッシュコマンド（/help）のとき、init が発火しない","status":"passed","testResultsByEnv":{"default":"33bb4c3c4c0fff87133f6ba30e928eb1"}}

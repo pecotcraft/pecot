@@ -1,0 +1,1 @@
+{"id":"6ed18f02336f8c8a356bdb07fb83e434.e53adfb201e0c4278a991563443f8945","fullName":".githooks.tests.test_nx_cache_server#test_other_paths_are_404","name":"/v1/other/abc のようなキャッシュ以外のパスは、GET と PUT の両方で 404 を返す","status":"passed","testResultsByEnv":{"default":"a9162df7fa417d7f0a290ff10382bfaf"}}

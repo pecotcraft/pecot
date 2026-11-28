@@ -1,0 +1,1 @@
+{"id":"34c5aeccb3c87d710183d6996d2b8f5e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-issue-surface.test.ts#tracker sync issue-surface の dry-run 差がなくなったときは、書き込まずに更新と閉じる予定の行を出す","name":"差がなくなったときは、書き込まずに更新と閉じる予定の行を出す","status":"passed","testResultsByEnv":{"default":"0d13c8be19eebdb76c2cb1ba0251e1ce"}}

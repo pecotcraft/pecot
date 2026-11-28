@@ -1,0 +1,1 @@
+{"id":"ae63d8ccbfa11ea2153dd0547ea27ec0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/process.test.ts#spawnPromise stdoutRelay と stderrRelay を指定すると、取得と並行して出力を転送する","name":"stdoutRelay と stderrRelay を指定すると、取得と並行して出力を転送する","status":"passed","testResultsByEnv":{"default":"0a136158d5cc50c79127ab2efc1c1f0e"}}

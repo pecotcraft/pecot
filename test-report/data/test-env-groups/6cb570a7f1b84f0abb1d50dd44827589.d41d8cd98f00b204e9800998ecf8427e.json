@@ -1,0 +1,1 @@
+{"id":"6cb570a7f1b84f0abb1d50dd44827589.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_scheduler_trust_source_arn_is_the_schedule_group","name":"Scheduler ロールの信頼ポリシーは、aws:SourceArn にスケジュールグループの ARN を指定する","status":"passed","testResultsByEnv":{"default":"2179ea44ab448d18f4dd9e13e0b82ab8"}}

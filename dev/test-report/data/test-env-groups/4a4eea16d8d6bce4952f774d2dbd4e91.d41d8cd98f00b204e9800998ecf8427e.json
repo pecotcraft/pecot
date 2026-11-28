@@ -1,0 +1,1 @@
+{"id":"4a4eea16d8d6bce4952f774d2dbd4e91.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/cli.test.ts#the command line tsx で src/cli.ts を直接起動して validate すると、欠けている欄のエラーを 1 行出力し、1 で終了する","name":"tsx で src/cli.ts を直接起動して validate すると、欠けている欄のエラーを 1 行出力し、1 で終了する","status":"passed","testResultsByEnv":{"default":"491a67703dbdfed1a2074889c43519a8"}}

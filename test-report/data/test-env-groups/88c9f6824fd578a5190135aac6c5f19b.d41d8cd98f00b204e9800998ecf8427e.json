@@ -1,0 +1,1 @@
+{"id":"88c9f6824fd578a5190135aac6c5f19b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/transforms.test.ts#applyMutation set-text の場合は、既存のテキストノードの内容を置き換える","name":"set-text の場合は、既存のテキストノードの内容を置き換える","status":"passed","testResultsByEnv":{"default":"5695f3f9c7fe83d94a293f05be0c4786"}}

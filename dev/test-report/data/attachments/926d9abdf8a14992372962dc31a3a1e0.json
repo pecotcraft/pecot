@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "/tmp/pecot-nogit-ucgQ3E is not in a Git repository"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\"/tmp/pecot-nogit-ucgQ3E is not in a Git repository\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": "/tmp/pecot-nogit-ucgQ3E is not in a Git repository"
+  },
+  "isError": true
+}

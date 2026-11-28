@@ -1,0 +1,1 @@
+{"id":"3695b8345987c53c70695bbafb4b518a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create 待っている Issue 待つ Issue の読み取り に失敗すると、PR を作ったまま warning の行を出し、終了コード 0 で終わる","name":"待つ Issue の読み取り に失敗すると、PR を作ったまま warning の行を出し、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"db2a8b057d8de98896f3800e41594b82"}}

@@ -1,0 +1,1 @@
+{"id":"3aa1c6fd6b92fa1f19339d8dd9c9fda7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/sso.test.ts#ssoTools ログインを開始していないときの状態確認の失敗も、宣言した型に適合する","name":"ログインを開始していないときの状態確認の失敗も、宣言した型に適合する","status":"passed","testResultsByEnv":{"default":"6fdb693c094a9ee22009f8da39e4b135"}}

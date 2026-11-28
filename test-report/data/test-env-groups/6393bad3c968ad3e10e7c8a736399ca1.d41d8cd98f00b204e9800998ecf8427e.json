@@ -1,0 +1,1 @@
+{"id":"6393bad3c968ad3e10e7c8a736399ca1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#振る舞いの項目のつなぎ collectVerifiedIds 引数がリテラルでない verifies を持つファイルでは、行の ID を数える","name":"引数がリテラルでない verifies を持つファイルでは、行の ID を数える","status":"passed","testResultsByEnv":{"default":"8c0c6426cb2db2e4e99980052f4837c9"}}

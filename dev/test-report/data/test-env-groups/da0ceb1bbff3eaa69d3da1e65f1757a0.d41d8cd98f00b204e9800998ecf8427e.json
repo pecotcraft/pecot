@@ -1,0 +1,1 @@
+{"id":"da0ceb1bbff3eaa69d3da1e65f1757a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh の .pecot/work 配下 cwd が base の work/1244 のとき、セッションの worktree に解決する","name":"cwd が base の work/1244 のとき、セッションの worktree に解決する","status":"passed","testResultsByEnv":{"default":"63591b49e1b45612dfe6f60ad761d870"}}

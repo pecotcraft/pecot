@@ -1,0 +1,1 @@
+{"id":"6347d0b78ab69f6aba4243e6ddf0f9e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#formatValidationError エラーの場所が空の場合は場所の行を表示せず、1 件の場合は単数形にする","name":"エラーの場所が空の場合は場所の行を表示せず、1 件の場合は単数形にする","status":"passed","testResultsByEnv":{"default":"f712e193ee2b040e9768918e84988b92"}}

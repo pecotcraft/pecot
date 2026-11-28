@@ -1,0 +1,1 @@
+{"id":"077913154d2e1e8a77cf05637a83a6c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — extraHeaders extraHeaders で value が数値 の場合は、拒否する","name":"extraHeaders で value が数値 の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"7d3bc345d0e5e9b8d8a9a61afb9cda29"}}

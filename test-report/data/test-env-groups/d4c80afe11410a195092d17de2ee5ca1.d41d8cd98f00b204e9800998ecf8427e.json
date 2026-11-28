@@ -1,0 +1,1 @@
+{"id":"d4c80afe11410a195092d17de2ee5ca1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#createProject プロジェクトの作成で projectV2 が null の場合は、GitHubAPIError が発生する","name":"プロジェクトの作成で projectV2 が null の場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"c05a356d1531c774d30b233aa398f276"}}

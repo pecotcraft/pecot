@@ -1,0 +1,1 @@
+{"id":"17ab887efd2c124f2ab0c7d032217170.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/work-start.test.ts#inferStackedBase 判定が startable のときは、git を調べずに開発ブランチからの着手として返す","name":"判定が startable のときは、git を調べずに開発ブランチからの着手として返す","status":"passed","testResultsByEnv":{"default":"9c83dd54ca8c20df5f4c443107ff6b8c"}}

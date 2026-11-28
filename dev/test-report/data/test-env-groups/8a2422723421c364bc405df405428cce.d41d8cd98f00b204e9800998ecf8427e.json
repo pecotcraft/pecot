@@ -1,0 +1,1 @@
+{"id":"8a2422723421c364bc405df405428cce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/issue-surface-extract.test.ts#issue-surface-extract.ts --out を指定しない と、usage を出力して終了コード 2 で終了し、取得しない","name":"--out を指定しない と、usage を出力して終了コード 2 で終了し、取得しない","status":"passed","testResultsByEnv":{"default":"8ae0ad7871bb11fc86e20ae7c4a93426"}}

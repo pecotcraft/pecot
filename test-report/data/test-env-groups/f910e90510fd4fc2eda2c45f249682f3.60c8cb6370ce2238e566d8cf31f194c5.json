@@ -1,0 +1,1 @@
+{"id":"f910e90510fd4fc2eda2c45f249682f3.60c8cb6370ce2238e566d8cf31f194c5","fullName":".githooks.tests.test_pages_release#test_cli_report_rejects_wrong_arguments","name":"CLI は、引数が ['--report', 'release', '--record', 'x.json'] だと、終了コード 2 で終わり、--report は --record を出力する","status":"passed","testResultsByEnv":{"default":"645cda5648ac0c4ead94d4003a0f00bc"}}

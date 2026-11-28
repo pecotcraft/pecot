@@ -1,0 +1,1 @@
+{"id":"a83a2f64f3949969ffd616672bc72b11.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#addIssueComment 本文を渡した場合は、コメントを POST し、応答のコメントを返す","name":"本文を渡した場合は、コメントを POST し、応答のコメントを返す","status":"passed","testResultsByEnv":{"default":"e08e63bef76bd76f2df8aeb784ab1afe"}}

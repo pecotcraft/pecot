@@ -1,0 +1,1 @@
+{"id":"b41be36272c193d11bfd41647e9ae0e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry キャッシュの実体が欠けている場合（meta のみ削除）は、キャッシュを使わない扱いにする","name":"キャッシュの実体が欠けている場合（meta のみ削除）は、キャッシュを使わない扱いにする","status":"passed","testResultsByEnv":{"default":"132e93134ba66079e0b8cbafe967fd7d"}}

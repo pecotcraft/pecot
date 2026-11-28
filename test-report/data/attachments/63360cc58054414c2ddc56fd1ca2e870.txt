@@ -1,0 +1,1 @@
+error: PR title scope must be p-w (given: libs,p-w; computed from the tags of the changed nx projects)

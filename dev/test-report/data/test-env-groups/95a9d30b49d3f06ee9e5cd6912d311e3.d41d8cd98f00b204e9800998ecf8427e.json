@@ -1,0 +1,1 @@
+{"id":"95a9d30b49d3f06ee9e5cd6912d311e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/gitignore-spec.test.ts#patternToRegex 否定パターンは include が false、通常のパターンは true になる","name":"否定パターンは include が false、通常のパターンは true になる","status":"passed","testResultsByEnv":{"default":"668ca559b44bf07aa305c517d9c375b7"}}

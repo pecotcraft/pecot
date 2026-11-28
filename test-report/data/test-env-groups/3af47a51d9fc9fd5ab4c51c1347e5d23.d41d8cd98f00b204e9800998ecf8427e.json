@@ -1,0 +1,1 @@
+{"id":"3af47a51d9fc9fd5ab4c51c1347e5d23.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_dev_sources#test_resolve_takes_pull_request_lanes_from_the_pr_run","name":"マージキューが省いたレーンは、lane-sources が指す PR の run の結果を、キューのコミットの結果として使う","status":"passed","testResultsByEnv":{"default":"0f7b4495872c41a7afff7f933474d5ee"}}

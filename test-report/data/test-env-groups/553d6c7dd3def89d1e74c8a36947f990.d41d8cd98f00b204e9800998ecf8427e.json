@@ -1,0 +1,1 @@
+{"id":"553d6c7dd3def89d1e74c8a36947f990.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template lang が html ではない template は読まず、html の template は読む","name":"lang が html ではない template は読まず、html の template は読む","status":"passed","testResultsByEnv":{"default":"45f3eefc657f27a006d1e3aafd6744a4"}}

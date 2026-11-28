@@ -1,0 +1,1 @@
+{"id":"94c27acfb65b4cbd51665237e86102db.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#injectDomToPptx 注入が成功した場合と失敗した場合のどちらでも、タイムアウト用のタイマーを残さない","name":"注入が成功した場合と失敗した場合のどちらでも、タイムアウト用のタイマーを残さない","status":"passed","testResultsByEnv":{"default":"63d83e6aeac1dcb3879f5466206f59b1"}}

@@ -1,0 +1,1 @@
+{"id":"67bdb1041de881004bb2cd22f9a4b703.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start 設定に fields.status が無いと、何も読まずに project_activate を案内して止まる","name":"設定に fields.status が無いと、何も読まずに project_activate を案内して止まる","status":"passed","testResultsByEnv":{"default":"b3306e386d3c37ea85b2840082666eb0"}}

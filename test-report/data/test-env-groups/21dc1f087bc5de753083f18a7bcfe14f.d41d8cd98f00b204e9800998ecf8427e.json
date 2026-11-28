@@ -1,0 +1,1 @@
+{"id":"21dc1f087bc5de753083f18a7bcfe14f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#isLabelWrittenByAutomation 最後の Bot の結果が out-of-scope の場合は、前に待ちの結果があっても false を返す","name":"最後の Bot の結果が out-of-scope の場合は、前に待ちの結果があっても false を返す","status":"passed","testResultsByEnv":{"default":"703c43bd789a982d04ce4b53e15c4974"}}

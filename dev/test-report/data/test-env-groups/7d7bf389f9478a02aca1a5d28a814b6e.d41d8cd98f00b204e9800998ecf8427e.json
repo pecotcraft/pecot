@@ -1,0 +1,1 @@
+{"id":"7d7bf389f9478a02aca1a5d28a814b6e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/errors.test.ts#isClosedByAnotherRequest 状態 422・本文 undefined の場合は、false を返す","name":"状態 422・本文 undefined の場合は、false を返す","status":"passed","testResultsByEnv":{"default":"9a6c4896320b63310aba170275a02ab9"}}

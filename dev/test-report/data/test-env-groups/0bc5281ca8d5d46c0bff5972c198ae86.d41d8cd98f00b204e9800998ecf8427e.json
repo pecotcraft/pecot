@@ -1,0 +1,1 @@
+{"id":"0bc5281ca8d5d46c0bff5972c198ae86.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: コードフェンス・インラインコード・HTML コメントのマスク（#962） 複数行の HTML コメントも、検証の対象にしない","name":"複数行の HTML コメントも、検証の対象にしない","status":"passed","testResultsByEnv":{"default":"1b2743e43d4595b1d087a1fa6e3489ac"}}

@@ -1,0 +1,1 @@
+{"id":"bcd0d6cb0cad101a28dca2bd838db376.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#REST の要求 時間切れは TransportFailure（Python の ReadTimeout の文）","name":"時間切れは TransportFailure（Python の ReadTimeout の文）","status":"passed","testResultsByEnv":{"default":"66fd840fc95165860b07fd86aae43ae0"}}

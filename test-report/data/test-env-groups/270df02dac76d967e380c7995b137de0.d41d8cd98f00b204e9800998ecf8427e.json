@@ -1,0 +1,1 @@
+{"id":"270df02dac76d967e380c7995b137de0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: コードフェンス・インラインコード・HTML コメントのマスク（#962） リストの項目の下にある字下げされたフェンスも、中身を検証の対象にしない","name":"リストの項目の下にある字下げされたフェンスも、中身を検証の対象にしない","status":"passed","testResultsByEnv":{"default":"bf8e814593e8b50cc71ada0292ed48ae"}}

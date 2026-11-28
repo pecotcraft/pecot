@@ -1,0 +1,1 @@
+ERROR: 未対応の引数: --bogus (使用可能: --dist=<dir>|--tag=<tag>|--package=<name>|--version=<ver>|--repo-root=<dir>|--dry-run)

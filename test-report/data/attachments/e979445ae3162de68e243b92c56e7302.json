@@ -1,0 +1,2747 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-visual",
+      "version": "4.0.2"
+    }
+  },
+  "ttlMs": 0,
+  "cacheScope": "private",
+  "tools": [
+    {
+      "name": "slide_create",
+      "title": "Create Slidev deck",
+      "description": "Generates a new talk-dir that references the Slidev theme given by `theme`. The theme is specified by a git URL with a tag (`git+https://<host>/<owner>/<repo>.git#<tag>`) or a local path (`file:<path>`). Returns the presentation categories (categories) and the list of selectable layouts (layouts). Also returns the lint result of the whole deck right after generation (generation counts as successful even with lint violations).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_dir": {
+            "type": "string",
+            "description": "Absolute path of the destination directory. Specify a place where the calling agent has write permission for later edits (e.g. under the working directory). Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "theme": {
+            "type": "string",
+            "description": "Theme to reference (required): `git+https://<host>/<owner>/<repo>.git#<tag>` or `file:<absolute path>`. A git URL without a tag is not accepted."
+          },
+          "force": {
+            "default": false,
+            "description": "Delete and overwrite when the destination already exists",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_dir",
+          "theme"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "slide.create.done on success; slide.create.error or runtime-dependencies.unavailable on failure (omitted when a path argument is rejected)"
+          },
+          "projectDir": {
+            "type": "string",
+            "description": "Absolute path of the generated talk-dir (success only)"
+          },
+          "theme": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Package name of the theme"
+              },
+              "spec": {
+                "type": "string",
+                "description": "Theme specification written to the dependencies of package.json"
+              }
+            },
+            "required": [
+              "name",
+              "spec"
+            ],
+            "additionalProperties": false,
+            "description": "Theme the talk-dir references (success only)"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Category ID that layouts[].category refers to"
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Display name of the category"
+                },
+                "question": {
+                  "type": "string",
+                  "description": "Question that tells when to choose the category"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "question"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Presentation categories declared by the theme (success only)"
+          },
+          "layouts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "layout": {
+                  "type": "string",
+                  "description": "Layout name"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What the layout is for"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Category ID (uncategorized when unset or unknown)"
+                },
+                "deprecated": {
+                  "type": "boolean",
+                  "description": "Whether the layout is deprecated (not to be chosen)"
+                },
+                "filename": {
+                  "type": "string",
+                  "description": "File name of the reference yaml"
+                }
+              },
+              "required": [
+                "layout",
+                "description",
+                "category",
+                "deprecated",
+                "filename"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Selectable layouts (hidden layouts are excluded) (success only)"
+          },
+          "lint": {
+            "type": "object",
+            "properties": {
+              "skipped": {
+                "type": "boolean",
+                "description": "Whether the lint could not run (the generation or sync still succeeds)"
+              },
+              "detail": {
+                "description": "Why the lint could not run (only when skipped)",
+                "type": "string"
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "clean",
+                  "violations",
+                  "no-target"
+                ],
+                "description": "clean (no violations), violations (some found), no-target (no file to lint)"
+              },
+              "lintedFileCount": {
+                "type": "number",
+                "description": "Number of files linted"
+              },
+              "errorCount": {
+                "type": "number",
+                "description": "Number of errors"
+              },
+              "warningCount": {
+                "type": "number",
+                "description": "Number of warnings"
+              },
+              "violations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "file": {
+                      "type": "string",
+                      "description": "Path relative to the talk-dir (absolute when outside it)"
+                    },
+                    "line": {
+                      "type": "number"
+                    },
+                    "column": {
+                      "type": "number"
+                    },
+                    "rule": {
+                      "type": "string",
+                      "description": "Rule ID"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "file",
+                    "line",
+                    "column",
+                    "rule",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Violations found"
+              },
+              "skippedSymlinkDirectories": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Symlinked directories under pages/ that were not linted (relative to the talk-dir)"
+              }
+            },
+            "required": [
+              "skipped"
+            ],
+            "additionalProperties": false,
+            "description": "Lint result of the whole deck (success only)"
+          },
+          "expectedAt": {
+            "description": "Where the missing runtime dependencies or Playwright Chromium are expected (failure only, kind runtime-dependencies-not-installed / chromium-not-installed / chromium-install-failed)",
+            "type": "string"
+          },
+          "invalidPaths": {
+            "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "convertedPaths": {
+            "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Value that was passed"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Path it was converted to"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "event",
+              "projectDir",
+              "theme",
+              "categories",
+              "layouts",
+              "lint"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "slide_convert",
+      "title": "Convert Slidev to PPTX",
+      "description": "Converts a Slidev project to PPTX. The duration is proportional to the number of slides (just under 30 seconds for 55 slides).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "project_dir": {
+            "type": "string",
+            "description": "Absolute path of the Slidev project directory. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "out_path": {
+            "description": "Absolute path of the output .pptx. If omitted, <project_dir>/pptx/<title of slides.md | basename>.pptx. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "theme": {
+            "description": "Name passed to slidev --theme (allowed characters: [a-zA-Z0-9@/_.-])",
+            "type": "string"
+          },
+          "spacing_json_path": {
+            "description": "Absolute path of the letter-spacing JSON. If omitted, staging/slides/letter-spacing.json is auto-detected. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "href_json_path": {
+            "description": "Absolute path of the hyperlink JSON. If omitted, staging/slides/href-map.json is auto-detected. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          },
+          "transition_type": {
+            "description": "Slide transition type (default: fade)",
+            "type": "string",
+            "enum": [
+              "fade",
+              "morph"
+            ]
+          },
+          "transition_duration_ms": {
+            "description": "Slide transition duration, as a positive integer in milliseconds (default: 500)",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "morph_option": {
+            "description": "Granularity of the morph transition. Only meaningful when transition_type=morph",
+            "type": "string",
+            "enum": [
+              "byObject",
+              "byWord",
+              "byChar"
+            ]
+          },
+          "cache": {
+            "default": true,
+            "description": "Whether to read the diff cache. Even with false, the cache is rebuilt when the conversion completes",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "project_dir"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "slide.convert.done on success; slide.convert.error, runtime-dependencies.unavailable or chromium.unavailable on failure (omitted when a path argument is rejected)"
+          },
+          "input": {
+            "type": "string",
+            "description": "Absolute path of the converted Slidev project (success only)"
+          },
+          "output": {
+            "type": "string",
+            "description": "Absolute path of the written .pptx (success only)"
+          },
+          "durationMs": {
+            "type": "number",
+            "description": "Time the conversion took in milliseconds (success only)"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "level": {
+                  "type": "string",
+                  "description": "slide or element"
+                },
+                "slideNumber": {
+                  "type": "number"
+                },
+                "selector": {
+                  "description": "CSS selector of the element (element level only)",
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "level",
+                "message"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Conversion errors per slide or element (empty when none). Element-level errors do not fail the call. Returned on success and on slide.convert.error"
+          },
+          "animationTimingRemovedSlides": {
+            "type": "number",
+            "description": "Number of slides whose p:timing from decorative CSS animations was removed (success only)"
+          },
+          "timings": {
+            "description": "Time spent per stage in milliseconds (success only, when measured)",
+            "type": "object",
+            "properties": {
+              "scan": {
+                "type": "number"
+              },
+              "phase1": {
+                "type": "number"
+              },
+              "phase2": {
+                "type": "number"
+              },
+              "perSlide": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Step, as <slide> or <slide>/<click>"
+                    },
+                    "elapsedMs": {
+                      "type": "number"
+                    },
+                    "cache": {
+                      "type": "string",
+                      "enum": [
+                        "hit",
+                        "miss"
+                      ]
+                    },
+                    "phases": {
+                      "description": "Time per phase in milliseconds (converted steps only)",
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "elapsedMs"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "outer": {
+                "type": "object",
+                "properties": {
+                  "cleanBuild": {
+                    "type": "number"
+                  },
+                  "slidevBuild": {
+                    "type": "number"
+                  },
+                  "pipeline": {
+                    "type": "number"
+                  },
+                  "mergeAndPostprocess": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "cleanBuild",
+                  "slidevBuild",
+                  "pipeline",
+                  "mergeAndPostprocess"
+                ],
+                "additionalProperties": false
+              },
+              "singlePass": {
+                "description": "Timing of the single-pass route (only when it was tried)",
+                "type": "object",
+                "properties": {},
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "scan",
+              "phase1",
+              "phase2",
+              "perSlide",
+              "outer"
+            ],
+            "additionalProperties": false
+          },
+          "cache": {
+            "description": "Diff cache result (success only, when the cache was handled)",
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the diff cache was used"
+              },
+              "hits": {
+                "type": "number"
+              },
+              "misses": {
+                "type": "number"
+              },
+              "invalidated": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "all:env",
+                  "all:manifest",
+                  "all:key",
+                  "all:error",
+                  "partial"
+                ],
+                "description": "How existing cache entries were invalidated"
+              }
+            },
+            "required": [
+              "enabled",
+              "hits",
+              "misses",
+              "invalidated"
+            ],
+            "additionalProperties": false
+          },
+          "expectedAt": {
+            "description": "Where the missing runtime dependencies or Playwright Chromium are expected (failure only, kind runtime-dependencies-not-installed / chromium-not-installed / chromium-install-failed)",
+            "type": "string"
+          },
+          "invalidPaths": {
+            "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "convertedPaths": {
+            "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Value that was passed"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Path it was converted to"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "event",
+              "input",
+              "output",
+              "durationMs",
+              "errors",
+              "animationTimingRemovedSlides"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "slide_sync",
+      "title": "Sync Slidev deck",
+      "description": "Syncs an existing talk-dir. A pre-migration talk-dir (one that holds a copy of the template; slide_dev and others stop with theme-none) is moved to a form that references the theme given by `theme`. Files that came from the template are deleted, and the work area (slides.md / pages/*.md / public/slides/) is kept. The deleted names are returned in migration.removed. A migrated talk-dir that references a theme (theme: in slides.md points to the theme in dependencies of package.json) fetches the theme at the version in the dependency and relinks node_modules, and aligns the generated files (vite.config.ts, start.mjs) with the current content of the plugin. Other files are left unchanged. To raise the theme version, rewrite the #<tag> of the dependency in package.json before calling. Returns the presentation categories (categories), the list of selectable layouts (layouts), and the lint result of the whole deck after the sync. A running slide_dev must be stopped with stop: true and started again.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "dir": {
+            "type": "string",
+            "description": "Absolute path of the talk-dir to sync. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "theme": {
+            "description": "Theme the pre-migration talk-dir should reference: `git+https://<host>/<owner>/<repo>.git#<tag>` or `file:<absolute path>`. Required for a pre-migration talk-dir (one that holds a copy of the template). Not used for a migrated talk-dir",
+            "type": "string"
+          },
+          "node_modules_only": {
+            "default": false,
+            "description": "Only relink node_modules. The theme in package.json is fetched first, then linked (no network access if it is already fetched). A migrated talk-dir that references a theme behaves the same even when this is omitted. The generated files (vite.config.ts, start.mjs) are also aligned with the current content of the plugin. Cannot be specified together with theme",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "dir"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "slide.sync.done on success; slide.sync.error or runtime-dependencies.unavailable on failure (omitted when a path argument is rejected)"
+          },
+          "dir": {
+            "type": "string",
+            "description": "Absolute path of the synced talk-dir (success only)"
+          },
+          "nodeModulesTarget": {
+            "type": "string",
+            "description": "Where node_modules of the talk-dir links to (success only)"
+          },
+          "nodeModulesOnly": {
+            "type": "boolean",
+            "description": "Whether only node_modules was relinked (success only)"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Package name of the theme"
+                  },
+                  "spec": {
+                    "type": "string",
+                    "description": "Theme specification in the dependencies of package.json"
+                  },
+                  "directory": {
+                    "type": "string",
+                    "description": "Absolute path of the theme root"
+                  }
+                },
+                "required": [
+                  "name",
+                  "spec",
+                  "directory"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Theme the talk-dir references, or null when it references none (success only)"
+          },
+          "migration": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "removed": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Names of the files from the template that were deleted"
+                  }
+                },
+                "required": [
+                  "removed"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Result of moving a pre-migration talk-dir onto the theme, or null when it was not moved (success only)"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Category ID that layouts[].category refers to"
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Display name of the category"
+                },
+                "question": {
+                  "type": "string",
+                  "description": "Question that tells when to choose the category"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "question"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Presentation categories declared by the theme (success only)"
+          },
+          "layouts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "layout": {
+                  "type": "string",
+                  "description": "Layout name"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What the layout is for"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Category ID (uncategorized when unset or unknown)"
+                },
+                "deprecated": {
+                  "type": "boolean",
+                  "description": "Whether the layout is deprecated (not to be chosen)"
+                },
+                "filename": {
+                  "type": "string",
+                  "description": "File name of the reference yaml"
+                }
+              },
+              "required": [
+                "layout",
+                "description",
+                "category",
+                "deprecated",
+                "filename"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Selectable layouts (hidden layouts are excluded) (success only)"
+          },
+          "lint": {
+            "type": "object",
+            "properties": {
+              "skipped": {
+                "type": "boolean",
+                "description": "Whether the lint could not run (the generation or sync still succeeds)"
+              },
+              "detail": {
+                "description": "Why the lint could not run (only when skipped)",
+                "type": "string"
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "clean",
+                  "violations",
+                  "no-target"
+                ],
+                "description": "clean (no violations), violations (some found), no-target (no file to lint)"
+              },
+              "lintedFileCount": {
+                "type": "number",
+                "description": "Number of files linted"
+              },
+              "errorCount": {
+                "type": "number",
+                "description": "Number of errors"
+              },
+              "warningCount": {
+                "type": "number",
+                "description": "Number of warnings"
+              },
+              "violations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "file": {
+                      "type": "string",
+                      "description": "Path relative to the talk-dir (absolute when outside it)"
+                    },
+                    "line": {
+                      "type": "number"
+                    },
+                    "column": {
+                      "type": "number"
+                    },
+                    "rule": {
+                      "type": "string",
+                      "description": "Rule ID"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "file",
+                    "line",
+                    "column",
+                    "rule",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Violations found"
+              },
+              "skippedSymlinkDirectories": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Symlinked directories under pages/ that were not linted (relative to the talk-dir)"
+              }
+            },
+            "required": [
+              "skipped"
+            ],
+            "additionalProperties": false,
+            "description": "Lint result of the whole deck (success only)"
+          },
+          "expectedAt": {
+            "description": "Where the missing runtime dependencies or Playwright Chromium are expected (failure only, kind runtime-dependencies-not-installed / chromium-not-installed / chromium-install-failed)",
+            "type": "string"
+          },
+          "invalidPaths": {
+            "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "convertedPaths": {
+            "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Value that was passed"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Path it was converted to"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "event",
+              "dir",
+              "nodeModulesTarget",
+              "nodeModulesOnly",
+              "theme",
+              "migration",
+              "categories",
+              "layouts",
+              "lint"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "slide_lint",
+      "title": "Lint Slidev deck",
+      "description": "Lints the whole talk-dir (pages/**/*.md and slides.md) and returns the list of violations. The call itself succeeds even with violations; outcome is violations when any are found.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "dir": {
+            "type": "string",
+            "description": "Absolute path of the talk-dir to lint. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          }
+        },
+        "required": [
+          "dir"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "slide.lint.done or slide.lint.violations on success, slide.lint.error on failure (omitted when a path argument is rejected)"
+          },
+          "dir": {
+            "type": "string",
+            "description": "Absolute path of the linted talk-dir (success only)"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "clean",
+              "violations",
+              "no-target"
+            ],
+            "description": "clean (no violations), violations (some found), no-target (no file to lint) (success only)"
+          },
+          "lintedFileCount": {
+            "type": "number",
+            "description": "Number of files linted (success only)"
+          },
+          "errorCount": {
+            "type": "number",
+            "description": "Number of errors (success only)"
+          },
+          "warningCount": {
+            "type": "number",
+            "description": "Number of warnings (success only)"
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "description": "Path relative to the talk-dir (absolute when outside it)"
+                },
+                "line": {
+                  "type": "number"
+                },
+                "column": {
+                  "type": "number"
+                },
+                "rule": {
+                  "type": "string",
+                  "description": "Rule ID"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "file",
+                "line",
+                "column",
+                "rule",
+                "message"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Violations found (success only)"
+          },
+          "skippedSymlinkDirectories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Symlinked directories under pages/ that were not linted (relative to the talk-dir) (success only)"
+          },
+          "invalidPaths": {
+            "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "convertedPaths": {
+            "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Value that was passed"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Path it was converted to"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "event",
+              "dir",
+              "outcome",
+              "lintedFileCount",
+              "errorCount",
+              "warningCount",
+              "violations",
+              "skippedSymlinkDirectories"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "slide_dev",
+      "title": "Start Slidev preview",
+      "description": "Starts the Slidev dev server of a talk-dir and returns a URL that opens in a browser (url). The port can be set with port; if omitted, a free port from 3030 to 3034 is used. Calling again for the same talk-dir returns the running server as it is (reused: true). Set stop: true to stop it. The server runs only while the MCP server process is alive; the preview ends with the session.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "dir": {
+            "type": "string",
+            "description": "Absolute path of the talk-dir to start the Slidev dev server for. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "port": {
+            "description": "Port to start on. If it is in use, the call fails instead of moving to another port. If omitted, ports 3030 to 3034 are tried in ascending order and the first free one is used. Specifying a different port for a talk-dir that is already running reopens it on that port",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "stop": {
+            "default": false,
+            "description": "Stop the dev server of the talk-dir when true (arguments other than dir have no effect when stopping)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "dir"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "slide.dev.started, slide.dev.reused or slide.dev.stopped on success; slide.dev.error or runtime-dependencies.unavailable on failure (omitted when a path argument is rejected)"
+          },
+          "dir": {
+            "type": "string",
+            "description": "Absolute path of the talk-dir (on success, and on failure with slide.dev.error)"
+          },
+          "url": {
+            "description": "URL that opens the preview in a browser (success only, when started or reused)",
+            "type": "string"
+          },
+          "port": {
+            "description": "Port the server listens on (success only; when stopping, only if a server was running)",
+            "type": "number"
+          },
+          "reused": {
+            "description": "Whether the running server was returned as it is (success only, when started or reused)",
+            "type": "boolean"
+          },
+          "pid": {
+            "description": "Process ID of the dev server, for stopping it by hand (success only, when known)",
+            "type": "number"
+          },
+          "stopped": {
+            "description": "Whether a running server was stopped (success only, with stop: true)",
+            "type": "boolean"
+          },
+          "expectedAt": {
+            "description": "Where the missing runtime dependencies or Playwright Chromium are expected (failure only, kind runtime-dependencies-not-installed / chromium-not-installed / chromium-install-failed)",
+            "type": "string"
+          },
+          "invalidPaths": {
+            "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "convertedPaths": {
+            "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Value that was passed"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Path it was converted to"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "event",
+              "dir"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "slide_page",
+      "title": "Create Slidev page",
+      "description": "Generates a skeleton page for one layout under pages/ of the talk-dir, and returns the specification of that layout (props / text_constraints / clicks / best_practices / anti_patterns / examples). The specification is returned in reference and includes. Decide the presentation style from the categories (categories) in the slide_create / slide_sync response, then choose the layout name from layouts of that category (passing an unknown name returns categories and layouts in the response). The generated page must be registered separately as a src: entry in slides.md.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "layout": {
+            "type": "string",
+            "description": "Layout name. Decide the presentation style from the categories (categories) in the slide_create / slide_sync response, then choose from the names in layouts that belong to that category"
+          },
+          "dir": {
+            "type": "string",
+            "description": "Absolute path of the talk-dir to generate the page in. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "file": {
+            "type": "string",
+            "description": "File name to generate directly under pages/ (.md may be omitted). Names with path separators or starting with a digit are not accepted"
+          },
+          "force": {
+            "default": false,
+            "description": "Overwrite when a page with the same name already exists",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "layout",
+          "dir",
+          "file"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "slide.page.done on success, slide.page.error on failure (omitted when a path argument is rejected)"
+          },
+          "layout": {
+            "type": "string",
+            "description": "Layout name of the generated page (success only)"
+          },
+          "category": {
+            "type": "string",
+            "description": "Category ID of the layout (success only)"
+          },
+          "deprecated": {
+            "type": "boolean",
+            "description": "Whether the layout is deprecated (success only)"
+          },
+          "path": {
+            "type": "string",
+            "description": "Absolute path of the written page (success only)"
+          },
+          "skeleton": {
+            "type": "string",
+            "description": "Frontmatter written to the page (success only)"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Full text of the reference yaml of the layout (success only)"
+          },
+          "includes": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Full text of the shared yaml files the reference yaml includes, keyed by name (success only; empty when none)"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Category ID that layouts[].category refers to"
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Display name of the category"
+                },
+                "question": {
+                  "type": "string",
+                  "description": "Question that tells when to choose the category"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "question"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Presentation categories declared by the theme (failure only, kind unknown-layout)"
+          },
+          "layouts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "layout": {
+                  "type": "string",
+                  "description": "Layout name"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What the layout is for"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Category ID (uncategorized when unset or unknown)"
+                },
+                "deprecated": {
+                  "type": "boolean",
+                  "description": "Whether the layout is deprecated (not to be chosen)"
+                },
+                "filename": {
+                  "type": "string",
+                  "description": "File name of the reference yaml"
+                }
+              },
+              "required": [
+                "layout",
+                "description",
+                "category",
+                "deprecated",
+                "filename"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Selectable layouts (hidden layouts are excluded) (failure only, kind unknown-layout)"
+          },
+          "invalidPaths": {
+            "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "convertedPaths": {
+            "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Value that was passed"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Path it was converted to"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "event",
+              "layout",
+              "category",
+              "deprecated",
+              "path",
+              "skeleton",
+              "reference",
+              "includes"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "slide_theme",
+      "title": "Get Slidev theme",
+      "description": "Returns the theme declaration referenced by a talk-dir and the list of layouts. The declaration covers fonts, font sizes, PPTX fonts and link colors, and lint rules. Skills use it to obtain theme values.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "dir": {
+            "type": "string",
+            "description": "Absolute path of the talk-dir whose theme to inspect. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          }
+        },
+        "required": [
+          "dir"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "slide.theme.done on success, slide.theme.error on failure (omitted when a path argument is rejected)"
+          },
+          "theme": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Package name of the theme"
+              },
+              "spec": {
+                "type": "string",
+                "description": "Theme specification in the dependencies of package.json"
+              },
+              "declared": {
+                "type": "boolean",
+                "description": "Whether the theme has pecot-theme.json"
+              },
+              "directory": {
+                "type": "string",
+                "description": "Absolute path of the theme root"
+              },
+              "linked": {
+                "type": "boolean",
+                "description": "Whether the theme was found in node_modules directly under the talk-dir"
+              }
+            },
+            "required": [
+              "name",
+              "spec",
+              "declared",
+              "directory",
+              "linked"
+            ],
+            "additionalProperties": false,
+            "description": "Theme the talk-dir references (success only)"
+          },
+          "declaration": {
+            "type": "object",
+            "properties": {
+              "schema": {
+                "type": "number"
+              },
+              "slide": {
+                "type": "object",
+                "properties": {
+                  "width": {
+                    "type": "number"
+                  },
+                  "height": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "width",
+                  "height"
+                ],
+                "additionalProperties": false
+              },
+              "fonts": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "heading": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "eastAsian": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "body",
+                  "heading"
+                ],
+                "additionalProperties": false
+              },
+              "fontSizes": {
+                "type": "object",
+                "properties": {
+                  "heading": {
+                    "type": "number"
+                  },
+                  "headingSm": {
+                    "type": "number"
+                  },
+                  "body": {
+                    "type": "number"
+                  },
+                  "bodySm": {
+                    "type": "number"
+                  },
+                  "label": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "heading",
+                  "headingSm",
+                  "body",
+                  "bodySm",
+                  "label"
+                ],
+                "additionalProperties": false
+              },
+              "pptx": {
+                "type": "object",
+                "properties": {
+                  "eastAsianFont": {
+                    "type": "string"
+                  },
+                  "linkColor": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "lint": {
+                "type": "object",
+                "properties": {
+                  "rules": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "enum": [
+                        "error",
+                        "warn",
+                        "off"
+                      ]
+                    },
+                    "description": "Severity per lint rule ID"
+                  }
+                },
+                "required": [
+                  "rules"
+                ],
+                "additionalProperties": false
+              },
+              "layouts": {
+                "type": "object",
+                "properties": {
+                  "references": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "references"
+                ],
+                "additionalProperties": false
+              },
+              "drawio": {
+                "type": "object",
+                "properties": {
+                  "panels": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "width": {
+                          "type": "number"
+                        },
+                        "height": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "width",
+                        "height"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "Panel size of the diagram per layout name"
+                  },
+                  "markerLayouts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "panels",
+                  "markerLayouts"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "schema",
+              "slide",
+              "fonts",
+              "fontSizes",
+              "pptx",
+              "lint",
+              "layouts",
+              "drawio"
+            ],
+            "additionalProperties": false,
+            "description": "Theme declaration with omitted items filled with defaults (success only)"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Category ID that layouts[].category refers to"
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Display name of the category"
+                },
+                "question": {
+                  "type": "string",
+                  "description": "Question that tells when to choose the category"
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "question"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Presentation categories declared by the theme (success only)"
+          },
+          "layouts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "layout": {
+                  "type": "string",
+                  "description": "Layout name"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "What the layout is for"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Category ID (uncategorized when unset or unknown)"
+                },
+                "deprecated": {
+                  "type": "boolean",
+                  "description": "Whether the layout is deprecated (not to be chosen)"
+                },
+                "filename": {
+                  "type": "string",
+                  "description": "File name of the reference yaml"
+                }
+              },
+              "required": [
+                "layout",
+                "description",
+                "category",
+                "deprecated",
+                "filename"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Selectable layouts (hidden layouts are excluded) (success only)"
+          },
+          "lint": {
+            "type": "object",
+            "properties": {
+              "referencesDirectories": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Directories searched for reference yaml, in priority order"
+              },
+              "panels": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "width": {
+                      "type": "number"
+                    },
+                    "height": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "width",
+                    "height"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Panel size of the diagram per layout name"
+              },
+              "markerLayouts": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Layout names that have marker cells"
+              },
+              "rules": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string",
+                  "enum": [
+                    "error",
+                    "warn",
+                    "off"
+                  ]
+                },
+                "description": "Severity per lint rule ID"
+              }
+            },
+            "required": [
+              "referencesDirectories",
+              "panels",
+              "markerLayouts",
+              "rules"
+            ],
+            "additionalProperties": false,
+            "description": "Input passed to the deck lint (success only)"
+          },
+          "invalidPaths": {
+            "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "convertedPaths": {
+            "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Value that was passed"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Path it was converted to"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "event",
+              "theme",
+              "declaration",
+              "categories",
+              "layouts",
+              "lint"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "drawio_create",
+      "title": "Create draw.io diagram",
+      "description": "Turns drawio XML into a deliverable that opens directly in a browser. Writes viewer HTML (.html; opening it redirects to draw.io) to out_path and, by default, also writes a rendered PNG (useful for checking the rendering). icon:// references are resolved to data URIs and embedded. Before generating, it checks the diagram labels against the text rules and generates nothing if there is a violation. The font and font size are checked against the theme declaration (theme, or the theme of the talk-dir that is an ancestor of the diagram), and the result is returned in theme.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "input_path": {
+            "type": "string",
+            "description": "Absolute path of the input .drawio file. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "mode": {
+            "default": "view",
+            "type": "string",
+            "enum": [
+              "view",
+              "edit"
+            ],
+            "description": "Purpose of the generated URL (view / edit). The generated URL is the same for both"
+          },
+          "out_path": {
+            "type": "string",
+            "description": "Absolute path of the .html file to write the viewer HTML to (opening it redirects to draw.io). If omitted, only the URL is returned in url. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "theme": {
+            "type": "string",
+            "description": "Theme used to check the font and font size: `git+https://<host>/<owner>/<repo>.git#<tag>`, `file:<absolute path>`, or the absolute path of a talk-dir or a theme root. If omitted, the theme of the talk-dir is used when the diagram is under its `public/`; otherwise the built-in default (sans-serif) is used. When the diagram for a slide is placed outside the talk-dir, pass the absolute path of the talk-dir. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "png": {
+            "default": true,
+            "type": "boolean",
+            "description": "Whether to also write a PNG as a sibling file (<out_path with the extension replaced by .png>) when out_path is given"
+          }
+        },
+        "required": [
+          "input_path"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "drawio.url.done on success, drawio.url.error on failure (omitted when a path argument is rejected)"
+          },
+          "url": {
+            "description": "Generated draw.io URL (success only, when out_path is omitted)",
+            "type": "string"
+          },
+          "file": {
+            "description": "Absolute path of the written viewer HTML (success only, when out_path is given)",
+            "type": "string"
+          },
+          "png": {
+            "description": "Absolute path of the written PNG, or null when writing it failed (success only, when out_path is given and png is true)",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pngFailed": {
+            "description": "Whether writing the PNG failed (success only, when out_path is given and png is true)",
+            "type": "boolean"
+          },
+          "theme": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "talk-dir",
+                  "option",
+                  "default"
+                ],
+                "description": "Where the theme came from: talk-dir (ancestor talk-dir of the diagram), option (theme argument), default (built-in default)"
+              },
+              "name": {
+                "description": "Package name of the theme (omitted for the built-in default)",
+                "type": "string"
+              },
+              "fonts": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Body fonts the labels are checked against"
+                  },
+                  "eastAsian": {
+                    "description": "East Asian font (omitted when the theme does not declare one)",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "body"
+                ],
+                "additionalProperties": false,
+                "description": "Fonts the labels are checked against"
+              },
+              "fontSizes": {
+                "description": "Font sizes (px) the labels are checked against (only when the theme came from a talk-dir or the theme argument)",
+                "type": "object",
+                "properties": {
+                  "heading": {
+                    "type": "number"
+                  },
+                  "headingSm": {
+                    "type": "number"
+                  },
+                  "body": {
+                    "type": "number"
+                  },
+                  "bodySm": {
+                    "type": "number"
+                  },
+                  "label": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "heading",
+                  "headingSm",
+                  "body",
+                  "bodySm",
+                  "label"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "source",
+              "fonts"
+            ],
+            "additionalProperties": false,
+            "description": "Theme the font and font size were checked against (success only)"
+          },
+          "violations": {
+            "description": "Text rule violations (failure only, kind text-violation)",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "item": {
+                  "type": "string",
+                  "description": "Where the text is"
+                },
+                "ruleId": {
+                  "type": "string",
+                  "description": "ID of the violated rule"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "What is wrong"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "The checked text"
+                }
+              },
+              "required": [
+                "item",
+                "ruleId",
+                "message",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "invalidPaths": {
+            "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "convertedPaths": {
+            "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Value that was passed"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Path it was converted to"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "event",
+              "theme"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "drawio_export",
+      "title": "Export draw.io diagram",
+      "description": "Exports drawio XML to a static SVG and a sibling PDF. Set pdf: false to suppress the PDF. With print_hash, it exports nothing and returns only the composite hash used for staleness checks. It does not check the diagram text, so pass a .drawio that has gone through drawio_create.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "input_path": {
+            "type": "string",
+            "description": "Absolute path of the input .drawio file. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "icons_dir": {
+            "type": "string",
+            "description": "Absolute path of the root directory that resolves icon:// references. If omitted, <plugin-root>/assets/drawio-icons (the catalog bundled with the plugin) is used. Always specify it for diagrams that use a project-specific icon catalog (omitting it does not raise an error). Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "out_path": {
+            "type": "string",
+            "description": "Absolute path of the output SVG. If omitted, it is written to <input_path>.svg. The PDF is written to a sibling file (<out_path with the extension replaced by .pdf>). Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "print_hash": {
+            "default": false,
+            "type": "boolean",
+            "description": "Compute only the composite hash used for staleness checks, without exporting"
+          },
+          "pdf": {
+            "default": true,
+            "type": "boolean",
+            "description": "Whether to also write a PDF as a sibling file (<out_path with the extension replaced by .pdf>) alongside the SVG"
+          }
+        },
+        "required": [
+          "input_path"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "drawio.export.done after exporting, drawio.export.hash with print_hash, drawio.export.error or chromium.unavailable on failure (omitted when a path argument is rejected)"
+          },
+          "file": {
+            "type": "string",
+            "description": "Absolute path of the written SVG; with print_hash, the absolute path of the input (success only)"
+          },
+          "sourceSha256": {
+            "type": "string",
+            "description": "Composite hash of the input and the referenced icons, used for staleness checks (success only)"
+          },
+          "icons": {
+            "type": "number",
+            "description": "Number of icon:// references resolved (success only)"
+          },
+          "pdf": {
+            "description": "Absolute path of the written PDF, or null when no PDF was written (pdf is false or writing it failed; success only, not with print_hash)",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pdfFailed": {
+            "description": "Whether writing the PDF failed (success only, not with print_hash)",
+            "type": "boolean"
+          },
+          "expectedAt": {
+            "description": "Where the missing runtime dependencies or Playwright Chromium are expected (failure only, kind runtime-dependencies-not-installed / chromium-not-installed / chromium-install-failed)",
+            "type": "string"
+          },
+          "invalidPaths": {
+            "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "convertedPaths": {
+            "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Value that was passed"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Path it was converted to"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "event",
+              "file",
+              "sourceSha256",
+              "icons"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "evidence_create",
+      "title": "Create evidence workbook",
+      "description": "Generates a work-evidence xlsx with screenshots pasted in, from an EvidenceSpec JSON. Places the images listed in the spec in order and adds annotations. Before generating, it checks the title, captions and annotations against the text rules and generates nothing if there is a violation.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "input_path": {
+            "type": "string",
+            "description": "Absolute path of the EvidenceSpec JSON. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+          },
+          "out_path": {
+            "description": "Absolute path of the xlsx to write. If omitted, evidence.xlsx in the same directory as input_path. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input_path"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "result on success, evidence.create.error on failure (omitted when a path argument is rejected)"
+          },
+          "outPath": {
+            "type": "string",
+            "description": "Absolute path of the written xlsx (success only)"
+          },
+          "items": {
+            "type": "number",
+            "description": "Number of images placed (success only)"
+          },
+          "annotations": {
+            "type": "number",
+            "description": "Number of annotations added (success only)"
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path of the image as written in the spec"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "not-found",
+                    "unsupported-format",
+                    "unreadable"
+                  ],
+                  "description": "Why the image was skipped"
+                }
+              },
+              "required": [
+                "path",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Images that were skipped (success only; empty when none)"
+          },
+          "violations": {
+            "description": "Text rule violations (failure only, kind text-violation)",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "item": {
+                  "type": "string",
+                  "description": "Where the text is"
+                },
+                "ruleId": {
+                  "type": "string",
+                  "description": "ID of the violated rule"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "What is wrong"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "The checked text"
+                }
+              },
+              "required": [
+                "item",
+                "ruleId",
+                "message",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "invalidPaths": {
+            "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "convertedPaths": {
+            "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Value that was passed"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Path it was converted to"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "event",
+              "outPath",
+              "items",
+              "annotations",
+              "skipped"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "runtime_setup",
+      "title": "Set up runtime",
+      "description": "Downloads the runtime dependencies pecotv uses (@slidev/cli / dom-to-pptx / @slidev/parser, etc.) and Playwright Chromium. Call it when slide_create / slide_convert / slide_sync fail with \"runtime dependencies are not installed\", or when drawio_export / slide_convert / drawio_create PNG output fails with \"Playwright Chromium is not installed\". The first run downloads about 600MB of runtime dependencies and about 120MB of Chromium, so it takes tens of seconds. If OS libraries needed to launch Chromium are missing, it installs them with apt-get where sudo is available, and otherwise returns the command to install them. It skips what is already installed, so it finishes quickly and is safe to call repeatedly.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "setup.done when something was downloaded, setup.skipped when everything was already in place, setup.error on failure"
+          },
+          "runtime": {
+            "type": "object",
+            "properties": {
+              "installed": {
+                "type": "boolean",
+                "description": "Whether the runtime dependencies are in place after this run"
+              },
+              "downloaded": {
+                "type": "boolean",
+                "description": "Whether this run downloaded or installed the runtime dependencies"
+              },
+              "durationMs": {
+                "type": "number",
+                "description": "Time spent on this stage in milliseconds (0 when skipped)"
+              },
+              "location": {
+                "description": "Where they are placed (omitted when it cannot be determined)",
+                "type": "string"
+              },
+              "detail": {
+                "description": "Why the stage failed, or what it installed",
+                "type": "string"
+              }
+            },
+            "required": [
+              "installed",
+              "downloaded",
+              "durationMs"
+            ],
+            "additionalProperties": false,
+            "description": "Result of the runtime dependencies stage"
+          },
+          "chromium": {
+            "type": "object",
+            "properties": {
+              "installed": {
+                "type": "boolean",
+                "description": "Whether Playwright Chromium files are in place after this run"
+              },
+              "downloaded": {
+                "type": "boolean",
+                "description": "Whether this run downloaded or installed Playwright Chromium files"
+              },
+              "durationMs": {
+                "type": "number",
+                "description": "Time spent on this stage in milliseconds (0 when skipped)"
+              },
+              "location": {
+                "description": "Where they are placed (omitted when it cannot be determined)",
+                "type": "string"
+              },
+              "detail": {
+                "description": "Why the stage failed, or what it installed",
+                "type": "string"
+              }
+            },
+            "required": [
+              "installed",
+              "downloaded",
+              "durationMs"
+            ],
+            "additionalProperties": false,
+            "description": "Result of the Playwright Chromium stage"
+          },
+          "hostDeps": {
+            "type": "object",
+            "properties": {
+              "installed": {
+                "type": "boolean",
+                "description": "Whether the OS libraries required to launch Chromium are in place after this run"
+              },
+              "downloaded": {
+                "type": "boolean",
+                "description": "Whether this run downloaded or installed the OS libraries required to launch Chromium"
+              },
+              "durationMs": {
+                "type": "number",
+                "description": "Time spent on this stage in milliseconds (0 when skipped)"
+              },
+              "location": {
+                "description": "Where they are placed (omitted when it cannot be determined)",
+                "type": "string"
+              },
+              "detail": {
+                "description": "Why the stage failed, or what it installed",
+                "type": "string"
+              }
+            },
+            "required": [
+              "installed",
+              "downloaded",
+              "durationMs"
+            ],
+            "additionalProperties": false,
+            "description": "Result of the OS libraries stage (omitted when Chromium could not be placed)"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "event",
+              "runtime",
+              "chromium",
+              "hostDeps"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "file_lint",
+      "title": "Lint edited file",
+      "description": "Lints a file that was just written or edited. Slide pages and slides.md in a talk-dir are linted with the theme rules (eslint); other files are checked with the writing rules (pecot-text-lint) from the root of their git repository. Called by the PostToolUse hook after Write and Edit. Returns {} when there is nothing to report, otherwise hookSpecificOutput.additionalContext. Never fails.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path of the file that was written or edited (the hook passes tool_input.file_path)"
+          },
+          "cwd": {
+            "description": "Working directory of the session. Text rules for a file outside a git repository read .textlintignore from here",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_path"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "hookSpecificOutput": {
+            "description": "Present only when there is something to tell the agent",
+            "type": "object",
+            "properties": {
+              "hookEventName": {
+                "type": "string",
+                "const": "PostToolUse"
+              },
+              "additionalContext": {
+                "type": "string",
+                "description": "Notice passed to the agent"
+              }
+            },
+            "required": [
+              "hookEventName",
+              "additionalContext"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "file_validate",
+      "title": "Validate reference yaml",
+      "description": "Validates the reference yaml directory of a talk-dir when a yaml in it was edited, against the reference schema. Only directories listed in the theme lint.referencesDirectories are validated; _template.yaml is skipped. Called by the PostToolUse hook after Write and Edit. Returns {} when there is nothing to report, otherwise hookSpecificOutput.additionalContext. Never fails.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path of the file that was written or edited (the hook passes tool_input.file_path)"
+          },
+          "cwd": {
+            "description": "Working directory of the session. Text rules for a file outside a git repository read .textlintignore from here",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_path"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "hookSpecificOutput": {
+            "description": "Present only when there is something to tell the agent",
+            "type": "object",
+            "properties": {
+              "hookEventName": {
+                "type": "string",
+                "const": "PostToolUse"
+              },
+              "additionalContext": {
+                "type": "string",
+                "description": "Notice passed to the agent"
+              }
+            },
+            "required": [
+              "hookEventName",
+              "additionalContext"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "file_brief",
+      "title": "Brief layout conventions",
+      "description": "Returns the status, best_practices and anti_patterns sections, verbatim, of the reference yaml for the layout of an edited page under pages/ in a talk-dir, with the yaml path. It does not judge the page. Called by the PostToolUse hook after Write and Edit. Returns {} when there is nothing to report, otherwise hookSpecificOutput.additionalContext. Never fails.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path of the file that was written or edited (the hook passes tool_input.file_path)"
+          },
+          "cwd": {
+            "description": "Working directory of the session. Text rules for a file outside a git repository read .textlintignore from here",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file_path"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "hookSpecificOutput": {
+            "description": "Present only when there is something to tell the agent",
+            "type": "object",
+            "properties": {
+              "hookEventName": {
+                "type": "string",
+                "const": "PostToolUse"
+              },
+              "additionalContext": {
+                "type": "string",
+                "description": "Notice passed to the agent"
+              }
+            },
+            "required": [
+              "hookEventName",
+              "additionalContext"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

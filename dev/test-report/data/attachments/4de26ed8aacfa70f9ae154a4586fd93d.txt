@@ -1,0 +1,4 @@
+warning: target does not exist: /tmp/pecot-cli-ohPPWh/workspaces/base/demo/CLAUDE.local.md
+created: worktree wt1 at /tmp/pecot-cli-ohPPWh/workspaces/wt1/demo (branch wt1 from develop)
+count: symlinks created: 0
+count: symlinks skipped: 1

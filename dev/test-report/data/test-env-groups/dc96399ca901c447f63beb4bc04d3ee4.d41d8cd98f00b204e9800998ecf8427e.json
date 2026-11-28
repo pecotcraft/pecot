@@ -1,0 +1,1 @@
+{"id":"dc96399ca901c447f63beb4bc04d3ee4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/transforms.test.ts#applyMutation set-attr の場合は、未設定の属性を新しく追加する","name":"set-attr の場合は、未設定の属性を新しく追加する","status":"passed","testResultsByEnv":{"default":"d502cee4217fd55cbe3334eca6947d1b"}}

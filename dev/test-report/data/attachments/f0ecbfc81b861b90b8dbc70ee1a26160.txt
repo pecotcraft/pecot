@@ -1,0 +1,1 @@
+ERROR: 監査未実施のため中止: version plan の pecot-visual 関連の宣言を解釈できません: /tmp/bats-run-ZtRN2n/file/1/plans-pecotv-quoted/998-quoted.md

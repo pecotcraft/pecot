@@ -1,0 +1,1 @@
+{"id":"77812e052f4567f2b20d8f195d355d54.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: modern) slide_theme 宣言していないキーは、拒否せずに受理し、ハンドラへは渡さない","name":"宣言していないキーは、拒否せずに受理し、ハンドラへは渡さない","status":"passed","testResultsByEnv":{"default":"94e0c83d78c72e2959afa5d77d23c053"}}

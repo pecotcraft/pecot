@@ -1,0 +1,1 @@
+{"id":"5f0b2e2900a4f0df5def2e0e3a6ba254.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/page-compare/tests/compare-pages.bats#対応外の PNG（interlace）を渡すと、理由を stderr に出して終了コード 2 で終わる","name":"対応外の PNG（interlace）を渡すと、理由を stderr に出して終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"0dd2bc135b5b9949e61755427733d5a9"}}

@@ -1,0 +1,1 @@
+WARN: push 情報が無い（pre-commit の環境変数も pre-push の stdin も未取得）ため文章規則の適用を skip

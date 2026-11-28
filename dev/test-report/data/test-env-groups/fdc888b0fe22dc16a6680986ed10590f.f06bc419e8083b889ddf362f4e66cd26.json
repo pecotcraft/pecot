@@ -1,0 +1,1 @@
+{"id":"fdc888b0fe22dc16a6680986ed10590f.f06bc419e8083b889ddf362f4e66cd26","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_only_the_lanes_the_change_reaches","name":".githooks/scripts/tests/mcp-publish-common.bats を変更すると、その変更が届くテストのレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"bad7fe8d0f905b84bd36f10c26dfcb9d"}}

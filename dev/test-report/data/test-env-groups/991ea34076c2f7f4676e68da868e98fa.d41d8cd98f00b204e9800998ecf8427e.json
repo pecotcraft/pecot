@@ -1,0 +1,1 @@
+{"id":"991ea34076c2f7f4676e68da868e98fa.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_task_cache#test_entry_targets_only_bundle_lanes","name":"起点の test と lint は、同じ project のレーンだけを束ねる","status":"passed","testResultsByEnv":{"default":"4b3ae66ddf6ca1ca6ec6934747e95a61"}}

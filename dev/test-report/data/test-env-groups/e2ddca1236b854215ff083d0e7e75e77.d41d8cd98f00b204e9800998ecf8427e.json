@@ -1,0 +1,1 @@
+{"id":"e2ddca1236b854215ff083d0e7e75e77.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#resolveCommit と mergeBase 2 つの ref の merge-base を返し、共通の祖先がない場合は undefined を返す","name":"2 つの ref の merge-base を返し、共通の祖先がない場合は undefined を返す","status":"passed","testResultsByEnv":{"default":"cf05575d7381839c5ba5566f7772edda"}}

@@ -1,0 +1,1 @@
+{"id":"7510da3c84dd95564a89562a5957ae70.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish 待っている Issue 判定が変わった Issue を、stdout の Readiness changed の節に出す","name":"判定が変わった Issue を、stdout の Readiness changed の節に出す","status":"passed","testResultsByEnv":{"default":"12cc34b89bc1da789db78b7cf08f2a43"}}

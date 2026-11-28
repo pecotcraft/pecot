@@ -1,0 +1,1 @@
+reason=queue の commit の親が base でない

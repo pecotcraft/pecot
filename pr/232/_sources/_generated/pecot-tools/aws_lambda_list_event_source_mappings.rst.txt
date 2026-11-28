@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-LAMBDA-LIST-EVENT-SOURCE-MAPPINGS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+List event source mappings
+====================================================
+
+.. iface-defs:: pecot-tools PT-AWS-LAMBDA-LIST-EVENT-SOURCE-MAPPINGS

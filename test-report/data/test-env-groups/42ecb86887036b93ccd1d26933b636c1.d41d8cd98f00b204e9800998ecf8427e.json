@@ -1,0 +1,1 @@
+{"id":"42ecb86887036b93ccd1d26933b636c1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インライン HTML の Html ノード Markdown の断片として調べた場合と同じ件数と規則を返す: 閉じないコメント","name":"Markdown の断片として調べた場合と同じ件数と規則を返す: 閉じないコメント","status":"passed","testResultsByEnv":{"default":"d9d9f77360b432374cd0e644451ec6fb"}}

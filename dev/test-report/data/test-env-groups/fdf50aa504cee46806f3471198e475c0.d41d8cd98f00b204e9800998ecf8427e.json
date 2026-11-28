@@ -1,0 +1,1 @@
+{"id":"fdf50aa504cee46806f3471198e475c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool テーマの取得に失敗したら、原因ごとの reason と文言で止まり、spawn しない","name":"テーマの取得に失敗したら、原因ごとの reason と文言で止まり、spawn しない","status":"passed","testResultsByEnv":{"default":"bb69ae9f6fa563fe32c57572fccf532b"}}

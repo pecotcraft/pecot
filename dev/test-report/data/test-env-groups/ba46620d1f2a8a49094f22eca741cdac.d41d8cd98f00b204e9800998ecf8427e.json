@@ -1,0 +1,1 @@
+{"id":"ba46620d1f2a8a49094f22eca741cdac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — JPEG JPEG は、SOS に到達した場合は、SOF の探索をやめて、読み取れないものとして扱う","name":"JPEG は、SOS に到達した場合は、SOF の探索をやめて、読み取れないものとして扱う","status":"passed","testResultsByEnv":{"default":"e04057cc3531df04684d85ca449e177e"}}

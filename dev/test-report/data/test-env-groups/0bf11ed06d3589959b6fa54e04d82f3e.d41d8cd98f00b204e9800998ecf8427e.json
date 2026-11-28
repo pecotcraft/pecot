@@ -1,0 +1,1 @@
+{"id":"0bf11ed06d3589959b6fa54e04d82f3e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/text-rules-entry.test.ts#文章規則パッケージの参照 テストを除く cli/src の中で、文章規則のパッケージ名を含むファイルは infra/text-lint.ts だけにする","name":"テストを除く cli/src の中で、文章規則のパッケージ名を含むファイルは infra/text-lint.ts だけにする","status":"passed","testResultsByEnv":{"default":"64056a2e30a0acdd2775ae5ddde9c37e"}}

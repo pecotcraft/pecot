@@ -1,0 +1,1 @@
+{"id":"152ad602a128e6ece7d04f6ffb19f1aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 単引用符 のとき、引用符を含まない本文だけを切り出す","name":"単引用符 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"b0a74055f035eb990d5ecfa841260444"}}

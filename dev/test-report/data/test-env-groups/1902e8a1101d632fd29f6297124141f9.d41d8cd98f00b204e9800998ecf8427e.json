@@ -1,0 +1,1 @@
+{"id":"1902e8a1101d632fd29f6297124141f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#buildPicMediaMap rels が空の場合は、空の配列を返す","name":"rels が空の場合は、空の配列を返す","status":"passed","testResultsByEnv":{"default":"0a015b482e1cf95281cd2f7a46011262"}}

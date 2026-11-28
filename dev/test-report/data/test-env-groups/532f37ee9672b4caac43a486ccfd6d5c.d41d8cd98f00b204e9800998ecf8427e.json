@@ -1,0 +1,1 @@
+{"id":"532f37ee9672b4caac43a486ccfd6d5c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/entry.test.ts#main 修正版未満の Node.js では SDK を読み込まずに案内を stderr に出し exitCode 1 で終える","name":"修正版未満の Node.js では SDK を読み込まずに案内を stderr に出し exitCode 1 で終える","status":"passed","testResultsByEnv":{"default":"b7d37d85406240658d9584b37fdb9f18"}}

@@ -1,0 +1,1 @@
+{"id":"8a18b918d1a801a6791d3f6857a87023.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_setup_file_does_not_attach","name":"setup_file で run_attached を呼んでも、添付のファイルも結果の添付も作らない","status":"passed","testResultsByEnv":{"default":"0d70d26c8d69819d1545f01d09570faa"}}

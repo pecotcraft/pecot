@@ -1,0 +1,1 @@
+{"id":"747c8cc0635db6c64707777c574b6d7a.a42f11ea9e3e0ea81192cdf0ef66866e","fullName":".githooks.tests.test_nx_affected_mapping#test_pecot_workflow_sources_list_every_directory_of_cli_node_src","name":"../../libs/workflow-core/src の .ts を持つディレクトリは、すべて pecot-workflow の sources の glob に載る","status":"passed","testResultsByEnv":{"default":"53780d88f9e36b395d7595251ee13c56"}}

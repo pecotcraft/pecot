@@ -1,0 +1,1 @@
+{"id":"30ecde89dd6575df986f92cedec7700a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validatePullRequestFrontmatter screenshot が文字列でない場合は、エラーにする","name":"screenshot が文字列でない場合は、エラーにする","status":"passed","testResultsByEnv":{"default":"5ae140da2bb91a1ad55a27ca2a831d72"}}

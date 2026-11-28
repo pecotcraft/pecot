@@ -1,0 +1,1 @@
+{"id":"825af13e732a6ddbeda5a2c366e7732b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#応答の中身 JSON を出力するツールの結果は、structuredContent の最上位にそのまま含める","name":"JSON を出力するツールの結果は、structuredContent の最上位にそのまま含める","status":"passed","testResultsByEnv":{"default":"917e68f6d4852f8c06952f3d3f90b22e"}}

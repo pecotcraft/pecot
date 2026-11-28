@@ -1,0 +1,1 @@
+{"id":"8551d17b68837cb4008aca369e9df138.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish PR の参照の形が誤っているなら、終了コード 2 で終わる","name":"PR の参照の形が誤っているなら、終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"dd6ef50466b8ea4cba56aa5512167924"}}

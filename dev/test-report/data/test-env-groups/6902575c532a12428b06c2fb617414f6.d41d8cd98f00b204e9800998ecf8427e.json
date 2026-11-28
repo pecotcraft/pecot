@@ -1,0 +1,1 @@
+{"id":"6902575c532a12428b06c2fb617414f6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync 書き込みに失敗した Issue は、warning を出し、ほかの Issue を続けてから、終了コード 1 で終わる","name":"書き込みに失敗した Issue は、warning を出し、ほかの Issue を続けてから、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"28d8a6ba2617b7b49ca5dd14250c17b5"}}

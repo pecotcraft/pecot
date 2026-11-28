@@ -1,0 +1,1 @@
+{"id":"dea4b45e91a6521be66926b0474944bb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#validateHtml 先頭に BOM がある XML でも、解釈に成功し、警告を検出する","name":"先頭に BOM がある XML でも、解釈に成功し、警告を検出する","status":"passed","testResultsByEnv":{"default":"95ba695536f032b5570fe2b0e327033b"}}

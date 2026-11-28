@@ -1,0 +1,1 @@
+{"id":"7af23ada238d61958a3eec1b9a25dadc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_task_cache#test_failed_lint_is_rerun_until_fixed","name":"失敗した lint は、直るまで再利用せずに再実行する","status":"passed","testResultsByEnv":{"default":"99685737c953d3d131a47305a78764b6"}}

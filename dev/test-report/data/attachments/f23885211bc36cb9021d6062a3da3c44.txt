@@ -1,0 +1,2 @@
+ERROR: PECOT_RELEASE_TEST_NPM_CACHE は絶対パスで指定してください: relative/cache
+       依存解決は配布ツリーへ cd してから実行するため、相対パスだと別の場所を指します。

@@ -1,0 +1,1 @@
+{"id":"e4d95e82dcbf6eee4337544370eea0c6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#validateWhitespaceWrap 和文を含んでいても、折り返しを指定したセルには、警告を返さない","name":"和文を含んでいても、折り返しを指定したセルには、警告を返さない","status":"passed","testResultsByEnv":{"default":"095821448108ad6cc23647308fb95a91"}}

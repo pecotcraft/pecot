@@ -1,0 +1,1 @@
+{"id":"08c54a5dd9c6f9cf3251c358199a1a80.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_push_errors_without_deps","name":"push の確認で依存が欠けていると、案内を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"2114b26964b93b9ce25a5a0ba459e5f1"}}

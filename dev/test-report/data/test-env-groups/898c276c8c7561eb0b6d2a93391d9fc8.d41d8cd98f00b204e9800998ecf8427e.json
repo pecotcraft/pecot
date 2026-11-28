@@ -1,0 +1,1 @@
+{"id":"898c276c8c7561eb0b6d2a93391d9fc8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_push_runs_before_heavy_hooks","name":"check-text-push は、check-version-plan-required より前に実行する順序で定義する","status":"passed","testResultsByEnv":{"default":"ed577449491597ef1c20596a6e979fd0"}}

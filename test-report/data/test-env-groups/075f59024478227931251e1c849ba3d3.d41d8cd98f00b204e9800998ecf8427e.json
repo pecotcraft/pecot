@@ -1,0 +1,1 @@
+{"id":"075f59024478227931251e1c849ba3d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/pptx-archive.test.ts#YauzlYazlPptxArchive 存在しないファイルを読み込むと、エラーで失敗する","name":"存在しないファイルを読み込むと、エラーで失敗する","status":"passed","testResultsByEnv":{"default":"ac8456c40a43cda862a13aec8ea8307f"}}

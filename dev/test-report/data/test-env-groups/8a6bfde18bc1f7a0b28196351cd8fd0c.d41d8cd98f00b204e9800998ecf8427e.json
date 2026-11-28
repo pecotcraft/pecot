@@ -1,0 +1,1 @@
+{"id":"8a6bfde18bc1f7a0b28196351cd8fd0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 通る値 monorepo のリポジトリでは、パッケージ名を接頭辞にしたタグとそのパッケージの CHANGELOG で確かめる","name":"monorepo のリポジトリでは、パッケージ名を接頭辞にしたタグとそのパッケージの CHANGELOG で確かめる","status":"passed","testResultsByEnv":{"default":"dc05263b361f214a752be56441a4575b"}}

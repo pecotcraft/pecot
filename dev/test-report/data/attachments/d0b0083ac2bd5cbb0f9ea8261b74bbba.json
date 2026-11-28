@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated: feat/demo/12 restacked on main"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/demo/12\",\"base\":\"main\",\"outcome\":\"restacked\",\"pushed\":true,\"relink\":{\"pullRequest\":21,\"reason\":\"GitHub links the closing Issues of PR #21 only when its body is saved while the PR goes to main: call update_pull_request for PR #21, passing its body unchanged\"}}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/demo/12",
+    "base": "main",
+    "outcome": "restacked",
+    "pushed": true,
+    "relink": {
+      "pullRequest": 21,
+      "reason": "GitHub links the closing Issues of PR #21 only when its body is saved while the PR goes to main: call update_pull_request for PR #21, passing its body unchanged"
+    }
+  }
+}

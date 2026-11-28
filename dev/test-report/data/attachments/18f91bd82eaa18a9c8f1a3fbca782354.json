@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "wrote SVG to /tmp/pecotv-test-e2e-9VLKfm/export-ok/diagram.drawio.svg (PDF: /tmp/pecotv-test-e2e-9VLKfm/export-ok/diagram.drawio.pdf)"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"drawio.export.done\",\"file\":\"/tmp/pecotv-test-e2e-9VLKfm/export-ok/diagram.drawio.svg\",\"sourceSha256\":\"5298337a6aabe6492d1a3e375ef4444885c8eb55703aa6e5542ab0aa4612368f\",\"icons\":0,\"pdf\":\"/tmp/pecotv-test-e2e-9VLKfm/export-ok/diagram.drawio.pdf\",\"pdfFailed\":false}"
+    }
+  ],
+  "structuredContent": {
+    "event": "drawio.export.done",
+    "file": "/tmp/pecotv-test-e2e-9VLKfm/export-ok/diagram.drawio.svg",
+    "sourceSha256": "5298337a6aabe6492d1a3e375ef4444885c8eb55703aa6e5542ab0aa4612368f",
+    "icons": 0,
+    "pdf": "/tmp/pecotv-test-e2e-9VLKfm/export-ok/diagram.drawio.pdf",
+    "pdfFailed": false
+  }
+}

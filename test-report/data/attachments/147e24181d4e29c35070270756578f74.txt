@@ -1,0 +1,1 @@
+usage: with-timing.sh <hook-id> <script> [args...]

@@ -1,0 +1,6 @@
+{
+  "hookSpecificOutput": {
+    "additionalContext": "context1\ncontext2",
+    "hookEventName": "PostToolUse"
+  }
+}

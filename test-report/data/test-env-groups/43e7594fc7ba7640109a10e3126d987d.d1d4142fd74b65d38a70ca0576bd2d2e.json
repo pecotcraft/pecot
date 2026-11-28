@@ -1,0 +1,1 @@
+{"id":"43e7594fc7ba7640109a10e3126d987d.d1d4142fd74b65d38a70ca0576bd2d2e","fullName":".githooks.tests.test_with_timing#test_propagates_child_exit_code","name":"子の終了コードが 3 のとき、そのコードで終了し、記録にも `rc=3` を残す","status":"passed","testResultsByEnv":{"default":"f503909054d5eeb356a85c86d06b73a9"}}

@@ -1,0 +1,86 @@
+==> @pecot/tools-mcp 配布ツリーを構築 (version=0.0.0-test2682-2 / dry-run=false)
+manifest 生成: @pecot/tools-mcp@0.0.0-test2682-2 / deps 2 件
+==> npm-shrinkwrap.json を生成
+==> npm レジストリへ依存を解決中
+==> 配布ツリー: /tmp/bats-run-nQFfcr/file/1/dist-3 (436K)
+==> npm pack
+==> tgz: pecot-tools-mcp-0.0.0-test2682-2.tgz
+==> tgz の中身（74 ファイル）
+    .claude-plugin/plugin.json
+    LICENSE
+    README.md
+    cli/dist/diagnostics.d.ts
+    cli/dist/diagnostics.js
+    cli/dist/domain/allowlist.d.ts
+    cli/dist/domain/allowlist.js
+    cli/dist/domain/arguments.d.ts
+    cli/dist/domain/arguments.js
+    cli/dist/domain/athena-query.d.ts
+    cli/dist/domain/athena-query.js
+    cli/dist/domain/failure.d.ts
+    cli/dist/domain/failure.js
+    cli/dist/domain/redact.d.ts
+    cli/dist/domain/redact.js
+    cli/dist/domain/s3-input.d.ts
+    cli/dist/domain/s3-input.js
+    cli/dist/domain/sso-output.d.ts
+    cli/dist/domain/sso-output.js
+    cli/dist/infra/awscli.d.ts
+    cli/dist/infra/awscli.js
+    cli/dist/infra/ignore-rejection.d.ts
+    cli/dist/infra/ignore-rejection.js
+    cli/dist/infra/sso/login-registry.d.ts
+    cli/dist/infra/sso/login-registry.js
+    cli/dist/main.d.ts
+    cli/dist/main.js
+    cli/dist/mcp/executor.d.ts
+    cli/dist/mcp/executor.js
+    cli/dist/mcp/output-schema.d.ts
+    cli/dist/mcp/output-schema.js
+    cli/dist/mcp/result.d.ts
+    cli/dist/mcp/result.js
+    cli/dist/mcp/serve.d.ts
+    cli/dist/mcp/serve.js
+    cli/dist/mcp/server.d.ts
+    cli/dist/mcp/server.js
+    cli/dist/mcp/tool-names.d.ts
+    cli/dist/mcp/tool-names.js
+    cli/dist/mcp/tools/_shared.d.ts
+    cli/dist/mcp/tools/_shared.js
+    cli/dist/mcp/tools/athena.d.ts
+    cli/dist/mcp/tools/athena.js
+    cli/dist/mcp/tools/cloudwatch.d.ts
+    cli/dist/mcp/tools/cloudwatch.js
+    cli/dist/mcp/tools/ec2.d.ts
+    cli/dist/mcp/tools/ec2.js
+    cli/dist/mcp/tools/ecr.d.ts
+    cli/dist/mcp/tools/ecr.js
+    cli/dist/mcp/tools/index.d.ts
+    cli/dist/mcp/tools/index.js
+    cli/dist/mcp/tools/lambda.d.ts
+    cli/dist/mcp/tools/lambda.js
+    cli/dist/mcp/tools/logs.d.ts
+    cli/dist/mcp/tools/logs.js
+    cli/dist/mcp/tools/rds.d.ts
+    cli/dist/mcp/tools/rds.js
+    cli/dist/mcp/tools/s3.d.ts
+    cli/dist/mcp/tools/s3.js
+    cli/dist/mcp/tools/scheduler.d.ts
+    cli/dist/mcp/tools/scheduler.js
+    cli/dist/mcp/tools/sqs.d.ts
+    cli/dist/mcp/tools/sqs.js
+    cli/dist/mcp/tools/sso.d.ts
+    cli/dist/mcp/tools/sso.js
+    cli/dist/mcp/tools/sts.d.ts
+    cli/dist/mcp/tools/sts.js
+    cli/dist/node-runtime.d.ts
+    cli/dist/node-runtime.js
+    cli/dist/package.json
+    cli/dist/version.d.ts
+    cli/dist/version.js
+    npm-shrinkwrap.json
+    package.json
+==> gh release view pecot-tools-v0.0.0-test2682-2 -R acme-labs/example-repo
+==> gh release upload pecot-tools-v0.0.0-test2682-2 pecot-tools-mcp-0.0.0-test2682-2.tgz --clobber -R acme-labs/example-repo
+==> gh workflow run publish-npm.yml -f tag=pecot-tools-v0.0.0-test2682-2 --ref pecot-tools-v0.0.0-test2682-2 -R acme-labs/example-repo
+==> @pecot/tools-mcp v0.0.0-test2682-2 を Release に添え、publish-npm.yml を起動しました (acme-labs/example-repo)

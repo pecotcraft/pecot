@@ -1,0 +1,1 @@
+{"id":"ea0635fd9bcdb5c2af4dd8e7118f6e6b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data MCP の呼び出し PR の本文の保存し直しに失敗すると、手で保存し直す案内を添えて warnings に入れ、成功を返す","name":"PR の本文の保存し直しに失敗すると、手で保存し直す案内を添えて warnings に入れ、成功を返す","status":"passed","testResultsByEnv":{"default":"1e3c366eeba1e5e89200803368ecadf7"}}

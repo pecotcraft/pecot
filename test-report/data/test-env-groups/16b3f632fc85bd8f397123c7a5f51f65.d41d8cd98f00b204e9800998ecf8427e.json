@@ -1,0 +1,1 @@
+{"id":"16b3f632fc85bd8f397123c7a5f51f65.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#節の見出しの見分け 見出しの末尾に空白がある場合は、節として扱わず、追加すると別の節を作成する","name":"見出しの末尾に空白がある場合は、節として扱わず、追加すると別の節を作成する","status":"passed","testResultsByEnv":{"default":"763fee18a9d1a23fb3781f930c461f34"}}

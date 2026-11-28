@@ -1,0 +1,194 @@
+{
+  "tools": [
+    {
+      "name": "slow",
+      "title": "Test tool",
+      "description": "時間がかかる",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false
+      }
+    },
+    {
+      "name": "hello",
+      "title": "Test tool",
+      "description": "あいさつ",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false
+      }
+    },
+    {
+      "name": "noisy_bug",
+      "title": "Test tool",
+      "description": "出力の後にプログラムの誤り",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false
+      }
+    },
+    {
+      "name": "bug",
+      "title": "Test tool",
+      "description": "プログラムの誤り",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false
+      }
+    }
+  ]
+}

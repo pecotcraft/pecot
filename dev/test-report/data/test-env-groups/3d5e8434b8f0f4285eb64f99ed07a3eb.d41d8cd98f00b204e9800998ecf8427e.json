@@ -1,0 +1,1 @@
+{"id":"3d5e8434b8f0f4285eb64f99ed07a3eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-css-filter.test.ts#no-css-filter invalid style ブロックが複数あり、それぞれに filter があると、ブロックごとに報告する","name":"style ブロックが複数あり、それぞれに filter があると、ブロックごとに報告する","status":"passed","testResultsByEnv":{"default":"d2b3ec68dc28af126e464342a661a896"}}

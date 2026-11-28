@@ -1,0 +1,1 @@
+{"id":"f7b2d98c3e0cbe6caee404a155de52d8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_success_records_task_and_nx_rows","name":"成功した場合は、task の行 3 本と nx の行 1 本を記録する","status":"passed","testResultsByEnv":{"default":"802fb7f72b2b920337abf8675a9b7968"}}

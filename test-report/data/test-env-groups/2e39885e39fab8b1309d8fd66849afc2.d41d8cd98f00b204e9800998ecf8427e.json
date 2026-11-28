@@ -1,0 +1,1 @@
+{"id":"2e39885e39fab8b1309d8fd66849afc2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-coverage.test.ts#issue-coverage.yaml excluded の項目の reason を消すと、その id を挙げて落ちる","name":"excluded の項目の reason を消すと、その id を挙げて落ちる","status":"passed","testResultsByEnv":{"default":"451d6f23564ff34e6d72b9875e21b58c"}}

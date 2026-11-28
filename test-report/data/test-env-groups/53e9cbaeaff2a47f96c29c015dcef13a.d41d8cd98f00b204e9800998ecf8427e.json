@@ -1,0 +1,1 @@
+{"id":"53e9cbaeaff2a47f96c29c015dcef13a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#expectedScope どのプロジェクトにも属さないファイルがある場合は、末尾に repo を加える","name":"どのプロジェクトにも属さないファイルがある場合は、末尾に repo を加える","status":"passed","testResultsByEnv":{"default":"2f3f07b7f21da0b0727ce5fc0424492d"}}

@@ -1,0 +1,1 @@
+{"id":"9949d77250f719b34e40df8f3d1ec6f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator props validation props に element のキーがあると、検証に失敗する","name":"props に element のキーがあると、検証に失敗する","status":"passed","testResultsByEnv":{"default":"7388e517bd3bae82621f504bb9a1804a"}}

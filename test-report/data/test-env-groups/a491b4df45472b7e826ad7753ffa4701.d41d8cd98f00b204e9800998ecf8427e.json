@@ -1,0 +1,1 @@
+{"id":"a491b4df45472b7e826ad7753ffa4701.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 run のトークンの発行は、失敗したら job を止める","name":"run のトークンの発行は、失敗したら job を止める","status":"passed","testResultsByEnv":{"default":"c0f3dcb9f03623596ba7aecc298e2a74"}}

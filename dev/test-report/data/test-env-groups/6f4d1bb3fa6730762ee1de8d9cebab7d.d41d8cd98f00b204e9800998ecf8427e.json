@@ -1,0 +1,1 @@
+{"id":"6f4d1bb3fa6730762ee1de8d9cebab7d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#シナリオの網羅 片方だけの一覧のツールを除き、各ツールに ok と ok 以外のシナリオがあり、全体で state・usage の種別が含まれる","name":"片方だけの一覧のツールを除き、各ツールに ok と ok 以外のシナリオがあり、全体で state・usage の種別が含まれる","status":"passed","testResultsByEnv":{"default":"af17195ce4addec00d4110d177861a6a"}}

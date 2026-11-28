@@ -1,0 +1,1 @@
+{"id":"0970a75a003701e2ff31b9a0f47d1c46.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#runAwscli フィクスチャが存在しないときは、標準出力を空にして終了コード 0 で返す","name":"フィクスチャが存在しないときは、標準出力を空にして終了コード 0 で返す","status":"passed","testResultsByEnv":{"default":"ba352e789bbf8efe65dc10700dd81cc7"}}

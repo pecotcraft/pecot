@@ -1,0 +1,1 @@
+{"id":"15ef94e9d3e6530171ba3da5853d9bf0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#parseHeadReference head が feat/x/12 の場合は、{ owner: undefined, …(1) } に分ける","name":"head が feat/x/12 の場合は、{ owner: undefined, …(1) } に分ける","status":"passed","testResultsByEnv":{"default":"85fd552ab94f53fdc32ce25b00670a75"}}

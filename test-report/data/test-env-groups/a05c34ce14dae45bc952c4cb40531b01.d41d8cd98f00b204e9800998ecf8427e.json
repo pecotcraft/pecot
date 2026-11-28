@@ -1,0 +1,1 @@
+{"id":"a05c34ce14dae45bc952c4cb40531b01.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/pr-waiting.test.ts#moveIssuesWaitingFor 2 つの Issue が同じ Issue に待たれていると、その Issue を 1 回だけ読んで動かす","name":"2 つの Issue が同じ Issue に待たれていると、その Issue を 1 回だけ読んで動かす","status":"passed","testResultsByEnv":{"default":"f30d1bc5f48a27f4d6932e35c4ff0ca0"}}

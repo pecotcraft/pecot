@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "base: base branch feat/demo/11 has no open PR"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"base\",\"code\":\"base-mismatch\",\"message\":\"base branch feat/demo/11 has no open PR\\nreopen the PR of feat/demo/11, or create a new one, then call pr_check again\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "base",
+        "code": "base-mismatch",
+        "message": "base branch feat/demo/11 has no open PR\nreopen the PR of feat/demo/11, or create a new one, then call pr_check again"
+      }
+    ]
+  }
+}

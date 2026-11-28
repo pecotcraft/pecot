@@ -1,0 +1,6 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_runs_tests_in_parallel0/suite/sample.bats
+1..2
+# pecot-description: a を置いて b を待つテストです。
+ok 1 目印 a # in 210 ms
+# pecot-description: b を置いて a を待つテストです。
+ok 2 目印 b # in 129 ms

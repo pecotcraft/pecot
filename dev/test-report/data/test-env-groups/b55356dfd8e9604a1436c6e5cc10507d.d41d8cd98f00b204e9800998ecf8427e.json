@@ -1,0 +1,1 @@
+{"id":"b55356dfd8e9604a1436c6e5cc10507d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/chromium-guard.test.ts#ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する シグナルで終了した場合は、中断として返す","name":"シグナルで終了した場合は、中断として返す","status":"passed","testResultsByEnv":{"default":"8db1dce95f6ec4585bf3a80e1160e8ef"}}

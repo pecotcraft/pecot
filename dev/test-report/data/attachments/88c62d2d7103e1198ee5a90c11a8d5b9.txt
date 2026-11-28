@@ -1,0 +1,4 @@
+project: ghes.example.com_acme_1 (ghes.example.com, acme #1)
+aggregation_repo: none
+repositories:
+- none

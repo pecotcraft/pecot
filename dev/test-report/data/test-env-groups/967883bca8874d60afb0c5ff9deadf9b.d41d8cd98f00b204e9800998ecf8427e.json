@@ -1,0 +1,1 @@
+{"id":"967883bca8874d60afb0c5ff9deadf9b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#normalizeNewlines 改行の \\r\\n と \\r を、\\n にそろえる","name":"改行の \\r\\n と \\r を、\\n にそろえる","status":"passed","testResultsByEnv":{"default":"8d93cad34c2b9d571a5f3d06bbd704c3"}}

@@ -1,0 +1,7 @@
+count: Issues to close: 2
+warning: closing Issue #10 failed: GitHub API error: 500 Server Error
+closed: Issue #12
+deleted: remote branch feat/demo/12
+unchanged: current branch main
+updated: main from origin/main
+warning: deleting local branch feat/demo/12 failed: Command ['git', 'branch', '-D', 'feat/demo/12'] returned non-zero exit status 1.

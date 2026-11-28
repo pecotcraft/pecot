@@ -1,0 +1,1 @@
+{"id":"0701d8b62b282a60daf99217f42409c1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/_helpers/fake-github/server.test.ts#REST query と body は、ルールに指定した項目だけが一致すれば、応答を選ぶ","name":"query と body は、ルールに指定した項目だけが一致すれば、応答を選ぶ","status":"passed","testResultsByEnv":{"default":"84bf5cc5a630e90a5c91cbc6a5424b41"}}

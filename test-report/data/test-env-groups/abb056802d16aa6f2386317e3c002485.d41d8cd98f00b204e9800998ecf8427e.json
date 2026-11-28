@@ -1,0 +1,1 @@
+{"id":"abb056802d16aa6f2386317e3c002485.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/user-prompt-submit-title.test.ts#user-prompt-submit-title.sh 別の番号の .pecot-active があっても読まず、ブランチの番号で出す","name":"別の番号の .pecot-active があっても読まず、ブランチの番号で出す","status":"passed","testResultsByEnv":{"default":"1a59d99fa5b9cb8f4500e383dabb47fb"}}

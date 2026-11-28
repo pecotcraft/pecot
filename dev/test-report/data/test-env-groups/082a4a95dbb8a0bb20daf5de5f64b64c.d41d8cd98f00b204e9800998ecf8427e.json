@@ -1,0 +1,1 @@
+{"id":"082a4a95dbb8a0bb20daf5de5f64b64c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/layer-file-placement.test.ts#layer-file-placement invalid layouts の下に _shared ディレクトリを作ると、報告する","name":"layouts の下に _shared ディレクトリを作ると、報告する","status":"passed","testResultsByEnv":{"default":"475804d540c847819cc51e0d33cc8a09"}}

@@ -1,0 +1,1 @@
+{"id":"60a11933daad054a001ab8ca86678434.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/workflow-template.test.ts#evaluateRequirements（auto） App の変数と secret とトークンがそろっている場合は、すべて ok と判定する","name":"App の変数と secret とトークンがそろっている場合は、すべて ok と判定する","status":"passed","testResultsByEnv":{"default":"64a1f3c61d3a51c205e4c17a53872616"}}

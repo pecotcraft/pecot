@@ -1,0 +1,1 @@
+{"id":"85ba8616974cbb8075060ddff888c41f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide スライドの外側の要素にカスタムプロパティを指定した場合も、継承して明示指定として検出する","name":"スライドの外側の要素にカスタムプロパティを指定した場合も、継承して明示指定として検出する","status":"passed","testResultsByEnv":{"default":"db1339d8d8d9cf1dcaec7b431bf3be36"}}

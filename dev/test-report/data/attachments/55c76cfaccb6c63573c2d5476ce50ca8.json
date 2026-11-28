@@ -1,0 +1,7 @@
+[
+  "pecot-tools:build-cli",
+  "pecot-tools:install",
+  "pecot-tools:test-cli",
+  "pecot-tools:test-release",
+  "pecot:install"
+]

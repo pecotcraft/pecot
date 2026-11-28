@@ -1,0 +1,28 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "params.body: CHANGELOG.md not found: /tmp/pecot-release-AS2jmW/base/demo/CHANGELOG.md"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"params.body\",\"code\":\"changelog-missing\",\"message\":\"CHANGELOG.md not found: /tmp/pecot-release-AS2jmW/base/demo/CHANGELOG.md\"}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "params.body",
+        "code": "changelog-missing",
+        "message": "CHANGELOG.md not found: /tmp/pecot-release-AS2jmW/base/demo/CHANGELOG.md"
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0"
+  }
+}

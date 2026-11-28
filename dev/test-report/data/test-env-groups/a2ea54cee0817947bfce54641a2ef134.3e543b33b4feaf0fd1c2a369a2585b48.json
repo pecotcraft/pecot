@@ -1,0 +1,1 @@
+{"id":"a2ea54cee0817947bfce54641a2ef134.3e543b33b4feaf0fd1c2a369a2585b48","fullName":".githooks.tests.test_run_affected_tests#test_failure_ignores_performance_report_recommendations_in_stream","name":"stream の出力で性能レポートの推奨（single）が続いても、失敗したレーンとして拾わない","status":"passed","testResultsByEnv":{"default":"4767e2113558d4059b0d7b218e2a7127"}}

@@ -1,0 +1,1 @@
+{"id":"f871b3638aeadfa0b645e534896da2b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml oneCellAnchor の子要素の順序と EMU を、具体的な値どおりに出力する","name":"oneCellAnchor の子要素の順序と EMU を、具体的な値どおりに出力する","status":"passed","testResultsByEnv":{"default":"3cccd9f788981ad7194bee864f688793"}}

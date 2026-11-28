@@ -1,0 +1,1 @@
+{"id":"6818576bbd98adfc003755e6d26b26be.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: chromium 成功のときは、取得コマンドの出力を結果に載せない","name":"成功のときは、取得コマンドの出力を結果に載せない","status":"passed","testResultsByEnv":{"default":"d201845c3a134901f78e3c8b0fb306c5"}}

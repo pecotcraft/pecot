@@ -1,0 +1,1 @@
+{"id":"669a74494190300023b0dcf2fffbb780.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#readSvgPixelSize width が存在しない場合は、既定の A4 の大きさにせず、例外が発生する","name":"width が存在しない場合は、既定の A4 の大きさにせず、例外が発生する","status":"passed","testResultsByEnv":{"default":"e78f4ba1d2921eaa03f6b8fa33d66aed"}}

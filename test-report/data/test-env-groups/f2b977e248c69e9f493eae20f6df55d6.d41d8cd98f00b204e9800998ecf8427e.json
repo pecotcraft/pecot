@@ -1,0 +1,1 @@
+{"id":"f2b977e248c69e9f493eae20f6df55d6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/fixtures/themes.test.ts#package.json without-declaration は、取得時に何も実行しない形で、vue を peerDependencies に持つ","name":"without-declaration は、取得時に何も実行しない形で、vue を peerDependencies に持つ","status":"passed","testResultsByEnv":{"default":"58eae521dadf9b5150954a96c1218fa6"}}

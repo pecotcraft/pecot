@@ -1,0 +1,1 @@
+{"id":"d6da816fa19d5d679d69e6bf7929a95c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish ブランチを消す要求を送らず、手元のブランチとフラグのファイルに触れない","name":"ブランチを消す要求を送らず、手元のブランチとフラグのファイルに触れない","status":"passed","testResultsByEnv":{"default":"5ab55f4f2f779aea8c1da24b43e96601"}}

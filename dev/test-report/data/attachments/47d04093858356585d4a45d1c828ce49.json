@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: work directory .pecot/work/7/"
+    },
+    {
+      "type": "text",
+      "text": "{\"repository\":\"acme/demo\",\"base\":\"main\",\"issue\":\"acme/demo/7\",\"workDirectory\":\"/tmp/pecot-repo-wsTM96/.pecot/work/7\"}"
+    }
+  ],
+  "structuredContent": {
+    "repository": "acme/demo",
+    "base": "main",
+    "issue": "acme/demo/7",
+    "workDirectory": "/tmp/pecot-repo-wsTM96/.pecot/work/7"
+  }
+}

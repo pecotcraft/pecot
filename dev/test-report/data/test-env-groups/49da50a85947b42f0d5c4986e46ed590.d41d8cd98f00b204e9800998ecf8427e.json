@@ -1,0 +1,1 @@
+{"id":"49da50a85947b42f0d5c4986e46ed590.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#作業ツリーが HEAD と乖離していると、gh を呼ばずに publish を拒否する","name":"作業ツリーが HEAD と乖離していると、gh を呼ばずに publish を拒否する","status":"passed","testResultsByEnv":{"default":"fddac1fa16c9a412da959e9a0b795e0b"}}

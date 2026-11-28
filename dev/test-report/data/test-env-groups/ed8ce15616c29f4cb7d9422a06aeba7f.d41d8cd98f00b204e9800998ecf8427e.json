@@ -1,0 +1,1 @@
+{"id":"ed8ce15616c29f4cb7d9422a06aeba7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#parseScenario arguments を省略すると、空のオブジェクトになる","name":"arguments を省略すると、空のオブジェクトになる","status":"passed","testResultsByEnv":{"default":"ad23feb18a0cb12c462f94ad2899db53"}}

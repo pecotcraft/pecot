@@ -1,0 +1,1 @@
+{"id":"3d3941f90df26ae9d6db03b355ea364e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool MCP のキャンセルの signal と警告の出力先を、テーマの取得へ渡し、警告を warnings に載せる","name":"MCP のキャンセルの signal と警告の出力先を、テーマの取得へ渡し、警告を warnings に載せる","status":"passed","testResultsByEnv":{"default":"db876b778a8d722835ccf6da8eb09ef7"}}

@@ -1,0 +1,1 @@
+{"id":"a5548ba22c21d6affcc3900212028d38.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#transformItems 欠けているキーは、既定値にする（id・title・updatedAt は空文字、ほかは null）","name":"欠けているキーは、既定値にする（id・title・updatedAt は空文字、ほかは null）","status":"passed","testResultsByEnv":{"default":"c668b9f30ef1211eec898aa4ac68208e"}}

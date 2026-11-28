@@ -1,0 +1,1 @@
+{"id":"cafd0cd9fae52d39e2a6f80ad318e3bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 指定された port が使用中のときの detail は、利用者に確認してから呼び直すよう案内する","name":"指定された port が使用中のときの detail は、利用者に確認してから呼び直すよう案内する","status":"passed","testResultsByEnv":{"default":"94fa280ded61a650f49b2b39665e4353"}}

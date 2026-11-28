@@ -1,0 +1,10 @@
+error: surface-file /tmp/pecot-action-4yRd6S/missing.json is not an issue surface: [
+    {
+      "expected": "object",
+      "code": "invalid_type",
+      "path": [
+        "sources"
+      ],
+      "message": "Invalid input: expected object, received undefined"
+    }
+  ]

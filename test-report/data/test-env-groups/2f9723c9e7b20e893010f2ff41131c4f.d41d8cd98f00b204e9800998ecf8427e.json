@@ -1,0 +1,1 @@
+{"id":"2f9723c9e7b20e893010f2ff41131c4f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-add.test.ts#board_add Status の書き込みの失敗 MCP では、失敗の結果に added: true を残し、status を返さない","name":"MCP では、失敗の結果に added: true を残し、status を返さない","status":"passed","testResultsByEnv":{"default":"bf69a816edd4d0f1d3933b97daff3dae"}}

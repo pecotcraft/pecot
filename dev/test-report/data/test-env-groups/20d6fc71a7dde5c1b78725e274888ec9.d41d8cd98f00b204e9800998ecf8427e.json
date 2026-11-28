@@ -1,0 +1,1 @@
+{"id":"20d6fc71a7dde5c1b78725e274888ec9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 入力の検証で拒否したときは、awscli を起動しない","name":"入力の検証で拒否したときは、awscli を起動しない","status":"passed","testResultsByEnv":{"default":"de6563c612b88e5b0795a8b0c3f3bc81"}}

@@ -1,0 +1,1 @@
+{"id":"c502db9d4ed81ecebaece0dd28d30d1b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#planProgression 前提が存在しなければ alone になり、merge の前提があれば他の前提の形を問わず wait-merge になる","name":"前提が存在しなければ alone になり、merge の前提があれば他の前提の形を問わず wait-merge になる","status":"passed","testResultsByEnv":{"default":"750a9df8fc79f673a9ed783697bd39b6"}}

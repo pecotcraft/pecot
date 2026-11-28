@@ -1,0 +1,1 @@
+{"id":"04c710ca4dbcbc4442a79cd2e0ef0ee0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/paths.test.ts#projectRoot 環境変数が存在しない場合は、git のルートを返す","name":"環境変数が存在しない場合は、git のルートを返す","status":"passed","testResultsByEnv":{"default":"a09b172407403dccda95c1d9f3f9e846"}}

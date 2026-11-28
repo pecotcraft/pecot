@@ -1,0 +1,1 @@
+{"id":"514dee64381af569f730f4b0f35a2c6e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#runtimeInstallSpecs manifest 自体がオブジェクトでない場合は、@slidev/cli が存在しないという例外を送出する","name":"manifest 自体がオブジェクトでない場合は、@slidev/cli が存在しないという例外を送出する","status":"passed","testResultsByEnv":{"default":"3d5e7bf53240801dec9c68077e779834"}}

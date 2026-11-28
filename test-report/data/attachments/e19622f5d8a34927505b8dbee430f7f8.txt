@@ -1,0 +1,5 @@
+-C	/tmp/pecot-hooks-ZmIube/sync-entry	rev-parse	--show-toplevel	
+-C	/tmp/pecot-hooks-ZmIube/sync-entry	diff	--quiet	
+-C	/tmp/pecot-hooks-ZmIube/sync-entry	diff	--staged	--quiet	
+-C	/tmp/pecot-hooks-ZmIube/sync-entry	branch	--show-current	
+pull	

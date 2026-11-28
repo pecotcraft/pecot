@@ -1,0 +1,1 @@
+{"id":"f67f390f1ec5bfc631f96115a6bca002.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#resolveNx PATH が設定されていない場合でも、例外が発生せず undefined を返す","name":"PATH が設定されていない場合でも、例外が発生せず undefined を返す","status":"passed","testResultsByEnv":{"default":"7ba45d7abc78c9a148ce78c510e71494"}}

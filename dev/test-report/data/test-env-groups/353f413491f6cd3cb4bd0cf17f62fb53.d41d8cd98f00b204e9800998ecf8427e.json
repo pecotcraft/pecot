@@ -1,0 +1,1 @@
+{"id":"353f413491f6cd3cb4bd0cf17f62fb53.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/payload.test.ts#必須の値 requireString・requireNumber は型が合えば返す","name":"requireString・requireNumber は型が合えば返す","status":"passed","testResultsByEnv":{"default":"252f601723522b7e92d94bd6575ee2d6"}}

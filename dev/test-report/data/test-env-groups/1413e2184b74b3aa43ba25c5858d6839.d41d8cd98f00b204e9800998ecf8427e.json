@@ -1,0 +1,1 @@
+{"id":"1413e2184b74b3aa43ba25c5858d6839.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath `..` と連続した区切り文字を正規化し、マウントルートの外へも出られる","name":"`..` と連続した区切り文字を正規化し、マウントルートの外へも出られる","status":"passed","testResultsByEnv":{"default":"ef8a84d6350553e0d216a41497bf52aa"}}

@@ -1,0 +1,1 @@
+{"id":"2e7a3e53c1488516742a1aa22f2532b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/evidence-xlsx-format-render.test.ts#固定書式のレンダリング MCP の `evidence_create` が書き出した xlsx を PDF にすると、帯・罫線・画像の枠が描かれる","name":"MCP の `evidence_create` が書き出した xlsx を PDF にすると、帯・罫線・画像の枠が描かれる","status":"passed","testResultsByEnv":{"default":"9c6a9aca757525a82379a9fe9a6055fe"}}

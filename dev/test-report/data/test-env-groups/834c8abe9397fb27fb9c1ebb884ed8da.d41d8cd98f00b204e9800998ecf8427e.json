@@ -1,0 +1,1 @@
+{"id":"834c8abe9397fb27fb9c1ebb884ed8da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/process.test.ts#spawnPromise 作業ディレクトリを指定すると、そのディレクトリでコマンドを実行する","name":"作業ディレクトリを指定すると、そのディレクトリでコマンドを実行する","status":"passed","testResultsByEnv":{"default":"f3775236e16b552fce3683809a6495c1"}}

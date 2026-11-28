@@ -1,0 +1,1 @@
+{"id":"750d1a939c217de4ac4a253af9582b93.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/review-finish.test.ts#review finish コメントの作成 が GitHub の失敗で止まると、PR を示して止まる","name":"コメントの作成 が GitHub の失敗で止まると、PR を示して止まる","status":"passed","testResultsByEnv":{"default":"055bdbe43c2c95270860358d18b17445"}}

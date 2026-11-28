@@ -1,0 +1,1 @@
+{"id":"d9f44a9bcd45b23383b40c809a1f5027.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql 301 は Location つき のとき、GitHubAPIError が発生する","name":"301 は Location つき のとき、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"993a26a5dea27bafbb33b8789abf449c"}}

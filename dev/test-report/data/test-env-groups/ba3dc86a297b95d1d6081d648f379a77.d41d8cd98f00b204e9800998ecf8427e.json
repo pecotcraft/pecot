@@ -1,0 +1,1 @@
+{"id":"ba3dc86a297b95d1d6081d648f379a77.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync 更新の新しい 20 件を超える Archived の項目があると、超えた分だけをボードから削除し、deleted の行を出す","name":"更新の新しい 20 件を超える Archived の項目があると、超えた分だけをボードから削除し、deleted の行を出す","status":"passed","testResultsByEnv":{"default":"49be677eac3702f3b78f8f5305d96e2d"}}

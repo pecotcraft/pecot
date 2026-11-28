@@ -1,0 +1,1 @@
+{"id":"cfb8247916a6d04d04069a5953718f5c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_local_hooks_declare_stages","name":"local hook は、すべて stages を指定する","status":"passed","testResultsByEnv":{"default":"a30bde53d0a0944aa585c298fda6895e"}}

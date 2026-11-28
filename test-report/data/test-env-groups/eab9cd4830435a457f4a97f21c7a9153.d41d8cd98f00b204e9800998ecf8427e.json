@@ -1,0 +1,1 @@
+{"id":"eab9cd4830435a457f4a97f21c7a9153.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 打つと、release から develop までのコミットを compare API で数え、git fetch を打たない","name":"打つと、release から develop までのコミットを compare API で数え、git fetch を打たない","status":"passed","testResultsByEnv":{"default":"b09ed75db43433b5d413e5d842aa228a"}}

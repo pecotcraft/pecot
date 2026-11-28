@@ -1,0 +1,1 @@
+{"id":"5e5f0a4fd5b8eff8d60eff57bb8eefb7.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_05b_nonexistent_base_skips","name":"PECOT_VERSION_PLAN_BASE に存在しない ref を指定すると、警告を出力して成功する","status":"passed","testResultsByEnv":{"default":"02f91a4d62ad6ef9c64b4a5d657b4850"}}

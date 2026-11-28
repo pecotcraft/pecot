@@ -1,0 +1,1 @@
+{"id":"61dd701dd31abf68c979a5db2879216f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#読み込む設定ファイルの中身が not json だと、その理由を示して失敗する","name":"読み込む設定ファイルの中身が not json だと、その理由を示して失敗する","status":"passed","testResultsByEnv":{"default":"fb51e4ea968cd3787c4fc03e1f2d4cca"}}

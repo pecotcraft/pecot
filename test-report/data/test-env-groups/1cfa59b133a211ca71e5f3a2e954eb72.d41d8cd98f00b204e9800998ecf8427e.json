@@ -1,0 +1,1 @@
+{"id":"1cfa59b133a211ca71e5f3a2e954eb72.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#loadCopyExcludeSpec 有効な行があるのに、どのファイルにも一致しないパターンしかない場合は、警告を出力する","name":"有効な行があるのに、どのファイルにも一致しないパターンしかない場合は、警告を出力する","status":"passed","testResultsByEnv":{"default":"e4f9a6e56383690d0360a8fa5913369b"}}

@@ -1,0 +1,1 @@
+{"id":"723b81869ff6122aa4f54935a71356a6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.bats#同じ版で再実行しても、gh を 3 回呼んで正常終了し、リポジトリ本体に検証用タグを残さない","name":"同じ版で再実行しても、gh を 3 回呼んで正常終了し、リポジトリ本体に検証用タグを残さない","status":"passed","testResultsByEnv":{"default":"c5467f42461809bceca144fbd3d23ee9"}}

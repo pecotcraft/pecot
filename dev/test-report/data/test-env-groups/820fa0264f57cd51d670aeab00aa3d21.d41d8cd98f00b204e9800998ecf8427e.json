@@ -1,0 +1,1 @@
+{"id":"820fa0264f57cd51d670aeab00aa3d21.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#judgeReadiness の順 順 7: PR 中でない前提をすべて一覧に含め、PR 中の前提は含めない","name":"順 7: PR 中でない前提をすべて一覧に含め、PR 中の前提は含めない","status":"passed","testResultsByEnv":{"default":"7758e3ca9864e65ca85c72f3ccf88e1f"}}

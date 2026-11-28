@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not read the authenticated user: resource not found: http://127.0.0.1:46859/user\n  pass owner to give the owner explicitly"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-not-found\",\"detail\":\"could not read the authenticated user: resource not found: http://127.0.0.1:46859/user\\n  pass owner to give the owner explicitly\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-not-found",
+    "detail": "could not read the authenticated user: resource not found: http://127.0.0.1:46859/user\n  pass owner to give the owner explicitly"
+  },
+  "isError": true
+}

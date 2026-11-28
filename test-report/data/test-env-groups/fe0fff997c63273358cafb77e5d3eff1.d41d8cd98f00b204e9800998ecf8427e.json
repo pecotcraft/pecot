@@ -1,0 +1,1 @@
+{"id":"fe0fff997c63273358cafb77e5d3eff1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath 自分のディストリビューションを指す UNC パスは、WSL 内の絶対パスに変換する","name":"自分のディストリビューションを指す UNC パスは、WSL 内の絶対パスに変換する","status":"passed","testResultsByEnv":{"default":"e6e74be78c61b43e91d08844a8df2aae"}}

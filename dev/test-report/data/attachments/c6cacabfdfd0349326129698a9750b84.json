@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool drawio_create: input_path: Invalid input: expected string, received undefined"
+    }
+  ],
+  "isError": true
+}

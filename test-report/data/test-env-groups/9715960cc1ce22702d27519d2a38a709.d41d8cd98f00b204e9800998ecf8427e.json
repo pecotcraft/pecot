@@ -1,0 +1,1 @@
+{"id":"9715960cc1ce22702d27519d2a38a709.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#toIssueFacts 前提の読み取りに失敗した場合は、read-failed を返す","name":"前提の読み取りに失敗した場合は、read-failed を返す","status":"passed","testResultsByEnv":{"default":"c4c9b485d487db7f8b04c9cabf98c507"}}

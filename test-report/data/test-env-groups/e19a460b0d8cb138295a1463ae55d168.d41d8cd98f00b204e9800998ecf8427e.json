@@ -1,0 +1,1 @@
+{"id":"e19a460b0d8cb138295a1463ae55d168.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: Chromium の OS ライブラリ 起動できれば何も入れずに成功を返し、確認に通ったことを記録する","name":"起動できれば何も入れずに成功を返し、確認に通ったことを記録する","status":"passed","testResultsByEnv":{"default":"7e85c658c12779a0a2155dcbee4bd847"}}

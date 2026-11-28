@@ -1,0 +1,1 @@
+{"id":"461bcbd3f484d0ed9f6d859d8ef87199.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link MCP の data リンク先が無いと、change を skip にして、飛ばした理由を返す","name":"リンク先が無いと、change を skip にして、飛ばした理由を返す","status":"passed","testResultsByEnv":{"default":"b8a1b0cb541a2e3cd6020c3e59449503"}}

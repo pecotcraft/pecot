@@ -1,0 +1,1 @@
+{"id":"cee4910b3910f4d3ba0a67d65175e2b3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/data-directory.test.ts#dataDirectory PLUGIN_DATA と XDG_DATA_HOME がある とき、/data/plugin を返す","name":"PLUGIN_DATA と XDG_DATA_HOME がある とき、/data/plugin を返す","status":"passed","testResultsByEnv":{"default":"92d74b5fb38c220701e39b8952c687cb"}}

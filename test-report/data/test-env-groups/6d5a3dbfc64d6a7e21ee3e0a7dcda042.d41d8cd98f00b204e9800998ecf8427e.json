@@ -1,0 +1,1 @@
+{"id":"6d5a3dbfc64d6a7e21ee3e0a7dcda042.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の update-type コミットのメッセージが存在しない場合は、種類を不明として扱う","name":"コミットのメッセージが存在しない場合は、種類を不明として扱う","status":"passed","testResultsByEnv":{"default":"a93b3948b2f93d31dd06e67b4c28c282"}}

@@ -1,0 +1,1 @@
+{"id":"460a715c9e606587fbaed69f732cf1f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh remote の URL が scp 形の ssh の形なら、番号を出す","name":"remote の URL が scp 形の ssh の形なら、番号を出す","status":"passed","testResultsByEnv":{"default":"343634d05829a9bd40ccfdbaa1cfb6fb"}}

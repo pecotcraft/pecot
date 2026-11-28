@@ -1,0 +1,1 @@
+{"id":"3cbe6619f558d12dc355681d825ac3df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#issueText と unreadProblem 参照を owner/repo/番号 の形の文字にする","name":"参照を owner/repo/番号 の形の文字にする","status":"passed","testResultsByEnv":{"default":"ed849372c643c1ef7948bd13459322e1"}}

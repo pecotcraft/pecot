@@ -1,0 +1,1 @@
+{"id":"2e2a006c7b37c76cd35264c8afba292a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 実際に採取した失敗のフィクスチャ s3-cp-no-credentials は、auth-missing と判定する","name":"実際に採取した失敗のフィクスチャ s3-cp-no-credentials は、auth-missing と判定する","status":"passed","testResultsByEnv":{"default":"3f0cd3e4f237495482212fb5b2dbdd38"}}

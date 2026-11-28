@@ -1,0 +1,1 @@
+{"id":"255ec3bb77d31d05861892effc2608bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/redact.test.ts#redactSecrets JSON の文字列の中で伏せ字にしても、JSON として解析できる","name":"JSON の文字列の中で伏せ字にしても、JSON として解析できる","status":"passed","testResultsByEnv":{"default":"4a8a6797a761290bda085e031cf61ca1"}}

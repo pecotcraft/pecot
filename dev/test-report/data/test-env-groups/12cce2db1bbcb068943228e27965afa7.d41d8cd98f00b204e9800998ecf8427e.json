@@ -1,0 +1,1 @@
+{"id":"12cce2db1bbcb068943228e27965afa7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/git-url.test.ts#parseRemoteUrl \"ftp://o/r\" を渡すと、形式が不正として例外が発生する","name":"\"ftp://o/r\" を渡すと、形式が不正として例外が発生する","status":"passed","testResultsByEnv":{"default":"df4b5e07eb0b77577483e30d3c3dfab1"}}

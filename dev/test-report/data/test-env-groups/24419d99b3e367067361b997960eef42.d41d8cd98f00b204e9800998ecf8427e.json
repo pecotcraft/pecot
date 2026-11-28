@@ -1,0 +1,1 @@
+{"id":"24419d99b3e367067361b997960eef42.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 指定されたポートが使用中なら別のポートへ移らず失敗を返す","name":"指定されたポートが使用中なら別のポートへ移らず失敗を返す","status":"passed","testResultsByEnv":{"default":"ed49ffdaf56895cdaae70625a03d7054"}}

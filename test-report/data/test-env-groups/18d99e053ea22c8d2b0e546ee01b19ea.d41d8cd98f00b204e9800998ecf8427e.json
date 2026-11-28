@@ -1,0 +1,1 @@
+{"id":"18d99e053ea22c8d2b0e546ee01b19ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#extractSectionsFromTemplate em-dash 一行サマリは切り落とさずそのまま返す（検証側が要否を判断する）","name":"em-dash 一行サマリは切り落とさずそのまま返す（検証側が要否を判断する）","status":"passed","testResultsByEnv":{"default":"07de6b59393a26e369d028ea9609191b"}}

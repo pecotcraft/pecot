@@ -1,0 +1,1 @@
+{"id":"2ed06447bc433e488040a287e04489ee.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_cache_inputs_absent_without_nx_cache","name":"`PECOT_CI_NX_CACHE` を指定しない場合は、キャッシュの入力の行を表示しない","status":"passed","testResultsByEnv":{"default":"24e690c6430c7c1c4abac96dfbc4094d"}}

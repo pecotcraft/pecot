@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.release: read the release of v0.2.0 with get_release_by_tag and pass its result as reads.release.result, or its error text (404 when there is none) as reads.release.error"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.release\",\"code\":\"read-required\",\"message\":\"read the release of v0.2.0 with get_release_by_tag and pass its result as reads.release.result, or its error text (404 when there is none) as reads.release.error\"}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.release",
+        "code": "read-required",
+        "message": "read the release of v0.2.0 with get_release_by_tag and pass its result as reads.release.result, or its error text (404 when there is none) as reads.release.error"
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  }
+}

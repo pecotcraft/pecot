@@ -1,0 +1,1 @@
+{"id":"71d91540079883f12233a092c6a5c7bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#resolveRepository repo で明示した値は、git を呼ばずに採用する","name":"repo で明示した値は、git を呼ばずに採用する","status":"passed","testResultsByEnv":{"default":"a2759c0c6c77f7c87913d82150d2adf7"}}

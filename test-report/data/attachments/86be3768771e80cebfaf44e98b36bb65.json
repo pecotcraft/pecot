@@ -1,0 +1,34 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project_fields[1]: the board has no field with id 999"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"project_fields[1]\",\"code\":\"unknown-field\",\"message\":\"the board has no field with id 999\",\"candidates\":[\"pecot-status\",\"Status\",\"Area\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "project_fields[1]",
+        "code": "unknown-field",
+        "message": "the board has no field with id 999",
+        "candidates": [
+          "pecot-status",
+          "Status",
+          "Area"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

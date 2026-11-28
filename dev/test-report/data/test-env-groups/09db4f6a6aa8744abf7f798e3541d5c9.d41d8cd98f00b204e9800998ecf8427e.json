@@ -1,0 +1,1 @@
+{"id":"09db4f6a6aa8744abf7f798e3541d5c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli logs describe-log-streams の並び替えとページ分割の指定は、構文エラーにならない","name":"logs describe-log-streams の並び替えとページ分割の指定は、構文エラーにならない","status":"passed","testResultsByEnv":{"default":"d4fe3a8bd9e803271fb55637d4a58841"}}

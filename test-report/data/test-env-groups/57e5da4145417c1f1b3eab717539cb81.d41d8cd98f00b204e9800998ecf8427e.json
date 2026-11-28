@@ -1,0 +1,1 @@
+{"id":"57e5da4145417c1f1b3eab717539cb81.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/screenshot.test.ts#capturePng / exportViaEmbed 書体が総称の `sans-serif` だけの場合は、@import を作らず、事前に読み込む書体も空にする","name":"書体が総称の `sans-serif` だけの場合は、@import を作らず、事前に読み込む書体も空にする","status":"passed","testResultsByEnv":{"default":"e6bed11f07ba1161a6b9737646cb574e"}}

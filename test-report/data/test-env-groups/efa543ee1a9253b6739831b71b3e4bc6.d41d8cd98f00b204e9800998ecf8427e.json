@@ -1,0 +1,1 @@
+{"id":"efa543ee1a9253b6739831b71b3e4bc6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/index.test.ts#InProcessSlidevPptxPipeline runner が例外を発生させた場合は、PipelineRuntimeError に包んで失敗する","name":"runner が例外を発生させた場合は、PipelineRuntimeError に包んで失敗する","status":"passed","testResultsByEnv":{"default":"513dd5ab101e85fdf65c7fd5ddb9f382"}}

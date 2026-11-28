@@ -1,0 +1,1 @@
+{"id":"d81a36b0143e53ef911184ef67ecb8ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 水平線（#1185） 引用・リストの中の水平線とタブ区切りの水平線も不可: \"1. ___\"（ordered-list）","name":"引用・リストの中の水平線とタブ区切りの水平線も不可: \"1. ___\"（ordered-list）","status":"passed","testResultsByEnv":{"default":"4c59c98a949455610c725fcfec7a5102"}}

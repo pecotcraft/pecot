@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_lambda_list_event_source_mappings succeeded"
+    },
+    {
+      "type": "text",
+      "text": "{\"NextToken\":\"eyJuZXh0IjogMX0=\",\"nextToken\":\"eyJuZXh0IjogMX0=\"}"
+    }
+  ],
+  "structuredContent": {
+    "NextToken": "eyJuZXh0IjogMX0=",
+    "nextToken": "eyJuZXh0IjogMX0="
+  }
+}

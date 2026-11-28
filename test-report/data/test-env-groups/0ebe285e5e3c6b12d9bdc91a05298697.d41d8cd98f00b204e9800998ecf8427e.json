@@ -1,0 +1,1 @@
+{"id":"0ebe285e5e3c6b12d9bdc91a05298697.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/result.test.ts#toCallToolResult 失敗の結果を変換すると、isError を真にし、ツールの項目に kind と detail を加え、reason を持たない","name":"失敗の結果を変換すると、isError を真にし、ツールの項目に kind と detail を加え、reason を持たない","status":"passed","testResultsByEnv":{"default":"167d13dfcd645fe1fd6d7ccad7304c67"}}

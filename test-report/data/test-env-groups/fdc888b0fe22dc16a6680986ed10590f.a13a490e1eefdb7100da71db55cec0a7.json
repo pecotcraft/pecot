@@ -1,0 +1,1 @@
+{"id":"fdc888b0fe22dc16a6680986ed10590f.a13a490e1eefdb7100da71db55cec0a7","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_only_the_lanes_the_change_reaches","name":"plugins/pecot-workflow/hooks/lib/core/pecot-gitignore-ensure.sh を変更すると、その変更が届くテストのレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"07d57d029496c7150c308559f0fb217f"}}

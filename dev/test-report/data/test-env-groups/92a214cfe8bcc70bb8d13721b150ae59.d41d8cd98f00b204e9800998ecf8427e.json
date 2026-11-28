@@ -1,0 +1,1 @@
+{"id":"92a214cfe8bcc70bb8d13721b150ae59.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_local_fails_when_no_lane_has_results","name":"`--local` ですべてのレーンの結果が存在しないと、`allure generate` を起動せずに失敗する","status":"passed","testResultsByEnv":{"default":"b04939930c09fc376a7e6a5690e45ba4"}}

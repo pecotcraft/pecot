@@ -1,0 +1,1 @@
+{"id":"e1dc27aa8cd93e221572c5527603eeff.c15bd01593ad74582f1a5da85730541a","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_the_githooks_lanes_that_read_the_change","name":".gitlint を変更すると、それを読む githooks のレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"c7b06f5a0d6a4756538f67234e0623ee"}}

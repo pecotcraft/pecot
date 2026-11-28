@@ -1,0 +1,1 @@
+{"id":"3d28bffc2181274c7efec8e222aaad3d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#ensureDevcontainerEnvironment DEVCONTAINER が設定されていれば通過する","name":"DEVCONTAINER が設定されていれば通過する","status":"passed","testResultsByEnv":{"default":"4fe9df7c4bc66220d7b54a9e51fd9644"}}

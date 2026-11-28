@@ -1,0 +1,34 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "preflight found warnings; fix them before creating a PR"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"preflight found warnings; fix them before creating a PR\",\"remoteUrl\":\"git@ghes.example.com:acme/demo.git\",\"currentBranch\":\"feat/demo/12\",\"pushed\":true,\"pushStatus\":\"in sync with origin/feat/demo/12\",\"baseBranch\":\"origin/main\",\"gitStatus\":\"On branch feat/demo/12\\nUntracked files:\\n\\tmemo.txt\\n\\nnothing added to commit but untracked files present\\n\",\"commits\":\"(no commits)\",\"diffSummary\":\"(no diff)\",\"worktree\":{\"list\":\"/tmp/pecot-parity-vyc4uR/base/demo dd06359 [feat/demo/12]\",\"directoryName\":\"demo\",\"isWorktree\":false},\"stashList\":\"(no stash)\",\"warnings\":[\"Git Status: modified or untracked files (fix: commit)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "preflight found warnings; fix them before creating a PR",
+    "remoteUrl": "git@ghes.example.com:acme/demo.git",
+    "currentBranch": "feat/demo/12",
+    "pushed": true,
+    "pushStatus": "in sync with origin/feat/demo/12",
+    "baseBranch": "origin/main",
+    "gitStatus": "On branch feat/demo/12\nUntracked files:\n\tmemo.txt\n\nnothing added to commit but untracked files present\n",
+    "commits": "(no commits)",
+    "diffSummary": "(no diff)",
+    "worktree": {
+      "list": "/tmp/pecot-parity-vyc4uR/base/demo dd06359 [feat/demo/12]",
+      "directoryName": "demo",
+      "isWorktree": false
+    },
+    "stashList": "(no stash)",
+    "warnings": [
+      "Git Status: modified or untracked files (fix: commit)"
+    ]
+  },
+  "isError": true
+}

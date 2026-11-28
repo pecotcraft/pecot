@@ -1,0 +1,1 @@
+{"id":"d7d45ebc13e3aead6f12e69c944cef14.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「タグ無し」の場合は、エラーを返す","name":"テーマの指定が「タグ無し」の場合は、エラーを返す","status":"passed","testResultsByEnv":{"default":"69a975e87b11bd58ba5758bcdf70124f"}}

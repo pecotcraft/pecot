@@ -1,0 +1,1 @@
+{"id":"fcd0d773ad48c04049a2081f10d11a53.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_resolve_fails_when_tag_is_not_ancestor_of_main","name":"タグの commit が main の祖先でないと、そのタグ名と commit を示す例外が発生する","status":"passed","testResultsByEnv":{"default":"1f7fa9ed5ad1690a494d82473515fcdb"}}

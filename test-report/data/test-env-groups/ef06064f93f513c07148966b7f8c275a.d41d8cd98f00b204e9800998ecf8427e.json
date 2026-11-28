@@ -1,0 +1,1 @@
+{"id":"ef06064f93f513c07148966b7f8c275a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create head ブランチを決められないと、終了コード 1 で終わる","name":"head ブランチを決められないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"e282f3b4c71c4d84c07984a2194a85c9"}}

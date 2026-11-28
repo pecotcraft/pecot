@@ -1,0 +1,1 @@
+{"id":"2654a19b6c950a6479012072d5eea869.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/attributes.test.ts#builtinReadings 値が存在する組み込みの機能だけを、担当者・マイルストーン・Issue type・ラベルの順に返す","name":"値が存在する組み込みの機能だけを、担当者・マイルストーン・Issue type・ラベルの順に返す","status":"passed","testResultsByEnv":{"default":"5e05710f938d33448c4520c5e5b36bde"}}

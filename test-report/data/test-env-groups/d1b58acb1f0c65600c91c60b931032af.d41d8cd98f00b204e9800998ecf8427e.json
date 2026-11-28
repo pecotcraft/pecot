@@ -1,0 +1,1 @@
+{"id":"d1b58acb1f0c65600c91c60b931032af.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#remoteBranchHead remote に接続できない場合は、isReachable が false の結果を返す","name":"remote に接続できない場合は、isReachable が false の結果を返す","status":"passed","testResultsByEnv":{"default":"21da7e8892943e60b3c4f4241505d675"}}

@@ -1,0 +1,1 @@
+{"id":"7a5b743931d31519efca786fd0c7696a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#validateWhitespaceWrap XML として読み取れない文字列を渡した場合は、例外を発生させず、警告を返さない","name":"XML として読み取れない文字列を渡した場合は、例外を発生させず、警告を返さない","status":"passed","testResultsByEnv":{"default":"70632365f75cc2cb2d499dcc516f25dc"}}

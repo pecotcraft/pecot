@@ -1,0 +1,2 @@
+error: failed to remove the worktree: fatal: '/tmp/pecot-cli-U5qWdW/workspaces/wt1/demo' contains modified or untracked files, use --force to delete it
+  hint: to remove it with its changes, pass force: true

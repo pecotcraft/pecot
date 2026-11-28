@@ -1,0 +1,1 @@
+{"id":"52edae358f6e3ef0f8a1ebfaa1670a96.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_every_env_read_is_declared_or_exempt","name":"環境変数の読み取りは、プラグインの env か共通の env に宣言するか、_EXEMPT に理由を添えて載せる","status":"passed","testResultsByEnv":{"default":"13ea03063496300bd61dfbe128e27751"}}

@@ -1,0 +1,1 @@
+{"id":"599dbe58d0e92cac73773461ff89244a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyJapaneseFontFix endParaRPr: 段落が英数字だけの場合は、既存の ea を変更しない","name":"endParaRPr: 段落が英数字だけの場合は、既存の ea を変更しない","status":"passed","testResultsByEnv":{"default":"b54f21f3b84f7e6ef354e2313072481a"}}

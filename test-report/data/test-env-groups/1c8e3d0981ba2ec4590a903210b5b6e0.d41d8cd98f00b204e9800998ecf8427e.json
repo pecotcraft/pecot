@@ -1,0 +1,1 @@
+{"id":"1c8e3d0981ba2ec4590a903210b5b6e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/merge-hook-outputs.test.ts#merge-hook-outputs.sh UserPromptSubmit のとき、additionalContext をトップレベルには出さない","name":"UserPromptSubmit のとき、additionalContext をトップレベルには出さない","status":"passed","testResultsByEnv":{"default":"98875f4da7780f387429f3c368872a1b"}}

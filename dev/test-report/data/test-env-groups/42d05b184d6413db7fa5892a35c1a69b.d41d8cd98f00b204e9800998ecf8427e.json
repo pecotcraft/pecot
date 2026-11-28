@@ -1,0 +1,1 @@
+{"id":"42d05b184d6413db7fa5892a35c1a69b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments 先頭が - の値は、--flag=value の 1 つの引数にして渡す","name":"先頭が - の値は、--flag=value の 1 つの引数にして渡す","status":"passed","testResultsByEnv":{"default":"05f79b315cbbcc7335b4e88e674ca243"}}

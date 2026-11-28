@@ -1,0 +1,1 @@
+{"id":"7a4bd3320cd8cf7bdde709707c3bc902.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#executeMcpServe のセッションのディレクトリ cwd がプラグインのルートの外なら、作業ディレクトリを移さずに起動する","name":"cwd がプラグインのルートの外なら、作業ディレクトリを移さずに起動する","status":"passed","testResultsByEnv":{"default":"ef7929ad27829d9e73d9d00c45475ef8"}}

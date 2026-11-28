@@ -1,0 +1,25 @@
+# Project info
+
+## Overview
+- Project: ghes.example.com_acme_1
+- Host: ghes.example.com
+- Owner: acme
+- Roadmap repo: none
+
+## Registered repositories
+- acme/demo (develop: main)
+    release_type: single
+    dependabot_alerts: open 2
+
+## Board status
+
+### Active (1)
+| Ref | Title |
+|-----|----------|
+| acme/demo#12 | 課題12 |
+
+### Ready (2)
+| Ref | Title | Readiness |
+|-----|----------|-----------|
+| acme/demo#11 | 課題11 | startable |
+| acme/demo#13 | 課題13 | startable |

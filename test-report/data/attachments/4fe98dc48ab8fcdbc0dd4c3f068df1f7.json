@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Session status"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/no-number\",\"repository\":\"acme/demo\"}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/no-number",
+    "repository": "acme/demo"
+  }
+}

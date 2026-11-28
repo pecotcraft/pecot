@@ -1,0 +1,1 @@
+{"id":"6c5df77662b19d00c55d8b110438df80.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#generateDrawioUrl viewbox がない XML の場合は、URL に疑問符を含めない","name":"viewbox がない XML の場合は、URL に疑問符を含めない","status":"passed","testResultsByEnv":{"default":"bcb56110e551595aecca483cdff17f1b"}}

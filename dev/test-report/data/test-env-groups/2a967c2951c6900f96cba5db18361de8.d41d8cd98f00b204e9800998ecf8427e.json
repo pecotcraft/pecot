@@ -1,0 +1,1 @@
+{"id":"2a967c2951c6900f96cba5db18361de8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#resultEffects ci-fix-pushed は、待ちの値を書くかが false で、起動ラベルを外すかが false になる","name":"ci-fix-pushed は、待ちの値を書くかが false で、起動ラベルを外すかが false になる","status":"passed","testResultsByEnv":{"default":"78007a16adf9e590ecd2ed5276f9e390"}}

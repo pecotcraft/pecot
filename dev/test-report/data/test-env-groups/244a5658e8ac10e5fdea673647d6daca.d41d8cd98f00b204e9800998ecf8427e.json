@@ -1,0 +1,1 @@
+{"id":"244a5658e8ac10e5fdea673647d6daca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#jsonStrings 閉じていないブロックコメント のとき、引用符を含まない本文だけを切り出す","name":"閉じていないブロックコメント のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"ba47e6b5940a9a8e00ee445cbbc0d605"}}

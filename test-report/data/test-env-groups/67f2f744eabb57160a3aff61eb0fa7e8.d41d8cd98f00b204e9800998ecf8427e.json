@@ -1,0 +1,1 @@
+{"id":"67f2f744eabb57160a3aff61eb0fa7e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 Checkout は、どの job も既定のブランチを persist-credentials: false で読む","name":"Checkout は、どの job も既定のブランチを persist-credentials: false で読む","status":"passed","testResultsByEnv":{"default":"31fe65d53b85c42c72ca474045e7edda"}}

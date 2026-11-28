@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project \"board\" has no pecot-status field\n  required field: pecot-status (Backlog/Pending/Ready/Active/In Review/Archived)\n  call project_check with method: \"fields\", owner: \"acme\", project: 1 and apply the changes it asks for with the project-fields operation of github-ops, then project_activate with project: \"1\", owner: \"acme\" to read the board into the project config"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"not-initialized\",\"detail\":\"project \\\"board\\\" has no pecot-status field\\n  required field: pecot-status (Backlog/Pending/Ready/Active/In Review/Archived)\\n  call project_check with method: \\\"fields\\\", owner: \\\"acme\\\", project: 1 and apply the changes it asks for with the project-fields operation of github-ops, then project_activate with project: \\\"1\\\", owner: \\\"acme\\\" to read the board into the project config\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "not-initialized",
+    "detail": "project \"board\" has no pecot-status field\n  required field: pecot-status (Backlog/Pending/Ready/Active/In Review/Archived)\n  call project_check with method: \"fields\", owner: \"acme\", project: 1 and apply the changes it asks for with the project-fields operation of github-ops, then project_activate with project: \"1\", owner: \"acme\" to read the board into the project config"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"e04dadbc1e1d09c01da274fffbb5e249.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_link リポジトリが owner/repo の形でないと、終了コード 1 で終わる","name":"リポジトリが owner/repo の形でないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"6d0e9a3d4894f4a7e7caac0571e21969"}}

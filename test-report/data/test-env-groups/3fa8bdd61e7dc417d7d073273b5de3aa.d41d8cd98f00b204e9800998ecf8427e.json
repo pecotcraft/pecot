@@ -1,0 +1,1 @@
+{"id":"3fa8bdd61e7dc417d7d073273b5de3aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: シェル ヒアドキュメントの中の単引用符を、文字列の開始として扱わない","name":"ヒアドキュメントの中の単引用符を、文字列の開始として扱わない","status":"passed","testResultsByEnv":{"default":"caef246166fb2e84aa1480a9ea555b36"}}

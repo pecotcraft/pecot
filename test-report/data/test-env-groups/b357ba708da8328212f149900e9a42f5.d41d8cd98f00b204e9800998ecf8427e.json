@@ -1,0 +1,1 @@
+{"id":"b357ba708da8328212f149900e9a42f5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/entry-point-linter.test.ts#check-entry-point-logic.sh ディスパッチャとして許される構文（早期リターン）のとき、PASS を返す","name":"ディスパッチャとして許される構文（早期リターン）のとき、PASS を返す","status":"passed","testResultsByEnv":{"default":"36b15c868aa4a009153bba4f9a1b4760"}}

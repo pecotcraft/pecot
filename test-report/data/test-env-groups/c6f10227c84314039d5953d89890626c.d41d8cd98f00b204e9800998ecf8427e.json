@@ -1,0 +1,1 @@
+{"id":"c6f10227c84314039d5953d89890626c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#parseScenario 形式に誤りがあると、例外が発生する: 対応表に無い operation","name":"形式に誤りがあると、例外が発生する: 対応表に無い operation","status":"passed","testResultsByEnv":{"default":"1e21fe08931f3571a18d720a6b691415"}}

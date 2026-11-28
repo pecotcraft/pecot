@@ -1,0 +1,1 @@
+{"id":"a41ad36fc0ce4c4c86cbb3409044132b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 宣言ごとの許す書体 (T051) 直し方に示す書体の並びは、本文の書体と和文の書体で重複するものを除いて組み立てる","name":"直し方に示す書体の並びは、本文の書体と和文の書体で重複するものを除いて組み立てる","status":"passed","testResultsByEnv":{"default":"b9b307d62b80052904e90199e1de34a0"}}

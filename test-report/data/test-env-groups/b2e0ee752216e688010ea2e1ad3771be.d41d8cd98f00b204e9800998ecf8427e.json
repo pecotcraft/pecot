@@ -1,0 +1,1 @@
+{"id":"b2e0ee752216e688010ea2e1ad3771be.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#activeIssueOf remote が存在しない場合は、undefined を返す","name":"remote が存在しない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"8a1f501ef373b7581fe471e360414e65"}}

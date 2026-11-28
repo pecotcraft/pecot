@@ -1,0 +1,1 @@
+ERROR: --dist がディレクトリではありません: /tmp/bats-run-tvyPgn/test/8/no-such-dir

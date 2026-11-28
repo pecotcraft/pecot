@@ -1,0 +1,1 @@
+{"id":"8eae7b193bf7bbdca645d2ebd9612a10.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#リストの記号で始まる行 リストの記号の前で段落を分け、記号を Str に含めず、続きの行を同じ項目に残す","name":"リストの記号の前で段落を分け、記号を Str に含めず、続きの行を同じ項目に残す","status":"passed","testResultsByEnv":{"default":"673ad3d2a478a6fa529193a5009d34bd"}}

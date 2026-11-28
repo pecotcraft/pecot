@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "PR #31 has conflicts that must be resolved\n  to try a forced merge, add admin: true"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"pr-state\",\"detail\":\"PR #31 has conflicts that must be resolved\\n  to try a forced merge, add admin: true\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "pr-state",
+    "detail": "PR #31 has conflicts that must be resolved\n  to try a forced merge, add admin: true"
+  },
+  "isError": true
+}

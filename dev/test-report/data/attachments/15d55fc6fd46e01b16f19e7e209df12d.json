@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_logs_get_log_events: limit: Too small: expected number to be >=1"
+    }
+  ],
+  "isError": true
+}

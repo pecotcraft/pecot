@@ -1,0 +1,1 @@
+{"id":"2af2dcef1b77ba4ca988fdd72f14f348.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_skip_counts_per_lane","name":"skip の件数は、レーンごとに、vitest と pytest の要約の行を、task の塊の中だけで合計する","status":"passed","testResultsByEnv":{"default":"0df92845bc27f1b6badced0151577c8f"}}

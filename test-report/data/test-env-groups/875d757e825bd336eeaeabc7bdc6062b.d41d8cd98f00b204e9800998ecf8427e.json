@@ -1,0 +1,1 @@
+{"id":"875d757e825bd336eeaeabc7bdc6062b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/errors.test.ts#GitHubAPIError 元の例外を指定すると、cause として保持する","name":"元の例外を指定すると、cause として保持する","status":"passed","testResultsByEnv":{"default":"2b1da4f656d9cb1104a301b41443dc87"}}

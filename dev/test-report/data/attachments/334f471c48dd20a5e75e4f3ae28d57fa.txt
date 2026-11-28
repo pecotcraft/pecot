@@ -1,0 +1,2 @@
+error: could not create the branch for Issue acme/demo/7: GraphQL query error: Server error '502 Bad Gateway' for url 'http://127.0.0.1:41737/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502

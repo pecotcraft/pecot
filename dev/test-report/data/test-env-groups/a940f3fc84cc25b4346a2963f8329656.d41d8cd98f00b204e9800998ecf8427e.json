@@ -1,0 +1,1 @@
+{"id":"a940f3fc84cc25b4346a2963f8329656.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck Dependabot の alert が無効のリポジトリでは、skip の行を出して通る","name":"Dependabot の alert が無効のリポジトリでは、skip の行を出して通る","status":"passed","testResultsByEnv":{"default":"558ff4430330893f4643ca9ae1e74141"}}

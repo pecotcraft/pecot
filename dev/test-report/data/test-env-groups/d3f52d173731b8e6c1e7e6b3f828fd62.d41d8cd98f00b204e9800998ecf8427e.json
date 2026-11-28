@@ -1,0 +1,1 @@
+{"id":"d3f52d173731b8e6c1e7e6b3f828fd62.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#slide_sync の theme 指定 (移行前の talk-dir) nodeModulesOnly との同時指定は theme-with-node-modules-only","name":"nodeModulesOnly との同時指定は theme-with-node-modules-only","status":"passed","testResultsByEnv":{"default":"7e10ab92c5e84cb533798f8334e0bf75"}}

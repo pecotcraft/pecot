@@ -1,0 +1,1 @@
+{"id":"e7c76e59d625b4bd1f4f8229cd8fad70.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-sso.test.ts#SSO の 2 段構成 SSO の設定がない profile でログインを開始すると、auth-missing を返す","name":"SSO の設定がない profile でログインを開始すると、auth-missing を返す","status":"passed","testResultsByEnv":{"default":"f111b88d3fda9b2955447e06d6669725"}}

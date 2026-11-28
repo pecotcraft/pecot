@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-24.2 -8.3 116 116" role="img" aria-label="pecot">
+  <clipPath id="tile"><rect x="-24.2" y="-8.3" width="116" height="116" rx="26.5"/></clipPath>
+  <g clip-path="url(#tile)">
+    <rect x="-24.2" y="-8.3" width="23.5" height="116" fill="#234A49"/>
+    <rect x="-1.0" y="-8.3" width="23.5" height="116" fill="#1F3E3E"/>
+    <rect x="22.2" y="-8.3" width="23.5" height="116" fill="#1C3234"/>
+    <rect x="45.4" y="-8.3" width="23.5" height="116" fill="#182629"/>
+    <rect x="68.6" y="-8.3" width="23.5" height="116" fill="#151A1F"/>
+  </g>
+  <g stroke-width="11" stroke-linecap="round" fill="none" stroke="#F1EFE8">
+    <path d="M14 18 V73"/>
+    <circle cx="38" cy="42" r="22"/>
+  </g>
+  <circle cx="14" cy="88" r="6.5" fill="#45C2B1"/>
+</svg>

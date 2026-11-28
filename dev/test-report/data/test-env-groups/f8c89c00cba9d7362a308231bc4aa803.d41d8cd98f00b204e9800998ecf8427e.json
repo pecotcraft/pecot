@@ -1,0 +1,1 @@
+{"id":"f8c89c00cba9d7362a308231bc4aa803.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Processor 空行で区切った句点の無い 2 つの段落は、1 つの文に連結せず、文の長さの指摘を出さない","name":"空行で区切った句点の無い 2 つの段落は、1 つの文に連結せず、文の長さの指摘を出さない","status":"passed","testResultsByEnv":{"default":"6427f0626ceee1a4e0579ca596e78d47"}}

@@ -1,0 +1,1 @@
+{"id":"8ddc731f73f2e8f6849cfb3a53a98509.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check create の事前の確認 push していないブランチ、変更したファイル、stash があると、それぞれの problem を直し方を添えて返す","name":"push していないブランチ、変更したファイル、stash があると、それぞれの problem を直し方を添えて返す","status":"passed","testResultsByEnv":{"default":"de2909f801a3fbcd7eb9844940ca87a5"}}

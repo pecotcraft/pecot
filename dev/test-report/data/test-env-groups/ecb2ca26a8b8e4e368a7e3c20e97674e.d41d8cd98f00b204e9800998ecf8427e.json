@@ -1,0 +1,1 @@
+{"id":"ecb2ca26a8b8e4e368a7e3c20e97674e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/tool-names.test.ts#本文のツール名 本文以外の文書（hooks/README.md など）にも、古い入力名と古いツール名を書かない。バッククォートが付くかは問わない","name":"本文以外の文書（hooks/README.md など）にも、古い入力名と古いツール名を書かない。バッククォートが付くかは問わない","status":"passed","testResultsByEnv":{"default":"e99cca06945291f56310f725388014d5"}}

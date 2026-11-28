@@ -1,0 +1,1 @@
+{"id":"8ad67506e74b30afff36172d8275392a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check MCP の data タグがローカルに既にある と、kind が preflight-failed の失敗を返す","name":"タグがローカルに既にある と、kind が preflight-failed の失敗を返す","status":"passed","testResultsByEnv":{"default":"4620262478d5c27f0301ec0d93319b92"}}

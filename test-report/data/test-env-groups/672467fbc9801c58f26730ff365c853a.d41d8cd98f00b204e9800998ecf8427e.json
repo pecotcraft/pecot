@@ -1,0 +1,1 @@
+{"id":"672467fbc9801c58f26730ff365c853a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: YAML 文字列へ埋め込んだ frontmatter を、値ごとの段落に分け、文の長さの指摘を出さない","name":"文字列へ埋め込んだ frontmatter を、値ごとの段落に分け、文の長さの指摘を出さない","status":"passed","testResultsByEnv":{"default":"18dd16323486068a90dd6045ce725ad3"}}

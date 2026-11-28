@@ -1,0 +1,2 @@
+==> 監査先の advisory 応答を確認 (canary minimist)
+==> 配布ツリーの依存を監査 (registry http://127.0.0.1:46181)

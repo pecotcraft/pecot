@@ -1,0 +1,1 @@
+{"id":"80a4e69e416ea3fd41167afaa758cd70.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql GraphQL の要求は POST で、query と variables を JSON で送信する","name":"GraphQL の要求は POST で、query と variables を JSON で送信する","status":"passed","testResultsByEnv":{"default":"04d89e3b3c44db38b9794419a28592e0"}}

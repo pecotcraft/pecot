@@ -1,0 +1,1 @@
+{"id":"cc7c8f3511d3e68a57b9da4c2abeee83.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 宣言ごとの許す書体 (T051) 書体名は、大文字と小文字の違いや引用符の有無にかかわらず、宣言の書体と一致するものとして扱う","name":"書体名は、大文字と小文字の違いや引用符の有無にかかわらず、宣言の書体と一致するものとして扱う","status":"passed","testResultsByEnv":{"default":"fc67eb0ad5e97ea3b6bea70f3983aa79"}}

@@ -1,0 +1,1 @@
+{"id":"24274ba3b7855710042b27d2dc779ccf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-drift.test.ts#drift.ts --repo を指定しない と、usage を出力して終了コード 2 で終了し、スキーマを取得しない","name":"--repo を指定しない と、usage を出力して終了コード 2 で終了し、スキーマを取得しない","status":"passed","testResultsByEnv":{"default":"8f6cfbb579fe573a5fbb120a7ff7c9e3"}}

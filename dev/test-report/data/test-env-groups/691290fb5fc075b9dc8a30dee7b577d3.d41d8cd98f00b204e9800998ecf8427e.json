@@ -1,0 +1,1 @@
+{"id":"691290fb5fc075b9dc8a30dee7b577d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#対象のリポを決められなかったとき どのツールもコマンドを実行せず、理由を detail に持つ失敗を返す","name":"どのツールもコマンドを実行せず、理由を detail に持つ失敗を返す","status":"passed","testResultsByEnv":{"default":"5125d08c4b4931015dc015a5a9a75a1b"}}

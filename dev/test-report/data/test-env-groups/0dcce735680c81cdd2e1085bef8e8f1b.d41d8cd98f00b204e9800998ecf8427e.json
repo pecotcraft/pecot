@@ -1,0 +1,1 @@
+{"id":"0dcce735680c81cdd2e1085bef8e8f1b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_13_pass_project_outside_groups","name":"release group に入っていない project だけを変更した場合は、成功する","status":"passed","testResultsByEnv":{"default":"f5a2fb558178054109be3360f685d145"}}

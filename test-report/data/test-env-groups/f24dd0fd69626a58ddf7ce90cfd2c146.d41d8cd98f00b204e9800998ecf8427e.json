@@ -1,0 +1,1 @@
+{"id":"f24dd0fd69626a58ddf7ce90cfd2c146.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show project を渡すと、そのリポを含む設定が 2 つあってもその設定で作業中の Issue を読む","name":"project を渡すと、そのリポを含む設定が 2 つあってもその設定で作業中の Issue を読む","status":"passed","testResultsByEnv":{"default":"8c0f618e6096a203db5615058a913060"}}

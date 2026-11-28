@@ -1,0 +1,1 @@
+{"id":"2e1d6cb3f9d4f10ef08d98f9a38dfeed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check remote が origin だけだと、Base Branch の節に <remote>/<develop_branch> を出す","name":"remote が origin だけだと、Base Branch の節に <remote>/<develop_branch> を出す","status":"passed","testResultsByEnv":{"default":"f542c7254bf9f15dee2e0111bc622379"}}

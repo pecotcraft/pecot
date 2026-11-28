@@ -1,0 +1,1 @@
+{"id":"253bcad02692eeabea9ed4968c3fe599.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-sweep.test.ts#sandbox-sweep.sh 引数と読めない場合 一覧が開いたままと返しても、閉じた直後の Issue と PR は対象から除く","name":"一覧が開いたままと返しても、閉じた直後の Issue と PR は対象から除く","status":"passed","testResultsByEnv":{"default":"d9bc2adda9acd47058d0c355f59c1c60"}}

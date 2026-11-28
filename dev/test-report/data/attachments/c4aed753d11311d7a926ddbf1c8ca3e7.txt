@@ -1,0 +1,3 @@
+warning: mxCell id=s14: first font inter is not in the default font: "Alpha"; diagram text is set in the default font (fix: add fontFamily=sans-serif to style)
+warning: mxCell id=s16: first font inter is not in the default font: "Beta"; diagram text is set in the default font (fix: add fontFamily=sans-serif to style)
+warning: mxCell id=ja: first font inter is not in the default font: "構成"; diagram text is set in the default font (fix: add fontFamily=sans-serif to style)

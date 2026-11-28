@@ -1,0 +1,1 @@
+cp: not writing through dangling symlink '/tmp/pecot-hooks-Aupsew/repo/.pecot/config/hooks-config.json'

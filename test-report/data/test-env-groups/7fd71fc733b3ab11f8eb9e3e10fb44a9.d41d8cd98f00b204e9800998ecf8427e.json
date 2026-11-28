@@ -1,0 +1,1 @@
+{"id":"7fd71fc733b3ab11f8eb9e3e10fb44a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「ブランチ名」の場合は、エラーを返す","name":"テーマの指定が「ブランチ名」の場合は、エラーを返す","status":"passed","testResultsByEnv":{"default":"02a5cd16b8be269730b19bb38a7e1f4b"}}

@@ -1,0 +1,1 @@
+{"id":"738292c210c1368be42041c6abd02499.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 指定されたポートを起動直前に奪われたら、捕捉した出力を添えて失敗を返す","name":"指定されたポートを起動直前に奪われたら、捕捉した出力を添えて失敗を返す","status":"passed","testResultsByEnv":{"default":"78aeecadf1f9fa31d404c401e1421e2f"}}

@@ -1,0 +1,1 @@
+{"id":"ed02fe04e5c40c5a6f426df473378028.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_merge_group_does_not_use_trailing_base_sha","name":"merge_group の HEAD_REF の末尾にある base の sha は、artifact の選択に使わない","status":"passed","testResultsByEnv":{"default":"6d85028b815f4d188a105f7d0634c129"}}

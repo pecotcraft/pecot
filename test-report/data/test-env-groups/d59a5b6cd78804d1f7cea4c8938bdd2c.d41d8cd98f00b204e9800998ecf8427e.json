@@ -1,0 +1,1 @@
+{"id":"d59a5b6cd78804d1f7cea4c8938bdd2c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueSlim commentLimit を指定した場合は、GraphQL の変数として送信する","name":"commentLimit を指定した場合は、GraphQL の変数として送信する","status":"passed","testResultsByEnv":{"default":"1346dbf9546c3d1b4be1d5f18f3a0aa5"}}

@@ -1,0 +1,1 @@
+{"id":"8e364db73126050b7e82f2c5fba55def.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#validateInput フラグを持たない string の入力は、先頭が - の値を拒否する","name":"フラグを持たない string の入力は、先頭が - の値を拒否する","status":"passed","testResultsByEnv":{"default":"9574630cb8b85e809fa8202b6a8b83ec"}}

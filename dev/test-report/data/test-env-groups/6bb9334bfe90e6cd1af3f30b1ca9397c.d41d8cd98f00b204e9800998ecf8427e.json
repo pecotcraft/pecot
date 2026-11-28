@@ -1,0 +1,1 @@
+{"id":"6bb9334bfe90e6cd1af3f30b1ca9397c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_cloudwatch_get_metric_statistics 必須の入力 period が指定されていないと、拒否する","name":"必須の入力 period が指定されていないと、拒否する","status":"passed","testResultsByEnv":{"default":"27c50b0a86f35e7c5c4f16904ca51de6"}}

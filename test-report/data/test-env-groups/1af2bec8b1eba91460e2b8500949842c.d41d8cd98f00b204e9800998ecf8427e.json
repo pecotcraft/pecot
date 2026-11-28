@@ -1,0 +1,1 @@
+{"id":"1af2bec8b1eba91460e2b8500949842c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_issue_surface_workflow#test_concurrency_does_not_cancel_in_progress","name":"issue-surface-drift.yml は、実行中のジョブを取り消さない","status":"passed","testResultsByEnv":{"default":"c775ccb15cdff09c7b058c6937459258"}}

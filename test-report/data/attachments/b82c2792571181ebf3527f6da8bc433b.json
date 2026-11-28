@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not merge PR acme/demo/11: resource not found: http://127.0.0.1:43075/repos/acme/demo/pulls/11/merge-async Not Found"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-not-found\",\"detail\":\"could not merge PR acme/demo/11: resource not found: http://127.0.0.1:43075/repos/acme/demo/pulls/11/merge-async Not Found\",\"pullRequest\":\"acme/demo/11\",\"base\":\"main\",\"stack\":{\"number\":3,\"size\":2}}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-not-found",
+    "detail": "could not merge PR acme/demo/11: resource not found: http://127.0.0.1:43075/repos/acme/demo/pulls/11/merge-async Not Found",
+    "pullRequest": "acme/demo/11",
+    "base": "main",
+    "stack": {
+      "number": 3,
+      "size": 2
+    }
+  },
+  "isError": true
+}

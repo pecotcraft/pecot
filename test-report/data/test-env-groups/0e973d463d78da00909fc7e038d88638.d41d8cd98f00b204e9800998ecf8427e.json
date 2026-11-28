@@ -1,0 +1,1 @@
+{"id":"0e973d463d78da00909fc7e038d88638.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool 起動に失敗したら、捕捉した出力を log に添えて返す","name":"起動に失敗したら、捕捉した出力を log に添えて返す","status":"passed","testResultsByEnv":{"default":"dc7dc9bcd6ea4732ca39bb38c13d446b"}}

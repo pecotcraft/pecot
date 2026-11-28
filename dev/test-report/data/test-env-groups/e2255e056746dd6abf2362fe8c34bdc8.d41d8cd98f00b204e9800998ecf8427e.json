@@ -1,0 +1,1 @@
+{"id":"e2255e056746dd6abf2362fe8c34bdc8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery EXPLAIN を 20000 回重ねたクエリでも、スタックを溢れさせずに判定する","name":"EXPLAIN を 20000 回重ねたクエリでも、スタックを溢れさせずに判定する","status":"passed","testResultsByEnv":{"default":"4e6c32ad9ce2950f8fc29ca8ca5ff000"}}

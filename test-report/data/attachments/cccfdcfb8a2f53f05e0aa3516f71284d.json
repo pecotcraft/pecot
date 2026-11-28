@@ -1,0 +1,34 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "preflight found warnings; fix them before creating a PR"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"preflight found warnings; fix them before creating a PR\",\"remoteUrl\":\"git@ghes.example.com:acme/demo.git\",\"currentBranch\":\"feat/demo/12\",\"pushed\":false,\"pushStatus\":\"1 unpushed commits\",\"baseBranch\":\"origin/main\",\"gitStatus\":\"On branch feat/demo/12\\nnothing to commit, working tree clean\\n\",\"commits\":\"558ca7d local\",\"diffSummary\":\"(no diff)\",\"worktree\":{\"list\":\"/tmp/pecot-parity-KHw7go/base/demo 558ca7d [feat/demo/12]\",\"directoryName\":\"demo\",\"isWorktree\":false},\"stashList\":\"(no stash)\",\"warnings\":[\"Push Status: 1 unpushed commits (fix: git push)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "preflight found warnings; fix them before creating a PR",
+    "remoteUrl": "git@ghes.example.com:acme/demo.git",
+    "currentBranch": "feat/demo/12",
+    "pushed": false,
+    "pushStatus": "1 unpushed commits",
+    "baseBranch": "origin/main",
+    "gitStatus": "On branch feat/demo/12\nnothing to commit, working tree clean\n",
+    "commits": "558ca7d local",
+    "diffSummary": "(no diff)",
+    "worktree": {
+      "list": "/tmp/pecot-parity-KHw7go/base/demo 558ca7d [feat/demo/12]",
+      "directoryName": "demo",
+      "isWorktree": false
+    },
+    "stashList": "(no stash)",
+    "warnings": [
+      "Push Status: 1 unpushed commits (fix: git push)"
+    ]
+  },
+  "isError": true
+}

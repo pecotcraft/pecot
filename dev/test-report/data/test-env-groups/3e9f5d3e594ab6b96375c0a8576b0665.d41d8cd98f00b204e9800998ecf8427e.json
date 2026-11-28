@@ -1,0 +1,1 @@
+{"id":"3e9f5d3e594ab6b96375c0a8576b0665.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/fs-sync.test.ts#hasSlidesMd slides.md が存在しなければ、false を返す","name":"slides.md が存在しなければ、false を返す","status":"passed","testResultsByEnv":{"default":"256377c85e5a9a922f2dda8a15651837"}}

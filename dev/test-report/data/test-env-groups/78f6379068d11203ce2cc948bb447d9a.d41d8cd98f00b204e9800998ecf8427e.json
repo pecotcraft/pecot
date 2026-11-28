@@ -1,0 +1,1 @@
+{"id":"78f6379068d11203ce2cc948bb447d9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#アクティブ設定 projects ディレクトリが存在しない場合は、作成してから .active を書き込む","name":"projects ディレクトリが存在しない場合は、作成してから .active を書き込む","status":"passed","testResultsByEnv":{"default":"5c0b597ef371eaeecd007af7909632d9"}}

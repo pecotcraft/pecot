@@ -1,0 +1,1 @@
+{"id":"7a39bbff2889141141d74905cb148235.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#executeSlideLint slides.md が無い dir は not-talk-dir の失敗になり、eslint を起動しない","name":"slides.md が無い dir は not-talk-dir の失敗になり、eslint を起動しない","status":"passed","testResultsByEnv":{"default":"097cb80d6ea0bb78ccda6fcb581bb8db"}}

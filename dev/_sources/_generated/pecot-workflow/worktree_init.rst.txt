@@ -1,0 +1,8 @@
+:iface-id: PW-WORKTREE-INIT
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Initialize worktree config
+====================================================
+
+.. iface-defs:: pecot-workflow PW-WORKTREE-INIT

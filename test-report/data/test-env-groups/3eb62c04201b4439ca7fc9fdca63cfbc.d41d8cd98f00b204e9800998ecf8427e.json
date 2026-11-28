@@ -1,0 +1,1 @@
+{"id":"3eb62c04201b4439ca7fc9fdca63cfbc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#isLabelWrittenByAutomation 札が 存在しない の場合は、Bot の待ちの結果があっても false を返す","name":"札が 存在しない の場合は、Bot の待ちの結果があっても false を返す","status":"passed","testResultsByEnv":{"default":"8429216cc3e5ea14f4a040aba3febe46"}}

@@ -1,0 +1,1 @@
+{"id":"37a2e72cc106758d58af374adcf55cfd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#先頭の frontmatter 読み取れない frontmatter は、全体を 1 つの段落として扱う","name":"読み取れない frontmatter は、全体を 1 つの段落として扱う","status":"passed","testResultsByEnv":{"default":"f19259b1c565e2fe66dfa6eed34d0b0a"}}

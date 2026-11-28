@@ -1,0 +1,1 @@
+{"id":"a4fc51e7bcb8a0e47e3031d191aeb97e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#Python reads Python のソースに a copy があると、名前を解決できない行を 1 件返し、名前は返さない","name":"Python のソースに a copy があると、名前を解決できない行を 1 件返し、名前は返さない","status":"passed","testResultsByEnv":{"default":"c08aed4316b8f52d3cc172300fa981ca"}}

@@ -1,0 +1,1 @@
+{"id":"aa5a5104cdf59e18156c948f90ebbf61.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#epicTargetRepository リポジトリを指定せず aggregation_repo も無い場合は、作成先を決められない","name":"リポジトリを指定せず aggregation_repo も無い場合は、作成先を決められない","status":"passed","testResultsByEnv":{"default":"6bbb60bc604ffd2c268a2705628e6c1c"}}

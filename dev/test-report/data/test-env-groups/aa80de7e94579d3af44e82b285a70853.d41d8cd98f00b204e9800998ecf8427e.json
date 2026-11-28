@@ -1,0 +1,1 @@
+{"id":"aa80de7e94579d3af44e82b285a70853.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#resolveTalkDirectoryNodeModules データ置き場を決められなければ、永続層を候補に入れず、プラグインルートだけを使う","name":"データ置き場を決められなければ、永続層を候補に入れず、プラグインルートだけを使う","status":"passed","testResultsByEnv":{"default":"74c05021758eb6635d44c3ada2137899"}}

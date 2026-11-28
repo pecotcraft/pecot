@@ -1,0 +1,1 @@
+{"id":"69a91d7db3ff5b8988b8104c2fa0e12e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText fragment モードでは、行頭の \"# \" を Markdown のブロック記法として扱わない","name":"fragment モードでは、行頭の \"# \" を Markdown のブロック記法として扱わない","status":"passed","testResultsByEnv":{"default":"98a2f84048cc97b941464d36f393cb23"}}

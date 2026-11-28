@@ -1,0 +1,1 @@
+{"id":"d3f6d18c3fe03578d8d92f943a6a15a7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/failure.test.ts#kindOfFailure 例外 [GitHubAPIError: g] は、原因の種類 github-api に分類される","name":"例外 [GitHubAPIError: g] は、原因の種類 github-api に分類される","status":"passed","testResultsByEnv":{"default":"a551ec59316cd623c2b59e5f277e7c15"}}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the result of get_commit in reads.commit is not in the shape of the official GitHub MCP server\n  sha: Invalid string: must match pattern /^[\\da-f]{40}$/u"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-mcp-shape\",\"detail\":\"the result of get_commit in reads.commit is not in the shape of the official GitHub MCP server\\n  sha: Invalid string: must match pattern /^[\\\\da-f]{40}$/u\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-mcp-shape",
+    "detail": "the result of get_commit in reads.commit is not in the shape of the official GitHub MCP server\n  sha: Invalid string: must match pattern /^[\\da-f]{40}$/u"
+  },
+  "isError": true
+}

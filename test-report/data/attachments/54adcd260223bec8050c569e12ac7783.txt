@@ -1,0 +1,6 @@
+warning: 1 open Dependabot alert. The release is not blocked.
+  #3
+  → https://ghes.example.com/acme/demo/security/dependabot
+count: open code scanning alerts: 0
+count: open secret scanning alerts: 0
+count: commits to release (origin/develop -> origin/release): 1

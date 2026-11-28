@@ -1,0 +1,1 @@
+{"id":"bf82ed13568f3d72c491ca6365b67d6e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#kindOf id のツール名の次の語を kind として返し、該当する語が存在しない場合は undefined を返す","name":"id のツール名の次の語を kind として返し、該当する語が存在しない場合は undefined を返す","status":"passed","testResultsByEnv":{"default":"949ecd57ce76b0f8657a873732b73de7"}}

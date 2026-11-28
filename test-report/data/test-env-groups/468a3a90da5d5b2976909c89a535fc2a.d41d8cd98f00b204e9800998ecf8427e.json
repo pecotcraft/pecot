@@ -1,0 +1,1 @@
+{"id":"468a3a90da5d5b2976909c89a535fc2a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init フィールドの作成で GitHub API がエラーを返すと、終了コード 1 で終わる","name":"フィールドの作成で GitHub API がエラーを返すと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"cc9ee4d9aa0a1879de4e88e769615425"}}

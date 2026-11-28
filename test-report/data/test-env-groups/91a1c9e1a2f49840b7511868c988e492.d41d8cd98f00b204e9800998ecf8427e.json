@@ -1,0 +1,1 @@
+{"id":"91a1c9e1a2f49840b7511868c988e492.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check MCP の data Dependabot alert の状態を読めないと、warnings に 1 つ入れる","name":"Dependabot alert の状態を読めないと、warnings に 1 つ入れる","status":"passed","testResultsByEnv":{"default":"6fea072ff41f41670f49f6389554f89f"}}

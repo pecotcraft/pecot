@@ -1,0 +1,1 @@
+{"id":"20bbf7da40725ab30585f528e09954e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#resolveRepository 明示した値がなければ、現在の git の origin を採用する","name":"明示した値がなければ、現在の git の origin を採用する","status":"passed","testResultsByEnv":{"default":"57a78e6757fb50492d7e8ee5144d8d10"}}

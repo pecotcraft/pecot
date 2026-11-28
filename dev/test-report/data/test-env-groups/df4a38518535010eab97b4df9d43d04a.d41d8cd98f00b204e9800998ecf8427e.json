@@ -1,0 +1,1 @@
+{"id":"df4a38518535010eab97b4df9d43d04a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check スタックした base 親 PR が開いていて base が親ブランチ だと、problem の無い結果を返す","name":"親 PR が開いていて base が親ブランチ だと、problem の無い結果を返す","status":"passed","testResultsByEnv":{"default":"8779d3cfb00f295390979aa508c76de6"}}

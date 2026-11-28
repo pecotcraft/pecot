@@ -1,0 +1,2 @@
+error: could not set Issue acme/demo/7 status active: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}
+  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again

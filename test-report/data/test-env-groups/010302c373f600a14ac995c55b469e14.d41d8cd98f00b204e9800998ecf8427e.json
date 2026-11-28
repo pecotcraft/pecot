@@ -1,0 +1,1 @@
+{"id":"010302c373f600a14ac995c55b469e14.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_real_allure_appends_a_line_per_report","name":"本物の allure でレポートを作るたびに、履歴を 1 行ずつ追記する","status":"passed","testResultsByEnv":{"default":"154c91f104a02744f4a16220f0572624"}}

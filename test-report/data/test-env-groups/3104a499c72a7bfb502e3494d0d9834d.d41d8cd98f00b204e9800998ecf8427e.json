@@ -1,0 +1,1 @@
+{"id":"3104a499c72a7bfb502e3494d0d9834d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#REST の要求 404 の応答を handleHttpError に渡すと対応する例外になる","name":"404 の応答を handleHttpError に渡すと対応する例外になる","status":"passed","testResultsByEnv":{"default":"cf66ca67f38076f981c0bff53f635368"}}

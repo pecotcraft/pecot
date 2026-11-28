@@ -1,0 +1,1 @@
+{"id":"9a496276438cc5cbcdb44021acc0a139.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/merge.test.ts#mergePptxFiles: 埋め込みフォントの統合 同じ書体と字形で内容が異なる場合は、スライド 1 のものを残し、警告を記録する","name":"同じ書体と字形で内容が異なる場合は、スライド 1 のものを残し、警告を記録する","status":"passed","testResultsByEnv":{"default":"9e4ff58afe4a74145b6e23c6bfecdc5f"}}

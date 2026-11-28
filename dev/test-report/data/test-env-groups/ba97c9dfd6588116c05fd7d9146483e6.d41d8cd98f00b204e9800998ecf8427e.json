@@ -1,0 +1,1 @@
+{"id":"ba97c9dfd6588116c05fd7d9146483e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#parseUpdateMetadata update-type が semver- を含まない値でも、末尾が種類ならそれを使う","name":"update-type が semver- を含まない値でも、末尾が種類ならそれを使う","status":"passed","testResultsByEnv":{"default":"75ccc41ab4d0909a890a7c5ec1286c92"}}

@@ -1,0 +1,20 @@
+{
+  "project": "nx-release",
+  "target": "lint-eslint",
+  "runtime": [
+    "dpkg-query -W -f='${Package}=${Version}\\n'",
+    "git hash-object pnpm-lock.yaml",
+    "node --version",
+    "node -p \"require('eslint/package.json').version\""
+  ],
+  "environment": [
+    "HOME",
+    "NODE_OPTIONS",
+    "NODE_V8_COVERAGE",
+    "NX_CLOUD_ENCRYPTION_KEY",
+    "PECOT_REPORT_SITE_URL"
+  ],
+  "external": [
+    "AllExternalDependencies"
+  ]
+}

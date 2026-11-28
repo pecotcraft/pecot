@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "slide_page: generated (/tmp/pecotv-test-e2e-9VLKfm/page-talk/pages/e2e-plain.md); fill in the content following props / text_constraints in reference, then register \"src: ./pages/e2e-plain.md\" in slides.md separately"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.page.done\",\"layout\":\"plain\",\"category\":\"text\",\"deprecated\":false,\"path\":\"/tmp/pecotv-test-e2e-9VLKfm/page-talk/pages/e2e-plain.md\",\"skeleton\":\"---\\nlayout: plain\\nheading: 見出しの例\\nbody: 本文の例\\n---\\n\",\"reference\":\"layout: 'plain'\\ndescription: '見出しと本文だけを置く最小のレイアウト。文章で伝える場面に使う。'\\ncategory: 'text'\\n\\nincludes:\\n  - _common\\n\\nprops:\\n  heading:\\n    type: 'String'\\n    required: true\\n    description: '見出し'\\n  body:\\n    type: 'String'\\n    default: \\\"''\\\"\\n    description: '本文'\\n\\ntext_constraints:\\n  'heading':\\n    min_chars: 2\\n    max_chars: 20\\n  'body':\\n    min_chars: 0\\n    max_chars: 80\\n\\nexamples:\\n  - name: 基本\\n    frontmatter: |\\n      ---\\n      layout: plain\\n      heading: 見出しの例\\n      body: 本文の例\\n      ---\\n\\nclicks:\\n  supported: false\\n\\nbest_practices:\\n  - '1 枚で伝える内容を 1 つに絞る'\\n\\nanti_patterns:\\n  - '見出しに文章を書く'\\n\",\"includes\":{\"_common\":\"# Shared Reference: _common\\ndescription: 'テスト用テーマの共通の宣言。'\\n\\nlayout_categories:\\n  - id: 'text'\\n    label: '文章'\\n    question: '文章で見せる'\\n  - id: 'figure'\\n    label: '図'\\n    question: '図で見せる'\\n\"}}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.page.done",
+    "layout": "plain",
+    "category": "text",
+    "deprecated": false,
+    "path": "/tmp/pecotv-test-e2e-9VLKfm/page-talk/pages/e2e-plain.md",
+    "skeleton": "---\nlayout: plain\nheading: 見出しの例\nbody: 本文の例\n---\n",
+    "reference": "layout: 'plain'\ndescription: '見出しと本文だけを置く最小のレイアウト。文章で伝える場面に使う。'\ncategory: 'text'\n\nincludes:\n  - _common\n\nprops:\n  heading:\n    type: 'String'\n    required: true\n    description: '見出し'\n  body:\n    type: 'String'\n    default: \"''\"\n    description: '本文'\n\ntext_constraints:\n  'heading':\n    min_chars: 2\n    max_chars: 20\n  'body':\n    min_chars: 0\n    max_chars: 80\n\nexamples:\n  - name: 基本\n    frontmatter: |\n      ---\n      layout: plain\n      heading: 見出しの例\n      body: 本文の例\n      ---\n\nclicks:\n  supported: false\n\nbest_practices:\n  - '1 枚で伝える内容を 1 つに絞る'\n\nanti_patterns:\n  - '見出しに文章を書く'\n",
+    "includes": {
+      "_common": "# Shared Reference: _common\ndescription: 'テスト用テーマの共通の宣言。'\n\nlayout_categories:\n  - id: 'text'\n    label: '文章'\n    question: '文章で見せる'\n  - id: 'figure'\n    label: '図'\n    question: '図で見せる'\n"
+    }
+  }
+}

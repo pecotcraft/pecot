@@ -1,0 +1,1 @@
+{"id":"4bfc5117fd2874a4da9694fa396569c7.f44cf2d9c7cdbd42a3bc67ffb3c6e657","fullName":".githooks.tests.test_allure_report_labels#test_without_alluredir_no_label_or_environment","name":"--alluredir を指定しないと、.githooks/tests/conftest.py の conftest は Python のラベルを付けず、environment.properties を書かない","status":"passed","testResultsByEnv":{"default":"2ac07285f37c029b8a860a1b51bf7f27"}}

@@ -1,0 +1,1 @@
+{"id":"c67d0d4e28db095b65f5784482e9d920.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx の差分キャッシュ スキャンで得たステップ数と slides.md のスライド数が食い違う場合は、manifest を書き込まない","name":"スキャンで得たステップ数と slides.md のスライド数が食い違う場合は、manifest を書き込まない","status":"passed","testResultsByEnv":{"default":"89c3ffdc9859584e79142af81edf0a57"}}

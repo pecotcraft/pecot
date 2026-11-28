@@ -1,0 +1,1 @@
+{"id":"0bb794950a0cc7c05c4c91fd598bfb6a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/domain/tests/issue-surface.test.ts#diffIssueSurface 同じ集合の場合は、並びが違っても、差を空にして返す","name":"同じ集合の場合は、並びが違っても、差を空にして返す","status":"passed","testResultsByEnv":{"default":"a76c615b0f2425af76eed6a9c22b0859"}}

@@ -1,0 +1,1 @@
+{"id":"0c22b04fbaa068b880c5b556779105a1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#hasSummaryImage 見出しの下に ## だけの行がある の場合は、偽を返す","name":"見出しの下に ## だけの行がある の場合は、偽を返す","status":"passed","testResultsByEnv":{"default":"8331c849118f4192428727011e1b1091"}}

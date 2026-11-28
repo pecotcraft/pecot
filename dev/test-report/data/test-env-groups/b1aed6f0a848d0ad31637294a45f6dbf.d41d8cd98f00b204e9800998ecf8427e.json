@@ -1,0 +1,1 @@
+{"id":"b1aed6f0a848d0ad31637294a45f6dbf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add base を省いて呼ぶと、アクティブなプロジェクトの設定の develop_branch をベースにする","name":"base を省いて呼ぶと、アクティブなプロジェクトの設定の develop_branch をベースにする","status":"passed","testResultsByEnv":{"default":"653e0f44c69bac5d334c2460adb8bfa6"}}

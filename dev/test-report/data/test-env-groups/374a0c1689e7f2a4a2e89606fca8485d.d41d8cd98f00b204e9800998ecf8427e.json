@@ -1,0 +1,1 @@
+{"id":"374a0c1689e7f2a4a2e89606fca8485d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release .githooks/scripts/tests/mcp-publish-common.bats#実配布での npm キャッシュの opt-in は、検証用と示して exit 1 になる","name":"実配布での npm キャッシュの opt-in は、検証用と示して exit 1 になる","status":"passed","testResultsByEnv":{"default":"337176e1e560bb5c7e6521c8f7d86062"}}

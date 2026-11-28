@@ -1,0 +1,1 @@
+{"id":"8b734347a1e8126822fc66a884fa0f80.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/setup.test.ts#createSandbox 雛形に依存せず、info/exclude は固定の内容になり、hooks ディレクトリは作成されない","name":"雛形に依存せず、info/exclude は固定の内容になり、hooks ディレクトリは作成されない","status":"passed","testResultsByEnv":{"default":"d2be32f496add5c033c7833fab3d83bb"}}

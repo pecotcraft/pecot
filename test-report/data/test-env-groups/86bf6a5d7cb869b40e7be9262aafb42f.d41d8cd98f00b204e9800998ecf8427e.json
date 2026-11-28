@@ -1,0 +1,1 @@
+{"id":"86bf6a5d7cb869b40e7be9262aafb42f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint eslint と設定が無いと、lint しなかったことと runtime_setup の案内を返す","name":"eslint と設定が無いと、lint しなかったことと runtime_setup の案内を返す","status":"passed","testResultsByEnv":{"default":"d183aef95e36944094cf24dbc4bbca48"}}

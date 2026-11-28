@@ -1,0 +1,1 @@
+{"id":"9793e478c37f99c7d16cf3b13d181c92.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — items items が空の配列の場合は、拒否する","name":"items が空の配列の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"d974db88956c0edda4d1ce3000e33949"}}

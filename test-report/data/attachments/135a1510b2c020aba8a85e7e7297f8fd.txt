@@ -1,0 +1,9 @@
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf has-session -t pecot-base-parallel-a
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf new-session -d -s pecot-base-parallel-a -c /workspaces/wt1/pecot bash
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf split-window -h -t pecot-base-parallel-a -c /workspaces/wt2/pecot bash
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf select-pane -t pecot-base-parallel-a.0
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf split-window -v -t pecot-base-parallel-a -c /workspaces/wt3/pecot bash
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf select-pane -t pecot-base-parallel-a.2
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf split-window -v -t pecot-base-parallel-a -c /workspaces/wt4/pecot bash
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf select-pane -t pecot-base-parallel-a.0
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf attach-session -t pecot-base-parallel-a

@@ -1,0 +1,1 @@
+{"id":"c9627c9afdcb34e6c670529da11a3b95.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/blocked-by-change.test.ts#decideBlock stack で前提を付ける場合は、節に残った同じ前提の行を取り除く","name":"stack で前提を付ける場合は、節に残った同じ前提の行を取り除く","status":"passed","testResultsByEnv":{"default":"213eb8c9eb3631a7cc2dabc80d74a0a9"}}

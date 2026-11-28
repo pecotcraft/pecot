@@ -1,0 +1,1 @@
+{"id":"f6fe3e742a8e80a332558557ae48a4a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_validate validator が無いと、検証しなかったことと runtime_setup の案内を返す","name":"validator が無いと、検証しなかったことと runtime_setup の案内を返す","status":"passed","testResultsByEnv":{"default":"4daad4faab3d094e4104101d0c5f64ea"}}

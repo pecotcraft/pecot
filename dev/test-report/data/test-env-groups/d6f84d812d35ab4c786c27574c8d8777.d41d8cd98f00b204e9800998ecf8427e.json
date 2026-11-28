@@ -1,0 +1,1 @@
+{"id":"d6f84d812d35ab4c786c27574c8d8777.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と列 ボードの欄に無い選択肢を書くと、取りうる値を添えて problem にする","name":"ボードの欄に無い選択肢を書くと、取りうる値を添えて problem にする","status":"passed","testResultsByEnv":{"default":"8c012ff30e53f7d55b8de1ed6e029b9b"}}

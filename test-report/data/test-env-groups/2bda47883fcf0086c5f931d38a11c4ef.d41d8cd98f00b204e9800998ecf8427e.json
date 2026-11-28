@@ -1,0 +1,1 @@
+{"id":"2bda47883fcf0086c5f931d38a11c4ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#formatBoardOutput の Readiness の列 判定の表を渡した場合は、Ready の節だけに Readiness の列を付ける","name":"判定の表を渡した場合は、Ready の節だけに Readiness の列を付ける","status":"passed","testResultsByEnv":{"default":"41d6bd9fad053a67fd6767c194575ffc"}}

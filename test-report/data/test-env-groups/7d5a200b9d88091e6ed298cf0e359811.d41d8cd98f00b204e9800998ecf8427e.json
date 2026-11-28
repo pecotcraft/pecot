@@ -1,0 +1,1 @@
+{"id":"7d5a200b9d88091e6ed298cf0e359811.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate MCP の data host が要る場面で渡していないと、kind が invalid-input の失敗を返す","name":"host が要る場面で渡していないと、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"e57d3d88b75ca2872108557b9e19925d"}}

@@ -1,0 +1,1 @@
+{"id":"bd366f2016f029a199a872725baa094a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#readIssueSnapshot コメントの取得に失敗した場合は、取得できなかった理由（unreadable）を返す","name":"コメントの取得に失敗した場合は、取得できなかった理由（unreadable）を返す","status":"passed","testResultsByEnv":{"default":"783dd91cdde0057496ed87eabe897453"}}

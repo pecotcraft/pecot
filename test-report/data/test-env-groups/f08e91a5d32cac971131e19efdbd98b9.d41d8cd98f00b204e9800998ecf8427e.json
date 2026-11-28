@@ -1,0 +1,1 @@
+{"id":"f08e91a5d32cac971131e19efdbd98b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/concurrency.test.ts#runWithConcurrency 失敗するタスクが含まれる場合も、Promise.allSettled と同じ形式で結果を返す","name":"失敗するタスクが含まれる場合も、Promise.allSettled と同じ形式で結果を返す","status":"passed","testResultsByEnv":{"default":"790a9424e948c87d3d58edbb1c9552de"}}

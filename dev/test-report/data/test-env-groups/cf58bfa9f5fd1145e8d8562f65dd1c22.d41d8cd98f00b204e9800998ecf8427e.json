@@ -1,0 +1,1 @@
+{"id":"cf58bfa9f5fd1145e8d8562f65dd1c22.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#アイテムの追加・更新・削除 addToProject は、item が null の場合に GitHubAPIError が発生する","name":"addToProject は、item が null の場合に GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"70b4fc0dc5121100d8b4f31260252431"}}

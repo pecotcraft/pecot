@@ -1,0 +1,1 @@
+{"id":"748f07b57146d30a295bf334b3962a49.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/report-labels.test.ts#featureStory 定義書の無い project の COMMON の ID は、末尾の -NN を除いた項目の ID を feature にする","name":"定義書の無い project の COMMON の ID は、末尾の -NN を除いた項目の ID を feature にする","status":"passed","testResultsByEnv":{"default":"9c6d6a8d6fb39e6397503c8cfbeae0ca"}}

@@ -1,0 +1,1 @@
+{"id":"ce99c983c90b51fe01007fe66bf3dc8b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 複数行の文字列 のとき、引用符を含まない本文だけを切り出す","name":"複数行の文字列 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"6c9781564922f883ae4e1112f33f421d"}}

@@ -1,0 +1,1 @@
+{"id":"177f93e51263c2c75b01bca12b641c38.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh cwd と CLAUDE_PROJECT_DIR のどちらも無いとき、プロセスの pwd にフォールバックする","name":"cwd と CLAUDE_PROJECT_DIR のどちらも無いとき、プロセスの pwd にフォールバックする","status":"passed","testResultsByEnv":{"default":"4e14463d1ca78ff2785f79898b78e245"}}

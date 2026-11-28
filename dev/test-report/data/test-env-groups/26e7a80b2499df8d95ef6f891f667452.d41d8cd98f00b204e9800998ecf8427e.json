@@ -1,0 +1,1 @@
+{"id":"26e7a80b2499df8d95ef6f891f667452.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateSections（必須セクション検証: 見出しレベル・em-dash サマリ） required_sections が空の場合は、空の配列を返す","name":"required_sections が空の場合は、空の配列を返す","status":"passed","testResultsByEnv":{"default":"b92352dd4465e8fad86256cefb6d2caa"}}

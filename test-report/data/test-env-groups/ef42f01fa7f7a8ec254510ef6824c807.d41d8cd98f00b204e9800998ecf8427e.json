@@ -1,0 +1,1 @@
+{"id":"ef42f01fa7f7a8ec254510ef6824c807.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/text-violation.test.ts#drawio_create の文面確認 違反のあるラベルが 1 件の場合は、text-violation で失敗し、ファイルを書き出さない","name":"違反のあるラベルが 1 件の場合は、text-violation で失敗し、ファイルを書き出さない","status":"passed","testResultsByEnv":{"default":"184f3d740fea65238b96e7deec92837a"}}

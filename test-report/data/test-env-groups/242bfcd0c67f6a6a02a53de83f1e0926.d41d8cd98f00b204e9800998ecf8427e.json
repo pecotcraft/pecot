@@ -1,0 +1,1 @@
+{"id":"242bfcd0c67f6a6a02a53de83f1e0926.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#remoteBranchHead remote にブランチが存在する場合は、その先頭の SHA を返す","name":"remote にブランチが存在する場合は、その先頭の SHA を返す","status":"passed","testResultsByEnv":{"default":"bb46c6b288a8f748750a71ebb318e4e7"}}

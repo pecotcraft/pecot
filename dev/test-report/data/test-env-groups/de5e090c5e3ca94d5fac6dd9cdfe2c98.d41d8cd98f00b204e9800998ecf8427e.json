@@ -1,0 +1,1 @@
+{"id":"de5e090c5e3ca94d5fac6dd9cdfe2c98.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 本体リポジトリだけで使う ruleset pages-store が検証用に存在しなくても、比較の対象にしない","name":"本体リポジトリだけで使う ruleset pages-store が検証用に存在しなくても、比較の対象にしない","status":"passed","testResultsByEnv":{"default":"5ca8df91983c0a8435f79e3216dc8e35"}}

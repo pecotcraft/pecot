@@ -1,0 +1,1 @@
+{"id":"420f18d9febe6e383d0c28841ddfc5ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init 設定ファイルがあっても内容がボードと違えば（Blocked の id が存在しない）、同期して Blocked の id を書く","name":"設定ファイルがあっても内容がボードと違えば（Blocked の id が存在しない）、同期して Blocked の id を書く","status":"passed","testResultsByEnv":{"default":"10569229c72c549e8a3c44eb9708794e"}}

@@ -1,0 +1,1 @@
+{"id":"94b10577abb19e890ccba3b7ec9d9db9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck コミット数の取得が GitHub のエラーで失敗すると、取得できなかった旨の error を出して失敗にする","name":"コミット数の取得が GitHub のエラーで失敗すると、取得できなかった旨の error を出して失敗にする","status":"passed","testResultsByEnv":{"default":"e570d73f6c2cec9768f8e91da730bb3b"}}

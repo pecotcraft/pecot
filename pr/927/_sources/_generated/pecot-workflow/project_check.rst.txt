@@ -1,0 +1,8 @@
+:iface-id: PW-PROJECT-CHECK
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Check project board
+======================================
+
+.. iface-defs:: pecot-workflow PW-PROJECT-CHECK

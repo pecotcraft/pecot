@@ -1,0 +1,1 @@
+{"id":"3ced64e297d9129bf016099bf3b132df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#TypeScript reads 拡張子が .mjs・.js・.tsx・.cts のファイルも、TypeScript と同じ規則で環境変数の読み取りを探す","name":"拡張子が .mjs・.js・.tsx・.cts のファイルも、TypeScript と同じ規則で環境変数の読み取りを探す","status":"passed","testResultsByEnv":{"default":"8bb71c3bcfb88216ef9d9d672c8cc40a"}}

@@ -1,0 +1,1 @@
+{"id":"3c2e3eaa1e610e3213ed435fa1c5ccd9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_ci_report_results#test_tests_pass_site_url_into_container","name":"tests の job は、サイトの URL を開発用のコンテナに渡す","status":"passed","testResultsByEnv":{"default":"9abe11a877d613a09718b205876af212"}}

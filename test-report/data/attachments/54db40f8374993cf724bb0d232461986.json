@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: branch feat/7 in acme/demo from feat/3 (stacked on #3)"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/7\",\"repository\":\"acme/demo\",\"base\":\"feat/3\",\"stackedOn\":3,\"issue\":\"acme/demo/7\",\"workDirectory\":\"/tmp/pecot-repo-yeVFN4/.pecot/work/7\"}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/7",
+    "repository": "acme/demo",
+    "base": "feat/3",
+    "stackedOn": 3,
+    "issue": "acme/demo/7",
+    "workDirectory": "/tmp/pecot-repo-yeVFN4/.pecot/work/7"
+  }
+}

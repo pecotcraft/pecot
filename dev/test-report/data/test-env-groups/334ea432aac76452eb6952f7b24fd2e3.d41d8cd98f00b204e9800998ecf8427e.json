@@ -1,0 +1,1 @@
+{"id":"334ea432aac76452eb6952f7b24fd2e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#parseOwnerRepository（失敗） \"owner/repo/\" を渡すと、値が不正として例外が発生する","name":"\"owner/repo/\" を渡すと、値が不正として例外が発生する","status":"passed","testResultsByEnv":{"default":"0043fd545514748aa606454344d912be"}}

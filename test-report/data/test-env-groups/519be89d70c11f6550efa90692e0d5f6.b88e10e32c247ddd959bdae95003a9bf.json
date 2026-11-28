@@ -1,0 +1,1 @@
+{"id":"519be89d70c11f6550efa90692e0d5f6.b88e10e32c247ddd959bdae95003a9bf","fullName":".githooks.tests.test_nx_affected_mapping#test_outside_project_file_affects_only_the_root_project","name":"プラグインの外の .devcontainer/scripts/install-git-hooks.sh を変更すると、ルートの project だけが affected になる","status":"passed","testResultsByEnv":{"default":"981536a38b6c785368d3363f82405b04"}}

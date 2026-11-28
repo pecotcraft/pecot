@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "file already exists: /tmp/pecotv-test-e2e-RwAbtu/page-talk/pages/e2e-cover.md; pass force: true to overwrite, or specify a different file"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.page.error\",\"kind\":\"file-exists\",\"detail\":\"file already exists: /tmp/pecotv-test-e2e-RwAbtu/page-talk/pages/e2e-cover.md; pass force: true to overwrite, or specify a different file\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.page.error",
+    "kind": "file-exists",
+    "detail": "file already exists: /tmp/pecotv-test-e2e-RwAbtu/page-talk/pages/e2e-cover.md; pass force: true to overwrite, or specify a different file"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"a1c814987d5f2abe4e554eaffd61d342.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack check 未コミットの変更があっても、確かめて終了コード 0 で終わる","name":"未コミットの変更があっても、確かめて終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"32d1521b882a9f98c83f59addddcbfbe"}}

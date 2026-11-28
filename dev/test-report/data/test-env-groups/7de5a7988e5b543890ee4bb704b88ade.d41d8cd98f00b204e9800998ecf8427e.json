@@ -1,0 +1,1 @@
+{"id":"7de5a7988e5b543890ee4bb704b88ade.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_skips_textlintignore_paths","name":"`.textlintignore` に載せたパスは、文章の検証から除外する","status":"passed","testResultsByEnv":{"default":"80135d1ef5ab2bc892e9dba09258d084"}}

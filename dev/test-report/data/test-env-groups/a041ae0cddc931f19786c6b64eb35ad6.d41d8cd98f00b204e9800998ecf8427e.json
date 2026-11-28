@@ -1,0 +1,1 @@
+{"id":"a041ae0cddc931f19786c6b64eb35ad6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#runSlideConvert のキャンセル (#1228) pipeline の完了後で結合の直前に abort した場合も、PPTX を書き出さない","name":"pipeline の完了後で結合の直前に abort した場合も、PPTX を書き出さない","status":"passed","testResultsByEnv":{"default":"bad26d2dbbf54a69d450f0d054e033cc"}}

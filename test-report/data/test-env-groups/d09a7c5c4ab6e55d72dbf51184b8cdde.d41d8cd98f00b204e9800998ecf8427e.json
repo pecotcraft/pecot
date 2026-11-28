@@ -1,0 +1,1 @@
+{"id":"d09a7c5c4ab6e55d72dbf51184b8cdde.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_convert 変換の処理が失敗すると、pptx-convert-failed のエラーと診断を返す","name":"変換の処理が失敗すると、pptx-convert-failed のエラーと診断を返す","status":"passed","testResultsByEnv":{"default":"00c27914cc974132872c17f4db11288f"}}

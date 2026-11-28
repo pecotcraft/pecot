@@ -1,0 +1,27 @@
+
+> nx run lane-one:test-unit
+
+
+> nx run lane-two:test-unit
+
+lane-one: LANE_ONE_BODY ok
+lane-two: LANE_TWO_BODY running
+lane-one: passed
+lane-two: CALL1_BODY call count marker
+lane-two: AssertionError: expected 1 to be 2
+lane-one: LANE_ONE_TAIL still running when bail fired
+
+
+
+ NX   Running target test for 2 projects failed
+
+Tasks not run because their dependencies failed or --nx-bail=true:
+
+- lane-three:test-unit
+
+Failed tasks:
+
+- lane-two:test-unit
+
+
+Performance Profile: /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_failure_reports_failed_la0/repo/.pecot/tmp/nx-affected-tests/nx-profile.json

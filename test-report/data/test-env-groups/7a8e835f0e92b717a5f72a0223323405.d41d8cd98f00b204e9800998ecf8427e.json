@@ -1,0 +1,1 @@
+{"id":"7a8e835f0e92b717a5f72a0223323405.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/page-compare/tests/compare-pages.bats#同一の 2 ページを比べると、PASS と判定し、片側固有のページの行を出さない","name":"同一の 2 ページを比べると、PASS と判定し、片側固有のページの行を出さない","status":"passed","testResultsByEnv":{"default":"bf3f8239aa260b116afe5c1983816cca"}}

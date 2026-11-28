@@ -1,0 +1,8 @@
+:iface-id: PW-PROJECT-LINK
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Link repository to project
+====================================================
+
+.. iface-defs:: pecot-workflow PW-PROJECT-LINK

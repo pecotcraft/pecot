@@ -1,0 +1,1 @@
+{"id":"a17dc57c56d5f4bc085ed2ba1df9b975.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh remote の URL が ssh:// の形なら、番号を出す","name":"remote の URL が ssh:// の形なら、番号を出す","status":"passed","testResultsByEnv":{"default":"60d70fbf7343ad3e76e6612aa5c138da"}}

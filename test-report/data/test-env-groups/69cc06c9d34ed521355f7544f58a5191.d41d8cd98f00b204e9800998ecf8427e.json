@@ -1,0 +1,1 @@
+{"id":"69cc06c9d34ed521355f7544f58a5191.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/hint-catalog.test.ts#ACTION_HINT_COMMANDS auto-start の形の inputs が、action.yml の token 以外の inputs と同じになる","name":"auto-start の形の inputs が、action.yml の token 以外の inputs と同じになる","status":"passed","testResultsByEnv":{"default":"964524b5085280d3ab8e6a5f8e358ce3"}}

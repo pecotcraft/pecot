@@ -1,0 +1,1 @@
+{"id":"bbee79f82f8fa7d045162f1e25385cc0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/review-workflow-template.test.ts#review のワークフローの雛形 WebFetch は docs.github.com だけをドメインつきで許可し、すべてのドメインは許可しない","name":"WebFetch は docs.github.com だけをドメインつきで許可し、すべてのドメインは許可しない","status":"passed","testResultsByEnv":{"default":"120b53d7a6c1eb8408f2b7091e3b6510"}}

@@ -1,0 +1,34 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not initialize project fields (status 403): API rate limit reached"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-rate-limit\",\"detail\":\"could not initialize project fields (status 403): API rate limit reached\",\"fields\":[{\"name\":\"pecot-status\",\"change\":\"unchanged\",\"addedOptions\":[]},{\"name\":\"pecot-lane\",\"change\":\"unchanged\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"skip\",\"addedOptions\":[]}]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-rate-limit",
+    "detail": "could not initialize project fields (status 403): API rate limit reached",
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "unchanged",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "unchanged",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "skip",
+        "addedOptions": []
+      }
+    ]
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"446304ecc3a9c049b08b83f89df16f33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/fs.test.ts#NodeThemeFiles readText は、ENOENT と ENOTDIR 以外の失敗の場合に例外を発生させる","name":"readText は、ENOENT と ENOTDIR 以外の失敗の場合に例外を発生させる","status":"passed","testResultsByEnv":{"default":"ba11c810795eeae845252ef2bb59847d"}}

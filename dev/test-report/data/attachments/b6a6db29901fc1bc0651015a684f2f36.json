@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_logs_filter_log_events: log_stream_names: Invalid input: expected array, received string"
+    }
+  ],
+  "isError": true
+}

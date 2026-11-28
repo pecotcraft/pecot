@@ -1,0 +1,1 @@
+{"id":"42bbe3a6a49636b5329af5b2a32d000e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-theme.test.ts#executeSlideTheme（宣言のあるテーマ） 宣言に警告がある場合は、その警告を warnings の先頭に並べる","name":"宣言に警告がある場合は、その警告を warnings の先頭に並べる","status":"passed","testResultsByEnv":{"default":"107043462f5538708c42ec67adae67ff"}}

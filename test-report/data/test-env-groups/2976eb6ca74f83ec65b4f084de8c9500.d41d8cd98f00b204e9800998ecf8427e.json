@@ -1,0 +1,1 @@
+{"id":"2976eb6ca74f83ec65b4f084de8c9500.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#applyPrerenderImageReplace meta が null の場合は、その entry を飛ばす","name":"meta が null の場合は、その entry を飛ばす","status":"passed","testResultsByEnv":{"default":"13a3d86761c0e3a82989ff5ef4a25c00"}}

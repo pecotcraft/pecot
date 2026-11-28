@@ -1,0 +1,1 @@
+{"id":"f69a54bc265f4c02bcdffcb591209f00.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#readIssueOf 参照・題・状態・本文を写し、本文が無ければ空にする","name":"参照・題・状態・本文を写し、本文が無ければ空にする","status":"passed","testResultsByEnv":{"default":"a990c003f84ec5903fdaa88f308a8812"}}

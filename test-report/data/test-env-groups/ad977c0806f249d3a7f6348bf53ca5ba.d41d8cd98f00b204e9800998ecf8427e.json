@@ -1,0 +1,1 @@
+{"id":"ad977c0806f249d3a7f6348bf53ca5ba.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_merge_tree_conflict","name":"base と PR の head のマージが衝突すると、merge-tree の失敗の理由を出力する","status":"passed","testResultsByEnv":{"default":"8ba6faa1aa489f06ca2f31b30de9d660"}}

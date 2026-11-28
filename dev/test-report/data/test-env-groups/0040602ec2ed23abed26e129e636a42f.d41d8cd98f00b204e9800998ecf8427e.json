@@ -1,0 +1,1 @@
+{"id":"0040602ec2ed23abed26e129e636a42f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/talk-theme.test.ts#resolveTalkTheme の名前の解決 theme: がパッケージ名そのままの場合は、dependencies の同じ名前を使う","name":"theme: がパッケージ名そのままの場合は、dependencies の同じ名前を使う","status":"passed","testResultsByEnv":{"default":"4c0dce08c6975c1c417086b4ff13c9fb"}}

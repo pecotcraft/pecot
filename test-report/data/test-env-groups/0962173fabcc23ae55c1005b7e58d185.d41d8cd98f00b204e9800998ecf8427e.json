@@ -1,0 +1,1 @@
+{"id":"0962173fabcc23ae55c1005b7e58d185.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_17d_group_true_cancels_root_glob","name":"group が versionPlans に true を書くと、ルートの glob は使わず、その group の README.md の変更で失敗する","status":"passed","testResultsByEnv":{"default":"0a3cf7fd949428c5f9b8d52e1037df9c"}}

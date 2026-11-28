@@ -1,0 +1,1 @@
+{"id":"2b4a593258d3decb02a20eb018cbbd8e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#shorthand-list の項目値 項目を 1 つも持たない要素を指定した場合は、invalid-input として拒否する","name":"項目を 1 つも持たない要素を指定した場合は、invalid-input として拒否する","status":"passed","testResultsByEnv":{"default":"82f535f36fb8092a878470becfc0f49b"}}

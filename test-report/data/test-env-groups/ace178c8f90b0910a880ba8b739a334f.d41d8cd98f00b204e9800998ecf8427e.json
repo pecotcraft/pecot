@@ -1,0 +1,1 @@
+{"id":"ace178c8f90b0910a880ba8b739a334f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/process.test.ts#spawnPromise 終了コードが 0 以外のコマンドは、終了コードと標準エラーを取得する","name":"終了コードが 0 以外のコマンドは、終了コードと標準エラーを取得する","status":"passed","testResultsByEnv":{"default":"d005945a37169275ca59f061287783ba"}}

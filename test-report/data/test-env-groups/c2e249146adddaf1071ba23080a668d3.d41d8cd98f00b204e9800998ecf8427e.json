@@ -1,0 +1,1 @@
+{"id":"c2e249146adddaf1071ba23080a668d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-copy.test.ts#copyFiles ディレクトリ内にリンク切れのシンボリックリンクがある場合は、残りをコピーしてから、まとめてエラーにする","name":"ディレクトリ内にリンク切れのシンボリックリンクがある場合は、残りをコピーしてから、まとめてエラーにする","status":"passed","testResultsByEnv":{"default":"f69fac03f9284b9ff3be524f627adffe"}}

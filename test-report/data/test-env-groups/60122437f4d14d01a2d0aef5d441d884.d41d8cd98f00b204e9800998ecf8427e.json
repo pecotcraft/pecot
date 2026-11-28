@@ -1,0 +1,1 @@
+{"id":"60122437f4d14d01a2d0aef5d441d884.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/store-layout.test.ts#ThemeFetchError テーマ取得のエラーは、渡した reason とメッセージを保持する","name":"テーマ取得のエラーは、渡した reason とメッセージを保持する","status":"passed","testResultsByEnv":{"default":"37b972c97ff326af1329ca1524f321a5"}}

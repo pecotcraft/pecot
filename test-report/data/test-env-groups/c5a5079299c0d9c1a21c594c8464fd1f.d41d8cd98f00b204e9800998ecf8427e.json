@@ -1,0 +1,1 @@
+{"id":"c5a5079299c0d9c1a21c594c8464fd1f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base 記録が無い作業ディレクトリ 判定が blocked とき、投稿では PR を作らずに error の行を出し、終了コード 1 で終わる","name":"判定が blocked とき、投稿では PR を作らずに error の行を出し、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"8a1093901e01a10f2402353191cfa17c"}}

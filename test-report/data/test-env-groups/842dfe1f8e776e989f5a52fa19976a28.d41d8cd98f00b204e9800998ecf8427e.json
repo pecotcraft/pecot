@@ -1,0 +1,1 @@
+{"id":"842dfe1f8e776e989f5a52fa19976a28.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インラインコードの Code ノード 閉じていないバッククォートは、通常の文字として、規則の対象にする","name":"閉じていないバッククォートは、通常の文字として、規則の対象にする","status":"passed","testResultsByEnv":{"default":"91ed39a620c0a2e2ecfeef09018e7b27"}}

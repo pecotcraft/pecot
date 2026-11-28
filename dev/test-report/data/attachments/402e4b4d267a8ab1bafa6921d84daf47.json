@@ -1,0 +1,27 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ok"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[],\"skipped\":[\"Dependabot alerts (feature disabled)\",\"code scanning (feature disabled)\",\"secret scanning (feature disabled)\"],\"dependabotAlerts\":{\"enabled\":false,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [],
+    "skipped": [
+      "Dependabot alerts (feature disabled)",
+      "code scanning (feature disabled)",
+      "secret scanning (feature disabled)"
+    ],
+    "dependabotAlerts": {
+      "enabled": false,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  }
+}

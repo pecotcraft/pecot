@@ -1,0 +1,1 @@
+{"id":"1c53a4675f5244ce742addc4239496a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings | の直後の # はコメント のとき、引用符を含まない本文だけを切り出す","name":"| の直後の # はコメント のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"e15e20395b2541d59443d5bde68f13d4"}}

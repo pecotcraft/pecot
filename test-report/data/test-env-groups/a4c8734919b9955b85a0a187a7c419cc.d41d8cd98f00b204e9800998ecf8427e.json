@@ -1,0 +1,1 @@
+{"id":"a4c8734919b9955b85a0a187a7c419cc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#create / sync 末尾の自動 deck lint template が解決できない場合は例外を投げず、report に失敗を畳む","name":"template が解決できない場合は例外を投げず、report に失敗を畳む","status":"passed","testResultsByEnv":{"default":"a981233b6fda8d247428fd95f0cb9813"}}

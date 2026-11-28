@@ -1,0 +1,1 @@
+{"id":"4524389008b1233806bfe5c98efd4069.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 run は gate の後に、gate の proceed が真のときだけ動く","name":"run は gate の後に、gate の proceed が真のときだけ動く","status":"passed","testResultsByEnv":{"default":"fa7e6141adc36ff526e5cc22d6ec4057"}}

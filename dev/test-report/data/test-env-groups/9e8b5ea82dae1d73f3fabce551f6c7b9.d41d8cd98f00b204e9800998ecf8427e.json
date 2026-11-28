@@ -1,0 +1,1 @@
+{"id":"9e8b5ea82dae1d73f3fabce551f6c7b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/failure.test.ts#kindOfFailure 例外 [AbortedError: Aborted.] は、原因の種類 aborted に分類される","name":"例外 [AbortedError: Aborted.] は、原因の種類 aborted に分類される","status":"passed","testResultsByEnv":{"default":"8061492528b8201c439bf35e9392c689"}}

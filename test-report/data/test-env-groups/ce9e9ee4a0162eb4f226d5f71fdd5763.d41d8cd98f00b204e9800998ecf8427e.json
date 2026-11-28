@@ -1,0 +1,1 @@
+{"id":"ce9e9ee4a0162eb4f226d5f71fdd5763.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 Ready と Blocked の表に Readiness の列を出し、判定とずれた列にあっても動かさない","name":"Ready と Blocked の表に Readiness の列を出し、判定とずれた列にあっても動かさない","status":"passed","testResultsByEnv":{"default":"decc12529661d167c5ed343f910e6686"}}

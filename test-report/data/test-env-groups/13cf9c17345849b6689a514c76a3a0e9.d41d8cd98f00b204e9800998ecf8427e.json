@@ -1,0 +1,1 @@
+{"id":"13cf9c17345849b6689a514c76a3a0e9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init Status に In Progress が存在しないと、設定ファイルに in_progress を書かずに成功する","name":"Status に In Progress が存在しないと、設定ファイルに in_progress を書かずに成功する","status":"passed","testResultsByEnv":{"default":"ab7ec4e13e4f3e92c57af533535a8d3a"}}

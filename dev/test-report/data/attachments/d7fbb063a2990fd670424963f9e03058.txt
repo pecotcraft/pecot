@@ -1,0 +1,2 @@
+-C	/tmp/pecot-hooks-ZzNTSV/wt	rev-parse	--show-toplevel	
+-C	/tmp/pecot-hooks-ZzNTSV/other-repo/.pecot/work/1244	rev-parse	--show-toplevel	

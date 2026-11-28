@@ -1,0 +1,1 @@
+{"id":"4e3b2de2d681d89713b5bafb034f663b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: 文字列の本文のエスケープ 文字列の中のエスケープした改行を Break にして、位置を元のファイルのまま保つ","name":"文字列の中のエスケープした改行を Break にして、位置を元のファイルのまま保つ","status":"passed","testResultsByEnv":{"default":"8a7e32e400244f053a516cbbbd3b2643"}}

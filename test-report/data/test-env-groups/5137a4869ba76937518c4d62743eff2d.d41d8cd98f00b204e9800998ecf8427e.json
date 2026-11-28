@@ -1,0 +1,1 @@
+{"id":"5137a4869ba76937518c4d62743eff2d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.test.sh#静的確認: scripts が package manager を呼ぶと落ちる","name":"静的確認: scripts が package manager を呼ぶと落ちる","status":"passed","testResultsByEnv":{"default":"013675bda1c36708d49bace35f9355d9"}}

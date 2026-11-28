@@ -1,0 +1,1 @@
+{"id":"2d6ddbf924203b9812c6b5c8002723d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueKind issueType が null の場合は、種別とサブ Issue の総数を返す","name":"issueType が null の場合は、種別とサブ Issue の総数を返す","status":"passed","testResultsByEnv":{"default":"c251ff9fca60ff3695d94dacc3b826ac"}}

@@ -1,0 +1,1 @@
+{"id":"1ebdd24a3335acb28880d9bce075a108.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-alerts.test.ts#listOpenAlerts code scanning は、種類を付けて scan の取得元を呼び、取得できた alert を返す","name":"code scanning は、種類を付けて scan の取得元を呼び、取得できた alert を返す","status":"passed","testResultsByEnv":{"default":"07ce21d3f46158b01ece43f608c79801"}}

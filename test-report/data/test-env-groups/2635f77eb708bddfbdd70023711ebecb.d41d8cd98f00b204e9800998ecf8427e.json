@@ -1,0 +1,1 @@
+{"id":"2635f77eb708bddfbdd70023711ebecb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#parseOwnerRepository（失敗） スラッシュの数が違うときのメッセージは、Python と同じ文にする","name":"スラッシュの数が違うときのメッセージは、Python と同じ文にする","status":"passed","testResultsByEnv":{"default":"1e64a652e840e61041b2db09ef5b4559"}}

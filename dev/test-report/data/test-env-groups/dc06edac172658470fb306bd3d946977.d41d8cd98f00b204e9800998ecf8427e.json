@@ -1,0 +1,1 @@
+{"id":"dc06edac172658470fb306bd3d946977.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/branch-name.test.ts#activeIssueFromBranch ブランチ feat/x/387a の場合は、作業中の Issue は存在しないとして undefined を返す","name":"ブランチ feat/x/387a の場合は、作業中の Issue は存在しないとして undefined を返す","status":"passed","testResultsByEnv":{"default":"f11be18ff610a266ae0fb1979dec767d"}}

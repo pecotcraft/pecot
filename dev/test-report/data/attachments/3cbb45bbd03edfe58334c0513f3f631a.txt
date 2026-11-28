@@ -1,0 +1,1 @@
+ERROR: pptx の読み取りに失敗: End of central directory record signature not found. Either not a zip file, or file is truncated.

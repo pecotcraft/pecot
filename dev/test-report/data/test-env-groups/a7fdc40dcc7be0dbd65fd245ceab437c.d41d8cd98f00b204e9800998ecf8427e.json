@@ -1,0 +1,1 @@
+{"id":"a7fdc40dcc7be0dbd65fd245ceab437c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） 孤児ブランチでも上流が異なる場合は、不一致のエラーを先に返し、ブランチを削除しない","name":"孤児ブランチでも上流が異なる場合は、不一致のエラーを先に返し、ブランチを削除しない","status":"passed","testResultsByEnv":{"default":"eb7c29579dafd2cbed8568e0177df8fd"}}

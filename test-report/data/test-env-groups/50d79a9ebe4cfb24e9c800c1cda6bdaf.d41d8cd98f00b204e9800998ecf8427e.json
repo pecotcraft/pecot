@@ -1,0 +1,1 @@
+{"id":"50d79a9ebe4cfb24e9c800c1cda6bdaf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 未編集プレースホルダの検出と正当な `<...>` の通過（#962） 見出しのプレースホルダは、見出しのものと明示してエラーにする","name":"見出しのプレースホルダは、見出しのものと明示してエラーにする","status":"passed","testResultsByEnv":{"default":"01acf37348c2ead8ed40c84df1d65f58"}}

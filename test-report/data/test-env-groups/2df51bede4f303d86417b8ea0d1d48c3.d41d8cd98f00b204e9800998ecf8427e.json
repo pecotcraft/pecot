@@ -1,0 +1,1 @@
+{"id":"2df51bede4f303d86417b8ea0d1d48c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#stripFrontmatter（frontmatter 除去ヘルパ） 閉じられていないフロントマターの場合は、元の本文を返す","name":"閉じられていないフロントマターの場合は、元の本文を返す","status":"passed","testResultsByEnv":{"default":"460133ad945ef69b771bcd428101bade"}}

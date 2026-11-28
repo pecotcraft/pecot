@@ -1,0 +1,1 @@
+{"id":"78e2cd792674be7c2f59b4850b705518.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_host_and_thread_labels","name":"結果には host と thread のラベルを 1 つずつ付ける","status":"passed","testResultsByEnv":{"default":"9fe5c9dd011692c43d87a5c8a9de0741"}}

@@ -1,0 +1,1 @@
+{"id":"80ff859e2a8feaaeae416f15987438ba.952c745e57c4643721493d1ea3b3b29c","fullName":".githooks.tests.test_check_test_layers#test_reports_problem_with_place","name":"2 つに分かれない行があると、hook は .githooks/test-layers.txt:2: 「<層> <パス>」の 2 つに分かれていない を出して 1 で終わる","status":"passed","testResultsByEnv":{"default":"2f536a7144e7d13c34e4d5cb977a1a2b"}}

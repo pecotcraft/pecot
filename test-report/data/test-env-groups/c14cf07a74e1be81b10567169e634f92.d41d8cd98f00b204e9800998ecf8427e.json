@@ -1,0 +1,1 @@
+{"id":"c14cf07a74e1be81b10567169e634f92.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_list_test_lanes#test_no_prev_uses_run_many","name":"NO_PREV が true だと、affected ではなく run-many を使う","status":"passed","testResultsByEnv":{"default":"3cd743fa646693d6ba4c23bf7fc85705"}}

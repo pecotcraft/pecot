@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "error: git-worktree-branch-check: direct commit to the protected branch 'wt7' is not allowed.\n\n  Reason: a protected branch accepts changes only through a PR. A direct commit would merge\n  changes without review and cause conflicts with other worktrees.\n\n  Work on a feature branch:\n    1. Create a feature branch: git checkout -b feat/your-feature-name\n    2. Commit and create the PR on the feature branch",
+    "hookEventName": "PreToolUse"
+  }
+}

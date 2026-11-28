@@ -1,0 +1,1 @@
+{"id":"d8fbbccab1bbeb112284935efd77dc96.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_land_stops_at_once_when_remote_hook_rejects_even_if_it_says_fetch_first","name":"リモートの hook が拒否したときは、メッセージに fetch first を含んでも再試行せずに止まる","status":"passed","testResultsByEnv":{"default":"77753a09147c96f60be7c8cca8dd05b4"}}

@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project_fields.pecot-status: the column is not changed with update; it moves by the pecot rules (the readiness of the prerequisites and the pull request)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"project_fields.pecot-status\",\"code\":\"column\",\"message\":\"the column is not changed with update; it moves by the pecot rules (the readiness of the prerequisites and the pull request)\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "project_fields.pecot-status",
+        "code": "column",
+        "message": "the column is not changed with update; it moves by the pecot rules (the readiness of the prerequisites and the pull request)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"c8aab44f4e1e545c4bd42fcfb21208cb.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_17h_group_object_overrides_root_glob","name":"group が自分の glob を書くと、ルートの glob は使わず、README.md は失敗し、.txt は成功する","status":"passed","testResultsByEnv":{"default":"87b2d1c8c081af614c5ead11b812dd33"}}

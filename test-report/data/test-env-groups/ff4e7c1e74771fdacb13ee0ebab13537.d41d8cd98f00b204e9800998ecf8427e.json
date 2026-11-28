@@ -1,0 +1,1 @@
+{"id":"ff4e7c1e74771fdacb13ee0ebab13537.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/os-error.test.ts#isFileNotFound ENOENT のとき true、それ以外は false を返す","name":"ENOENT のとき true、それ以外は false を返す","status":"passed","testResultsByEnv":{"default":"686c6cfe10a1c93812bdaff9f6ac8996"}}

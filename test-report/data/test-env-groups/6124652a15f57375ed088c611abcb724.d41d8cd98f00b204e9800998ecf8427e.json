@@ -1,0 +1,1 @@
+{"id":"6124652a15f57375ed088c611abcb724.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#doesContainJapanese 漢字（入力 \"東京\"）のとき、true を返す","name":"漢字（入力 \"東京\"）のとき、true を返す","status":"passed","testResultsByEnv":{"default":"27d6d28bd5383bd036e2742f52902745"}}

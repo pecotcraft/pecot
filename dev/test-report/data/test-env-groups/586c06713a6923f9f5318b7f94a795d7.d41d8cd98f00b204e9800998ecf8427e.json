@@ -1,0 +1,1 @@
+{"id":"586c06713a6923f9f5318b7f94a795d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#existingDependencyNodeModules プラグイン側に依存が存在しなければ、永続層の node_modules を返す","name":"プラグイン側に依存が存在しなければ、永続層の node_modules を返す","status":"passed","testResultsByEnv":{"default":"0f964660c52fe3ca27cd392cc38afbca"}}

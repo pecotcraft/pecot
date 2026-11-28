@@ -1,0 +1,1 @@
+{"id":"a11301cd13d7ae2950c3ab941ceaddf7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/index.test.ts#InProcessSlidevPptxPipeline タイムアウトで中断された場合は、PipelineTimeoutError で失敗する","name":"タイムアウトで中断された場合は、PipelineTimeoutError で失敗する","status":"passed","testResultsByEnv":{"default":"78351a98f865a9af951f2543ac0a6aee"}}

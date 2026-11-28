@@ -1,0 +1,1 @@
+{"id":"a11e16e3ab2cd621ce1a92ea9784cc6a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/regex-posix-convention.test.ts#hooks の ERE の記法の規約 検出は glibc 拡張を拾い、POSIX の記法と PCRE・jq の行は拾わない","name":"検出は glibc 拡張を拾い、POSIX の記法と PCRE・jq の行は拾わない","status":"passed","testResultsByEnv":{"default":"191752c0d331abe2ed15d6a15fe7d9c2"}}

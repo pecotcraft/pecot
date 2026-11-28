@@ -1,0 +1,1 @@
+{"id":"7dbc607db9263ac1e7c88e28bbd4449b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-add.test.ts#board_add ボードに Blocked が無いとき、status blocked は足さずに、足し方の hint を添えた error を出す","name":"ボードに Blocked が無いとき、status blocked は足さずに、足し方の hint を添えた error を出す","status":"passed","testResultsByEnv":{"default":"71e25cbb46a11297293a8a6a9b161098"}}

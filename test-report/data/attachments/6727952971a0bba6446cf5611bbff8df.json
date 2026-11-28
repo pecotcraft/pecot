@@ -1,0 +1,117 @@
+{
+  "name": "aws_logs_describe_log_streams",
+  "title": "List log streams",
+  "description": "Lists log streams in a log group. To find the latest stream, set order_by to LastEventTime and descending to true",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "log_group_name": {
+        "type": "string",
+        "description": "Target log group name"
+      },
+      "log_stream_name_prefix": {
+        "description": "Log stream name prefix",
+        "type": "string"
+      },
+      "order_by": {
+        "description": "Sort key",
+        "type": "string",
+        "enum": [
+          "LogStreamName",
+          "LastEventTime"
+        ]
+      },
+      "descending": {
+        "default": false,
+        "description": "If true, sorts in descending order",
+        "type": "boolean"
+      },
+      "max_items": {
+        "description": "Maximum number of items in one response",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "starting_token": {
+        "description": "nextToken from the previous response. Fetches the next page",
+        "type": "string"
+      },
+      "profile": {
+        "description": "AWS profile name. If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[\\w.-]+$"
+      },
+      "region": {
+        "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+      }
+    },
+    "required": [
+      "log_group_name"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "logStreams": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {}
+        },
+        "description": "LogStream objects of the CloudWatch Logs DescribeLogStreams response"
+      },
+      "NextToken": {
+        "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+        "type": "string"
+      },
+      "lines": {
+        "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "output": {
+        "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+        "type": "string"
+      },
+      "truncated": {
+        "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+        "type": "boolean"
+      },
+      "nextToken": {
+        "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+        "type": "string"
+      },
+      "kind": {
+        "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+        "type": "string"
+      },
+      "detail": {
+        "description": "Full text of the failure and how to recover (failure only)",
+        "type": "string"
+      },
+      "log": {
+        "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+        "type": "string"
+      },
+      "warnings": {
+        "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "openWorldHint": true
+  }
+}

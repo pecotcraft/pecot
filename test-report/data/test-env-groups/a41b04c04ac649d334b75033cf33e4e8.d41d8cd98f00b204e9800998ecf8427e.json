@@ -1,0 +1,1 @@
+{"id":"a41b04c04ac649d334b75033cf33e4e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueSlim 必須の値が存在しない場合は、存在しなかった場所を示す GitHubAPIError が発生する","name":"必須の値が存在しない場合は、存在しなかった場所を示す GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"522aa8ce8756cef9735ce4dbb907e5a1"}}

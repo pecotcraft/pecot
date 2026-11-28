@@ -1,0 +1,1 @@
+{"id":"4e4d9d3875fda47d3b77bdbbfb6e4fda.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インラインコードの Code ノード 複数行のコメントの、行頭と行末のバッククォートで囲んだ区間も、対象から外す","name":"複数行のコメントの、行頭と行末のバッククォートで囲んだ区間も、対象から外す","status":"passed","testResultsByEnv":{"default":"503a515c63de3f52746e74c0b5b80aaf"}}

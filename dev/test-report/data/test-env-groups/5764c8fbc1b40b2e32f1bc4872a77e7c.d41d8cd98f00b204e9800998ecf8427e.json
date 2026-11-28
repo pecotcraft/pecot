@@ -1,0 +1,1 @@
+{"id":"5764c8fbc1b40b2e32f1bc4872a77e7c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#validateTheme SlideConvertUsageError には、reason に invalid-theme が設定される","name":"SlideConvertUsageError には、reason に invalid-theme が設定される","status":"passed","testResultsByEnv":{"default":"ac24bcab0b57b0867b6433154bfcfba1"}}

@@ -1,0 +1,1 @@
+{"id":"fdff394436d0a9dcdf137803b320a51b.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#--dryRun=true が exit 1 になる","name":"--dryRun=true が exit 1 になる","status":"passed","testResultsByEnv":{"default":"9e56cf98df9bbb651d3855d9671a80d0"}}

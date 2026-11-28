@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "merge was rejected: Pull request is closed"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"pr-state\",\"detail\":\"merge was rejected: Pull request is closed\",\"pullRequest\":\"acme/demo/11\",\"base\":\"main\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "pr-state",
+    "detail": "merge was rejected: Pull request is closed",
+    "pullRequest": "acme/demo/11",
+    "base": "main"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"e12c4d46b0ff206a0c9e91564dab3f06.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-review の手順 Step は 1〜4 だけで、採否を聞く・直す・resolve する Step を持たない","name":"Step は 1〜4 だけで、採否を聞く・直す・resolve する Step を持たない","status":"passed","testResultsByEnv":{"default":"f3c73f0e6ce1a87e7b2ce8658370e8ac"}}

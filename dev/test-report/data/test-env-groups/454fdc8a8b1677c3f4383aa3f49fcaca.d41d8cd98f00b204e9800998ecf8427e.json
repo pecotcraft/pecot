@@ -1,0 +1,1 @@
+{"id":"454fdc8a8b1677c3f4383aa3f49fcaca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#executeEvidenceCreate — 成功時の結果 result イベントに絶対パス・項目数・注記数・除外の一覧を載せる","name":"result イベントに絶対パス・項目数・注記数・除外の一覧を載せる","status":"passed","testResultsByEnv":{"default":"dc8476c8dbaf0906c5895af72a26a5ad"}}

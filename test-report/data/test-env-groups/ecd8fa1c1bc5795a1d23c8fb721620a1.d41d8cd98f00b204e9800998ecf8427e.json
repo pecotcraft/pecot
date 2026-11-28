@@ -1,0 +1,1 @@
+{"id":"ecd8fa1c1bc5795a1d23c8fb721620a1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#describePushStatus ローカルが remote より 3 件先、2 件後ろの場合の状態を返す","name":"ローカルが remote より 3 件先、2 件後ろの場合の状態を返す","status":"passed","testResultsByEnv":{"default":"7a7ac3456e0e58f88ce72e6d8647c223"}}

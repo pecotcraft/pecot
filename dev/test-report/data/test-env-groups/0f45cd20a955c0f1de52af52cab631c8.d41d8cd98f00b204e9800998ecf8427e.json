@@ -1,0 +1,1 @@
+{"id":"0f45cd20a955c0f1de52af52cab631c8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/direct-hint-lint.test.ts#フラグ名の文字列を止める lint src/infra/worktree.ts のパス 引数のテンプレートの固定部分 にフラグ名を書くと、lint が 1 件報告する","name":"引数のテンプレートの固定部分 にフラグ名を書くと、lint が 1 件報告する","status":"passed","testResultsByEnv":{"default":"3309769a99125bee5bf6abd446644cb2"}}

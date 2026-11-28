@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Output validation error: Invalid structured content for tool aws_lambda_list_event_source_mappings: data must NOT have additional properties"
+    }
+  ],
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"3c0ec6de06f3b629b6902c8e20a2383f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments shorthand-list の入力が配列でないときは、フラグごと引数に含めない","name":"shorthand-list の入力が配列でないときは、フラグごと引数に含めない","status":"passed","testResultsByEnv":{"default":"02e7500e363a8e1367c0cd5d37928f6a"}}

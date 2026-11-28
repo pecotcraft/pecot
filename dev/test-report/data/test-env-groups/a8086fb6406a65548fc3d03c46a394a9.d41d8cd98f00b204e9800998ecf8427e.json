@@ -1,0 +1,1 @@
+{"id":"a8086fb6406a65548fc3d03c46a394a9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_allure_report_labels#test_without_ini_labels_docs_conftest_does_not_import_allure","name":"-o を指定しないと、allure-pytest を無効にしても docs の conftest は allure を読み込まずに成功する","status":"passed","testResultsByEnv":{"default":"f784d3f65215d4fde4a72599f9839f7f"}}

@@ -1,0 +1,1 @@
+{"id":"787345591e587961f15ce2ecf65c4a5a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: modern) slide_dev スキーマ違反を拒否する: port が 65536","name":"スキーマ違反を拒否する: port が 65536","status":"passed","testResultsByEnv":{"default":"9c4a209297d3446d47b5d03abd7b9377"}}

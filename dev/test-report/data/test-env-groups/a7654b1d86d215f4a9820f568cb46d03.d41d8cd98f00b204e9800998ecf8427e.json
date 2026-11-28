@@ -1,0 +1,1 @@
+{"id":"a7654b1d86d215f4a9820f568cb46d03.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pecot_rc#test_passes_worktree_plugins_and_args_from_subdirectory","name":"サブディレクトリから実行すると、作業ツリーのプラグインと引数を claude に渡す","status":"passed","testResultsByEnv":{"default":"468a5e00c4e7e611c050c9525aeaae1d"}}

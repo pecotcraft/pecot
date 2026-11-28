@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"links\":[{\"path\":\"/tmp/pecot-cli-ehx99v/workspaces/wt1/demo/CLAUDE.local.md\",\"destination\":\"/tmp/pecot-cli-ehx99v/workspaces/base/demo/CLAUDE.local.md\",\"change\":\"update\"}],\"warnings\":[\"using repo acme/demo (could not read the repository from the URL of the Git remote origin)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "links": [
+      {
+        "path": "/tmp/pecot-cli-ehx99v/workspaces/wt1/demo/CLAUDE.local.md",
+        "destination": "/tmp/pecot-cli-ehx99v/workspaces/base/demo/CLAUDE.local.md",
+        "change": "update"
+      }
+    ],
+    "warnings": [
+      "using repo acme/demo (could not read the repository from the URL of the Git remote origin)"
+    ]
+  }
+}

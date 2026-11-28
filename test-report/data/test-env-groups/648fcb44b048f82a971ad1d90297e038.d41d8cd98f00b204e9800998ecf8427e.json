@@ -1,0 +1,1 @@
+{"id":"648fcb44b048f82a971ad1d90297e038.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check stash に項目があると、Stash List の warning を数える","name":"stash に項目があると、Stash List の warning を数える","status":"passed","testResultsByEnv":{"default":"4aa95cc228df01f5e60d52e12fdb1b5a"}}

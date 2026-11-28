@@ -1,0 +1,1 @@
+{"id":"42ee29dfc268e7f70ad46c8893036c53.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_dev_with_stored_sha_but_no_compare_is_dropped","name":"保存済みの commit があるのに、比較の結果が存在しないと、破棄する","status":"passed","testResultsByEnv":{"default":"892d2159845544685d8872060b3e08f4"}}

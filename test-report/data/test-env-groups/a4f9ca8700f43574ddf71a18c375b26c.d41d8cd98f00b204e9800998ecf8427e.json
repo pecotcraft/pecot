@@ -1,0 +1,1 @@
+{"id":"a4f9ca8700f43574ddf71a18c375b26c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_task_cache#test_release_keeps_zero_major_versions_as_before_nx_24","name":"リリースの設定は、0.x の版の上げ方を nx 22 と同じにする","status":"passed","testResultsByEnv":{"default":"172b2602748d2479256e2a32577a7d8d"}}

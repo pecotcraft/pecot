@@ -1,0 +1,42 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "skipped: symlink /tmp/pecot-cli-TJCc1n/workspaces/wt1/demo/second.md (target does not exist: /tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md)"
+    },
+    {
+      "type": "text",
+      "text": "{\"links\":[{\"path\":\"/tmp/pecot-cli-TJCc1n/workspaces/wt1/demo/CLAUDE.local.md\",\"destination\":\"/tmp/pecot-cli-TJCc1n/workspaces/base/demo/CLAUDE.local.md\",\"change\":\"create\"},{\"path\":\"/tmp/pecot-cli-TJCc1n/workspaces/wt1/demo/second.md\",\"destination\":\"/tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md\",\"change\":\"skip\",\"reason\":\"target does not exist: /tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md\"},{\"path\":\"/tmp/pecot-cli-TJCc1n/workspaces/wt2/demo/CLAUDE.local.md\",\"destination\":\"/tmp/pecot-cli-TJCc1n/workspaces/base/demo/CLAUDE.local.md\",\"change\":\"create\"},{\"path\":\"/tmp/pecot-cli-TJCc1n/workspaces/wt2/demo/second.md\",\"destination\":\"/tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md\",\"change\":\"skip\",\"reason\":\"target does not exist: /tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md\"}],\"warnings\":[\"target does not exist: /tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md\",\"target does not exist: /tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md\"]}"
+    }
+  ],
+  "structuredContent": {
+    "links": [
+      {
+        "path": "/tmp/pecot-cli-TJCc1n/workspaces/wt1/demo/CLAUDE.local.md",
+        "destination": "/tmp/pecot-cli-TJCc1n/workspaces/base/demo/CLAUDE.local.md",
+        "change": "create"
+      },
+      {
+        "path": "/tmp/pecot-cli-TJCc1n/workspaces/wt1/demo/second.md",
+        "destination": "/tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md",
+        "change": "skip",
+        "reason": "target does not exist: /tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md"
+      },
+      {
+        "path": "/tmp/pecot-cli-TJCc1n/workspaces/wt2/demo/CLAUDE.local.md",
+        "destination": "/tmp/pecot-cli-TJCc1n/workspaces/base/demo/CLAUDE.local.md",
+        "change": "create"
+      },
+      {
+        "path": "/tmp/pecot-cli-TJCc1n/workspaces/wt2/demo/second.md",
+        "destination": "/tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md",
+        "change": "skip",
+        "reason": "target does not exist: /tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md"
+      }
+    ],
+    "warnings": [
+      "target does not exist: /tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md",
+      "target does not exist: /tmp/pecot-cli-TJCc1n/workspaces/base/demo/second.md"
+    ]
+  }
+}

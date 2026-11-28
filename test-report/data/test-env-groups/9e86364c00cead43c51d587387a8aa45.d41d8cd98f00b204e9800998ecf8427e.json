@@ -1,0 +1,1 @@
+{"id":"9e86364c00cead43c51d587387a8aa45.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#gitRunnerFor と resolveRepository（実 git） リポジトリの外では、AmbiguousRepositoryError を発生させる","name":"リポジトリの外では、AmbiguousRepositoryError を発生させる","status":"passed","testResultsByEnv":{"default":"81e989a21ccd3062e202852f1931b096"}}

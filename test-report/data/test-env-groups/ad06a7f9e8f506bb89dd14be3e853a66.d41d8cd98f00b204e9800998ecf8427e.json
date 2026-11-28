@@ -1,0 +1,1 @@
+{"id":"ad06a7f9e8f506bb89dd14be3e853a66.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_actions_are_pinned_by_sha","name":"すべての action は、40 桁の SHA で固定する","status":"passed","testResultsByEnv":{"default":"40a8cd4c19323cce7cff0fd559732255"}}

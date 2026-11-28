@@ -1,0 +1,1 @@
+{"id":"498b1e8574f794d33056755a69a31ade.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildStylesXml CELL_STYLE_ORDER は、cellXfs の並びと対応する順序で、重複や欠落がない","name":"CELL_STYLE_ORDER は、cellXfs の並びと対応する順序で、重複や欠落がない","status":"passed","testResultsByEnv":{"default":"a1dc0aa9f4ddf4b8ceb512b1b674cb4a"}}

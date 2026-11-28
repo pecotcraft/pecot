@@ -1,0 +1,1 @@
+{"id":"0ca648412e5f475652f4b08ab0369673.cd07125e02822ad89a78c3c49e1c81d3","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_site_stamp_fails_on_bad_values","name":"環境変数が {'PECOT_SITE_SIDE': 'pr'} のように不正な場合は、変数の名前を示して例外が発生する","status":"passed","testResultsByEnv":{"default":"6acbb63d8dfb667fdeb5479a258ec4ec"}}

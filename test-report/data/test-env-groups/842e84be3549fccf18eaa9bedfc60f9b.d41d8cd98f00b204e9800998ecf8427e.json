@@ -1,0 +1,1 @@
+{"id":"842e84be3549fccf18eaa9bedfc60f9b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_17b_block_readme_without_glob_in_nx_json","name":"nx.json に除外の glob が存在しないと、README.md だけの変更でも失敗する","status":"passed","testResultsByEnv":{"default":"1a371657ebbb157232f676ec00081bfb"}}

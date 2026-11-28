@@ -1,0 +1,9 @@
+==> @pecot/visual-mcp 配布ツリーを構築 (version=0.0.0-test1812 / dry-run=false)
+specifier 書き換え: 31 ファイル
+manifest 生成: @pecot/visual-mcp@0.0.0-test1812 / deps 23 件
+==> npm-shrinkwrap.json を生成
+==> npm レジストリへ依存を解決中
+==> 配布ツリーの指紋: 891865a8c50c5f5f32310bad3916636e377937439cf04c7e0f41e1467995ea8f
+ERROR: 監査した依存ツリーと配布ツリーが一致しません（監査 ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff / 配布 891865a8c50c5f5f32310bad3916636e377937439cf04c7e0f41e1467995ea8f）。
+       release commit 上で audit-mcp-dist.sh を再実行して記録を作り直し、
+       pnpm exec nx release publish を再実行してください。

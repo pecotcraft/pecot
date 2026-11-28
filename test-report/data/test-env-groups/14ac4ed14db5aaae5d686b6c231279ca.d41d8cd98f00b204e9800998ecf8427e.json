@@ -1,0 +1,1 @@
+{"id":"14ac4ed14db5aaae5d686b6c231279ca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data 開発ブランチへスタックし直して PR の本文を保存し直すと、relinked に PR の番号を返す","name":"開発ブランチへスタックし直して PR の本文を保存し直すと、relinked に PR の番号を返す","status":"passed","testResultsByEnv":{"default":"dd61b55d2b3f41db0b9d81c4cee8bfac"}}

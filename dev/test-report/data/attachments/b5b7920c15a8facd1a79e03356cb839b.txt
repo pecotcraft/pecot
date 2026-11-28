@@ -1,0 +1,3 @@
+usage: -c [-h] [--local] --output OUTPUT [--history HISTORY]
+          [--sources SOURCES]
+-c: error: --local でないときは --sources が要ります

@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-tools",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "spy"
+    },
+    {
+      "type": "text",
+      "text": "{\"state\":\"pending\"}"
+    }
+  ],
+  "structuredContent": {
+    "state": "pending"
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Project info"
+    },
+    {
+      "type": "text",
+      "text": "{\"project\":{\"name\":\"ghes.example.com_acme_board_acme\",\"host\":\"ghes.example.com\",\"owner\":\"acme\",\"number\":1,\"aggregation_repo\":null},\"repositories\":[{\"full_name\":\"acme/demo\",\"owner\":\"acme\",\"name\":\"demo\",\"develop_branch\":\"main\",\"release_branch\":\"release\",\"dependabot_alerts\":{\"enabled\":true,\"open_count\":1,\"max_severity\":\"high\",\"alerts_url\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"release_type\":\"multi\",\"packages\":[{\"name\":\"pkg\",\"changelog\":\"packages/pkg/CHANGELOG.md\"}]}],\"board\":{\"items\":[{\"id\":\"PVTI_1\",\"workflow\":\"Ready\",\"lane\":null,\"title\":\"課題1\",\"updatedAt\":\"2026-01-02T03:04:05Z\",\"content\":{\"number\":1,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/demo/issues/1\",\"labels\":[],\"repository\":\"acme/demo\"},\"readiness\":{\"kind\":\"blocked\",\"stackOn\":null,\"reason\":\"not-in-review\",\"text\":\"blocked by #9 (not in review: #9 (not started))\"}}]},\"lanes\":[],\"mismatches\":1,\"warnings\":[\"1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) to fix\"]}"
+    }
+  ],
+  "structuredContent": {
+    "project": {
+      "name": "ghes.example.com_acme_board_acme",
+      "host": "ghes.example.com",
+      "owner": "acme",
+      "number": 1,
+      "aggregation_repo": null
+    },
+    "repositories": [
+      {
+        "full_name": "acme/demo",
+        "owner": "acme",
+        "name": "demo",
+        "develop_branch": "main",
+        "release_branch": "release",
+        "dependabot_alerts": {
+          "enabled": true,
+          "open_count": 1,
+          "max_severity": "high",
+          "alerts_url": "https://ghes.example.com/acme/demo/security/dependabot"
+        },
+        "release_type": "multi",
+        "packages": [
+          {
+            "name": "pkg",
+            "changelog": "packages/pkg/CHANGELOG.md"
+          }
+        ]
+      }
+    ],
+    "board": {
+      "items": [
+        {
+          "id": "PVTI_1",
+          "workflow": "Ready",
+          "lane": null,
+          "title": "課題1",
+          "updatedAt": "2026-01-02T03:04:05Z",
+          "content": {
+            "number": 1,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/issues/1",
+            "labels": [],
+            "repository": "acme/demo"
+          },
+          "readiness": {
+            "kind": "blocked",
+            "stackOn": null,
+            "reason": "not-in-review",
+            "text": "blocked by #9 (not in review: #9 (not started))"
+          }
+        }
+      ]
+    },
+    "lanes": [],
+    "mismatches": 1,
+    "warnings": [
+      "1 Ready or Blocked Issue may be in a column or Status that does not match its judgment; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) to fix"
+    ]
+  }
+}

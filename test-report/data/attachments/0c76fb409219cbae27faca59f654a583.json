@@ -1,0 +1,44 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project_fields.pecot-status: the column at creation is Ready (given: Blocked)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"project_fields.pecot-status\",\"code\":\"column\",\"message\":\"the column at creation is Ready (given: Blocked)\",\"candidates\":[\"Ready\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[{\"issue\":\"#5\",\"wait\":\"stack\"}],\"approach\":\"stack\",\"stackOn\":\"#5\"}],\"stackableChains\":[[\"#5\",\"issues[0]\"]]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "project_fields.pecot-status",
+        "code": "column",
+        "message": "the column at creation is Ready (given: Blocked)",
+        "candidates": [
+          "Ready"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [
+          {
+            "issue": "#5",
+            "wait": "stack"
+          }
+        ],
+        "approach": "stack",
+        "stackOn": "#5"
+      }
+    ],
+    "stackableChains": [
+      [
+        "#5",
+        "issues[0]"
+      ]
+    ]
+  }
+}

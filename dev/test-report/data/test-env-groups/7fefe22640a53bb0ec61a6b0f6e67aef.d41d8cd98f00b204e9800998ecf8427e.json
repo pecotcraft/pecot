@@ -1,0 +1,1 @@
+{"id":"7fefe22640a53bb0ec61a6b0f6e67aef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-create.test.ts#executeSlideCreate (smoke) 生成の途中で失敗すると、生成途中の talk-dir を削除する","name":"生成の途中で失敗すると、生成途中の talk-dir を削除する","status":"passed","testResultsByEnv":{"default":"45d0eed8520862d06f3e45ab774cdb72"}}

@@ -1,0 +1,1 @@
+{"id":"3a07d7f5b2af939ea7fedd5f8641903f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 止まる場合 repo を省いて git の remote のリポジトリを読めないと、git-unresolved の失敗を返す","name":"repo を省いて git の remote のリポジトリを読めないと、git-unresolved の失敗を返す","status":"passed","testResultsByEnv":{"default":"ed62784eb63a20300bbe30b62b878e1c"}}

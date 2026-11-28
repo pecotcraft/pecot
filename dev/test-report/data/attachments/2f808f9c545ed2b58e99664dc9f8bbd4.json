@@ -1,0 +1,41 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project_fields.pecot-status: the column at creation is Blocked (given: Ready)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"project_fields.pecot-status\",\"code\":\"column\",\"message\":\"the column at creation is Blocked (given: Ready)\",\"candidates\":[\"Blocked\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[{\"issue\":\"#5\",\"wait\":\"stack\"},{\"issue\":\"#6\",\"wait\":\"stack\"}],\"approach\":\"join\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "project_fields.pecot-status",
+        "code": "column",
+        "message": "the column at creation is Blocked (given: Ready)",
+        "candidates": [
+          "Blocked"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [
+          {
+            "issue": "#5",
+            "wait": "stack"
+          },
+          {
+            "issue": "#6",
+            "wait": "stack"
+          }
+        ],
+        "approach": "join"
+      }
+    ]
+  }
+}

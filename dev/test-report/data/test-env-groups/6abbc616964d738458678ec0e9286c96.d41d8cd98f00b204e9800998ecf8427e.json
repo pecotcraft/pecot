@@ -1,0 +1,1 @@
+{"id":"6abbc616964d738458678ec0e9286c96.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender-capture-flow.test.ts#captureAndReplaceElements 撮影中だけ .marker-overlay を非表示にし、撮影後に元の表示状態へ戻す","name":"撮影中だけ .marker-overlay を非表示にし、撮影後に元の表示状態へ戻す","status":"passed","testResultsByEnv":{"default":"83cf409bfb2c71d16b51c6a9d2f62167"}}

@@ -1,0 +1,4 @@
+error: push timed out after 600 seconds
+  feat/demo/12 is restacked locally and the base record is unchanged
+  push the branch yourself: git push --force-with-lease origin feat/demo/12
+  then call pr_restack

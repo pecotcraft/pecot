@@ -1,0 +1,1 @@
+{"id":"3b18c607e39859896b72e2d2f77656d2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/entry-point-library-references.test.ts#hooks のスクリプトの参照先 抽出器の自己テスト 自己名の例外は他ファイルの裸 basename まで免除しない","name":"自己名の例外は他ファイルの裸 basename まで免除しない","status":"passed","testResultsByEnv":{"default":"b2bea515ac6dff4f58296c2843de92b9"}}

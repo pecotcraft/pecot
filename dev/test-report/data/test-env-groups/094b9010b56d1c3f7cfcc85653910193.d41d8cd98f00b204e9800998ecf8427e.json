@@ -1,0 +1,1 @@
+{"id":"094b9010b56d1c3f7cfcc85653910193.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#allowlistedTool responseShape が共通の項目の名前 warnings を持つときは、定義を作らず例外を発生させる","name":"responseShape が共通の項目の名前 warnings を持つときは、定義を作らず例外を発生させる","status":"passed","testResultsByEnv":{"default":"69a442b5d6de4c4629d3ead8f19dbcd9"}}

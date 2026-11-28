@@ -1,0 +1,25 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ok"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[],\"plan\":[{\"key\":\"issues[0]\",\"blockedBy\":[],\"approach\":\"alone\"}],\"warnings\":[\"the Epic is written to acme/demo, not to aggregation_repo acme/hub; keep it only when the exception is intended\"]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ],
+    "warnings": [
+      "the Epic is written to acme/demo, not to aggregation_repo acme/hub; keep it only when the exception is intended"
+    ]
+  }
+}

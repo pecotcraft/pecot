@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid version format: \n  use semantic versioning (X.Y.Z)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid version format: \\n  use semantic versioning (X.Y.Z)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid version format: \n  use semantic versioning (X.Y.Z)"
+  },
+  "isError": true
+}

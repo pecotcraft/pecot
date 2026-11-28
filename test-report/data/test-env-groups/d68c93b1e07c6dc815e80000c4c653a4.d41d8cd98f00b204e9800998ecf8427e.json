@@ -1,0 +1,1 @@
+{"id":"d68c93b1e07c6dc815e80000c4c653a4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#ensureAwscli 失敗した判定は保存せず、次の呼び出しで再度判定する","name":"失敗した判定は保存せず、次の呼び出しで再度判定する","status":"passed","testResultsByEnv":{"default":"3b4389b948cc662e8760cefb9ab4dda1"}}

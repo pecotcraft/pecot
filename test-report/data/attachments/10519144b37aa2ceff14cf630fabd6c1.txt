@@ -1,0 +1,2 @@
+error: the result of projects_list in reads.project_items[0] is not in the shape of the official GitHub MCP server
+  items: Invalid input: expected object, received undefined

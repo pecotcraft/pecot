@@ -1,0 +1,1 @@
+{"id":"1748da167dc9b54a3a61e5fb49a36e10.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 動かす先の値がボードに無いと、動かさず、warning を 1 回出す","name":"動かす先の値がボードに無いと、動かさず、warning を 1 回出す","status":"passed","testResultsByEnv":{"default":"a5cd72c48d66399403310158c074a768"}}

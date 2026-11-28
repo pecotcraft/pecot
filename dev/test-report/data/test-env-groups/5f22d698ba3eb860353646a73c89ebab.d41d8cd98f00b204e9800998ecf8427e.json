@@ -1,0 +1,1 @@
+{"id":"5f22d698ba3eb860353646a73c89ebab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/result.test.ts#createOutputCapture 小さな書き込みが積み重なって上限を超えた場合は、古い書き込みを単位として捨てる","name":"小さな書き込みが積み重なって上限を超えた場合は、古い書き込みを単位として捨てる","status":"passed","testResultsByEnv":{"default":"8adc8841fa115f3e0844ccfddacf02ce"}}

@@ -1,0 +1,1 @@
+{"id":"b07d83eb2a949520e4c96465dcae3713.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/deck-lint-rules.test.ts#REFERENCE_FREE_RULE_IDS 宣言ファイルを持たないテーマの既定値は、設定を読まない 9 個の規則を、すべて error とした設定になる","name":"宣言ファイルを持たないテーマの既定値は、設定を読まない 9 個の規則を、すべて error とした設定になる","status":"passed","testResultsByEnv":{"default":"0297670abd01e749e9225e76e43d969f"}}

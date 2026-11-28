@@ -1,0 +1,1 @@
+{"id":"511b696fc244d09c963000aa00f31f10.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#readPullRequestOf 同じ repository の PR は、fork でない PR として返す","name":"同じ repository の PR は、fork でない PR として返す","status":"passed","testResultsByEnv":{"default":"393dfbe435f094d04bd048c82841dc17"}}

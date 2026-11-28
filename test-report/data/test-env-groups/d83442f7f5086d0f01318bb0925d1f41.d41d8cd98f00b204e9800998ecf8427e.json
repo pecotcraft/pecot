@@ -1,0 +1,1 @@
+{"id":"d83442f7f5086d0f01318bb0925d1f41.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-font-sizes.test.ts#validateSlideFontSizes 文字サイズが規定の 5 段に含まれる 10px のときは、警告を返さない","name":"文字サイズが規定の 5 段に含まれる 10px のときは、警告を返さない","status":"passed","testResultsByEnv":{"default":"52e2ab9bad1eaa469a52803f4911083d"}}

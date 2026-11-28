@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: worktree wt10 at /tmp/pecot-cli-M3z8Ud/workspaces/wt10/demo (branch wt10 from develop)"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt10\",\"path\":\"/tmp/pecot-cli-M3z8Ud/workspaces/wt10/demo\",\"branch\":\"wt10\",\"base\":\"develop\",\"setupFailed\":false}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt10",
+    "path": "/tmp/pecot-cli-M3z8Ud/workspaces/wt10/demo",
+    "branch": "wt10",
+    "base": "develop",
+    "setupFailed": false
+  }
+}

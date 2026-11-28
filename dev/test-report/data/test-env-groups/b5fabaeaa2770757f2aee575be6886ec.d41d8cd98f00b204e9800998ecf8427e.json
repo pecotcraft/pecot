@@ -1,0 +1,1 @@
+{"id":"b5fabaeaa2770757f2aee575be6886ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toToolResult 失敗の文が存在しなければ、渡された message を detail にする","name":"失敗の文が存在しなければ、渡された message を detail にする","status":"passed","testResultsByEnv":{"default":"a8a6f67116ea00c1cea4a38badbea60f"}}

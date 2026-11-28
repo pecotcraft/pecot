@@ -1,0 +1,1 @@
+{"id":"714aea91927a415aec0e19874ba1a26a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check チェックが通ると、release へ入るコミット数の count の行を標準エラーに出す","name":"チェックが通ると、release へ入るコミット数の count の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"6596c7e0ec760e892156214ae13d445c"}}

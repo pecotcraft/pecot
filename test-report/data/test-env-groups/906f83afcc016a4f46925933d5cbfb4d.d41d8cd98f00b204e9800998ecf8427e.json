@@ -1,0 +1,1 @@
+{"id":"906f83afcc016a4f46925933d5cbfb4d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#exportEntries の失敗と refine 表に無い items の中の maxLength は、ツールと引数の名前を付けて止める","name":"表に無い items の中の maxLength は、ツールと引数の名前を付けて止める","status":"passed","testResultsByEnv":{"default":"5aaa7e2a8975705b99ef081932f14ca7"}}

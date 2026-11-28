@@ -1,0 +1,5 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_setup_file_failure_is_bro0/suite/sample.bats
+1..1
+not ok 1 setup_file failed
+# (from function `setup_file' in test file suite/sample.bats, line 6)
+#   `false' failed

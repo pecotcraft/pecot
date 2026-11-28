@@ -1,0 +1,1 @@
+{"id":"db674c9cdb3258b6f79701da427878cc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites blockedBy が空で totalCount も 0 の場合は、前提なしの ok にする","name":"blockedBy が空で totalCount も 0 の場合は、前提なしの ok にする","status":"passed","testResultsByEnv":{"default":"d50b1f08b390ee1a96278dd0c1beb757"}}

@@ -1,0 +1,1 @@
+{"id":"91a289946280dcd5480a19c8821ab294.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 未編集プレースホルダの検出と正当な `<...>` の通過（#962） `<` の直後が英字でないトークンは比較・バージョン表現として通す","name":"`<` の直後が英字でないトークンは比較・バージョン表現として通す","status":"passed","testResultsByEnv":{"default":"edc0807b9e9368fdfc7466b2b352600b"}}

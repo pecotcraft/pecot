@@ -1,0 +1,1 @@
+{"id":"ddab1a4ff790b6319cfbaaa1ab5e19b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-delete.test.ts#branch_delete 対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる","name":"対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"36a2923be30d8feb1f3d1216656af92a"}}

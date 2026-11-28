@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "develop_branch is not set for acme/demo\n  set it with: project_link with repo: \"acme/demo\", develop_branch: \"develop\""
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-setting-missing\",\"detail\":\"develop_branch is not set for acme/demo\\n  set it with: project_link with repo: \\\"acme/demo\\\", develop_branch: \\\"develop\\\"\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-setting-missing",
+    "detail": "develop_branch is not set for acme/demo\n  set it with: project_link with repo: \"acme/demo\", develop_branch: \"develop\""
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"e9dd6506bc05228d3b154d147c1fa634.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateFoldBalance（折りたたみ <details> の開閉の対応 #1330） 閉じられていない details があるとき、閉じられていない旨のエラーを返す","name":"閉じられていない details があるとき、閉じられていない旨のエラーを返す","status":"passed","testResultsByEnv":{"default":"e59ad512a0dc490e37445c1e1eb56493"}}

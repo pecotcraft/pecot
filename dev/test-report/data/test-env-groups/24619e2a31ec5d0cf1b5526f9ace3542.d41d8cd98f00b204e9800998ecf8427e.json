@@ -1,0 +1,1 @@
+{"id":"24619e2a31ec5d0cf1b5526f9ace3542.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と列 pecot-lane を書かない子は、親 Epic のカードの値を候補にして problem にする","name":"pecot-lane を書かない子は、親 Epic のカードの値を候補にして problem にする","status":"passed","testResultsByEnv":{"default":"e71c728ce3f4b4d4b55792af80f7b237"}}

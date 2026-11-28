@@ -1,0 +1,1 @@
+{"id":"3442f41ede9b5f2aa43663ff8d9fc507.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#fetchRemote remote が存在しない場合は、失敗と標準エラーを返す","name":"remote が存在しない場合は、失敗と標準エラーを返す","status":"passed","testResultsByEnv":{"default":"9ec5a2e160af1580b87f469951c95210"}}

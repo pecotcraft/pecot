@@ -1,0 +1,8 @@
+:iface-id: PW-AUTO-GATE
+:iface-plugin: pecot-workflow
+:iface-kind: MCP・CLI
+
+Gate automated fix
+====================================
+
+.. iface-defs:: pecot-workflow PW-AUTO-GATE

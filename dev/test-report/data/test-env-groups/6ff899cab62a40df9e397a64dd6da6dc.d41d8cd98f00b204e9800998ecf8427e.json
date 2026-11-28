@@ -1,0 +1,1 @@
+{"id":"6ff899cab62a40df9e397a64dd6da6dc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/scanner.test.ts#scanSlideSteps nav.hasNext が false の場合は、ArrowRight を押さずに走査を終了する","name":"nav.hasNext が false の場合は、ArrowRight を押さずに走査を終了する","status":"passed","testResultsByEnv":{"default":"9ea5119e6b8aae9737b00df935f50cbd"}}

@@ -1,0 +1,1 @@
+{"id":"8517b28e461a09ec4dbd995ae9d55ced.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 本文とテンプレート 同梱に無い Issue のテンプレートを指定すると、同梱のテンプレートを候補に添えて problem にする","name":"同梱に無い Issue のテンプレートを指定すると、同梱のテンプレートを候補に添えて problem にする","status":"passed","testResultsByEnv":{"default":"3c71b0f23566685053def6c832741a60"}}

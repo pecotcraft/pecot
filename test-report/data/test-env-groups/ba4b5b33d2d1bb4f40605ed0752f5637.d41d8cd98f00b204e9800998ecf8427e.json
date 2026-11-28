@@ -1,0 +1,1 @@
+{"id":"ba4b5b33d2d1bb4f40605ed0752f5637.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#Athena の変更系・複文（research R6） shorthand 形式に使う項目の値に , を含む場合は、invalid-input として拒否する","name":"shorthand 形式に使う項目の値に , を含む場合は、invalid-input として拒否する","status":"passed","testResultsByEnv":{"default":"e10346385eae5d39b543496e688c6cb0"}}

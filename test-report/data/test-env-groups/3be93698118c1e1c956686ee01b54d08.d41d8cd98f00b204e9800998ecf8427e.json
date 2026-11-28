@@ -1,0 +1,1 @@
+{"id":"3be93698118c1e1c956686ee01b54d08.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_local_counts_a_lane_without_result_files_as_missing","name":"`--local` で結果のファイルが存在しないレーンは、不足として扱う","status":"passed","testResultsByEnv":{"default":"8ad8bd46770fa6861b0fe8dd2922bec4"}}

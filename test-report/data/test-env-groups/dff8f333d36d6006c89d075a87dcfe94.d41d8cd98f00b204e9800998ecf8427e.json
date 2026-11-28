@@ -1,0 +1,1 @@
+{"id":"dff8f333d36d6006c89d075a87dcfe94.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#screenWorkflowRun action が completed ではない場合は、処理を進めず何も書き込まない","name":"action が completed ではない場合は、処理を進めず何も書き込まない","status":"passed","testResultsByEnv":{"default":"02bc7426ebb2ed5bd85655b3f1bcd4e5"}}

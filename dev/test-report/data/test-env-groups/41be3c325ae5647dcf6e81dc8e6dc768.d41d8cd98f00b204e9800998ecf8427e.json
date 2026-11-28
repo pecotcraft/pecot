@@ -1,0 +1,1 @@
+{"id":"41be3c325ae5647dcf6e81dc8e6dc768.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/runtime-guard.test.ts#ensureRuntimeDependencies 未取得なら取得を試みず、kind 付きで runtime_setup を案内する","name":"未取得なら取得を試みず、kind 付きで runtime_setup を案内する","status":"passed","testResultsByEnv":{"default":"582bafd4d1d15faf2bceb2c3f8e93a62"}}

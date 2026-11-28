@@ -1,0 +1,1 @@
+{"id":"135b7338d55f99c1eb5b5cad97726344.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/queries.test.ts#偽サーバの operation 対応表 MUTATION_UPDATE_PROJECT_FIELD の operation 名が、偽サーバの対応表に存在する","name":"MUTATION_UPDATE_PROJECT_FIELD の operation 名が、偽サーバの対応表に存在する","status":"passed","testResultsByEnv":{"default":"40a4dd7947e12c27f16dd9f21437d382"}}

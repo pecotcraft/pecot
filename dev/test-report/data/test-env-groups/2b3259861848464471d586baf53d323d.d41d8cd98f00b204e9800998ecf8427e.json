@@ -1,0 +1,1 @@
+{"id":"2b3259861848464471d586baf53d323d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_rds_describe_db_instances の region region の書式に合わない値を渡すと、拒否する","name":"region の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"96347dd4a06b6596a7e329f0e273d82e"}}

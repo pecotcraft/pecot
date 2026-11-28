@@ -1,0 +1,1 @@
+{"id":"d4d8dc67b55d51795e715f07b2174358.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#DROP TABLE の tools/call が 失敗（isError が true）を返す","name":"DROP TABLE の tools/call が 失敗（isError が true）を返す","status":"passed","testResultsByEnv":{"default":"e0d92b68453372fddcb0b51e0a43f9f4"}}

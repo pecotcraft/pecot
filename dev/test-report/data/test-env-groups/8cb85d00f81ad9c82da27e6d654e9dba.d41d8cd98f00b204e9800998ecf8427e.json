@@ -1,0 +1,1 @@
+{"id":"8cb85d00f81ad9c82da27e6d654e9dba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#installRuntimeDependencies 永続層に package.json を置いてから、--prefix を付けてインストールする","name":"永続層に package.json を置いてから、--prefix を付けてインストールする","status":"passed","testResultsByEnv":{"default":"75d8c14db8d9e016d55f48e1d6307257"}}

@@ -1,0 +1,1 @@
+{"id":"da62ece42e4c4417deae7912882dbce4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_search タイトルが 38 文字を超えると、35 文字に切り詰めて末尾に ... を付ける","name":"タイトルが 38 文字を超えると、35 文字に切り詰めて末尾に ... を付ける","status":"passed","testResultsByEnv":{"default":"1ecd2c4235371a859cfa89224e79b18d"}}

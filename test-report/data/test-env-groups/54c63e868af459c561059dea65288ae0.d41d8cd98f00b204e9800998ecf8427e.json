@@ -1,0 +1,1 @@
+{"id":"54c63e868af459c561059dea65288ae0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/tests/english-only.test.ts#findJapaneseStrings 文字列に 全角 が含まれているとき、日本語として 1 件検出する","name":"文字列に 全角 が含まれているとき、日本語として 1 件検出する","status":"passed","testResultsByEnv":{"default":"74d5a76ad035e7d6d682dab5f87836c9"}}

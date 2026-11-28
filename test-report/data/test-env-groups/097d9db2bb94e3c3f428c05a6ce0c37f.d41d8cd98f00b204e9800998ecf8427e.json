@@ -1,0 +1,1 @@
+{"id":"097d9db2bb94e3c3f428c05a6ce0c37f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/server.test.ts#createMcpServer フックが呼ぶツールの outputSchema には、共通の 4 項目を足さない","name":"フックが呼ぶツールの outputSchema には、共通の 4 項目を足さない","status":"passed","testResultsByEnv":{"default":"f1b82be138bb640f8b4c44f380a1e8b8"}}

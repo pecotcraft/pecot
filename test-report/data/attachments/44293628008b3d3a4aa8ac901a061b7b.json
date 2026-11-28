@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid input: directory: Directory '/tmp/pecot-project-tv31TU/x' does not exist."
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid input: directory: Directory '/tmp/pecot-project-tv31TU/x' does not exist.\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: directory: Directory '/tmp/pecot-project-tv31TU/x' does not exist."
+  },
+  "isError": true
+}

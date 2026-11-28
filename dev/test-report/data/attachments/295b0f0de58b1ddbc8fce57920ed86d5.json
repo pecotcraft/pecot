@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the result of list_code_scanning_alerts in reads.code_scanning_alerts.pages[0] is not in the shape of the official GitHub MCP server\n  (root): Invalid input"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-mcp-shape\",\"detail\":\"the result of list_code_scanning_alerts in reads.code_scanning_alerts.pages[0] is not in the shape of the official GitHub MCP server\\n  (root): Invalid input\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-mcp-shape",
+    "detail": "the result of list_code_scanning_alerts in reads.code_scanning_alerts.pages[0] is not in the shape of the official GitHub MCP server\n  (root): Invalid input"
+  },
+  "isError": true
+}

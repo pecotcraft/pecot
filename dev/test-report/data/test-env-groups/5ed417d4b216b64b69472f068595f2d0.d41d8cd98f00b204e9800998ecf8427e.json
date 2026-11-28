@@ -1,0 +1,1 @@
+{"id":"5ed417d4b216b64b69472f068595f2d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: コードフェンス・インラインコード・HTML コメントのマスク（#962） 閉じ忘れたバッククォートより後のプレースホルダは、見逃さない","name":"閉じ忘れたバッククォートより後のプレースホルダは、見逃さない","status":"passed","testResultsByEnv":{"default":"caf3ea6ee13a65332548469ece3f78a8"}}

@@ -1,0 +1,1 @@
+{"id":"80fdfecf93ecef2516be40accfc530de.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create PR を作ると、created の行を標準エラーに出す","name":"PR を作ると、created の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"0e54f36d09807069e732bf424ddbc7fe"}}

@@ -1,0 +1,1 @@
+{"id":"64a6d1d5b63b3407667f9ee0c3fd7655.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#nxProjects scope の tag が複数ある場合は先頭のものを使い、文字列でない tag は無視する","name":"scope の tag が複数ある場合は先頭のものを使い、文字列でない tag は無視する","status":"passed","testResultsByEnv":{"default":"e69eccc54f08a7598b4f1102af71e93c"}}

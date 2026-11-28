@@ -1,0 +1,1 @@
+{"id":"3b63a3f3795399ac64aeefa7b353b63a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#decideAutoEnsure job が cancelled の場合は、limit の結果を書き込む","name":"job が cancelled の場合は、limit の結果を書き込む","status":"passed","testResultsByEnv":{"default":"2b6410b4fcc8fd3645a57281d1479f6d"}}

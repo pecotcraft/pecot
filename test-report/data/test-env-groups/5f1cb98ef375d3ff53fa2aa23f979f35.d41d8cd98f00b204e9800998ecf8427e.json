@@ -1,0 +1,1 @@
+{"id":"5f1cb98ef375d3ff53fa2aa23f979f35.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#addIssueToBoard node id を指定した場合は、取得せずにボードへ追加する","name":"node id を指定した場合は、取得せずにボードへ追加する","status":"passed","testResultsByEnv":{"default":"ddd143548ec37c06b3baf0ba370a8743"}}

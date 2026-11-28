@@ -1,0 +1,1 @@
+{"id":"325ea34e8cbb0d26b7452c8b3ac34998.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#screenWorkflowRun ブランチ feat/fix-x の末尾が Issue の番号ではない場合は、Issue を決めず、何も書き込まない","name":"ブランチ feat/fix-x の末尾が Issue の番号ではない場合は、Issue を決めず、何も書き込まない","status":"passed","testResultsByEnv":{"default":"e2eb7ba06a65968fa81a7420553f8f62"}}

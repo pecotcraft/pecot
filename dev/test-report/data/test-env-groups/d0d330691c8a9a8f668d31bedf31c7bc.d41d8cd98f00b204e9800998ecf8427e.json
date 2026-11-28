@@ -1,0 +1,1 @@
+{"id":"d0d330691c8a9a8f668d31bedf31c7bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 変更系クエリ \"DELETE FROM orders\" は、理由を not-read-only として拒否する","name":"変更系クエリ \"DELETE FROM orders\" は、理由を not-read-only として拒否する","status":"passed","testResultsByEnv":{"default":"d2320169a445ef448b9feac326a06432"}}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "worktree config already exists\n  /tmp/pecot-cli-l6aSut/workspaces/base/demo/.pecot/config/worktree-config.json"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"already-exists\",\"detail\":\"worktree config already exists\\n  /tmp/pecot-cli-l6aSut/workspaces/base/demo/.pecot/config/worktree-config.json\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "already-exists",
+    "detail": "worktree config already exists\n  /tmp/pecot-cli-l6aSut/workspaces/base/demo/.pecot/config/worktree-config.json"
+  },
+  "isError": true
+}

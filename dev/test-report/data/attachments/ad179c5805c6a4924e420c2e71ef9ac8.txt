@@ -1,0 +1,31 @@
+
+ NX   Running target test for 3 projects
+
+
+> nx run p:test-unit
+
+STATIC_PASS_UNIT_BODY 3 passed, 2 skipped
+
+> nx run p:test-cli-x
+
+STATIC_PASS_CLIX_BODY 1 passed
+
+::group::❌ > nx run p:test-cli  [local cache]
+
+STATIC_FAIL_BODY AssertionError: expected 1 to be 2
+::endgroup::
+
+> nx run q:test-hooks
+
+STATIC_PASS_HOOKS_BODY 5 passed, 1 skipped
+
+
+
+ NX   Running target test for 3 projects failed
+
+Failed tasks:
+
+- p:test-cli
+
+
+Performance Profile: placeholder

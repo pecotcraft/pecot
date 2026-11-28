@@ -1,0 +1,1 @@
+{"id":"a278aa75313f146fd70b52a48f0bbba7.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#dry-run が実行予定の gh コマンドを表示する: gh release upload","name":"dry-run が実行予定の gh コマンドを表示する: gh release upload","status":"passed","testResultsByEnv":{"default":"82741b04486a167eea19c1001f17e0ea"}}

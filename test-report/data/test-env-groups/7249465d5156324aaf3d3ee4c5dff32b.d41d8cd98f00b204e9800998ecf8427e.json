@@ -1,0 +1,1 @@
+{"id":"7249465d5156324aaf3d3ee4c5dff32b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_skill_doc_direct_call#test_pecotv_cli_only_passes","name":"SKILL.md が pecotv の CLI だけを使っていると、成功で終わる","status":"passed","testResultsByEnv":{"default":"233ec9cd398da352590013855d3bc05b"}}

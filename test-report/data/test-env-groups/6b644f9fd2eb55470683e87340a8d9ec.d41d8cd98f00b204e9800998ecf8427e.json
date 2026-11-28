@@ -1,0 +1,1 @@
+{"id":"6b644f9fd2eb55470683e87340a8d9ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-stop.test.ts#requireConfigFor 対象のリポジトリを含む設定が 2 つあり、.active がそのうちの 1 つを指す場合は、その設定を返す","name":"対象のリポジトリを含む設定が 2 つあり、.active がそのうちの 1 つを指す場合は、その設定を返す","status":"passed","testResultsByEnv":{"default":"aabcb8d0ec48736a65c76b5849e1d44f"}}

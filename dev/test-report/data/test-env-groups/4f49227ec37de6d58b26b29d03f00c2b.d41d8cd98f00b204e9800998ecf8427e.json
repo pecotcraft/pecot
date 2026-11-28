@@ -1,0 +1,1 @@
+{"id":"4f49227ec37de6d58b26b29d03f00c2b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_scheduler_get_schedule の region region の書式に合わない値を渡すと、拒否する","name":"region の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"43e91ced204d05e9d0ac50d281c26b2e"}}

@@ -1,0 +1,1 @@
+{"id":"7f88c190c10dc77de75633e656f17d04.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show 子 PR スタックの記録が無く子 PR を読めなければ、warning を出し、Stack の節を出さない","name":"スタックの記録が無く子 PR を読めなければ、warning を出し、Stack の節を出さない","status":"passed","testResultsByEnv":{"default":"2611dc047227bce29393ce3bf422b033"}}

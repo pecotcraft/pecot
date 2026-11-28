@@ -1,0 +1,1 @@
+{"id":"2e438d5fa45078bb6bca446012ee5766.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor リポジトリの情報を読むとき GitHub が 接続を切る と、github-api の失敗を返す","name":"リポジトリの情報を読むとき GitHub が 接続を切る と、github-api の失敗を返す","status":"passed","testResultsByEnv":{"default":"0d075bc22dc588e922969fe67b5468d5"}}

@@ -1,0 +1,1 @@
+{"id":"5fd46f0fd82be2f951f043843ff80cd0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/entry.test.ts#main サーバの起動が失敗すると、終了コードを 1 にする","name":"サーバの起動が失敗すると、終了コードを 1 にする","status":"passed","testResultsByEnv":{"default":"ada39198ad2886025674475a36c56798"}}

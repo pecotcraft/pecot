@@ -1,0 +1,1 @@
+{"id":"a03f28aa22c59bfe1f6cd78fd30afc22.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#runAwscli 正常に終了する awscli を実行すると、標準出力を返し、終了コード 0 で終わる","name":"正常に終了する awscli を実行すると、標準出力を返し、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"fb57eb650e2edb75f569e8a3267c0e04"}}

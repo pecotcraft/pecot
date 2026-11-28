@@ -1,0 +1,1 @@
+{"id":"20eb02446d4ac51db33bfccd42b9da8a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#ensureWorkDirectory 全角数字の番号の場合は、undefined を返し、作業ディレクトリを作成しない","name":"全角数字の番号の場合は、undefined を返し、作業ディレクトリを作成しない","status":"passed","testResultsByEnv":{"default":"eceb280b4175030ec8ef51efdc5f3319"}}

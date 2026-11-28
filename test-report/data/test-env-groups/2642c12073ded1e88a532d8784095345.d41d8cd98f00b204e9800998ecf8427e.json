@@ -1,0 +1,1 @@
+{"id":"2642c12073ded1e88a532d8784095345.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/cli.test.ts#validate 検証エラーがあると、1 件ごとに 1 行を標準エラーに出力し、1 で終了する","name":"検証エラーがあると、1 件ごとに 1 行を標準エラーに出力し、1 で終了する","status":"passed","testResultsByEnv":{"default":"434ee251ce07ff9c5a9650447cc4db06"}}

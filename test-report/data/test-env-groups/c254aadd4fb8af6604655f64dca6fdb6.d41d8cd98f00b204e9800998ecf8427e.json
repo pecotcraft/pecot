@@ -1,0 +1,1 @@
+{"id":"c254aadd4fb8af6604655f64dca6fdb6.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_14_block_nested_dir_maps_to_plugin","name":"プラグイン配下の深いディレクトリの変更は、そのプラグインの group の変更として扱い、失敗する","status":"passed","testResultsByEnv":{"default":"7fd5d490e56d4cb08641b6338dc3ed90"}}

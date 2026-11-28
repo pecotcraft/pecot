@@ -1,0 +1,1 @@
+{"id":"f1893e89db5170dc54f737257501b5d2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#extractVersionReleaseNotes バージョンの `.` は、正規表現の任意の 1 文字として扱わない","name":"バージョンの `.` は、正規表現の任意の 1 文字として扱わない","status":"passed","testResultsByEnv":{"default":"cd8612049c5c9544d6749f810054aa0b"}}

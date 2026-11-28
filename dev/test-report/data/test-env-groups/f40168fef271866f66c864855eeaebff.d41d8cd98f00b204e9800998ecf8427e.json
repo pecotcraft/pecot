@@ -1,0 +1,1 @@
+{"id":"f40168fef271866f66c864855eeaebff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check merge の値 開いた PR を squash で先頭のコミットを添えてマージする値を渡すと、problem の無い結果を返す","name":"開いた PR を squash で先頭のコミットを添えてマージする値を渡すと、problem の無い結果を返す","status":"passed","testResultsByEnv":{"default":"d6df3b162d843bb738afb9c588c93f36"}}

@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "additionalContext": "note: ran the worktree setup command: echo ran >> setup-count.txt",
+    "hookEventName": "SessionStart"
+  },
+  "additionalContext": "note: ran the worktree setup command: echo ran >> setup-count.txt"
+}

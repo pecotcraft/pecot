@@ -1,0 +1,1 @@
+{"id":"fd685115bc75123d93ffc72475dfc82e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-sweep.test.ts#sandbox-sweep.sh 引数と読めない場合 許可しない引数 [ '--issue' ] を渡すと、gh を呼ばずに終了コード 2 で終了する","name":"許可しない引数 [ '--issue' ] を渡すと、gh を呼ばずに終了コード 2 で終了する","status":"passed","testResultsByEnv":{"default":"0e1edb69626adad764845e8fc8b272e4"}}

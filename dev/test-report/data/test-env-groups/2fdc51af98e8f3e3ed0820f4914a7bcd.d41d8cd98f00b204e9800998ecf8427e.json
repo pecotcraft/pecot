@@ -1,0 +1,1 @@
+{"id":"2fdc51af98e8f3e3ed0820f4914a7bcd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/entry.test.ts#サーバの起動ファイル package.json の bin は pecot-tools-mcp だけで dist/main.js を指す","name":"package.json の bin は pecot-tools-mcp だけで dist/main.js を指す","status":"passed","testResultsByEnv":{"default":"fa3ea9d0c1a0d0bea76d6a849a239d72"}}

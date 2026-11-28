@@ -1,0 +1,1 @@
+{"id":"6e07b34fb3f567ebbe8ee3a7e8bae283.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: 実行時依存 (永続層) 未取得なら npm install を実行し、取得先を runtime.location に載せる","name":"未取得なら npm install を実行し、取得先を runtime.location に載せる","status":"passed","testResultsByEnv":{"default":"fd76e531b1971dcf0d96c0a1baa535e1"}}

@@ -1,0 +1,1 @@
+{"id":"d74580e78097141af30061956324b117.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-start.test.ts#auto start ボードの読み書きの失敗 Issue の前提が部分エラーで読めないと、その理由で止まる","name":"Issue の前提が部分エラーで読めないと、その理由で止まる","status":"passed","testResultsByEnv":{"default":"cf0eb710f77b83fe05367ddeb72f176e"}}

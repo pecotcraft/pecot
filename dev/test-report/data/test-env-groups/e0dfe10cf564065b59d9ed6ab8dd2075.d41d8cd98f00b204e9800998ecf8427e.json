@@ -1,0 +1,1 @@
+{"id":"e0dfe10cf564065b59d9ed6ab8dd2075.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: clone 先の書き方 clone 先がプロジェクトの外の絶対パスのとき、許可せず何も出力しない","name":"clone 先がプロジェクトの外の絶対パスのとき、許可せず何も出力しない","status":"passed","testResultsByEnv":{"default":"bf66f3d977086f28eb1000f516e28008"}}

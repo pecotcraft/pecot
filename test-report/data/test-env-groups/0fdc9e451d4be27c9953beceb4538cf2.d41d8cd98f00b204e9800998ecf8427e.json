@@ -1,0 +1,1 @@
+{"id":"0fdc9e451d4be27c9953beceb4538cf2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-finish.test.ts#auto finish Issue がボードに無い と、Status を書かずに足りない設定をコメントに足し、warning の行を出して成功する","name":"Issue がボードに無い と、Status を書かずに足りない設定をコメントに足し、warning の行を出して成功する","status":"passed","testResultsByEnv":{"default":"17dbc2be8765051307943ac642d38d92"}}

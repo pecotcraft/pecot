@@ -1,0 +1,1 @@
+{"id":"b23bfdfb308c62133e643af738e2d8fd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/review-stopped-template.test.ts#review-stopped.md 冒頭のコメントに「読者:」と「例:」があり、例の本文がテンプレートの検証を通る","name":"冒頭のコメントに「読者:」と「例:」があり、例の本文がテンプレートの検証を通る","status":"passed","testResultsByEnv":{"default":"ad4571cada54c00620fc56d3fb489efb"}}

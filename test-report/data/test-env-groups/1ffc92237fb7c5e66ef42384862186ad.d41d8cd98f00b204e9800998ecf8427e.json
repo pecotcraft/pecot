@@ -1,0 +1,1 @@
+{"id":"1ffc92237fb7c5e66ef42384862186ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings 空の文字列 のとき、引用符を含まない本文だけを切り出す","name":"空の文字列 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"09c8e11ad9dcd716b2c3106629cf9510"}}

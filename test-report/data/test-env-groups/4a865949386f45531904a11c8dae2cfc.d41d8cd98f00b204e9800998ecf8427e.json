@@ -1,0 +1,1 @@
+{"id":"4a865949386f45531904a11c8dae2cfc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/url.test.ts#generateDrawioViewerUrl 同じ XML で複数回呼び出しても、同じ URL を返す","name":"同じ XML で複数回呼び出しても、同じ URL を返す","status":"passed","testResultsByEnv":{"default":"18a163f27416bca48db78f9fcdeb03cb"}}

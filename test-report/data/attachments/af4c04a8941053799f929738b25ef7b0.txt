@@ -1,0 +1,6 @@
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_bt_severity_applies_to_la0/suite/sample.test.sh
+PASS: 前
+PASS: 後
+FAIL: 後で落ちる — 理由
+
+PASS: 2 / FAIL: 1 / SKIP: 0

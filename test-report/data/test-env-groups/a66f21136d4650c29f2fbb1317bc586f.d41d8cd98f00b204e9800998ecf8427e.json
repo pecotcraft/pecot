@@ -1,0 +1,1 @@
+{"id":"a66f21136d4650c29f2fbb1317bc586f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx の差分キャッシュ エラーを記録した後に失敗する場合も、内訳を出力し、PipelineRuntimeError に含める","name":"エラーを記録した後に失敗する場合も、内訳を出力し、PipelineRuntimeError に含める","status":"passed","testResultsByEnv":{"default":"254c033e1a2409667db0e0fc2b3e44ec"}}

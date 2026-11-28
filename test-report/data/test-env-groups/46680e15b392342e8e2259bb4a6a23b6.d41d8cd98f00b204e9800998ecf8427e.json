@@ -1,0 +1,1 @@
+{"id":"46680e15b392342e8e2259bb4a6a23b6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/github-ops/repository.test.ts#github ops repo-settings は、マージ後にブランチを消す設定・既定のブランチ・持ち主の種類を返す","name":"repo-settings は、マージ後にブランチを消す設定・既定のブランチ・持ち主の種類を返す","status":"passed","testResultsByEnv":{"default":"aaeb8a4af08b276033018ebd9b222586"}}

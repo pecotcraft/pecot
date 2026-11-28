@@ -1,0 +1,1 @@
+{"id":"e9d395afe65343bfda0f02724f0ce704.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 設定ディレクトリが存在しない場合は、.env を作成せずに gh auth login と起動前の環境変数を案内する","name":"設定ディレクトリが存在しない場合は、.env を作成せずに gh auth login と起動前の環境変数を案内する","status":"passed","testResultsByEnv":{"default":"22978d1585101685f1e671fe496aa9d0"}}

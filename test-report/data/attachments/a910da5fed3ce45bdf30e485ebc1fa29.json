@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": ".pecot-base records feat/demo/11 at 0245cd9, which is not in the history of feat/demo/12\n  feat/demo/12 is already restacked; rewrite the record with: pr_restack\n  call pr_create on the branch the record was written for, or pass head: \"feat/demo/12\" to create the PR without the record"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\".pecot-base records feat/demo/11 at 0245cd9, which is not in the history of feat/demo/12\\n  feat/demo/12 is already restacked; rewrite the record with: pr_restack\\n  call pr_create on the branch the record was written for, or pass head: \\\"feat/demo/12\\\" to create the PR without the record\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": ".pecot-base records feat/demo/11 at 0245cd9, which is not in the history of feat/demo/12\n  feat/demo/12 is already restacked; rewrite the record with: pr_restack\n  call pr_create on the branch the record was written for, or pass head: \"feat/demo/12\" to create the PR without the record"
+  },
+  "isError": true
+}

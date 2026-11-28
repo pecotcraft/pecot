@@ -1,0 +1,1 @@
+{"id":"7c6297e6aee9033877b839921963c364.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/handoff-workflow-template.test.ts#handoff のワークフローの雛形 契機は pull_request_target の closed だけになる","name":"契機は pull_request_target の closed だけになる","status":"passed","testResultsByEnv":{"default":"b86e4a295329f2cda6741001bdacdcb1"}}

@@ -1,0 +1,1 @@
+{"id":"e5ab234ed21b9a41ce21b53202264c6a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#isLabelWrittenByAutomation 最後の Bot の結果が pr-created の場合は、前に待ちの結果があっても false を返す","name":"最後の Bot の結果が pr-created の場合は、前に待ちの結果があっても false を返す","status":"passed","testResultsByEnv":{"default":"6a260f483176a10eed92369a1cffb1c9"}}

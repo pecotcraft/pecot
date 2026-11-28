@@ -1,0 +1,1 @@
+{"id":"dab6bff2c97c6ab7b2c7bd688ed90b70.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueSlim blockedBy と無関係なスキーマエラーは、読み直さずに GitHubAPIError が発生する","name":"blockedBy と無関係なスキーマエラーは、読み直さずに GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"fc9bb65e6b9e3e79b36f5f55f79f2ba3"}}

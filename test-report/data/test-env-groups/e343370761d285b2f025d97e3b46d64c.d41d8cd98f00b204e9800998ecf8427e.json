@@ -1,0 +1,1 @@
+{"id":"e343370761d285b2f025d97e3b46d64c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/entry-point-linter.test.ts#check-entry-point-logic.sh ディスパッチャとして許される構文（jq で振り分ける）のとき、PASS を返す","name":"ディスパッチャとして許される構文（jq で振り分ける）のとき、PASS を返す","status":"passed","testResultsByEnv":{"default":"a79a31d3e20ec66194f46f0a71dafddb"}}

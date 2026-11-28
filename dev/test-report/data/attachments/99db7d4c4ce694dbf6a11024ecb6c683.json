@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "issue: #7 is blocked by #5 (not in review: #5 (not started))"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"issue\",\"code\":\"prerequisite-open\",\"message\":\"#7 is blocked by #5 (not in review: #5 (not started))\\n- #5: not started\\nto remove the prerequisite: issue_dependency_check with method: \\\"remove\\\", owner: \\\"acme\\\", repo: \\\"demo\\\", issue_number: 7, type: \\\"blocked_by\\\", related_owner: \\\"acme\\\", related_repo: \\\"demo\\\", related_issue_number: 5, then issue_dependency_write with the same arguments\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "issue",
+        "code": "prerequisite-open",
+        "message": "#7 is blocked by #5 (not in review: #5 (not started))\n- #5: not started\nto remove the prerequisite: issue_dependency_check with method: \"remove\", owner: \"acme\", repo: \"demo\", issue_number: 7, type: \"blocked_by\", related_owner: \"acme\", related_repo: \"demo\", related_issue_number: 5, then issue_dependency_write with the same arguments"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"21339dd0fafe23ce4e82783eab16f35d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_existing_skip_is_kept","name":"環境変数 `SKIP` がすでに設定されている場合は、連結して引き継ぐ","status":"passed","testResultsByEnv":{"default":"b1b748776dbd3dfd2add75374c0a52a6"}}

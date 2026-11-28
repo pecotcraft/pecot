@@ -1,0 +1,1 @@
+{"id":"5f416c110bf0ae440d408fc20060cb36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 トークンの発行は、gate と run の job ごとの表の権限だけを、変数と secret の App で渡す","name":"トークンの発行は、gate と run の job ごとの表の権限だけを、変数と secret の App で渡す","status":"passed","testResultsByEnv":{"default":"c4f75707fc5043a427915384d7d3a716"}}

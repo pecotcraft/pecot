@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "base: base branch must be feat/demo/11 while its PR #11 is open (given: main)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"base\",\"code\":\"base-mismatch\",\"message\":\"base branch must be feat/demo/11 while its PR #11 is open (given: main)\",\"candidates\":[\"feat/demo/11\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "base",
+        "code": "base-mismatch",
+        "message": "base branch must be feat/demo/11 while its PR #11 is open (given: main)",
+        "candidates": [
+          "feat/demo/11"
+        ]
+      }
+    ]
+  }
+}

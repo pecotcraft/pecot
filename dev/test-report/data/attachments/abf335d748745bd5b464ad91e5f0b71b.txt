@@ -1,0 +1,3 @@
+==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)
+  NG: package.json の種類を分けられない（pnpm のルート・pnpm のメンバー・宣言しない例外のどれにも当たらない）: plugins/pecot-tools/stray/package.json
+check-pm-guard: 静的確認 FAILED (1 件)

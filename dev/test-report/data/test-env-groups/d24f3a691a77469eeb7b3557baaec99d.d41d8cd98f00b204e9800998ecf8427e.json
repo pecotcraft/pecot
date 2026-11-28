@@ -1,0 +1,1 @@
+{"id":"d24f3a691a77469eeb7b3557baaec99d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/chromium-guard.test.ts#chromium 未取得時のツール応答 Chromium を取得していなくても、out_path を省略した drawio_create は URL を返す","name":"Chromium を取得していなくても、out_path を省略した drawio_create は URL を返す","status":"passed","testResultsByEnv":{"default":"bfcf9c427c20bc910bc5aa0c23396d2d"}}

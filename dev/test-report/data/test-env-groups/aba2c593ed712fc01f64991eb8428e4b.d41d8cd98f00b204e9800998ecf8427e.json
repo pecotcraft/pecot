@@ -1,0 +1,1 @@
+{"id":"aba2c593ed712fc01f64991eb8428e4b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Markdown のブロックの規則 段落の続きにある字下げの深い行は、コードブロックにせず、段落に残す","name":"段落の続きにある字下げの深い行は、コードブロックにせず、段落に残す","status":"passed","testResultsByEnv":{"default":"9da69864201a04a92590ccb2d2c78d75"}}

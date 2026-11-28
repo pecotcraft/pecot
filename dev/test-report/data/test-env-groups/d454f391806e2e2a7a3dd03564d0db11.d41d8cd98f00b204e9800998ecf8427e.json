@@ -1,0 +1,1 @@
+{"id":"d454f391806e2e2a7a3dd03564d0db11.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide convert の差分キャッシュ pipeline が cache を返さない場合は、done イベントに cache のフィールドを含めない","name":"pipeline が cache を返さない場合は、done イベントに cache のフィールドを含めない","status":"passed","testResultsByEnv":{"default":"cefbaac63ec7425e663aa564eff2ff0c"}}

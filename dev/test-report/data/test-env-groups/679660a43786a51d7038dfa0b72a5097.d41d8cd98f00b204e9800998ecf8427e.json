@@ -1,0 +1,1 @@
+{"id":"679660a43786a51d7038dfa0b72a5097.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues 対象外の結果の目印に使うブランチは、Issue の Development に登録されたブランチから決める","name":"対象外の結果の目印に使うブランチは、Issue の Development に登録されたブランチから決める","status":"passed","testResultsByEnv":{"default":"c5a1f85fe53f03cbf4403700c211d5b9"}}

@@ -1,0 +1,1 @@
+{"id":"d584a140a0f845c032ad1369ff1e36e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-issueize の前提の表の読み方 見出しの行と区切りの行だけの表は、前提が存在しないと読み取り、文から前提を読み取らない","name":"見出しの行と区切りの行だけの表は、前提が存在しないと読み取り、文から前提を読み取らない","status":"passed","testResultsByEnv":{"default":"014c6ffc1d8915642467d6aaf9b4317e"}}

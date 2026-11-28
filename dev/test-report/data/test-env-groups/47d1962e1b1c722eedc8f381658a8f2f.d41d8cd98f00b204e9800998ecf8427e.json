@@ -1,0 +1,1 @@
+{"id":"47d1962e1b1c722eedc8f381658a8f2f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/_helpers/fake-github/server.test.ts#isSubset オブジェクトは含まれていれば一致とし、配列は長さも含めて比較する","name":"オブジェクトは含まれていれば一致とし、配列は長さも含めて比較する","status":"passed","testResultsByEnv":{"default":"d173ed25a23d00948c9ed1d54b9eb93e"}}

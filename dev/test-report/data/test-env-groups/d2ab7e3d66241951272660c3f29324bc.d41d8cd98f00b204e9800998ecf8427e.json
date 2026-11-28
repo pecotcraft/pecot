@@ -1,0 +1,1 @@
+{"id":"d2ab7e3d66241951272660c3f29324bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/attach-mcp-tgz.bats#origin の URL の形が違っても、-R が owner/name になり dry-run は gh を呼ばない","name":"origin の URL の形が違っても、-R が owner/name になり dry-run は gh を呼ばない","status":"passed","testResultsByEnv":{"default":"75663394d5f80364cb152ca2e2c5e79d"}}

@@ -1,0 +1,1 @@
+{"id":"7e0206acf827a7e9a5e2056f521d3cbd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check method ごとの引数 update に 2 件の Issue を渡すと、1 件ずつ確かめるよう problem にする","name":"update に 2 件の Issue を渡すと、1 件ずつ確かめるよう problem にする","status":"passed","testResultsByEnv":{"default":"42f52c1d735dc039aff76b67ea770dc2"}}

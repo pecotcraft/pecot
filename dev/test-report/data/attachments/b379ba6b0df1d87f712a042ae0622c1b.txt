@@ -1,0 +1,34 @@
+=== stage: manual (通常) ===
+=== stage: manual 終了 exit=0 ===
+## 検証の結果（tests）
+
+### 範囲
+
+- base: `9f587c66a165cdbe57dce6d0311e6b936f60d5d7`
+- head: `9b5d75d9bcad09a437b5c590c4765e6fc4c98374`（PR では head は merge commit）
+- モード: 通常
+
+| stage | 成否 |
+|---|---|
+| manual | 成功 |
+
+全体: 成功
+
+### レーン
+
+対象なし（成功）
+
+### 失敗
+
+なし
+
+### skip
+
+なし
+
+### 環境
+
+- イメージ: -
+- node: v24.22.1
+- aws: aws-cli/2.39.4 Python/3.14.8 Linux/7.0.0-1020-azure exe/x86_64.ubuntu.26
+- actionlint: 1.7.12

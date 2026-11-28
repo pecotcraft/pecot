@@ -1,0 +1,1 @@
+{"id":"8ca083005181976e6f0c5a481b1fb3d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_brief パスを含む layout を渡すと、空のオブジェクトを返す","name":"パスを含む layout を渡すと、空のオブジェクトを返す","status":"passed","testResultsByEnv":{"default":"0a30efc058de8f2c0f10d3080871e01f"}}

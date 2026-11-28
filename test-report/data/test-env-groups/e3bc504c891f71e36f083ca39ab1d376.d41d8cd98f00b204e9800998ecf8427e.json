@@ -1,0 +1,1 @@
+{"id":"e3bc504c891f71e36f083ca39ab1d376.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/tests/lint-rules.test.ts#domain の依存方向 自分の package 名で import すると、no-restricted-imports の違反になる","name":"自分の package 名で import すると、no-restricted-imports の違反になる","status":"passed","testResultsByEnv":{"default":"b4f05e9a95453aa86c7f0d9068a77fb3"}}

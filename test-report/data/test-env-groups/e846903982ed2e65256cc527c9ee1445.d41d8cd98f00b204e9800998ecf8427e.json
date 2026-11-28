@@ -1,0 +1,1 @@
+{"id":"e846903982ed2e65256cc527c9ee1445.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/store-layout.test.ts#classifyGitFailure git の失敗の出力が「ssh のホスト鍵」の場合は、原因の種類に分類する","name":"git の失敗の出力が「ssh のホスト鍵」の場合は、原因の種類に分類する","status":"passed","testResultsByEnv":{"default":"c7b8217d611ec594855dc32e4e47db52"}}

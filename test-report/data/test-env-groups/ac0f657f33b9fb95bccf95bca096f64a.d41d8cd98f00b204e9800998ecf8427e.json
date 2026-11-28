@@ -1,0 +1,1 @@
+{"id":"ac0f657f33b9fb95bccf95bca096f64a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge MCP の data pr_ref が owner/repo/N の形でないと、kind が invalid-input の失敗を返す","name":"pr_ref が owner/repo/N の形でないと、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"f32e7d94f1dce65bdcf5c94311a4f07f"}}

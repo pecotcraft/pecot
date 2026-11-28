@@ -1,0 +1,1 @@
+{"id":"eb95c63ff877fde4e13f7d0fae259570.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#hasIssueReference 本文 \"https://example.com/#12\" は、参照がないと判定する","name":"本文 \"https://example.com/#12\" は、参照がないと判定する","status":"passed","testResultsByEnv":{"default":"8c8b8ef5fc084018908afcb24523d14c"}}

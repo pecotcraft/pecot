@@ -1,0 +1,1 @@
+{"id":"c63043f5a537bc39a5d4010b13653626.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（file） 依存を宣言していて node_modules も存在する場合は、そのまま使用できる","name":"依存を宣言していて node_modules も存在する場合は、そのまま使用できる","status":"passed","testResultsByEnv":{"default":"7337919123978c8cf0c75087855ebc0e"}}

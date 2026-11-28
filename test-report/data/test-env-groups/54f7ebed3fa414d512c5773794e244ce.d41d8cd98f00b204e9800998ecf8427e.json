@@ -1,0 +1,1 @@
+{"id":"54f7ebed3fa414d512c5773794e244ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor board-sync で PAT の組 があると、token の組の項目を ok にする","name":"board-sync で PAT の組 があると、token の組の項目を ok にする","status":"passed","testResultsByEnv":{"default":"19c84726618948805a3a1dd33f79da24"}}

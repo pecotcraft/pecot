@@ -1,0 +1,1 @@
+{"id":"6b75d33b03c7526327f35e34cdd01bb6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/store-layout.test.ts#classifyGitFailure git の失敗の出力が「接続のタイムアウト」の場合は、原因の種類に分類する","name":"git の失敗の出力が「接続のタイムアウト」の場合は、原因の種類に分類する","status":"passed","testResultsByEnv":{"default":"a5a9fd4138760815fbc01c3725dc0a02"}}

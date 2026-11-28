@@ -1,0 +1,1 @@
+{"id":"45d704d2d2fdc5dd0db00f0b45fc74d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#convertStepsSinglePass signal が中断済みの場合は、変換を始めずに例外を発生させ、ページを閉じる","name":"signal が中断済みの場合は、変換を始めずに例外を発生させ、ページを閉じる","status":"passed","testResultsByEnv":{"default":"603afbe9b1426252b68fd3c8afa306d1"}}

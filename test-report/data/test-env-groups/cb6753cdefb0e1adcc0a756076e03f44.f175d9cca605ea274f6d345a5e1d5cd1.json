@@ -1,0 +1,1 @@
+{"id":"cb6753cdefb0e1adcc0a756076e03f44.f175d9cca605ea274f6d345a5e1d5cd1","fullName":".githooks.tests.test_run_affected_tests#test_lane_mode_rejects_invalid_lane_before_nx_run","name":"lane に :test-unit を指定すると、run-many を呼ばずにエラーで終了する","status":"passed","testResultsByEnv":{"default":"da19d46a9110029c2eae8adde3c474f8"}}

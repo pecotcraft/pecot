@@ -1,0 +1,1 @@
+{"id":"05b9775f5f41b7fde508ef2af8435149.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide スライドのルート要素自身にアニメーションの指定がある場合も、明示指定として検出する","name":"スライドのルート要素自身にアニメーションの指定がある場合も、明示指定として検出する","status":"passed","testResultsByEnv":{"default":"2c19649b6c049a0b9009bccfd9fc8073"}}

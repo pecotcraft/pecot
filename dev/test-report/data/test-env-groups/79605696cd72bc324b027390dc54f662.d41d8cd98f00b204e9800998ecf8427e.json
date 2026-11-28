@@ -1,0 +1,1 @@
+{"id":"79605696cd72bc324b027390dc54f662.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#writeFlag / readFlag フラグファイルが存在しない場合は、undefined を返す","name":"フラグファイルが存在しない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"34d099ba703bd80a06ba940a99c58e43"}}

@@ -1,0 +1,1 @@
+{"id":"42d66767012cca2eb2de1fcc06a1b4c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#parsePythonInteger \"+5\" を渡すと、Python の int() と同じく整数 5 を返す","name":"\"+5\" を渡すと、Python の int() と同じく整数 5 を返す","status":"passed","testResultsByEnv":{"default":"af9588eb90b100d1e0084e83d459a03e"}}

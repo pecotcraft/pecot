@@ -1,0 +1,1 @@
+{"id":"9fadba96a8b28797424cf54647e1ff45.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_cache_server#test_missing_args_exit_2","name":"必須の引数を渡さずに起動すると、終了コード 2 で終了する","status":"passed","testResultsByEnv":{"default":"f97223d07ea96e1b29c6c0ebd72652b7"}}

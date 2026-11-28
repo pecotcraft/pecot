@@ -1,0 +1,1 @@
+{"id":"a006c0f82eb0b9667e0a47a78cc9a41a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: modern) file_lint 全パラメータの入力を受理し、そのままハンドラへ渡す","name":"全パラメータの入力を受理し、そのままハンドラへ渡す","status":"passed","testResultsByEnv":{"default":"2779621483ae91e1307c8cff56a08271"}}

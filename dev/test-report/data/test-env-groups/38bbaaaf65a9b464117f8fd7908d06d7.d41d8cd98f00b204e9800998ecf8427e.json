@@ -1,0 +1,1 @@
+{"id":"38bbaaaf65a9b464117f8fd7908d06d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/git-url.test.ts#parseRemoteUrl https の URL に userinfo がある場合は、host に含めない","name":"https の URL に userinfo がある場合は、host に含めない","status":"passed","testResultsByEnv":{"default":"dd05c0050f3e73eb00415599f9a3a92b"}}

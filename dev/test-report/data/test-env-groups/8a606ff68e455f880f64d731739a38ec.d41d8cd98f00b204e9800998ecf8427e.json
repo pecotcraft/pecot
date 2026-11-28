@@ -1,0 +1,1 @@
+{"id":"8a606ff68e455f880f64d731739a38ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/plugin-update-notice.bats#CLAUDE_CONFIG_DIR の末尾にスラッシュがあっても、更新案内を出す","name":"CLAUDE_CONFIG_DIR の末尾にスラッシュがあっても、更新案内を出す","status":"passed","testResultsByEnv":{"default":"d42fe4c820d76f6de5d9096fc70675de"}}

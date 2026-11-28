@@ -1,0 +1,1 @@
+error: GITHUB_REPOSITORY is not owner/repo

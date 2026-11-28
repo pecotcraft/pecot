@@ -1,0 +1,1 @@
+{"id":"7c15b62424b52d463c34759f854c15f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#listProjectConfigEntries 設定ファイルの名前とボードの情報を名前順に返し、読み込めないファイルは対象から外す","name":"設定ファイルの名前とボードの情報を名前順に返し、読み込めないファイルは対象から外す","status":"passed","testResultsByEnv":{"default":"c003ba27608813317c628f2dde729304"}}

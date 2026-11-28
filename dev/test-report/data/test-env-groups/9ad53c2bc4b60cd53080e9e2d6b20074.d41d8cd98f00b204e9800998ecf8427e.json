@@ -1,0 +1,1 @@
+{"id":"9ad53c2bc4b60cd53080e9e2d6b20074.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_get アクティブなプロジェクトが存在しないと、終了コード 1 で終わる","name":"アクティブなプロジェクトが存在しないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"f2d3eead1790cd611c80e099a8a9f8c3"}}

@@ -1,0 +1,1 @@
+{"id":"7e838c95627ea6252073c6c9fb1ca6a1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#nxProjects root が文字列でない場合は、Python の str() と同じ文字列に変換する","name":"root が文字列でない場合は、Python の str() と同じ文字列に変換する","status":"passed","testResultsByEnv":{"default":"8a53ff614f615b0d04620e4be624b523"}}

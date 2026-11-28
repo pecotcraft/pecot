@@ -1,0 +1,1 @@
+{"id":"2138c928d2601e149c47368ee8c4aa7d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) drawio_create は失敗した場合に、ok や stdout などの項目を含めず、kind と detail だけを返す","name":"drawio_create は失敗した場合に、ok や stdout などの項目を含めず、kind と detail だけを返す","status":"passed","testResultsByEnv":{"default":"666217da9fa18b22685c285ccc592b77"}}

@@ -1,0 +1,1 @@
+{"id":"d26a771323e25f355c11cba20138920e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueSlim 親にリポジトリが存在しない場合は、owner と repo を null にする","name":"親にリポジトリが存在しない場合は、owner と repo を null にする","status":"passed","testResultsByEnv":{"default":"39f319f1318b0182d17184855465c252"}}

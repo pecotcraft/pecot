@@ -1,0 +1,1 @@
+{"id":"ea75fa98471a703804c0d0cc7b4eb0b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/fs-sync.test.ts#removeTemplateEntries 親の pages や public が存在しなくても、エラーにならない","name":"親の pages や public が存在しなくても、エラーにならない","status":"passed","testResultsByEnv":{"default":"26cc9f2dce3aa6c0dd2f7d999af124f8"}}

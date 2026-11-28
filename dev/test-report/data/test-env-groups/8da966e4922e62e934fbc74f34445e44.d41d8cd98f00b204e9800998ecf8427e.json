@@ -1,0 +1,1 @@
+{"id":"8da966e4922e62e934fbc74f34445e44.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#formatValidationError（入力値の省略はバイト長で決まる） 入力値が emoji-12 の場合は、Python の入力値の表記と一致する","name":"入力値が emoji-12 の場合は、Python の入力値の表記と一致する","status":"passed","testResultsByEnv":{"default":"f67bc77ce08331d2d2665004b0864e01"}}

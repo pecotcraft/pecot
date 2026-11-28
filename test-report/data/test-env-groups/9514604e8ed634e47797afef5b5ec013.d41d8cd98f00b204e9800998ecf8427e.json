@@ -1,0 +1,1 @@
+{"id":"9514604e8ed634e47797afef5b5ec013.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — 受理 相対座標が境界の 0 と 1 の場合も、受理する","name":"相対座標が境界の 0 と 1 の場合も、受理する","status":"passed","testResultsByEnv":{"default":"c3f23698a6b11be3b7cb4372f5ab6115"}}

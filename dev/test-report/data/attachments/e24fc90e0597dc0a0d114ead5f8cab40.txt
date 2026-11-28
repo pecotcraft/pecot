@@ -1,0 +1,30 @@
+
+nx exit code: 1
+=== 失敗レーン: lane-two ===
+lane-two: LANE_TWO_BODY running
+lane-two: CALL1_BODY call count marker
+lane-two: AssertionError: expected 1 to be 2
+ NX   Running target test for 2 projects failed
+
+Tasks not run because their dependencies failed or --nx-bail=true:
+
+- lane-three:test-unit
+
+Failed tasks:
+
+- lane-two:test-unit
+
+Output of lane-three:test-unit not shown. Re-run with --verbose to see it.
+
+  Run duration:      9m 59s
+  Cache:             Skipped (--skip-nx-cache)
+  Critical path:     7m 17s (4 tasks)
+  Recoverable time:  2m 42s (27% of the run)
+
+  Recommendations:
+    - Cache: drop --skip-nx-cache to restore unchanged tasks instantly.
+    - Distribute across machines with Nx Agents → https://example.invalid/agents
+
+
+全出力: /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_failure_ignores_performan2/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log
+進行確認: tail -f /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_failure_ignores_performan2/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log

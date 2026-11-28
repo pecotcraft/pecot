@@ -1,0 +1,1 @@
+{"id":"37906d0cccb17b79118573b90f234f50.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#requestAsyncMerge pending なのに uuid が存在しない場合は、GitHubAPIError を発生させる","name":"pending なのに uuid が存在しない場合は、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"aa0dc793d8f01ae0a3183f5f818ad2e8"}}

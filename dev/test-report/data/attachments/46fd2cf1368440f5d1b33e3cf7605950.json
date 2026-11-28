@@ -1,0 +1,9 @@
+{
+  "name": "sample",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "slidev-theme-pecotv-test-declared": "file:../declared-theme-src"
+  }
+}

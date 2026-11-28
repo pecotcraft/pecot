@@ -1,0 +1,1 @@
+{"id":"637a97cbdafc327c17b9d31732aebc13.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_decides_image_before_commit","name":"dependabot-commit.yml は、コミットの前にイメージの要否を決める","status":"passed","testResultsByEnv":{"default":"653182acd2cdf9a2d294cc48af66b311"}}

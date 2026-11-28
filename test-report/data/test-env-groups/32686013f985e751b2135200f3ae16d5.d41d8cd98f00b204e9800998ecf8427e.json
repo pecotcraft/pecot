@@ -1,0 +1,1 @@
+{"id":"32686013f985e751b2135200f3ae16d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-describe-title.test.ts#describe-title valid 空白を含む name の題も、そのまま比べて止めない","name":"空白を含む name の題も、そのまま比べて止めない","status":"passed","testResultsByEnv":{"default":"5013034c59d7e92119a53b694b56f599"}}

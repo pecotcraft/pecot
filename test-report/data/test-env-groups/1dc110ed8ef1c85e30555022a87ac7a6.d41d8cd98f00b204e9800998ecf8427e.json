@@ -1,0 +1,1 @@
+{"id":"1dc110ed8ef1c85e30555022a87ac7a6.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_site_stamp_defaults_to_local","name":"環境変数がない場合は、ローカルの側として扱う","status":"passed","testResultsByEnv":{"default":"be7c54f5dc6e2a1f59a5db033772f6c0"}}

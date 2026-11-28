@@ -1,0 +1,1 @@
+{"id":"33db1f183adbf7cf086cc514624fe7a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#getItemSetFieldIds 値が設定されていない場合は、空の集合を返す","name":"値が設定されていない場合は、空の集合を返す","status":"passed","testResultsByEnv":{"default":"2d54fd8d5f6d06c4c31473a7cbccf969"}}

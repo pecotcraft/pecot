@@ -1,0 +1,37 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.dependabot_alerts: read the open alerts with list_dependabot_alerts (state open, every page) and pass the results as reads.dependabot_alerts.pages, or its error text as reads.dependabot_alerts.error"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.dependabot_alerts\",\"code\":\"alerts-unread\",\"message\":\"read the open alerts with list_dependabot_alerts (state open, every page) and pass the results as reads.dependabot_alerts.pages, or its error text as reads.dependabot_alerts.error\"},{\"field\":\"reads.code_scanning_alerts\",\"code\":\"alerts-unread\",\"message\":\"read the open alerts with list_code_scanning_alerts (state open, every page) and pass the results as reads.code_scanning_alerts.pages, or its error text as reads.code_scanning_alerts.error\"},{\"field\":\"reads.secret_scanning_alerts\",\"code\":\"blocking-alert\",\"message\":\"secret scanning has 1 open alert (#5) → https://ghes.example.com/acme/demo/security/secret-scanning; close them (fixed, or dismissed with a reason) and check again\"},{\"field\":\"params\",\"code\":\"required\",\"message\":\"pass the params of the release-create operation of github-ops (tag, sha, body, name)\"}],\"skipped\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.dependabot_alerts",
+        "code": "alerts-unread",
+        "message": "read the open alerts with list_dependabot_alerts (state open, every page) and pass the results as reads.dependabot_alerts.pages, or its error text as reads.dependabot_alerts.error"
+      },
+      {
+        "field": "reads.code_scanning_alerts",
+        "code": "alerts-unread",
+        "message": "read the open alerts with list_code_scanning_alerts (state open, every page) and pass the results as reads.code_scanning_alerts.pages, or its error text as reads.code_scanning_alerts.error"
+      },
+      {
+        "field": "reads.secret_scanning_alerts",
+        "code": "blocking-alert",
+        "message": "secret scanning has 1 open alert (#5) → https://ghes.example.com/acme/demo/security/secret-scanning; close them (fixed, or dismissed with a reason) and check again"
+      },
+      {
+        "field": "params",
+        "code": "required",
+        "message": "pass the params of the release-create operation of github-ops (tag, sha, body, name)"
+      }
+    ],
+    "skipped": []
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "PR creation failed: GitHub API error: 422"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-api\",\"detail\":\"PR creation failed: GitHub API error: 422\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "PR creation failed: GitHub API error: 422"
+  },
+  "isError": true
+}

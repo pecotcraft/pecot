@@ -1,0 +1,1 @@
+{"event":"slide.convert.error","reason":"merge-failed","detail":"PPTX generation failed: EISDIR: illegal operation on a directory, open '/tmp/pecotv-slide-convert-6Q61Uy/error-warnings-4-dir'","warnings":["cannot read the cache manifest; cleaning existing artifacts and rebuilding"],"errors":[]}

@@ -1,0 +1,131 @@
+error: [
+    {
+      "code": "invalid_union",
+      "errors": [
+        [
+          {
+            "code": "invalid_union",
+            "errors": [
+              [
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "expected": "number",
+                  "code": "invalid_type",
+                  "path": [],
+                  "message": "Invalid input: expected number, received undefined"
+                }
+              ]
+            ],
+            "path": [
+              "id"
+            ],
+            "message": "Invalid input"
+          },
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "method"
+            ],
+            "message": "Invalid input: expected string, received undefined"
+          },
+          {
+            "code": "unrecognized_keys",
+            "keys": [
+              "foo"
+            ],
+            "path": [],
+            "message": "Unrecognized key: \"foo\""
+          }
+        ],
+        [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "method"
+            ],
+            "message": "Invalid input: expected string, received undefined"
+          },
+          {
+            "code": "unrecognized_keys",
+            "keys": [
+              "foo"
+            ],
+            "path": [],
+            "message": "Unrecognized key: \"foo\""
+          }
+        ],
+        [
+          {
+            "code": "invalid_union",
+            "errors": [
+              [
+                {
+                  "expected": "string",
+                  "code": "invalid_type",
+                  "path": [],
+                  "message": "Invalid input: expected string, received undefined"
+                }
+              ],
+              [
+                {
+                  "expected": "number",
+                  "code": "invalid_type",
+                  "path": [],
+                  "message": "Invalid input: expected number, received undefined"
+                }
+              ]
+            ],
+            "path": [
+              "id"
+            ],
+            "message": "Invalid input"
+          },
+          {
+            "expected": "object",
+            "code": "invalid_type",
+            "path": [
+              "result"
+            ],
+            "message": "Invalid input: expected object, received undefined"
+          },
+          {
+            "code": "unrecognized_keys",
+            "keys": [
+              "foo"
+            ],
+            "path": [],
+            "message": "Unrecognized key: \"foo\""
+          }
+        ],
+        [
+          {
+            "expected": "object",
+            "code": "invalid_type",
+            "path": [
+              "error"
+            ],
+            "message": "Invalid input: expected object, received undefined"
+          },
+          {
+            "code": "unrecognized_keys",
+            "keys": [
+              "foo"
+            ],
+            "path": [],
+            "message": "Unrecognized key: \"foo\""
+          }
+        ]
+      ],
+      "path": [],
+      "message": "Invalid input"
+    }
+  ]

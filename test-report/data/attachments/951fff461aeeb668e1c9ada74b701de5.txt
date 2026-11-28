@@ -1,0 +1,2 @@
+count: preflight warnings: 1
+warning: Push Status: diverged: local is 2 commits ahead, origin/feat/demo/12 is 2 ahead (fix: pr_restack)

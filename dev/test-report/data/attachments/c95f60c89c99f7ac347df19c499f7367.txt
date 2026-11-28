@@ -1,0 +1,3 @@
+/workspaces/base/pecot/plugins/pecot-workflow/hooks/lib/core/pecot-dir-init.sh
+/workspaces/base/pecot/plugins/pecot-workflow/hooks/lib/core/pecot-state-guard.sh
+/workspaces/base/pecot/plugins/pecot-workflow/hooks/lib/core/pecot-gitignore-ensure.sh

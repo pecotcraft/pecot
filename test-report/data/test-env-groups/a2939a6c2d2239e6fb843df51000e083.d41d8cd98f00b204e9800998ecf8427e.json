@@ -1,0 +1,1 @@
+{"id":"a2939a6c2d2239e6fb843df51000e083.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 設定の解決 設定が 2 つ以上で project が無いと、project を求めて終了コード 1 で止まる","name":"設定が 2 つ以上で project が無いと、project を求めて終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"c055a4c6d1bf024d5c7138c8a70c4590"}}

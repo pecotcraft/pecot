@@ -1,0 +1,1 @@
+{"id":"b6f5f8285a116927c526924ae81aac64.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/sso.test.ts#ssoTools キャンセル済みの呼び出しでも、ログインの awscli のプロセスを終了しない","name":"キャンセル済みの呼び出しでも、ログインの awscli のプロセスを終了しない","status":"passed","testResultsByEnv":{"default":"1202c9387e93c1b91483788ce738635e"}}

@@ -1,0 +1,1 @@
+{"id":"a41e31c1d6732f6f8eb1a6d77f613e55.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_root_entries#test_dot_dirs_and_root_files_are_not_restricted","name":". で始まるディレクトリとルート直下のファイルは、制限の対象にしない","status":"passed","testResultsByEnv":{"default":"616d8fce195418b511ced24644f9f504"}}

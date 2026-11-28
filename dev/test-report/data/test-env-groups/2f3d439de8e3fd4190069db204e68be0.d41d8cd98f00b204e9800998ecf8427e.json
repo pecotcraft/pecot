@@ -1,0 +1,1 @@
+{"id":"2f3d439de8e3fd4190069db204e68be0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/executor.test.ts#createBoundedExecutor 処理が失敗しても、後続の処理は実行される","name":"処理が失敗しても、後続の処理は実行される","status":"passed","testResultsByEnv":{"default":"e00dcde8b2e379a556e3137c6a5a9c8a"}}

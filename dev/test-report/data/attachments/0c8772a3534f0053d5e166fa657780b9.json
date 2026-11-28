@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "kind: pecot-template://issue/task is a template for kind task"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"kind\",\"code\":\"value\",\"message\":\"pecot-template://issue/task is a template for kind task\",\"candidates\":[\"task\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "kind",
+        "code": "value",
+        "message": "pecot-template://issue/task is a template for kind task",
+        "candidates": [
+          "task"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

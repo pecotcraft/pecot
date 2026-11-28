@@ -1,0 +1,1 @@
+{"id":"33522b2fe4b50b869d1152f3359b528b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#対象のリポを決められなかったとき 入力が誤っていても、入力の検証より先に理由を返す","name":"入力が誤っていても、入力の検証より先に理由を返す","status":"passed","testResultsByEnv":{"default":"f622d48560913d0fa9b254933af27195"}}

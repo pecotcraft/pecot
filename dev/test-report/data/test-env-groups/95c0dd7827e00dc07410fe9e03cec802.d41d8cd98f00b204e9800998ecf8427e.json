@@ -1,0 +1,1 @@
+{"id":"95c0dd7827e00dc07410fe9e03cec802.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#browsersRoot PLAYWRIGHT_BROWSERS_PATH が設定されている場合は、その値を返す","name":"PLAYWRIGHT_BROWSERS_PATH が設定されている場合は、その値を返す","status":"passed","testResultsByEnv":{"default":"df1be9512c5fcf77b087bc66c88cb049"}}

@@ -1,0 +1,1 @@
+{"id":"9d73be238117e45a7116fc32f7fe56ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter.test.ts#readSlidesTitle slides.md が存在しない場合は、警告をログに記録して null を返す","name":"slides.md が存在しない場合は、警告をログに記録して null を返す","status":"passed","testResultsByEnv":{"default":"ebfc70734fde438a047af5e727716b82"}}

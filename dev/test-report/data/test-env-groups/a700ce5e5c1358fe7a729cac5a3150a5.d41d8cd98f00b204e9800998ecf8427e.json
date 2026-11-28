@@ -1,0 +1,1 @@
+{"id":"a700ce5e5c1358fe7a729cac5a3150a5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/label-text.test.ts#labelTexts style に html=1 があるセルは、HTML として解釈し、文字参照を復号してタグを取り除く","name":"style に html=1 があるセルは、HTML として解釈し、文字参照を復号してタグを取り除く","status":"passed","testResultsByEnv":{"default":"33521d3f99b5cafe8c23d9c0ac951760"}}

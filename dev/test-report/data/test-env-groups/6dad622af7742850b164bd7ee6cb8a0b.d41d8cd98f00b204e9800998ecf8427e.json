@@ -1,0 +1,1 @@
+{"id":"6dad622af7742850b164bd7ee6cb8a0b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_task_cache#test_runtime_commands_exit_zero_and_print_a_version","name":"runtime の各コマンドは、終了コード 0 で終わり、版を含む出力を返す","status":"passed","testResultsByEnv":{"default":"b8ff9d439dc73b57e8f7a903fd9332ae"}}

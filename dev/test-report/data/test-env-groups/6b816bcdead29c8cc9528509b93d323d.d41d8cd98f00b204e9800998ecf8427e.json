@@ -1,0 +1,1 @@
+{"id":"6b816bcdead29c8cc9528509b93d323d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql data が list（空）なら空のオブジェクト のとき、data を返す","name":"data が list（空）なら空のオブジェクト のとき、data を返す","status":"passed","testResultsByEnv":{"default":"de73df8966773f6314231a34eefb1edb"}}

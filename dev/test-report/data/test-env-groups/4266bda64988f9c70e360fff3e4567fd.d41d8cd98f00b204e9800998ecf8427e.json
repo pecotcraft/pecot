@@ -1,0 +1,1 @@
+{"id":"4266bda64988f9c70e360fff3e4567fd.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-cx-measure.bats#cx の減少した spec があるとき、FAIL と判定して差を負値で出し、終了コード 1 で終わる","name":"cx の減少した spec があるとき、FAIL と判定して差を負値で出し、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"c0419de2280f0109f1dfa95405474e87"}}

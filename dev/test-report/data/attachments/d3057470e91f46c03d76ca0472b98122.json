@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-tools",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "Output validation error: Invalid structured content for tool aws_rds_describe_db_clusters: data must NOT have additional properties"
+    }
+  ],
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"e5d45f930b887ef1b6e6d7c0b6d10177.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-theme.test.ts#executeSlideTheme の失敗の reason 宣言に誤りがあると、reason を theme- で始まる値にして表示する","name":"宣言に誤りがあると、reason を theme- で始まる値にして表示する","status":"passed","testResultsByEnv":{"default":"d1c0c50e07a67b5c2f18325c415a0573"}}

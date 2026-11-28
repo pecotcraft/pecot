@@ -1,0 +1,1 @@
+{"id":"06b6d18d6f8c6035c8b14ee43b707c17.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#npm install はちょうど 2 回呼ばれる（配布 成功→永続層 失敗）","name":"npm install はちょうど 2 回呼ばれる（配布 成功→永続層 失敗）","status":"passed","testResultsByEnv":{"default":"1fe135e58a2733051aae7851a52cae38"}}

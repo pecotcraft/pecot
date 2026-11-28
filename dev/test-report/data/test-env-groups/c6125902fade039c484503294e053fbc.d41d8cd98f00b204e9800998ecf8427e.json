@@ -1,0 +1,1 @@
+{"id":"c6125902fade039c484503294e053fbc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_misplaced_pecot#test_multiple_misplaced_all_listed","name":"2 箇所以上に .pecot が誤配置されていると、すべてのパスを出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"ce098ac07a157252fc717e809a13c7b9"}}

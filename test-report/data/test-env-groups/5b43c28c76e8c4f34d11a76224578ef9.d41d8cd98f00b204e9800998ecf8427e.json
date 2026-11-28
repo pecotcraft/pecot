@@ -1,0 +1,1 @@
+{"id":"5b43c28c76e8c4f34d11a76224578ef9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_failure_fallback_keeps_summary_block","name":"失敗した project を特定できない場合も、要約のブロックを含めてログの末尾を表示する","status":"passed","testResultsByEnv":{"default":"86a8b032e2ee9837b6cabe3e10c6a63d"}}

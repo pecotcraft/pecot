@@ -1,0 +1,1 @@
+{"id":"852818e3a1e854f9f0b15e5e57323313.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter 定義にない type を渡すと、FrontmatterError の例外が発生する","name":"定義にない type を渡すと、FrontmatterError の例外が発生する","status":"passed","testResultsByEnv":{"default":"2f1debfaaac16f73c73e70aeaa8024ae"}}

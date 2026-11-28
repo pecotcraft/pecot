@@ -1,0 +1,1 @@
+{"id":"a851f1cbc2e02b99ac027777dbc7e6ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/web-fonts.test.ts#webFontsFor 総称の書体名だけの場合は、スタイルシートの URL を作成せず、preload を空にする","name":"総称の書体名だけの場合は、スタイルシートの URL を作成せず、preload を空にする","status":"passed","testResultsByEnv":{"default":"e8fc616fd30d25670c3562e603d98ff1"}}

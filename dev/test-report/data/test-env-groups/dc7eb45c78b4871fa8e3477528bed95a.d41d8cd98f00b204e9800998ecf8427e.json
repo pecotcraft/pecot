@@ -1,0 +1,1 @@
+{"id":"dc7eb45c78b4871fa8e3477528bed95a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyJapaneseFontFix a:r の中に a:t が存在しない場合は、補正せず、例外も発生しない","name":"a:r の中に a:t が存在しない場合は、補正せず、例外も発生しない","status":"passed","testResultsByEnv":{"default":"5597e9e006dd6ca5751bd7b87bfde5ff"}}

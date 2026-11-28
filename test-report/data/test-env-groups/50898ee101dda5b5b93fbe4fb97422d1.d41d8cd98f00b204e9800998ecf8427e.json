@@ -1,0 +1,1 @@
+{"id":"50898ee101dda5b5b93fbe4fb97422d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add setup を付けて呼ぶと、worktree の中でそのコマンドを実行する","name":"setup を付けて呼ぶと、worktree の中でそのコマンドを実行する","status":"passed","testResultsByEnv":{"default":"23c06e235f540131a0275fddfccc4026"}}

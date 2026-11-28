@@ -1,0 +1,1 @@
+{"id":"38189777d67e5a2c297568d673f53fa3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#runGit check を指定して git が 0 以外で終了すると、終了コードと標準エラーを持つ GitCommandError を発生させる","name":"check を指定して git が 0 以外で終了すると、終了コードと標準エラーを持つ GitCommandError を発生させる","status":"passed","testResultsByEnv":{"default":"0a4fd9cce8f1f9a9ef5c7ca8ea031899"}}

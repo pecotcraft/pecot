@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "SSO authentication timed out. Authentication did not complete within the time limit. Call aws_sso_login again"
+    },
+    {
+      "type": "text",
+      "text": "{\"state\":\"timed-out\",\"kind\":\"timeout\",\"detail\":\"SSO authentication timed out. Authentication did not complete within the time limit. Call aws_sso_login again\"}"
+    }
+  ],
+  "structuredContent": {
+    "state": "timed-out",
+    "kind": "timeout",
+    "detail": "SSO authentication timed out. Authentication did not complete within the time limit. Call aws_sso_login again"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"d0a71d4e61920642498f5dd23a120b70.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#screenWorkflowRun fork の PR の CI の場合は、処理を進めず何も書き込まない","name":"fork の PR の CI の場合は、処理を進めず何も書き込まない","status":"passed","testResultsByEnv":{"default":"0b99296dd540cdef226f7da1d8098ecf"}}

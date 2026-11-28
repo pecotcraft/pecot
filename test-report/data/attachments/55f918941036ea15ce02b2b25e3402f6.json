@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated: feat/demo/12 synced with origin/feat/demo/12"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/demo/12\",\"base\":\"main\",\"outcome\":\"synced\",\"relinked\":21}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/demo/12",
+    "base": "main",
+    "outcome": "synced",
+    "relinked": 21
+  }
+}

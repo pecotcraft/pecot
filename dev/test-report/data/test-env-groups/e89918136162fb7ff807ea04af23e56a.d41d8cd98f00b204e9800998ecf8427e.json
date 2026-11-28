@@ -1,0 +1,1 @@
+{"id":"e89918136162fb7ff807ea04af23e56a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx の差分キャッシュ スライドを末尾に追加した場合は、既存のステップが hit になり、追加したステップだけを変換する","name":"スライドを末尾に追加した場合は、既存のステップが hit になり、追加したステップだけを変換する","status":"passed","testResultsByEnv":{"default":"b24d4efc8656425ef82582dada4df6c6"}}

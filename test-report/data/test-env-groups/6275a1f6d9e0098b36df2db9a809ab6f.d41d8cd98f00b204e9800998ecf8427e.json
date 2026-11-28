@@ -1,0 +1,1 @@
+{"id":"6275a1f6d9e0098b36df2db9a809ab6f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init MCP の data 旧い形のボードと設定ファイルを移すと、改名した旧い名前と移した設定ファイルを migration に返す","name":"旧い形のボードと設定ファイルを移すと、改名した旧い名前と移した設定ファイルを migration に返す","status":"passed","testResultsByEnv":{"default":"be1eec9016afffc535846fe7839f44fe"}}

@@ -1,0 +1,1 @@
+{"id":"1c724529594192a9e3722109c6d994f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh remote の URL が https で末尾に / の形なら、番号を出す","name":"remote の URL が https で末尾に / の形なら、番号を出す","status":"passed","testResultsByEnv":{"default":"3bad6b1843a5bfc4738d8991531a46da"}}

@@ -1,0 +1,1 @@
+{"id":"6aba5770de9f3781be692db6afdbda21.573e12536ea040220b43b923b0093c3f","fullName":".githooks.tests.test_nx_task_cache#test_cacheable_target_declares_runtime_and_env","name":"pecot-visual:lint-cli は、キャッシュを有効にし、runtime と環境変数を入力に宣言する","status":"passed","testResultsByEnv":{"default":"3bd766a2077b6eacd7e7dc2338177ac1"}}

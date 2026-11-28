@@ -1,0 +1,1 @@
+{"id":"bddb1d02d53fb67dfd175464ec43c550.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-show.test.ts#board_show 前提を読んだ Ready と Blocked の Issue に readiness を入れ、判定とずれた列でも動かさない","name":"前提を読んだ Ready と Blocked の Issue に readiness を入れ、判定とずれた列でも動かさない","status":"passed","testResultsByEnv":{"default":"86f176c72460087f6d7f1694df7dc310"}}

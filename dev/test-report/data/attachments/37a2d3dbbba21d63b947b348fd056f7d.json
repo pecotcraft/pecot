@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "権限が不足しています"
+    },
+    {
+      "type": "text",
+      "text": "{\"log\":\"AccessDenied\",\"kind\":\"permission-denied\",\"detail\":\"権限が不足しています\"}"
+    }
+  ],
+  "structuredContent": {
+    "log": "AccessDenied",
+    "kind": "permission-denied",
+    "detail": "権限が不足しています"
+  },
+  "isError": true
+}

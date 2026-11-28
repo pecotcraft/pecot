@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "CHANGELOG.md not found: /tmp/pecot-parity-Murzgb/base/demo/CHANGELOG.md"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"CHANGELOG.md not found: /tmp/pecot-parity-Murzgb/base/demo/CHANGELOG.md\",\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"}}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "CHANGELOG.md not found: /tmp/pecot-parity-Murzgb/base/demo/CHANGELOG.md",
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"124d48364cf424535f0f67585c044b12.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show MCP の data ブランチ名を読めないと、branch を入れずに続ける","name":"ブランチ名を読めないと、branch を入れずに続ける","status":"passed","testResultsByEnv":{"default":"5638d62adc58c7237cae7bcbfa5d166f"}}

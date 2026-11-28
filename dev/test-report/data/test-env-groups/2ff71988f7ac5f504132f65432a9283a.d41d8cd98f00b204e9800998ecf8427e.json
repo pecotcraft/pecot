@@ -1,0 +1,1 @@
+{"id":"2ff71988f7ac5f504132f65432a9283a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: YAML ブロックスカラーの 2 行目以降も、行ごとに位置を数えて指摘を返す","name":"ブロックスカラーの 2 行目以降も、行ごとに位置を数えて指摘を返す","status":"passed","testResultsByEnv":{"default":"0afbac678d46173fe134cb5f3976af60"}}

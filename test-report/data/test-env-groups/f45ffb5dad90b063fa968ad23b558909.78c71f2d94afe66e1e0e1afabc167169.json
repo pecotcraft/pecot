@@ -1,0 +1,1 @@
+{"id":"f45ffb5dad90b063fa968ad23b558909.78c71f2d94afe66e1e0e1afabc167169","fullName":".githooks.tests.test_nx_task_cache#test_plugin_env_change_reruns_only_that_plugins_lanes","name":"プラグイン別の環境変数 PECOTV_SINGLE_PASS を変更すると、そのプラグインのレーンだけが再実行される","status":"passed","testResultsByEnv":{"default":"8b3bd5d8a5d7a7f121cafbfbd140c054"}}

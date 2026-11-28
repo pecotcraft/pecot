@@ -1,0 +1,1 @@
+{"id":"58bf5fee921d7d6cfc6ad3f792c61c7a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_38_strict_keeps_normal_pass","name":"strict でも、判定が不要な変更は、成功のままにする","status":"passed","testResultsByEnv":{"default":"8ea92137748716a9b5ae6915e0e93a30"}}

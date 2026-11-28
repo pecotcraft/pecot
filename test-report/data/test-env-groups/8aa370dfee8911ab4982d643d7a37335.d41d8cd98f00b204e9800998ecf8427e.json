@@ -1,0 +1,1 @@
+{"id":"8aa370dfee8911ab4982d643d7a37335.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#mergePullRequest sha を指定すると、merge_method と sha を送信する","name":"sha を指定すると、merge_method と sha を送信する","status":"passed","testResultsByEnv":{"default":"b8602e9e6fc9780101e3ea99087cf0a8"}}

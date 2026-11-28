@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reason: wait merge needs reason: why it waits for the merge, in one line"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reason\",\"code\":\"required\",\"message\":\"wait merge needs reason: why it waits for the merge, in one line\"}],\"expected_status\":\"Blocked\",\"body\":\"## Goal — 一覧画面から状態を確認できる\\n\\n利用者が一覧画面で各項目の状態を確認できる。\\n\\n## Acceptance — 一覧に状態の列が出る\\n\\n- 状態の列が一覧に出る — 確認: 一覧画面を開く\\n\\n## Waits for merge\\n\\n- #5: x\\n\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reason",
+        "code": "required",
+        "message": "wait merge needs reason: why it waits for the merge, in one line"
+      }
+    ],
+    "expected_status": "Blocked",
+    "body": "## Goal — 一覧画面から状態を確認できる\n\n利用者が一覧画面で各項目の状態を確認できる。\n\n## Acceptance — 一覧に状態の列が出る\n\n- 状態の列が一覧に出る — 確認: 一覧画面を開く\n\n## Waits for merge\n\n- #5: x\n"
+  }
+}

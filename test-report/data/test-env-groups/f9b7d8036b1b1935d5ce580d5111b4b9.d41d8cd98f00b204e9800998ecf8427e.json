@@ -1,0 +1,1 @@
+{"id":"f9b7d8036b1b1935d5ce580d5111b4b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript 改行が CRLF のファイルでは、行末の CR を文に含めず、2 行目の桁を正しく数える","name":"改行が CRLF のファイルでは、行末の CR を文に含めず、2 行目の桁を正しく数える","status":"passed","testResultsByEnv":{"default":"df1a259adb00a56e9be764b7b2f395ec"}}

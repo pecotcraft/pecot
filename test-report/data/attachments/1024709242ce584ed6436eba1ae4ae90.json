@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid input: directory: Directory '/tmp/pecot-project-eJeV6B/plain.txt' is a file."
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid input: directory: Directory '/tmp/pecot-project-eJeV6B/plain.txt' is a file.\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: directory: Directory '/tmp/pecot-project-eJeV6B/plain.txt' is a file."
+  },
+  "isError": true
+}

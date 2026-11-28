@@ -1,0 +1,1 @@
+{"id":"2030ec4cb4f6b5c5f0a96b27c061ea46.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys headmatter のスライド単位のキー（clicks など）を変更しても、envHash は変わらない","name":"headmatter のスライド単位のキー（clicks など）を変更しても、envHash は変わらない","status":"passed","testResultsByEnv":{"default":"4795bb2526a13070f080958769acf37c"}}

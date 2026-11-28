@@ -1,0 +1,1 @@
+{"id":"9c8734f887f291549c41a20050b2bc99.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-lint-reason.test.ts#errorToReason 例外 SlideLintUsageError: x に対して、reason relative-dir を返す","name":"例外 SlideLintUsageError: x に対して、reason relative-dir を返す","status":"passed","testResultsByEnv":{"default":"90b94bffabbbabe2b79bef5fc01ddf5c"}}

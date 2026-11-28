@@ -1,0 +1,1 @@
+{"id":"9c2e22773cefe4245983e42b7198f3f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#正規化 一時ディレクトリ・プラグインのパス・YYYYMMDD-HHMMSS の日時を固定の文字列に置換し、ISO 形式の日時は置換しない","name":"一時ディレクトリ・プラグインのパス・YYYYMMDD-HHMMSS の日時を固定の文字列に置換し、ISO 形式の日時は置換しない","status":"passed","testResultsByEnv":{"default":"9d06743d9979cb4e124bc790f8935b4f"}}

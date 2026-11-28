@@ -1,0 +1,1 @@
+{"id":"06c0fc06d2127e5e278b588ae31a9f54.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueNodeId / getIssueNodeIdAndTitle id が文字列でない場合は、GitHubAPIError が発生する","name":"id が文字列でない場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"0ac834cd425fb676431b22b7642ee561"}}

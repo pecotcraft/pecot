@@ -1,0 +1,1 @@
+{"id":"9f065aa818e6b35e4d8faa797e923985.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName セット名の接頭辞を指定すると、その接頭辞で番号を付ける","name":"セット名の接頭辞を指定すると、その接頭辞で番号を付ける","status":"passed","testResultsByEnv":{"default":"339616e31950a247736ae64ed344a823"}}

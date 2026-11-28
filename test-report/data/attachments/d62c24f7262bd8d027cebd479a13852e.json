@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "slide_dev: started http://localhost:40821"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.dev.started\",\"dir\":\"/tmp/pecotv-test-e2e-RwAbtu/dev-talk\",\"url\":\"http://localhost:40821\",\"port\":40821,\"reused\":false,\"pid\":7533}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.dev.started",
+    "dir": "/tmp/pecotv-test-e2e-RwAbtu/dev-talk",
+    "url": "http://localhost:40821",
+    "port": 40821,
+    "reused": false,
+    "pid": 7533
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated_field.value: #7 belongs in Blocked by its prerequisites, not Ready"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"updated_field.value\",\"code\":\"status-mismatch\",\"message\":\"#7 belongs in Blocked by its prerequisites, not Ready\",\"candidates\":[\"Blocked\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "updated_field.value",
+        "code": "status-mismatch",
+        "message": "#7 belongs in Blocked by its prerequisites, not Ready",
+        "candidates": [
+          "Blocked"
+        ]
+      }
+    ]
+  }
+}

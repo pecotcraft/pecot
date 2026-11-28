@@ -1,0 +1,1 @@
+{"id":"843eb7100f9b0c5686aa1df8a824e5cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#splitIssueTitle 接頭辞の無い題も番号を読み、番号が無ければ残りを題全体にする","name":"接頭辞の無い題も番号を読み、番号が無ければ残りを題全体にする","status":"passed","testResultsByEnv":{"default":"1ae06ed7c3b6109d55629388029b01a3"}}

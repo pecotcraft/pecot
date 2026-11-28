@@ -1,0 +1,1 @@
+{"id":"149c13818dfad29a5d9934362b561c46.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference 番号に 0 を渡すと、Python と同じ検証エラーの文で例外が発生する","name":"番号に 0 を渡すと、Python と同じ検証エラーの文で例外が発生する","status":"passed","testResultsByEnv":{"default":"98b968ec5e3451869978b6a8b91fda2b"}}

@@ -1,0 +1,1 @@
+{"id":"836c95c438a01721383018e661813f9d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/page-compare/tests/compare-pages.bats#引数が 1 個しかないとき、usage を stderr に出して終了コード 2 で終わる","name":"引数が 1 個しかないとき、usage を stderr に出して終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"8a30a8e5da5966a82faad4b55574b60a"}}

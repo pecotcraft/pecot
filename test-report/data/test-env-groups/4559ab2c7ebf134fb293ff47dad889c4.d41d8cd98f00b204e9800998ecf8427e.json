@@ -1,0 +1,1 @@
+{"id":"4559ab2c7ebf134fb293ff47dad889c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository mcp_output fields のキーが最上位の properties（共通の 4 項目を除く）とそろっていると、検証エラーを返さない","name":"fields のキーが最上位の properties（共通の 4 項目を除く）とそろっていると、検証エラーを返さない","status":"passed","testResultsByEnv":{"default":"73d20b27b134f86d3025afed71415e05"}}

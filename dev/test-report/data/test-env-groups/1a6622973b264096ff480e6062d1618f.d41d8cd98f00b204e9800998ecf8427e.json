@@ -1,0 +1,1 @@
+{"id":"1a6622973b264096ff480e6062d1618f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide カスタムプロパティが none の場合は、明示的なアニメーション指定の有無が false になる","name":"カスタムプロパティが none の場合は、明示的なアニメーション指定の有無が false になる","status":"passed","testResultsByEnv":{"default":"fa70a3de2fdc636345ba652348b67847"}}

@@ -1,0 +1,2 @@
+error: invalid version format: abc
+  use semantic versioning (X.Y.Z)

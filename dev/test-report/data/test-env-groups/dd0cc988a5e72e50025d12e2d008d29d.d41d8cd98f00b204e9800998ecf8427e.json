@@ -1,0 +1,1 @@
+{"id":"dd0cc988a5e72e50025d12e2d008d29d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#dataDirectory の解決順 データ置き場の値の末尾にある改行と CR は、取り除く","name":"データ置き場の値の末尾にある改行と CR は、取り除く","status":"passed","testResultsByEnv":{"default":"536cd89cf01eb4641733df62e9ef5b83"}}

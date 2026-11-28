@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the result of issue_read in reads.comments is not in the shape of the official GitHub MCP server\n  comments[0].html_url: Invalid input: expected string, received undefined"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-mcp-shape\",\"detail\":\"the result of issue_read in reads.comments is not in the shape of the official GitHub MCP server\\n  comments[0].html_url: Invalid input: expected string, received undefined\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-mcp-shape",
+    "detail": "the result of issue_read in reads.comments is not in the shape of the official GitHub MCP server\n  comments[0].html_url: Invalid input: expected string, received undefined"
+  },
+  "isError": true
+}

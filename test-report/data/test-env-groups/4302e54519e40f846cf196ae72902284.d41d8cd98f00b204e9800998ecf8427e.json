@@ -1,0 +1,1 @@
+{"id":"4302e54519e40f846cf196ae72902284.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.test.sh#セルフテスト: ${SCRIPT_DIR%/*} 以外の % 修飾は UNRESOLVED","name":"セルフテスト: ${SCRIPT_DIR%/*} 以外の % 修飾は UNRESOLVED","status":"passed","testResultsByEnv":{"default":"d3dab63f56da041640c77db33b4cf84e"}}

@@ -1,0 +1,3 @@
+usage: -c [-h] [--local] --output OUTPUT [--history HISTORY]
+          [--sources SOURCES]
+-c: error: --local は --history・--sources と一緒に使えません（手元は履歴を読まず、材料を確かめません）

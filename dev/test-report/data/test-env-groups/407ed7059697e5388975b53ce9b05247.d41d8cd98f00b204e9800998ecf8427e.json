@@ -1,0 +1,1 @@
+{"id":"407ed7059697e5388975b53ce9b05247.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data MCP の呼び出し PR の head が別のブランチ とき、relink を返さない","name":"PR の head が別のブランチ とき、relink を返さない","status":"passed","testResultsByEnv":{"default":"5eddfb207fb896835bbe1c07760ac163"}}

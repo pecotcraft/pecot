@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.settings is not the result of the workflow-doctor operation of github-ops\n  pass the JSON of its PECOT_RESULT line, or its result"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"reads.settings is not the result of the workflow-doctor operation of github-ops\\n  pass the JSON of its PECOT_RESULT line, or its result\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "reads.settings is not the result of the workflow-doctor operation of github-ops\n  pass the JSON of its PECOT_RESULT line, or its result"
+  },
+  "isError": true
+}

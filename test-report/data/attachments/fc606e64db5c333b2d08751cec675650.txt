@@ -1,0 +1,10 @@
+ERROR: 次の push は release group [pecot-tools pecot-visual pecot-workflow] のファイルを変更していますが、
+       ブランチで足した version plan に該当 group の bump 宣言がありません。
+
+対処:
+  1. cp .nx/nx-release/version-plan-template.md .nx/version-plans/<番号>-<slug>.md
+     （<番号> は Issue/PR 番号、<slug> は kebab-case 英字＋数字）
+  2. frontmatter で影響を受けた release group (pecot-tools pecot-visual pecot-workflow) の bump 種別
+     (patch/minor/major) を宣言（キーは group 名）
+  3. 本文を 1 段落の説明文で記述（CHANGELOG bullet 用の 1 文。WHY/HOW は PR description）
+  4. commit して再度 push

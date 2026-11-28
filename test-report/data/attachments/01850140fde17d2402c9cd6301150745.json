@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "moved: config file /tmp/pecot-repo-yuUl8P/.pecot/config/projects/ghes.example.com_acme_board_acme.json to /tmp/pecot-repo-yuUl8P/.pecot/config/projects/ghes.example.com_acme_1.json"
+    },
+    {
+      "type": "text",
+      "text": "{\"project\":\"ghes.example.com_acme_1\",\"configPath\":\"/tmp/pecot-repo-yuUl8P/.pecot/config/projects/ghes.example.com_acme_1.json\",\"change\":\"update\",\"config_moved\":{\"from\":\"ghes.example.com_acme_board_acme.json\",\"to\":\"ghes.example.com_acme_1.json\"},\"warnings\":[\"the project config is now named ghes.example.com_acme_1\\n  use this name for the project input and the PECOT_REVIEW_PROJECT variable\"]}"
+    }
+  ],
+  "structuredContent": {
+    "project": "ghes.example.com_acme_1",
+    "configPath": "/tmp/pecot-repo-yuUl8P/.pecot/config/projects/ghes.example.com_acme_1.json",
+    "change": "update",
+    "config_moved": {
+      "from": "ghes.example.com_acme_board_acme.json",
+      "to": "ghes.example.com_acme_1.json"
+    },
+    "warnings": [
+      "the project config is now named ghes.example.com_acme_1\n  use this name for the project input and the PECOT_REVIEW_PROJECT variable"
+    ]
+  }
+}

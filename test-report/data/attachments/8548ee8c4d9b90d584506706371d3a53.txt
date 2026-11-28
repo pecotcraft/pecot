@@ -1,0 +1,2 @@
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_broken_has_the_tail_of_st0/suite/sample.test.sh
+BROKEN: suite/sample.test.sh: bt_finish に届かず、終了コード 1 で終わった

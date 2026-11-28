@@ -1,0 +1,1 @@
+publish の引数が不正: --bogus

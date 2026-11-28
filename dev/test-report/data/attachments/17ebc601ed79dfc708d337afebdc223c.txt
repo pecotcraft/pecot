@@ -1,0 +1,3 @@
+==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)
+  NG: nodeLinker: hoisted が無い: /tmp/bats-run-EjpMIs/test/42/fix/pnpm-workspace.yaml
+check-pm-guard: 静的確認 FAILED (1 件)

@@ -1,0 +1,1 @@
+{"id":"4333ee920f46d54ae67cb15ca41521f1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: modern) slide_convert 必須だけの入力を受理し、既定値を補ってハンドラへ渡す","name":"必須だけの入力を受理し、既定値を補ってハンドラへ渡す","status":"passed","testResultsByEnv":{"default":"57f02a59849e0d84f5e7a8118418e1b3"}}

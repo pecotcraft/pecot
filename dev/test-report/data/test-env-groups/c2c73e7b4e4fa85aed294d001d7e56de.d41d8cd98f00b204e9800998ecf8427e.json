@@ -1,0 +1,1 @@
+{"id":"c2c73e7b4e4fa85aed294d001d7e56de.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateClosedHeadings（テンプレに無い ## / ### 見出し #1330） マスクされた領域の中の見出しは見ない: html_comment","name":"マスクされた領域の中の見出しは見ない: html_comment","status":"passed","testResultsByEnv":{"default":"8957313c8754a0cb83d0a6c0e7044266"}}

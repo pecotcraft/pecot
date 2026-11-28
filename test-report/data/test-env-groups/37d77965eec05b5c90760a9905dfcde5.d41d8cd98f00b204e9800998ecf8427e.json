@@ -1,0 +1,1 @@
+{"id":"37d77965eec05b5c90760a9905dfcde5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/version-range.test.ts#doesRangeAllowMajor: 解釈できない表記 ビルドメタデータの付いた表記は、どのメジャーバージョンも許可しない","name":"ビルドメタデータの付いた表記は、どのメジャーバージョンも許可しない","status":"passed","testResultsByEnv":{"default":"a1935125a8747d531fadb912bbcaeb5a"}}

@@ -1,0 +1,1 @@
+{"id":"d4282cbab6138dcb63b00f3bbfaed87d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint 空の file_path を渡すと、空のオブジェクトを返す","name":"空の file_path を渡すと、空のオブジェクトを返す","status":"passed","testResultsByEnv":{"default":"9d673094060424ede51c8556679a86d6"}}

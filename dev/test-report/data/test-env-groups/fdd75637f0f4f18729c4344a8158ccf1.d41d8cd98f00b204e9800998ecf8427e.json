@@ -1,0 +1,1 @@
+{"id":"fdd75637f0f4f18729c4344a8158ccf1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data MCP の呼び出し 親ブランチが動いていないと、何も変えずに outcome を up-to-date にする","name":"親ブランチが動いていないと、何も変えずに outcome を up-to-date にする","status":"passed","testResultsByEnv":{"default":"85dde1bef2e67857d2b7b76e279f76f4"}}

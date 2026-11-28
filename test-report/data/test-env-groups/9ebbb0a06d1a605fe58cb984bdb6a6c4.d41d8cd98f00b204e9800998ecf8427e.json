@@ -1,0 +1,1 @@
+{"id":"9ebbb0a06d1a605fe58cb984bdb6a6c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/pdf.test.ts#exportPdf SVG の寸法を読み取れない場合は、Playwright を起動せずに失敗する","name":"SVG の寸法を読み取れない場合は、Playwright を起動せずに失敗する","status":"passed","testResultsByEnv":{"default":"c679445dbdaef3680720f0312752922a"}}

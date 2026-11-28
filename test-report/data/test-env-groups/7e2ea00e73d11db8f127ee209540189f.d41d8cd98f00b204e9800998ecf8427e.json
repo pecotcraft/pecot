@@ -1,0 +1,1 @@
+{"id":"7e2ea00e73d11db8f127ee209540189f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/command-definition.test.ts#CommandExit ツールの run が CommandExit を投げると、終了コードを返して失敗の種類を通知する","name":"ツールの run が CommandExit を投げると、終了コードを返して失敗の種類を通知する","status":"passed","testResultsByEnv":{"default":"ac2b6be7423a5baad947a558b8afd01f"}}

@@ -1,0 +1,1 @@
+{"id":"4643f0410a5e13474ddb5a7137ca2245.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check ブランチが次の状態だと（remote とずれた）、Push Status の warning を数える","name":"ブランチが次の状態だと（remote とずれた）、Push Status の warning を数える","status":"passed","testResultsByEnv":{"default":"c132be34d7bb2b92e3c5070a745d499b"}}

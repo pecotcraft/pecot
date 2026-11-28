@@ -1,0 +1,1 @@
+{"id":"2a28544eeebdfc1278c003166e4dc3b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-setup.test.ts#runSetupCommand 処理を取り消した場合は、シェルの下で動くコマンドごと停止し、CancelledError を送出する","name":"処理を取り消した場合は、シェルの下で動くコマンドごと停止し、CancelledError を送出する","status":"passed","testResultsByEnv":{"default":"c5f17b100431d57c3fe379e982b6e630"}}

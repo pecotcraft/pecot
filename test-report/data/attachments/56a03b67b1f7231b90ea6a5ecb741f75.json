@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.issues: read acme/demo/7 with issue_read (method get): the check needs its body and title"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/7 with issue_read (method get): the check needs its body and title\"},{\"field\":\"reads.blocked_by\",\"code\":\"read-required\",\"message\":\"read the blocked-by of acme/demo/7 with issue_dependency_read (method get_blocked_by) and add it to reads.blocked_by\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/7 with issue_read (method get): the check needs its body and title"
+      },
+      {
+        "field": "reads.blocked_by",
+        "code": "read-required",
+        "message": "read the blocked-by of acme/demo/7 with issue_dependency_read (method get_blocked_by) and add it to reads.blocked_by"
+      }
+    ]
+  }
+}

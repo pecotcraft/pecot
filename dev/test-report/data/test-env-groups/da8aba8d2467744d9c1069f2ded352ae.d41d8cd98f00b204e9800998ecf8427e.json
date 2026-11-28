@@ -1,0 +1,1 @@
+{"id":"da8aba8d2467744d9c1069f2ded352ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueKind Task の場合は、種別とサブ Issue の総数を返す","name":"Task の場合は、種別とサブ Issue の総数を返す","status":"passed","testResultsByEnv":{"default":"b77a799fa207c96754db1a7ad0d0af5f"}}

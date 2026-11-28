@@ -1,0 +1,1 @@
+{"id":"580a6cb3b35a10ebd953e587acc00753.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#validateInput string と string-list の入力に、文字列でない値を渡すと拒否する","name":"string と string-list の入力に、文字列でない値を渡すと拒否する","status":"passed","testResultsByEnv":{"default":"2c878223118404b54f412012fe09af7e"}}

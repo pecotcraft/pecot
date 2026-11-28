@@ -1,0 +1,1 @@
+{"id":"f4c9e3ae072c373fa82aaf7dc98ad917.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#main の --check 定義書を読めないとき スキーマに合わなければ、cannot read の行を出して 1 を返す","name":"スキーマに合わなければ、cannot read の行を出して 1 を返す","status":"passed","testResultsByEnv":{"default":"9946e881d01a77bcf5e54acafb7183aa"}}

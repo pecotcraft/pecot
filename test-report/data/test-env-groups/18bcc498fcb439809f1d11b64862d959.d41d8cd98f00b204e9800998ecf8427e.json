@@ -1,0 +1,1 @@
+{"id":"18bcc498fcb439809f1d11b64862d959.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-install.test.ts#workflow_install タグが pecotcraft/pecot に無いと、何も書かずに github-not-found の失敗を返す","name":"タグが pecotcraft/pecot に無いと、何も書かずに github-not-found の失敗を返す","status":"passed","testResultsByEnv":{"default":"ff6e7fb2c80279e15c672a67ce39e1cb"}}

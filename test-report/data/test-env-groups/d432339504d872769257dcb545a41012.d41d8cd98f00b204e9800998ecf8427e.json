@@ -1,0 +1,1 @@
+{"id":"d432339504d872769257dcb545a41012.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#extractVersionReleaseNotes Python の splitlines と同じ区切りで行に分ける（U+2028 も改行として扱う）","name":"Python の splitlines と同じ区切りで行に分ける（U+2028 も改行として扱う）","status":"passed","testResultsByEnv":{"default":"a2abfb6fdf0cb04f20ed0fc040fbf309"}}

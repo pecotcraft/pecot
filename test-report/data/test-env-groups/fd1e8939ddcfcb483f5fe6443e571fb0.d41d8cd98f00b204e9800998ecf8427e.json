@@ -1,0 +1,1 @@
+{"id":"fd1e8939ddcfcb483f5fe6443e571fb0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge MCP の呼び出し スタックの中の PR で非同期のマージ API が無いと、同期のマージ API を呼ばずに失敗を返す","name":"スタックの中の PR で非同期のマージ API が無いと、同期のマージ API を呼ばずに失敗を返す","status":"passed","testResultsByEnv":{"default":"3d2589c62ebf0d525c687ad2490df1a2"}}

@@ -1,0 +1,1 @@
+{"id":"e978b6c57bfeccae69c8f3be3c298ab8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh code_scanning の規則が検証用に存在しなくても、比較の対象にしない","name":"code_scanning の規則が検証用に存在しなくても、比較の対象にしない","status":"passed","testResultsByEnv":{"default":"c07d8ca3a113df462e5f5272ec47f215"}}

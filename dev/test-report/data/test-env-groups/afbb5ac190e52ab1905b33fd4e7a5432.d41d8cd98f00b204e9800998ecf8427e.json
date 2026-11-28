@@ -1,0 +1,1 @@
+{"id":"afbb5ac190e52ab1905b33fd4e7a5432.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/lint-distribution.test.ts#pecot-actions:lint-dist build が作り、commit していない dist のファイルがあると、そのファイルを出して失敗する","name":"build が作り、commit していない dist のファイルがあると、そのファイルを出して失敗する","status":"passed","testResultsByEnv":{"default":"294c2a17509c88abcfbcb33e23606bb8"}}

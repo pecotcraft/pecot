@@ -1,0 +1,1 @@
+{"id":"640e6e571c1440100888abcb87e7db7d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats#zip として読めない pptx を渡すと、終了コード 2 で終わる","name":"zip として読めない pptx を渡すと、終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"b003e6a5f3e660f2b18aca9f5db2a23a"}}

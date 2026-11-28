@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_rds_describe_events: source_type: Invalid option: expected one of \"db-instance\"|\"db-parameter-group\"|\"db-security-group\"|\"db-snapshot\"|\"db-cluster\"|\"db-cluster-snapshot\"|\"custom-engine-version\"|\"db-proxy\"|\"blue-green-deployment\"|\"db-shard-group\"|\"zero-etl\""
+    }
+  ],
+  "isError": true
+}

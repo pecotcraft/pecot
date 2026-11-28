@@ -1,0 +1,1 @@
+{"id":"2e371fc2f11d74c5514ae2c9271a8b66.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Processor 複数行の文字列は、Str と Break を交互に並べ、Str の範囲に引用符と字下げを含めない","name":"複数行の文字列は、Str と Break を交互に並べ、Str の範囲に引用符と字下げを含めない","status":"passed","testResultsByEnv":{"default":"b7d4d702d77a89dc5e7cf49150086c2e"}}

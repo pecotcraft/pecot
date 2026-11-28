@@ -1,0 +1,1 @@
+{"id":"9231bfc4a2a4e82c347a0e2313d53ac7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の札 作業の跡が存在せず要見直しで、札の値が Todo の場合は、Needs Attention を書き込む","name":"作業の跡が存在せず要見直しで、札の値が Todo の場合は、Needs Attention を書き込む","status":"passed","testResultsByEnv":{"default":"e95e5f4c03fe7e4a128a397ed758d588"}}

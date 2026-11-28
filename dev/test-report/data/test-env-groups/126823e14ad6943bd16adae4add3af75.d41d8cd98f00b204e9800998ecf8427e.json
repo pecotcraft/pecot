@@ -1,0 +1,1 @@
+{"id":"126823e14ad6943bd16adae4add3af75.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_remove keep_branch を付けて呼ぶと、removed の行だけを標準エラーに出す","name":"keep_branch を付けて呼ぶと、removed の行だけを標準エラーに出す","status":"passed","testResultsByEnv":{"default":"61190bce0f92dbdf377905e06efec71d"}}

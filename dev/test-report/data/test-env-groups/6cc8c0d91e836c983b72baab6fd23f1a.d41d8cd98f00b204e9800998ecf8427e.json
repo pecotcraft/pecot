@@ -1,0 +1,1 @@
+{"id":"6cc8c0d91e836c983b72baab6fd23f1a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText まとめの指摘を fragment モードで除外し、個別の指摘だけを返す","name":"まとめの指摘を fragment モードで除外し、個別の指摘だけを返す","status":"passed","testResultsByEnv":{"default":"bb6dc6615dbfff9015f06c87711a7cb6"}}

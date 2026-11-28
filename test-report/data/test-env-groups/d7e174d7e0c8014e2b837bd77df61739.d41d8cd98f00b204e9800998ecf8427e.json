@@ -1,0 +1,1 @@
+{"id":"d7e174d7e0c8014e2b837bd77df61739.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/npm-cache-opt-in.test.sh#publish opt-in: 相対パスなら npm を呼ばない","name":"publish opt-in: 相対パスなら npm を呼ばない","status":"passed","testResultsByEnv":{"default":"98bb5be7cf4f246c5831e61e5e1a6df4"}}

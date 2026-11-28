@@ -1,0 +1,1 @@
+{"id":"0176ba5992c40835ff6cc4da312ba612.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_convert project_dir が存在しないと、project-not-found のエラーを返す","name":"project_dir が存在しないと、project-not-found のエラーを返す","status":"passed","testResultsByEnv":{"default":"1d8ca946242d59064e4c85e620f3dc85"}}

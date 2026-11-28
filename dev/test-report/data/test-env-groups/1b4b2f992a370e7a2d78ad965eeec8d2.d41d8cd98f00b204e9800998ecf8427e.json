@@ -1,0 +1,1 @@
+{"id":"1b4b2f992a370e7a2d78ad965eeec8d2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateFoldBalance（折りたたみ <details> の開閉の対応 #1330） 属性付きや大文字の details でも、閉じられていれば空配列を返す","name":"属性付きや大文字の details でも、閉じられていれば空配列を返す","status":"passed","testResultsByEnv":{"default":"86a32eeb5480aef1131ad37c7f03c1d8"}}

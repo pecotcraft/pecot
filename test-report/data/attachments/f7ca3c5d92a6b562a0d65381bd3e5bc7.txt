@@ -1,0 +1,1 @@
+warning: 2 Ready or Blocked Issues may be in a column or Status that does not match its judgment; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) to fix

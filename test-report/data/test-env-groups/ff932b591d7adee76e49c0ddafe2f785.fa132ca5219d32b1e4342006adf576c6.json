@@ -1,0 +1,1 @@
+{"id":"ff932b591d7adee76e49c0ddafe2f785.fa132ca5219d32b1e4342006adf576c6","fullName":".githooks.tests.test_check_bats_explains#test_reports_test_without_explains","name":"1 行の本体で explains の無い@test を、場所と理由を添えて止める","status":"passed","testResultsByEnv":{"default":"7e6622b7af848cc98b80a758f0932536"}}

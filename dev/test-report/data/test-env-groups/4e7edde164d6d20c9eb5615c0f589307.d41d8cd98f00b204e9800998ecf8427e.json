@@ -1,0 +1,1 @@
+{"id":"4e7edde164d6d20c9eb5615c0f589307.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/textlint-body-rule.test.ts#本文とノートが空だと、worker を呼ばない","name":"本文とノートが空だと、worker を呼ばない","status":"passed","testResultsByEnv":{"default":"ce2244cfc0d140b231bc56de2602d270"}}

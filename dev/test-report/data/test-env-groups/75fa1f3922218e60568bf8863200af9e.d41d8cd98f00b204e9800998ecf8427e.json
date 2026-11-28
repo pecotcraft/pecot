@@ -1,0 +1,1 @@
+{"id":"75fa1f3922218e60568bf8863200af9e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#runSlideConvert (fake DI 経由 / 全分岐) 子の stdout/stderr を deps の stderr へ relay する","name":"子の stdout/stderr を deps の stderr へ relay する","status":"passed","testResultsByEnv":{"default":"55cb3716a8e166e4da33f154760ac859"}}

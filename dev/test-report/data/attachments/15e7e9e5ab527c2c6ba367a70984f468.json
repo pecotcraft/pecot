@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "feat/demo/12 is stacked on feat/demo/11: read its PRs with list_pull_requests (owner acme, repo demo, head acme:feat/demo/11, state all) and pass its result as reads.pull_requests"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"feat/demo/12 is stacked on feat/demo/11: read its PRs with list_pull_requests (owner acme, repo demo, head acme:feat/demo/11, state all) and pass its result as reads.pull_requests\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "feat/demo/12 is stacked on feat/demo/11: read its PRs with list_pull_requests (owner acme, repo demo, head acme:feat/demo/11, state all) and pass its result as reads.pull_requests"
+  },
+  "isError": true
+}

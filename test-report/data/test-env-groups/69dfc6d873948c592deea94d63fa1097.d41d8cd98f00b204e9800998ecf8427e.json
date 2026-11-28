@@ -1,0 +1,1 @@
+{"id":"69dfc6d873948c592deea94d63fa1097.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#sanitizeCssOnlyTypefaces Inter や Noto Sans JP などの実在する書体名の場合は、削除しない","name":"Inter や Noto Sans JP などの実在する書体名の場合は、削除しない","status":"passed","testResultsByEnv":{"default":"67f357c44a7846205742ce7f5e597096"}}

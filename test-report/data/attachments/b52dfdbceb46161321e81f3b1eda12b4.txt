@@ -1,0 +1,1 @@
+ERROR: origin URL を解析できませんでした: C:/pecotcraft/cur.git

@@ -1,0 +1,1 @@
+{"id":"9ca39cfe3beeea250a6a8a0aa73ac8f8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_pre_push_hooks_are_only_the_expected_local_ones","name":"pre-push で動く hook は、期待する 3 つの local hook だけに限る","status":"passed","testResultsByEnv":{"default":"3873ece14f35aebb83afb6724eda1da9"}}

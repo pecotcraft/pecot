@@ -1,0 +1,1 @@
+{"id":"7cc5a6b625a897e1d1835a20e0b4b901.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: modern) drawio_create スキーマ違反を拒否する: 必須の input_path が無い","name":"スキーマ違反を拒否する: 必須の input_path が無い","status":"passed","testResultsByEnv":{"default":"b63a1c6b71ef9502e97b5318827f3c17"}}

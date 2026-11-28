@@ -1,0 +1,1 @@
+{"id":"31ef7db4d21ead3addc5f14f8decb202.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#isWorktreeEnvironment メインの worktree では false、サブの worktree では true を返す（実 git）","name":"メインの worktree では false、サブの worktree では true を返す（実 git）","status":"passed","testResultsByEnv":{"default":"82f90008d8b1528a1c0696cf3e888a43"}}

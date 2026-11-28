@@ -1,0 +1,1 @@
+{"id":"b2fb3f00fa7157522da38eff8fa6b8f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project-check.test.ts#project_check fields ボードが pecot の欄の決まりに合うと、problem の無い結果と空の deletable を返す","name":"ボードが pecot の欄の決まりに合うと、problem の無い結果と空の deletable を返す","status":"passed","testResultsByEnv":{"default":"06af118f7e0f2573af151becd3456672"}}

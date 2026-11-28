@@ -1,0 +1,1 @@
+{"id":"974be298cb89f17ba8327f4b97b32bdb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-numeric-filename-prefix.test.ts#数字を含む正当なファイル名を渡すと、報告しない","name":"数字を含む正当なファイル名を渡すと、報告しない","status":"passed","testResultsByEnv":{"default":"bf07f6d6fd7004e183ecd1577f00006f"}}

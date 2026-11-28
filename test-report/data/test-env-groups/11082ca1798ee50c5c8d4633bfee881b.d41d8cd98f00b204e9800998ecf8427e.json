@@ -1,0 +1,1 @@
+{"id":"11082ca1798ee50c5c8d4633bfee881b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check MCP の data directory を渡していないと、kind が invalid-input の失敗を返す","name":"directory を渡していないと、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"90098baee66b568cae298dc107495f1b"}}

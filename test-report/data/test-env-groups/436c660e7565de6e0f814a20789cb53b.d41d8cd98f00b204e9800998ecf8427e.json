@@ -1,0 +1,1 @@
+{"id":"436c660e7565de6e0f814a20789cb53b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url.test.ts#executeDrawioUrl png / PNG 出力 png 成功時は data に png:<拡張子置換後> + pngFailed:false を載せる","name":"png 成功時は data に png:<拡張子置換後> + pngFailed:false を載せる","status":"passed","testResultsByEnv":{"default":"21e3450af4a6f24edfa81f6413754e1e"}}

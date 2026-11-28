@@ -1,0 +1,1 @@
+{"id":"0c201906f35d4fad5a55070f0380bc2f.03379b66e5232609f24c187aa47a6003","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_site_context_ignores_report_plugins_off_release","name":"リリース版以外では、`PECOT_SITE_REPORT_PLUGINS` を指定しても結果を変えない","status":"passed","testResultsByEnv":{"default":"1470b6f6ba29727699b87643996ec06a"}}

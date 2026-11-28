@@ -1,0 +1,1 @@
+{"id":"707c125e03f5f220544727330c3744ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/patch-apply.test.ts#scanPatchDigests パッチファイルを読み取れなければ、理由を返して、結果を空にする","name":"パッチファイルを読み取れなければ、理由を返して、結果を空にする","status":"passed","testResultsByEnv":{"default":"d36e37d1737b9b76e1a6d8a75c3591d8"}}

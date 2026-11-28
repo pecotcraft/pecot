@@ -1,0 +1,1 @@
+{"id":"1b5a49d4918024bfbf7047ee8db2e248.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#slide_sync の theme 指定 (移行前の talk-dir) 依存ルートの実体が存在しない場合は、取得の前に止まり、何も削除しない","name":"依存ルートの実体が存在しない場合は、取得の前に止まり、何も削除しない","status":"passed","testResultsByEnv":{"default":"453311b65179840c322351c0744f21e8"}}

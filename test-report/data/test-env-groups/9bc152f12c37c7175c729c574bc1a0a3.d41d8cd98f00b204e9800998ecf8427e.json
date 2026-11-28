@@ -1,0 +1,1 @@
+{"id":"9bc152f12c37c7175c729c574bc1a0a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「先頭に v を付けたタグ」の形の場合は、種類と url またはパスに分解する","name":"テーマの指定が「先頭に v を付けたタグ」の形の場合は、種類と url またはパスに分解する","status":"passed","testResultsByEnv":{"default":"8e77d3bc1e79f73df6dcea7df9ba122a"}}

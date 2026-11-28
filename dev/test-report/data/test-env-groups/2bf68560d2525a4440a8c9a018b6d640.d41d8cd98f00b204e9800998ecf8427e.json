@@ -1,0 +1,1 @@
+{"id":"2bf68560d2525a4440a8c9a018b6d640.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_root_package_manifest#test_root_install_target_is_a_frozen_pnpm_install","name":"root の install target は、lockfile を固定した pnpm install を実行する","status":"passed","testResultsByEnv":{"default":"b626c1d99d2bd99a1b32433aab877ea5"}}

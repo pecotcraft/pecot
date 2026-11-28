@@ -1,0 +1,1 @@
+{"id":"77c457ba09ea33c01f3013c1d3b46a9c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/state.test.ts#workDirectoryName 全角数字などの ASCII 以外の数字は通さない（.pecot/work の直下は Issue 番号の数字だけ）","name":"全角数字などの ASCII 以外の数字は通さない（.pecot/work の直下は Issue 番号の数字だけ）","status":"passed","testResultsByEnv":{"default":"13ec37dd2800116c56a7f67ba8a2283c"}}

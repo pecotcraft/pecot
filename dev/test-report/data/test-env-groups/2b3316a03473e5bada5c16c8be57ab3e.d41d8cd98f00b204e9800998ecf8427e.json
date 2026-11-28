@@ -1,0 +1,1 @@
+{"id":"2b3316a03473e5bada5c16c8be57ab3e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/handoff-workflow-template.test.ts#handoff のワークフローの雛形 PR のコードを checkout せず、既定のブランチを資格情報を残さずに読む","name":"PR のコードを checkout せず、既定のブランチを資格情報を残さずに読む","status":"passed","testResultsByEnv":{"default":"15d83234090ae6bfa602dca7836a5ab4"}}

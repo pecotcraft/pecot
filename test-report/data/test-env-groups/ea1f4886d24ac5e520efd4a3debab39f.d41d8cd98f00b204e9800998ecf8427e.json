@@ -1,0 +1,1 @@
+{"id":"ea1f4886d24ac5e520efd4a3debab39f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#createPullRequest 422（base が存在しない）が返ると、GitHubAPIError を発生させる","name":"422（base が存在しない）が返ると、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"76b0f7d2a22aaac59d50622e40ed6928"}}

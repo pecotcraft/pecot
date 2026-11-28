@@ -1,0 +1,1 @@
+{"id":"98cc1f28f419efd8196f90cd62367892.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page の失敗ルート 一覧にない layout (secret) を指定すると、ファイルを読まずに unknown-layout のエラーを返す","name":"一覧にない layout (secret) を指定すると、ファイルを読まずに unknown-layout のエラーを返す","status":"passed","testResultsByEnv":{"default":"91abddbe52fc5aaa5a38bdc371e249d6"}}

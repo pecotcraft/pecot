@@ -1,0 +1,1 @@
+{"id":"caed7a8036b64794ef22e0e85ef62d66.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#isChromiumInstalled Playwright が Chromium の場所を解決できない場合は、取得済みとして扱う","name":"Playwright が Chromium の場所を解決できない場合は、取得済みとして扱う","status":"passed","testResultsByEnv":{"default":"eb62feeb09a8582c83f138a0c647b2e8"}}

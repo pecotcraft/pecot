@@ -1,0 +1,1 @@
+{"id":"5470bead95e84d16e0cfb6ba7b9678f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish pr に番号だけを渡すと、ワークフローが動くリポの PR として片付ける","name":"pr に番号だけを渡すと、ワークフローが動くリポの PR として片付ける","status":"passed","testResultsByEnv":{"default":"91c16f408ad6b0756e24d20cc2fedf2d"}}

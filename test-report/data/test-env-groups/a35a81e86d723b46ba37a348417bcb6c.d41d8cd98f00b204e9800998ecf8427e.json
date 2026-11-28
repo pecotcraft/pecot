@@ -1,0 +1,1 @@
+{"id":"a35a81e86d723b46ba37a348417bcb6c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-onboarding Step 4 のボード URL の取得 絶対パスの .active でも、ボード URL を 1 行で出力する","name":"絶対パスの .active でも、ボード URL を 1 行で出力する","status":"passed","testResultsByEnv":{"default":"75791d0f77acd2a540ab30b3d9480d45"}}

@@ -1,0 +1,1 @@
+{"id":"475fd188cdf05663647a4e95b631ff34.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/without-template-parser.test.ts#require-absolute-last (テンプレート解析なし) valid vue-eslint-parser 以外のパーサでは、報告しない","name":"vue-eslint-parser 以外のパーサでは、報告しない","status":"passed","testResultsByEnv":{"default":"0cbb1df0c85d829a77b0818d50b66ec7"}}

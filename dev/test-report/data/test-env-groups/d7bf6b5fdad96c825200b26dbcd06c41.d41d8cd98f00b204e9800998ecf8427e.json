@@ -1,0 +1,1 @@
+{"id":"d7bf6b5fdad96c825200b26dbcd06c41.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/config-dispatcher.test.ts#PLUGIN_HOOKS の解決 CLAUDE_PLUGIN_ROOT が未設定のとき、SCRIPT_DIR のフォールバックで解決する","name":"CLAUDE_PLUGIN_ROOT が未設定のとき、SCRIPT_DIR のフォールバックで解決する","status":"passed","testResultsByEnv":{"default":"1d4953cbb83635d210dd5e47bb191a9c"}}

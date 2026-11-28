@@ -1,0 +1,1 @@
+{"id":"5589e1b93555d28305c04b3e40ffc1e2.3894adc27a38794934dd4531f9a41bde","fullName":".githooks.tests.test_check_ci_result#test_lane_conclusion_not_success","name":"レーンのジョブの結論が cancelled だと、その値を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"0df848736539db88e050b50806df6017"}}

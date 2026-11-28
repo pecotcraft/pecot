@@ -1,0 +1,1 @@
+{"id":"1569390a9c2c0b7160d8ec0a5917ecfa.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_attach#test_attach_output_and_read_output","name":"出力が両方とも空なら空の stdout を 1 つ添付し、読み込んだファイルは拡張子に合う型で添付する","status":"passed","testResultsByEnv":{"default":"19d28c9d523d58f266a737abd24e6b46"}}

@@ -1,0 +1,1 @@
+{"id":"cb5a5dc37f8289b7d6a6ddc1101a1617.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/output/output.test.ts#abortUnconfirmed 問いの文を失敗の文に渡し、code を持たない AbortedError を発生させる","name":"問いの文を失敗の文に渡し、code を持たない AbortedError を発生させる","status":"passed","testResultsByEnv":{"default":"835245558614546ba74f2e99d7c62e54"}}

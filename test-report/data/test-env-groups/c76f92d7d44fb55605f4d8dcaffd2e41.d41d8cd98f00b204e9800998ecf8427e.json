@@ -1,0 +1,1 @@
+{"id":"c76f92d7d44fb55605f4d8dcaffd2e41.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#リストの記号で始まる行 記号だけの行 の行は、リストの項目として扱わず、段落を分けない","name":"記号だけの行 の行は、リストの項目として扱わず、段落を分けない","status":"passed","testResultsByEnv":{"default":"c46ede5e097bfc3c5f2f418c803c31af"}}

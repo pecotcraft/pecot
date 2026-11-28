@@ -1,0 +1,1 @@
+{"id":"eabfacc16cff30f7ddf640d01dc9af47.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#resolveTalkDirectoryNodeModules プラグインルートに node_modules が存在しなければ、永続層の node_modules を返す","name":"プラグインルートに node_modules が存在しなければ、永続層の node_modules を返す","status":"passed","testResultsByEnv":{"default":"b61b436419eed51ebe6d3e797696d97a"}}

@@ -1,0 +1,1 @@
+{"id":"a6867761b1af1f3d75bd5f21dfb19fae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine getAttr は、prefix:localName の形で名前空間付きの属性を取得する","name":"getAttr は、prefix:localName の形で名前空間付きの属性を取得する","status":"passed","testResultsByEnv":{"default":"5053c88b9a6b1a6378e4abb177a37b39"}}

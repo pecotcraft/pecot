@@ -1,0 +1,1 @@
+{"id":"83725172453aa37dbbf643673ebf4a43.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/flag-hint.test.ts#入力の誤りの文の入力名 git の外で session_finish に短縮形を渡すと、repo を案内して止める","name":"git の外で session_finish に短縮形を渡すと、repo を案内して止める","status":"passed","testResultsByEnv":{"default":"6ac4f723abc01df0c25445aa218a63c5"}}

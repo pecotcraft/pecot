@@ -1,0 +1,1 @@
+{"id":"ddd31907dee35d7375de9c94449a6d64.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_lane_table_marks_cache_hits","name":"キャッシュから返ったレーンは「成功（キャッシュ）」、実行したレーンは「成功」と表示する","status":"passed","testResultsByEnv":{"default":"d4d977a70e5e270cd400bb868da9deb1"}}

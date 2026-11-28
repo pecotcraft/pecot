@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: config file /tmp/pecot-repo-GS59Qz/.pecot/config/projects/ghes.example.com_acme_1.json"
+    },
+    {
+      "type": "text",
+      "text": "{\"project\":\"ghes.example.com_acme_1\",\"configPath\":\"/tmp/pecot-repo-GS59Qz/.pecot/config/projects/ghes.example.com_acme_1.json\",\"change\":\"create\",\"config_moved\":null}"
+    }
+  ],
+  "structuredContent": {
+    "project": "ghes.example.com_acme_1",
+    "configPath": "/tmp/pecot-repo-GS59Qz/.pecot/config/projects/ghes.example.com_acme_1.json",
+    "change": "create",
+    "config_moved": null
+  }
+}

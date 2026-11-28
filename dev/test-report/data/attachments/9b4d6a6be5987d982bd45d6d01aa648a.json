@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pullNumber: merge needs pullNumber, the number of the PR to merge"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"pullNumber\",\"code\":\"required\",\"message\":\"merge needs pullNumber, the number of the PR to merge\"},{\"field\":\"expectedHeadSha\",\"code\":\"required\",\"message\":\"merge needs expectedHeadSha, the head.sha of the PR in reads.pull_request, so that commits pushed after the check are not merged\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "pullNumber",
+        "code": "required",
+        "message": "merge needs pullNumber, the number of the PR to merge"
+      },
+      {
+        "field": "expectedHeadSha",
+        "code": "required",
+        "message": "merge needs expectedHeadSha, the head.sha of the PR in reads.pull_request, so that commits pushed after the check are not merged"
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-tools",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_sqs_get_queue_attributes: region: Invalid string: must match pattern /^[a-z]{2,4}(?:-[a-z]+)+-\\d$/"
+    }
+  ],
+  "isError": true
+}

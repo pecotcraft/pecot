@@ -1,0 +1,1 @@
+{"id":"5187fdbb8f2abddcd7e8a82a0e43094a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_nx_parallel_empty_uses_default","name":"`PECOT_NX_PARALLEL` が空文字列の場合は、既定の 4 を使う","status":"passed","testResultsByEnv":{"default":"9aedf02c7cecf06e2b99ff725f8ce795"}}

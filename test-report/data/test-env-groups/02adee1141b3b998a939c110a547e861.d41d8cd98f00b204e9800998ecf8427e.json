@@ -1,0 +1,1 @@
+{"id":"02adee1141b3b998a939c110a547e861.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_annotated_tag_peeled","name":"annotated tag を push すると、参照先の commit の SHA を `--head` に渡す","status":"passed","testResultsByEnv":{"default":"e80f15331c03fca984fada7bb267d9c5"}}

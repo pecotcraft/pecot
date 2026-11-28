@@ -1,0 +1,50 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "skipped: field pecot-status (already exists)"
+    },
+    {
+      "type": "text",
+      "text": "{\"fields\":[{\"name\":\"pecot-status\",\"change\":\"unchanged\",\"addedOptions\":[]},{\"name\":\"pecot-lane\",\"change\":\"unchanged\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"skip\",\"addedOptions\":[]}],\"migration\":{\"renamed\":null,\"config_moved\":null,\"pending_delete\":[],\"deleted\":[]},\"view\":{\"created\":false,\"name\":\"Lanes\",\"manual_steps\":[\"open the project: https://ghes.example.com/users/acme/projects/1\",\"add a view named Lanes with the Board layout\",\"set Column by to pecot-status\",\"set Group by to pecot-lane\"]},\"warnings\":[\"could not create view Lanes (status 403): access denied\\n  create it on the board:\\n  1. open the project: https://ghes.example.com/users/acme/projects/1\\n  2. add a view named Lanes with the Board layout\\n  3. set Column by to pecot-status\\n  4. set Group by to pecot-lane\"]}"
+    }
+  ],
+  "structuredContent": {
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "unchanged",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "unchanged",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "skip",
+        "addedOptions": []
+      }
+    ],
+    "migration": {
+      "renamed": null,
+      "config_moved": null,
+      "pending_delete": [],
+      "deleted": []
+    },
+    "view": {
+      "created": false,
+      "name": "Lanes",
+      "manual_steps": [
+        "open the project: https://ghes.example.com/users/acme/projects/1",
+        "add a view named Lanes with the Board layout",
+        "set Column by to pecot-status",
+        "set Group by to pecot-lane"
+      ]
+    },
+    "warnings": [
+      "could not create view Lanes (status 403): access denied\n  create it on the board:\n  1. open the project: https://ghes.example.com/users/acme/projects/1\n  2. add a view named Lanes with the Board layout\n  3. set Column by to pecot-status\n  4. set Group by to pecot-lane"
+    ]
+  }
+}

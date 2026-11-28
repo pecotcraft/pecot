@@ -1,0 +1,1 @@
+{"id":"0369fc89e0dbb2c4faa41efbba2f4f42.1b0120259a08a9faa85662e00e179159","fullName":".githooks.tests.test_pre_commit_config_wiring#test_nx_env_inputs_runs_when_env_scan_inputs_change","name":"plugins/pecot-visual/cli/tests/e2e/mcp-tools.test.ts を変更すると、nx-env-inputs が起動する","status":"passed","testResultsByEnv":{"default":"4ba0d40945f8e7c54f7e07b2e087c43b"}}

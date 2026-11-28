@@ -1,0 +1,1 @@
+{"id":"728dfc6ff330145385d31e6d05505cdc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 作業の跡があり、列 Blocked と判定 blocked の組み合わせは、食い違いとして扱わない","name":"作業の跡があり、列 Blocked と判定 blocked の組み合わせは、食い違いとして扱わない","status":"passed","testResultsByEnv":{"default":"471d0f366c61341ef8cf1685f4a19103"}}

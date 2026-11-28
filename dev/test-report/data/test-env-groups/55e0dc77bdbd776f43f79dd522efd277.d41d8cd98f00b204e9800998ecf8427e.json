@@ -1,0 +1,1 @@
+{"id":"55e0dc77bdbd776f43f79dd522efd277.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-surface.test.ts#checkIssueCoverage スナップショットのすべての項目が一覧に存在し、組み合わせも正しい場合は、問題を返さない","name":"スナップショットのすべての項目が一覧に存在し、組み合わせも正しい場合は、問題を返さない","status":"passed","testResultsByEnv":{"default":"16d70b711ed465725d8489380acc10ce"}}

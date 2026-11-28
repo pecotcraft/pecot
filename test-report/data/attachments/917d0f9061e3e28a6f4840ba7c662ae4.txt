@@ -1,0 +1,1 @@
+WARN: push 情報なし（pre-commit env と pre-push stdin のどちらからも取得できず）のため version plan check を skip

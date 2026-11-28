@@ -1,0 +1,1 @@
+{"id":"72b4917b754fc979dbe8e8119f636a6c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge 同期のマージ が GitHub の失敗で止まると、PR を示す error の行を出し、終了コード 1 を返す","name":"同期のマージ が GitHub の失敗で止まると、PR を示す error の行を出し、終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"f1a71d5395a642899c5790938e9c0ad1"}}

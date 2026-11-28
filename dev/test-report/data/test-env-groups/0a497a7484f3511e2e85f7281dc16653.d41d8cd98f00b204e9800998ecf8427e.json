@@ -1,0 +1,1 @@
+{"id":"0a497a7484f3511e2e85f7281dc16653.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript 先頭に BOM があっても、指摘の桁がずれない","name":"先頭に BOM があっても、指摘の桁がずれない","status":"passed","testResultsByEnv":{"default":"59e8984b730594261b6a8ec60238c5cb"}}

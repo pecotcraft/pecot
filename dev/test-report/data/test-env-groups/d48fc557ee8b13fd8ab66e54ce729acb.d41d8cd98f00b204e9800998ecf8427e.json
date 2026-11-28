@@ -1,0 +1,1 @@
+{"id":"d48fc557ee8b13fd8ab66e54ce729acb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#matchPrerenderToMedia 距離が許容範囲を超える場合は、undefined を返す","name":"距離が許容範囲を超える場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"53a5261c6fbb10e6fde419c2290c63a7"}}

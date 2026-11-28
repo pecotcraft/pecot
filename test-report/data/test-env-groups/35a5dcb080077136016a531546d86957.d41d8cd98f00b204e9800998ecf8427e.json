@@ -1,0 +1,1 @@
+{"id":"35a5dcb080077136016a531546d86957.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#withCapturedOutput マルチバイトの文字が上限の境界にかかる場合は、その 1 文字だけを U+FFFD にして、後ろの内容は保つ","name":"マルチバイトの文字が上限の境界にかかる場合は、その 1 文字だけを U+FFFD にして、後ろの内容は保つ","status":"passed","testResultsByEnv":{"default":"006e134369f929ee35e37818c33da5cf"}}

@@ -1,0 +1,1 @@
+{"id":"fc071060c6e680a5aa2fa6296f793d6a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 実際に採取した失敗のフィクスチャ no-credentials は、auth-missing と判定する","name":"実際に採取した失敗のフィクスチャ no-credentials は、auth-missing と判定する","status":"passed","testResultsByEnv":{"default":"3699f449b2172944111bd1044e70b3ca"}}

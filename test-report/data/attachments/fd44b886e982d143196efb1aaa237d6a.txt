@@ -1,0 +1,2 @@
+created: Tracker "[Tracker] security alert — 2026-11-09"
+added: dependabot #1 to new Tracker

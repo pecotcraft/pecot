@@ -1,0 +1,1 @@
+{"id":"8c6768aa01c8c4ac33db08ed61dc56ba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/restack.test.ts#decideRestack ブランチが消え、PR が開いている の場合は、gone と判断する","name":"ブランチが消え、PR が開いている の場合は、gone と判断する","status":"passed","testResultsByEnv":{"default":"cf83575f79257235629784cf7379d4a2"}}

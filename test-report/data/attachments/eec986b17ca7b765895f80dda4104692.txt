@@ -1,0 +1,2 @@
+merged: PR acme/demo/31 (develop -> release, merge commit)
+deleted: remote branch develop in acme/demo

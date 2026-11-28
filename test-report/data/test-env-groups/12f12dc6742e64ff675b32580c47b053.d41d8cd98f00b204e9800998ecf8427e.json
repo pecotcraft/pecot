@@ -1,0 +1,1 @@
+{"id":"12f12dc6742e64ff675b32580c47b053.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#gh-command-check.sh コマンドが gh issue view 123 のとき、何も出力せず通す","name":"コマンドが gh issue view 123 のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"aa032ea1f880b231d22122cba55ae209"}}

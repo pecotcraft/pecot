@@ -1,0 +1,1 @@
+{"id":"a89ee0c3c96829a50330485b68537706.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#XML 名前空間を含む drawio XML の扱い 警告のメッセージに、style へ whiteSpace=wrap を追加する直し方を含める","name":"警告のメッセージに、style へ whiteSpace=wrap を追加する直し方を含める","status":"passed","testResultsByEnv":{"default":"6294f3f8c6f97868f7a09f82b9b169d2"}}

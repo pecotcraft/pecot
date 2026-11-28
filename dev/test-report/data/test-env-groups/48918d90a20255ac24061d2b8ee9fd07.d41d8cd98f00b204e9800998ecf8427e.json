@@ -1,0 +1,1 @@
+{"id":"48918d90a20255ac24061d2b8ee9fd07.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues Issue Type が Tracker の場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","name":"Issue Type が Tracker の場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","status":"passed","testResultsByEnv":{"default":"f00b53194f2b8579e7a944423a9d35a7"}}

@@ -1,0 +1,8 @@
+:iface-id: PW-PROJECT-SEARCH
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Search projects
+==============================
+
+.. iface-defs:: pecot-workflow PW-PROJECT-SEARCH

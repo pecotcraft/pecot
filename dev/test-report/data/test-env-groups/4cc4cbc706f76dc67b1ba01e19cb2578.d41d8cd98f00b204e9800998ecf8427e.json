@@ -1,0 +1,1 @@
+{"id":"4cc4cbc706f76dc67b1ba01e19cb2578.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText 指摘の message に含まれる改行を取り除き、1 行にする","name":"指摘の message に含まれる改行を取り除き、1 行にする","status":"passed","testResultsByEnv":{"default":"8c0a63a3c436051b1c1e456af611fba8"}}

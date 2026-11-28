@@ -1,0 +1,1 @@
+{"id":"2e476264de8ee2048be598ae9679982e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyHyperlinkFix rId を採番するときに、Id 属性が存在しない既存の Relationship を無視する","name":"rId を採番するときに、Id 属性が存在しない既存の Relationship を無視する","status":"passed","testResultsByEnv":{"default":"87654675b58dac52f080add400fc3bd4"}}

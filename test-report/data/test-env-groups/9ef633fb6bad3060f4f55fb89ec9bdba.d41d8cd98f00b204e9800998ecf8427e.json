@@ -1,0 +1,1 @@
+{"id":"9ef633fb6bad3060f4f55fb89ec9bdba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/state.test.ts#planWorkTarget タイトルが空の場合は、番号だけのセッション名を返す","name":"タイトルが空の場合は、番号だけのセッション名を返す","status":"passed","testResultsByEnv":{"default":"9d2a9489f210c923062331f7f30c7dd3"}}

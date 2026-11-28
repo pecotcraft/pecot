@@ -1,0 +1,1 @@
+{"id":"e204ee7e6e65c6beb675a7b5b71a6906.464081e2d35525532ea9b5bc1b2ef35c","fullName":".githooks.tests.test_pages_store#test_report_check_needs_index","name":"dev のレポートの tar に `index.html` が存在しないと、存在しない旨を指摘する","status":"passed","testResultsByEnv":{"default":"6946c8a17a583bad99670b1f6b90383e"}}

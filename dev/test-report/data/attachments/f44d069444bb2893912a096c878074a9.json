@@ -1,0 +1,30 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "params.tag: the tag must be v<version> with a semantic version (got 0.2.0)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"params.tag\",\"code\":\"tag-name\",\"message\":\"the tag must be v<version> with a semantic version (got 0.2.0)\",\"candidates\":[\"v<version>\"]}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"}}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "params.tag",
+        "code": "tag-name",
+        "message": "the tag must be v<version> with a semantic version (got 0.2.0)",
+        "candidates": [
+          "v<version>"
+        ]
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  }
+}

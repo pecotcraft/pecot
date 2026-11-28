@@ -1,0 +1,1 @@
+{"id":"27251c9c3e6d6fc87b2fd9ed15706438.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync dry-run に true・false 以外を渡すと、GitHub を読まず、入力の誤りとして終了コード 2 を返す","name":"dry-run に true・false 以外を渡すと、GitHub を読まず、入力の誤りとして終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"a437969def4394ab843b94d6f379a009"}}

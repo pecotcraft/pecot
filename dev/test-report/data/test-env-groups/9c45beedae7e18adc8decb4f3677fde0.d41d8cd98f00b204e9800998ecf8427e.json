@@ -1,0 +1,1 @@
+{"id":"9c45beedae7e18adc8decb4f3677fde0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 見本のリポジトリ format-unknown を検証すると、検証エラーの行を過不足なく決まった順で返す","name":"見本のリポジトリ format-unknown を検証すると、検証エラーの行を過不足なく決まった順で返す","status":"passed","testResultsByEnv":{"default":"01e75b0dfedd9a48aa0c58aad78f6ae1"}}

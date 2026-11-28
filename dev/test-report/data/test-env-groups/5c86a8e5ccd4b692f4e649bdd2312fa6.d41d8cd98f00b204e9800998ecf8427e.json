@@ -1,0 +1,1 @@
+{"id":"5c86a8e5ccd4b692f4e649bdd2312fa6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-tools.test.ts#MCP のツール (stdio) `drawio_export` は PDF の生成に失敗しても、SVG を返して警告を添える","name":"`drawio_export` は PDF の生成に失敗しても、SVG を返して警告を添える","status":"passed","testResultsByEnv":{"default":"8dc025e6439217ae2d937dea3c964174"}}

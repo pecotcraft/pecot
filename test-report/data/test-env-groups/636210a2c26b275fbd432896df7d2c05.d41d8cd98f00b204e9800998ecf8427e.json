@@ -1,0 +1,1 @@
+{"id":"636210a2c26b275fbd432896df7d2c05.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#deleteIssueFieldValue フィールド値の削除で状態コード 204 が返った場合は、deleted を返す","name":"フィールド値の削除で状態コード 204 が返った場合は、deleted を返す","status":"passed","testResultsByEnv":{"default":"196110cceac14a3fe2b729187bd9acdd"}}

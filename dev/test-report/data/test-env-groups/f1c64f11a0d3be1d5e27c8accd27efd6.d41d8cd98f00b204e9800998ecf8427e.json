@@ -1,0 +1,1 @@
+{"id":"f1c64f11a0d3be1d5e27c8accd27efd6.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_task_cache#test_hooks_test_inputs_do_not_take_slidev_assets","name":"pecot-visual:test-hooks の inputs は、slidev の資産と fixture を含まず、node-runtime.ts を含む","status":"passed","testResultsByEnv":{"default":"8d316291e6b187a1a4d75defcc770086"}}

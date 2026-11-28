@@ -1,0 +1,1 @@
+{"id":"05a5a5e9b79c1de8faa0401eb6375610.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_list 設定ファイルが 1 つも存在しないと、none の行を出す","name":"設定ファイルが 1 つも存在しないと、none の行を出す","status":"passed","testResultsByEnv":{"default":"e6e8cbfaae24f6efff712c911051b0b4"}}

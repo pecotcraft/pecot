@@ -1,0 +1,1 @@
+{"id":"ff5bf20a7115645e3c003b9650a7f41f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_restores_deps_then_builds_dist","name":"依存と dist の両方が存在しないと、依存を戻し、dist を作ってから成功で終わる","status":"passed","testResultsByEnv":{"default":"3699a50bcbeea50e9ff252b184be6fde"}}

@@ -1,0 +1,1 @@
+{"id":"aeb683501427a9c2a1da4adde274256c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#resolveNx 実行権限のない nx とディレクトリは、nx として使わない","name":"実行権限のない nx とディレクトリは、nx として使わない","status":"passed","testResultsByEnv":{"default":"66d2bf6bd55d5583de7a1615c9f89876"}}

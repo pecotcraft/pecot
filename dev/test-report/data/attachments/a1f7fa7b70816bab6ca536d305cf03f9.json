@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "issue_number: update needs issue_number, the Issue to rewrite"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"issue_number\",\"code\":\"required\",\"message\":\"update needs issue_number, the Issue to rewrite\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "issue_number",
+        "code": "required",
+        "message": "update needs issue_number, the Issue to rewrite"
+      }
+    ]
+  }
+}

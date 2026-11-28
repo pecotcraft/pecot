@@ -1,0 +1,1 @@
+{"id":"7787e8a70b6893e9758609f5a8f93c69.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-stop.test.ts#requireConfigFor 対象のリポジトリを含む設定が 1 つだけの場合は、.active が存在しなくてもその設定を返す","name":"対象のリポジトリを含む設定が 1 つだけの場合は、.active が存在しなくてもその設定を返す","status":"passed","testResultsByEnv":{"default":"9a848613eb3720b19beb24b5989faa9c"}}

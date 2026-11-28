@@ -1,0 +1,1 @@
+{"id":"07c07a3d08ded22ad372ed09dd44d3f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start 着手の判定 merge 待ち以外の理由で blocked なら、直し方は unblock の 1 行だけにする","name":"merge 待ち以外の理由で blocked なら、直し方は unblock の 1 行だけにする","status":"passed","testResultsByEnv":{"default":"175766d2eee11248f372136b8600722b"}}

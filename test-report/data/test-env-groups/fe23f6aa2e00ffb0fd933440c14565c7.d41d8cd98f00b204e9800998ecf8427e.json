@@ -1,0 +1,1 @@
+{"id":"fe23f6aa2e00ffb0fd933440c14565c7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/executor.test.ts#createBoundedExecutor 同時に実行できる上限まで並行して実行し、超えた分は先に始めた処理の完了を待つ","name":"同時に実行できる上限まで並行して実行し、超えた分は先に始めた処理の完了を待つ","status":"passed","testResultsByEnv":{"default":"46cf5e3c1af1babefdb06416dc14619d"}}

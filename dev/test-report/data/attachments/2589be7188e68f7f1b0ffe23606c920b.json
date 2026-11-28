@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.fields: list_project_fields has a next page; read it with per_page 50, or with after, and pass all the fields"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.fields\",\"code\":\"read-required\",\"message\":\"list_project_fields has a next page; read it with per_page 50, or with after, and pass all the fields\"}],\"deletable\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.fields",
+        "code": "read-required",
+        "message": "list_project_fields has a next page; read it with per_page 50, or with after, and pass all the fields"
+      }
+    ],
+    "deletable": []
+  }
+}

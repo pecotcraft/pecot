@@ -1,0 +1,1 @@
+{"id":"325abac939e38ed094da85b7ec96bd10.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#runSlideLint の talk-dir 検証 talk-dir にディレクトリではないパスを指定すると、理由が not-a-directory の例外が発生する","name":"talk-dir にディレクトリではないパスを指定すると、理由が not-a-directory の例外が発生する","status":"passed","testResultsByEnv":{"default":"5b56099cb405c6d43adc8b356b7bea9e"}}

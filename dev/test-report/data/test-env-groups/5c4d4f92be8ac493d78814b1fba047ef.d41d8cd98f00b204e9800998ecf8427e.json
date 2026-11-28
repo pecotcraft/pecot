@@ -1,0 +1,1 @@
+{"id":"5c4d4f92be8ac493d78814b1fba047ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/release.test.ts#requireReleaseTargetRepository 採用済みのリポジトリがあると、repo や remote を見ずにそれを返す","name":"採用済みのリポジトリがあると、repo や remote を見ずにそれを返す","status":"passed","testResultsByEnv":{"default":"9df0a8951520acf50ece34fd591ba7b9"}}

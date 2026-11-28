@@ -1,0 +1,1 @@
+{"id":"049fee9bb2f9cb851ed25fb3b95ad095.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#withCapturedOutput log がちょうど 64KB の場合は、切り詰めない","name":"log がちょうど 64KB の場合は、切り詰めない","status":"passed","testResultsByEnv":{"default":"8af60fe44b7cd8501edb8d7bf7b1ff21"}}

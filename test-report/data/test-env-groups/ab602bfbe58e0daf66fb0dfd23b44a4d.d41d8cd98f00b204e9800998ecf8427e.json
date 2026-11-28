@@ -1,0 +1,1 @@
+{"id":"ab602bfbe58e0daf66fb0dfd23b44a4d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_remove 削除した後にプロジェクトのルートの下の同名のディレクトリが空だと、そのディレクトリを削除する","name":"削除した後にプロジェクトのルートの下の同名のディレクトリが空だと、そのディレクトリを削除する","status":"passed","testResultsByEnv":{"default":"76dad877164abae37bf38adce331218b"}}

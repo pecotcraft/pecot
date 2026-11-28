@@ -1,0 +1,1 @@
+{"id":"c22c98d0bf7bb49ff31c22f255a94837.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: テンプレート文字列の ${} 埋め込み式の中の文字列は、外側のテンプレート文字列とは別に読む","name":"埋め込み式の中の文字列は、外側のテンプレート文字列とは別に読む","status":"passed","testResultsByEnv":{"default":"54a427b9b70edb3d8e091436d8c58f5d"}}

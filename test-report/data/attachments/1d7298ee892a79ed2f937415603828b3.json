@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not read the settings of acme/demo: other side closed"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-api\",\"detail\":\"could not read the settings of acme/demo: other side closed\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "could not read the settings of acme/demo: other side closed"
+  },
+  "isError": true
+}

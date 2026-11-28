@@ -1,0 +1,1 @@
+{"id":"a7d3d28bdb67bb09de90988621fcbb30.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 通る値 名前を省くと、タグをリリースの名前とみなす","name":"名前を省くと、タグをリリースの名前とみなす","status":"passed","testResultsByEnv":{"default":"b39288c113684a039930d39357739038"}}

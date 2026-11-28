@@ -1,0 +1,1 @@
+{"id":"7314897be0e5a5b21353b8d98a646d5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh SessionStart の source が startup のとき、セッション名を出す","name":"SessionStart の source が startup のとき、セッション名を出す","status":"passed","testResultsByEnv":{"default":"8d02dd45024d1a2b86a7e0727b2afb24"}}

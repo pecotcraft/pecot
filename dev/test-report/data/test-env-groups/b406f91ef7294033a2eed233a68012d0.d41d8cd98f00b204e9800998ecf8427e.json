@@ -1,0 +1,1 @@
+{"id":"b406f91ef7294033a2eed233a68012d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide 属性が空文字 の場合は、明示的なアニメーション指定の有無が false になる","name":"属性が空文字 の場合は、明示的なアニメーション指定の有無が false になる","status":"passed","testResultsByEnv":{"default":"d503c3cb1a7bc017d1d73b2df7f26744"}}

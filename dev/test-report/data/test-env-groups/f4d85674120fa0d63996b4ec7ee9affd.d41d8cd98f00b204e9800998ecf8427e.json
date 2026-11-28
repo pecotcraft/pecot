@@ -1,0 +1,1 @@
+{"id":"f4d85674120fa0d63996b4ec7ee9affd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#失敗種別 fixture invalid-token の失敗は、失敗の種類 auth-expired と判定する","name":"fixture invalid-token の失敗は、失敗の種類 auth-expired と判定する","status":"passed","testResultsByEnv":{"default":"5c052e0fe3fe1a51b96931b6a46f8938"}}

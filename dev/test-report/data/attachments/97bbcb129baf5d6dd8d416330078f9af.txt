@@ -1,0 +1,9 @@
+error: gh-pr-create-check: gh pr create is not allowed.
+
+  Reason: using gh pr create directly skips the automatic Issue reference, the PR template validation,
+  and the traceability record, which breaks the consistency of the workflow.
+
+  Use this instead:
+    check the values with the MCP tool pr_check of the workflow server,
+    then create the PR with create_pull_request of the official GitHub MCP server
+    (steps: skills/w-help/references/github-write.md)

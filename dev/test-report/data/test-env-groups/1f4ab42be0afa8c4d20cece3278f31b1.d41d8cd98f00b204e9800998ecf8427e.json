@@ -1,0 +1,1 @@
+{"id":"1f4ab42be0afa8c4d20cece3278f31b1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-sync.test.ts#runSlideSyncDirectly (smoke) node_modules が不正な絶対パスの symlink でも、実ディレクトリとして作り直す","name":"node_modules が不正な絶対パスの symlink でも、実ディレクトリとして作り直す","status":"passed","testResultsByEnv":{"default":"3e804007a2be277c9aabad6b95b6109f"}}

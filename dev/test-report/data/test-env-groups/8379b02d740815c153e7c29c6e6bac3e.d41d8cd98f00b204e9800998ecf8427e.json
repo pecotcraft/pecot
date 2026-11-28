@@ -1,0 +1,1 @@
+{"id":"8379b02d740815c153e7c29c6e6bac3e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#ホスト設定 hosts.json が存在しなくても、github.com は PECOT_GITHUB_COM_TOKEN を返す","name":"hosts.json が存在しなくても、github.com は PECOT_GITHUB_COM_TOKEN を返す","status":"passed","testResultsByEnv":{"default":"7bca796c35661c86beda9a1ea621f2eb"}}

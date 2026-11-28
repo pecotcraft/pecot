@@ -1,0 +1,1 @@
+{"id":"296cae94793522e57926d88cada3c85c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 帯と行高 タイトルの帯だけ行の高さを高くし、ほかの行は共通の高さにする","name":"タイトルの帯だけ行の高さを高くし、ほかの行は共通の高さにする","status":"passed","testResultsByEnv":{"default":"2e62eadfd9f84214c714ca699bc29aa8"}}

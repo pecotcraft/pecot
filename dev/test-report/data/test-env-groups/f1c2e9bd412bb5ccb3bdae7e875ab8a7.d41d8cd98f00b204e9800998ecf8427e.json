@@ -1,0 +1,1 @@
+{"id":"f1c2e9bd412bb5ccb3bdae7e875ab8a7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#素の URL の Link ノード Link の子を URL の Str にして、url の属性と、元のファイルの位置を持たせる","name":"Link の子を URL の Str にして、url の属性と、元のファイルの位置を持たせる","status":"passed","testResultsByEnv":{"default":"f898eab2664fd2001dc6ec72a5b02827"}}

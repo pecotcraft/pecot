@@ -1,0 +1,1 @@
+{"id":"390da344e5ac035c3cd60f484b7c1d64.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#parseUpdateMetadata 版が v1.2.3 から v1.2.4 に変わると、種類は patch になる","name":"版が v1.2.3 から v1.2.4 に変わると、種類は patch になる","status":"passed","testResultsByEnv":{"default":"204d2e8488571c4eb0a034fabb00557d"}}

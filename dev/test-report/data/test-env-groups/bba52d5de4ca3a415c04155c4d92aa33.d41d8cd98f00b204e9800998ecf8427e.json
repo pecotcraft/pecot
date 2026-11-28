@@ -1,0 +1,1 @@
+{"id":"bba52d5de4ca3a415c04155c4d92aa33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys slides.md を読み込めない場合は、failure が slides-load-failed になる","name":"slides.md を読み込めない場合は、failure が slides-load-failed になる","status":"passed","testResultsByEnv":{"default":"a3abb2a0ee751b7d53c4771131ea8070"}}

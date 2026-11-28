@@ -1,0 +1,1 @@
+{"id":"3d6abc922978b5460b00ffda3c82b931.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphqlTolerating data が存在しない場合は、許容する道筋の errors でも例外が発生する","name":"data が存在しない場合は、許容する道筋の errors でも例外が発生する","status":"passed","testResultsByEnv":{"default":"c44e4db1c35f3fc4d9cd8fd8ce9d660e"}}

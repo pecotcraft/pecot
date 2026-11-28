@@ -1,0 +1,1 @@
+{"id":"8f34ebf12f3ecb618216038f2e44cfab.64e6e8ecc124512405072a5f4fc9a79a","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_site_context_reads_report_plugins_on_release","name":"リリース版では、`PECOT_SITE_REPORT_PLUGINS` を読み、レポートに含むプラグインと含まないプラグインを分ける","status":"passed","testResultsByEnv":{"default":"04cfe348075c1d75ddc048982702a8b4"}}

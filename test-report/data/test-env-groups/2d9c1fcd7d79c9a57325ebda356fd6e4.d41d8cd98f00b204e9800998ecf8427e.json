@@ -1,0 +1,1 @@
+{"id":"2d9c1fcd7d79c9a57325ebda356fd6e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor 持ち主が organization だと、organization の secret と変数も見る","name":"持ち主が organization だと、organization の secret と変数も見る","status":"passed","testResultsByEnv":{"default":"be7ce971ee541ba2a59b26cb5365dcc7"}}

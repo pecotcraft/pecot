@@ -1,0 +1,3 @@
+created: branch feat/7 in acme/demo from main
+warning: could not set Issue acme/demo/7 status active: the Issue is not on the project board
+created: work directory .pecot/work/7/

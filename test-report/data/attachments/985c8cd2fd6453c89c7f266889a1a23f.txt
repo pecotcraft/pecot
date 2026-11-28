@@ -1,0 +1,10 @@
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_one_result_per_check_with0/suite/sample.test.sh
+PASS: 通る
+FAIL: 落ちる — 理由がある
+SKIP: 飛ばす — 環境が無い
+FAIL: 等しい — 期待 [a] / 実際 [b]
+FAIL: 違う — [a] と違う値のはずが、同じだった
+FAIL: 含む — 「zz」を含まない: abc
+FAIL: 含まない — 「b」を含む: abc
+
+PASS: 1 / FAIL: 5 / SKIP: 1

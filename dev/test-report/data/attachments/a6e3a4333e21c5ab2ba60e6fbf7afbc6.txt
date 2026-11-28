@@ -1,0 +1,2 @@
+error: invalid repo format: 'noslash'
+  specify it as owner/repo

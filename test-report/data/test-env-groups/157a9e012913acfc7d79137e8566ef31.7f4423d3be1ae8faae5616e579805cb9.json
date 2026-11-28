@@ -1,0 +1,1 @@
+{"id":"157a9e012913acfc7d79137e8566ef31.7f4423d3be1ae8faae5616e579805cb9","fullName":".githooks.tests.test_report_generate#test_conflicting_arguments_stop_before_anything","name":"引数の組み合わせが history-in-output のとき、何も実行せずに終了コード 2 で終了する","status":"passed","testResultsByEnv":{"default":"4642c326d028a544ded0f5a9f8ec6608"}}

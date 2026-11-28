@@ -1,0 +1,2 @@
+error: worktree config not found
+  call worktree_init with directory: <directory>

@@ -1,0 +1,3 @@
+count: Issues to close: 1
+closed: Issue #12
+warning: checking out ghost failed: Command ['git', 'checkout', 'ghost'] returned non-zero exit status 1.

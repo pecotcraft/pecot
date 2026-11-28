@@ -1,0 +1,1 @@
+{"id":"a81f81da166eb28429ad8e2b830bfe75.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_cli_report_release_resolves_from_git_tags","name":"CLI は、--report release で、git のタグからレポートの材料とジョブの一覧を決める","status":"passed","testResultsByEnv":{"default":"da7fc0333b7231d9470d9531f64bf696"}}

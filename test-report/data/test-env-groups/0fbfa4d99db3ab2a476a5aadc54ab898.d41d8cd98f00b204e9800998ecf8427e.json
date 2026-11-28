@@ -1,0 +1,1 @@
+{"id":"0fbfa4d99db3ab2a476a5aadc54ab898.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync Issue の一覧にラベルと state=all を付けて要求する","name":"Issue の一覧にラベルと state=all を付けて要求する","status":"passed","testResultsByEnv":{"default":"b09e1de796509079c1f93a6ab1758afa"}}

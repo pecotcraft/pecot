@@ -1,0 +1,19 @@
+
+==========================================
+❌ エラー: wt1 ブランチへの直接コミットは禁止されています
+==========================================
+
+📋 正しい手順:
+
+  1. feature branchを作成:
+     git checkout -b feat/your-feature-name
+
+  2. feature branchでコミット:
+     git commit -m "your commit message"
+
+  3. PRを作成:
+     /pecot-w:w-pr
+
+※ chore(release): から始まる commit（Nx Release）は例外的に許可されます。
+==========================================
+

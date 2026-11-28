@@ -1,0 +1,1 @@
+{"id":"18b1c9dde1c4260598aac3233b169758.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#--out-dir ガードが ファイルを指すパス を弾く","name":"--out-dir ガードが ファイルを指すパス を弾く","status":"passed","testResultsByEnv":{"default":"32f5b76fbdcebcf40797d2cff99940b4"}}

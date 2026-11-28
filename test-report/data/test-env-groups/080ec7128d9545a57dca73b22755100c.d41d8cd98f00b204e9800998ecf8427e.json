@@ -1,0 +1,1 @@
+{"id":"080ec7128d9545a57dca73b22755100c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_run_cmd_dry_run_only_plans","name":"dry-run のとき、`runCmd` は計画を作るだけで、main には何も反映しない","status":"passed","testResultsByEnv":{"default":"9b6ace076ec100552223a2306135d34c"}}

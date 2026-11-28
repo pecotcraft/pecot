@@ -1,0 +1,1 @@
+{"id":"fc634f6ad978de909ee95b3e6f455015.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-surface.test.ts#checkIssueCoverage supported に reason がある 場合は、id を示した問題を返す","name":"supported に reason がある 場合は、id を示した問題を返す","status":"passed","testResultsByEnv":{"default":"300214e93bf5d772c17fb4d30bd6ae78"}}

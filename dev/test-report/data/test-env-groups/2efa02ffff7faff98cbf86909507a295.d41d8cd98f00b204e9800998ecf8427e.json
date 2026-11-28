@@ -1,0 +1,1 @@
+{"id":"2efa02ffff7faff98cbf86909507a295.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#コマンドの実体 .textlintignore 除外に当たるファイルを 相対パス で渡すと、終了コード 0 を返す","name":"除外に当たるファイルを 相対パス で渡すと、終了コード 0 を返す","status":"passed","testResultsByEnv":{"default":"af020c11e643abf2e4377bc8ff5f0106"}}

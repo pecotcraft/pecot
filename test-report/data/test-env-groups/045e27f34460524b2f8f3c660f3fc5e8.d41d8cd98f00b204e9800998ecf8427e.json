@@ -1,0 +1,1 @@
+{"id":"045e27f34460524b2f8f3c660f3fc5e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#作業ツリーが HEAD と乖離しているとき publish を拒否する","name":"作業ツリーが HEAD と乖離しているとき publish を拒否する","status":"passed","testResultsByEnv":{"default":"a34e8e637955b9c5e851f2e672680d6a"}}

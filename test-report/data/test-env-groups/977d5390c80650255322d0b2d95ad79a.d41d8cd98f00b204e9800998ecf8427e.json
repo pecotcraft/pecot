@@ -1,0 +1,1 @@
+{"id":"977d5390c80650255322d0b2d95ad79a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/annotations.test.ts#effects against mcp.annotations idempotentHint が idempotent と食い違うと、検証エラーにする","name":"idempotentHint が idempotent と食い違うと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"ef9d7a0030df6cce46fcaff8c8a2c3ed"}}

@@ -1,0 +1,1 @@
+{"id":"84df842637a9ffa530a7cd18d4f5ef62.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_entry_point_linter#test_logic_violation_shows_guidance","name":"エントリポイントに if 文のロジックがあると、違反の案内を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"c3508992a297d6a1a305ee243aacda72"}}

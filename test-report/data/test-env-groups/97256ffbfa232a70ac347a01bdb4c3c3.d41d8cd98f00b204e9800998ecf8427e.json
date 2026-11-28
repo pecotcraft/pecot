@@ -1,0 +1,1 @@
+{"id":"97256ffbfa232a70ac347a01bdb4c3c3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_run_cmd_production_lands_release","name":"本番のとき、`runCmd` はリリースを作り、main に反映する","status":"passed","testResultsByEnv":{"default":"9e073898427572fc9ff33c72f6c73918"}}

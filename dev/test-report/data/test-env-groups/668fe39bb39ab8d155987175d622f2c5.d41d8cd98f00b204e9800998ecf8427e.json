@@ -1,0 +1,1 @@
+{"id":"668fe39bb39ab8d155987175d622f2c5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_real_allure_sorts_failures_into_categories_by_epic","name":"本物の allure で、失敗を不安定なテスト・製品の不具合・テストの不具合に分け、epic ごとに並べる","status":"passed","testResultsByEnv":{"default":"91d3aa206f18977e1208d8f0e73b989a"}}

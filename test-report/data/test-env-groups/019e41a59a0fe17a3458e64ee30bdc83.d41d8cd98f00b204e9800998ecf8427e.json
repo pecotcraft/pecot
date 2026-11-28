@@ -1,0 +1,1 @@
+{"id":"019e41a59a0fe17a3458e64ee30bdc83.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-stop.test.ts#requireConfigFor 設定ファイルの形式が不正な場合は、対象と無関係でもそのパスを示して止める","name":"設定ファイルの形式が不正な場合は、対象と無関係でもそのパスを示して止める","status":"passed","testResultsByEnv":{"default":"f6715949217bc38c194dca23c69d30db"}}

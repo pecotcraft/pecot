@@ -1,0 +1,1 @@
+{"id":"558ea95ad0fcfd66150ece80e8c5480f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#fixtures ソースが読む環境変数の名前を定義書が挙げていないと、その名前を含む検証エラーを返す","name":"ソースが読む環境変数の名前を定義書が挙げていないと、その名前を含む検証エラーを返す","status":"passed","testResultsByEnv":{"default":"11a42aef93d03e9fe744d28fa972a4bb"}}

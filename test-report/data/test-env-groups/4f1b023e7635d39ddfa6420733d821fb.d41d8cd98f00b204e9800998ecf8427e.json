@@ -1,0 +1,1 @@
+{"id":"4f1b023e7635d39ddfa6420733d821fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move 番号だけを渡して repo を省くと、git の remote のリポジトリの Issue を対象にする","name":"番号だけを渡して repo を省くと、git の remote のリポジトリの Issue を対象にする","status":"passed","testResultsByEnv":{"default":"a69eee23bbb0b68de1f4cf87eb8747c3"}}

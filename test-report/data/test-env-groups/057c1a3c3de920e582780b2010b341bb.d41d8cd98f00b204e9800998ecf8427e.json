@@ -1,0 +1,1 @@
+{"id":"057c1a3c3de920e582780b2010b341bb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/asset-path/tests/require-resolve-asset-path.test.ts#require-resolve-asset-path invalid fetch に絶対パスのテンプレートリテラルを渡すと、報告する","name":"fetch に絶対パスのテンプレートリテラルを渡すと、報告する","status":"passed","testResultsByEnv":{"default":"980dcbb9a6a32634f5cffd4e4d17b43d"}}

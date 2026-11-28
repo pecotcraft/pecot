@@ -1,0 +1,132 @@
+{
+  "name": "slide_dev",
+  "title": "Start Slidev preview",
+  "description": "Starts the Slidev dev server of a talk-dir and returns a URL that opens in a browser (url). The port can be set with port; if omitted, a free port from 3030 to 3034 is used. Calling again for the same talk-dir returns the running server as it is (reused: true). Set stop: true to stop it. The server runs only while the MCP server process is alive; the preview ends with the session.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "dir": {
+        "type": "string",
+        "description": "Absolute path of the talk-dir to start the Slidev dev server for. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+      },
+      "port": {
+        "description": "Port to start on. If it is in use, the call fails instead of moving to another port. If omitted, ports 3030 to 3034 are tried in ascending order and the first free one is used. Specifying a different port for a talk-dir that is already running reopens it on that port",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 65535
+      },
+      "stop": {
+        "default": false,
+        "description": "Stop the dev server of the talk-dir when true (arguments other than dir have no effect when stopping)",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "dir"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "event": {
+        "type": "string",
+        "description": "slide.dev.started, slide.dev.reused or slide.dev.stopped on success; slide.dev.error or runtime-dependencies.unavailable on failure (omitted when a path argument is rejected)"
+      },
+      "dir": {
+        "type": "string",
+        "description": "Absolute path of the talk-dir (on success, and on failure with slide.dev.error)"
+      },
+      "url": {
+        "description": "URL that opens the preview in a browser (success only, when started or reused)",
+        "type": "string"
+      },
+      "port": {
+        "description": "Port the server listens on (success only; when stopping, only if a server was running)",
+        "type": "number"
+      },
+      "reused": {
+        "description": "Whether the running server was returned as it is (success only, when started or reused)",
+        "type": "boolean"
+      },
+      "pid": {
+        "description": "Process ID of the dev server, for stopping it by hand (success only, when known)",
+        "type": "number"
+      },
+      "stopped": {
+        "description": "Whether a running server was stopped (success only, with stop: true)",
+        "type": "boolean"
+      },
+      "expectedAt": {
+        "description": "Where the missing runtime dependencies or Playwright Chromium are expected (failure only, kind runtime-dependencies-not-installed / chromium-not-installed / chromium-install-failed)",
+        "type": "string"
+      },
+      "invalidPaths": {
+        "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "convertedPaths": {
+        "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Value that was passed"
+            },
+            "to": {
+              "type": "string",
+              "description": "Path it was converted to"
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full text of the failure and how to recover (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "event",
+          "dir"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  }
+}

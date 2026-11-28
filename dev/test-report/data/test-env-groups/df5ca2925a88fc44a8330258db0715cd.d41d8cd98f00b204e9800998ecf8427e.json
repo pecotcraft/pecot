@@ -1,0 +1,1 @@
+{"id":"df5ca2925a88fc44a8330258db0715cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#runSlideConvert (fake DI 経由 / 全分岐) 宣言の警告と、pptx の値を省略したことの警告を、標準エラーに warning: 付きで出力する","name":"宣言の警告と、pptx の値を省略したことの警告を、標準エラーに warning: 付きで出力する","status":"passed","testResultsByEnv":{"default":"87b898e673b4cb1983bb9ca31a20d255"}}

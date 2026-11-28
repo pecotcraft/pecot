@@ -1,0 +1,1 @@
+{"id":"f23a03a757726545ff0ce95e0cd06e39.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#authored.yaml checks authored.yaml の behaviors が空、または behavior の必須の欄がないと、検証エラーにする","name":"authored.yaml の behaviors が空、または behavior の必須の欄がないと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"88edba60114c5f349d4e0c33f6b80249"}}

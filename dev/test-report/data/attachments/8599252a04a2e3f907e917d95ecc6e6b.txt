@@ -1,0 +1,1 @@
+ERROR: --out-dir の親ディレクトリがありません: /tmp/bats-run-Ha4GM6/test/9/no-such-parent

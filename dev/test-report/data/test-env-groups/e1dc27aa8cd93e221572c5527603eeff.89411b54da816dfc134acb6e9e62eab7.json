@@ -1,0 +1,1 @@
+{"id":"e1dc27aa8cd93e221572c5527603eeff.89411b54da816dfc134acb6e9e62eab7","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_the_githooks_lanes_that_read_the_change","name":"actions/templates/pecot-handoff.yml を変更すると、それを読む githooks のレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"81ce644d46e5d5ac7b30ca15cc4cecfa"}}

@@ -1,0 +1,1 @@
+{"id":"8e4638d56ae22d54a42d6a66460cdefa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations callout callout の box と anchor がない場合は、両方のエラーをまとめて返す","name":"callout の box と anchor がない場合は、両方のエラーをまとめて返す","status":"passed","testResultsByEnv":{"default":"c4d0064b728a1554f363f22c097715d5"}}

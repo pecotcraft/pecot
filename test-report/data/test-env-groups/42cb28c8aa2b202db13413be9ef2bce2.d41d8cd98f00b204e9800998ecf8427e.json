@@ -1,0 +1,1 @@
+{"id":"42cb28c8aa2b202db13413be9ef2bce2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#MCP の表示名と使用例 action の面だけを持つ項目の使用例は、with: の inputs を arguments の形で書けば検証エラーにしない","name":"action の面だけを持つ項目の使用例は、with: の inputs を arguments の形で書けば検証エラーにしない","status":"passed","testResultsByEnv":{"default":"e1f89ea9d09613b37af1c47a41c59f5a"}}

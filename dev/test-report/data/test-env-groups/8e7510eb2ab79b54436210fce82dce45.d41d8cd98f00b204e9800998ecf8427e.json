@@ -1,0 +1,1 @@
+{"id":"8e7510eb2ab79b54436210fce82dce45.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_build_stops_when_units_cannot_be_read","name":"リリース版の build は、作業ツリーの単位を決められないと、何も実行せずに終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"2cbca02c227d36115a3db397960f52b7"}}

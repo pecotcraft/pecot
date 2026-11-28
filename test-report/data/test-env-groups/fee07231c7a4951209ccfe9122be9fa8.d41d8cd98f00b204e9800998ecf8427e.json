@@ -1,0 +1,1 @@
+{"id":"fee07231c7a4951209ccfe9122be9fa8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/project-stop.test.ts#pruneArchivedItems ID が文字列でないアイテムは、削除を呼ばず、失敗として数えて返す","name":"ID が文字列でないアイテムは、削除を呼ばず、失敗として数えて返す","status":"passed","testResultsByEnv":{"default":"343dc8d0994873b6cab3da472dd14a7d"}}

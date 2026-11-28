@@ -1,0 +1,1 @@
+{"id":"56cc19b2fdb4e4e7356ad9e39cb6f0b6.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_publish_rejects_unknown_argument","name":"publish に未知の引数を渡すと、終了コード 2 で終わり、build しない","status":"passed","testResultsByEnv":{"default":"f12fab6560896c79ebdcb444d6492ee9"}}

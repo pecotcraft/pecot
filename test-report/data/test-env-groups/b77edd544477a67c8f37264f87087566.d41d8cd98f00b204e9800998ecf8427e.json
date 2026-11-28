@@ -1,0 +1,1 @@
+{"id":"b77edd544477a67c8f37264f87087566.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getStackOfPullRequest 404（スタックの機能がないリポジトリ）が返ると、GitHubNotFoundError を発生させる","name":"404（スタックの機能がないリポジトリ）が返ると、GitHubNotFoundError を発生させる","status":"passed","testResultsByEnv":{"default":"3d8e7ec32fc70d3af3da0c590268e192"}}

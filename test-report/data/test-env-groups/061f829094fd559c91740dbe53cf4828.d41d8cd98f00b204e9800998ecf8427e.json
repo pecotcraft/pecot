@@ -1,0 +1,1 @@
+{"id":"061f829094fd559c91740dbe53cf4828.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#collectIo の項目・warnings・errors・log log を受け取っていなければ、undefined を返す","name":"log を受け取っていなければ、undefined を返す","status":"passed","testResultsByEnv":{"default":"7755ef1f3bed9588bb64c26864cdd555"}}

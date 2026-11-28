@@ -1,0 +1,1 @@
+{"id":"160dc8af6a968312bfa3d47d843a9576.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 旧い設定（workflow_suffix 付き）で改名済みのボードを読んでも、同じ内容を出し、警告を出さない","name":"旧い設定（workflow_suffix 付き）で改名済みのボードを読んでも、同じ内容を出し、警告を出さない","status":"passed","testResultsByEnv":{"default":"622b00247ff9ad156e1102920b147957"}}

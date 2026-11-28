@@ -1,0 +1,1 @@
+{"id":"7551c1958284333b1f3c85ba9eef476b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-sync.test.ts#runSlideSyncDirectly (smoke) 取得できないテーマを指定すると、何も削除せずに止まる","name":"取得できないテーマを指定すると、何も削除せずに止まる","status":"passed","testResultsByEnv":{"default":"315aa2d554a1a9b9e6c4057621b85f7c"}}

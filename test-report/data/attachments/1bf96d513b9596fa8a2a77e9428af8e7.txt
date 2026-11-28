@@ -1,0 +1,18 @@
+モード: 通常（nx affected -t test-cli,test-hooks,test-unit --base=95ae744938d812115d14042d7502d73913e8d934 --head=95ae744938d812115d14042d7502d73913e8d934）
+ERROR: nx の task graph からレーンを読めませんでした。
+       <anonymous_script>:2
+       
+       
+       SyntaxError: Unexpected end of JSON input
+           at JSON.parse (<anonymous>)
+           at readLanes ([eval]:6:24)
+           at [eval]:15:17
+           at runScriptInThisContext (node:internal/vm:219:10)
+           at node:internal/process/execution:451:12
+           at [eval]-wrapper:6:24
+           at runScriptInContext (node:internal/process/execution:449:60)
+           at evalFunction (node:internal/process/execution:283:30)
+           at evalTypeScript (node:internal/process/execution:295:3)
+           at node:internal/main/eval_string:71:3
+       
+       Node.js v24.22.1

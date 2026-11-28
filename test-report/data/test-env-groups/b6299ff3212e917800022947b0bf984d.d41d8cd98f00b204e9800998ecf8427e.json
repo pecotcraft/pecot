@@ -1,0 +1,1 @@
+{"id":"b6299ff3212e917800022947b0bf984d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/config-dispatcher.test.ts#hooks-config.json によるスクリプトの無効化 gh issue create だけを無効にしても、gh pr create はブロックする","name":"gh issue create だけを無効にしても、gh pr create はブロックする","status":"passed","testResultsByEnv":{"default":"e2c8b182382f10d0b9848e5b56fe7fd9"}}

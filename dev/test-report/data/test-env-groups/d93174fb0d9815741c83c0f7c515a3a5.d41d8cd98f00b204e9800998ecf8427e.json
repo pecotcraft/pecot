@@ -1,0 +1,1 @@
+{"id":"d93174fb0d9815741c83c0f7c515a3a5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_githooks_lanes#test_every_test_file_is_in_exactly_one_lane","name":"tests の各テストのファイルは、ちょうど 1 つのレーンに載る","status":"passed","testResultsByEnv":{"default":"f98d6fa7f9959ae258f28a4086d348c3"}}

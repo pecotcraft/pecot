@@ -1,0 +1,11 @@
+{
+  "tags": {
+    "a": "a-v1.9.0",
+    "b": "b-v0.2.0"
+  },
+  "commits": {
+    "a": "daec80444cc3f2b04d93bec1ca046d426dc90e41",
+    "b": "b4bd3a3c9718ae5d89ce16bbe47e5e473e75fd8e"
+  },
+  "skeleton": "b4bd3a3c9718ae5d89ce16bbe47e5e473e75fd8e"
+}

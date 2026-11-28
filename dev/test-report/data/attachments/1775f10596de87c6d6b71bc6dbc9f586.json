@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool slide_convert: transition_type: Invalid option: expected one of \"fade\"|\"morph\""
+    }
+  ],
+  "isError": true
+}

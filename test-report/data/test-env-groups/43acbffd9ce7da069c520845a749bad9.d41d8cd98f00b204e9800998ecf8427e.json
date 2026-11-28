@@ -1,0 +1,1 @@
+{"id":"43acbffd9ce7da069c520845a749bad9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference 末尾に改行がある参照も、Python の $ と同じように受理する","name":"末尾に改行がある参照も、Python の $ と同じように受理する","status":"passed","testResultsByEnv":{"default":"1eb2b338311d73a4320e7c326ee3c5d5"}}

@@ -1,0 +1,1 @@
+{"id":"2f08da9794b9b8e794d400fb628c2826.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/attach.test.ts#attach Allure の reporter が動くレーンの中 attachOutput の出力が stderr だけがある とき、名前にコマンドと終了コードを持つ添付を残す","name":"attachOutput の出力が stderr だけがある とき、名前にコマンドと終了コードを持つ添付を残す","status":"passed","testResultsByEnv":{"default":"ce6b669b64a408db4c74e039c691c418"}}

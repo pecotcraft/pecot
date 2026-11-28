@@ -1,0 +1,1 @@
+{"id":"5ef8757132bce418b709550aaf8a390a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#themeStoreRoot CLAUDE_PLUGIN_DATA が空で PLUGIN_DATA が指定されていれば、その下の themes を返す","name":"CLAUDE_PLUGIN_DATA が空で PLUGIN_DATA が指定されていれば、その下の themes を返す","status":"passed","testResultsByEnv":{"default":"94da6609209c6e99a08cc77e0adb3c1b"}}

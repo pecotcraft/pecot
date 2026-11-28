@@ -1,0 +1,1 @@
+{"id":"c2823082ccfc7951571ae3e83a30ed04.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#buildPicMediaMap off と ext の属性が存在しない場合は、0 として記録する","name":"off と ext の属性が存在しない場合は、0 として記録する","status":"passed","testResultsByEnv":{"default":"5821a093dcb9793ed4e57177faae6e5e"}}

@@ -1,0 +1,136 @@
+{
+  "name": "pr_check",
+  "title": "Check PR readiness",
+  "description": "Show all the information to check before creating a PR",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "directory": {
+        "description": "Target Git repository (absolute or relative path)",
+        "type": "string"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "directory"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "remoteUrl": {
+        "type": "string",
+        "description": "URL of the primary git remote"
+      },
+      "currentBranch": {
+        "type": "string",
+        "description": "Current branch"
+      },
+      "pushed": {
+        "type": "boolean",
+        "description": "Whether the current branch is pushed and even with its remote branch"
+      },
+      "pushStatus": {
+        "type": "string",
+        "description": "Push status as shown in the Push Status section"
+      },
+      "baseBranch": {
+        "type": "string",
+        "description": "Remote branch compared against (remote/branch): the lower stage when stacked, else the develop branch"
+      },
+      "gitStatus": {
+        "type": "string",
+        "description": "Output of git status"
+      },
+      "commits": {
+        "type": "string",
+        "description": "Commits since the base branch, as shown in the Commits section"
+      },
+      "diffSummary": {
+        "type": "string",
+        "description": "Diff stat against the base branch, as shown in the Diff Summary section"
+      },
+      "worktree": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "string",
+            "description": "Output of git worktree list"
+          },
+          "directoryName": {
+            "type": "string",
+            "description": "Name of the current directory"
+          },
+          "isWorktree": {
+            "description": "Whether the directory is a linked worktree (omitted when it could not be determined)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "list",
+          "directoryName"
+        ],
+        "additionalProperties": false,
+        "description": "Worktree information"
+      },
+      "stashList": {
+        "type": "string",
+        "description": "Stash list, as shown in the Stash List section"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "remoteUrl",
+          "currentBranch",
+          "pushed",
+          "pushStatus",
+          "baseBranch",
+          "gitStatus",
+          "commits",
+          "diffSummary",
+          "worktree",
+          "stashList"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

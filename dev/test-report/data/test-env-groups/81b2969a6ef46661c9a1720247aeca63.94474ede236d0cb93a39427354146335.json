@@ -1,0 +1,1 @@
+{"id":"81b2969a6ef46661c9a1720247aeca63.94474ede236d0cb93a39427354146335","fullName":".githooks.tests.test_pages_release#test_units_fail_for_wrong_release_group","name":"nx.json のグループが at-sign の場合、単位の決定で理由を示す例外が発生する","status":"passed","testResultsByEnv":{"default":"6b85ffd73bbe18ec3e8c36322b7c45df"}}

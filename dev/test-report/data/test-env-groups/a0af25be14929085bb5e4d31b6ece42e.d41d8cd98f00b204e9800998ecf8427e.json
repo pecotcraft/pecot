@@ -1,0 +1,1 @@
+{"id":"a0af25be14929085bb5e4d31b6ece42e.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/pecotv-gitignore-ensure.bats#実 git のリポでは、生成物と設定と .gitignore 自身が除外され、status が空になる","name":"実 git のリポでは、生成物と設定と .gitignore 自身が除外され、status が空になる","status":"passed","testResultsByEnv":{"default":"13b086906b702c1839ae4465362e5b74"}}

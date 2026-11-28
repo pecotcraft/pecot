@@ -1,0 +1,1 @@
+{"id":"8b97cbad7f26d20261ad0f5f6ab7314b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: TLS 証明書の検証で落ちた場合 chromium 側: TLS と無関係な失敗には誘導が付かない","name":"chromium 側: TLS と無関係な失敗には誘導が付かない","status":"passed","testResultsByEnv":{"default":"28088fff8e47ae7c9d3f541cd823a339"}}

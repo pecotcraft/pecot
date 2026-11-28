@@ -1,0 +1,1 @@
+{"id":"4fc28b110c85926671eae7086b0e167b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#calculateSpcValue letter-spacing が 0px のとき、spc が 0 になる","name":"letter-spacing が 0px のとき、spc が 0 になる","status":"passed","testResultsByEnv":{"default":"32fa0f4bfe69c74f724650733c74f439"}}

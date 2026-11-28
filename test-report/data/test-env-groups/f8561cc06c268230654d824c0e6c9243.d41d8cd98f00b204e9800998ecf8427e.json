@@ -1,0 +1,1 @@
+{"id":"f8561cc06c268230654d824c0e6c9243.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#FontPolicy の省略 ea を指定しない場合は、東アジアの書体を書き込まず、既存の ea も変更しない","name":"ea を指定しない場合は、東アジアの書体を書き込まず、既存の ea も変更しない","status":"passed","testResultsByEnv":{"default":"94fd8ed3fe49e9ac1a0641eaeb5cee7f"}}

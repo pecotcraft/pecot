@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: {{issue:later}} does not point to an earlier Issue of the batch (forward reference or unknown key); put the Issue it points to earlier"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"placeholder\",\"message\":\"{{issue:later}} does not point to an earlier Issue of the batch (forward reference or unknown key); put the Issue it points to earlier\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "placeholder",
+        "message": "{{issue:later}} does not point to an earlier Issue of the batch (forward reference or unknown key); put the Issue it points to earlier"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

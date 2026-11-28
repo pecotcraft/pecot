@@ -1,0 +1,1 @@
+{"id":"c276a3b273f06eb0febbfb2fe8de271f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#getItemIdByIssue 別のプロジェクトにだけ紐づく場合は、アイテム ID として undefined を返す","name":"別のプロジェクトにだけ紐づく場合は、アイテム ID として undefined を返す","status":"passed","testResultsByEnv":{"default":"3f6ae39eb92cbb77747c4481646d2d92"}}

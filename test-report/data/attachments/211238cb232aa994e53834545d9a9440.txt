@@ -1,0 +1,34 @@
+## 検証の結果
+
+### 範囲
+
+- base: `fdf20625ec829dea32e5b9f88c6b147b8124b66f`
+- head: `a7f8a3e123434b9c7ddee54e8595335df89ef8e4`（PR では head は merge commit）
+- モード: 通常
+
+| stage | 成否 |
+|---|---|
+| pre-commit | 成功 |
+| pre-push | 成功 |
+| manual | 成功 |
+
+全体: 成功
+
+### レーン
+
+対象なし（成功）
+
+### 失敗
+
+なし
+
+### skip
+
+なし
+
+### 環境
+
+- イメージ: -
+- node: v24.22.1
+- aws: aws-cli/2.39.4 Python/3.14.8 Linux/7.0.0-1020-azure exe/x86_64.ubuntu.26
+- actionlint: 1.7.12

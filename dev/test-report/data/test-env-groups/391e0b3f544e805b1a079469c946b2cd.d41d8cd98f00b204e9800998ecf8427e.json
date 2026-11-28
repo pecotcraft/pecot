@@ -1,0 +1,1 @@
+{"id":"391e0b3f544e805b1a079469c946b2cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Markdown のブロックの規則 名前空間を持つタグは、CommonMark のタグ名ではないので、HTML ブロックにせず、本文として読む","name":"名前空間を持つタグは、CommonMark のタグ名ではないので、HTML ブロックにせず、本文として読む","status":"passed","testResultsByEnv":{"default":"bacc040baf4a8a962e57057f91094940"}}

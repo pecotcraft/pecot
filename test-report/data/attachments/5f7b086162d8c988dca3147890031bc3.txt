@@ -1,0 +1,2 @@
+error: preflight found warnings; fix them before creating a PR
+warning: Push Status: no git remote points to a repository of someone on ghes.example.com (fix: git remote add fork https://ghes.example.com/someone/demo.git)

@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "generated evidence xlsx: /tmp/pecotv-1094-e2e-giWBtA/c/pecotv-1094/out.xlsx (1 items; 0 annotations; 0 skipped)"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"result\",\"outPath\":\"/tmp/pecotv-1094-e2e-giWBtA/c/pecotv-1094/out.xlsx\",\"items\":1,\"annotations\":0,\"skipped\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "event": "result",
+    "outPath": "/tmp/pecotv-1094-e2e-giWBtA/c/pecotv-1094/out.xlsx",
+    "items": 1,
+    "annotations": 0,
+    "skipped": []
+  }
+}

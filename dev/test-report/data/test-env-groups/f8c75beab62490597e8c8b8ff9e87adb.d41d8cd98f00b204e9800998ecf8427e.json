@@ -1,0 +1,1 @@
+{"id":"f8c75beab62490597e8c8b8ff9e87adb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#ツールの呼び出し コマンドの本体が使い方の誤りを投げると、例外の文だけを detail にして invalid-input の失敗にする","name":"コマンドの本体が使い方の誤りを投げると、例外の文だけを detail にして invalid-input の失敗にする","status":"passed","testResultsByEnv":{"default":"2effa86af91de8e8828a37748fdc4b77"}}

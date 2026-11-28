@@ -1,0 +1,3 @@
+affected -t test-cli,test-hooks,test-unit --base=4aa3713023c118f50281a8780eae93a06f293a9f --head=cd0f7950c410f35fe8af2300d0bfdc01424da736 --parallel=4 --output-style=static
+ENV PECOTV_PM_GUARD_BEHAVIOR=0
+ENV NO_COLOR=1

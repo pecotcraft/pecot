@@ -1,0 +1,2 @@
+==> libs/text-rules の依存が欠けているため、root で pnpm install --frozen-lockfile で戻します
+ERROR: libs/text-rules の依存が欠けているため文章規則を適用できません。root の pnpm install --frozen-lockfile が失敗しました。上の出力を確認してください

@@ -1,0 +1,5 @@
+[
+  "pecot-visual:test-cli",
+  "pecot-visual:test-hooks",
+  "pecot-workflow:test-hooks"
+]

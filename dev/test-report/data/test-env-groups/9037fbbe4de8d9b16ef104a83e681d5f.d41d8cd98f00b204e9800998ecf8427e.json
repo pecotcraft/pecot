@@ -1,0 +1,1 @@
+{"id":"9037fbbe4de8d9b16ef104a83e681d5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/_shared/tests/patch-digest.test.ts#digestPatch パッチの内容の SHA-256 を、hash として返す","name":"パッチの内容の SHA-256 を、hash として返す","status":"passed","testResultsByEnv":{"default":"7d5cb9c84abcda0ba492b119d4701f12"}}

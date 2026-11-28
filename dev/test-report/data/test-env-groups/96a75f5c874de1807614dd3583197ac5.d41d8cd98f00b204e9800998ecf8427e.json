@@ -1,0 +1,1 @@
+{"id":"96a75f5c874de1807614dd3583197ac5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine XML 宣言がなく xml-stylesheet の処理命令で始まる入力は、その処理命令を保持する","name":"XML 宣言がなく xml-stylesheet の処理命令で始まる入力は、その処理命令を保持する","status":"passed","testResultsByEnv":{"default":"8dbb6d68eb8c5d5bf333f5a2f98f88b4"}}

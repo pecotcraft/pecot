@@ -1,0 +1,1 @@
+{"id":"9ca86d4be123205b587631bdfff557f0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#typescriptStrings: 取り出す区間 型注釈の string というキーワードは、文字列の区間として取り出さない","name":"型注釈の string というキーワードは、文字列の区間として取り出さない","status":"passed","testResultsByEnv":{"default":"cff73bcb9d206bec386407d6b9882187"}}

@@ -1,0 +1,1 @@
+{"id":"bacf8b693dbf1cf096e96c613140ba85.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#Python reads os 以外のモジュールの import は、名前を解決できない行として返さない","name":"os 以外のモジュールの import は、名前を解決できない行として返さない","status":"passed","testResultsByEnv":{"default":"0b00da5448773f7f67bc0c21b1bc03a3"}}

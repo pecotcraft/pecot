@@ -1,0 +1,1 @@
+{"id":"f538ed107782e2f40120a86c72a156b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 引用符で囲んだ識別子の中の ; は、文の区切りとして扱わない","name":"引用符で囲んだ識別子の中の ; は、文の区切りとして扱わない","status":"passed","testResultsByEnv":{"default":"1d416c3c11875e1e42feae9c16c248d0"}}

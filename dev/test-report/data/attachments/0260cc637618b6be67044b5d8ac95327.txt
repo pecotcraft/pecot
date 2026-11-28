@@ -1,0 +1,22 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_failed_test_has_attachmen0/suite/sample.bats
+1..2
+# pecot-description: 判定で落ちるテストです。
+# pecot-attachment: e330f73c-5e92-4467-bf1b-de2d2dd84a44-attachment.txt text/plain echo hi（終了コード 0） stdout
+not ok 1 判定で落ちる # in 180 ms
+# (from function `__assert_stream' in file node_modules/bats-assert/src/assert_output.bash, line 244,
+#  from function `assert_output' in file node_modules/bats-assert/src/assert_output.bash, line 125,
+#  in test file suite/sample.bats, line 10)
+#   `assert_output bye' failed
+# 
+# -- output differs --
+# expected : bye
+# actual   : hi
+# --
+# 
+# pecot-description: 終了コードで落ちるテストです。
+# pecot-attachment: adfda9ad-be16-45a7-9570-31fb015a1da1-attachment.txt text/plain echo hi（終了コード 0） stdout
+not ok 2 終了コードで落ちる # in 140 ms
+# (from function `run_attached' in file .githooks/scripts/test_report/bats/pecot-bats/load.bash, line 45,
+#  in test file suite/sample.bats, line 15)
+#   `run_attached -1 echo hi' failed, expected exit code 1, got 0
+# hi

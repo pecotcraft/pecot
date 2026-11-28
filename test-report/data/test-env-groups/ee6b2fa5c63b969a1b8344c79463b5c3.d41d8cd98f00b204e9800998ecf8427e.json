@@ -1,0 +1,1 @@
+{"id":"ee6b2fa5c63b969a1b8344c79463b5c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine getAttr は、名前空間のない属性をローカル名で返し、設定されていなければ undefined を返す","name":"getAttr は、名前空間のない属性をローカル名で返し、設定されていなければ undefined を返す","status":"passed","testResultsByEnv":{"default":"d79e76d8cfdebbc5f42523fd808547d7"}}

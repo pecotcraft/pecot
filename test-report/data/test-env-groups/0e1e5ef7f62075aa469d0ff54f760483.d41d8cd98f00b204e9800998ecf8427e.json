@@ -1,0 +1,1 @@
+{"id":"0e1e5ef7f62075aa469d0ff54f760483.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#runSlideLintDirectly (実 eslint) 本文とノートに文面の違反があると、textlint-body として行番号付きで報告する","name":"本文とノートに文面の違反があると、textlint-body として行番号付きで報告する","status":"passed","testResultsByEnv":{"default":"229c10c0f58d8012f581fe892dc2cc1c"}}

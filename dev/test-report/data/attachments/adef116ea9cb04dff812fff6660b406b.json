@@ -1,0 +1,64 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "## Board status"
+    },
+    {
+      "type": "text",
+      "text": "{\"board\":{\"items\":[{\"id\":1001,\"workflow\":\"Backlog\",\"lane\":\"cli\",\"title\":\"Item 1\",\"updatedAt\":\"2026-11-01T00:00:00Z\",\"content\":{\"number\":1,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/demo/issues/1\",\"labels\":[],\"repository\":\"acme/demo\"},\"readiness\":null},{\"id\":1007,\"workflow\":\"Ready\",\"lane\":\"cli\",\"title\":\"Item 7\",\"updatedAt\":\"2026-11-01T00:00:00Z\",\"content\":{\"number\":7,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/demo/issues/7\",\"labels\":[],\"repository\":\"acme/demo\"},\"readiness\":null}]},\"lanes\":[{\"name\":\"cli\",\"count\":2,\"startable\":0},{\"name\":\"docs\",\"count\":0,\"startable\":0}],\"mismatches\":0,\"warnings\":[\"the last page in reads.items has more pages: the board shows only the items read so far\"]}"
+    }
+  ],
+  "structuredContent": {
+    "board": {
+      "items": [
+        {
+          "id": 1001,
+          "workflow": "Backlog",
+          "lane": "cli",
+          "title": "Item 1",
+          "updatedAt": "2026-11-01T00:00:00Z",
+          "content": {
+            "number": 1,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/issues/1",
+            "labels": [],
+            "repository": "acme/demo"
+          },
+          "readiness": null
+        },
+        {
+          "id": 1007,
+          "workflow": "Ready",
+          "lane": "cli",
+          "title": "Item 7",
+          "updatedAt": "2026-11-01T00:00:00Z",
+          "content": {
+            "number": 7,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/issues/7",
+            "labels": [],
+            "repository": "acme/demo"
+          },
+          "readiness": null
+        }
+      ]
+    },
+    "lanes": [
+      {
+        "name": "cli",
+        "count": 2,
+        "startable": 0
+      },
+      {
+        "name": "docs",
+        "count": 0,
+        "startable": 0
+      }
+    ],
+    "mismatches": 0,
+    "warnings": [
+      "the last page in reads.items has more pages: the board shows only the items read so far"
+    ]
+  }
+}

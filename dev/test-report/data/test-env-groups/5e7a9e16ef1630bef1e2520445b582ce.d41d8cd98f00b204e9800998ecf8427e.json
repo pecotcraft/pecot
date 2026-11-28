@@ -1,0 +1,1 @@
+{"id":"5e7a9e16ef1630bef1e2520445b582ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link directory にサブディレクトリを渡して呼ぶと、その worktree のルートにリンクを作る","name":"directory にサブディレクトリを渡して呼ぶと、その worktree のルートにリンクを作る","status":"passed","testResultsByEnv":{"default":"7966eecf85b1dff071cf27b135655fb1"}}

@@ -1,0 +1,1 @@
+{"id":"f3d593b8ac3aa012ca4c29985edcd14a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-theme.test.ts#executeSlideTheme の失敗 宣言の形式が誤っていると、invalid-shape の例外が発生する","name":"宣言の形式が誤っていると、invalid-shape の例外が発生する","status":"passed","testResultsByEnv":{"default":"99cced5c823d136c2c52c463f33dd4a8"}}

@@ -1,0 +1,1 @@
+{"id":"e899bdfc778a90eb6aca15ebd5396f8c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#REST の要求 接続できないときは TransportFailure（Python の ConnectError の文）","name":"接続できないときは TransportFailure（Python の ConnectError の文）","status":"passed","testResultsByEnv":{"default":"f2d1b411914124babe37d72f0eed56b6"}}

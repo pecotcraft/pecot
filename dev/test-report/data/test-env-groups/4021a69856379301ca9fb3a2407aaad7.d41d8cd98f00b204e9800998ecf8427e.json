@@ -1,0 +1,1 @@
+{"id":"4021a69856379301ca9fb3a2407aaad7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形の Check の中身 ラベルを付けた人の権限が none なら、本文と outputs を書かずに成功で終わる","name":"ラベルを付けた人の権限が none なら、本文と outputs を書かずに成功で終わる","status":"passed","testResultsByEnv":{"default":"62046790be6203c6ddbd701f0fa688cb"}}

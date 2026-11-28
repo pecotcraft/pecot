@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "unexpected error: boom"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"unexpected error: boom\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "unexpected error: boom"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"d51619a2d6139bf3c797454de6a59e78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/blocked-by-change.test.ts#searchCycle 循環にならない場合は none を返し、同じ Issue に複数の道筋で着いても 1 回だけ読む","name":"循環にならない場合は none を返し、同じ Issue に複数の道筋で着いても 1 回だけ読む","status":"passed","testResultsByEnv":{"default":"320f12410274225ee67037c58682bd15"}}

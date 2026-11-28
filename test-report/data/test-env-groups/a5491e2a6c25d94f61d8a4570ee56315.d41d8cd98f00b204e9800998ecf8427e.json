@@ -1,0 +1,1 @@
+{"id":"a5491e2a6c25d94f61d8a4570ee56315.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.test.sh#静的確認: ルートの .npmrc が無いと落ちる","name":"静的確認: ルートの .npmrc が無いと落ちる","status":"passed","testResultsByEnv":{"default":"81190abce0c3ddc017e6ce35485b41c7"}}

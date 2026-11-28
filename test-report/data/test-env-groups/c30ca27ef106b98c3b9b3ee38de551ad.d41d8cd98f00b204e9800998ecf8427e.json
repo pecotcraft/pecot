@@ -1,0 +1,1 @@
+{"id":"c30ca27ef106b98c3b9b3ee38de551ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide.convert.done の errors 掲載 (#949) 要素のエラーだけで成功した実行でも、その errors を done イベントに含める","name":"要素のエラーだけで成功した実行でも、その errors を done イベントに含める","status":"passed","testResultsByEnv":{"default":"941c1a5b96d347e0bd4555bb3537a996"}}

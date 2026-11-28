@@ -1,0 +1,1 @@
+{"id":"f89b2bf17325493b91a4281dd4d8bdcd.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_scan_finds_undeclared_variable_in_each_kind_of_file","name":"走査は、シェル・JSON・TypeScript・Python などの各種のファイルから、宣言されていない変数を見つける","status":"passed","testResultsByEnv":{"default":"d224095a61732853ce5db34a0e70d802"}}

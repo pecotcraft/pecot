@@ -1,0 +1,1 @@
+{"id":"9434f52a7bc83bb74484cd369eb4ce52.603a882bb9a45b67b2ffc97067d2e584","fullName":".githooks.tests.test_pages_store#test_check_cli_chooses_the_check_by_kind_and_side","name":"`check` コマンドに () を指定すると、種類と側に応じて確認し、終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"cfc5d8e66b2e30cebbcc94fb46ebfdaa"}}

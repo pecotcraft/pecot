@@ -1,0 +1,1 @@
+/tmp/pecot-hooks-C0dm8n/entry/entry.sh: line 2: /tmp/pecot-hooks-C0dm8n/scripts/no_perm.sh: Permission denied

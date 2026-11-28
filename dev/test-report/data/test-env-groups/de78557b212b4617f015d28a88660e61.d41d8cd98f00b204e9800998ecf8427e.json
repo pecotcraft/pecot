@@ -1,0 +1,1 @@
+{"id":"de78557b212b4617f015d28a88660e61.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と Issue field project_fields に 名前と ID の無い欄 を書くと、その欄の problem にする","name":"project_fields に 名前と ID の無い欄 を書くと、その欄の problem にする","status":"passed","testResultsByEnv":{"default":"5aeaae1c85d06feced74b5848dfd177a"}}

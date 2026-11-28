@@ -1,0 +1,1 @@
+{"id":"320082f136d9e35ed3adc4f7b61a828b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 版を渡して打つと、その版を対象にチェックする","name":"版を渡して打つと、その版を対象にチェックする","status":"passed","testResultsByEnv":{"default":"4d8d86c76560edb22e60f81457543d63"}}

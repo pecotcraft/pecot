@@ -1,0 +1,1 @@
+{"id":"2c1f13113b77ac9a14f5499d4b5d07a4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_stdin_path_affected","name":"標準入力で push 情報を渡すと、local_sha を `--head` にして affected を実行する","status":"passed","testResultsByEnv":{"default":"ee91f51525d7ad0c6a3660faefa2d5cc"}}

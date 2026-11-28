@@ -1,0 +1,1 @@
+{"id":"ce978661ec0b953ca1e535dfd408099f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#serializeCacheManifest 複数のエントリの並びが違っても、同じ文字列を出力する","name":"複数のエントリの並びが違っても、同じ文字列を出力する","status":"passed","testResultsByEnv":{"default":"1488391f0d9c5b3082cf36ea22bb6c80"}}

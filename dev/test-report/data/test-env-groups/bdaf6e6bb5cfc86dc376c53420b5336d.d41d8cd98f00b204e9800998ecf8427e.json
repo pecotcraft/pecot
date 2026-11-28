@@ -1,0 +1,1 @@
+{"id":"bdaf6e6bb5cfc86dc376c53420b5336d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#Athena の変更系・複文（research R6） catalog の値に , を含む場合は、invalid-input として拒否する","name":"catalog の値に , を含む場合は、invalid-input として拒否する","status":"passed","testResultsByEnv":{"default":"0f578e193bc78a2f39f1a3b6d9cc2d76"}}

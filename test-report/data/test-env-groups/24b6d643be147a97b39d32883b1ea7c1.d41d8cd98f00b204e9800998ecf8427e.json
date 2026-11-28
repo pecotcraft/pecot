@@ -1,0 +1,1 @@
+{"id":"24b6d643be147a97b39d32883b1ea7c1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show MCP の data remote の URL の形が合わないと、activeIssue を入れない","name":"remote の URL の形が合わないと、activeIssue を入れない","status":"passed","testResultsByEnv":{"default":"f988aedc625776ab78c363c2618f1ae3"}}

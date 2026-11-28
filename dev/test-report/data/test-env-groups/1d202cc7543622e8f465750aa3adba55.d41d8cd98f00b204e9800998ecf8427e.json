@@ -1,0 +1,1 @@
+{"id":"1d202cc7543622e8f465750aa3adba55.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/yaml-document.test.ts#parseYamlDocument 引用符で囲んだ << と、str タグを付けた << は、文字列として読み取る: a: '<<'","name":"引用符で囲んだ << と、str タグを付けた << は、文字列として読み取る: a: '<<'","status":"passed","testResultsByEnv":{"default":"db50fbb0dda08590b095ec4847627b1b"}}

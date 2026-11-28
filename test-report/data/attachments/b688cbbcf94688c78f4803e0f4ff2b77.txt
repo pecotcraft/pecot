@@ -1,0 +1,2 @@
+error: the result of issue_read in reads.issues[1] is not in the shape of the official GitHub MCP server
+  issue.html_url: not an Issue URL: https://example.com/x

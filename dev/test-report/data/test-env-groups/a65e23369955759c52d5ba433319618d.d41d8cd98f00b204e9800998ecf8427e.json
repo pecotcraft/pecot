@@ -1,0 +1,1 @@
+{"id":"a65e23369955759c52d5ba433319618d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main --commit-msg の type(scope) scope のある件名 の違反の桁は、先頭の type(scope): を含めた、ファイル上の桁と一致する","name":"scope のある件名 の違反の桁は、先頭の type(scope): を含めた、ファイル上の桁と一致する","status":"passed","testResultsByEnv":{"default":"93a4ce9eb1f1a4c262c2444c8ab9365a"}}

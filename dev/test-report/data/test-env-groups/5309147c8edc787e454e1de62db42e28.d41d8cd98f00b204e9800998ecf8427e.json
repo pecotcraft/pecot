@@ -1,0 +1,1 @@
+{"id":"5309147c8edc787e454e1de62db42e28.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphqlTolerating すべての errors が許容する道筋の場合は、data と errors を返す","name":"すべての errors が許容する道筋の場合は、data と errors を返す","status":"passed","testResultsByEnv":{"default":"14f57d837b9dd7059d1c1148f62ee271"}}

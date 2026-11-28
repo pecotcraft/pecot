@@ -1,0 +1,1 @@
+{"id":"87e3d042837f5233d657bc6bf856cc2c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/server.test.ts#createMcpServer 渡したツール定義は registerTool を経由して tools/list に載り、呼び出せる","name":"渡したツール定義は registerTool を経由して tools/list に載り、呼び出せる","status":"passed","testResultsByEnv":{"default":"3b0dc7ddd6a9062feae56e0d6b347d31"}}

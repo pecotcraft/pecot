@@ -1,0 +1,1 @@
+{"id":"4ae2f46e8e90f8933597486ed4d5c84c.6a5e13415701932bafd0460e40eb02f8","fullName":".githooks.tests.test_check_version_plan_format#test_invalid_filename_fails","name":"ファイル名が foo-bar.md の version plan は、規則の形を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"7ecb2a918a31caf28fcf5b6fd1103e1f"}}

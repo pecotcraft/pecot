@@ -1,0 +1,1 @@
+{"id":"14d59937d857ce4a200addaba57e5eba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 検証用の ruleset を取得できないと、gh の失敗として終了コード 2 で止まる","name":"検証用の ruleset を取得できないと、gh の失敗として終了コード 2 で止まる","status":"passed","testResultsByEnv":{"default":"115a376479a05917ee4b61a56f2b567d"}}

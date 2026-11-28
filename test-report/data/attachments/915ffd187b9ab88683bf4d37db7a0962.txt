@@ -1,0 +1,3 @@
+run-many -t test-unit -p lane-one --parallel=4 --output-style=static
+ENV PECOTV_PM_GUARD_BEHAVIOR=1
+ENV NO_COLOR=1

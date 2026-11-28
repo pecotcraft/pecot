@@ -1,0 +1,4 @@
+error: several config files point to project #1:
+  - ghes.example.com_acme_board_acme.json
+  - ghes.example.com_acme_other_acme.json
+  remove all but one, then run again; it is moved to ghes.example.com_acme_1.json

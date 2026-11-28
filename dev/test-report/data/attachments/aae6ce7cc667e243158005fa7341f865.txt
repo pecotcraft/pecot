@@ -1,0 +1,4 @@
+-C	/tmp/pecot-hooks-QQvl7I/sync-repo	diff	--quiet	
+-C	/tmp/pecot-hooks-QQvl7I/sync-repo	diff	--staged	--quiet	
+-C	/tmp/pecot-hooks-QQvl7I/sync-repo	branch	--show-current	
+pull	

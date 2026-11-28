@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "conflict in upper.txt\n  resolve the conflicts and git add the files, then call pr_restack with continue: true\n  or go back to the position before the restack: pr_restack with abort: true"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-conflict\",\"detail\":\"conflict in upper.txt\\n  resolve the conflicts and git add the files, then call pr_restack with continue: true\\n  or go back to the position before the restack: pr_restack with abort: true\",\"branch\":\"feat/demo/12\",\"base\":\"feat/demo/11\",\"outcome\":\"conflict\",\"conflicts\":[\"upper.txt\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-conflict",
+    "detail": "conflict in upper.txt\n  resolve the conflicts and git add the files, then call pr_restack with continue: true\n  or go back to the position before the restack: pr_restack with abort: true",
+    "branch": "feat/demo/12",
+    "base": "feat/demo/11",
+    "outcome": "conflict",
+    "conflicts": [
+      "upper.txt"
+    ]
+  },
+  "isError": true
+}

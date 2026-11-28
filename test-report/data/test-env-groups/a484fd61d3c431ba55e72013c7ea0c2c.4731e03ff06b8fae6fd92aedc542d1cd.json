@@ -1,0 +1,1 @@
+{"id":"a484fd61d3c431ba55e72013c7ea0c2c.4731e03ff06b8fae6fd92aedc542d1cd","fullName":".githooks.tests.test_pages_provenance#test_run_kind_follows_the_workflow_path","name":"run の path が .github/workflows/test-report.yml のとき、種類は report になる","status":"passed","testResultsByEnv":{"default":"597489ecc4f0b8c4e6b4753e7abf94c9"}}

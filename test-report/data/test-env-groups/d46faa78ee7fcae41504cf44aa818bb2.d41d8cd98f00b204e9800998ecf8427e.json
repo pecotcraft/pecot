@@ -1,0 +1,1 @@
+{"id":"d46faa78ee7fcae41504cf44aa818bb2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toToolResult 失敗の文があれば、message より優先して detail にする","name":"失敗の文があれば、message より優先して detail にする","status":"passed","testResultsByEnv":{"default":"2959e5056040006e78d73edcf3ffb52a"}}

@@ -1,0 +1,1 @@
+{"id":"2a19df9da541cf26a44ee924d4d021d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create MCP の data GitHub のトークンが見つからない と、kind が github-auth の失敗を返す","name":"GitHub のトークンが見つからない と、kind が github-auth の失敗を返す","status":"passed","testResultsByEnv":{"default":"fd2e754142efe72acbffa111b4c453bc"}}

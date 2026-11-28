@@ -1,0 +1,1 @@
+{"id":"7955d39a9de1d903e38d326e2bad7463.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#readWaitsForMerge 節が存在しない本文を渡すと、absent を返す","name":"節が存在しない本文を渡すと、absent を返す","status":"passed","testResultsByEnv":{"default":"ab6488c0645c917f9b939d0d4a4ea9c8"}}

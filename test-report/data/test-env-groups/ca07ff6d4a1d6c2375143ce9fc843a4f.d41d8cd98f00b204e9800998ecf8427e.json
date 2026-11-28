@@ -1,0 +1,1 @@
+{"id":"ca07ff6d4a1d6c2375143ce9fc843a4f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check 打つと、count: preflight warnings の行を標準エラーに出す","name":"打つと、count: preflight warnings の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"000b0109eb359882e564e6e8959a30df"}}

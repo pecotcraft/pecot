@@ -1,0 +1,3 @@
+PASS: /tmp/pecot-hooks-yWZa13/jq_dispatch.sh
+=== Summary ===
+0 files with violations, 1 files clean

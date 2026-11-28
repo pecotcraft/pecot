@@ -1,0 +1,1 @@
+{"id":"05edd9df7281d69a398a158949e65b97.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#screenWorkflowRun conclusion が skipped の場合は、処理を進めず何も書き込まない","name":"conclusion が skipped の場合は、処理を進めず何も書き込まない","status":"passed","testResultsByEnv":{"default":"ec31ee61d8a74325f0279754734c8978"}}

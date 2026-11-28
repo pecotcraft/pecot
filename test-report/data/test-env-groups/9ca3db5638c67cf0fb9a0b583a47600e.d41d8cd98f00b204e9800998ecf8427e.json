@@ -1,0 +1,1 @@
+{"id":"9ca3db5638c67cf0fb9a0b583a47600e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#removeIssueLabel ラベルの削除で状態コード 404 が返った場合は、absent を返す","name":"ラベルの削除で状態コード 404 が返った場合は、absent を返す","status":"passed","testResultsByEnv":{"default":"2272a864e69ed70e9b6a0bbf6e7279f6"}}

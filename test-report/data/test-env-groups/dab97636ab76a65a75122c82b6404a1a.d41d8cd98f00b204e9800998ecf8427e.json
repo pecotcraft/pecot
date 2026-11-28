@@ -1,0 +1,1 @@
+{"id":"dab97636ab76a65a75122c82b6404a1a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#formatMessage 指摘を「パス:行:桁 規則 ID メッセージ」の 1 行にし、メッセージの改行と前後の空白を 1 つの空白にする","name":"指摘を「パス:行:桁 規則 ID メッセージ」の 1 行にし、メッセージの改行と前後の空白を 1 つの空白にする","status":"passed","testResultsByEnv":{"default":"aa7fc499839644efa132ea4b7ef7d690"}}

@@ -1,0 +1,1 @@
+{"id":"bc18b4e29e979610277f14034b91a0f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-show.test.ts#board_show アクティブなプロジェクトが無いと、kind が no-active-project の失敗を返す","name":"アクティブなプロジェクトが無いと、kind が no-active-project の失敗を返す","status":"passed","testResultsByEnv":{"default":"1d38a4c78f1e35b5e6c8fc2fb52c166c"}}

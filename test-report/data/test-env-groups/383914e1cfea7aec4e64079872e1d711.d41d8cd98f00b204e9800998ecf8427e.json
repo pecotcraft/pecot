@@ -1,0 +1,1 @@
+{"id":"383914e1cfea7aec4e64079872e1d711.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slides-title.test.ts#sanitizeFilename 空白のみは merged にフォールバック（入力 \" \"）の場合は、ファイル名として使える文字列を返す","name":"空白のみは merged にフォールバック（入力 \" \"）の場合は、ファイル名として使える文字列を返す","status":"passed","testResultsByEnv":{"default":"db32537b10d161808b4efe924d029024"}}

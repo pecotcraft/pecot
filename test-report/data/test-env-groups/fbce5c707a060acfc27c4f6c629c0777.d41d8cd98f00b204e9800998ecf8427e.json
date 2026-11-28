@@ -1,0 +1,1 @@
+{"id":"fbce5c707a060acfc27c4f6c629c0777.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/s3-input.test.ts#validateS3ListUri S3 の URI にバケット名だけの場合も prefix を含む場合も、受け付ける","name":"S3 の URI にバケット名だけの場合も prefix を含む場合も、受け付ける","status":"passed","testResultsByEnv":{"default":"10d1c6ea9430a0ef048a484b395cb2be"}}

@@ -1,0 +1,13 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "acme/demo"
+    },
+    {
+      "type": "text",
+      "text": "{}"
+    }
+  ],
+  "structuredContent": {}
+}

@@ -1,0 +1,1 @@
+{"id":"c657add908c2c43f90a1d8dc14252b63.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#executeSlideSync の入力エラー slides.md 無しの dir は not-talk-dir になる","name":"slides.md 無しの dir は not-talk-dir になる","status":"passed","testResultsByEnv":{"default":"e52f1eb6035f80255923c0b338f6028d"}}

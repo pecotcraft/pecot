@@ -1,0 +1,1 @@
+{"id":"06b3c94b2c17975abc0b35ae7fd6b820.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry 復元の途中で失敗した場合は、部分的な復元を残さず、ヒットしない扱いにする","name":"復元の途中で失敗した場合は、部分的な復元を残さず、ヒットしない扱いにする","status":"passed","testResultsByEnv":{"default":"99bb721c093acf9489f0ad934e4c268b"}}

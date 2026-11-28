@@ -1,0 +1,1 @@
+{"id":"f7e8e32437cd74637bf341f6d70b38c5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#splitOwnerRepository a/ を渡すと、owner と repository の 2 つに分ける（中身は検証しない）","name":"a/ を渡すと、owner と repository の 2 つに分ける（中身は検証しない）","status":"passed","testResultsByEnv":{"default":"22cbd231920fa04e99b7571dd9030c2c"}}

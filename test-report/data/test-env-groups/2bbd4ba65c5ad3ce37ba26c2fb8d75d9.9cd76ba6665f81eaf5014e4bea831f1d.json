@@ -1,0 +1,1 @@
+{"id":"2bbd4ba65c5ad3ce37ba26c2fb8d75d9.9cd76ba6665f81eaf5014e4bea831f1d","fullName":".githooks.tests.test_pages_provenance#test_pull_request_not_narrowed_to_one_is_dropped","name":"pull_request の run は、PR が 1 件に絞れないと、prs1 の場合に破棄する","status":"passed","testResultsByEnv":{"default":"34cbb5e07ff6078b17a7420e69bd9b6f"}}

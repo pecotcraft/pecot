@@ -1,0 +1,1 @@
+{"id":"735927e798a73c1b3a34c2845933af98.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_logs_get_log_events limit が 0 の入力を、スキーマの検証で拒否する","name":"limit が 0 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"59286e0bf15f0a8e356eb18cc2453fb9"}}

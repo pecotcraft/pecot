@@ -1,0 +1,1 @@
+{"id":"f96bb961b67cd50800fc3587d6b3eee5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/github-ops/project.test.ts#github ops project-link でリポが既につながっていると、ok: true と already_linked を返す","name":"project-link でリポが既につながっていると、ok: true と already_linked を返す","status":"passed","testResultsByEnv":{"default":"cacb9a71b5dea67aef969fe115bf4a72"}}

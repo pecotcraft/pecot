@@ -1,0 +1,1 @@
+{"id":"baff836f98913b2535c09d6499cff50c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-finish.test.ts#auto finish GITHUB_RUN_ATTEMPT が無いと、1 回目の試行として書く","name":"GITHUB_RUN_ATTEMPT が無いと、1 回目の試行として書く","status":"passed","testResultsByEnv":{"default":"2a10fb6f10881fd58d7382ffc65d0c29"}}

@@ -1,0 +1,1 @@
+{"id":"5d02d431053b7bd1cea5a9a908ffd6cd.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_report_uploads_history_only_for_release","name":"リリース版では、レポートを作った後の履歴を、1 日だけ別の artifact に上げる","status":"passed","testResultsByEnv":{"default":"6121e407152730a9eae4ffa1cbda7b4d"}}

@@ -1,0 +1,1 @@
+{"id":"a6b867ffd9cee2a39a94830f67a8f089.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#素の URL の Link ノード スキームだけ は、Link として扱わない","name":"スキームだけ は、Link として扱わない","status":"passed","testResultsByEnv":{"default":"ed07003e311d7ac924350e70e14fe11c"}}

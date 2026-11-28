@@ -1,0 +1,1 @@
+{"id":"55cdc481b5845023d9371de7d0809f08.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/diff.test.ts#formatStale 差の行が存在しなくても、error の行と run の行を返す","name":"差の行が存在しなくても、error の行と run の行を返す","status":"passed","testResultsByEnv":{"default":"ad11accc6a50a3bfa142c7213fd8eb8b"}}

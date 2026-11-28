@@ -1,0 +1,1 @@
+{"id":"c53140b02db5a46a8420d22a40815fec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#createIssue 本文を省略した場合は、空文字の body を送信する","name":"本文を省略した場合は、空文字の body を送信する","status":"passed","testResultsByEnv":{"default":"996678a52dc23996461e1a365be801b7"}}

@@ -1,0 +1,4 @@
+==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)
+  NG: devEngines.packageManager の version が完全一致の semver でない（'^12.15.0'）: plugins/pecot-visual/package.json
+  NG: packageManager（'pnpm@12.15.0'）が devEngines.packageManager の版（pnpm@^12.15.0）とずれている: plugins/pecot-visual/package.json
+check-pm-guard: 静的確認 FAILED (2 件)

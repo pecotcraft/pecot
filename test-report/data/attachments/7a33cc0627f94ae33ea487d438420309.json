@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "branch origin/develop does not exist\n  check the remote branches with: git branch -r"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\"branch origin/develop does not exist\\n  check the remote branches with: git branch -r\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": "branch origin/develop does not exist\n  check the remote branches with: git branch -r"
+  },
+  "isError": true
+}

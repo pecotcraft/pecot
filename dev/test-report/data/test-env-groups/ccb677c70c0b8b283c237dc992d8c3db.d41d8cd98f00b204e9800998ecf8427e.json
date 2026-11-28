@@ -1,0 +1,1 @@
+{"id":"ccb677c70c0b8b283c237dc992d8c3db.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 setup は gate の後に動き、gate が飛ばされても、変数が空かトークンを作れなかった起動ラベルで動く","name":"setup は gate の後に動き、gate が飛ばされても、変数が空かトークンを作れなかった起動ラベルで動く","status":"passed","testResultsByEnv":{"default":"e1e716adc078119d632578064a419b14"}}

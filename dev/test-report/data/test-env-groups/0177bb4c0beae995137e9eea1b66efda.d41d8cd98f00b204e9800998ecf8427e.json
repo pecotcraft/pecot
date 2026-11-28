@@ -1,0 +1,1 @@
+{"id":"0177bb4c0beae995137e9eea1b66efda.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory PLUGIN_ROOT だけがあって、cwd がその外なら、cwd のままにする","name":"PLUGIN_ROOT だけがあって、cwd がその外なら、cwd のままにする","status":"passed","testResultsByEnv":{"default":"506cf93a8dbd798b5d7cde6b8f37274d"}}

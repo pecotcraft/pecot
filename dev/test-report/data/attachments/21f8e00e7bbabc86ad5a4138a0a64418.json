@@ -1,0 +1,177 @@
+{
+  "name": "evidence_create",
+  "title": "Create evidence workbook",
+  "description": "Generates a work-evidence xlsx with screenshots pasted in, from an EvidenceSpec JSON. Places the images listed in the spec in order and adds annotations. Before generating, it checks the title, captions and annotations against the text rules and generates nothing if there is a violation.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "input_path": {
+        "type": "string",
+        "description": "Absolute path of the EvidenceSpec JSON. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+      },
+      "out_path": {
+        "description": "Absolute path of the xlsx to write. If omitted, evidence.xlsx in the same directory as input_path. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "input_path"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "event": {
+        "type": "string",
+        "description": "result on success, evidence.create.error on failure (omitted when a path argument is rejected)"
+      },
+      "outPath": {
+        "type": "string",
+        "description": "Absolute path of the written xlsx (success only)"
+      },
+      "items": {
+        "type": "number",
+        "description": "Number of images placed (success only)"
+      },
+      "annotations": {
+        "type": "number",
+        "description": "Number of annotations added (success only)"
+      },
+      "skipped": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Path of the image as written in the spec"
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "not-found",
+                "unsupported-format",
+                "unreadable"
+              ],
+              "description": "Why the image was skipped"
+            }
+          },
+          "required": [
+            "path",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Images that were skipped (success only; empty when none)"
+      },
+      "violations": {
+        "description": "Text rule violations (failure only, kind text-violation)",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "item": {
+              "type": "string",
+              "description": "Where the text is"
+            },
+            "ruleId": {
+              "type": "string",
+              "description": "ID of the violated rule"
+            },
+            "message": {
+              "type": "string",
+              "description": "What is wrong"
+            },
+            "text": {
+              "type": "string",
+              "description": "The checked text"
+            }
+          },
+          "required": [
+            "item",
+            "ruleId",
+            "message",
+            "text"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "invalidPaths": {
+        "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "convertedPaths": {
+        "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Value that was passed"
+            },
+            "to": {
+              "type": "string",
+              "description": "Path it was converted to"
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full text of the failure and how to recover (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "event",
+          "outPath",
+          "items",
+          "annotations",
+          "skipped"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false
+  }
+}

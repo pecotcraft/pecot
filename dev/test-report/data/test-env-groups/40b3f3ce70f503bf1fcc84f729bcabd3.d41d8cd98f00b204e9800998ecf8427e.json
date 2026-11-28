@@ -1,0 +1,1 @@
+{"id":"40b3f3ce70f503bf1fcc84f729bcabd3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/errors.test.ts#asNotFoundError GitHubAPIError でない の例外は、そのまま返す","name":"GitHubAPIError でない の例外は、そのまま返す","status":"passed","testResultsByEnv":{"default":"158eb1bd919641def3f23ba025ff65ed"}}

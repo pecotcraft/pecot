@@ -1,0 +1,1 @@
+{"id":"1769aaa8d12f42a1d772fef468077b7e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_runs_on_every_pull_request_path","name":"dependabot-commit.yml は、パスを絞らずにすべての PR で動く","status":"passed","testResultsByEnv":{"default":"ce542b95165c3aa36cc4ecced70eeda4"}}

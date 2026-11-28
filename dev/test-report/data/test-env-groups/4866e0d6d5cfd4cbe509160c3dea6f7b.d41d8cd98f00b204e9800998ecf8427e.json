@@ -1,0 +1,1 @@
+{"id":"4866e0d6d5cfd4cbe509160c3dea6f7b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_dispatch_tag_is_optional_and_dry_run_defaults_to_false","name":"手動の起動では、タグを省略でき、dry-run の既定値は false になる","status":"passed","testResultsByEnv":{"default":"23592822a474ead6b8edab02ede76e8d"}}

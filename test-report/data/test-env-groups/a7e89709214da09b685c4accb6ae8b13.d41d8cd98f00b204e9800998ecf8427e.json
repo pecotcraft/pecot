@@ -1,0 +1,1 @@
+{"id":"a7e89709214da09b685c4accb6ae8b13.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-create.test.ts#slide create の失敗 (FR-013) タグの無い git URL は取得に入らず、theme-tag-required を返す","name":"タグの無い git URL は取得に入らず、theme-tag-required を返す","status":"passed","testResultsByEnv":{"default":"8fe015d4504a38e0a15aed81bd67e3b3"}}

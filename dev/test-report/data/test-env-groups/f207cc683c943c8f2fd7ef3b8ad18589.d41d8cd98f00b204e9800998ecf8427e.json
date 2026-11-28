@@ -1,0 +1,1 @@
+{"id":"f207cc683c943c8f2fd7ef3b8ad18589.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#語の一部に pnpm を含むパスは、違反として返さない","name":"語の一部に pnpm を含むパスは、違反として返さない","status":"passed","testResultsByEnv":{"default":"6ac9ec13a93fbb185199cac386a04ab4"}}

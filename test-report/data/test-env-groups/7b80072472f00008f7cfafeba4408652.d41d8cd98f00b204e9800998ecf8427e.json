@@ -1,0 +1,1 @@
+{"id":"7b80072472f00008f7cfafeba4408652.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/types.test.ts#SlideStep 型 clickStep に null と数値を入れると、入れた値のまま保持する","name":"clickStep に null と数値を入れると、入れた値のまま保持する","status":"passed","testResultsByEnv":{"default":"3426fbd6956660794455326aa1e10d27"}}

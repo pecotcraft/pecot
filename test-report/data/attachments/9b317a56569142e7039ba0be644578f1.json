@@ -1,0 +1,129 @@
+{
+  "name": "pr_restack",
+  "title": "Restack branch",
+  "description": "Restack the current branch onto the new position of its base branch",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "check": {
+        "default": false,
+        "description": "Only report whether a restack is needed",
+        "type": "boolean"
+      },
+      "continue": {
+        "default": false,
+        "description": "Continue a restack that stopped on conflicts, after resolving them",
+        "type": "boolean"
+      },
+      "abort": {
+        "default": false,
+        "description": "Abort a restack that stopped on conflicts and go back to the position before it",
+        "type": "boolean"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "branch": {
+        "type": "string",
+        "description": "Branch that is restacked"
+      },
+      "base": {
+        "type": "string",
+        "description": "Base branch after the restack (the develop branch when the lower PR is merged)"
+      },
+      "outcome": {
+        "type": "string",
+        "enum": [
+          "up-to-date",
+          "needs-restack",
+          "restacked",
+          "synced",
+          "conflict",
+          "aborted"
+        ],
+        "description": "What happened, or with check, what a restack would do"
+      },
+      "cause": {
+        "description": "Why a restack is needed (only with check, when one is needed)",
+        "type": "string",
+        "enum": [
+          "base-moved",
+          "base-merged"
+        ]
+      },
+      "pullRequest": {
+        "description": "Merged PR of the lower branch (only when the cause is base-merged)",
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      },
+      "pushed": {
+        "description": "Whether the branch was pushed (only when restacked)",
+        "type": "boolean"
+      },
+      "conflicts": {
+        "description": "Files with conflicts (only on conflict)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "relinked": {
+        "description": "Open PR whose body was saved again so that GitHub links its closing Issues (only after a restack onto the develop branch)",
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "branch",
+          "base",
+          "outcome"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

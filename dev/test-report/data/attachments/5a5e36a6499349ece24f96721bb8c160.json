@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the result of get_release_by_tag in reads.release.result is not in the shape of the official GitHub MCP server\n  tag_name: Invalid input: expected string, received undefined"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-mcp-shape\",\"detail\":\"the result of get_release_by_tag in reads.release.result is not in the shape of the official GitHub MCP server\\n  tag_name: Invalid input: expected string, received undefined\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-mcp-shape",
+    "detail": "the result of get_release_by_tag in reads.release.result is not in the shape of the official GitHub MCP server\n  tag_name: Invalid input: expected string, received undefined"
+  },
+  "isError": true
+}

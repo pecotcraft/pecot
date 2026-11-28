@@ -1,0 +1,1 @@
+{"id":"8dea6cef6cd3906631c374a03783a1df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#shorthand-list の項目値 配列の項目の値に構文の文字 \"{\" を含む場合も、拒否せず JSON にエスケープして実行する","name":"配列の項目の値に構文の文字 \"{\" を含む場合も、拒否せず JSON にエスケープして実行する","status":"passed","testResultsByEnv":{"default":"496895d0e2fbe155affb687fd94076b9"}}

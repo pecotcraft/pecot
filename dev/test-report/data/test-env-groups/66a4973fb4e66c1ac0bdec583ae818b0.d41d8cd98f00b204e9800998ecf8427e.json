@@ -1,0 +1,1 @@
+{"id":"66a4973fb4e66c1ac0bdec583ae818b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish 待っている Issue base が開発ブランチでない PR を片付けても、その PR の Issue を閉じる","name":"base が開発ブランチでない PR を片付けても、その PR の Issue を閉じる","status":"passed","testResultsByEnv":{"default":"9bd68c3da8d7ccab1dc9f50f023d579a"}}

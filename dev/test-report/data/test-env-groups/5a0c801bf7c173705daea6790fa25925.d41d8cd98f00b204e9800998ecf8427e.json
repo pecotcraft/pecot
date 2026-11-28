@@ -1,0 +1,1 @@
+{"id":"5a0c801bf7c173705daea6790fa25925.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations Point / Rect box がオブジェクトでない場合は、拒否する","name":"box がオブジェクトでない場合は、拒否する","status":"passed","testResultsByEnv":{"default":"9bf0fe0b2f3e9c935daf1e9627fa92f1"}}

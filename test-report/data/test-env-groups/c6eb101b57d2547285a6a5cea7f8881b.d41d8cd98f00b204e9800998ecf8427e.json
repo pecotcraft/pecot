@@ -1,0 +1,1 @@
+{"id":"c6eb101b57d2547285a6a5cea7f8881b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-view.test.ts#readBoard 表示する列の OPEN の項目に絞り込み、リポジトリを指定した場合はそのリポジトリの項目にさらに絞り込む","name":"表示する列の OPEN の項目に絞り込み、リポジトリを指定した場合はそのリポジトリの項目にさらに絞り込む","status":"passed","testResultsByEnv":{"default":"db7fb15ba4533662968b16e87fdd6850"}}

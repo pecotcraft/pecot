@@ -1,0 +1,1 @@
+{"id":"a273b3258786a50db17b2336481e2d5c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments shorthand-list の要素のうち、値を持たないものは JSON から除外する","name":"shorthand-list の要素のうち、値を持たないものは JSON から除外する","status":"passed","testResultsByEnv":{"default":"275341330b2eb2ded10c31d6c541d785"}}

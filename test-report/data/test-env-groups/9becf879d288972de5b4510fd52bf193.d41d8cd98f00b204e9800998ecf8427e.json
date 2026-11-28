@@ -1,0 +1,1 @@
+{"id":"9becf879d288972de5b4510fd52bf193.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-numeric-asset-prefix.test.ts#画像以外の拡張子だと、対象外として検出しない","name":"画像以外の拡張子だと、対象外として検出しない","status":"passed","testResultsByEnv":{"default":"109aa184b0818d8dc1bc1ea22b3b9006"}}

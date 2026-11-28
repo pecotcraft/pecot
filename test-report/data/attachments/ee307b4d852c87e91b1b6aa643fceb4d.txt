@@ -1,0 +1,2 @@
+error: acme/demo is not in any project config
+  available: (none)

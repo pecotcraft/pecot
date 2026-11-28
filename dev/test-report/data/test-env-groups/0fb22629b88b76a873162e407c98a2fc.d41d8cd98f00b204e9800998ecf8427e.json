@@ -1,0 +1,1 @@
+{"id":"0fb22629b88b76a873162e407c98a2fc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/pdf.test.ts#exportPdf SVG の寸法を切り上げ、1 ページ目だけを背景つきで印刷し、結果をファイルに書き出す","name":"SVG の寸法を切り上げ、1 ページ目だけを背景つきで印刷し、結果をファイルに書き出す","status":"passed","testResultsByEnv":{"default":"24b4710fdd64a904ece8de1b845cb01e"}}

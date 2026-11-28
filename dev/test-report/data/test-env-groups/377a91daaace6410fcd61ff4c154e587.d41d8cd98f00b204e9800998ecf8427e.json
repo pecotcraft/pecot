@@ -1,0 +1,1 @@
+{"id":"377a91daaace6410fcd61ff4c154e587.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order 検証した値は、変更できないように凍結する","name":"検証した値は、変更できないように凍結する","status":"passed","testResultsByEnv":{"default":"1b90f1eb65e1587911ace692d5c8a8ca"}}

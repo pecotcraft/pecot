@@ -1,0 +1,1 @@
+{"id":"c2742c6f25363973c134fe4bffc72b61.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#readCurrentGitRemote Git リポジトリの外では、undefined を返す","name":"Git リポジトリの外では、undefined を返す","status":"passed","testResultsByEnv":{"default":"925c156e2ffeadb252540d823359468e"}}

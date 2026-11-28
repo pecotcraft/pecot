@@ -1,0 +1,1 @@
+{"id":"b253ae3c4766ca56805fb74f0a6fe01d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check method ごとの引数 create に update だけの引数を渡すと、引数ごとに unexpected の problem にする","name":"create に update だけの引数を渡すと、引数ごとに unexpected の problem にする","status":"passed","testResultsByEnv":{"default":"1a2493305e1c97bbe185c5133a52dae0"}}

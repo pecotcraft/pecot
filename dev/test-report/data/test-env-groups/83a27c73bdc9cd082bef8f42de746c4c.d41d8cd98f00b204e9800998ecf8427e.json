@@ -1,0 +1,1 @@
+{"id":"83a27c73bdc9cd082bef8f42de746c4c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#loadCopyExcludeSpec .worktreeignore が存在しない場合は、WorktreeConfigError を送出する","name":".worktreeignore が存在しない場合は、WorktreeConfigError を送出する","status":"passed","testResultsByEnv":{"default":"a1bc332d170a37d042cb0f843f52f722"}}

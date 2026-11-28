@@ -1,0 +1,1 @@
+{"id":"f56fc1adb45b27c3607b9e8a1c4dc3c1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template 単引用符の属性値の中の二重引用符 に違反があると、元のファイルの行と桁で指摘を返す","name":"単引用符の属性値の中の二重引用符 に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"c09290e2de72fbe26edc56851f570891"}}

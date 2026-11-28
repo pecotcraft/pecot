@@ -1,0 +1,1 @@
+{"id":"41736b6076aadec022ccf78cf4b70010.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#validateInput profile と region に不正な値を渡すと、入力の検証で拒否する","name":"profile と region に不正な値を渡すと、入力の検証で拒否する","status":"passed","testResultsByEnv":{"default":"f5a5cc71a7c363d18efff8eb0e8bf30f"}}

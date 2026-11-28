@@ -1,0 +1,1 @@
+{"id":"ccb838375fd46e9ffdf96505c9c7bb08.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/e2e/mcp-stdio.test.ts#pecot-tools-mcp (stdio) initialize が成功し、serverInfo がサーバ名と plugin.json の版を返す","name":"initialize が成功し、serverInfo がサーバ名と plugin.json の版を返す","status":"passed","testResultsByEnv":{"default":"3b2978dd1ac77f7848e550e21b654246"}}

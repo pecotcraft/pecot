@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "status 'active' is not configured in the project"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"status-not-configured\",\"detail\":\"status 'active' is not configured in the project\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "status-not-configured",
+    "detail": "status 'active' is not configured in the project"
+  },
+  "isError": true
+}

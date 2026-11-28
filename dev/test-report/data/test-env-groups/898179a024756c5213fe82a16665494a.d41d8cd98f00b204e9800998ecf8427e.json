@@ -1,0 +1,1 @@
+{"id":"898179a024756c5213fe82a16665494a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites 親の Issue が存在する場合は、親のリポジトリと番号を取り出す","name":"親の Issue が存在する場合は、親のリポジトリと番号を取り出す","status":"passed","testResultsByEnv":{"default":"234cf9e82f94c615173e51d9afb458d9"}}

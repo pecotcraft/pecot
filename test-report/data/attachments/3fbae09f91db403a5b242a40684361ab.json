@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "tag pecot-actions/v1.1.0 is not found in pecotcraft/pecot"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-not-found\",\"detail\":\"tag pecot-actions/v1.1.0 is not found in pecotcraft/pecot\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-not-found",
+    "detail": "tag pecot-actions/v1.1.0 is not found in pecotcraft/pecot"
+  },
+  "isError": true
+}

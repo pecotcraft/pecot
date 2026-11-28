@@ -1,0 +1,1 @@
+{"id":"ba95175712ea418754bcd985149fbb1c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments profile と region を指定したときだけ、引数の末尾に付ける","name":"profile と region を指定したときだけ、引数の末尾に付ける","status":"passed","testResultsByEnv":{"default":"88bae75bd73f68a111f7bce32e449775"}}

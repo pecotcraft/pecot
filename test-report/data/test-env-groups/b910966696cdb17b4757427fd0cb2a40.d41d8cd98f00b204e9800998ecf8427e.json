@@ -1,0 +1,1 @@
+{"id":"b910966696cdb17b4757427fd0cb2a40.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slides-title.test.ts#parseSlidesTitle 閉じる --- の直後に改行がなく、そこでファイルが終わる場合も、title を取得する","name":"閉じる --- の直後に改行がなく、そこでファイルが終わる場合も、title を取得する","status":"passed","testResultsByEnv":{"default":"e4eb2f93a3f42c5ade4e9210d50cbb34"}}

@@ -1,0 +1,1 @@
+{"id":"6c3d8ffcd4ae74a70efe4de0bb9acf72.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_unknown_subcommand_exits_2","name":"未知のサブコマンドを渡すと、使い方を出力して終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"241681810832bf999bc52fcb61ea41c3"}}

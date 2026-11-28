@@ -1,0 +1,1 @@
+{"id":"a98e88f82f1c92045408eacef90feb53.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#ensureChromiumHostDependencies 実行する子プロセスのすべてに、signal を渡す","name":"実行する子プロセスのすべてに、signal を渡す","status":"passed","testResultsByEnv":{"default":"85fc35379f3aa90ffe3e924d1c313cb3"}}

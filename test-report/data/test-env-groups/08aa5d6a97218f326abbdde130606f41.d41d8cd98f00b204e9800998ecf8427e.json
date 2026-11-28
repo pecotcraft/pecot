@@ -1,0 +1,1 @@
+{"id":"08aa5d6a97218f326abbdde130606f41.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base 親 PR がスタックに入っているときに PR を作ると、そのスタックの一番上に足す","name":"親 PR がスタックに入っているときに PR を作ると、そのスタックの一番上に足す","status":"passed","testResultsByEnv":{"default":"a5ed0171d1600e500cc8e403be033953"}}

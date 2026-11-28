@@ -1,0 +1,1 @@
+{"id":"eafe8e0a9a7c71358526b2ca9e656923.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyJapaneseFontFix letter-spacing に一致するテキストの場合は、rPr に spc 属性を付ける","name":"letter-spacing に一致するテキストの場合は、rPr に spc 属性を付ける","status":"passed","testResultsByEnv":{"default":"90994fd1875ecbb93442850dc3676265"}}

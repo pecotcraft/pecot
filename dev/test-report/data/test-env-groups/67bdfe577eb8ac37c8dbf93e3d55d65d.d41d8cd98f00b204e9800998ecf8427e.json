@@ -1,0 +1,1 @@
+{"id":"67bdfe577eb8ac37c8dbf93e3d55d65d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#dataDirectory の解決順 相対パスの HOME は使わず、有効な XDG_DATA_HOME が無ければ… のとき、undefined を返す","name":"相対パスの HOME は使わず、有効な XDG_DATA_HOME が無ければ… のとき、undefined を返す","status":"passed","testResultsByEnv":{"default":"c8da8eb2a54c865a3c0b0c2f7a85944b"}}

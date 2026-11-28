@@ -1,0 +1,1 @@
+{"id":"9afc90251e361ebecffd8a356fe362e3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_ci_mode_failure_normalizes_exit_130","name":"CI のモードで終了コード 130 で失敗しても、終了コードを 1 にそろえる","status":"passed","testResultsByEnv":{"default":"1aa0a22c2a2a5a9797137c147136c9fa"}}

@@ -1,0 +1,1 @@
+{"id":"ebffb6add9c761e8175970b9e6e98d27.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_reports_violation","name":"文の長さの規則に違反するファイルを渡すと、sentence-length の違反を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"8c2df2ce76ebcb948b5c0b245612cff1"}}

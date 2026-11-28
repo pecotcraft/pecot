@@ -1,0 +1,1 @@
+{"id":"d53d26c8b48a226bc18e3a5515f43ed7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint eslint の終わり方が クラッシュの見出し なら、違反と言わずに lint しなかったことを返す","name":"eslint の終わり方が クラッシュの見出し なら、違反と言わずに lint しなかったことを返す","status":"passed","testResultsByEnv":{"default":"d9a967344efd55f88f11562125faca76"}}

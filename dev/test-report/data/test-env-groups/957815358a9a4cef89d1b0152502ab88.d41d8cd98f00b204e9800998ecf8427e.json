@@ -1,0 +1,1 @@
+{"id":"957815358a9a4cef89d1b0152502ab88.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool 張り直したときは、起動済みのサーバを止めてから起動し直す","name":"張り直したときは、起動済みのサーバを止めてから起動し直す","status":"passed","testResultsByEnv":{"default":"f7c6b5547f1affac557da6ff20ea6224"}}

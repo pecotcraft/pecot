@@ -1,0 +1,1 @@
+{"id":"1faff3241ae9b4e8676e8ede752a5a15.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_link MCP の data リポジトリが owner/repo の形でないと、kind が invalid-input の失敗を返す","name":"リポジトリが owner/repo の形でないと、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"d0fe9be2aa325fe25143b014fcfd6359"}}

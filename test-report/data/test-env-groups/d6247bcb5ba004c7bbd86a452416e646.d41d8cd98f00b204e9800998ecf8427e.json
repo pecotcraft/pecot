@@ -1,0 +1,1 @@
+{"id":"d6247bcb5ba004c7bbd86a452416e646.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start MCP の data 対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す","name":"対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す","status":"passed","testResultsByEnv":{"default":"9a019b60d21d2c6fa250d238a7451d13"}}

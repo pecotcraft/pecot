@@ -1,0 +1,1 @@
+{"id":"7cda8954357fdb3dd55c863968349c93.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.bats#SCRIPT_DIR に末尾の 1 段を削る形のほかの % の修飾を付けた参照は、UNRESOLVED と判定する","name":"SCRIPT_DIR に末尾の 1 段を削る形のほかの % の修飾を付けた参照は、UNRESOLVED と判定する","status":"passed","testResultsByEnv":{"default":"03c84f1477b91902fb9936c48a597f54"}}

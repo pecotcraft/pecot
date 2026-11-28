@@ -1,0 +1,1 @@
+{"id":"956d886fe54dca95b9437ee5c3b0a8a6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath スラッシュで書いたドライブレターのパスも、同じように変換する","name":"スラッシュで書いたドライブレターのパスも、同じように変換する","status":"passed","testResultsByEnv":{"default":"aae09dd42f7c7af0a427b87bed879f4a"}}

@@ -1,0 +1,1 @@
+{"id":"148fb76b4e8dab0df8476e064daa07a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#appendIssueCloseIfNeeded 参照が存在しない本文には、末尾に Closes を追加する","name":"参照が存在しない本文には、末尾に Closes を追加する","status":"passed","testResultsByEnv":{"default":"73a75c5b9c2b929f512ea70eb1ffb734"}}

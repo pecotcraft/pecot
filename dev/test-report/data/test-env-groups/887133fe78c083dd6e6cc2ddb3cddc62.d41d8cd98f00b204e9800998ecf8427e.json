@@ -1,0 +1,1 @@
+{"id":"887133fe78c083dd6e6cc2ddb3cddc62.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check sha sha が release の先頭でないと、sha-mismatch の項目と先頭の sha の候補を返す","name":"sha が release の先頭でないと、sha-mismatch の項目と先頭の sha の候補を返す","status":"passed","testResultsByEnv":{"default":"efd0cd970a74084d83744cda7d82c75c"}}

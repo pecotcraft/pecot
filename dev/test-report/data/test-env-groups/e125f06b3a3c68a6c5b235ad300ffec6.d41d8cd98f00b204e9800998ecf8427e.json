@@ -1,0 +1,1 @@
+{"id":"e125f06b3a3c68a6c5b235ad300ffec6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor git remote からリポジトリを特定できないと、git-unresolved の失敗を返す","name":"git remote からリポジトリを特定できないと、git-unresolved の失敗を返す","status":"passed","testResultsByEnv":{"default":"493fca0e428bb20d41fc159ae90ffb51"}}

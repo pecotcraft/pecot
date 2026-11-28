@@ -1,0 +1,1 @@
+{"id":"85cffc7da22084a263774db3e4921161.01a7bff14db2ac402b9008c036a898a7","fullName":".githooks.tests.test_pages_store#test_report_check_refuses_history_in_the_tar","name":"dev のレポートの tar の直下に履歴（empty-dev）があると、保管に置かない旨を指摘する","status":"passed","testResultsByEnv":{"default":"65ee92305b3817d5fd8f351604dff30c"}}

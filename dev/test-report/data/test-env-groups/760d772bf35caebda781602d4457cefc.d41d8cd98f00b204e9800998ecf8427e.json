@@ -1,0 +1,1 @@
+{"id":"760d772bf35caebda781602d4457cefc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-create.test.ts#slide create の失敗 (FR-013) テーマの保管場所を決定できない場合は、取得を始めず、theme-unknown で止まる","name":"テーマの保管場所を決定できない場合は、取得を始めず、theme-unknown で止まる","status":"passed","testResultsByEnv":{"default":"69e1faf24396a180d7335bc4b6668218"}}

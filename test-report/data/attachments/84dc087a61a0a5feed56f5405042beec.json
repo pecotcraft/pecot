@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: the ## Waits for merge section is malformed: empty reason: - #5: ; write one line per prerequisite as \"- #N: <reason>\""
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"waits-for-merge\",\"message\":\"the ## Waits for merge section is malformed: empty reason: - #5: ; write one line per prerequisite as \\\"- #N: <reason>\\\"\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "waits-for-merge",
+        "message": "the ## Waits for merge section is malformed: empty reason: - #5: ; write one line per prerequisite as \"- #N: <reason>\""
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"ee802ed41fa685ea8be3c498d900e423.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh の .pecot/work 配下 別リポの work 配下は、セッションの worktree にせず、そのリポに解決する","name":"別リポの work 配下は、セッションの worktree にせず、そのリポに解決する","status":"passed","testResultsByEnv":{"default":"61a54077927f0106a0d4ed75cf908808"}}

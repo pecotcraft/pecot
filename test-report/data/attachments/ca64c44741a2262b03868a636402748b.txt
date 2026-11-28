@@ -1,0 +1,1 @@
+project.board_url がありません: /tmp/pecot-cli-LB85DJ/.pecot/config/projects/p.json

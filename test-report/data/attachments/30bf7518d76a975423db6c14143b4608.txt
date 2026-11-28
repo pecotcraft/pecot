@@ -1,0 +1,17 @@
+
+[2m> [22m[2mnx run[22m fx:test  [2m[remote cache][22m
+
+[2m> [22mecho hi
+
+hi
+
+[2m[32m[39m[22m
+
+[7m[1m[32m NX [39m[22m[27m  [32mSuccessfully ran target [1mtest[22m for project fx[39m
+
+[2mNx read the output from the cache instead of running the command for 1 out of 1 tasks.[22m
+
+  Run duration:      3ms
+  Cache:             1/1 hit (100%)
+  Critical path:     1ms (1 task)
+  Recoverable time:  <1ms

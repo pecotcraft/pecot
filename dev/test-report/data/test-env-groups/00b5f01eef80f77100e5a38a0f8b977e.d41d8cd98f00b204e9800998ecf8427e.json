@@ -1,0 +1,1 @@
+{"id":"00b5f01eef80f77100e5a38a0f8b977e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/body-extractor.test.ts#frontmatter が無いと、全文を本文にして開始行を 1 にする","name":"frontmatter が無いと、全文を本文にして開始行を 1 にする","status":"passed","testResultsByEnv":{"default":"07e18a3176d40535f19b713b608f32f9"}}

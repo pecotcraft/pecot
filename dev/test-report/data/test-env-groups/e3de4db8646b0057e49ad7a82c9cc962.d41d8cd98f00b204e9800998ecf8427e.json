@@ -1,0 +1,1 @@
+{"id":"e3de4db8646b0057e49ad7a82c9cc962.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_ecr_describe_images の region region の書式に合わない値を渡すと、拒否する","name":"region の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"92ce66ae98f902becb15fb90372cbcf3"}}

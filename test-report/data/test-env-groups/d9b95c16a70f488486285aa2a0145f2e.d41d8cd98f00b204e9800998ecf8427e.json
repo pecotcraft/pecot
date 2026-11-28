@@ -1,0 +1,1 @@
+{"id":"d9b95c16a70f488486285aa2a0145f2e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/entry-point-library-references.test.ts#hooks のスクリプトの参照先 参照の実在とトークン会計 user-prompt-submit.sh が呼ぶ lib スクリプトはすべて実在する","name":"user-prompt-submit.sh が呼ぶ lib スクリプトはすべて実在する","status":"passed","testResultsByEnv":{"default":"0b63b2965f72abe1177837703579e476"}}

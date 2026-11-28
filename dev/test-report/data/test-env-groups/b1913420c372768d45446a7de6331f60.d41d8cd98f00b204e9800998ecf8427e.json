@@ -1,0 +1,1 @@
+{"id":"b1913420c372768d45446a7de6331f60.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh claude-bash-guards をプラグインの環境で動かすとき、--no-verify を deny で止める","name":"claude-bash-guards をプラグインの環境で動かすとき、--no-verify を deny で止める","status":"passed","testResultsByEnv":{"default":"f540ed685104b0b0b73491793f3ef599"}}

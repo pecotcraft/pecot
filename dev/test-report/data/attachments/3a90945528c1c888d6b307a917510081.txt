@@ -1,0 +1,5 @@
+ok: .github/workflows/pecot-review.yml
+ok: workflow template review
+ok: .github/workflows/pecot-review.yml calls the pecot actions, not npx @pecot/workflow-mcp
+ok: secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*
+skipped: Claude GitHub App

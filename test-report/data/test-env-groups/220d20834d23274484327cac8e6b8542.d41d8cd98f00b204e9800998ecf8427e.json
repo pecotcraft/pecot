@@ -1,0 +1,1 @@
+{"id":"220d20834d23274484327cac8e6b8542.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create MCP の data リリースの作成で GitHub API がエラーを返すと、失敗を返す","name":"リリースの作成で GitHub API がエラーを返すと、失敗を返す","status":"passed","testResultsByEnv":{"default":"50c7637e01abfe72c7ade0ab83b7af96"}}

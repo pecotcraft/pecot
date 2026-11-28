@@ -1,0 +1,1 @@
+{"id":"bba0982629ef8708547c9bd1ab3d37b3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/branch-name.test.ts#extractIssueNumberFromBranch ブランチ feat/module/sub-feature/999 の場合は、末尾の番号 999 を返す","name":"ブランチ feat/module/sub-feature/999 の場合は、末尾の番号 999 を返す","status":"passed","testResultsByEnv":{"default":"32e86cb3ecb86290bdb9fcc2244e28d6"}}

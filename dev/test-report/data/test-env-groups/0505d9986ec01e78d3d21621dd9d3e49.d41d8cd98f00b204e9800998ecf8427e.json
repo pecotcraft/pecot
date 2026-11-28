@@ -1,0 +1,1 @@
+{"id":"0505d9986ec01e78d3d21621dd9d3e49.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine 属性値の CR は文字参照のまま保ち、CDATA 中の CR は parse 時に LF へ正規化する","name":"属性値の CR は文字参照のまま保ち、CDATA 中の CR は parse 時に LF へ正規化する","status":"passed","testResultsByEnv":{"default":"93280c15940a5dc8ad9c7d48632e552e"}}

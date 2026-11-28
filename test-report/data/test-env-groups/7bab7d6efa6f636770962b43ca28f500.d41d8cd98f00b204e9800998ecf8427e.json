@@ -1,0 +1,1 @@
+{"id":"7bab7d6efa6f636770962b43ca28f500.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#isReleasePullRequest release のブランチが未設定か空の場合は、リリース PR と判定しない","name":"release のブランチが未設定か空の場合は、リリース PR と判定しない","status":"passed","testResultsByEnv":{"default":"350623329a3216aa1a43831c86518ede"}}

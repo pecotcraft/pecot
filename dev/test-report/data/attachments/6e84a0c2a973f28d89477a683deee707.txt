@@ -1,0 +1,1 @@
+PECOT_RESULT {"operation":"repo-settings","request_id":"cuj-1","ok":true,"result":{"delete_branch_on_merge":true,"default_branch":"main","owner_type":"Organization"}}

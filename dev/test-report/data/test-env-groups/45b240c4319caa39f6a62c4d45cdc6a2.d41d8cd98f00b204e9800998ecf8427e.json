@@ -1,0 +1,1 @@
+{"id":"45b240c4319caa39f6a62c4d45cdc6a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show ブランチ名が番号で終わらないと、activeIssue を入れない","name":"ブランチ名が番号で終わらないと、activeIssue を入れない","status":"passed","testResultsByEnv":{"default":"6fdd4d7f168e591edb7860649cdaf98c"}}

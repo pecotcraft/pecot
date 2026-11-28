@@ -1,0 +1,1 @@
+{"id":"e9cfc8ba0c42db5563fe84f90f18e001.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/errors.test.ts#PipelineTimeoutError options.errors を省略した場合は、errors が undefined になる","name":"options.errors を省略した場合は、errors が undefined になる","status":"passed","testResultsByEnv":{"default":"3d28ce785c036365ab9f708efb4eb7a2"}}

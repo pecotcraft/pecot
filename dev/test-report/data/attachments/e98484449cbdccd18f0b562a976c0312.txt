@@ -1,0 +1,1 @@
+install --package-lock-only --ignore-scripts --no-audit --no-fund --fetch-timeout=30000 --fetch-retries=1 --cache=/tmp/tmp.PfcQWGZHNT

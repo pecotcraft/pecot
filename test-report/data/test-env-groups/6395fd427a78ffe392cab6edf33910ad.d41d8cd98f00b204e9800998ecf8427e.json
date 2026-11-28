@@ -1,0 +1,1 @@
+{"id":"6395fd427a78ffe392cab6edf33910ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree と番号の記録（実 git） path を指定して作成した worktree が機能ブランチに移った後も、wt1 を再び選ばない","name":"path を指定して作成した worktree が機能ブランチに移った後も、wt1 を再び選ばない","status":"passed","testResultsByEnv":{"default":"57d92bf0209f9898e31841a5d85e8e83"}}

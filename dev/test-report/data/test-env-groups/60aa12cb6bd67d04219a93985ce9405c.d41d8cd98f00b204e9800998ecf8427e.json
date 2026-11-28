@@ -1,0 +1,1 @@
+{"id":"60aa12cb6bd67d04219a93985ce9405c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） .worktreeignore が存在しなければ、init を案内するエラーを返す","name":".worktreeignore が存在しなければ、init を案内するエラーを返す","status":"passed","testResultsByEnv":{"default":"5c1342270149d406a1b47546401e0757"}}

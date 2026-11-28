@@ -1,0 +1,1 @@
+{"id":"28b1d1eeb502736166d3576f5faaa9e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/pecotv-dir-init-detection.bats#自プラグインのスキルでない空の名前を渡すと、スルーする","name":"自プラグインのスキルでない空の名前を渡すと、スルーする","status":"passed","testResultsByEnv":{"default":"2f9a9103fb3d9c8124b781ab5e2c5afa"}}

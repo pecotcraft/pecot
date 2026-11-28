@@ -1,0 +1,1 @@
+{"id":"4c3dc236279a8fff10f0e2fa9440f4a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と列 update でボードの欄へ、選択肢に無い値を書くと、選択肢の名前を候補にして problem にする","name":"update でボードの欄へ、選択肢に無い値を書くと、選択肢の名前を候補にして problem にする","status":"passed","testResultsByEnv":{"default":"89beaf78c6f6be00ae861dcbec0513aa"}}

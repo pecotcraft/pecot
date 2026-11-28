@@ -1,0 +1,1 @@
+{"id":"1411dadf310aae74d126e2e3d3abf38f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#errorData — 失敗時の data xlsx に置ける画像が無いときは no-valid-images と detail を返す","name":"xlsx に置ける画像が無いときは no-valid-images と detail を返す","status":"passed","testResultsByEnv":{"default":"ce6b8da33cacd272879004846bef3be0"}}

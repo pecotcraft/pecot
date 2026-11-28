@@ -1,0 +1,1 @@
+{"id":"ba0b85d7a076cc7c8ac57fd60432291c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#リストの記号で始まる行 リストの記号が付いていない行は、1 つの文に連結して、文の長さの指摘を返す","name":"リストの記号が付いていない行は、1 つの文に連結して、文の長さの指摘を返す","status":"passed","testResultsByEnv":{"default":"74fa53192caed6179a5ea263f4e2f432"}}

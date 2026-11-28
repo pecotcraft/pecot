@@ -1,0 +1,43 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "closed: Issue #12"
+    },
+    {
+      "type": "text",
+      "text": "{\"closedIssues\":[12],\"skippedIssues\":[],\"deletedBranches\":[],\"readinessChanges\":[{\"issue\":\"#13\",\"from\":\"stackable on #12\",\"to\":\"startable\"},{\"issue\":\"#14\",\"from\":\"stackable on #12\",\"to\":\"startable\"}],\"restack\":[{\"issue\":\"#14\",\"branch\":\"feat/demo/14\"}],\"currentBranch\":\"main\",\"warnings\":[\"could not move #13: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}\\n  hint: if the board options were recreated, call project_activate with project: \\\"ghes.example.com_acme_board_acme\\\" to read their IDs again\",\"#14 is stacked on #12; call pr_restack in the working directory of feat/demo/14\",\"deleting local branch feat/demo/12 failed: Command ['git', 'branch', '-D', 'feat/demo/12'] returned non-zero exit status 1.\"]}"
+    }
+  ],
+  "structuredContent": {
+    "closedIssues": [
+      12
+    ],
+    "skippedIssues": [],
+    "deletedBranches": [],
+    "readinessChanges": [
+      {
+        "issue": "#13",
+        "from": "stackable on #12",
+        "to": "startable"
+      },
+      {
+        "issue": "#14",
+        "from": "stackable on #12",
+        "to": "startable"
+      }
+    ],
+    "restack": [
+      {
+        "issue": "#14",
+        "branch": "feat/demo/14"
+      }
+    ],
+    "currentBranch": "main",
+    "warnings": [
+      "could not move #13: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}\n  hint: if the board options were recreated, call project_activate with project: \"ghes.example.com_acme_board_acme\" to read their IDs again",
+      "#14 is stacked on #12; call pr_restack in the working directory of feat/demo/14",
+      "deleting local branch feat/demo/12 failed: Command ['git', 'branch', '-D', 'feat/demo/12'] returned non-zero exit status 1."
+    ]
+  }
+}

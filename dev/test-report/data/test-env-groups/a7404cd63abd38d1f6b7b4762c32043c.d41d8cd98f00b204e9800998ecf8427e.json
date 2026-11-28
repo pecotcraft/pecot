@@ -1,0 +1,1 @@
+{"id":"a7404cd63abd38d1f6b7b4762c32043c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-policy.test.ts#mode=reject で共通の分岐 repo を指定せず、Git リポジトリの外で実行すると、曖昧として終了コード 1 で終了する","name":"repo を指定せず、Git リポジトリの外で実行すると、曖昧として終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"dca148f3f6cc880b59fd4b01c43e8135"}}

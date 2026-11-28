@@ -1,0 +1,1 @@
+{"id":"de1c9318f31be5ab9ceb02a901d31879.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/e2e/mcp-stdio.test.ts#pecot-tools-mcp (stdio) mcp を付けて起動しても引数を読まずに MCP のサーバとして tools/list に応える","name":"mcp を付けて起動しても引数を読まずに MCP のサーバとして tools/list に応える","status":"passed","testResultsByEnv":{"default":"0843649f953ed56879f66c09116fa018"}}

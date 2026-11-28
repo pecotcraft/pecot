@@ -1,0 +1,1 @@
+{"id":"d7cd0ed3fddc722b195c6c551d65084e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ pr-create-state-screenshot を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ pr-create-state-screenshot を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"1b152fd96d190d47f5bc704c038f6fe8"}}

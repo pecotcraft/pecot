@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "added: acme/other to /tmp/pecot-repo-vYblGu/.pecot/config/projects/ghes.example.com_acme_1.json"
+    },
+    {
+      "type": "text",
+      "text": "{\"repository\":\"acme/other\",\"projectNumber\":1,\"change\":\"create\",\"configPath\":\"/tmp/pecot-repo-vYblGu/.pecot/config/projects/ghes.example.com_acme_1.json\"}"
+    }
+  ],
+  "structuredContent": {
+    "repository": "acme/other",
+    "projectNumber": 1,
+    "change": "create",
+    "configPath": "/tmp/pecot-repo-vYblGu/.pecot/config/projects/ghes.example.com_acme_1.json"
+  }
+}

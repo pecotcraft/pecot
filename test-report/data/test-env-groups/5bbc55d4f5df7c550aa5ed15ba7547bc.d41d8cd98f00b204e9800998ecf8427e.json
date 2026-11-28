@@ -1,0 +1,1 @@
+{"id":"5bbc55d4f5df7c550aa5ed15ba7547bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init 旧い名前の進行の欄だけがあるボードでは、名前だけを渡して pecot-status に改名し、renamed の行を出す","name":"旧い名前の進行の欄だけがあるボードでは、名前だけを渡して pecot-status に改名し、renamed の行を出す","status":"passed","testResultsByEnv":{"default":"676a86ccc6c2158d43f2f8c130538537"}}

@@ -1,0 +1,1 @@
+{"id":"f78dda5169562d117496e588886a8773.8e968880df8794a61b374e75643b921b","fullName":".githooks.tests.test_pre_commit_config_wiring#test_test_hooks_run_only_in_manual","name":"nx-affected-tests は、manual の stage だけで動く","status":"passed","testResultsByEnv":{"default":"dd34c211e1f7445df07066dbad42ed2a"}}

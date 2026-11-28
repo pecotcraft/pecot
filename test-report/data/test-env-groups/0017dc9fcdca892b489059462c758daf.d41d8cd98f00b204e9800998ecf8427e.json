@@ -1,0 +1,1 @@
+{"id":"0017dc9fcdca892b489059462c758daf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/field-options.test.ts#insertOption 既存の選択肢は、id・name・color・description をそのまま保持する","name":"既存の選択肢は、id・name・color・description をそのまま保持する","status":"passed","testResultsByEnv":{"default":"6aa5b86ada8c146ea657dbd5d4412623"}}

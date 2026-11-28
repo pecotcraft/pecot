@@ -1,0 +1,1 @@
+{"id":"725a8f9c35c6a7f99e5d9387371af3f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main 複数のファイルを渡し、1 つでも違反があると、終了コード 1 を返す","name":"複数のファイルを渡し、1 つでも違反があると、終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"5881d14cb16afdc8d61483cff6245572"}}

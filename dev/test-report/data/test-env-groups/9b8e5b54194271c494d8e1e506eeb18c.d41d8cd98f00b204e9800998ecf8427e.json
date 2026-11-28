@@ -1,0 +1,1 @@
+{"id":"9b8e5b54194271c494d8e1e506eeb18c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/errors.test.ts#PecotError PecotError は Error を継承し、指定したメッセージを持つ","name":"PecotError は Error を継承し、指定したメッセージを持つ","status":"passed","testResultsByEnv":{"default":"e3d092d254e7e2a75a45eadf97279724"}}

@@ -1,0 +1,1 @@
+{"id":"f90799366cbbb052630f4ac68356264e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/no-cross-layer-import.test.ts#no-cross-layer-import valid 外部モジュールを import すると、報告しない","name":"外部モジュールを import すると、報告しない","status":"passed","testResultsByEnv":{"default":"b94827424e2e574dcc3f78af52e5ebe3"}}

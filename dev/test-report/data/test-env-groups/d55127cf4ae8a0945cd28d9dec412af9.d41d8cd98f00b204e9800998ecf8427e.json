@@ -1,0 +1,1 @@
+{"id":"d55127cf4ae8a0945cd28d9dec412af9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-theme.test.ts#executeSlideTheme（宣言のあるテーマ） slides.md の theme に短い名前を書いても、解決した完全な名前を返す","name":"slides.md の theme に短い名前を書いても、解決した完全な名前を返す","status":"passed","testResultsByEnv":{"default":"44d8b845e19c425e3ad67962c7a67a4e"}}

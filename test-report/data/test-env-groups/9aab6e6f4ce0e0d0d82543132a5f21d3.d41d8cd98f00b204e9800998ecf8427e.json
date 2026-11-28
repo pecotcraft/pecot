@@ -1,0 +1,1 @@
+{"id":"9aab6e6f4ce0e0d0d82543132a5f21d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/github-ops/branch-and-stack.test.ts#github ops stack-register で 親がスタックの一番上でない とき、書き込まずに order-conflict を返す","name":"stack-register で 親がスタックの一番上でない とき、書き込まずに order-conflict を返す","status":"passed","testResultsByEnv":{"default":"64e3d608676f55f3d376f366247ed38b"}}

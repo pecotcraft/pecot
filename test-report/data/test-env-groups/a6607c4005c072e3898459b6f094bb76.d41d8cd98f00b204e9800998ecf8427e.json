@@ -1,0 +1,1 @@
+{"id":"a6607c4005c072e3898459b6f094bb76.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#removeWaitsForMerge 存在しない参照を指定しても、本文を変更しない","name":"存在しない参照を指定しても、本文を変更しない","status":"passed","testResultsByEnv":{"default":"87529485d4bea98069e3fb6cbb4fb40e"}}

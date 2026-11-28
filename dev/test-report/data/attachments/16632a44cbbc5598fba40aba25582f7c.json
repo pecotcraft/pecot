@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "worktree not found: wt9"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"worktree not found: wt9\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "worktree not found: wt9"
+  },
+  "isError": true
+}

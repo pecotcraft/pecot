@@ -1,0 +1,1 @@
+{"id":"fc0c3aef08b582d003467daba940dd0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-finish.test.ts#session_finish リモートの head ブランチの削除に失敗したなら、warning の行を標準エラーに出し、終了コード 0 で終わる","name":"リモートの head ブランチの削除に失敗したなら、warning の行を標準エラーに出し、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"70b7fdf4662997288bc5c6852129a290"}}

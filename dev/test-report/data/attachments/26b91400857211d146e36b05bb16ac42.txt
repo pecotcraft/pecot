@@ -1,0 +1,8 @@
+
+nx exit code: 1
+... (nx 要約から失敗 project を取れず。ログ末尾 80 行と要約ブロック) ...
+NO_SUMMARY_BODY: simulates nx exiting before task start
+Cannot find configuration for task
+
+全出力: /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_failure_without_summary_f0/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log
+進行確認: tail -f /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_failure_without_summary_f0/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log

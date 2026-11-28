@@ -1,0 +1,1 @@
+{"id":"b281f10c006f7ff3ef1b02901f94f4b5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/session-finish-remote.test.ts#requireMergedPullRequest PR が次のとき（マージされていない）、error の行を出して止める","name":"PR が次のとき（マージされていない）、error の行を出して止める","status":"passed","testResultsByEnv":{"default":"28a4bb150f50097f84d05faf30eddf98"}}

@@ -1,0 +1,1 @@
+{"id":"344e00f3894faffbc0aa75da0f0d3eeb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#judgeSnapshot PR の一覧に次のページがある場合は、スタック先を決めず、判定が diverged のままになる","name":"PR の一覧に次のページがある場合は、スタック先を決めず、判定が diverged のままになる","status":"passed","testResultsByEnv":{"default":"e63b110465e5d1d823fa36d37109ef5a"}}

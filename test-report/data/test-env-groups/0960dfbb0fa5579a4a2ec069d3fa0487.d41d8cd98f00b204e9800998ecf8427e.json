@@ -1,0 +1,1 @@
+{"id":"0960dfbb0fa5579a4a2ec069d3fa0487.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create owner が作り先と同じ head は、作り先のリポの remote で push を確かめる","name":"owner が作り先と同じ head は、作り先のリポの remote で push を確かめる","status":"passed","testResultsByEnv":{"default":"3d3b512ccea6ffa74b94e8e37db449c1"}}

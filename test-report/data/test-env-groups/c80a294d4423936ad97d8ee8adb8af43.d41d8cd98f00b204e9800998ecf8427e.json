@@ -1,0 +1,1 @@
+{"id":"c80a294d4423936ad97d8ee8adb8af43.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge もし repo を省いて git の外で打ったなら、終了コード 1 で終わる","name":"もし repo を省いて git の外で打ったなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"93ec4cca1479615246ca5ff1e3866ca3"}}

@@ -1,0 +1,1 @@
+{"id":"492eb64625260e0daf42d88ab2a68668.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/chromium-guard.test.ts#chromium 未取得時のツール応答 Chromium を取得していなくても、print_hash を指定した drawio_export は成功する","name":"Chromium を取得していなくても、print_hash を指定した drawio_export は成功する","status":"passed","testResultsByEnv":{"default":"15397a34b682b6e52e224e08db0153e5"}}

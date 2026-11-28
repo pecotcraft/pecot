@@ -1,0 +1,1 @@
+-C	/tmp/pecot-hooks-Y8PXMT/proj	rev-parse	--show-toplevel	

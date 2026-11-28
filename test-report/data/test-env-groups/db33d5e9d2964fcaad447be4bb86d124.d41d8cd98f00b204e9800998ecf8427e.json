@@ -1,0 +1,1 @@
+{"id":"db33d5e9d2964fcaad447be4bb86d124.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 既定のポートがすべて使用中かつ abort 済みの signal では、spawn せず cancelled を返す","name":"既定のポートがすべて使用中かつ abort 済みの signal では、spawn せず cancelled を返す","status":"passed","testResultsByEnv":{"default":"37fc710cda076a0a20c5e467094fa3c2"}}

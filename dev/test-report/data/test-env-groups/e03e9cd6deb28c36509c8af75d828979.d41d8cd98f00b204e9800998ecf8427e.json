@@ -1,0 +1,1 @@
+{"id":"e03e9cd6deb28c36509c8af75d828979.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight 差分が 0 件なら、ReleaseError を投げる","name":"差分が 0 件なら、ReleaseError を投げる","status":"passed","testResultsByEnv":{"default":"2c70af2b5950391c066c20af476cd66e"}}

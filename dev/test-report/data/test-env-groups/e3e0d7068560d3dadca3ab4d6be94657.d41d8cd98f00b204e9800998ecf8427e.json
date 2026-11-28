@@ -1,0 +1,1 @@
+{"id":"e3e0d7068560d3dadca3ab4d6be94657.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/payload.test.ts#subIssuesTotal Issue が {\"subIssues\":null} の場合は、子 Issue の件数は 0 になる","name":"Issue が {\"subIssues\":null} の場合は、子 Issue の件数は 0 になる","status":"passed","testResultsByEnv":{"default":"e534b0eb39b77d24d81a214486a5cbe2"}}

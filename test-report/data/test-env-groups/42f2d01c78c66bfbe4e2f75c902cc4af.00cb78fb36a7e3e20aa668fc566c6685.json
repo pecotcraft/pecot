@@ -1,0 +1,1 @@
+{"id":"42f2d01c78c66bfbe4e2f75c902cc4af.00cb78fb36a7e3e20aa668fc566c6685","fullName":".githooks.tests.test_pages_served#test_fetch_turns_transport_errors_into_none","name":"fetch は、BadStatusLine の通信の失敗を status の無い結果にする","status":"passed","testResultsByEnv":{"default":"00aa5678af1aa0435f20e97d619a3c3a"}}

@@ -1,0 +1,1 @@
+{"id":"d29caf538ea1647cb17ecc4514798545.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_34_pass_human_merge_commit_is_not_counted","name":"人が作った merge commit は数えず、残りが dependabot の commit だけなら成功する","status":"passed","testResultsByEnv":{"default":"197769d08acddff56aded84b2eb4394a"}}

@@ -1,0 +1,1 @@
+{"id":"bb32ee6c51a02e321618a921e17fa59c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/run.test.ts#collectFiles サブワークツリー（wt*/<repo>/）の中身を、作業リポジトリからの相対のキーで集める。.git は除く","name":"サブワークツリー（wt*/<repo>/）の中身を、作業リポジトリからの相対のキーで集める。.git は除く","status":"passed","testResultsByEnv":{"default":"7e3b6cdc5de073e1e16bcdb1231639aa"}}

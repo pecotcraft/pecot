@@ -1,0 +1,1 @@
+{"id":"6efa9415de132a35b04e045888c6742a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx の差分キャッシュ キャッシュの復元で例外が発生した場合は、警告を出力して該当のステップを miss として変換する","name":"キャッシュの復元で例外が発生した場合は、警告を出力して該当のステップを miss として変換する","status":"passed","testResultsByEnv":{"default":"f0a8eaf9a27bb3d21e1550ebd339cd91"}}

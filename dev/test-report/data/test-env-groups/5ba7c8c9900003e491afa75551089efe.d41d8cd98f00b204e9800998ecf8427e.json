@@ -1,0 +1,1 @@
+{"id":"5ba7c8c9900003e491afa75551089efe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check merge の値 PR の base を head に持つ開いた PR があると、not-stack-bottom の problem を返す","name":"PR の base を head に持つ開いた PR があると、not-stack-bottom の problem を返す","status":"passed","testResultsByEnv":{"default":"68361f65b2f27dbbc816e05ba2698fda"}}

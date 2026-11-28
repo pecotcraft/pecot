@@ -1,0 +1,1 @@
+{"id":"d7ce93511bcf2713fa569fd19b1fc49d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#tgz に package/node_modules/ が入らない","name":"tgz に package/node_modules/ が入らない","status":"passed","testResultsByEnv":{"default":"54d6158704c57d99df4e41f3ce5263a5"}}

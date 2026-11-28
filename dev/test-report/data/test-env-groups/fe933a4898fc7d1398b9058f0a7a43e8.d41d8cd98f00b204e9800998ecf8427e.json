@@ -1,0 +1,1 @@
+{"id":"fe933a4898fc7d1398b9058f0a7a43e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#judgeReadiness の見直しと注記 順 1 では見直しは要らず、順 2 で止まっても閉じて済んでいない前提があれば要る","name":"順 1 では見直しは要らず、順 2 で止まっても閉じて済んでいない前提があれば要る","status":"passed","testResultsByEnv":{"default":"e36125851e4155f38bbbf238a7faf3cf"}}

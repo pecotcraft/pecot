@@ -1,0 +1,1 @@
+{"id":"1805270da27a06058330ab633bd07d22.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/sso.test.ts#ssoTools 状態確認の output は、上限で切り詰め、切り詰めたことをメッセージに残す","name":"状態確認の output は、上限で切り詰め、切り詰めたことをメッセージに残す","status":"passed","testResultsByEnv":{"default":"1f2c68f7b62259d6e12eab023c8843fc"}}

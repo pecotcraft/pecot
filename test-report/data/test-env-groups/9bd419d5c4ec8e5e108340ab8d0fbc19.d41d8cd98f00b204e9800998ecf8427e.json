@@ -1,0 +1,1 @@
+{"id":"9bd419d5c4ec8e5e108340ab8d0fbc19.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#extractReferencesIssueNumbers Refs の直後にコロンがあっても、番号を返す","name":"Refs の直後にコロンがあっても、番号を返す","status":"passed","testResultsByEnv":{"default":"521eff2b693ec7597579f252de0d9f13"}}

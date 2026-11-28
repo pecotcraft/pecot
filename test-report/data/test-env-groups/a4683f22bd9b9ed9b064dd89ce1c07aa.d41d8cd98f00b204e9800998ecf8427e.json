@@ -1,0 +1,1 @@
+{"id":"a4683f22bd9b9ed9b064dd89ce1c07aa.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bash_test_lib#test_one_result_per_check_with_status_and_reason","name":"bash のテストに確認を書くと、確認 1 つにつき状態と理由を持つ結果が 1 つ書かれる","status":"passed","testResultsByEnv":{"default":"22ae29be75f5c219c392a5fbe459b29d"}}

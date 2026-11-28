@@ -1,0 +1,1 @@
+{"id":"423b1ec7d667113d2049caf5e47957f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#readIssueSnapshot 対象の Issue と前提を読み込み、親の Issue と開発ブランチの情報を付ける","name":"対象の Issue と前提を読み込み、親の Issue と開発ブランチの情報を付ける","status":"passed","testResultsByEnv":{"default":"ec995908858a0606f2c189a4c6159077"}}

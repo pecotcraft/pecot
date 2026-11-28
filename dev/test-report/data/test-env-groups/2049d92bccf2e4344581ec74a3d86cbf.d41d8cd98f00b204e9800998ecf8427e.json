@@ -1,0 +1,1 @@
+{"id":"2049d92bccf2e4344581ec74a3d86cbf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/load.test.ts#loadJson and loadYaml json と yaml のファイルを読み込むと、ok の状態とパースしたデータを返す","name":"json と yaml のファイルを読み込むと、ok の状態とパースしたデータを返す","status":"passed","testResultsByEnv":{"default":"6f41b924499915b52e6868d3d16a167b"}}

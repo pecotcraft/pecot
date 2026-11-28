@@ -1,0 +1,1 @@
+{"id":"d788bf0436f5d62effc56ec405695375.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/pecotv-dir-init.bats#コピー途中の CHANGELOG.md で失敗しても、untracked が残らない","name":"コピー途中の CHANGELOG.md で失敗しても、untracked が残らない","status":"passed","testResultsByEnv":{"default":"ca12613fd89f8696c87b612115d88142"}}

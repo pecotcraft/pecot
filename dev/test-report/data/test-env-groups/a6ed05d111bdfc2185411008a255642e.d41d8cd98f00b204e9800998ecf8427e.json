@@ -1,0 +1,1 @@
+{"id":"a6ed05d111bdfc2185411008a255642e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/flock.test.ts#withFlock flock(1) がある環境では、待ち時間の上限と衝突時の終了コードを付けて、コマンドを包む","name":"flock(1) がある環境では、待ち時間の上限と衝突時の終了コードを付けて、コマンドを包む","status":"passed","testResultsByEnv":{"default":"15a6d376e90406cbe1539b1cf9997425"}}

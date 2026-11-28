@@ -1,0 +1,1 @@
+{"id":"c1880e86f13ff64cad921f050627abcf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings $# はコメントにしない のとき、引用符を含まない本文だけを切り出す","name":"$# はコメントにしない のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"38d879eb8776625ff83d696f0aaa3398"}}

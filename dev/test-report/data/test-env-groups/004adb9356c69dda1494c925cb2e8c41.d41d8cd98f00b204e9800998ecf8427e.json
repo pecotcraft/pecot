@@ -1,0 +1,1 @@
+{"id":"004adb9356c69dda1494c925cb2e8c41.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_one_result_per_test","name":"@test ごとに、状態・説明・理由・期待値と実際の値を持つ結果を 1 件書く","status":"passed","testResultsByEnv":{"default":"2930e9f34904280b4dc70c420d50159c"}}

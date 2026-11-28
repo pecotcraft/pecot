@@ -1,0 +1,1 @@
+{"id":"7d0a4db386c0890a4143e98790492958.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#existingDependencyNodeModules プラグイン側の node_modules が存在すれば、それを返す","name":"プラグイン側の node_modules が存在すれば、それを返す","status":"passed","testResultsByEnv":{"default":"ea795e1ae8485df5b92ffc229bfa4e82"}}

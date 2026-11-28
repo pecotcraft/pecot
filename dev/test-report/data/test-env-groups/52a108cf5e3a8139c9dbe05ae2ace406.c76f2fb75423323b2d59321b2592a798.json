@@ -1,0 +1,1 @@
+{"id":"52a108cf5e3a8139c9dbe05ae2ace406.c76f2fb75423323b2d59321b2592a798","fullName":".githooks.tests.test_nx_env_inputs#test_lane_globals_include_common_and_plugin_env","name":"pecot-workflow のレーンの共通入力は、共通の env とそのプラグインの env を含み、ほかのプラグインの env を含まない","status":"passed","testResultsByEnv":{"default":"babdf0b90cfc1a1b6ee0ab2ddaa07634"}}

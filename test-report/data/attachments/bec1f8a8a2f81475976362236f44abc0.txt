@@ -1,0 +1,1 @@
+.githooks/scripts/test_report/generate.py --sources /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_report_generates_with_his0/test-report/report-sources.json --output /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_report_generates_with_his0/test-report/site

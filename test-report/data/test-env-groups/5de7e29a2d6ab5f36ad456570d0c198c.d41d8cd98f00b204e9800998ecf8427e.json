@@ -1,0 +1,1 @@
+{"id":"5de7e29a2d6ab5f36ad456570d0c198c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#readWaitsForMerge 空行は読み飛ばし、見出しだけの節は行が空の ok として返す","name":"空行は読み飛ばし、見出しだけの節は行が空の ok として返す","status":"passed","testResultsByEnv":{"default":"e497d9eb20b1cca1e0f857b9069233a5"}}

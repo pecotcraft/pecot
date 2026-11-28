@@ -1,0 +1,1 @@
+{"id":"0294397511b169987e67f488efb01a82.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と列 列を書かないと、置く列を候補にして problem にする","name":"列を書かないと、置く列を候補にして problem にする","status":"passed","testResultsByEnv":{"default":"b83936a1e7679c462c3557eead02d70e"}}

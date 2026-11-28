@@ -1,0 +1,1 @@
+{"id":"f34ea53c46f3022e6697c0247cb0c853.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/process-run.test.ts#runProcess 0 以外の終了コードで終了した子は、孫プロセスのパイプが残ったまま時間切れになっても、その終了コードを返す","name":"0 以外の終了コードで終了した子は、孫プロセスのパイプが残ったまま時間切れになっても、その終了コードを返す","status":"passed","testResultsByEnv":{"default":"4044c89b3d74db3cbcf80a490aa38ec4"}}

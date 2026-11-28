@@ -1,0 +1,1 @@
+{"id":"0cbdad36e24ddacb211cb62db29706f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#親が無いリポの拒否は配布ツリーを構築しない","name":"親が無いリポの拒否は配布ツリーを構築しない","status":"passed","testResultsByEnv":{"default":"52d1ca7e474628b08d86cd7c71916a57"}}

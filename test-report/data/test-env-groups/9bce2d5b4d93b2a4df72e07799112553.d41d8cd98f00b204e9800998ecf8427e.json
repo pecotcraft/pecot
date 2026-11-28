@@ -1,0 +1,1 @@
+{"id":"9bce2d5b4d93b2a4df72e07799112553.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board.test.ts#board_move MCP の data Status を設定すると、その Issue と Status を返す","name":"Status を設定すると、その Issue と Status を返す","status":"passed","testResultsByEnv":{"default":"24b2dccb7ab916f566313508e5a0050b"}}

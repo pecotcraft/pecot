@@ -1,0 +1,1 @@
+{"id":"726488693576f91c310911c31469c304.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show PR の参照を渡すと、見出し・状態・ブランチ・本文を Markdown で標準出力に出す","name":"PR の参照を渡すと、見出し・状態・ブランチ・本文を Markdown で標準出力に出す","status":"passed","testResultsByEnv":{"default":"43862ba2d3931a211b3a8eabd7824f35"}}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "log_stream_names and log_stream_name_prefix cannot be combined"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"log_stream_names and log_stream_name_prefix cannot be combined\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "log_stream_names and log_stream_name_prefix cannot be combined"
+  },
+  "isError": true
+}

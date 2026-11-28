@@ -1,0 +1,8 @@
+{
+  "hookSpecificOutput": {
+    "additionalContext": "plain context",
+    "sessionTitle": "last",
+    "hookEventName": "SessionStart"
+  },
+  "additionalContext": "plain context"
+}

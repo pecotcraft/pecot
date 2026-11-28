@@ -1,0 +1,1 @@
+{"id":"d9a9dede913cdd3f27b0acefbc10f185.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck Nx のリポで alert が 0 件なら、3 種の件数を出して CHANGELOG を読まずに通る","name":"Nx のリポで alert が 0 件なら、3 種の件数を出して CHANGELOG を読まずに通る","status":"passed","testResultsByEnv":{"default":"614ff73b585b7e3d46324947acf76867"}}

@@ -1,0 +1,1 @@
+{"id":"1006636e6ff27b8c5c51c4f2efb87d28.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getCurrentWorktreeName メインの worktree では、undefined を返す","name":"メインの worktree では、undefined を返す","status":"passed","testResultsByEnv":{"default":"27e825c3a082279743cdd8111ae7514b"}}

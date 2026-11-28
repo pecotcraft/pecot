@@ -1,0 +1,1 @@
+{"id":"18608575b193f346d8b82bca55036b7c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#upsertWaitsForMerge 本文が空の場合は、節だけの本文にする","name":"本文が空の場合は、節だけの本文にする","status":"passed","testResultsByEnv":{"default":"cbd8b816b7609b92a7bd993166dcf3f8"}}

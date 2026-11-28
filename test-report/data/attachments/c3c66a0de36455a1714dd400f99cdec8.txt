@@ -1,0 +1,2 @@
+count: Issues to close: 0
+dry-run: would leave Issue #12 (already closed) unchanged

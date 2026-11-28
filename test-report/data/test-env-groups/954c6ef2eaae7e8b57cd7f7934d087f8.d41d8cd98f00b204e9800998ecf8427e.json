@@ -1,0 +1,1 @@
+{"id":"954c6ef2eaae7e8b57cd7f7934d087f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-drift.test.ts#drift.ts ボードの設定が見つからないと、Tracker を検索せずに error の行を出力して終了コード 1 で終了する","name":"ボードの設定が見つからないと、Tracker を検索せずに error の行を出力して終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"8cec775395eb5715bf958063b65abb33"}}

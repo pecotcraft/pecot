@@ -1,0 +1,1 @@
+{"id":"017d8381c4421914e714e83c80fb0010.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/result.test.ts#withoutCommonFailureFields CLI の失敗の出力から reason と detail を取り除き、ほかの項目は残す","name":"CLI の失敗の出力から reason と detail を取り除き、ほかの項目は残す","status":"passed","testResultsByEnv":{"default":"b5c0f058dd9e2ec242c8269b5c8370ee"}}

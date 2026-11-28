@@ -1,0 +1,1 @@
+{"id":"655eda91dd7f80dcf1c587ae365b84ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#syncProjectConfig 止まるとき プロジェクトのフィールドを取得できない 場合は、エラーの行を表示して止める","name":"プロジェクトのフィールドを取得できない 場合は、エラーの行を表示して止める","status":"passed","testResultsByEnv":{"default":"2896c5f4083328110451ac6ec1d344e3"}}

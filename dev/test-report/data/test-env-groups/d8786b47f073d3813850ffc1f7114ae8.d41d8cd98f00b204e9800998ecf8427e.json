@@ -1,0 +1,1 @@
+{"id":"d8786b47f073d3813850ffc1f7114ae8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync 列の書き込みが成功し札の書き込みだけ失敗すると、move の行の後に warning を出し、終了コード 1 で終わる","name":"列の書き込みが成功し札の書き込みだけ失敗すると、move の行の後に warning を出し、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"a3d04409cc9c441c32f7b573fbc11b3b"}}

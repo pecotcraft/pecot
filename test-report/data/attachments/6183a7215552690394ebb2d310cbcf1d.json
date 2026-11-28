@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: references validation not run: /tmp/pecotv-test-file-tools-IjbT7z/validate-unlinked/talk/references/plain.yaml\\n  The theme could not be resolved (reason: theme-unlinked). theme not found in /tmp/pecotv-test-file-tools-IjbT7z/validate-unlinked/talk/node_modules/slidev-theme-pecotv-test-declared or in any parent node_modules: slidev-theme-pecotv-test-declared; call slide_sync with dir: /tmp/pecotv-test-file-tools-IjbT7z/validate-unlinked/talk, node_modules_only: true to relink\\n  Relinking node_modules with slide_sync (node_modules_only: true) restores it.\\n  No validation ran for this file, so violations have not been detected.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: references validation not run: /tmp/pecotv-test-file-tools-IjbT7z/validate-unlinked/talk/references/plain.yaml\n  The theme could not be resolved (reason: theme-unlinked). theme not found in /tmp/pecotv-test-file-tools-IjbT7z/validate-unlinked/talk/node_modules/slidev-theme-pecotv-test-declared or in any parent node_modules: slidev-theme-pecotv-test-declared; call slide_sync with dir: /tmp/pecotv-test-file-tools-IjbT7z/validate-unlinked/talk, node_modules_only: true to relink\n  Relinking node_modules with slide_sync (node_modules_only: true) restores it.\n  No validation ran for this file, so violations have not been detected."
+    }
+  }
+}

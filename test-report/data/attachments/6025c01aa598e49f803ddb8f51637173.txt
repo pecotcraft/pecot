@@ -1,0 +1,1 @@
+error: template must be 'default' or 'release' (given: invalid)

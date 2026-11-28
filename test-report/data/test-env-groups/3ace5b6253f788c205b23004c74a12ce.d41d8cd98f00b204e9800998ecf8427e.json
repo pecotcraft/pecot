@@ -1,0 +1,1 @@
+{"id":"3ace5b6253f788c205b23004c74a12ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move GitHub API がエラーを返したとき、error を出して終了コード 1 で終わる","name":"GitHub API がエラーを返したとき、error を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"66e99e29a2f1e0e73d22097f62ec2064"}}

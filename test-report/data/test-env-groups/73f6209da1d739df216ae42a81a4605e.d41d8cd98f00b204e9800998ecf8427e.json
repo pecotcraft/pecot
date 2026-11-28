@@ -1,0 +1,1 @@
+{"id":"73f6209da1d739df216ae42a81a4605e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-describe-title.test.ts#describe-title invalid 題の無い describe を、リテラルでないとして止める","name":"題の無い describe を、リテラルでないとして止める","status":"passed","testResultsByEnv":{"default":"4ddb3a8cea9cd0376188ef6c18fcff51"}}

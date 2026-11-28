@@ -1,0 +1,1 @@
+{"id":"41d8b867aefcada14cc6770ff3b94bac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#リストの記号で始まる行 YAML のブロックスカラー の箇条書きを、項目ごとに 1 文として数える","name":"YAML のブロックスカラー の箇条書きを、項目ごとに 1 文として数える","status":"passed","testResultsByEnv":{"default":"b47b5a108a8555db06b381ee79039592"}}

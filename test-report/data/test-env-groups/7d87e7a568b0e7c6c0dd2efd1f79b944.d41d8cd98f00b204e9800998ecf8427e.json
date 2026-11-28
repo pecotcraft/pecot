@@ -1,0 +1,1 @@
+{"id":"7d87e7a568b0e7c6c0dd2efd1f79b944.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#ensureChromiumHostDependencies 不足パッケージを調べられない OS では、不足しているライブラリを示して返す","name":"不足パッケージを調べられない OS では、不足しているライブラリを示して返す","status":"passed","testResultsByEnv":{"default":"b6f9c20defa6870b210cdf8d0ee9d614"}}

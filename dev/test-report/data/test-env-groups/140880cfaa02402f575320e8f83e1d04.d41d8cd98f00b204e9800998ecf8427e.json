@@ -1,0 +1,1 @@
+{"id":"140880cfaa02402f575320e8f83e1d04.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-start-features.test.ts#session-start のロジックスクリプト git-sync.sh 有効にしていても、source が compact のときは pull しない","name":"有効にしていても、source が compact のときは pull しない","status":"passed","testResultsByEnv":{"default":"9f118c3e6f5461ffa59858310324676b"}}

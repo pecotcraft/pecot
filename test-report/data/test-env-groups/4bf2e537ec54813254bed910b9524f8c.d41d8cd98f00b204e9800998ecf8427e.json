@@ -1,0 +1,1 @@
+{"id":"4bf2e537ec54813254bed910b9524f8c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_unparsable_head_ref","name":"merge_group の HEAD_REF から PR 番号を取り出せないと、PR 番号不明の理由を出力する","status":"passed","testResultsByEnv":{"default":"66f135eca9b0006d689bc0bd71162cfd"}}

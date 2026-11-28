@@ -1,0 +1,1 @@
+{"id":"ec726a1ec333a92ec9dd35f4ea35cf09.f3178fdbc3d039c07962f454c0df6194","fullName":".githooks.tests.test_pre_commit_config_wiring#test_plugin_validate_skips_unrelated_paths","name":"plugins/pecot-workflow/scripts/ci/tests/test_x.py を変更しても、plugin-validate は起動しない","status":"passed","testResultsByEnv":{"default":"697d1f5f3d1f100ae0f26b44aea682e9"}}

@@ -1,0 +1,1 @@
+{"id":"40deb68e279c016780701ebed53fc6c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check 未コミットの変更があると、Git Status の warning を数える","name":"未コミットの変更があると、Git Status の warning を数える","status":"passed","testResultsByEnv":{"default":"551282c755c0695346c8e14248a28a76"}}

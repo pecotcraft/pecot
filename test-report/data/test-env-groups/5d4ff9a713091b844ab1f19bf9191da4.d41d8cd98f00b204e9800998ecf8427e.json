@@ -1,0 +1,1 @@
+{"id":"5d4ff9a713091b844ab1f19bf9191da4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-theme.test.ts#executeSlideTheme（宣言のあるテーマ） 宣言に pptx.linkColor が存在しないと、リンクが PPTX に変換されない旨の警告を返す","name":"宣言に pptx.linkColor が存在しないと、リンクが PPTX に変換されない旨の警告を返す","status":"passed","testResultsByEnv":{"default":"48dd879b618b241eb286af0c3cece0c5"}}

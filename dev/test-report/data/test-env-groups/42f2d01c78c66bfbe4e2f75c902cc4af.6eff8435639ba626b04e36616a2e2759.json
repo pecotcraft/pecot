@@ -1,0 +1,1 @@
+{"id":"42f2d01c78c66bfbe4e2f75c902cc4af.6eff8435639ba626b04e36616a2e2759","fullName":".githooks.tests.test_pages_served#test_fetch_turns_transport_errors_into_none","name":"fetch は、URLError の通信の失敗を status の無い結果にする","status":"passed","testResultsByEnv":{"default":"1890d908363a7444eda0146cfc3bcce3"}}

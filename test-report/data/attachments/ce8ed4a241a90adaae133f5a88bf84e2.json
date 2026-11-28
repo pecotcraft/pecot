@@ -1,0 +1,25 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project_fields.Area: invalid_value: Area (project); value \"doc\"; expected one of: cli, docs"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"project_fields.Area\",\"code\":\"invalid_value\",\"message\":\"invalid_value: Area (project); value \\\"doc\\\"; expected one of: cli, docs\",\"candidates\":[\"cli\",\"docs\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "project_fields.Area",
+        "code": "invalid_value",
+        "message": "invalid_value: Area (project); value \"doc\"; expected one of: cli, docs",
+        "candidates": [
+          "cli",
+          "docs"
+        ]
+      }
+    ]
+  }
+}

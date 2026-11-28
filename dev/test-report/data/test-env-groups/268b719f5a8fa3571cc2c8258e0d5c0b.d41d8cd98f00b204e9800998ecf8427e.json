@@ -1,0 +1,1 @@
+{"id":"268b719f5a8fa3571cc2c8258e0d5c0b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#401 のときの gh auth token への切り替え REST: 1 回だけ gh のトークンに切り替え、警告を診断の出力先に渡して再試行する","name":"REST: 1 回だけ gh のトークンに切り替え、警告を診断の出力先に渡して再試行する","status":"passed","testResultsByEnv":{"default":"b76dd2ed904951c96dd6d5c054e91ce0"}}

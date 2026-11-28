@@ -1,0 +1,3 @@
+dry-run: would create Tracker "[Tracker] security alert — 2026-11-09"
+dry-run: would add dependabot #1 to new Tracker
+dry-run: would add code-scanning #10 to new Tracker

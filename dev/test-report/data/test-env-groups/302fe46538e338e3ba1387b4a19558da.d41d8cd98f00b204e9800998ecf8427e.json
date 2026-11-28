@@ -1,0 +1,1 @@
+{"id":"302fe46538e338e3ba1387b4a19558da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け 待ち方が無い だと、gh を呼ばずに終了コード 1 で止まる","name":"待ち方が無い だと、gh を呼ばずに終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"437a77d97fc100625103b0302f2950ec"}}

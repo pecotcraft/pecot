@@ -1,0 +1,1 @@
+{"id":"a4b97c80c6e7294dc30c648ff358bd80.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#activeIssueOf detached HEAD の場合は、undefined を返す","name":"detached HEAD の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"56e430041b44d25a89527e70e096e12c"}}

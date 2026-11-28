@@ -1,0 +1,1 @@
+{"id":"fd55f207bf41eb5af00ad009439caeec.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_build_restores_owner_always","name":"ワークスペースの所有者は、失敗した場合も含めて必ず元に戻す","status":"passed","testResultsByEnv":{"default":"604945836d946f8850dcfe6cecf3b8fc"}}

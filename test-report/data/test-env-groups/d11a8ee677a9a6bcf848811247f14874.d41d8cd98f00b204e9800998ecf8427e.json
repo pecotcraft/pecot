@@ -1,0 +1,1 @@
+{"id":"d11a8ee677a9a6bcf848811247f14874.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#listOpenCodeScanningAlerts 404 が返ると、ステータスコードと本文を持つ GitHubNotFoundError を発生させる","name":"404 が返ると、ステータスコードと本文を持つ GitHubNotFoundError を発生させる","status":"passed","testResultsByEnv":{"default":"6f94967f6b048c9695017b820368dfc6"}}

@@ -1,0 +1,1 @@
+{"id":"cc8943d92b753c3df015025519734757.4ad5604d8ae1ba2e55f89e06ae329293","fullName":".githooks.tests.test_allure_report_labels#test_without_project_no_epic","name":"project の値が空だと、libs/interface-spec/docs/tests/conftest.py の conftest は epic を付けず、feature と story を付ける","status":"passed","testResultsByEnv":{"default":"c31ee21c13a85b1328db0f40fde203a2"}}

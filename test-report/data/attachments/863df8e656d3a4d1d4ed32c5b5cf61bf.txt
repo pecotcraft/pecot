@@ -1,0 +1,14 @@
+
+[7m[1m[31m NX [39m[22m[27m  [31mRunning target [1mtgt[22m for project p did not complete[39m
+
+[2mTasks not run because their dependencies failed, --nx-bail=true, or their batch ended before reaching them:[22m
+
+[2m-[22m p:tgt
+
+[2mHint: run the command with[22m --verbose [2mfor more details.[22m
+
+
+[7m[1m[31m NX [39m[22m[27m  [31mFailed to send request: error sending request for url (http://127.0.0.1:44317/v1/cache/6670340529605405725)[39m
+
+Pass --verbose to see the stacktrace.
+

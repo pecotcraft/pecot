@@ -1,0 +1,1 @@
+{"id":"045984ec397da0ebc2d897e6187da65a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites blockedBy の取得件数を指定した場合は、その件数で読み取る","name":"blockedBy の取得件数を指定した場合は、その件数で読み取る","status":"passed","testResultsByEnv":{"default":"66d29f2a0a9fdb6da210e45aa8c294eb"}}

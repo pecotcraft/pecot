@@ -1,0 +1,1 @@
+{"id":"902c5ef3499690147cb88fca60ad6384.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/template-store.test.ts#issue/epic.md の実体（AS-IS / TO-BE / GAP）と検証器の結合 要約が上限を超える場合は、不足ではなく要約の規則違反として返す","name":"要約が上限を超える場合は、不足ではなく要約の規則違反として返す","status":"passed","testResultsByEnv":{"default":"ddb4acaadb1af04a64816ec03aee9c75"}}

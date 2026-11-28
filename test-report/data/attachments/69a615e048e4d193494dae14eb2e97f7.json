@@ -1,0 +1,89 @@
+{
+  "name": "project_list",
+  "title": "List projects",
+  "description": "List available projects",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "projects": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name of the project config (the file name without .json)"
+            },
+            "active": {
+              "type": "boolean",
+              "description": "Whether this config is the active project"
+            },
+            "owner": {
+              "description": "Owner of the board, for projects_list and projects_write (omitted when the config cannot be read)",
+              "type": "string"
+            },
+            "project_number": {
+              "description": "Number of the board, for projects_list and projects_write (omitted when the config cannot be read)",
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "name",
+            "active"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Project configs under the projects directory (an empty array when there is none)"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "projects"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

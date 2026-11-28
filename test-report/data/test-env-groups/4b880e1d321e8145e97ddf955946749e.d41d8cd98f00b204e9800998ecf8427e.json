@@ -1,0 +1,1 @@
+{"id":"4b880e1d321e8145e97ddf955946749e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_link MCP の data リンクに失敗すると、kind が github-api の失敗を返す","name":"リンクに失敗すると、kind が github-api の失敗を返す","status":"passed","testResultsByEnv":{"default":"bbf3e7d1b08677f388086d0a8492da05"}}

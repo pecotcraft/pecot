@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "set: current branch to main"
+    },
+    {
+      "type": "text",
+      "text": "{\"deletedBranches\":[{\"branch\":\"feat/demo/12\",\"location\":\"local\"}],\"readinessChanges\":[],\"restack\":[],\"currentBranch\":\"main\",\"warnings\":[\"the readiness of #13 is not judged: read acme/demo/13 with issue_read (method get): the judgment needs its title, body and pull requests\"]}"
+    }
+  ],
+  "structuredContent": {
+    "deletedBranches": [
+      {
+        "branch": "feat/demo/12",
+        "location": "local"
+      }
+    ],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "main",
+    "warnings": [
+      "the readiness of #13 is not judged: read acme/demo/13 with issue_read (method get): the judgment needs its title, body and pull requests"
+    ]
+  }
+}

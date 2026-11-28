@@ -1,0 +1,1 @@
+{"id":"5bd6b8f61c1485c1fabdf78c1bd180f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#Athena の変更系・複文（research R6） output_location の値に { を含む場合は、invalid-input として拒否する","name":"output_location の値に { を含む場合は、invalid-input として拒否する","status":"passed","testResultsByEnv":{"default":"c2f871861948174353667151d389fd97"}}

@@ -1,0 +1,1 @@
+{"id":"2151e082df10ae785b71484358edc414.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#toRelativePath talk-dir の配下のパスは、talk-dir からの相対パスにして返す","name":"talk-dir の配下のパスは、talk-dir からの相対パスにして返す","status":"passed","testResultsByEnv":{"default":"1ea1218e9609e4ff803949d9f68bbc02"}}

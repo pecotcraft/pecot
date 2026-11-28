@@ -1,0 +1,1 @@
+{"id":"72ad7bdf5b148279d8191199d6b5bbe3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/runner-unexpected-exit-log.test.ts#createPecotvRunner の想定外終了ログ 終了コード 1 を想定どおりとする判定では、`console.error` を呼ばない","name":"終了コード 1 を想定どおりとする判定では、`console.error` を呼ばない","status":"passed","testResultsByEnv":{"default":"54736aa689f6a848f0da3b40f68d64bc"}}

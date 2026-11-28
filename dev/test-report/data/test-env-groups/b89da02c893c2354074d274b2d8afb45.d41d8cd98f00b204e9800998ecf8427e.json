@@ -1,0 +1,1 @@
+{"id":"b89da02c893c2354074d274b2d8afb45.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/attach-mcp-tgz.bats#release view が失敗すると、gh の出力を添えて upload へ進む前に止まり、Release の不在は言い切らない","name":"release view が失敗すると、gh の出力を添えて upload へ進む前に止まり、Release の不在は言い切らない","status":"passed","testResultsByEnv":{"default":"6b83981ff941b49096c8d1a0631cfcf2"}}

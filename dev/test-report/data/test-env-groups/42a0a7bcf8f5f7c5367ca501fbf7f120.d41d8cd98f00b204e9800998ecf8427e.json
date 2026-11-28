@@ -1,0 +1,1 @@
+{"id":"42a0a7bcf8f5f7c5367ca501fbf7f120.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_env_path_affected_with_merge_base","name":"環境変数で push 先を渡すと、merge-base に一致する `--base` と `--head` で affected を実行する","status":"passed","testResultsByEnv":{"default":"31dffc74840f52438b199aa5eb8834de"}}

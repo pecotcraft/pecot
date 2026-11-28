@@ -1,0 +1,1 @@
+{"id":"f41bf3eca02c1ef6776dd51680bd3b62.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start ブランチが無いとき 前提の PR が開いていてスタックできれば、前提のブランチから feat/auto/<番号> を作る","name":"前提の PR が開いていてスタックできれば、前提のブランチから feat/auto/<番号> を作る","status":"passed","testResultsByEnv":{"default":"f63ec7824f4b68abe36defc74bf36e4b"}}

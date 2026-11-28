@@ -1,0 +1,1 @@
+{"id":"f023369c6b6fea4d225bc02849b0e3a5.2dfba9197ad7e9275995437d9e828e0f","fullName":".githooks.tests.test_report_generate#test_bad_latest_stops_with_a_message","name":"材料の latest の形式が not-list のとき、レーンの名前とメッセージを表示して失敗する","status":"passed","testResultsByEnv":{"default":"8a63a141aa648626f3d6e7a5284532b9"}}

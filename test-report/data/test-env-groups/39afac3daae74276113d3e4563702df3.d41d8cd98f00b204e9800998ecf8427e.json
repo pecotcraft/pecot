@@ -1,0 +1,1 @@
+{"id":"39afac3daae74276113d3e4563702df3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/integration.test.ts#統合: エントリ 免除のフラグを残したまま gh pr merge 810 を送っても、結果は変わらない","name":"免除のフラグを残したまま gh pr merge 810 を送っても、結果は変わらない","status":"passed","testResultsByEnv":{"default":"8e202041dc6c7e8428d298a3a73a2943"}}

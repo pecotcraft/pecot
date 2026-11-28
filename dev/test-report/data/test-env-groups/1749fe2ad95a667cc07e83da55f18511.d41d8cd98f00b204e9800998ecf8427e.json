@@ -1,0 +1,1 @@
+{"id":"1749fe2ad95a667cc07e83da55f18511.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.bats#symlink 経由で起動しても、--out-dir のガードがリポジトリ配下を拒否する","name":"symlink 経由で起動しても、--out-dir のガードがリポジトリ配下を拒否する","status":"passed","testResultsByEnv":{"default":"34740533d8693b6c1a320aace86bbe3e"}}

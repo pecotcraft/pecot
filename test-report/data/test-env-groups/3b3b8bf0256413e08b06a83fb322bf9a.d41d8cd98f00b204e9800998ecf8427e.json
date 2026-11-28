@@ -1,0 +1,1 @@
+{"id":"3b3b8bf0256413e08b06a83fb322bf9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: legacy) 結果の outputSchema 検証 宣言していない項目を含む成功の結果は拒否され、その項目はクライアントへ届かない","name":"宣言していない項目を含む成功の結果は拒否され、その項目はクライアントへ届かない","status":"passed","testResultsByEnv":{"default":"d274b6c69ac16949aabf8a02c2f64503"}}

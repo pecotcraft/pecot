@@ -1,0 +1,1 @@
+{"id":"2a0f26b386bb9c2c5f1625f9c88c3ccc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueKind Issue が存在しない場合は、種別の取得で GitHubNotFoundError が発生する","name":"Issue が存在しない場合は、種別の取得で GitHubNotFoundError が発生する","status":"passed","testResultsByEnv":{"default":"d4752c3aa78f34921d003e9dc3704d9d"}}

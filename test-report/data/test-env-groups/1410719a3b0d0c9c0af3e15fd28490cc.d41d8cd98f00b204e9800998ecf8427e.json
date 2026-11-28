@@ -1,0 +1,1 @@
+{"id":"1410719a3b0d0c9c0af3e15fd28490cc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_nx_fails_the_task_when_remote_cache_is_unreachable","name":"リモートキャッシュにつながらない場合は、実 nx が task を実行せずに失敗する","status":"passed","testResultsByEnv":{"default":"584a8e31e02beb7229b8f05e570b53ef"}}

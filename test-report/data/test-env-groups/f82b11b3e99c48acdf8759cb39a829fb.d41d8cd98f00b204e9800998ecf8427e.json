@@ -1,0 +1,1 @@
+{"id":"f82b11b3e99c48acdf8759cb39a829fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#removeWaitsForMerge 節だけの本文から最後の行を削除すると、本文が空になる","name":"節だけの本文から最後の行を削除すると、本文が空になる","status":"passed","testResultsByEnv":{"default":"6ecdbc8ff871a61bd3dddd320110fca1"}}

@@ -1,0 +1,1 @@
+{"id":"7e7c51c8e2bb579774232916b587c4fe.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_only_history_jobs_use_the_history_environment","name":"environment の test-report-history は、デプロイを記録せず、履歴の 2 つの job だけが使う","status":"passed","testResultsByEnv":{"default":"848401ac107bf844d948553a3de73728"}}

@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_logs_describe_log_streams succeeded"
+    },
+    {
+      "type": "text",
+      "text": "{\"NextToken\":\"eyJuZXh0IjogMX0=\",\"nextToken\":\"eyJuZXh0IjogMX0=\"}"
+    }
+  ],
+  "structuredContent": {
+    "NextToken": "eyJuZXh0IjogMX0=",
+    "nextToken": "eyJuZXh0IjogMX0="
+  }
+}

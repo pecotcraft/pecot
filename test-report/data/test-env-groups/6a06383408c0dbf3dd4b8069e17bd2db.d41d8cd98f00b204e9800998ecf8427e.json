@@ -1,0 +1,1 @@
+{"id":"6a06383408c0dbf3dd4b8069e17bd2db.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#ensureAwscli 版が要件を満たすときは ok を返し、--version は 1 回だけ実行する","name":"版が要件を満たすときは ok を返し、--version は 1 回だけ実行する","status":"passed","testResultsByEnv":{"default":"fbf429bed81eaa4e9478c05f6375fa9d"}}

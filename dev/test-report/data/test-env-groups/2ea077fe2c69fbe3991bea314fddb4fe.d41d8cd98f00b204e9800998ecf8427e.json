@@ -1,0 +1,1 @@
+{"id":"2ea077fe2c69fbe3991bea314fddb4fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/attributes.test.ts#validateAttributes 担当者にできないログイン名を指定した場合は、その名前を示して invalid_value にする","name":"担当者にできないログイン名を指定した場合は、その名前を示して invalid_value にする","status":"passed","testResultsByEnv":{"default":"14bf0b5a195c409ad9790e72803d2481"}}

@@ -1,0 +1,1 @@
+{"id":"7dcde290c42460f2ebf763fe8651632e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 通る値 CHANGELOG の末尾にリンク定義があると、本文が使う定義だけを加えたリリースノートを返す","name":"CHANGELOG の末尾にリンク定義があると、本文が使う定義だけを加えたリリースノートを返す","status":"passed","testResultsByEnv":{"default":"5239eabc241ecb36492b5aadbbaed86c"}}

@@ -1,0 +1,1 @@
+{"id":"1943f282dac19804558054e13386a234.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_step_gate#test_passes_when_every_passed_test_has_a_named_step","name":"成功したすべてのテストに名前の付いた step がある場合は、gate が成功で終わる","status":"passed","testResultsByEnv":{"default":"f08fd0d2ad1b899f2c1de3f6911d48c6"}}

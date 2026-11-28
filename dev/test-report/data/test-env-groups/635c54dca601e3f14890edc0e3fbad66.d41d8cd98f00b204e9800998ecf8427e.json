@@ -1,0 +1,1 @@
+{"id":"635c54dca601e3f14890edc0e3fbad66.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#永続層に lockfile が無いと、永続層で止まった旨を示して監査未実施として中止する","name":"永続層に lockfile が無いと、永続層で止まった旨を示して監査未実施として中止する","status":"passed","testResultsByEnv":{"default":"90d201bb76713216e5b0121e08d6d9b0"}}

@@ -1,0 +1,1 @@
+{"id":"d961352648c1f68c7f3b8d022f9353a6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/talk-theme.test.ts#resolveTalkTheme の失敗 slides.md が存在しない talk-dir も、理由 theme-none のエラーを返す","name":"slides.md が存在しない talk-dir も、理由 theme-none のエラーを返す","status":"passed","testResultsByEnv":{"default":"dbe9e2b83e4c032f86562baa24225cc7"}}

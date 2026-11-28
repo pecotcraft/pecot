@@ -1,0 +1,1 @@
+{"id":"644fbd5c4fba07de51ad8aa7691e4515.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_deploy_stops_before_secret_prompt","name":"認証情報の確認に失敗すると、secret の入力を求める前に終了する","status":"passed","testResultsByEnv":{"default":"4264b5a67c85f4667a8fdbb2714cc297"}}

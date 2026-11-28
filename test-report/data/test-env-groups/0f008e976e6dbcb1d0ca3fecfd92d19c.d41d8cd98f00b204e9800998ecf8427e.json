@@ -1,0 +1,1 @@
+{"id":"0f008e976e6dbcb1d0ca3fecfd92d19c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_pull_request_whose_pull_base_is_other_repo_is_dropped","name":"PR の取得結果の base が他のリポジトリだと、破棄する","status":"passed","testResultsByEnv":{"default":"95bb10a73600fd9008ea20f12a6d084c"}}

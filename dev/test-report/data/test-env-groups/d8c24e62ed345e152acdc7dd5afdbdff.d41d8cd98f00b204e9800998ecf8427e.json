@@ -1,0 +1,1 @@
+{"id":"d8c24e62ed345e152acdc7dd5afdbdff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish 次の場合は（PR が無い）、終了コード 1 で終わる","name":"次の場合は（PR が無い）、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"e001cfa84357efd6b65d734904f2df7a"}}

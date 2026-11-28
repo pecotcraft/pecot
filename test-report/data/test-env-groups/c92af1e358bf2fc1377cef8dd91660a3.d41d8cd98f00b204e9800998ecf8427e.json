@@ -1,0 +1,1 @@
+{"id":"c92af1e358bf2fc1377cef8dd91660a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#readCurrentGitRemote URL から owner と repo を読み取れなければ、unreadable-remote を返す","name":"URL から owner と repo を読み取れなければ、unreadable-remote を返す","status":"passed","testResultsByEnv":{"default":"11ea7199100d02b309648d86cce1de9d"}}

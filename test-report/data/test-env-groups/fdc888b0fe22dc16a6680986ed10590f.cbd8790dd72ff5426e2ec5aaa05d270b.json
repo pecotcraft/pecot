@@ -1,0 +1,1 @@
+{"id":"fdc888b0fe22dc16a6680986ed10590f.cbd8790dd72ff5426e2ec5aaa05d270b","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_only_the_lanes_the_change_reaches","name":"plugins/pecot-workflow/cli/tests/parity/baseline.json を変更すると、その変更が届くテストのレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"9ebc9e049ae94a9ef57b4685d96a671a"}}

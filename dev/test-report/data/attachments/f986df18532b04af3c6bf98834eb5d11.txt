@@ -1,0 +1,8 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_read_output_rejects_missi0/suite/sample.bats
+1..1
+# pecot-description: 読めないファイルのテストです。
+not ok 1 読めない # in 96 ms
+# (from function `read_output' in file .githooks/scripts/test_report/bats/pecot-bats/load.bash, line 57,
+#  in test file suite/sample.bats, line 7)
+#   `read_output "$BATS_TEST_TMPDIR/no-such.md"' failed
+# read_output: ファイルを読めません: /tmp/bats-run-IXKJfy/test/1/no-such.md

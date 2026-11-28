@@ -1,0 +1,4 @@
+ERROR: plugins/pecot-tools に未コミットの変更があります。配布ツリーは作業ツリーから
+       組み立てるため、pecot-tools-v0.0.0-test2682 が指すコミットと作業ツリーが一致した状態でのみ
+       publish できます:
+ M plugins/pecot-tools/scripts/release/mcp-dist-README.md

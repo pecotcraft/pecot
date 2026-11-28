@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-tools",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_logs_get_log_events: log_stream_name: Invalid input: expected string, received undefined"
+    }
+  ],
+  "isError": true
+}

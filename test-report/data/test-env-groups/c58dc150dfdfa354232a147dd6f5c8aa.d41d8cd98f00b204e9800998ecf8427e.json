@@ -1,0 +1,1 @@
+{"id":"c58dc150dfdfa354232a147dd6f5c8aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference 番号が全角数字でも、Python の int() と同じように数値として読む","name":"番号が全角数字でも、Python の int() と同じように数値として読む","status":"passed","testResultsByEnv":{"default":"d464f4be751b9272b736e64ae6501c3a"}}

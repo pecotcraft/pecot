@@ -1,0 +1,1 @@
+{"id":"08cc4668474f6df10e373d9323c2c24e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show Stack の節 判定を読めないとき、warning を出し、Stack の節の base の行は残す","name":"判定を読めないとき、warning を出し、Stack の節の base の行は残す","status":"passed","testResultsByEnv":{"default":"fbbc8fa2c12851356481ea38668d9e89"}}

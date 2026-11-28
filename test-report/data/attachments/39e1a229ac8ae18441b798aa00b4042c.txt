@@ -1,0 +1,2 @@
+error: Issue acme/demo/7 is not on the project board
+  hint: add it to the board first with board_add with issue_ref: "acme/demo/7"

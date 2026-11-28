@@ -1,0 +1,1 @@
+{"id":"50cb0b2037d7f6173428fc2e49f00706.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#getStateDirectory プロジェクトルートの下の .pecot/state のパスを返す","name":"プロジェクトルートの下の .pecot/state のパスを返す","status":"passed","testResultsByEnv":{"default":"8932ea64f259a7db2dc79b8872680198"}}

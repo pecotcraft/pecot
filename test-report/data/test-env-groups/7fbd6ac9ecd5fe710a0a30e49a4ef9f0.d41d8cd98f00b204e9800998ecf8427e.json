@@ -1,0 +1,1 @@
+{"id":"7fbd6ac9ecd5fe710a0a30e49a4ef9f0.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_queue_head_parent_is_not_queue_base","name":"queue のコミットの親が base と異なると、その理由を出力する","status":"passed","testResultsByEnv":{"default":"dd35a079f9fc41219a5a849b1222b3c4"}}

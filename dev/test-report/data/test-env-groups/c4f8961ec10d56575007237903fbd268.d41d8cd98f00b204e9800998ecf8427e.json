@@ -1,0 +1,1 @@
+{"id":"c4f8961ec10d56575007237903fbd268.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check タグ・本文・名前 接頭辞の付いたタグ を渡すと、tag-name の項目と候補を返す","name":"接頭辞の付いたタグ を渡すと、tag-name の項目と候補を返す","status":"passed","testResultsByEnv":{"default":"33022c283c0f2d81cd824803902a6489"}}

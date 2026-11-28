@@ -1,0 +1,1 @@
+{"id":"36dc0d68bd51c32ca2b6ac6e899c2df7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-font-sizes.test.ts#validateSlideFontSizes 表示する文字が存在しないセルは、警告の対象にしない","name":"表示する文字が存在しないセルは、警告の対象にしない","status":"passed","testResultsByEnv":{"default":"26f3f1144097d3141d938167dd9315a3"}}

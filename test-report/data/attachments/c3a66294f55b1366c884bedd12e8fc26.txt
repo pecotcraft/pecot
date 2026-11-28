@@ -1,0 +1,8 @@
+skipped: field pecot-status (already exists)
+skipped: field pecot-lane (no lanes given)
+warning: field pecot-lane was not created because no lanes were given
+  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes
+unchanged: option Blocked in field pecot-status
+skipped: field Status (not found)
+updated: config file /tmp/pecot-repo-V7InoS/.pecot/config/projects/ghes.example.com_acme_1.json
+set: active project to ghes.example.com_acme_1

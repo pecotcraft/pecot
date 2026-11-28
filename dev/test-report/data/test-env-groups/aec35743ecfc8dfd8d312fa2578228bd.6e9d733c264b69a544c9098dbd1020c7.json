@@ -1,0 +1,1 @@
+{"id":"aec35743ecfc8dfd8d312fa2578228bd.6e9d733c264b69a544c9098dbd1020c7","fullName":".githooks.tests.test_pages_store#test_side_check_rejects_unsafe_members","name":"側の tar に ./link のような危険なメンバーがあると、理由を示して指摘する","status":"passed","testResultsByEnv":{"default":"028d11583b707ce28ea70c7373a986b1"}}

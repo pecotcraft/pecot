@@ -1,0 +1,1 @@
+{"id":"1d5db0239261eac6d5707e62abfe4c81.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init pecot-lane と Lanes のビュー 空の文字の値 を渡すと、GitHub を呼ばずに kind が invalid-input の失敗を返す","name":"空の文字の値 を渡すと、GitHub を呼ばずに kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"ea760674aa7c497a85d613f7336ceee9"}}

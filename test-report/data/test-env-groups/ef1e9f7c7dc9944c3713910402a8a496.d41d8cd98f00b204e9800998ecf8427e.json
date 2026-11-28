@@ -1,0 +1,1 @@
+{"id":"ef1e9f7c7dc9944c3713910402a8a496.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#--out-dir ガードが 親ディレクトリが不在のパス を弾く","name":"--out-dir ガードが 親ディレクトリが不在のパス を弾く","status":"passed","testResultsByEnv":{"default":"95b7e6dad341c485af83d7d968ca1737"}}

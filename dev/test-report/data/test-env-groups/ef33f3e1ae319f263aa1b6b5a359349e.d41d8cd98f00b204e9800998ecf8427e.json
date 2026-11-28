@@ -1,0 +1,1 @@
+{"id":"ef33f3e1ae319f263aa1b6b5a359349e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/tracker-body.test.ts#listRegion 印の組が正しくない場合（begin が 2 つある）は、渡された型の例外が発生する","name":"印の組が正しくない場合（begin が 2 つある）は、渡された型の例外が発生する","status":"passed","testResultsByEnv":{"default":"02e8d1cb73d4926125ff21eeede31b8b"}}

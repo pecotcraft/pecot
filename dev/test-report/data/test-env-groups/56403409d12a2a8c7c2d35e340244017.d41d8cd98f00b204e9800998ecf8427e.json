@@ -1,0 +1,1 @@
+{"id":"56403409d12a2a8c7c2d35e340244017.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#aggregation_repo aggregation_repo を指定しない場合は、undefined にする","name":"aggregation_repo を指定しない場合は、undefined にする","status":"passed","testResultsByEnv":{"default":"72f9759133a281fd4ca660435facf7a5"}}

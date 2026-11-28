@@ -1,0 +1,1 @@
+{"id":"55cc2c4ccdf1b902a32d8de20cff2906.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#書き換え後の配布ツリーの lint が、プラグイン側と同じ既知違反と文面違反を検出する","name":"書き換え後の配布ツリーの lint が、プラグイン側と同じ既知違反と文面違反を検出する","status":"passed","testResultsByEnv":{"default":"20f4b6d501ccff0015ffdeda93edb521"}}

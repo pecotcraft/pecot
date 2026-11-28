@@ -1,0 +1,1 @@
+{"id":"742c6d807c7111fb295dfc6810884876.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/review-workflow-template.test.ts#review のワークフローの雛形 pecot の action のほかは、すべての action を 40 桁の SHA で固定する","name":"pecot の action のほかは、すべての action を 40 桁の SHA で固定する","status":"passed","testResultsByEnv":{"default":"11cd7b5f4a5b5cb3fa0eccf7c3ca6d21"}}

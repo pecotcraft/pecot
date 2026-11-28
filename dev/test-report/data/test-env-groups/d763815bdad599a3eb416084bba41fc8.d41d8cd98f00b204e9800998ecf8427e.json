@@ -1,0 +1,1 @@
+{"id":"d763815bdad599a3eb416084bba41fc8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#401 のときの gh auth token への切り替え GraphQL: 切り替えられないとき（gh 失敗）は最初の失敗の文で認証エラーにする","name":"GraphQL: 切り替えられないとき（gh 失敗）は最初の失敗の文で認証エラーにする","status":"passed","testResultsByEnv":{"default":"8be152d998d2ec75efae1e4e7eed7e43"}}

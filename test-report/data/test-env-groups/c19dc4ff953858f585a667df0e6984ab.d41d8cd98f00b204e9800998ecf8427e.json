@@ -1,0 +1,1 @@
+{"id":"c19dc4ff953858f585a667df0e6984ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#screenWorkflowRun conclusion が cancelled の場合は、処理を進めず何も書き込まない","name":"conclusion が cancelled の場合は、処理を進めず何も書き込まない","status":"passed","testResultsByEnv":{"default":"322901dedefa5547290616107ae77405"}}

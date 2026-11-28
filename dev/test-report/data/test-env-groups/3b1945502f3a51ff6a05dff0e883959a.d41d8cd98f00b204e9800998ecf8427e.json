@@ -1,0 +1,1 @@
+{"id":"3b1945502f3a51ff6a05dff0e883959a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-state-write-convention.test.ts#.pecot 書き込み規約 mkdir を直接含む .sh は、許可した 3 ファイルだけにする","name":"mkdir を直接含む .sh は、許可した 3 ファイルだけにする","status":"passed","testResultsByEnv":{"default":"5b602bba511cc7e5df4a09b3d9ee3dce"}}

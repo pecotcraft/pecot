@@ -1,0 +1,1 @@
+{"id":"f9e854bd46bd3a89b18dbdf6e78f371f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#listActionsVariableNames organization の単位では、リポジトリに適用される organization の変数を取得する","name":"organization の単位では、リポジトリに適用される organization の変数を取得する","status":"passed","testResultsByEnv":{"default":"6e13cc3af1f2df99e6488ac0fd870b4e"}}

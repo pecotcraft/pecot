@@ -1,0 +1,1 @@
+{"id":"2f62238931744838958ffddbe41807f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#NODE_EXTRA_CA_CERTS 設定済みならその値のまま取得プロセスへ渡る","name":"NODE_EXTRA_CA_CERTS 設定済みならその値のまま取得プロセスへ渡る","status":"passed","testResultsByEnv":{"default":"f401ddab4cbf909f33d11d25a2e08129"}}

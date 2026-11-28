@@ -1,0 +1,1 @@
+{"id":"3edb637f1161eb420fb3b313dfe3118d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show 関連 Issue がある PR を読むと、本文の参照 Issue を出す","name":"関連 Issue がある PR を読むと、本文の参照 Issue を出す","status":"passed","testResultsByEnv":{"default":"17760a5857b2188401beff5991e4bd16"}}

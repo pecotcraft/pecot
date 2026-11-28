@@ -1,0 +1,1 @@
+{"id":"d6aba6658c5cb35e832fd278e437dd0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/git-output.test.ts#gitReasonOf fatal と error の行が存在しない場合は、前後の空白を除いた全文を返す","name":"fatal と error の行が存在しない場合は、前後の空白を除いた全文を返す","status":"passed","testResultsByEnv":{"default":"c45e684e1ffd118833c6ebc3bf004b2c"}}

@@ -1,0 +1,1 @@
+{"id":"49742fb1534fd5dcc1d10c91108993f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/release-check.test.ts#release check version の形が誤っていると、alert を読まずに error の行を出して失敗にする","name":"version の形が誤っていると、alert を読まずに error の行を出して失敗にする","status":"passed","testResultsByEnv":{"default":"d9331f8d4973b75a74c4ec99104a58a2"}}

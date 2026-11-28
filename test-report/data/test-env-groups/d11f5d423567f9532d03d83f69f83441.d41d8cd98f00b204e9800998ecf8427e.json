@@ -1,0 +1,1 @@
+{"id":"d11f5d423567f9532d03d83f69f83441.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/handoff-workflow-template.test.ts#handoff のワークフローの雛形 timeout-minutes は、変数を fromJSON で数に直す","name":"timeout-minutes は、変数を fromJSON で数に直す","status":"passed","testResultsByEnv":{"default":"7a4c75cf9cb70f1b630bd926c323f1cc"}}

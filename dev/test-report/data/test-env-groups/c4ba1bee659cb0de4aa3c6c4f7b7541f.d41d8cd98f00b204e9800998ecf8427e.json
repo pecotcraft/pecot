@@ -1,0 +1,1 @@
+{"id":"c4ba1bee659cb0de4aa3c6c4f7b7541f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#Athena の変更系・複文（research R6） 参照だけの文でも複数含む場合は、not-allowed として拒否する","name":"参照だけの文でも複数含む場合は、not-allowed として拒否する","status":"passed","testResultsByEnv":{"default":"bc907c92ca6e0bac27e3088a9caa8b86"}}

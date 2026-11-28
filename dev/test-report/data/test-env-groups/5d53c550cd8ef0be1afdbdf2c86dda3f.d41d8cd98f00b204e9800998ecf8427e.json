@@ -1,0 +1,1 @@
+{"id":"5d53c550cd8ef0be1afdbdf2c86dda3f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-check.test.ts#branch_check Issue の番号で終わらないブランチ名を渡すと、branch-name の problem を返す","name":"Issue の番号で終わらないブランチ名を渡すと、branch-name の problem を返す","status":"passed","testResultsByEnv":{"default":"fa543081772da0785489139e3a801a8a"}}

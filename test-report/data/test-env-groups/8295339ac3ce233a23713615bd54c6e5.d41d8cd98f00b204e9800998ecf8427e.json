@@ -1,0 +1,1 @@
+{"id":"8295339ac3ce233a23713615bd54c6e5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bash_test_lib#test_without_results_dir_prints_only","name":"結果のディレクトリを指定しないと、画面に出力するだけで結果のファイルは書かない","status":"passed","testResultsByEnv":{"default":"f02cdab88d94891add96b9d6dd0f72e8"}}

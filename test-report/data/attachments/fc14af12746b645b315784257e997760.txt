@@ -1,0 +1,18 @@
+## Handoff run
+
+| Model | Effort | Turns | Result |
+|---|---|---|---|
+| `claude-opus-5-5` | `medium` | `3` | `success` |
+
+### Tool calls
+
+| # | Tool | Target |
+|---|---|---|
+| 1 | `mcp__plugin_pecot-w_pecot-workflow__pr_show` | `o/r/7` |
+| 2 | `mcp__plugin_pecot-w_pecot-workflow__issue_comment` | `o/r/1` |
+
+### Denied calls
+
+| Tool | Target |
+|---|---|
+| `Bash` | `gh issue close 1` |

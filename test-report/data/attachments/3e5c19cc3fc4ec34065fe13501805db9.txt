@@ -1,0 +1,18 @@
+## PR #21 feat(demo): #12 見本の変更
+
+**State:** OPEN | **Mergeable:** MERGEABLE
+
+**Branch:** `feat/demo/12` → `main`
+
+**Closing Issues:**
+  - #12 見本の Issue
+
+**Referenced Issues:**
+  - #3
+
+---
+
+本文
+
+Refs #3
+

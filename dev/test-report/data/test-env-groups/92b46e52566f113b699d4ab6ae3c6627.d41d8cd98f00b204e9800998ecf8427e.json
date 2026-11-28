@@ -1,0 +1,1 @@
+{"id":"92b46e52566f113b699d4ab6ae3c6627.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/field-options.test.ts#choosePlacement 基準の名前が既存の選択肢に存在する最初の候補を選ぶ（大文字と小文字は区別しない）","name":"基準の名前が既存の選択肢に存在する最初の候補を選ぶ（大文字と小文字は区別しない）","status":"passed","testResultsByEnv":{"default":"393f451781380633832a7c535c20ef9b"}}

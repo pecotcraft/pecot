@@ -1,0 +1,1 @@
+{"id":"acb30d5ce57fdc4a12ca6381ada41950.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/project-root-convention.test.ts#hooks の基準ディレクトリの規約 cwd 基準の toplevel の検出パターンは既知の形を検出し、-C 付きの形は検出しない","name":"cwd 基準の toplevel の検出パターンは既知の形を検出し、-C 付きの形は検出しない","status":"passed","testResultsByEnv":{"default":"558552865df25adec003d2802088c8f5"}}

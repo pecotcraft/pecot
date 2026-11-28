@@ -1,0 +1,7 @@
+skipped: field pecot-status (already exists)
+created: field pecot-lane (ID: PVTSSF_lane)
+unchanged: option Blocked in field pecot-status
+skipped: field Status (not found)
+created: view Lanes (https://ghes.example.com/users/acme/projects/1/views/2)
+created: config file /tmp/pecot-repo-OGAxmO/.pecot/config/projects/ghes.example.com_acme_1.json
+set: active project to ghes.example.com_acme_1

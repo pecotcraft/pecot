@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_s3_ls: s3_uri: Invalid input: expected string, received number"
+    }
+  ],
+  "isError": true
+}

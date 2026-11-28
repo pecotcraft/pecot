@@ -1,0 +1,1 @@
+{"id":"d9837a0a453adc629022d30904f81957.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#runGit 出力の改行が CRLF や CR の場合は、改行を LF に統一して返す","name":"出力の改行が CRLF や CR の場合は、改行を LF に統一して返す","status":"passed","testResultsByEnv":{"default":"942709b6c2c9a40bfb1382a0bd9b265e"}}

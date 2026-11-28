@@ -1,0 +1,2 @@
+WARN: base 未解決のため全 project の test を実行します。
+WARN: nx の profile（/tmp/pytest-of-vscode/pytest-0/popen-gw0/test_unresolvable_base_falls_b0/repo/.pecot/tmp/nx-affected-tests/nx-profile.json）を読めないため、レーン別の所要を記録できませんでした。

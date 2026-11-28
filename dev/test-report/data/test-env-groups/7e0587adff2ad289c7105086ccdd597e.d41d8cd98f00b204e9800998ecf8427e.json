@@ -1,0 +1,1 @@
+{"id":"7e0587adff2ad289c7105086ccdd597e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter 旧いテンプレートの priority: high を渡すと、止めずに読み捨てる","name":"旧いテンプレートの priority: high を渡すと、止めずに読み捨てる","status":"passed","testResultsByEnv":{"default":"b0114f080d7737f936f4b88827375f3a"}}

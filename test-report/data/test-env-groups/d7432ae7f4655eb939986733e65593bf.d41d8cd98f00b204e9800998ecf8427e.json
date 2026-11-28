@@ -1,0 +1,1 @@
+{"id":"d7432ae7f4655eb939986733e65593bf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toToolResult 失敗の場合は、kind と detail を最上位に置き、detail を text にして、isError を付ける","name":"失敗の場合は、kind と detail を最上位に置き、detail を text にして、isError を付ける","status":"passed","testResultsByEnv":{"default":"b780ba668c19e5714a8e9e5bacabd559"}}

@@ -1,0 +1,1 @@
+{"id":"8f18577712f4b852a6aed7fc47804e38.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#isRuntimeLayerInstalled: 永続層の版判定 インストール済みの印が存在しなければ、未インストールとして扱う","name":"インストール済みの印が存在しなければ、未インストールとして扱う","status":"passed","testResultsByEnv":{"default":"6d516ba9b18867fa956d842cb52d80ed"}}

@@ -1,0 +1,1 @@
+{"id":"988aabe2cc7df9e979745038c32699b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create ファイルの repository が owner/repo の形でない 3 つ組だと、終了コード 1 で終わり、PR を作らない","name":"ファイルの repository が owner/repo の形でない 3 つ組だと、終了コード 1 で終わり、PR を作らない","status":"passed","testResultsByEnv":{"default":"4cfc5c83ffb971785f830e026753e173"}}

@@ -1,0 +1,6 @@
+warning: 2 open Dependabot alerts (highest severity: critical). The release is not blocked.
+  #3 (glob, critical)
+  #4
+  → https://github.com/acme/demo/security/dependabot
+count: open code scanning alerts: 0
+count: open secret scanning alerts: 0

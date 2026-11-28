@@ -1,0 +1,1 @@
+{"id":"1a839e8ca9b26a29ccc7c1cdcaa3e17f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge MCP の data PR が既にマージ済み と、kind が pr-state の失敗を返す","name":"PR が既にマージ済み と、kind が pr-state の失敗を返す","status":"passed","testResultsByEnv":{"default":"2a4bcf155ed9a89c5e1c6a6bafeee09d"}}

@@ -1,0 +1,314 @@
+{
+  "name": "slide_convert",
+  "title": "Convert Slidev to PPTX",
+  "description": "Converts a Slidev project to PPTX. The duration is proportional to the number of slides (just under 30 seconds for 55 slides).",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "project_dir": {
+        "type": "string",
+        "description": "Absolute path of the Slidev project directory. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+      },
+      "out_path": {
+        "description": "Absolute path of the output .pptx. If omitted, <project_dir>/pptx/<title of slides.md | basename>.pptx. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+        "type": "string"
+      },
+      "theme": {
+        "description": "Name passed to slidev --theme (allowed characters: [a-zA-Z0-9@/_.-])",
+        "type": "string"
+      },
+      "spacing_json_path": {
+        "description": "Absolute path of the letter-spacing JSON. If omitted, staging/slides/letter-spacing.json is auto-detected. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+        "type": "string"
+      },
+      "href_json_path": {
+        "description": "Absolute path of the hyperlink JSON. If omitted, staging/slides/href-map.json is auto-detected. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL.",
+        "type": "string"
+      },
+      "transition_type": {
+        "description": "Slide transition type (default: fade)",
+        "type": "string",
+        "enum": [
+          "fade",
+          "morph"
+        ]
+      },
+      "transition_duration_ms": {
+        "description": "Slide transition duration, as a positive integer in milliseconds (default: 500)",
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "maximum": 9007199254740991
+      },
+      "morph_option": {
+        "description": "Granularity of the morph transition. Only meaningful when transition_type=morph",
+        "type": "string",
+        "enum": [
+          "byObject",
+          "byWord",
+          "byChar"
+        ]
+      },
+      "cache": {
+        "default": true,
+        "description": "Whether to read the diff cache. Even with false, the cache is rebuilt when the conversion completes",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "project_dir"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "event": {
+        "type": "string",
+        "description": "slide.convert.done on success; slide.convert.error, runtime-dependencies.unavailable or chromium.unavailable on failure (omitted when a path argument is rejected)"
+      },
+      "input": {
+        "type": "string",
+        "description": "Absolute path of the converted Slidev project (success only)"
+      },
+      "output": {
+        "type": "string",
+        "description": "Absolute path of the written .pptx (success only)"
+      },
+      "durationMs": {
+        "type": "number",
+        "description": "Time the conversion took in milliseconds (success only)"
+      },
+      "errors": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "string",
+              "description": "slide or element"
+            },
+            "slideNumber": {
+              "type": "number"
+            },
+            "selector": {
+              "description": "CSS selector of the element (element level only)",
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "level",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Conversion errors per slide or element (empty when none). Element-level errors do not fail the call. Returned on success and on slide.convert.error"
+      },
+      "animationTimingRemovedSlides": {
+        "type": "number",
+        "description": "Number of slides whose p:timing from decorative CSS animations was removed (success only)"
+      },
+      "timings": {
+        "description": "Time spent per stage in milliseconds (success only, when measured)",
+        "type": "object",
+        "properties": {
+          "scan": {
+            "type": "number"
+          },
+          "phase1": {
+            "type": "number"
+          },
+          "phase2": {
+            "type": "number"
+          },
+          "perSlide": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "description": "Step, as <slide> or <slide>/<click>"
+                },
+                "elapsedMs": {
+                  "type": "number"
+                },
+                "cache": {
+                  "type": "string",
+                  "enum": [
+                    "hit",
+                    "miss"
+                  ]
+                },
+                "phases": {
+                  "description": "Time per phase in milliseconds (converted steps only)",
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "key",
+                "elapsedMs"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "outer": {
+            "type": "object",
+            "properties": {
+              "cleanBuild": {
+                "type": "number"
+              },
+              "slidevBuild": {
+                "type": "number"
+              },
+              "pipeline": {
+                "type": "number"
+              },
+              "mergeAndPostprocess": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "cleanBuild",
+              "slidevBuild",
+              "pipeline",
+              "mergeAndPostprocess"
+            ],
+            "additionalProperties": false
+          },
+          "singlePass": {
+            "description": "Timing of the single-pass route (only when it was tried)",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "scan",
+          "phase1",
+          "phase2",
+          "perSlide",
+          "outer"
+        ],
+        "additionalProperties": false
+      },
+      "cache": {
+        "description": "Diff cache result (success only, when the cache was handled)",
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the diff cache was used"
+          },
+          "hits": {
+            "type": "number"
+          },
+          "misses": {
+            "type": "number"
+          },
+          "invalidated": {
+            "type": "string",
+            "enum": [
+              "none",
+              "all:env",
+              "all:manifest",
+              "all:key",
+              "all:error",
+              "partial"
+            ],
+            "description": "How existing cache entries were invalidated"
+          }
+        },
+        "required": [
+          "enabled",
+          "hits",
+          "misses",
+          "invalidated"
+        ],
+        "additionalProperties": false
+      },
+      "expectedAt": {
+        "description": "Where the missing runtime dependencies or Playwright Chromium are expected (failure only, kind runtime-dependencies-not-installed / chromium-not-installed / chromium-install-failed)",
+        "type": "string"
+      },
+      "invalidPaths": {
+        "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "convertedPaths": {
+        "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Value that was passed"
+            },
+            "to": {
+              "type": "string",
+              "description": "Path it was converted to"
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full text of the failure and how to recover (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "event",
+          "input",
+          "output",
+          "durationMs",
+          "errors",
+          "animationTimingRemovedSlides"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"3cc02e296c3535bf22bb91471b843c58.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_set MCP の data aggregation_repo でないキーを渡すと、kind が invalid-input の失敗を返す","name":"aggregation_repo でないキーを渡すと、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"5d9b97c4295f1ba9afbcfe18bb1376f4"}}

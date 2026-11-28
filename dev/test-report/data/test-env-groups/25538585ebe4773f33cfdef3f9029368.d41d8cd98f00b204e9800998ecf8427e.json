@@ -1,0 +1,1 @@
+{"id":"25538585ebe4773f33cfdef3f9029368.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/caret-range.test.ts#caretRangeOutside 0.x の caret 指定は、minor バージョンが違えば範囲の外と判定する","name":"0.x の caret 指定は、minor バージョンが違えば範囲の外と判定する","status":"passed","testResultsByEnv":{"default":"bc11a26d84c651060d75a0ec088f3875"}}

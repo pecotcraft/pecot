@@ -1,0 +1,1 @@
+{"id":"ebb5135b213b790861afb3172e1b8a75.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/entry-point-library-references.test.ts#hooks のスクリプトの参照先 抽出器の自己テスト ${VAR%/*} の親ディレクトリ剥がしは 1 段上を起点に解決する","name":"${VAR%/*} の親ディレクトリ剥がしは 1 段上を起点に解決する","status":"passed","testResultsByEnv":{"default":"2096d341d5fc5cf7a44ea82ab80d468b"}}

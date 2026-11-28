@@ -1,0 +1,1 @@
+{"id":"7df2d4711d2cc6d5e7d0faaac4a345b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys デッキの外を src で参照した場合も、拒否されずに算出できる","name":"デッキの外を src で参照した場合も、拒否されずに算出できる","status":"passed","testResultsByEnv":{"default":"3ccd1069f2c19710c6626ff502abfbcb"}}

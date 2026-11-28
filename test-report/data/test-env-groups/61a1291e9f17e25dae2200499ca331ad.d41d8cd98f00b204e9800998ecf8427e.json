@@ -1,0 +1,1 @@
+{"id":"61a1291e9f17e25dae2200499ca331ad.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_with_timing#test_sigterm_to_child_records_rc_143","name":"子のプロセスだけが SIGTERM で終了すると、`rc=143` を記録し、同じコードで終了する","status":"passed","testResultsByEnv":{"default":"f82389075139f1edeebf065384ad2b08"}}

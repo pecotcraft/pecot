@@ -1,0 +1,1 @@
+{"id":"6d191ef833a4ccfaa88ccc7e914bdcc1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#引数の組み立て dimensions のような配列の入力は、配列全体を JSON の 1 つの引数にして実行する","name":"dimensions のような配列の入力は、配列全体を JSON の 1 つの引数にして実行する","status":"passed","testResultsByEnv":{"default":"8abb227c4b89734b38598d8ee1635217"}}

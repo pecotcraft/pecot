@@ -1,0 +1,1 @@
+{"id":"6aba5770de9f3781be692db6afdbda21.ae38fdcfd712b208d57d1c32c07dc0d1","fullName":".githooks.tests.test_nx_task_cache#test_cacheable_target_declares_runtime_and_env","name":"pecot-visual:test-release は、キャッシュを有効にし、runtime と環境変数を入力に宣言する","status":"passed","testResultsByEnv":{"default":"3faab299fdc92e80bee00f9b144a95bf"}}

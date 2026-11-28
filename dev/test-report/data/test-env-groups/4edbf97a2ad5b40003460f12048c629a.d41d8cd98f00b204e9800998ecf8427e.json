@@ -1,0 +1,1 @@
+{"id":"4edbf97a2ad5b40003460f12048c629a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildSheetXml extraHeaders がない場合は、ヘッダーが 2 行になり、項目の開始行が 1 行上がる","name":"extraHeaders がない場合は、ヘッダーが 2 行になり、項目の開始行が 1 行上がる","status":"passed","testResultsByEnv":{"default":"34fcd379f38e7e3e6092b2689ad032aa"}}

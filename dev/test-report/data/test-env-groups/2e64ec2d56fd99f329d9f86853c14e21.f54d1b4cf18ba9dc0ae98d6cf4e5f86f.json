@@ -1,0 +1,1 @@
+{"id":"2e64ec2d56fd99f329d9f86853c14e21.f54d1b4cf18ba9dc0ae98d6cf4e5f86f","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_superseded_skips_runs_not_newer_than_next","name":"next の版 7.0.1-dev.5 と run 番号 5 を渡すと、`dev-superseded.mjs` は true を出力する","status":"passed","testResultsByEnv":{"default":"a382412a23524da753af354368ad7ade"}}

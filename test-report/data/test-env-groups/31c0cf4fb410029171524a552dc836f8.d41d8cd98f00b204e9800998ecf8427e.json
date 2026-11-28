@@ -1,0 +1,1 @@
+{"id":"31c0cf4fb410029171524a552dc836f8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_configured_test_task_counts_as_lane","name":"configuration 付きの test の task も、レーンとして数える","status":"passed","testResultsByEnv":{"default":"1885b0e898b89978b15d1f9ddea8ac8d"}}

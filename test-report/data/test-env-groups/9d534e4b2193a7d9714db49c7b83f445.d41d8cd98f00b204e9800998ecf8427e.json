@@ -1,0 +1,1 @@
+{"id":"9d534e4b2193a7d9714db49c7b83f445.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/launch.test.ts#launchChromium 実行ファイルが存在しない場合は、取得のコマンドを添えたエラーに包み直す","name":"実行ファイルが存在しない場合は、取得のコマンドを添えたエラーに包み直す","status":"passed","testResultsByEnv":{"default":"3354623f1ecc786bc0d631757fbcab22"}}

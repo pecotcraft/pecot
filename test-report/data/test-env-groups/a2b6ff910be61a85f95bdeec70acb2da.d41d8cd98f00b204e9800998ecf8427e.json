@@ -1,0 +1,1 @@
+{"id":"a2b6ff910be61a85f95bdeec70acb2da.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/inspect-pptx.bats#存在しない pptx を渡すと、そのパスを stderr に出して終了コード 2 で終わる","name":"存在しない pptx を渡すと、そのパスを stderr に出して終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"2b57228e6bac71a3b186177d09221965"}}

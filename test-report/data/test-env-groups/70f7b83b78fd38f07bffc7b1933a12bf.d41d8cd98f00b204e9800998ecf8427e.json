@@ -1,0 +1,1 @@
+{"id":"70f7b83b78fd38f07bffc7b1933a12bf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#deleteBranch 存在しない ref を削除して 422 が返ると、GitHubAPIError を発生させる","name":"存在しない ref を削除して 422 が返ると、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"88c9bc0f980e4a2dad48f8dd8f12dc69"}}

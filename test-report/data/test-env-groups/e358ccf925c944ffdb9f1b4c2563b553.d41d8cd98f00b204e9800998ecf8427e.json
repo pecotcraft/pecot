@@ -1,0 +1,1 @@
+{"id":"e358ccf925c944ffdb9f1b4c2563b553.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#更新（コピーを作る） withAggregationRepository は、値を差し替えたコピーを返し、元の設定は変えない","name":"withAggregationRepository は、値を差し替えたコピーを返し、元の設定は変えない","status":"passed","testResultsByEnv":{"default":"bb9846e54979080f768d7ab2778b52ae"}}

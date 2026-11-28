@@ -1,0 +1,1 @@
+{"id":"1274687383e3bbad258fd76731f880ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 題と番号 親 Epic の子の題が番号を持たないと、空き番号を付けた題を候補にして problem にする","name":"親 Epic の子の題が番号を持たないと、空き番号を付けた題を候補にして problem にする","status":"passed","testResultsByEnv":{"default":"01415b888ed80aaa24bb2aa6644469d2"}}

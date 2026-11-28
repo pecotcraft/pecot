@@ -1,0 +1,1 @@
+{"id":"81519a196a64d8d45f54f35bd9849915.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show MCP の呼び出し repo を付けると、ボードの項目をそのリポジトリに絞る","name":"repo を付けると、ボードの項目をそのリポジトリに絞る","status":"passed","testResultsByEnv":{"default":"fd2a3bb4631f35f4d733d9281656612e"}}

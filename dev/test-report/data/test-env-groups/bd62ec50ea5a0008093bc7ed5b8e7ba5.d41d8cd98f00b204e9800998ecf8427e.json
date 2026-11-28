@@ -1,0 +1,1 @@
+{"id":"bd62ec50ea5a0008093bc7ed5b8e7ba5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#ルートの解決 永続層のルートは、ディレクトリを作成せずに、パスだけを返す","name":"永続層のルートは、ディレクトリを作成せずに、パスだけを返す","status":"passed","testResultsByEnv":{"default":"d21f9c19395265bb06b082641a81c141"}}

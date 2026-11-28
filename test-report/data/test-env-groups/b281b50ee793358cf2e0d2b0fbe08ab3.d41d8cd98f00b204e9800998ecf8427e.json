@@ -1,0 +1,1 @@
+{"id":"b281b50ee793358cf2e0d2b0fbe08ab3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/field-options.test.ts#insertOption 大文字と小文字だけが異なる同じ名前の選択肢が既に存在する場合は、undefined を返す","name":"大文字と小文字だけが異なる同じ名前の選択肢が既に存在する場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"0818e7ad04f604697ab3013b013c7a49"}}

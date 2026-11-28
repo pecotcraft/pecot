@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_rds_describe_db_clusters succeeded"
+    },
+    {
+      "type": "text",
+      "text": "{\"DBClusters\":[{\"DBClusterIdentifier\":\"order-cluster\",\"DBClusterArn\":\"arn:aws:rds:ap-northeast-1:123456789012:cluster:order-cluster\",\"Engine\":\"aurora-postgresql\",\"EngineVersion\":\"16.4\",\"Status\":\"available\",\"Endpoint\":\"order-cluster.cluster-abcdefghijkl.ap-northeast-1.rds.amazonaws.com\",\"ReaderEndpoint\":\"order-cluster.cluster-ro-abcdefghijkl.ap-northeast-1.rds.amazonaws.com\",\"MultiAZ\":true,\"DBClusterMembers\":[{\"DBInstanceIdentifier\":\"order-cluster-instance-1\",\"IsClusterWriter\":true}]}]}"
+    }
+  ],
+  "structuredContent": {
+    "DBClusters": [
+      {
+        "DBClusterIdentifier": "order-cluster",
+        "DBClusterArn": "arn:aws:rds:ap-northeast-1:123456789012:cluster:order-cluster",
+        "Engine": "aurora-postgresql",
+        "EngineVersion": "16.4",
+        "Status": "available",
+        "Endpoint": "order-cluster.cluster-abcdefghijkl.ap-northeast-1.rds.amazonaws.com",
+        "ReaderEndpoint": "order-cluster.cluster-ro-abcdefghijkl.ap-northeast-1.rds.amazonaws.com",
+        "MultiAZ": true,
+        "DBClusterMembers": [
+          {
+            "DBInstanceIdentifier": "order-cluster-instance-1",
+            "IsClusterWriter": true
+          }
+        ]
+      }
+    ]
+  }
+}

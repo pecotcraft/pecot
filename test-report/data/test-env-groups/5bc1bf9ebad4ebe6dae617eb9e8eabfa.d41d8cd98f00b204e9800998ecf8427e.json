@@ -1,0 +1,1 @@
+{"id":"5bc1bf9ebad4ebe6dae617eb9e8eabfa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine selectNodes は、要素以外のノード（属性ノードなど）を返さない","name":"selectNodes は、要素以外のノード（属性ノードなど）を返さない","status":"passed","testResultsByEnv":{"default":"70eb6a4e2a57e1b3b947a863c40776f1"}}

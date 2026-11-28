@@ -1,0 +1,1 @@
+{"id":"ffbb61269a0dff2b2787d7a9c73f044f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-show.test.ts#board_show ボードに pecot-lane が無いと、各 Item の lane を null に、lanes を空にする","name":"ボードに pecot-lane が無いと、各 Item の lane を null に、lanes を空にする","status":"passed","testResultsByEnv":{"default":"a1d15ad3bfe61b27edb455fb04a89695"}}

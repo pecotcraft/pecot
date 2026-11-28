@@ -1,0 +1,1 @@
+{"id":"2729b1b017a39932d874f65595e1b7a1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_open_prs_keeps_this_repo_and_sorts","name":"開いている PR の一覧は、このリポジトリの PR だけを番号の昇順で返す","status":"passed","testResultsByEnv":{"default":"9f7bdd2040f46e66f41679c9aeec2d63"}}

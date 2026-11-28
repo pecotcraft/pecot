@@ -1,0 +1,1 @@
+{"id":"0c2d222ea6d3516c5ef7b764f023d356.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 許可リスト内のオプション 許可リスト内のオプション（--no-tags）を付けても、exit 10 を返す","name":"許可リスト内のオプション（--no-tags）を付けても、exit 10 を返す","status":"passed","testResultsByEnv":{"default":"fd7e7d6f1beb8ded3b2b3d0307691deb"}}

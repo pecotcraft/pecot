@@ -1,0 +1,1 @@
+{"id":"63ead7e91db5ccb1b2755f02086b5cd5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#コマンドの実体 .textlintignore パスに glob の記号が含まれるファイルを渡すと、除外の対象の下にあっても、違反を返す","name":"パスに glob の記号が含まれるファイルを渡すと、除外の対象の下にあっても、違反を返す","status":"passed","testResultsByEnv":{"default":"b83535825b9ad7f79e70ee293b6f5d6c"}}

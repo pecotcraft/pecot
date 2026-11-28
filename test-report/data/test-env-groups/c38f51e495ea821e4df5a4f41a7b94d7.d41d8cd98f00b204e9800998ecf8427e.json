@@ -1,0 +1,1 @@
+{"id":"c38f51e495ea821e4df5a4f41a7b94d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#配布 package.json の dependencies に commander が無い","name":"配布 package.json の dependencies に commander が無い","status":"passed","testResultsByEnv":{"default":"e7cf59123499b47cfa921c5589912330"}}

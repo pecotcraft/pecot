@@ -1,0 +1,1 @@
+{"id":"24fae85fc1032226469e55b4e259bb62.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_format#test_stale_group_key_fails","name":"旧 group 名の pecot をキーにした version plan は、有効なキーを出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"c8c7f83b9c52e67ddfa987383aa17503"}}

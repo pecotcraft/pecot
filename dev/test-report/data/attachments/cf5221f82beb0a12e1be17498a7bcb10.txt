@@ -1,0 +1,1 @@
+ERROR: 監査未実施のため中止: 指定された例外リストがありません: /tmp/bats-run-ZtRN2n/test/27/exceptions-missing.json

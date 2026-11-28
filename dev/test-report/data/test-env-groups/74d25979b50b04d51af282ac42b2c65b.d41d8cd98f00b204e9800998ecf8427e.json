@@ -1,0 +1,1 @@
+{"id":"74d25979b50b04d51af282ac42b2c65b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-finish.test.ts#auto finish job の様子から結果を決める 結果のファイルが無く job が成功なら、スキルが書かずに終わったことを本文にして failed を書く","name":"結果のファイルが無く job が成功なら、スキルが書かずに終わったことを本文にして failed を書く","status":"passed","testResultsByEnv":{"default":"1d1d58cf66027f385884326a9ed62e1b"}}

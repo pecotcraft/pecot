@@ -1,0 +1,1 @@
+/tmp/bats-run-Ha4GM6/test/11/dist-out 0

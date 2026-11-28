@@ -1,0 +1,1 @@
+{"id":"9568352df80ab111c72f8024e7ddd9df.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_skill_doc_direct_call#test_python3_rel_path_fails","name":"SKILL.md が python3 で scripts の相対パスのスクリプトを呼んでいると、失敗で終わる","status":"passed","testResultsByEnv":{"default":"18c40da10ad1625dcca1d521c650ee79"}}

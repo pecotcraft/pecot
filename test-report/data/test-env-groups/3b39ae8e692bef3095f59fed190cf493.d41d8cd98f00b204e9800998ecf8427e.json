@@ -1,0 +1,1 @@
+{"id":"3b39ae8e692bef3095f59fed190cf493.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/directory-option.test.ts#directorySchema 読み取れないディレクトリを渡すと、is not readable の検証の誤りにする","name":"読み取れないディレクトリを渡すと、is not readable の検証の誤りにする","status":"passed","testResultsByEnv":{"default":"b0fda5526c8fcca9f2491a757043e941"}}

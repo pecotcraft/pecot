@@ -1,0 +1,1 @@
+{"id":"0a3a32445180a79ed3b6a90012466896.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree 記録が存在しない worktree は、機能ブランチに移っていても置き場所で見つけて削除する","name":"記録が存在しない worktree は、機能ブランチに移っていても置き場所で見つけて削除する","status":"passed","testResultsByEnv":{"default":"1eed5f5467fa8110af7f66dcac51792f"}}

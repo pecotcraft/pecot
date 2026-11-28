@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: worktree wt1 at /tmp/pecot-cli-onniyP/workspaces/wt1/demo (branch wt1 from develop)"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt1\",\"path\":\"/tmp/pecot-cli-onniyP/workspaces/wt1/demo\",\"branch\":\"wt1\",\"base\":\"develop\",\"setupFailed\":false}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt1",
+    "path": "/tmp/pecot-cli-onniyP/workspaces/wt1/demo",
+    "branch": "wt1",
+    "base": "develop",
+    "setupFailed": false
+  }
+}

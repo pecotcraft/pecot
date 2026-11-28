@@ -1,0 +1,1 @@
+{"id":"582a11386de25539a7e23dc118317f39.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — 受理 複数の extraHeaders は、宣言した順のまま保持する","name":"複数の extraHeaders は、宣言した順のまま保持する","status":"passed","testResultsByEnv":{"default":"97e23b2141f9411a5c60f476b04b552a"}}

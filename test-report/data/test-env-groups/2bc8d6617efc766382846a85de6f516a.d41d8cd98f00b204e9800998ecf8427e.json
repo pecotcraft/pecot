@@ -1,0 +1,1 @@
+{"id":"2bc8d6617efc766382846a85de6f516a.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#NODE_EXTRA_CA_CERTS 未設定なら取得プロセスも受け取らない","name":"NODE_EXTRA_CA_CERTS 未設定なら取得プロセスも受け取らない","status":"passed","testResultsByEnv":{"default":"7d26f8c2f09bb4b62c84eea2df6da753"}}

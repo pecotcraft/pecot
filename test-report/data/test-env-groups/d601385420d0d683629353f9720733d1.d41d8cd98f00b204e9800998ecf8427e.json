@@ -1,0 +1,1 @@
+{"id":"d601385420d0d683629353f9720733d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/web-fonts.test.ts#webFontsFor 大文字と小文字の違いと前後の空白を除いて重複をなくし、最初に指定した綴りを残す","name":"大文字と小文字の違いと前後の空白を除いて重複をなくし、最初に指定した綴りを残す","status":"passed","testResultsByEnv":{"default":"025477214a1df1a268a8e8024981142c"}}

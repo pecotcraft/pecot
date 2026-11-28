@@ -1,0 +1,1 @@
+{"id":"fee9bd92b4b6b262c18158f68dfef224.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/workflow-template.test.ts#userLines 囲みの外の行と、同梱のテンプレートと同じ行は返さない","name":"囲みの外の行と、同梱のテンプレートと同じ行は返さない","status":"passed","testResultsByEnv":{"default":"4118244f0ff8022be2856faea6dba471"}}

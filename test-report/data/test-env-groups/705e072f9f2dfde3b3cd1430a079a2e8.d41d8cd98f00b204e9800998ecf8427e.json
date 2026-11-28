@@ -1,0 +1,1 @@
+{"id":"705e072f9f2dfde3b3cd1430a079a2e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide convert の差分キャッシュ 警告がない実行でも、done イベントに warnings として空の配列を出力する（#929）","name":"警告がない実行でも、done イベントに warnings として空の配列を出力する（#929）","status":"passed","testResultsByEnv":{"default":"2a68f5d7cd773d334c26d078e1fdb47a"}}

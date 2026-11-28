@@ -1,0 +1,245 @@
+{
+  "name": "release_check",
+  "title": "Check release",
+  "description": "Check the params for the release-create operation of github-ops before the release: no open code scanning or secret scanning alert (open Dependabot alerts only warn), the tag is new on the local repository, the remote and GitHub, the body is the release notes of the CHANGELOG section of the version, and sha is the head of the release branch with commits since the previous release tag. For an nx repository only the alerts are checked. Reads the local git and the git remote, not the GitHub API; pass the results of the official reads in reads.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "params": {
+        "description": "The params of the release-create operation of github-ops: tag (v<version>, or <package>-v<version> in a monorepo), sha (the head of the release branch), body (the release notes of the CHANGELOG section of the version, see releaseNotes) and name. Omit it when release_type is nx",
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prerelease": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "tag",
+          "sha",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "reads": {
+        "description": "Results of the official GitHub MCP reads the check needs",
+        "type": "object",
+        "properties": {
+          "dependabot_alerts": {
+            "description": "list_dependabot_alerts with state open",
+            "type": "object",
+            "properties": {
+              "pages": {
+                "description": "Results of the list tool with state open, every page",
+                "type": "array",
+                "items": {}
+              },
+              "error": {
+                "description": "The error text the list tool returned instead of a result (such as the feature being disabled)",
+                "type": "string"
+              }
+            }
+          },
+          "code_scanning_alerts": {
+            "description": "list_code_scanning_alerts with state open",
+            "type": "object",
+            "properties": {
+              "pages": {
+                "description": "Results of the list tool with state open, every page",
+                "type": "array",
+                "items": {}
+              },
+              "error": {
+                "description": "The error text the list tool returned instead of a result (such as the feature being disabled)",
+                "type": "string"
+              }
+            }
+          },
+          "secret_scanning_alerts": {
+            "description": "list_secret_scanning_alerts with state open",
+            "type": "object",
+            "properties": {
+              "pages": {
+                "description": "Results of the list tool with state open, every page",
+                "type": "array",
+                "items": {}
+              },
+              "error": {
+                "description": "The error text the list tool returned instead of a result (such as the feature being disabled)",
+                "type": "string"
+              }
+            }
+          },
+          "release": {
+            "description": "get_release_by_tag with the tag of params (not needed when release_type is nx)",
+            "type": "object",
+            "properties": {
+              "result": {
+                "description": "Result of get_release_by_tag for the tag"
+              },
+              "error": {
+                "description": "The error text get_release_by_tag returned (404 when the tag has no release)",
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "problems": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "description": "Issue the problem belongs to: a batch key or owner/repo/N (omitted when the check covers one target)",
+              "type": "string"
+            },
+            "field": {
+              "type": "string",
+              "description": "Name of the argument that breaks the rule (title, body, issue_fields.<name>, blocked_by.<i>, ...)"
+            },
+            "code": {
+              "type": "string",
+              "description": "Kind of the problem (missing-section, extra-heading, cycle, ...)"
+            },
+            "message": {
+              "type": "string",
+              "description": "What is wrong and how to fix it, with the expected value when there is one"
+            },
+            "candidates": {
+              "description": "Values that would be accepted (omitted when there is no fixed set)",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "field",
+            "code",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Rules the arguments break; when empty, the arguments can be passed to the write tool as they are"
+      },
+      "skipped": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Checks skipped because the feature is disabled (e.g. \"Dependabot alerts (feature disabled)\")"
+      },
+      "dependabotAlerts": {
+        "description": "Dependabot alert status; open alerts only warn and do not block the release (omitted when it could not be read)",
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether Dependabot alerts are enabled"
+          },
+          "openCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of open alerts (0 when disabled)"
+          },
+          "maxSeverity": {
+            "description": "Highest severity of the open alerts (omitted when there is none)",
+            "type": "string"
+          },
+          "alertsUrl": {
+            "type": "string",
+            "description": "URL of the alert list"
+          }
+        },
+        "required": [
+          "enabled",
+          "openCount",
+          "alertsUrl"
+        ],
+        "additionalProperties": false
+      },
+      "version": {
+        "description": "Version of the tag in params (omitted when the tag cannot be read, or release_type is nx)",
+        "type": "string"
+      },
+      "releaseNotes": {
+        "description": "The release notes the body must be: the CHANGELOG section of the version, keeping only the link and footnote definitions it uses and adding those defined outside the section (omitted when it cannot be read)",
+        "type": "string"
+      },
+      "commitCount": {
+        "description": "Number of commits from the previous release tag to sha (omitted when there is no previous tag)",
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "problems",
+          "skipped"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"ea49da6ac029dc07be3085e45ea0a235.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts CSS の font 一括指定 (F-06) CSS の font の一括指定が宣言どおりの書体なら、警告を返さない","name":"CSS の font の一括指定が宣言どおりの書体なら、警告を返さない","status":"passed","testResultsByEnv":{"default":"bfd87dffdef7da1df5323c65ad62fe52"}}

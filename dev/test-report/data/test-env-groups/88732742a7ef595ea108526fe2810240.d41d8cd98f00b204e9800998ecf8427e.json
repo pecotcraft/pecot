@@ -1,0 +1,1 @@
+{"id":"88732742a7ef595ea108526fe2810240.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_scan_skips_comments_and_shell_builtins","name":"走査は、コメントの中の変数とシェルの組み込みの変数を数えない","status":"passed","testResultsByEnv":{"default":"e1f7aac6d66eedb362bd9725a82c766a"}}

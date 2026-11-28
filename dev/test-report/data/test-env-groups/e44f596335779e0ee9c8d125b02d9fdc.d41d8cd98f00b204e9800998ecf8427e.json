@@ -1,0 +1,1 @@
+{"id":"e44f596335779e0ee9c8d125b02d9fdc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/merge-hook-outputs.test.ts#merge-hook-outputs.sh SessionStart のとき、additionalContext をトップレベルにも出す","name":"SessionStart のとき、additionalContext をトップレベルにも出す","status":"passed","testResultsByEnv":{"default":"133dcd268387f726c921cf79c2f67811"}}

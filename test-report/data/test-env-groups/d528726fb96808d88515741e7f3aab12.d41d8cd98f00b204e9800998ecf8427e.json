@@ -1,0 +1,1 @@
+{"id":"d528726fb96808d88515741e7f3aab12.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 記法違反が複数あるとき全種を 1 件ずつ返す 複数の規則に違反しても、すべてを決まった順で 1 件ずつ報告する","name":"複数の規則に違反しても、すべてを決まった順で 1 件ずつ報告する","status":"passed","testResultsByEnv":{"default":"a5233311b343c76585b512733bf8278f"}}

@@ -1,0 +1,1 @@
+PECOT_RESULT {"operation":"stack-register","request_id":"req-1","ok":false,"error":{"kind":"order-conflict","message":"PR #21 is already in stack #6"}}

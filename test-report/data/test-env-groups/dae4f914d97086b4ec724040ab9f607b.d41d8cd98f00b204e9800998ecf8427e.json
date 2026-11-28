@@ -1,0 +1,1 @@
+{"id":"dae4f914d97086b4ec724040ab9f607b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#フラグ名の文字列を止める lint src/domain/work-start.ts のパス 引数の三項演算子の文字列 にフラグ名を書くと、lint の違反になる","name":"引数の三項演算子の文字列 にフラグ名を書くと、lint の違反になる","status":"passed","testResultsByEnv":{"default":"21bd349c51f3b4dabc21e4b1a6fc6b99"}}

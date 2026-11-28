@@ -1,0 +1,1 @@
+{"id":"9816ad5827a7f7fcc9b332ed79fd70e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main 違反のある .py ファイルを渡すと、違反ごとに「パス:行:桁 規則 ID メッセージ」の 1 行を出力し、終了コード 1 を返す","name":"違反のある .py ファイルを渡すと、違反ごとに「パス:行:桁 規則 ID メッセージ」の 1 行を出力し、終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"053ca31d235212596d65146032455522"}}

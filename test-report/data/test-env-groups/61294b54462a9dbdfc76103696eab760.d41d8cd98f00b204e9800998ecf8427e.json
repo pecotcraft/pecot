@@ -1,0 +1,1 @@
+{"id":"61294b54462a9dbdfc76103696eab760.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#案内の文字列を止める lint グループ issue_dependency の案内を書くと、lint の違反になる","name":"グループ issue_dependency の案内を書くと、lint の違反になる","status":"passed","testResultsByEnv":{"default":"586dc882558c27c01d8e57217bce7d2a"}}

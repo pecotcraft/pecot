@@ -1,0 +1,1 @@
+{"id":"c99f9ad8be961aa0eaf49d6d6e0cc927.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ pr-create-4xx を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ pr-create-4xx を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"99178709c0c035837e8812a48b40b174"}}

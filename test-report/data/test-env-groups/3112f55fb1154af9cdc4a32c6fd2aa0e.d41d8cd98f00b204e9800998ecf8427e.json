@@ -1,0 +1,1 @@
+{"id":"3112f55fb1154af9cdc4a32c6fd2aa0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh claude-bash-guards: allow JSON と deny ガード 無害なコマンドのとき、何も出力しない","name":"無害なコマンドのとき、何も出力しない","status":"passed","testResultsByEnv":{"default":"73e2d02d0728ab67c67674e0011151fd"}}

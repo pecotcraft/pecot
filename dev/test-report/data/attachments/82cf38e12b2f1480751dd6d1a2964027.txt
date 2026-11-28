@@ -1,0 +1,1 @@
+ERROR: --out-dir はリポジトリ (/tmp/bats-run-5KndcQ/test/9/repo) の外を指定してください: /tmp/bats-run-5KndcQ/test/9/repo

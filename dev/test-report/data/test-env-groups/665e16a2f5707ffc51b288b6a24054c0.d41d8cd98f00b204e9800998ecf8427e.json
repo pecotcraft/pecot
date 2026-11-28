@@ -1,0 +1,1 @@
+{"id":"665e16a2f5707ffc51b288b6a24054c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「prerenderFiles 欠落」の場合は、undefined を返す","name":"エントリが「prerenderFiles 欠落」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"f489a16a5a29a72e06f1ed2c61fabde2"}}

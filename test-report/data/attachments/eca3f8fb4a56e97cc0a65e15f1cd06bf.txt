@@ -1,0 +1,2 @@
+[NG] /tmp/lint-design-9YXgz3/missing.md: 読めません
+[OK] /workspaces/base/pecot/plugins/pecot-visual/assets/slidev/scripts/design-lint/tests/fixtures/DESIGN.md: errors 0 / warnings 0 / infos 2

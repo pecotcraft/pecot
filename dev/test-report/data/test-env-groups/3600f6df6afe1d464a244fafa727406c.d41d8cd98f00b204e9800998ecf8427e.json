@@ -1,0 +1,1 @@
+{"id":"3600f6df6afe1d464a244fafa727406c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_sandbox_ops_workflow#test_permissions","name":"トップの権限は contents: read で、diff の job だけが contents: write を持つ","status":"passed","testResultsByEnv":{"default":"ba1e2990a6684b998f1afb19cb9ba99b"}}

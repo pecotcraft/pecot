@@ -1,0 +1,1 @@
+{"id":"98ee2449a654ccd82454a42f933dff0d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#describePushStatus ローカルが remote より 0 件先、0 件後ろの場合の状態を返す","name":"ローカルが remote より 0 件先、0 件後ろの場合の状態を返す","status":"passed","testResultsByEnv":{"default":"1852a1ed25648e600fd9ac763977c00a"}}

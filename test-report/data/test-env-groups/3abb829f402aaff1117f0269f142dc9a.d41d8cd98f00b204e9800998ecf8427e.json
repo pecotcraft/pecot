@@ -1,0 +1,1 @@
+{"id":"3abb829f402aaff1117f0269f142dc9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/error-utils.test.ts#sanitizeErrorMessage call log が字下げされていても、そこから後ろを取り除く","name":"call log が字下げされていても、そこから後ろを取り除く","status":"passed","testResultsByEnv":{"default":"a4b8eb90c2e3849ccdbb238525d9f24b"}}

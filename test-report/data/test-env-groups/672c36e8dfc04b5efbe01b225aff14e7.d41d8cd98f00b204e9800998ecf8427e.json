@@ -1,0 +1,1 @@
+{"id":"672c36e8dfc04b5efbe01b225aff14e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync 判断を待つ PR が無く open の Tracker があると、表を none に書き直す","name":"判断を待つ PR が無く open の Tracker があると、表を none に書き直す","status":"passed","testResultsByEnv":{"default":"9b28a07593042537ba4c4976c97bbcb3"}}

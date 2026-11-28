@@ -1,0 +1,1 @@
+{"id":"c356de5bb06da919712c4d4878d78b06.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/user-prompt-submit-title.test.ts#user-prompt-submit-title.sh 入力のセッション名が題名と同じとき、何も出力しない","name":"入力のセッション名が題名と同じとき、何も出力しない","status":"passed","testResultsByEnv":{"default":"048122c7b68175c0cc9fda106d108d60"}}

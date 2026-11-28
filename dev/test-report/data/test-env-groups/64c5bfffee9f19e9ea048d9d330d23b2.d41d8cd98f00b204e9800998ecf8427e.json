@@ -1,0 +1,1 @@
+{"id":"64c5bfffee9f19e9ea048d9d330d23b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slides-title.test.ts#sanitizeFilename ASCII の文字は、250 バイト（250 文字）で切り詰める","name":"ASCII の文字は、250 バイト（250 文字）で切り詰める","status":"passed","testResultsByEnv":{"default":"beae48f7dd377f5efb073ec2ceb61ae0"}}

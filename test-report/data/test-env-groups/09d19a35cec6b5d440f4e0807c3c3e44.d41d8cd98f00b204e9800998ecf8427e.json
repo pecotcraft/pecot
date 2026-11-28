@@ -1,0 +1,1 @@
+{"id":"09d19a35cec6b5d440f4e0807c3c3e44.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_release_triggers_test_report_like_pages_build","name":"リリースの workflow は、サイトのビルドの直後に、同じ条件でレポートの run を起動する","status":"passed","testResultsByEnv":{"default":"57ed6e9b7a4647395d1199cefec22cdc"}}

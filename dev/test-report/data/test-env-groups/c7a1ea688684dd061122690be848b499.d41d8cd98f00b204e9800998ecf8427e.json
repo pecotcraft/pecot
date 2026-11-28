@@ -1,0 +1,1 @@
+{"id":"c7a1ea688684dd061122690be848b499.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の blocked_by wait を省略すると stack にし、issue と reason は渡した値で返す","name":"wait を省略すると stack にし、issue と reason は渡した値で返す","status":"passed","testResultsByEnv":{"default":"8c2ede92565fcb9b2e04f793c78d2e71"}}

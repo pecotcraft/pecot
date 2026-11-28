@@ -1,0 +1,1 @@
+{"id":"3ac3d3579e575272a3de2b24ac19d92b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueBlockingReferences blocking の下の部分エラーは、例外にせず read-failed で返す","name":"blocking の下の部分エラーは、例外にせず read-failed で返す","status":"passed","testResultsByEnv":{"default":"77c5266256191d5e8e3e0acdf63efc39"}}

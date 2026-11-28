@@ -1,0 +1,1 @@
+{"id":"31acfd95518f83b2778b14840ea5c508.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh wt3 ブランチで commit するとき、ブランチ名を示して止める","name":"wt3 ブランチで commit するとき、ブランチ名を示して止める","status":"passed","testResultsByEnv":{"default":"e34f66d286b1afc639b0c2977b1fc4ec"}}

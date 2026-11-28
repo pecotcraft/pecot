@@ -1,0 +1,1 @@
+{"id":"c310560b3d14c6b668388241535d1013.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 本文に閉じるキーワードが無い とき、PR の本文を保存し直さない","name":"本文に閉じるキーワードが無い とき、PR の本文を保存し直さない","status":"passed","testResultsByEnv":{"default":"9924b3c211610c701e241341c13a0dba"}}

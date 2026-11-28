@@ -1,0 +1,1 @@
+{"id":"92621c556201b42d8f0805d3ddffb309.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-show-unexpected.test.ts#board_show MCP で予期しないエラーが起きると、kind が other の失敗を返す","name":"MCP で予期しないエラーが起きると、kind が other の失敗を返す","status":"passed","testResultsByEnv":{"default":"6dcaa47f54967fe6f195fecc7f1353f8"}}

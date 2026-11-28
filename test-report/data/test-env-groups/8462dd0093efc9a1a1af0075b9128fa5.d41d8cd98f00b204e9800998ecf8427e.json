@@ -1,0 +1,1 @@
+{"id":"8462dd0093efc9a1a1af0075b9128fa5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql 2xx で JSON が配列 のとき、GitHubAPIError が発生する","name":"2xx で JSON が配列 のとき、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"008eef526046d67d2c2186b0d6ed1c12"}}

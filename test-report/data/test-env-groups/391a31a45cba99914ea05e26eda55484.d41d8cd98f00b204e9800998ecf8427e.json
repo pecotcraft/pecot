@@ -1,0 +1,1 @@
+{"id":"391a31a45cba99914ea05e26eda55484.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — ヘッダー行割付 1 行目にタイトルの帯、2 行目に作成日、3 行目以降に extraHeaders の項目を配置する","name":"1 行目にタイトルの帯、2 行目に作成日、3 行目以降に extraHeaders の項目を配置する","status":"passed","testResultsByEnv":{"default":"b5fdb15554d81940a4c4c948d59175e8"}}

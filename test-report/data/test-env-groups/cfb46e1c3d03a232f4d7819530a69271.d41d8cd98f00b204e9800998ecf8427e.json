@@ -1,0 +1,1 @@
+{"id":"cfb46e1c3d03a232f4d7819530a69271.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_logs_get_log_events 必須の入力 log_group_name が指定されていないと、拒否する","name":"必須の入力 log_group_name が指定されていないと、拒否する","status":"passed","testResultsByEnv":{"default":"782b1e68b8ba2c9fa37d4a1b56c56926"}}

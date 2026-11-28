@@ -1,0 +1,1 @@
+{"id":"5a20131b58c9ee44acc83faa8acf0ad0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#isAssignable 担当者の確認で状態コード 500 が返った場合は、GitHubAPIError が発生する","name":"担当者の確認で状態コード 500 が返った場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"8a609d5919012d3397db4a4a1013a043"}}

@@ -1,0 +1,1 @@
+{"id":"db44a79cf8999355f33db93c90af7f0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#saveConfig 設定を保存すると、シリアライズした内容のファイルを作成する","name":"設定を保存すると、シリアライズした内容のファイルを作成する","status":"passed","testResultsByEnv":{"default":"cdd10dc5cbbe43e96f9ef4b8b0ccedd7"}}

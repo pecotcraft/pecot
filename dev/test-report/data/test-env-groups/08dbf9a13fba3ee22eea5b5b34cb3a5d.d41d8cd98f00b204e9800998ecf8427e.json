@@ -1,0 +1,1 @@
+{"id":"08dbf9a13fba3ee22eea5b5b34cb3a5d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-security.test.ts#tracker sync Tracker の本文を書き直す 表の 3 列目を Severity にし、GitHub の重大度の値をそのまま出す","name":"表の 3 列目を Severity にし、GitHub の重大度の値をそのまま出す","status":"passed","testResultsByEnv":{"default":"a3ad7b23b4755f6f8f9ad97ad4f83fea"}}

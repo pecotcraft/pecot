@@ -1,0 +1,1 @@
+{"id":"10fb19b8b47c4bbf52a71c20446e4910.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template bind した式の中の文字列 に違反があると、元のファイルの行と桁で指摘を返す","name":"bind した式の中の文字列 に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"54016de4260be383c9bf2830285d56a1"}}

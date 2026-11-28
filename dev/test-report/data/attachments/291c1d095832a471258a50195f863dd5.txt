@@ -1,0 +1,2 @@
+error: could not set status backlog of Tracker #5: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}
+  hint: if the board options were recreated, call project_activate with project: <PROJECT> to read their IDs again

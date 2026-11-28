@@ -1,0 +1,1 @@
+{"id":"b04b1ab7cc6a6d123c524af074c082c5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/semantic-validator.test.ts#semantic-validator shared files layout の無い共有ファイルを渡すと、エラーを返さない","name":"layout の無い共有ファイルを渡すと、エラーを返さない","status":"passed","testResultsByEnv":{"default":"d810839e49436da100d97f7fead1b6f3"}}

@@ -1,0 +1,1 @@
+{"id":"856563d4a2223380aa538ed5bd166f57.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check sha 前のリリースのタグから sha までにコミットが無いと、no-commits の項目を返す","name":"前のリリースのタグから sha までにコミットが無いと、no-commits の項目を返す","status":"passed","testResultsByEnv":{"default":"358881754219d2795ca2d253c6bc4f4f"}}

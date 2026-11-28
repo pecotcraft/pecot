@@ -1,0 +1,1 @@
+{"id":"4687f39f2e03cc48d2d202a59c3fc2d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) slide_sync のパスを指定するパラメータに相対パスを渡すと、実際の処理の前に invalid-path で失敗する","name":"slide_sync のパスを指定するパラメータに相対パスを渡すと、実際の処理の前に invalid-path で失敗する","status":"passed","testResultsByEnv":{"default":"6411aea23798a3ce98da41e80ab62e7a"}}

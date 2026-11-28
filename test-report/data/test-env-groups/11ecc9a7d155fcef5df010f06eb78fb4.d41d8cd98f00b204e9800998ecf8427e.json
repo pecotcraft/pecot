@@ -1,0 +1,1 @@
+{"id":"11ecc9a7d155fcef5df010f06eb78fb4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/flag-hint.test.ts#入力の誤りの文の入力名 pr_create の message に title と base が無い とき、入力名で案内して止める","name":"pr_create の message に title と base が無い とき、入力名で案内して止める","status":"passed","testResultsByEnv":{"default":"11efdf217c896b800cf92b2e99e130e3"}}

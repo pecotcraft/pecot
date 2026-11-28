@@ -1,0 +1,1 @@
+{"id":"8919b77957d97c3166c65660fc3fbdcf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check もしタグがローカルに既にあるなら、終了コード 1 で終わる","name":"もしタグがローカルに既にあるなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"12fd5c902648b64c8b32fd558ab41e97"}}

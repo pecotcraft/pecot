@@ -1,0 +1,1 @@
+{"id":"92ce497174e071428de2c6327ad52ebe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/skeleton.test.ts#isFrontmatterBlock 末尾の --- が存在しない雛形は、frontmatter として無効と判定する","name":"末尾の --- が存在しない雛形は、frontmatter として無効と判定する","status":"passed","testResultsByEnv":{"default":"814c5b311b932ce71345cf23119ebe3c"}}

@@ -1,0 +1,1 @@
+{"id":"21b81a98a3156501b843edc9120e264b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestSlim マージ済みの PR は、state に MERGED を返す","name":"マージ済みの PR は、state に MERGED を返す","status":"passed","testResultsByEnv":{"default":"15be87409902300ca5dd8489b248dc7a"}}

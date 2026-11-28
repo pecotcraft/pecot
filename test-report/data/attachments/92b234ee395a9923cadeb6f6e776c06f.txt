@@ -1,0 +1,19 @@
+# Project info
+
+## Overview
+- Project: ghes.example.com_acme_1
+- Host: ghes.example.com
+- Owner: acme
+- Roadmap repo: none
+
+## Registered repositories
+- acme/demo (develop: main)
+    release_type: single
+    dependabot_alerts: open 2
+- acme/other
+    release_type: single
+    dependabot_alerts: fetch failed (acme/other: GitHub API error: 500 Boom)
+
+## Board status
+
+_No items_

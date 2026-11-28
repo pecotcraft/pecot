@@ -1,0 +1,1 @@
+{"id":"6d1eacf37c83ee870b5823439cf1c040.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_entry_point_linter#test_violation_shows_reason","name":"エントリポイントに for 文のロジックがあると、違反の理由を出力する","status":"passed","testResultsByEnv":{"default":"af3a1bfab6562b76bd2d99f2f7a6fed1"}}

@@ -1,0 +1,1 @@
+{"id":"448f18c7809186ce0abffe6bf1537787.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#parseProjectConfig（検証エラー） number が整数ではない場合は、小数の入力と、リストではない入力の検証エラーを返す","name":"number が整数ではない場合は、小数の入力と、リストではない入力の検証エラーを返す","status":"passed","testResultsByEnv":{"default":"e456d1333105911e0f86c11f1efa1d84"}}

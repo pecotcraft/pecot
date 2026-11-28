@@ -1,0 +1,1 @@
+{"id":"1cc5a3a75218a8a793db4840c77bfcdc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/talk-theme.test.ts#classifyTalkTheme package.json が存在しない移行前の talk-dir も、legacy と判定する","name":"package.json が存在しない移行前の talk-dir も、legacy と判定する","status":"passed","testResultsByEnv":{"default":"5be278c5cba8457846c37d250f609e41"}}

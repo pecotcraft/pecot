@@ -1,0 +1,216 @@
+{
+  "name": "issue_dependency_check",
+  "title": "Check Issue dependency",
+  "description": "Check the arguments for issue_dependency_write against the pecot rules before writing: the direction, wait kind and reason, a self reference or cycle, whether the blocked-by is already there, and the column the waiting Issue should move to after the change. Reads and writes nothing on GitHub; pass the results of the official reads in reads.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "method": {
+        "type": "string",
+        "enum": [
+          "add",
+          "remove"
+        ],
+        "description": "Same as the method of issue_dependency_write"
+      },
+      "owner": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Owner of the repository of the waiting Issue"
+      },
+      "repo": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Name of the repository of the waiting Issue"
+      },
+      "issue_number": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991,
+        "description": "Number of the waiting Issue"
+      },
+      "type": {
+        "type": "string",
+        "enum": [
+          "blocked_by",
+          "blocking"
+        ],
+        "description": "Same as the type of issue_dependency_write; pecot writes only blocked_by"
+      },
+      "related_owner": {
+        "description": "Owner of the repository of the prerequisite Issue (defaults to owner)",
+        "type": "string",
+        "minLength": 1
+      },
+      "related_repo": {
+        "description": "Name of the repository of the prerequisite Issue (defaults to repo)",
+        "type": "string",
+        "minLength": 1
+      },
+      "related_issue_number": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991,
+        "description": "Number of the prerequisite Issue"
+      },
+      "wait": {
+        "description": "With add only: stack (build on its branch; the default) or merge (wait until it is merged)",
+        "type": "string",
+        "enum": [
+          "stack",
+          "merge"
+        ]
+      },
+      "reason": {
+        "description": "With add and wait merge only: why it waits for the merge, in one line",
+        "type": "string"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "reads": {
+        "description": "Results of the official GitHub MCP reads the check needs",
+        "type": "object",
+        "properties": {
+          "issues": {
+            "description": "Results of issue_read with method get (the structuredContent, { issue: ... }): the parent, prerequisites and, with update, the target",
+            "type": "array",
+            "items": {}
+          },
+          "blocked_by": {
+            "description": "Results of issue_dependency_read with method get_blocked_by: the waiting Issue, and for add, the prerequisite and the Issues it waits for, until the chain ends",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "type": "string",
+                  "description": "The Issue whose blocked-by was read (owner/repo/N)"
+                },
+                "result": {
+                  "description": "Result of issue_dependency_read with method get_blocked_by"
+                }
+              },
+              "required": [
+                "issue",
+                "result"
+              ]
+            }
+          },
+          "project_items": {
+            "description": "Results of projects_list with method list_project_items (every page): the cards of the target, the parent and the prerequisites",
+            "type": "array",
+            "items": {}
+          },
+          "project_fields": {
+            "description": "Result of projects_list with method list_project_fields"
+          },
+          "pull_requests": {
+            "description": "Results of pull_request_read with method get: each open pull request that closes a prerequisite (closed_by_pull_requests of issue_read), and those its base branch stacks on; they decide whether the Issue can stack",
+            "type": "array",
+            "items": {}
+          }
+        }
+      }
+    },
+    "required": [
+      "method",
+      "owner",
+      "repo",
+      "issue_number",
+      "type",
+      "related_issue_number"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "problems": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "description": "Issue the problem belongs to: a batch key or owner/repo/N (omitted when the check covers one target)",
+              "type": "string"
+            },
+            "field": {
+              "type": "string",
+              "description": "Name of the argument that breaks the rule (title, body, issue_fields.<name>, blocked_by.<i>, ...)"
+            },
+            "code": {
+              "type": "string",
+              "description": "Kind of the problem (missing-section, extra-heading, cycle, ...)"
+            },
+            "message": {
+              "type": "string",
+              "description": "What is wrong and how to fix it, with the expected value when there is one"
+            },
+            "candidates": {
+              "description": "Values that would be accepted (omitted when there is no fixed set)",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "field",
+            "code",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Rules the arguments break; when empty, the arguments can be passed to the write tool as they are"
+      },
+      "expected_status": {
+        "description": "Column (pecot-status) the waiting Issue should be moved to after the change, by its option name on the board (omitted when it stays)",
+        "type": "string"
+      },
+      "body": {
+        "description": "Body of the waiting Issue with the line of the prerequisite added to or removed from the Waits for merge section; write it with issue_check (method update) and issue_write (method update). Omitted when the body stays",
+        "type": "string"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "problems"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": false
+  }
+}

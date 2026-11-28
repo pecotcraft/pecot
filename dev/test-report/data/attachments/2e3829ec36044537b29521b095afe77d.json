@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.secret_scanning_alerts: list_secret_scanning_alerts failed: 403 Forbidden; read it again once it can be read (a token with access to the alerts)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.secret_scanning_alerts\",\"code\":\"alerts-unread\",\"message\":\"list_secret_scanning_alerts failed: 403 Forbidden; read it again once it can be read (a token with access to the alerts)\"}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.secret_scanning_alerts",
+        "code": "alerts-unread",
+        "message": "list_secret_scanning_alerts failed: 403 Forbidden; read it again once it can be read (a token with access to the alerts)"
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  }
+}

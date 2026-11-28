@@ -1,0 +1,1 @@
+{"id":"365e72372be485b821ec403368990416.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-decorative-bar-element.test.ts#no-decorative-bar-element valid 祖先に class と style が無いと、報告しない","name":"祖先に class と style が無いと、報告しない","status":"passed","testResultsByEnv":{"default":"c0e8283822de19cc1f5d92ca0399a74d"}}

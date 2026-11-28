@@ -1,0 +1,1 @@
+{"id":"c78a6fd8c3f27ad9a8f06ea76a524dee.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_27_no_temp_files_left","name":"判定が終わったあと、.pecot/tmp に一時ファイルが残らない","status":"passed","testResultsByEnv":{"default":"0d07298ffb642373c65ffe215d5d7c6a"}}

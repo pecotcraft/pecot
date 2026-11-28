@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"deletedBranches\":[],\"readinessChanges\":[],\"restack\":[],\"warnings\":[\"cannot determine the branch to return to in this worktree; skipped local cleanup\"]}"
+    }
+  ],
+  "structuredContent": {
+    "deletedBranches": [],
+    "readinessChanges": [],
+    "restack": [],
+    "warnings": [
+      "cannot determine the branch to return to in this worktree; skipped local cleanup"
+    ]
+  }
+}

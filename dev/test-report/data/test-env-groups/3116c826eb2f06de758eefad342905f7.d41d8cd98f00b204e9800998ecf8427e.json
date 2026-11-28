@@ -1,0 +1,1 @@
+{"id":"3116c826eb2f06de758eefad342905f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh ブランチの末尾の区切りが数字だけでない（025-hook-session-state）とき、出力せず記録を残さない","name":"ブランチの末尾の区切りが数字だけでない（025-hook-session-state）とき、出力せず記録を残さない","status":"passed","testResultsByEnv":{"default":"a8e48b3c518b9365e708b36f9c0f7b95"}}

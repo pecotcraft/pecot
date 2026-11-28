@@ -1,0 +1,1 @@
+{"id":"11214a0ab8e8e1f6925e03b87e8b69b5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-gate.test.ts#auto gate 読めないイベントと GitHub の失敗 Issue の読み取りが GitHub の失敗で止まると、Issue を示して止まる","name":"Issue の読み取りが GitHub の失敗で止まると、Issue を示して止まる","status":"passed","testResultsByEnv":{"default":"0e984838ec98ef0cbdb2c5d3fa511e03"}}

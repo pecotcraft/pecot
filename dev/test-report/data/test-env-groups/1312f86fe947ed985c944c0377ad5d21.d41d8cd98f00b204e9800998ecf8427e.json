@@ -1,0 +1,1 @@
+{"id":"1312f86fe947ed985c944c0377ad5d21.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/review-workflow-template.test.ts#review のワークフローの雛形 issue_comment のときは PR の状態を確認し、checkout はその head.sha を使う","name":"issue_comment のときは PR の状態を確認し、checkout はその head.sha を使う","status":"passed","testResultsByEnv":{"default":"535e91938784366302fca41e98976b6c"}}

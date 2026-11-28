@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "repository owner different-owner differs from project owner acme\n  GitHub Projects V2 links only repositories of the project owner"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"repository owner different-owner differs from project owner acme\\n  GitHub Projects V2 links only repositories of the project owner\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "repository owner different-owner differs from project owner acme\n  GitHub Projects V2 links only repositories of the project owner"
+  },
+  "isError": true
+}

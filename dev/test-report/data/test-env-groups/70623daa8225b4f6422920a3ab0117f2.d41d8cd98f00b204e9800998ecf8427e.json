@@ -1,0 +1,1 @@
+{"id":"70623daa8225b4f6422920a3ab0117f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project-check.test.ts#project_check fields lanes を渡すと、pecot-lane の欄と、足りない lane の値を problem にする","name":"lanes を渡すと、pecot-lane の欄と、足りない lane の値を problem にする","status":"passed","testResultsByEnv":{"default":"b2d0aac942607d5126148d3e0a4b9a5f"}}

@@ -1,0 +1,2 @@
+error: acme/demo is not in any project config
+  available: ghes.example.com_acme_board_acme

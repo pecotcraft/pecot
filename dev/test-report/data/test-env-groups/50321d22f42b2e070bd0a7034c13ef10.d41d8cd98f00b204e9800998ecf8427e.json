@@ -1,0 +1,1 @@
+{"id":"50321d22f42b2e070bd0a7034c13ef10.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#symlink 経由の talk-dir pages がディレクトリ外への symlink でも、配下のページを lint する","name":"pages がディレクトリ外への symlink でも、配下のページを lint する","status":"passed","testResultsByEnv":{"default":"7901b5e1e3d0dfb2fb7f2d081b6c278f"}}

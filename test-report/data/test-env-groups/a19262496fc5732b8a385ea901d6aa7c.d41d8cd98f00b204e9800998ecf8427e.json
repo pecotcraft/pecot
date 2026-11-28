@@ -1,0 +1,1 @@
+{"id":"a19262496fc5732b8a385ea901d6aa7c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/error-utils.test.ts#sanitizeErrorMessage 残したメッセージから、ANSI の制御文字を取り除く","name":"残したメッセージから、ANSI の制御文字を取り除く","status":"passed","testResultsByEnv":{"default":"6718b2f28678e16e08632a2bc472028b"}}

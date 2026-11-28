@@ -1,0 +1,1 @@
+{"id":"cd63767391a6d00e218368a24d359dbf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-install.test.ts#workflow_install 名前が雛形の一覧に存在しないと、一覧の名前を detail に含めて invalid-input の失敗を返す","name":"名前が雛形の一覧に存在しないと、一覧の名前を detail に含めて invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"a3f84c79798041c84af6d051c030fa47"}}

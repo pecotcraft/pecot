@@ -1,0 +1,2 @@
+-C	/tmp/pecot-hooks-DAMBGc/wt	rev-parse	--show-toplevel	
+-C	/tmp/pecot-hooks-DAMBGc/base/.pecot/work/1244/clone	rev-parse	--show-toplevel	

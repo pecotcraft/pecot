@@ -1,0 +1,1 @@
+{"id":"f875fcd93c333519761b20cc0693f732.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments integer の入力は、文字列に変換して引数に含める","name":"integer の入力は、文字列に変換して引数に含める","status":"passed","testResultsByEnv":{"default":"31f0aa4777189acd7a73e6cc41bff5c8"}}

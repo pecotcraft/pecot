@@ -1,0 +1,1 @@
+{"id":"bf3018559e6bfe2cf9f35b29c37862d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/asset-path/tests/require-resolve-asset-path.test.ts#require-resolve-asset-path invalid fetch に .value アクセスを渡すと、報告する","name":"fetch に .value アクセスを渡すと、報告する","status":"passed","testResultsByEnv":{"default":"27ed540445aae9694e3094ae92b7b5bb"}}

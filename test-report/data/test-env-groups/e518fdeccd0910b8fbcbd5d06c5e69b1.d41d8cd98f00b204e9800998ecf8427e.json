@@ -1,0 +1,1 @@
+{"id":"e518fdeccd0910b8fbcbd5d06c5e69b1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#installStdoutGuard 同じ標準出力に対して 2 回実行した場合は、1 回目と同じ Writable を返す","name":"同じ標準出力に対して 2 回実行した場合は、1 回目と同じ Writable を返す","status":"passed","testResultsByEnv":{"default":"b9cc49e10f1498237fe55c9da5a19f24"}}

@@ -1,0 +1,14 @@
+skipped: field pecot-status (already exists)
+skipped: field pecot-lane (already exists)
+unchanged: option cli in field pecot-lane
+unchanged: option skills in field pecot-lane
+unchanged: option Blocked in field pecot-status
+skipped: field Status (not found)
+warning: could not create view Lanes (status 403): access denied
+  create it on the board:
+  1. open the project: https://ghes.example.com/users/acme/projects/1
+  2. add a view named Lanes with the Board layout
+  3. set Column by to pecot-status
+  4. set Group by to pecot-lane
+created: config file /tmp/pecot-repo-Qp65v9/.pecot/config/projects/ghes.example.com_acme_1.json
+set: active project to ghes.example.com_acme_1

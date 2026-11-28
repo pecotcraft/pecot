@@ -1,0 +1,1 @@
+{"id":"f77827ab7e3cfeb05d857265ab931e40.34de04be811032973b9c472d1f1317b1","fullName":".githooks.tests.test_pecot_open_rc#test_existing_session_gets_no_rc","name":"pecot-open-mobile.sh に --rc を指定しても、既存のセッションには `pecot-rc.sh` を送らず、警告を表示する","status":"passed","testResultsByEnv":{"default":"5878bcaaefa46615f976437e8b165bf9"}}

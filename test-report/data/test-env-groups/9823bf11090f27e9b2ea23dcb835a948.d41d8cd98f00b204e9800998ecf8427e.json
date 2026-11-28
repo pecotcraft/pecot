@@ -1,0 +1,1 @@
+{"id":"9823bf11090f27e9b2ea23dcb835a948.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-tracker.test.ts#normalizeAlerts Dependabot の severity が low なら、重大度はその値のまま","name":"Dependabot の severity が low なら、重大度はその値のまま","status":"passed","testResultsByEnv":{"default":"347e502cc824e054161128eee62428fd"}}

@@ -1,0 +1,1 @@
+{"id":"80b583ef5d8be0fa56660ef2fce3777d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide.convert.done の errors 掲載 (#949) エラーがない実行でも、done イベントに errors として空の配列を出力する","name":"エラーがない実行でも、done イベントに errors として空の配列を出力する","status":"passed","testResultsByEnv":{"default":"7111a328e6018828d1ad829d614c00bf"}}

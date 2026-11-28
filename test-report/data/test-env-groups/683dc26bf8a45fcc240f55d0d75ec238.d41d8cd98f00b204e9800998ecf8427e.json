@@ -1,0 +1,1 @@
+{"id":"683dc26bf8a45fcc240f55d0d75ec238.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-sweep.test.ts#sandbox-sweep.sh 契約の 6 つの場合 ブランチを 1 つ削除できなくても、残りの対象を続けて片付け、終了コード 1 で終了する","name":"ブランチを 1 つ削除できなくても、残りの対象を続けて片付け、終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"34739fa9a8412ce312b21ee78f184836"}}

@@ -1,0 +1,1 @@
+{"id":"47e5c0e3de94a0309a184229f43d7610.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine 宣言されていない名前空間の prefix を含む断片を渡すと、例外が発生する","name":"宣言されていない名前空間の prefix を含む断片を渡すと、例外が発生する","status":"passed","testResultsByEnv":{"default":"2a4e9c193882afbcef09c6c7a7d9ea5b"}}

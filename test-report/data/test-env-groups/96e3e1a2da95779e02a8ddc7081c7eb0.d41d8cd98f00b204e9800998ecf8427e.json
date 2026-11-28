@@ -1,0 +1,1 @@
+{"id":"96e3e1a2da95779e02a8ddc7081c7eb0.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_does_not_pick_other_repo_head","name":"head のリポジトリが別の artifact は、選ばない","status":"passed","testResultsByEnv":{"default":"28718aad7f1892ead37432d78fdc890c"}}

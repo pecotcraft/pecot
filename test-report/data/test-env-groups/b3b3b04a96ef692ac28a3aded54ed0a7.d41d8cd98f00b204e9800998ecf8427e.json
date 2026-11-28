@@ -1,0 +1,1 @@
+{"id":"b3b3b04a96ef692ac28a3aded54ed0a7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_get MCP の data 値が未設定だと value を返さない","name":"値が未設定だと value を返さない","status":"passed","testResultsByEnv":{"default":"81996c3f0893eedaa995f3eb7c8a1371"}}

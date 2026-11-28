@@ -1,0 +1,1 @@
+{"id":"47ab4b0ed89761a6e21a4462cb0c03b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys bundle の実体を読み込めない場合は、failure が bundle-unreadable になる","name":"bundle の実体を読み込めない場合は、failure が bundle-unreadable になる","status":"passed","testResultsByEnv":{"default":"b7f1b59eb750e346cdb42aa673634b3b"}}

@@ -1,0 +1,1 @@
+{"id":"8b699d0db60fb9993f9b6dba68f8e4da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/plugin-manifests.test.ts#プラグインの 2 組の manifest 旧 .github/plugin/plugin.json を持たない（1.0 形式では Copilot CLI が読まない）","name":"旧 .github/plugin/plugin.json を持たない（1.0 形式では Copilot CLI が読まない）","status":"passed","testResultsByEnv":{"default":"90215349a4500a463354fb3838c93685"}}

@@ -1,0 +1,1 @@
+{"id":"028dda5bb81db688b016a5e3f97994ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/tests/lint-rules.test.ts#domain の依存方向 domain でグローバルの fetch と process を参照すると、no-restricted-globals の違反になる","name":"domain でグローバルの fetch と process を参照すると、no-restricted-globals の違反になる","status":"passed","testResultsByEnv":{"default":"8b8cb5c269958740dc42922a511881b2"}}

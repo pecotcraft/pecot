@@ -1,0 +1,1 @@
+{"id":"d18b2fb604061fe0a5e724b4082e0157.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Markdown のブロックの規則 HTML ブロックの場合は、行の途中までのタグ（type 7 ではない）","name":"HTML ブロックの場合は、行の途中までのタグ（type 7 ではない）","status":"passed","testResultsByEnv":{"default":"d0dd6d0e43268832e006245e3466c05e"}}

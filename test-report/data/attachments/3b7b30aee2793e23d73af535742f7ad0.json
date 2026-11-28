@@ -1,0 +1,43 @@
+{
+  "tools": [
+    {
+      "name": "annotated",
+      "title": "注釈つき",
+      "description": "annotations / outputSchema の受け渡し検証",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full text of the failure and how to recover (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true
+      }
+    }
+  ]
+}

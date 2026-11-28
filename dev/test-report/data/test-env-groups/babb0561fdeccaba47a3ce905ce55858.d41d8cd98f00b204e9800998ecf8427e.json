@@ -1,0 +1,1 @@
+{"id":"babb0561fdeccaba47a3ce905ce55858.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/issue-surface.test.ts#extractIssueSurface $ref の JSON Pointer の ~1 と ~0 を、/ と ~ に戻してたどる","name":"$ref の JSON Pointer の ~1 と ~0 を、/ と ~ に戻してたどる","status":"passed","testResultsByEnv":{"default":"c8fe4abf7e7243ae719f16a892b88e28"}}

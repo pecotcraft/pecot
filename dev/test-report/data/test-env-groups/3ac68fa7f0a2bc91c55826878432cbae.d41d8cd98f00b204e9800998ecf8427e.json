@@ -1,0 +1,1 @@
+{"id":"3ac68fa7f0a2bc91c55826878432cbae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#themeStoreRoot どちらの環境変数も指定されず、置き場を決められなければ undefined を返す","name":"どちらの環境変数も指定されず、置き場を決められなければ undefined を返す","status":"passed","testResultsByEnv":{"default":"787771bebb59c8a07d109d67b7b8dce9"}}

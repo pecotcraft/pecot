@@ -1,0 +1,1 @@
+{"id":"cb66844cb1e957e9b331ec56505172ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/hook-resolution-count.test.ts#上限を超えるコマンド 上限を超えるコマンドは、PreToolUse でガードを通さずに素通しし、何も返さない","name":"上限を超えるコマンドは、PreToolUse でガードを通さずに素通しし、何も返さない","status":"passed","testResultsByEnv":{"default":"8dd01301f3b02a1ede48334f16e364bc"}}

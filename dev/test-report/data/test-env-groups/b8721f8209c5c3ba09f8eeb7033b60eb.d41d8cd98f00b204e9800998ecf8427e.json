@@ -1,0 +1,1 @@
+{"id":"b8721f8209c5c3ba09f8eeb7033b60eb.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_checkout_uses_input_sha_after_the_sha_form_is_checked","name":"sha の形式を確認した後に、入力の sha を checkout する","status":"passed","testResultsByEnv":{"default":"327a6e2564d4a886f8f3312678554b9b"}}

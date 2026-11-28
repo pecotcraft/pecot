@@ -1,0 +1,1 @@
+{"id":"3d39cedc0c3bde8cd1dc63b85b9d680e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インラインコードの Code ノード Python の文字列 のバッククォートで囲んだ区間は、規則の対象にしない","name":"Python の文字列 のバッククォートで囲んだ区間は、規則の対象にしない","status":"passed","testResultsByEnv":{"default":"e7d407f6c84b31c766563326d7f8def8"}}

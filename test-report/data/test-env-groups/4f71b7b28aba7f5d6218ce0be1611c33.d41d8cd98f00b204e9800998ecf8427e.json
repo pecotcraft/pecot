@@ -1,0 +1,1 @@
+{"id":"4f71b7b28aba7f5d6218ce0be1611c33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — 失敗ルート 有効な画像が 0 件の場合は、書き出さず、既存の出力先を残す","name":"有効な画像が 0 件の場合は、書き出さず、既存の出力先を残す","status":"passed","testResultsByEnv":{"default":"61d78abad087cfbedc55d068744557e4"}}

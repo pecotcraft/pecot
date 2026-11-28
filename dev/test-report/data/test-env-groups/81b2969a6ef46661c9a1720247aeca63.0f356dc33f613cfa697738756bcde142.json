@@ -1,0 +1,1 @@
+{"id":"81b2969a6ef46661c9a1720247aeca63.0f356dc33f613cfa697738756bcde142","fullName":".githooks.tests.test_pages_release#test_units_fail_for_wrong_release_group","name":"nx.json のグループが other-project の場合、単位の決定で理由を示す例外が発生する","status":"passed","testResultsByEnv":{"default":"4318efe0c32fe90521428902f2f7a831"}}

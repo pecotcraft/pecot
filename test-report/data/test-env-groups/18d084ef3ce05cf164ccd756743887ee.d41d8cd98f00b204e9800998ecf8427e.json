@@ -1,0 +1,1 @@
+{"id":"18d084ef3ce05cf164ccd756743887ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 親ブランチにスタックしたままスタックし直すと、子 PR を取得せず、本文を保存し直さない","name":"親ブランチにスタックしたままスタックし直すと、子 PR を取得せず、本文を保存し直さない","status":"passed","testResultsByEnv":{"default":"61f70755187fc89262221a1a176a3e70"}}

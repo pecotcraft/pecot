@@ -1,0 +1,1 @@
+{"id":"ee2a3fd9c7c7bd91be1dd425d6b8b32f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_lint eslint が異常終了すると実行失敗として返り、stderr 抜粋が message に載る","name":"eslint が異常終了すると実行失敗として返り、stderr 抜粋が message に載る","status":"passed","testResultsByEnv":{"default":"a944922dbcf3e392dafe23cb8c521831"}}

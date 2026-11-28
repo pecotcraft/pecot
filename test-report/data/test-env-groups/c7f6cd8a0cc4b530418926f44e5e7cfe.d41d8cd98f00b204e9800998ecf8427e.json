@@ -1,0 +1,1 @@
+{"id":"c7f6cd8a0cc4b530418926f44e5e7cfe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#getSecretScanningStatus 応答で「status が文字列でない」の場合は、undefined を返す","name":"応答で「status が文字列でない」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"981396a2cffad3ba7dde7eef017027fc"}}

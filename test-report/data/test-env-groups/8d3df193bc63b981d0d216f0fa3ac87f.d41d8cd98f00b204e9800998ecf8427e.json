@@ -1,0 +1,1 @@
+{"id":"8d3df193bc63b981d0d216f0fa3ac87f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight バージョンを指定すると、版・リリースノート・ブランチ名・差分数・タグ名を返す","name":"バージョンを指定すると、版・リリースノート・ブランチ名・差分数・タグ名を返す","status":"passed","testResultsByEnv":{"default":"ee1328774da47fdc5f4e35d16c424fd1"}}

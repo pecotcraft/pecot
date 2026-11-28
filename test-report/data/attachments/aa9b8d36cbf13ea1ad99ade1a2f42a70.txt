@@ -1,0 +1,4 @@
+created: PR acme/demo feat/demo/12 -> main: feat(demo): #12 見本の変更
+set: Issue #12 status to In Review
+warning: could not read the Issues waiting for #12: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:35831/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500

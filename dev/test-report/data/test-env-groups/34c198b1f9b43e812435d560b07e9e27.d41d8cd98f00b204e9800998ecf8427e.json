@@ -1,0 +1,1 @@
+{"id":"34c198b1f9b43e812435d560b07e9e27.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/setup.test.ts#createSandbox destroySandbox を呼ぶと、一時ディレクトリが削除される","name":"destroySandbox を呼ぶと、一時ディレクトリが削除される","status":"passed","testResultsByEnv":{"default":"78633ed0031173839b961e639e76eda2"}}

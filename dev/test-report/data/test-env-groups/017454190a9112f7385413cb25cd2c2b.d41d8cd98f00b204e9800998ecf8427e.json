@@ -1,0 +1,1 @@
+{"id":"017454190a9112f7385413cb25cd2c2b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#lastResultOn 同じブランチで、bot が最後に書いた結果とそのコメントを返す","name":"同じブランチで、bot が最後に書いた結果とそのコメントを返す","status":"passed","testResultsByEnv":{"default":"18ba095906debecc98cd6c23f89f120c"}}

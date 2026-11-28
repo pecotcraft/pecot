@@ -1,0 +1,20 @@
+(node:1634) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1677) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  duplicated.fixture.ts [ duplicated.fixture.ts ]
+Error: 同じ題のテストが重なる（.claude/rules/test-conventions.md）:
+  読む > a を読む
+ ❯ ../../../src/vitest/unique-titles.ts:42:9
+     40|   const duplicated = duplicateTitles(suite)
+     41|   if (duplicated.length === 0) return
+     42|   throw new Error(`同じ題のテストが重なる（.claude/rules/test-conventions.md）:\n${…
+       |         ^
+     43| })
+     44|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

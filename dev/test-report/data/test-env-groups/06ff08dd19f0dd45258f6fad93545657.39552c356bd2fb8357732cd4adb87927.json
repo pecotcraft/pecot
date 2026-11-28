@@ -1,0 +1,1 @@
+{"id":"06ff08dd19f0dd45258f6fad93545657.39552c356bd2fb8357732cd4adb87927","fullName":".githooks.tests.test_find_pr_ci_base#test_head_ref_forms","name":"HEAD_REF の接頭辞が「refs/heads/」でも、pr_main を出力する","status":"passed","testResultsByEnv":{"default":"11d195e2ab05afd4e920aa832efed264"}}

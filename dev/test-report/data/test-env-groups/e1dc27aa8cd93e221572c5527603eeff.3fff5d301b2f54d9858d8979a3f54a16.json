@@ -1,0 +1,1 @@
+{"id":"e1dc27aa8cd93e221572c5527603eeff.3fff5d301b2f54d9858d8979a3f54a16","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_the_githooks_lanes_that_read_the_change","name":"plugins/pecot-visual/scripts/release/audit-canary/package.json を変更すると、それを読む githooks のレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"07d545b8a1307f2222bc2cf24ce66a3d"}}

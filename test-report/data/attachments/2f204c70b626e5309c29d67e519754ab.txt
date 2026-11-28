@@ -1,0 +1,1 @@
+image=pecot-ci-local（PR の定義から build, sha256:localid）

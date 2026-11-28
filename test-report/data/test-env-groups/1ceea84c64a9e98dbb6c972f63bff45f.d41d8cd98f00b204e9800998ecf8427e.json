@@ -1,0 +1,1 @@
+{"id":"1ceea84c64a9e98dbb6c972f63bff45f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_lint 違反があっても、エラーにせず outcome が violations の結果を返す","name":"違反があっても、エラーにせず outcome が violations の結果を返す","status":"passed","testResultsByEnv":{"default":"fe8377f79f17204e52190b9ac787b98d"}}

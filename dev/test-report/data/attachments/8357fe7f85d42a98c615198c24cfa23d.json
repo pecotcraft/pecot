@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: eslint not run: /tmp/pecotv-test-file-tools-AtaQ6E/talk/pages/cover.md\\n  The lint environment is incomplete (missing: node_modules/eslint, deck-lint.env.config.js / theme: /tmp/pecotv-test-file-tools-AtaQ6E/talk/node_modules/slidev-theme-pecotv-test-declared).\\n  To restore it, call the `runtime_setup` tool (it fetches the runtime dependencies).\\n  No eslint result exists for this file, so violations have not been detected.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: eslint not run: /tmp/pecotv-test-file-tools-AtaQ6E/talk/pages/cover.md\n  The lint environment is incomplete (missing: node_modules/eslint, deck-lint.env.config.js / theme: /tmp/pecotv-test-file-tools-AtaQ6E/talk/node_modules/slidev-theme-pecotv-test-declared).\n  To restore it, call the `runtime_setup` tool (it fetches the runtime dependencies).\n  No eslint result exists for this file, so violations have not been detected."
+    }
+  }
+}

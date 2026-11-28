@@ -1,0 +1,1 @@
+{"id":"21faf8191807b04e40aa9a73ff19d170.a44462781bd31929062898035af16126","fullName":".githooks.tests.test_run_pr_checks#test_part_selects_stages_and_skip","name":"`--part=tests` を指定すると、流す stage と飛ばす hook が変わる","status":"passed","testResultsByEnv":{"default":"b6328e55526703f7ca102fb7ea3609c8"}}

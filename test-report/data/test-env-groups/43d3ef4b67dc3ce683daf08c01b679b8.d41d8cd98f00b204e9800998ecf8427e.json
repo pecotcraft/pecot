@@ -1,0 +1,1 @@
+{"id":"43d3ef4b67dc3ce683daf08c01b679b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#getIssueBoardItem どのプロジェクトにも載っていない場合は、ボードの項目として undefined を返す","name":"どのプロジェクトにも載っていない場合は、ボードの項目として undefined を返す","status":"passed","testResultsByEnv":{"default":"9e4cc61bccbf8b70275fc0c9474b8293"}}

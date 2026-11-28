@@ -1,0 +1,1 @@
+{"id":"8f0a78993160366156f8f435efa7f34d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/command-references.test.ts#本文のツールの呼び出し 存在しない入力名を書いた text ブロックの呼び出しを検出する","name":"存在しない入力名を書いた text ブロックの呼び出しを検出する","status":"passed","testResultsByEnv":{"default":"26c2be88e8f49063b89cd954cff9edec"}}

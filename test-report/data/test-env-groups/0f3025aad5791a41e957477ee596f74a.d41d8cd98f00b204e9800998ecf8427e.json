@@ -1,0 +1,1 @@
+{"id":"0f3025aad5791a41e957477ee596f74a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/review-workflow-template.test.ts#review のワークフローの雛形 setup-node は、npm のキャッシュを復元せず、保存しない","name":"setup-node は、npm のキャッシュを復元せず、保存しない","status":"passed","testResultsByEnv":{"default":"b7240750e0ca12c73286268136df4b78"}}

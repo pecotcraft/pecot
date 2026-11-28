@@ -1,0 +1,44 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "skipped: field pecot-status (already exists)"
+    },
+    {
+      "type": "text",
+      "text": "{\"fields\":[{\"name\":\"pecot-status\",\"change\":\"unchanged\",\"addedOptions\":[]},{\"name\":\"pecot-lane\",\"change\":\"skip\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"skip\",\"addedOptions\":[]}],\"migration\":{\"renamed\":null,\"config_moved\":null,\"pending_delete\":[\"pecot-priority\",\"pecot-size\"],\"deleted\":[]},\"warnings\":[\"field pecot-lane was not created because no lanes were given\\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes\",\"these fields are not used by pecot and are left on the board: pecot-priority, pecot-size\\n  deleting them also deletes their values on every item, and the values cannot be restored\\n  show these names to the user and get their approval; only then, call project_init with owner: \\\"acme\\\", name: \\\"board\\\", host: \\\"ghes.example.com\\\", confirm_delete: true again\"]}"
+    }
+  ],
+  "structuredContent": {
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "unchanged",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "skip",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "skip",
+        "addedOptions": []
+      }
+    ],
+    "migration": {
+      "renamed": null,
+      "config_moved": null,
+      "pending_delete": [
+        "pecot-priority",
+        "pecot-size"
+      ],
+      "deleted": []
+    },
+    "warnings": [
+      "field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes",
+      "these fields are not used by pecot and are left on the board: pecot-priority, pecot-size\n  deleting them also deletes their values on every item, and the values cannot be restored\n  show these names to the user and get their approval; only then, call project_init with owner: \"acme\", name: \"board\", host: \"ghes.example.com\", confirm_delete: true again"
+    ]
+  }
+}

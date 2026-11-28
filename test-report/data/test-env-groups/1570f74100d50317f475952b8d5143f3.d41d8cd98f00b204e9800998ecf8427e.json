@@ -1,0 +1,1 @@
+{"id":"1570f74100d50317f475952b8d5143f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator layout files レイアウトのファイルに description が無いと、検証に失敗する","name":"レイアウトのファイルに description が無いと、検証に失敗する","status":"passed","testResultsByEnv":{"default":"c2ed9c0e75acd4ce5c9820e5f635c921"}}

@@ -1,0 +1,1 @@
+{"id":"61d5f880c5502cadbd539dcea0276735.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main --commit-msg の type(scope) 本文の段落に違反があると、その行番号を付けて、終了コード 1 を返す","name":"本文の段落に違反があると、その行番号を付けて、終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"06d060e0769363c6f974e226fc95e3a5"}}

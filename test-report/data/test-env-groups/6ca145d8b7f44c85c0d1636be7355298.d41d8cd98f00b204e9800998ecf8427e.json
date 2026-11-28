@@ -1,0 +1,1 @@
+{"id":"6ca145d8b7f44c85c0d1636be7355298.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#mergePullRequest 404 が返ると、GitHubNotFoundError を発生させる","name":"404 が返ると、GitHubNotFoundError を発生させる","status":"passed","testResultsByEnv":{"default":"ebd5a68c2e92024b704b1f9c32655892"}}

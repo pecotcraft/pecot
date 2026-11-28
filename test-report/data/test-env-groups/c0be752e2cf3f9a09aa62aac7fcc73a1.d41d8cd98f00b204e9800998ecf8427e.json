@@ -1,0 +1,1 @@
+{"id":"c0be752e2cf3f9a09aa62aac7fcc73a1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/config-dispatcher.test.ts#新規フックの追加フロー 設定ファイルが無いとき、新しいフックは有効として動く","name":"設定ファイルが無いとき、新しいフックは有効として動く","status":"passed","testResultsByEnv":{"default":"c0385cabe222c8fa56baaeaef9914275"}}

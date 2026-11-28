@@ -1,0 +1,1 @@
+{"id":"195b76b21cef0fce8b466c107a744a99.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-sso.test.ts#SSO の 2 段構成 region と未知のキーを渡しても、入力として拒否せず通常の応答を返し、awscli の引数にも含めない","name":"region と未知のキーを渡しても、入力として拒否せず通常の応答を返し、awscli の引数にも含めない","status":"passed","testResultsByEnv":{"default":"cfaa0f4d6fe8c59adce58c2098cc27f7"}}

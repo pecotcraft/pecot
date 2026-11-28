@@ -1,0 +1,1 @@
+使い方: nx-cache-server.mjs --dir=<dir> --port-file=<file>（token は env）

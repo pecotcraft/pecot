@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "set: Issue acme/other/7 status active"
+    },
+    {
+      "type": "text",
+      "text": "{\"issue\":\"acme/other/7\",\"status\":\"active\"}"
+    }
+  ],
+  "structuredContent": {
+    "issue": "acme/other/7",
+    "status": "active"
+  }
+}

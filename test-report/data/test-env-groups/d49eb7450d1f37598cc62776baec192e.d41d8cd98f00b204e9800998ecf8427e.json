@@ -1,0 +1,1 @@
+{"id":"d49eb7450d1f37598cc62776baec192e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator shared files 共有ファイルに description が無いと、検証に失敗する","name":"共有ファイルに description が無いと、検証に失敗する","status":"passed","testResultsByEnv":{"default":"dd0ccb7d9df958c72bcefd560bc723b6"}}

@@ -1,0 +1,33 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project_fields.Area: invalid_value: Area (project); value \"web\"; expected one of: cli, docs"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"project_fields.Area\",\"code\":\"invalid_value\",\"message\":\"invalid_value: Area (project); value \\\"web\\\"; expected one of: cli, docs\",\"candidates\":[\"cli\",\"docs\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "project_fields.Area",
+        "code": "invalid_value",
+        "message": "invalid_value: Area (project); value \"web\"; expected one of: cli, docs",
+        "candidates": [
+          "cli",
+          "docs"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

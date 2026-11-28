@@ -1,0 +1,1 @@
+{"id":"3182b03f5524bb555c058e5cf33663e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/server.test.ts#startServer ポートがすでに使用されている場合は、EADDRINUSE で失敗する","name":"ポートがすでに使用されている場合は、EADDRINUSE で失敗する","status":"passed","testResultsByEnv":{"default":"2d68f23d2dd32ba938744bda6d46df6d"}}

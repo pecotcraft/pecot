@@ -1,0 +1,1 @@
+{"id":"d2bf3395b4a1c686ccc9857faf3f4f6e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge スタックの中の PR で merge-async が 404 なら、同期のマージに戻さず、失敗の行を出して終了コード 1 を返す","name":"スタックの中の PR で merge-async が 404 なら、同期のマージに戻さず、失敗の行を出して終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"70e0a238c34c85cfe0666bd525fcd68b"}}

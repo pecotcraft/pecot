@@ -1,0 +1,1 @@
+{"id":"fe744ad75b045ae3025777880239ee33.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_publish_no_cache_is_passed","name":"publish --no-cache は、build に --no-cache を渡す","status":"passed","testResultsByEnv":{"default":"4562027ded33161704dacba5df33691b"}}

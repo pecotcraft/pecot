@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "missing sections: ## Summary, ## Changes, ## Verified, ## Risks\nbase branch must be main (given: develop)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"content-invalid\",\"detail\":\"missing sections: ## Summary, ## Changes, ## Verified, ## Risks\\nbase branch must be main (given: develop)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "content-invalid",
+    "detail": "missing sections: ## Summary, ## Changes, ## Verified, ## Risks\nbase branch must be main (given: develop)"
+  },
+  "isError": true
+}

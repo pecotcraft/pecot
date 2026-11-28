@@ -1,0 +1,1 @@
+{"id":"9f5f73c595af74c06754b69238689074.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#parseProjectConfig（モデルの値） 任意の項目が null の場合は、undefined として読み取る","name":"任意の項目が null の場合は、undefined として読み取る","status":"passed","testResultsByEnv":{"default":"451fa45ae0b347fca6f7b8b0c5d4d2f1"}}

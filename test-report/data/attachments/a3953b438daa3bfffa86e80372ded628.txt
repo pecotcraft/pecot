@@ -1,0 +1,1 @@
+error: repos/pecotcraft/pecot の応答に allow_auto_merge がありません（権限の不足とみられます）

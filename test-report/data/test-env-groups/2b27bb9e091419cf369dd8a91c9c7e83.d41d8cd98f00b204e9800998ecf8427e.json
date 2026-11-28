@@ -1,0 +1,1 @@
+{"id":"2b27bb9e091419cf369dd8a91c9c7e83.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge もしマージで GitHub API がエラーを返したなら、終了コード 1 で終わる","name":"もしマージで GitHub API がエラーを返したなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"11f4e5abbf5e88054c7b9293496617d8"}}

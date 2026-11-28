@@ -1,0 +1,1 @@
+{"id":"430d00db2d294af41205addf79916027.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#injectDomToPptx 注入後に window.domToPptx が存在しない場合は、待機せずに例外を発生させる","name":"注入後に window.domToPptx が存在しない場合は、待機せずに例外を発生させる","status":"passed","testResultsByEnv":{"default":"4311694f7156b82bd98aec825ceb8f0b"}}

@@ -1,0 +1,1 @@
+{"id":"69145b1bbdd0741c1ddcc04e6f9319a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#readIssueOf 閉じる PR を、状態を読み替え、置き場所の取り方を変えて写し、状態が読めない PR は飛ばす","name":"閉じる PR を、状態を読み替え、置き場所の取り方を変えて写し、状態が読めない PR は飛ばす","status":"passed","testResultsByEnv":{"default":"deb32098de39266bd866200bcf179f60"}}

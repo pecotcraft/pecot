@@ -1,0 +1,1 @@
+{"id":"d920c2e481636838813e2a586822e5f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/max-chars-rule.test.ts#要素の数が下限より 1 少ない 2 件か、空配列の 0 件だと、minItems を報告する","name":"要素の数が下限より 1 少ない 2 件か、空配列の 0 件だと、minItems を報告する","status":"passed","testResultsByEnv":{"default":"dd18077723a79fa97fda6f3c4d719e70"}}

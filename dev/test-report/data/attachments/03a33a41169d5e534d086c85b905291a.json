@@ -1,0 +1,5 @@
+[
+  "interface-spec:install",
+  "interface-spec:lint",
+  "pecot:install"
+]

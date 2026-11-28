@@ -1,0 +1,1 @@
+{"id":"1740ead24b4a442f7944df3772936ba9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/project-stop.test.ts#mapWithLimit 項目が上限より少なければ、項目の数だけ動かす","name":"項目が上限より少なければ、項目の数だけ動かす","status":"passed","testResultsByEnv":{"default":"4866e6315d1ca28cca557c0008536968"}}

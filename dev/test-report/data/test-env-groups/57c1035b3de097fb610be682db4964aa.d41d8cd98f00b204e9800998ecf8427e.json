@@ -1,0 +1,1 @@
+{"id":"57c1035b3de097fb610be682db4964aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#judgeReadiness の順 順 6: 別のリポジトリの前提があると、other-repository で blocked になる","name":"順 6: 別のリポジトリの前提があると、other-repository で blocked になる","status":"passed","testResultsByEnv":{"default":"a4fa8fad95ae9694f38111002dd9cd0c"}}

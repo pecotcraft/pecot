@@ -1,0 +1,1 @@
+{"id":"ca4ad86dafba865ac7458b3884d972e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_convert クライアントのキャンセルで pipeline が止まり、PPTX を書かずに cancelled で返る (#1228)","name":"クライアントのキャンセルで pipeline が止まり、PPTX を書かずに cancelled で返る (#1228)","status":"passed","testResultsByEnv":{"default":"962e9e81b01f9efeb85533067de5a14b"}}

@@ -1,0 +1,1 @@
+{"id":"77751d104688cb5226d7634e7b962ac4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#allowlistedTool responseRequired のキーが responseShape に存在しないときは、定義を作らず例外を発生させる","name":"responseRequired のキーが responseShape に存在しないときは、定義を作らず例外を発生させる","status":"passed","testResultsByEnv":{"default":"632ee8404fb854929f6afdc751dcebbd"}}

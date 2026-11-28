@@ -1,0 +1,1 @@
+{"id":"34d2624113f13ee051f795a5a2c9258b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#実行前拒否 (reject) reject は、許可リストの入力の検証より後、awscli の存在確認より前に働く","name":"reject は、許可リストの入力の検証より後、awscli の存在確認より前に働く","status":"passed","testResultsByEnv":{"default":"83910b4833c7ed6a151253abfba19527"}}

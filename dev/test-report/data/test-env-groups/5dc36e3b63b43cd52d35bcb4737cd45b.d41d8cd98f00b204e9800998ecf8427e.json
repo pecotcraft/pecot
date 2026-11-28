@@ -1,0 +1,1 @@
+{"id":"5dc36e3b63b43cd52d35bcb4737cd45b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_publish_recomputes_the_version_per_plugin","name":"開発版の publish は、プラグインごとに版を求め直す","status":"passed","testResultsByEnv":{"default":"7e71276c1c168fead46d8f6ab7a260f4"}}

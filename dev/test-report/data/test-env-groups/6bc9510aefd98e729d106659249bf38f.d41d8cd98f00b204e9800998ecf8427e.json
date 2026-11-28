@@ -1,0 +1,1 @@
+{"id":"6bc9510aefd98e729d106659249bf38f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/_helpers/fake-github/server.test.ts#異常時 アドレスを取得できない場合は、server を閉じて失敗する","name":"アドレスを取得できない場合は、server を閉じて失敗する","status":"passed","testResultsByEnv":{"default":"5c3ccda15ac403464dc5b8f333b8bb9f"}}

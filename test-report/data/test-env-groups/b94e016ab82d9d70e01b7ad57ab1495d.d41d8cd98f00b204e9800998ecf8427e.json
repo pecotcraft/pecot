@@ -1,0 +1,1 @@
+{"id":"b94e016ab82d9d70e01b7ad57ab1495d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_ruleset_main#test_merge_queue_has_all_seven_keys","name":"merge_queue の規則は、7 つの項目をすべて持ち、SQUASH と ALLGREEN を指定する","status":"passed","testResultsByEnv":{"default":"be9f57c827fd36cd6433fb0a2792be93"}}

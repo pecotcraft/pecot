@@ -1,0 +1,1 @@
+{"id":"02139d953e65b8751b17669d464f3d6b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-table-cell-background.test.ts#require-table-cell-background valid col に背景があり、セルに同色を明示すると、報告しない","name":"col に背景があり、セルに同色を明示すると、報告しない","status":"passed","testResultsByEnv":{"default":"d3f66acde44a59761fb9c7ccdb123f57"}}

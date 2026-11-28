@@ -1,0 +1,1 @@
+error: the event file (GITHUB_EVENT_PATH) does not exist: /tmp/pecot-auto-gate-0PTEXu/missing.json

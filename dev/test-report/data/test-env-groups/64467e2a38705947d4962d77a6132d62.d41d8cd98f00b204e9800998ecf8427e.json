@@ -1,0 +1,1 @@
+{"id":"64467e2a38705947d4962d77a6132d62.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_up_takes_last_json_line_even_if_non_json_follows","name":"up は、JSON の行の後ろに JSON ではない行が続いても、最後の JSON の行を使う","status":"passed","testResultsByEnv":{"default":"6527ecb03bd74a3c9637c8c1217bc942"}}

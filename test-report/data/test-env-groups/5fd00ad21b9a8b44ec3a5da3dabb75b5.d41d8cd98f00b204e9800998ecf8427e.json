@@ -1,0 +1,1 @@
+{"id":"5fd00ad21b9a8b44ec3a5da3dabb75b5.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats#p:pic が減り、埋め込み typeface が消えた pptx では、FAIL と判定する","name":"p:pic が減り、埋め込み typeface が消えた pptx では、FAIL と判定する","status":"passed","testResultsByEnv":{"default":"b55b6a2724a897eb0175b93cf490e969"}}

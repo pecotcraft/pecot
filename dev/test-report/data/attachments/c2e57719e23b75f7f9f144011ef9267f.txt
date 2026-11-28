@@ -1,0 +1,1 @@
+ERROR: --out-dir がディレクトリではありません: /tmp/bats-run-nQFfcr/test/22/plain-file

@@ -1,0 +1,2 @@
+ERROR: pptx を 1 つ以上指定する
+usage: node inspect-pptx.mjs <a.pptx> [b.pptx ...] [--out <md>] [--json <path>]

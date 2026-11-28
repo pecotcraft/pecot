@@ -1,0 +1,1 @@
+{"id":"bb353ed783fa0cb85062fd8764f60443.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#statusViolation 定義外の status は、種類ごとの検証より先に違反とする","name":"定義外の status は、種類ごとの検証より先に違反とする","status":"passed","testResultsByEnv":{"default":"f0d553baa904e69b62c297702eab088e"}}

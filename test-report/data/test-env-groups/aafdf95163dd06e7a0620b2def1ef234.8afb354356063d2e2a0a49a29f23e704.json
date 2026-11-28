@@ -1,0 +1,1 @@
+{"id":"aafdf95163dd06e7a0620b2def1ef234.8afb354356063d2e2a0a49a29f23e704","fullName":".githooks.tests.test_report_dev_sources#test_cli_rejects_wrong_arguments","name":"CLI は、引数が 材料のファイルが無い だと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"e477b4db0b5f2565ca4d73c751b08211"}}

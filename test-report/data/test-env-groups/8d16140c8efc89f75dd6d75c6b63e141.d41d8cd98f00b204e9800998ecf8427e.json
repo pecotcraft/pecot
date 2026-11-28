@@ -1,0 +1,1 @@
+{"id":"8d16140c8efc89f75dd6d75c6b63e141.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-no-verify-check.sh 有効にしてコマンドが git commit -m \"use -n flag\" のとき、何も出力せず通す","name":"有効にしてコマンドが git commit -m \"use -n flag\" のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"414a08603a998532c0c8ed7aa7a8ff17"}}

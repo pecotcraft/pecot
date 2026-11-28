@@ -1,0 +1,1 @@
+{"id":"fe37932e5030b6301ee9ab86299aef98.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/github-ops/branch-and-stack.test.ts#github ops stack-register で 親がスタックの一番上 とき、子の PR をスタックへ登録し、登録後のスタックを返す","name":"stack-register で 親がスタックの一番上 とき、子の PR をスタックへ登録し、登録後のスタックを返す","status":"passed","testResultsByEnv":{"default":"c7ef600731d2b181bf4e5e49e1b14c62"}}

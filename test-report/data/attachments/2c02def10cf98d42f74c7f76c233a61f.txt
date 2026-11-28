@@ -1,0 +1,2 @@
+merged: PR acme/demo/31 (develop -> release, merge commit)
+warning: deleting remote branch develop failed: GitHub API error: 422 Reference does not exist

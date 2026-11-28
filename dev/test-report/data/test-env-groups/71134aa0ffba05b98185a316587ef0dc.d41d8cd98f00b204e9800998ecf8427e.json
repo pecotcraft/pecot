@@ -1,0 +1,1 @@
+{"id":"71134aa0ffba05b98185a316587ef0dc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/setup.test.ts#createSandbox ブランチごとにコミットを作成して push し、HEAD は指定したブランチのままになる","name":"ブランチごとにコミットを作成して push し、HEAD は指定したブランチのままになる","status":"passed","testResultsByEnv":{"default":"2e3f903982a6c3bc55091f6d23d4649d"}}

@@ -1,0 +1,1 @@
+{"id":"bd8af7566c186c5638b3e2cb82652d05.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#ensureChromiumHostDependencies root の場合は、sudo を使わずに導入する","name":"root の場合は、sudo を使わずに導入する","status":"passed","testResultsByEnv":{"default":"7070e98a9191e60bd897277db7b5a813"}}

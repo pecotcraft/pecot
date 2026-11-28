@@ -1,0 +1,1 @@
+{"id":"d86b7db63277e20ec3ec796eea4bd993.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/names.test.ts#項目の名前と names すべての項目の名前が names の語彙に合っていると、検証エラーを返さない","name":"すべての項目の名前が names の語彙に合っていると、検証エラーを返さない","status":"passed","testResultsByEnv":{"default":"36bc26d8df9e78f5cec05c892df1eba6"}}

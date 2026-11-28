@@ -1,0 +1,1 @@
+{"id":"d86a8d59f7f4efb5ad1ba3caf1328bef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-setup.test.ts#runSetupCommand 作業ディレクトリが存在しない場合は、OsError を送出する","name":"作業ディレクトリが存在しない場合は、OsError を送出する","status":"passed","testResultsByEnv":{"default":"c6b9854e66f6759d2ed1d2e56e1ccbd2"}}

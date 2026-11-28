@@ -1,0 +1,1 @@
+{"id":"2a5a0e5838b67509b90d8c205c54417e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init-detection.test.ts#PreToolUse(Skill) pecot 以外の skill のとき、init が発火しない","name":"pecot 以外の skill のとき、init が発火しない","status":"passed","testResultsByEnv":{"default":"944b569f7bba0da7db5c200995121c86"}}

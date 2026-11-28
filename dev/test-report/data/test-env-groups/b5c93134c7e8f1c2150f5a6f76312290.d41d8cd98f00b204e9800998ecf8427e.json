@@ -1,0 +1,1 @@
+{"id":"b5c93134c7e8f1c2150f5a6f76312290.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_sandbox_ops_workflow#test_dispatch_inputs_and_run_name","name":"sandbox-ops.yml は workflow_dispatch だけで動き、run-name に operation と request_id を入れる","status":"passed","testResultsByEnv":{"default":"19899c6cb41ea4f0b78c0ca3047c2e7d"}}

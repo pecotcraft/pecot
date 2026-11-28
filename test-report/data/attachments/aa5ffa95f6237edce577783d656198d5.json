@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "repo acme/other differs from the current Git remote (acme/demo)\n  this command works only on the repository of the current Git remote"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-mismatch\",\"detail\":\"repo acme/other differs from the current Git remote (acme/demo)\\n  this command works only on the repository of the current Git remote\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-mismatch",
+    "detail": "repo acme/other differs from the current Git remote (acme/demo)\n  this command works only on the repository of the current Git remote"
+  },
+  "isError": true
+}

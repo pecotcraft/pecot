@@ -1,0 +1,1 @@
+{"id":"b943bedbe159f10a23240f27942ed854.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine selectNodes にスカラを返す XPath（count など）を渡すと、空の配列を返す","name":"selectNodes にスカラを返す XPath（count など）を渡すと、空の配列を返す","status":"passed","testResultsByEnv":{"default":"9a5ce20d3f4872002912fb87888784a5"}}

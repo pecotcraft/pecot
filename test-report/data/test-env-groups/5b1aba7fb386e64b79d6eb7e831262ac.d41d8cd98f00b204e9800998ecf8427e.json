@@ -1,0 +1,1 @@
+{"id":"5b1aba7fb386e64b79d6eb7e831262ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#configFor 名前を指定した設定が無ければ、その名前を示す文を返す","name":"名前を指定した設定が無ければ、その名前を示す文を返す","status":"passed","testResultsByEnv":{"default":"64a9c7fb4af1d939798670148d2dfe03"}}

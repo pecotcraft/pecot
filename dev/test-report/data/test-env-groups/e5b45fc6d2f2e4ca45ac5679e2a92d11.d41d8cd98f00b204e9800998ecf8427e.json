@@ -1,0 +1,1 @@
+{"id":"e5b45fc6d2f2e4ca45ac5679e2a92d11.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/golden-path-errors.test.ts#CUJ 3: エラーパス + Python フリー `--theme` に不正な値を指定すると、終了コード 1 で `invalid-theme` を返す","name":"`--theme` に不正な値を指定すると、終了コード 1 で `invalid-theme` を返す","status":"passed","testResultsByEnv":{"default":"eaf6a4601d4763cd84e4adeedf81d4b8"}}

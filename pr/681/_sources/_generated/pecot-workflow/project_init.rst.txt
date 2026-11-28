@@ -1,0 +1,8 @@
+:iface-id: PW-PROJECT-INIT
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Initialize project fields
+==================================================
+
+.. iface-defs:: pecot-workflow PW-PROJECT-INIT

@@ -1,0 +1,1 @@
+{"id":"1abe7c1c88182704dc194116b2908e64.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_deploy_jobs_permissions_and_environments","name":"pages-deploy の job は、最小の権限と決まった environment を持つ","status":"passed","testResultsByEnv":{"default":"1261efc9f16a4687a09ac9541eac6043"}}

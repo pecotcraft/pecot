@@ -1,0 +1,1 @@
+{"id":"dd0c437106184d317dc618021ab413cf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-key.test.ts#computeSlideHash raw の末尾の改行の数が違っても、同じハッシュを返す","name":"raw の末尾の改行の数が違っても、同じハッシュを返す","status":"passed","testResultsByEnv":{"default":"7d196f8557ad617b367744c10c043ed2"}}

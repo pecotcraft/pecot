@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Session status"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/demo/7\",\"repository\":\"acme/demo\",\"activeIssue\":{\"reference\":\"acme/demo/7\",\"title\":\"見本の Issue\",\"state\":\"OPEN\",\"body\":\"本文の 1 行目\\n本文の 2 行目\\n\"}}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/demo/7",
+    "repository": "acme/demo",
+    "activeIssue": {
+      "reference": "acme/demo/7",
+      "title": "見本の Issue",
+      "state": "OPEN",
+      "body": "本文の 1 行目\n本文の 2 行目\n"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"3a1b5957e3e08469e3aa761760dbf9fb.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_summary_dry_run_heading","name":"dry-run のとき、ジョブのサマリーの見出しは Release plan になる","status":"passed","testResultsByEnv":{"default":"ccdb646a142f3bf33e32ef59c8d10e3a"}}

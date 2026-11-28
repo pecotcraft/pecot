@@ -1,0 +1,1 @@
+{"id":"2ccbc4a7a6a8da60d035e3ab9fe7064b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/runtime-guard.test.ts#ensureRuntimeDependencies 解決できるなら undefined を返し、実処理を止めない","name":"解決できるなら undefined を返し、実処理を止めない","status":"passed","testResultsByEnv":{"default":"5f3c391803b20dd17a22d10a61852b18"}}

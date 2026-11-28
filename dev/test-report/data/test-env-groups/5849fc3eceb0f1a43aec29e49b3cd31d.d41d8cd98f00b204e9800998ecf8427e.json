@@ -1,0 +1,1 @@
+{"id":"5849fc3eceb0f1a43aec29e49b3cd31d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#実行前拒否 (reject) reject が理由を返したときは、awscli を起動せず、その種類とメッセージで失敗を返す","name":"reject が理由を返したときは、awscli を起動せず、その種類とメッセージで失敗を返す","status":"passed","testResultsByEnv":{"default":"88d3e8bc751f76e1ec057966ee9214ab"}}

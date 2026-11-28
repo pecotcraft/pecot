@@ -1,0 +1,1 @@
+{"id":"874b79d35e4d81441b8a7a7a00622dbe.b258b5de9e203aa83beadfdfceb6f7e7","fullName":".githooks.tests.test_find_pr_ci_base#test_bad_artifact_gives_reason","name":"artifact の検証（pr_head_differs）に失敗すると、理由として「pr_head 不一致」を出力し、pr_main を出力しない","status":"passed","testResultsByEnv":{"default":"022bdfa0283fee3542ea99c324aa5be7"}}

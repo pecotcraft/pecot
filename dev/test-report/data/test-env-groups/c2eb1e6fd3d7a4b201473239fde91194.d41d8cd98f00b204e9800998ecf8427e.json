@@ -1,0 +1,1 @@
+{"id":"c2eb1e6fd3d7a4b201473239fde91194.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh の .pecot/work 配下 work の link が切れているとき、cwd の toplevel にフォールバックする","name":"work の link が切れているとき、cwd の toplevel にフォールバックする","status":"passed","testResultsByEnv":{"default":"e4f66e680a459c6da9977965a2322188"}}

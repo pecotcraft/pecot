@@ -1,0 +1,1 @@
+sudo chown -R 1000:1000 /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_restore_owner_chowns_to_c0/ws

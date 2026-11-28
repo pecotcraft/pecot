@@ -1,0 +1,1 @@
+{"id":"82ae581b69c583fe9bacc1de9a9d22b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#dataDirectory の解決順 CLAUDE_PLUGIN_DATA が無効なら PLUGIN_DATA のとき、/plugin/data を返す","name":"CLAUDE_PLUGIN_DATA が無効なら PLUGIN_DATA のとき、/plugin/data を返す","status":"passed","testResultsByEnv":{"default":"c7fbcc9c44ca23f97da1e66a61733616"}}

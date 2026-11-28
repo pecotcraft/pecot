@@ -1,0 +1,1 @@
+{"id":"a4937dfd6c9be86cb7e17a653eb2b6a4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_21_block_non_group_key_plan","name":"version plan が group 名以外のキーで宣言していると、宣言として扱わず、失敗する","status":"passed","testResultsByEnv":{"default":"8b5e96b3cedcb6b768356ecf7b4737da"}}

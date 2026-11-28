@@ -1,0 +1,1 @@
+{"id":"1e12c547dcd285c639ed63fbbce4c74f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_lambda_get_function_configuration profile の書式に合わない値を渡すと、拒否する","name":"profile の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"578205c9f697e8a1253bb1fb21be55da"}}

@@ -1,0 +1,1 @@
+{"id":"76efd5c4f57411f449fb4ceeacb67352.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/drawio-png-chromium.test.ts#CUJ: drawio url が実 chromium で PNG を描画する 日本語入りの図から exit 0 で PNG を書き出し、寸法を持つ PNG になる","name":"日本語入りの図から exit 0 で PNG を書き出し、寸法を持つ PNG になる","status":"passed","testResultsByEnv":{"default":"5df34e840b30ec3c35a959339de62d40"}}

@@ -1,0 +1,8 @@
+:iface-id: PW-ISSUE-CREATE
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Create Issues
+==========================
+
+.. iface-defs:: pecot-workflow PW-ISSUE-CREATE

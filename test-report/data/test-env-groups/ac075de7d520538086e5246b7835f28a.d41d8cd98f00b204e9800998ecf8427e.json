@@ -1,0 +1,1 @@
+{"id":"ac075de7d520538086e5246b7835f28a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#nxProjects .pecot/tmp を作成できない場合は、undefined を返す","name":".pecot/tmp を作成できない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"07c332a7862f2c39d459d49708cf5b70"}}

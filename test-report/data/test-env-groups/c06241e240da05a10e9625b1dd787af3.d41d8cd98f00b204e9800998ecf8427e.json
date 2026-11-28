@@ -1,0 +1,1 @@
+{"id":"c06241e240da05a10e9625b1dd787af3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/errors.test.ts#GitHubAPIError 状態コードと本文を指定すると、それらを保持する","name":"状態コードと本文を指定すると、それらを保持する","status":"passed","testResultsByEnv":{"default":"08e48b89d0670bf1c9986613406a9d40"}}

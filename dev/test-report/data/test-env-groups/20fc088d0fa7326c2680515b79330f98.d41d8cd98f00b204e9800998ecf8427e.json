@@ -1,0 +1,1 @@
+{"id":"20fc088d0fa7326c2680515b79330f98.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_deploy_concurrency","name":"pages-deploy の `concurrency` は、実行中の run を取り消さず、順番に実行する","status":"passed","testResultsByEnv":{"default":"cabb18655b42be0db2d0b769f3668a98"}}

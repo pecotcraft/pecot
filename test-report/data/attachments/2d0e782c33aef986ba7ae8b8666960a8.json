@@ -1,0 +1,28 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "wait: wait is only for add"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"wait\",\"code\":\"unexpected\",\"message\":\"wait is only for add\"},{\"field\":\"reason\",\"code\":\"unexpected\",\"message\":\"reason is only for add with wait merge\"}],\"expected_status\":\"Ready\",\"body\":\"## Goal — 一覧画面から状態を確認できる\\n\\n利用者が一覧画面で各項目の状態を確認できる。\\n\\n## Acceptance — 一覧に状態の列が出る\\n\\n- 状態の列が一覧に出る — 確認: 一覧画面を開く\\n\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "wait",
+        "code": "unexpected",
+        "message": "wait is only for add"
+      },
+      {
+        "field": "reason",
+        "code": "unexpected",
+        "message": "reason is only for add with wait merge"
+      }
+    ],
+    "expected_status": "Ready",
+    "body": "## Goal — 一覧画面から状態を確認できる\n\n利用者が一覧画面で各項目の状態を確認できる。\n\n## Acceptance — 一覧に状態の列が出る\n\n- 状態の列が一覧に出る — 確認: 一覧画面を開く\n"
+  }
+}

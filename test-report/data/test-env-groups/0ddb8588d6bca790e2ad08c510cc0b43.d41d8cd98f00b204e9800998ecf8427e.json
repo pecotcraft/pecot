@@ -1,0 +1,1 @@
+{"id":"0ddb8588d6bca790e2ad08c510cc0b43.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_build_packs_into_the_shared_directory","name":"開発版のビルドは、共有のディレクトリにパッケージを作り、artifact としてアップロードする","status":"passed","testResultsByEnv":{"default":"786d97f6029b2019ab438e1e8a4365c2"}}

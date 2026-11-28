@@ -1,0 +1,1 @@
+{"id":"479234fce92add6ebf07370f7af49ada.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: テンプレート文字列の ${} 埋め込み式の中の文字列だけが日本語のテンプレート文字列は、日本語の文字列だけを数える","name":"埋め込み式の中の文字列だけが日本語のテンプレート文字列は、日本語の文字列だけを数える","status":"passed","testResultsByEnv":{"default":"67377d29eaaef4c1f9995d490a6ba1bb"}}

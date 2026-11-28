@@ -1,0 +1,4 @@
+==> libs/text-rules のソースが dist と違うため、dist を作り直します
+lib/findings.ts(14,7): error TS2322: Type 'string' is not assignable to type 'number'.
+lib/findings.ts(14,7): error TS6133: 'broken' is declared but its value is never read.
+ERROR: libs/text-rules/dist を作れません。上の出力を確認してください

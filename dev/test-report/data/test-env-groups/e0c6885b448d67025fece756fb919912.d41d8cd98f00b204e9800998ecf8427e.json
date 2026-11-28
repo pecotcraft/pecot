@@ -1,0 +1,1 @@
+{"id":"e0c6885b448d67025fece756fb919912.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#detectProjectRoot base 以外なら、現在・期待・理由・移行手順の 4 ブロックの文で WorktreeRuntimeError","name":"base 以外なら、現在・期待・理由・移行手順の 4 ブロックの文で WorktreeRuntimeError","status":"passed","testResultsByEnv":{"default":"8a443e54038ec493b9705f23ebaf255c"}}

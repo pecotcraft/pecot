@@ -1,0 +1,1 @@
+{"id":"add561fb277de982f40ccc0655e37f9e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#gitStdout git が 0 以外で終了した場合は、undefined を返す","name":"git が 0 以外で終了した場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"9fec9da1b5327a52a3a4dbbe6c7eaa0d"}}

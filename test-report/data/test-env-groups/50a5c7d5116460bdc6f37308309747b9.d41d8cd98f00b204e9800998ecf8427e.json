@@ -1,0 +1,1 @@
+{"id":"50a5c7d5116460bdc6f37308309747b9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_task_cache#test_lint_with_unchanged_input_is_reused","name":"入力が同じなら、commit 時の lint は前回の成功を再利用する","status":"passed","testResultsByEnv":{"default":"1cb09a2205c5a759de8e440febca9a65"}}

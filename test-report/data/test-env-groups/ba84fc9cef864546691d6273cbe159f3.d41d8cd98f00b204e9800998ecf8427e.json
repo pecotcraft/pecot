@@ -1,0 +1,1 @@
+{"id":"ba84fc9cef864546691d6273cbe159f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_create MCP の data 所有者が見つからないと、kind が github-not-found の失敗を返す","name":"所有者が見つからないと、kind が github-not-found の失敗を返す","status":"passed","testResultsByEnv":{"default":"d2ac5281f355b7ee00c58b79a12d0a0b"}}

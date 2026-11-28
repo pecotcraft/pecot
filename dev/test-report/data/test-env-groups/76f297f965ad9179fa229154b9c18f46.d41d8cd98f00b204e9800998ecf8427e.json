@@ -1,0 +1,1 @@
+{"id":"76f297f965ad9179fa229154b9c18f46.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/pecotv-gitignore-ensure.bats#git 外でファイルが無いと、--print と同じ中身を書き、一時ファイルを残さない","name":"git 外でファイルが無いと、--print と同じ中身を書き、一時ファイルを残さない","status":"passed","testResultsByEnv":{"default":"4f3db4ba696318ecc6237b551fd00ed1"}}

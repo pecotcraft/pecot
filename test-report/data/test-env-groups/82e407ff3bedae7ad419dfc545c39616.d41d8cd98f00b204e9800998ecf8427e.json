@@ -1,0 +1,1 @@
+{"id":"82e407ff3bedae7ad419dfc545c39616.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/project-root-convention.test.ts#hooks の基準ディレクトリの規約 fallback の検出パターンは既知の形を検出し、空の既定値の形は検出しない","name":"fallback の検出パターンは既知の形を検出し、空の既定値の形は検出しない","status":"passed","testResultsByEnv":{"default":"c16b51fe92984f5e0cff9879e723994d"}}

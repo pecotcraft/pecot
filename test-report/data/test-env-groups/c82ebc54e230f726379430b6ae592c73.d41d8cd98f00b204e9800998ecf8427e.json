@@ -1,0 +1,1 @@
+{"id":"c82ebc54e230f726379430b6ae592c73.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#cli/dist が同梱の text-rules を相対パスで動的 import する","name":"cli/dist が同梱の text-rules を相対パスで動的 import する","status":"passed","testResultsByEnv":{"default":"b8b5053174d795582658fa8ae3231b6b"}}

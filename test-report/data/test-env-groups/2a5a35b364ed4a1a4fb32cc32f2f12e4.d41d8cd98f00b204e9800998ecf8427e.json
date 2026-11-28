@@ -1,0 +1,1 @@
+{"id":"2a5a35b364ed4a1a4fb32cc32f2f12e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#更新（コピーを作る） withRepositoryAppended は、末尾に追加したコピーを返し、元の設定は変えない","name":"withRepositoryAppended は、末尾に追加したコピーを返し、元の設定は変えない","status":"passed","testResultsByEnv":{"default":"8f750f746d80a58cfb89367b232760e6"}}

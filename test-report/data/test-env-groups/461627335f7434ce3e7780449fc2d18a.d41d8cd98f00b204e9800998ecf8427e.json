@@ -1,0 +1,1 @@
+{"id":"461627335f7434ce3e7780449fc2d18a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql 401 で JSON でない本文は認証エラー（文言に 401） のとき、GitHubAuthError が発生する","name":"401 で JSON でない本文は認証エラー（文言に 401） のとき、GitHubAuthError が発生する","status":"passed","testResultsByEnv":{"default":"a24994eca556c3e843ba1bcc01b13ad4"}}

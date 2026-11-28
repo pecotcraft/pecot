@@ -1,0 +1,1 @@
+{"id":"a9956d81abfb2801dfa696f0530274da.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#2 番目は gh release upload（tgz・--clobber・-R 付き）","name":"2 番目は gh release upload（tgz・--clobber・-R 付き）","status":"passed","testResultsByEnv":{"default":"ace525c2e3edd2a2281416a17c3f88ba"}}

@@ -1,0 +1,1 @@
+{"id":"cc78f24a3a7ad63148b788bd586aac9c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base フロントマターの head で別のブランチを指す ときは、記録を読まずに PR を作る","name":"フロントマターの head で別のブランチを指す ときは、記録を読まずに PR を作る","status":"passed","testResultsByEnv":{"default":"17d114a0dcd72e60ea54feadfb2a2fa2"}}

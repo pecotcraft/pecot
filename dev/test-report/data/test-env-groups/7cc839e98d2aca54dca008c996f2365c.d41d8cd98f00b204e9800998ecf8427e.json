@@ -1,0 +1,1 @@
+{"id":"7cc839e98d2aca54dca008c996f2365c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate 既存の設定ファイルがあるプロジェクトを同期すると、aggregation_repo を引き継ぐ","name":"既存の設定ファイルがあるプロジェクトを同期すると、aggregation_repo を引き継ぐ","status":"passed","testResultsByEnv":{"default":"4b4b6eb24a206b0404ad8b5ea04e5928"}}

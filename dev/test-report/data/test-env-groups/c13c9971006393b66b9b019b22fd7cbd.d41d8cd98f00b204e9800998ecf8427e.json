@@ -1,0 +1,1 @@
+{"id":"c13c9971006393b66b9b019b22fd7cbd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の update-type 署名が { isValid: false } の場合は、種類を不明として扱う","name":"署名が { isValid: false } の場合は、種類を不明として扱う","status":"passed","testResultsByEnv":{"default":"5b02d1e75f48355c49c04c40c9e2cb3d"}}

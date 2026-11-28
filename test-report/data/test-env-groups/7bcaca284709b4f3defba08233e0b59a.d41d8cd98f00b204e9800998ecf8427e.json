@@ -1,0 +1,1 @@
+{"id":"7bcaca284709b4f3defba08233e0b59a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#テーマの宣言で動く lint (実 eslint) テーマが宣言していない規則は、同じ違反があっても報告しない","name":"テーマが宣言していない規則は、同じ違反があっても報告しない","status":"passed","testResultsByEnv":{"default":"b5f5a45daf64368e32828da207b6e5fb"}}

@@ -1,0 +1,1 @@
+{"id":"5529405a3e0dcc11fc64a11e93389816.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#hasBoldEmphasis <strong> の外に地の文が 1 文字でもあると、true を返す","name":"<strong> の外に地の文が 1 文字でもあると、true を返す","status":"passed","testResultsByEnv":{"default":"d12b18cbc5eaff06101051c8c88dc1d5"}}

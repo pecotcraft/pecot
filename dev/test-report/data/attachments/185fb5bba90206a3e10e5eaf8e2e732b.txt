@@ -1,0 +1,5 @@
+count: Issues to close: 4
+closed: Issue #11
+closed: Issue #12
+closed: Issue #13
+closed: Issue #14

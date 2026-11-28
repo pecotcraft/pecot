@@ -1,0 +1,1 @@
+{"id":"7be44b336d0c52e795d50c9fd2e0d643.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#dry-run の中身の一覧に .map と cert を含むパスが無い","name":"dry-run の中身の一覧に .map と cert を含むパスが無い","status":"passed","testResultsByEnv":{"default":"b63c36c1dad2532a5d59e45c3ed47c8a"}}

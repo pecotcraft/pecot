@@ -1,0 +1,1 @@
+{"id":"2943d143a9bde3fe0681593e2425f2df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#例外クラス VersionNotFoundError は ChangelogError を継承している","name":"VersionNotFoundError は ChangelogError を継承している","status":"passed","testResultsByEnv":{"default":"ada46a51fbb9775a5ac94c08e5d951d6"}}

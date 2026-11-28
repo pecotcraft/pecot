@@ -1,0 +1,307 @@
+# pecot-workflow-template: review 0
+#
+# Place this file at .github/workflows/pecot-review.yml in your repository.
+#
+# This workflow runs the pecot w-review skill on a pull request with claude-code-action.
+# It posts inline comments and a list of findings. It never pushes, merges, or closes.
+# It reads the PR with gh pr diff and gh pr view. Other commands that need approval are denied.
+# It looks up public docs with Context7 and WebSearch.
+# WebFetch reads docs.github.com and the documentation sites that Claude Code allows without approval.
+# To trust more sites, add WebFetch(domain:example.com) to the allowed-tools lines below.
+# Search queries and URLs may carry text from the diff.
+# It starts when a PR is opened or marked ready for review.
+# GitHub does not run it while the PR has a merge conflict.
+# So a push also starts it, but only when the PR has no review from this workflow yet.
+# A PR that had a conflict when it was opened is reviewed on the push that resolves it.
+# If a change on the base branch resolves the conflict, no event comes. Comment the phrase below.
+# To review again, comment "@pecotbot review" on the PR.
+# The phrase must be the whole comment, or be followed by a space or a new line.
+# Only people with write access can start it, and the job checks their permission.
+# PRs from forks and drafts are skipped.
+#
+# Install the Claude GitHub App on the repository.
+# Then set one model credential in Settings > Secrets and variables > Actions.
+#   Claude subscription (default).
+#     Set secret CLAUDE_CODE_OAUTH_TOKEN, made with `claude setup-token`.
+#   Claude Platform with Workload Identity Federation.
+#     Leave secret CLAUDE_CODE_OAUTH_TOKEN unset.
+#     Set variable PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID.
+#     Set variable PECOT_AGENT_ANTHROPIC_ORGANIZATION_ID.
+#     Set variable PECOT_AGENT_ANTHROPIC_SERVICE_ACCOUNT_ID.
+#     Set variable PECOT_AGENT_ANTHROPIC_WORKSPACE_ID.
+#
+# By default, comments come from the Claude GitHub App and github-actions[bot].
+# To post as your own GitHub App, set variable PECOT_AGENT_APP_CLIENT_ID.
+# Also set secret PECOT_AGENT_APP_PRIVATE_KEY.
+# The workflow narrows its token to Pull requests: write, Issues: read, and Contents: read.
+# It also runs the official GitHub MCP server in Docker as "github-official".
+# The image is ghcr.io/github/github-mcp-server.
+# The server reads issues and adds or edits issue comments with that token. The runner needs Docker.
+#
+# Optional variables. Each one falls back to its default when unset.
+#   PECOT_REVIEW_TRIGGER_PHRASE starts a review again. The default is "@pecotbot review".
+#   PECOT_REVIEW_ALLOWED_BOTS lists bots whose PRs are reviewed. The default is [].
+#     Write it as a JSON array, for example ["my-app[bot]"].
+#   PECOT_REVIEW_MODEL names the Claude model, as an alias or a full name. The default is "opus".
+#   PECOT_REVIEW_EFFORT sets the effort level (low/medium/high/xhigh/max). The default is "high".
+#   PECOT_REVIEW_MAX_TURNS limits the turns of the main agent. The default is 60.
+#   PECOT_REVIEW_TIMEOUT_MINUTES limits the job time in minutes. The default is 30.
+#   PECOT_REVIEW_PROJECT names the pecot project config to use. The default is unset.
+#     Set it when the repository is in two or more configs under .pecot/config/projects.
+#     Write the file name without .json.
+#   PECOT_REVIEW_WEB_ACCESS set to "false" stops Context7, WebSearch, and WebFetch. The default is "true".
+# Optional secret CONTEXT7_API_KEY raises the Context7 rate limit. Without it, Context7 runs without a key.
+#
+# The job summary of each run shows the model and the effort level that were used.
+# It also lists the tools that were called and the calls that were denied.
+# For each call it shows one input field cut to 200 characters, never tool output.
+# The field is the first one found in this order: path, command, pattern, URL.
+# Then it looks for a query or a reference.
+# A call with none of these shows only the names of its input fields.
+# Any of these inputs, even in a denied call, can carry text that Claude wrote.
+#
+# Runs started by Dependabot read Dependabot secrets, not Actions secrets.
+# To review Dependabot PRs, add "dependabot[bot]" to PECOT_REVIEW_ALLOWED_BOTS.
+# Then set the secrets above as Dependabot secrets too.
+#
+# The pecot action of the Finish step is pinned to a commit SHA.
+# The comment after it names the release tag.
+# Dependabot can update it when .github/dependabot.yml has the github-actions ecosystem.
+#
+# Keep your own lines between the pecot-review:*:begin and :end markers.
+# `workflow_install` with `force: true` shows them before it overwrites this file.
+#
+# actionlint 1.7.12 does not know concurrency.queue yet and reports it. GitHub accepts it.
+name: pecot review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    # A job-level if cannot read env, so the defaults are written next to each variable.
+    if: >-
+      ${{
+        (
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          !github.event.pull_request.draft &&
+          (
+            github.event.pull_request.user.type != 'Bot' ||
+            contains(fromJSON(vars.PECOT_REVIEW_ALLOWED_BOTS || '[]'), github.event.pull_request.user.login)
+          )
+        ) ||
+        (
+          github.event_name == 'issue_comment' &&
+          github.event.issue.pull_request &&
+          github.event.comment.user.type != 'Bot' &&
+          contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+          (
+            github.event.comment.body == (vars.PECOT_REVIEW_TRIGGER_PHRASE || '@pecotbot review') ||
+            startsWith(github.event.comment.body, format('{0} ', vars.PECOT_REVIEW_TRIGGER_PHRASE || '@pecotbot review')) ||
+            startsWith(github.event.comment.body, format('{0}{1}', vars.PECOT_REVIEW_TRIGGER_PHRASE || '@pecotbot review', fromJSON('"\n"'))) ||
+            startsWith(github.event.comment.body, format('{0}{1}', vars.PECOT_REVIEW_TRIGGER_PHRASE || '@pecotbot review', fromJSON('"\r\n"')))
+          )
+        )
+      }}
+    runs-on: ubuntu-latest
+    # Variables are strings, and timeout-minutes needs a number.
+    timeout-minutes: ${{ fromJSON(vars.PECOT_REVIEW_TIMEOUT_MINUTES || '30') }}
+    concurrency:
+      group: pecot-review-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: false
+      # The default queue keeps one pending job, so a push would cancel a waiting "@pecotbot review".
+      queue: max
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    env:
+      # The official GitHub MCP server reads and comments on issues.
+      # Claude Code expands ${PECOT_GITHUB_COM_TOKEN} from the step env.
+      PECOT_REVIEW_GITHUB_MCP: '{"mcpServers":{"github-official":{"type":"stdio","command":"docker","args":["run","-i","--rm","-e","GITHUB_PERSONAL_ACCESS_TOKEN","-e","GITHUB_HOST","-e","GITHUB_TOOLS","ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6"],"env":{"GITHUB_PERSONAL_ACCESS_TOKEN":"${PECOT_GITHUB_COM_TOKEN}","GITHUB_HOST":"${{ github.server_url }}","GITHUB_TOOLS":"issue_read,add_issue_comment,update_issue_comment"}}}}'
+      # pecot-review:allowed-tools:begin
+      # Tools that your preparation steps need, separated by commas.
+      PECOT_REVIEW_EXTRA_ALLOWED_TOOLS: ""
+      # pecot-review:allowed-tools:end
+      # Claude Code expands ${CONTEXT7_API_KEY} from the Review step.
+      PECOT_REVIEW_CONTEXT7: '{"mcpServers":{"context7":{"type":"http","url":"https://mcp.context7.com/mcp"}}}'
+      PECOT_REVIEW_CONTEXT7_WITH_KEY: >-
+        {"mcpServers":{"context7":{"type":"http","url":"https://mcp.context7.com/mcp",
+        "headers":{"Authorization":"Bearer ${CONTEXT7_API_KEY}"}}}}
+    steps:
+      # The finish step names where the review stopped from the inline comments posted after this time.
+      - name: Record the start time
+        id: start
+        run: echo "time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate GitHub App token
+        id: token
+        if: ${{ vars.PECOT_AGENT_APP_CLIENT_ID != '' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.PECOT_AGENT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_AGENT_APP_PRIVATE_KEY }}
+          permission-pull-requests: write
+          permission-issues: read
+          permission-contents: read
+
+      # A push reviews only a PR that has no review yet, such as one opened with a merge conflict.
+      # Count the findings lists and the stopped notices that bots posted. People cannot forge them.
+      - name: Check for an earlier review
+        id: first
+        if: ${{ github.event.action == 'synchronize' }}
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token || github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          found=$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --jq '.[] | select(.user.type == "Bot" and ((.body | test("\\A\\s*## Findings")) or (.body | contains("<!-- pecot-review-stopped ")))) | .id')
+          if [ -z "$found" ]; then ok=true; else ok=false; fi
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+
+      # issue_comment events carry neither the head repository nor the draft flag, so read the PR.
+      # author_association also passes read-only collaborators, so read the commenter's permission.
+      - name: Check the PR
+        id: pr
+        if: ${{ github.event_name == 'issue_comment' }}
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token || github.token }}
+          PR: ${{ github.event.issue.number }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+          COMMENT_AT: ${{ github.event.comment.created_at }}
+        run: |
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR")
+          permission=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$COMMENTER/permission" --jq .permission)
+          head=$(jq -r '.head.repo.full_name // ""' <<< "$pr")
+          draft=$(jq -r .draft <<< "$pr")
+          state=$(jq -r .state <<< "$pr")
+          sha=$(jq -r .head.sha <<< "$pr")
+          COMMIT_AT=$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha" --jq .commit.committer.date)
+          # A commit pushed after the comment was not seen by the commenter, so it is not reviewed.
+          commit_time=$(date -d "$COMMIT_AT" +%s)
+          comment_time=$(date -d "$COMMENT_AT" +%s)
+          ok=false
+          if [ "$head" = "$GITHUB_REPOSITORY" ] && [ "$draft" = false ] && [ "$state" = open ] && [ "$commit_time" -le "$comment_time" ]; then
+            case "$permission" in admin|write) ok=true ;; esac
+          fi
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Acknowledge the request
+        if: ${{ github.event_name == 'issue_comment' && steps.pr.outputs.ok == 'true' }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token || github.token }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+        run: gh api -X POST "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID/reactions" -f content=eyes --silent
+
+      # Read the PR head, not the merge ref, so that review lines match the diff.
+      - name: Checkout
+        if: ${{ (github.event_name == 'pull_request' && steps.first.outputs.ok != 'false') || steps.pr.outputs.ok == 'true' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || steps.pr.outputs.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Node.js
+        if: ${{ (github.event_name == 'pull_request' && steps.first.outputs.ok != 'false') || steps.pr.outputs.ok == 'true' }}
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+          # This job holds secrets, so the npm cache is neither restored nor saved.
+          package-manager-cache: false
+
+      # pecot-review:prepare:begin
+      # Add steps that the review needs, such as installing dependencies.
+      # Give each step the same if as the steps above.
+      # pecot-review:prepare:end
+
+      - name: Review
+        id: claude
+        if: ${{ (github.event_name == 'pull_request' && steps.first.outputs.ok != 'false') || steps.pr.outputs.ok == 'true' }}
+        uses: anthropics/claude-code-action@cc98b3ae241b0fcfb6a42a2690751afffecb4452 # v1.0.278
+        env:
+          PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token || github.token }}
+          CONTEXT7_API_KEY: ${{ secrets.CONTEXT7_API_KEY }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The action takes either a token or Workload Identity Federation, not both.
+          anthropic_federation_rule_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID || '' }}
+          anthropic_organization_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_ORGANIZATION_ID || '' }}
+          anthropic_service_account_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_SERVICE_ACCOUNT_ID || '' }}
+          anthropic_workspace_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_WORKSPACE_ID || '' }}
+          # Empty when no App token was made, so the action uses the Claude GitHub App.
+          github_token: ${{ steps.token.outputs.token }}
+          # Without an API key the classifier is skipped; post every inline comment at once.
+          classify_inline_comments: "false"
+          plugin_marketplaces: https://github.com/pecotcraft/pecot.git
+          plugins: pecot-w@pecot
+          allowed_bots: ${{ join(fromJSON(vars.PECOT_REVIEW_ALLOWED_BOTS || '[]'), ',') }}
+          prompt: /pecot-w:w-review ${{ github.repository }}/${{ github.event.pull_request.number || github.event.issue.number }}${{ vars.PECOT_REVIEW_PROJECT != '' && format(' project={0}', vars.PECOT_REVIEW_PROJECT) || '' }}
+          # The hook writes the effort level in use, which the record step shows. It returns nothing.
+          settings: >-
+            {"hooks":{"PreToolUse":[{"hooks":[{"type":"command",
+            "command":"printf %s \"$CLAUDE_EFFORT\" > \"$RUNNER_TEMP/pecot-review-effort\""}]}]}}
+          claude_args: >-
+            --permission-mode default
+            --model ${{ vars.PECOT_REVIEW_MODEL || 'opus' }}
+            --effort ${{ vars.PECOT_REVIEW_EFFORT || 'high' }}
+            --max-turns ${{ vars.PECOT_REVIEW_MAX_TURNS || '60' }}
+            --mcp-config '${{ env.PECOT_REVIEW_GITHUB_MCP }}'
+            ${{ vars.PECOT_REVIEW_WEB_ACCESS != 'false' && format('--mcp-config ''{0}''', secrets.CONTEXT7_API_KEY != '' && env.PECOT_REVIEW_CONTEXT7_WITH_KEY || env.PECOT_REVIEW_CONTEXT7) || '' }}
+            --allowedTools "Read,Glob,Grep,mcp__plugin_pecot-w_pecot-workflow__pr_show,mcp__plugin_pecot-w_pecot-workflow__issue_comment_check,mcp__github-official__issue_read,mcp__github-official__add_issue_comment,mcp__github-official__update_issue_comment,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*)${{ vars.PECOT_REVIEW_WEB_ACCESS != 'false' && ',WebSearch,WebFetch(domain:docs.github.com),mcp__context7__resolve-library-id,mcp__context7__query-docs' || '' }}${{ env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_REVIEW_EXTRA_ALLOWED_TOOLS) || '' }}"
+            --disallowedTools "Edit,Write,NotebookEdit,AskUserQuestion,Agent${{ vars.PECOT_REVIEW_WEB_ACCESS == 'false' && ',WebFetch,WebSearch' || '' }},Bash(git clone:*),Read(//proc/**)"
+
+      # Tool inputs carry text that Claude wrote from the diff, so each one goes in a code span.
+      # A failure here must not fail the job, or the finish step reports a stopped review.
+      - name: Record the run
+        if: ${{ always() && steps.claude.outputs.execution_file != '' }}
+        continue-on-error: true
+        env:
+          EXECUTION_FILE: ${{ steps.claude.outputs.execution_file }}
+        run: |
+          if [ ! -f "$EXECUTION_FILE" ]; then exit 0; fi
+          effort=unknown
+          if [ -s "$RUNNER_TEMP/pecot-review-effort" ]; then effort=$(cat "$RUNNER_TEMP/pecot-review-effort"); fi
+          jq -r --arg effort "$effort" '
+            def cell: tostring | gsub("[\r\n]+"; " ") | gsub("`"; "") | .[0:200] | gsub("\\|"; "\\|") | if . == "" then "" else "`" + . + "`" end;
+            def target: if type != "object" then ""
+              else (.file_path // .path // .file // .pattern // .command // .url // .query
+                // .pr_ref // .issue_ref // .libraryId // .libraryName) // (keys | join(", ")) end;
+            (map(select(.type == "system" and .subtype == "init")) | first // {}) as $init
+            | (map(select(.type == "result")) | last // {}) as $result
+            | "## Review run", "",
+              "| Model | Effort | Turns | Result |", "|---|---|---|---|",
+              "| \($init.model // "unknown" | cell) | \($effort | cell) | \($result.num_turns // "" | cell) | \($result.subtype // "" | cell) |",
+              "", "### Tool calls", "",
+              ([.[] | select(.type == "assistant") | .message.content[]? | select(.type == "tool_use")]
+                | if length == 0 then "None."
+                  else ("| # | Tool | Target |", "|---|---|---|",
+                    (to_entries[] | "| \(.key + 1) | \(.value.name | cell) | \(.value.input | target | cell) |")) end),
+              "", "### Denied calls", "",
+              (($result.permission_denials // [])
+                | if length == 0 then "None."
+                  else ("| Tool | Target |", "|---|---|",
+                    (.[] | "| \(.tool_name | cell) | \(.tool_input | target | cell) |")) end)
+          ' "$EXECUTION_FILE" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Finish
+        if: ${{ always() && steps.first.outputs.ok != 'false' }}
+        uses: pecotcraft/pecot/actions/review-finish@pecot-actions/v1.1.0
+        env:
+          PECOT_REVIEW_TRIGGER_PHRASE: ${{ vars.PECOT_REVIEW_TRIGGER_PHRASE }}
+        with:
+          token: ${{ steps.token.outputs.token || github.token }}
+          pr: ${{ github.event.pull_request.number || github.event.issue.number }}
+          job-status: ${{ job.status }}
+          review-outcome: ${{ steps.claude.outcome }}
+          review-conclusion: ${{ steps.claude.outputs.conclusion }}
+          # Pass only whether the action got a token, never the token itself.
+          review-has-token: ${{ steps.claude.outputs.github_token != '' }}
+          execution-file: ${{ steps.claude.outputs.execution_file }}
+          since: ${{ steps.start.outputs.time }}

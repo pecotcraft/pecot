@@ -1,0 +1,1 @@
+{"id":"04fccec39308a7c1a81bc3bb67660f0b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/linked-theme.test.ts#ensureTalkThemeLinked テーマの保管場所を決定できない場合は、取得の失敗として unknown の ThemeFetchError が発生する","name":"テーマの保管場所を決定できない場合は、取得の失敗として unknown の ThemeFetchError が発生する","status":"passed","testResultsByEnv":{"default":"7873f4bcced5ca87be8eb03d5494ebb1"}}

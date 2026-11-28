@@ -1,0 +1,1 @@
+{"id":"ccf3d9c72e1437fd425a603c37e1c6a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#package.json に scripts キーが無い","name":"package.json に scripts キーが無い","status":"passed","testResultsByEnv":{"default":"3b59d1dbeba37797e4685344bc2aef8b"}}

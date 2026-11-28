@@ -1,0 +1,1 @@
+{"id":"b2b80e241f8d611b6dd6612608acface.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/_shared/tests/drawio-geometry.test.ts#drawioGeometry: セル解決 edge があると、経由点と未接続の端点を外接矩形に入れ、接続済みの端点は入れない","name":"edge があると、経由点と未接続の端点を外接矩形に入れ、接続済みの端点は入れない","status":"passed","testResultsByEnv":{"default":"695936a4a91e8d4c3f50c17dc1c49090"}}

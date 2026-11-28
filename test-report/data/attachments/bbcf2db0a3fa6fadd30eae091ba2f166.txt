@@ -1,0 +1,3 @@
+plugins/pecot-visual/assets/slidev/package.json: expected "^24.22.1 || >=26.12.1", got ">=22.6.0"
+
+engines.node drift detected. allow-list 機構はありません。

@@ -1,0 +1,1 @@
+{"id":"b6917bcbf1d62bffd972477cb48ac9aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.test.sh#対象パスに差分があれば exit 1","name":"対象パスに差分があれば exit 1","status":"passed","testResultsByEnv":{"default":"1523a95b92f845815756eb03a1288f04"}}

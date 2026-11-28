@@ -1,0 +1,1 @@
+{"id":"bd85f120e40be0179bd133f435d6b58b.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#dry-run が、表示するタグの版は本実行で変わり得ると注記する","name":"dry-run が、表示するタグの版は本実行で変わり得ると注記する","status":"passed","testResultsByEnv":{"default":"5288d62cf27c51edcb1b82a2e0d7b837"}}

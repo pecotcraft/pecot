@@ -1,0 +1,1 @@
+{"id":"8639a004aa8f708a078a29caa6b7e529.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 水平線（#1185） 強調で包んだインラインコードや末尾の HTML コメントは水平線にならない: \"> **`x`**\"","name":"強調で包んだインラインコードや末尾の HTML コメントは水平線にならない: \"> **`x`**\"","status":"passed","testResultsByEnv":{"default":"486d44346821b87069aedea4daabd1bb"}}

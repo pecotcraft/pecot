@@ -1,0 +1,1 @@
+{"id":"a3fd4e8ca32b68a301f098f564bae2ba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter blocked_by を省くと、空の一覧にして返す","name":"blocked_by を省くと、空の一覧にして返す","status":"passed","testResultsByEnv":{"default":"962be714b50dbbb51b52da80749c85f6"}}

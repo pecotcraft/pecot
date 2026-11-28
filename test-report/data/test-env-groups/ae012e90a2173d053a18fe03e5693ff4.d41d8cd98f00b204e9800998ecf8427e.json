@@ -1,0 +1,1 @@
+{"id":"ae012e90a2173d053a18fe03e5693ff4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#issueTypeNamesOf 結果が null なら、空の配列を返す","name":"結果が null なら、空の配列を返す","status":"passed","testResultsByEnv":{"default":"bbfed1f94fc555147b0cbdc06e116553"}}

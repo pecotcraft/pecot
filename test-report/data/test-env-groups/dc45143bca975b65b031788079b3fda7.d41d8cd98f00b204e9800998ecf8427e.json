@@ -1,0 +1,1 @@
+{"id":"dc45143bca975b65b031788079b3fda7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/paths.test.ts#projectRoot CLAUDE_PROJECT_DIR が設定されている場合は、その値をプロジェクトルートにする","name":"CLAUDE_PROJECT_DIR が設定されている場合は、その値をプロジェクトルートにする","status":"passed","testResultsByEnv":{"default":"42854673852a25e601767ff6b7e888f9"}}

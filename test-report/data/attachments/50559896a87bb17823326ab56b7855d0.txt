@@ -1,0 +1,2 @@
+FAILED: 1 本のテストが失敗しました:
+  /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_explains_rejects_bad_valu0/suite/sample.bats (exit 1)

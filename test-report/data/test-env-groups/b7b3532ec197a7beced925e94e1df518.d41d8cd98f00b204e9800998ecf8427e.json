@@ -1,0 +1,1 @@
+{"id":"b7b3532ec197a7beced925e94e1df518.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#installLockPath プラグインルートに存在せず永続層だけにある場合は、永続層の node_modules にロックを置く（単体配布）","name":"プラグインルートに存在せず永続層だけにある場合は、永続層の node_modules にロックを置く（単体配布）","status":"passed","testResultsByEnv":{"default":"8413ffeeb3802f7182cdc5bc288dd313"}}

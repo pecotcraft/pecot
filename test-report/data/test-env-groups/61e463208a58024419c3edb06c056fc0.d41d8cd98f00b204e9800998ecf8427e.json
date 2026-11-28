@@ -1,0 +1,1 @@
+{"id":"61e463208a58024419c3edb06c056fc0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#resolveApiUrlOverride \"http://127.0.0.1\\n:80\" を受け付け、末尾の / を取り除いて返す","name":"\"http://127.0.0.1\\n:80\" を受け付け、末尾の / を取り除いて返す","status":"passed","testResultsByEnv":{"default":"a801cddfbca49cd0ec9d78361603afa3"}}

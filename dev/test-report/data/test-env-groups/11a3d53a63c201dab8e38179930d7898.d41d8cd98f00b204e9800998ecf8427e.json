@@ -1,0 +1,1 @@
+{"id":"11a3d53a63c201dab8e38179930d7898.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 起動済みの talk-dir へ同じポートを指定したら既存を返す","name":"起動済みの talk-dir へ同じポートを指定したら既存を返す","status":"passed","testResultsByEnv":{"default":"7fc4a728337b9f954e95ff7fd89531f6"}}

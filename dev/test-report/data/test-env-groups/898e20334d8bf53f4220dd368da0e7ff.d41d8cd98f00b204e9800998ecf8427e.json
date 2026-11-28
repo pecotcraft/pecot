@@ -1,0 +1,1 @@
+{"id":"898e20334d8bf53f4220dd368da0e7ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueSlim リンク PR は、subject を持つノードから取り出し、source が null のノードと番号が 0 のノードは除く","name":"リンク PR は、subject を持つノードから取り出し、source が null のノードと番号が 0 のノードは除く","status":"passed","testResultsByEnv":{"default":"04ef6ae073d5a67a6f40a51b7e4f6b77"}}

@@ -1,0 +1,28 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "=== Projects ==="
+    },
+    {
+      "type": "text",
+      "text": "{\"projects\":[{\"name\":\"ghes.example.com_acme_1\",\"active\":true,\"owner\":\"acme\",\"project_number\":1},{\"name\":\"ghes.example.com_acme_other_acme\",\"active\":false,\"owner\":\"acme\",\"project_number\":1}]}"
+    }
+  ],
+  "structuredContent": {
+    "projects": [
+      {
+        "name": "ghes.example.com_acme_1",
+        "active": true,
+        "owner": "acme",
+        "project_number": 1
+      },
+      {
+        "name": "ghes.example.com_acme_other_acme",
+        "active": false,
+        "owner": "acme",
+        "project_number": 1
+      }
+    ]
+  }
+}

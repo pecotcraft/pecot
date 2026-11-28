@@ -1,0 +1,1 @@
+{"id":"8e437187883e2cc65e94b86d72f81d9e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/session-finish-remote.test.ts#finishOnGithub close が次の失敗のとき（500）、その理由で記録して続ける","name":"close が次の失敗のとき（500）、その理由で記録して続ける","status":"passed","testResultsByEnv":{"default":"1364d9c8ae5622c8044bdbb4d821c1f5"}}

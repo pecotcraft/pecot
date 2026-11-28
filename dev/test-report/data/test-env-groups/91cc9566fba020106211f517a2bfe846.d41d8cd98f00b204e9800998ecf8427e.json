@@ -1,0 +1,1 @@
+{"id":"91cc9566fba020106211f517a2bfe846.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — extraHeaders extraHeaders で value 欠落 の場合は、拒否する","name":"extraHeaders で value 欠落 の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"0163343d206ac50fc10584f953fdb367"}}

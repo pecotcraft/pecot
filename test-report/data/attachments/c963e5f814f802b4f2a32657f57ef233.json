@@ -1,0 +1,33 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "parent_issue_number: give parent_owner, parent_repo and parent_issue_number together, or none of them"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"parent_issue_number\",\"code\":\"parent\",\"message\":\"give parent_owner, parent_repo and parent_issue_number together, or none of them\"},{\"field\":\"title\",\"code\":\"title-order\",\"message\":\"#3-02: needs a parent Epic: give parent_owner, parent_repo and parent_issue_number, or remove it from the title\"}],\"plan\":[{\"key\":\"issues[0]\",\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "parent_issue_number",
+        "code": "parent",
+        "message": "give parent_owner, parent_repo and parent_issue_number together, or none of them"
+      },
+      {
+        "field": "title",
+        "code": "title-order",
+        "message": "#3-02: needs a parent Epic: give parent_owner, parent_repo and parent_issue_number, or remove it from the title"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

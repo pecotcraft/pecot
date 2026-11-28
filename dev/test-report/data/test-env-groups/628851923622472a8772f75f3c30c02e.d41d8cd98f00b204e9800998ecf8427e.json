@@ -1,0 +1,1 @@
+{"id":"628851923622472a8772f75f3c30c02e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#runtimeInstallSpecs manifest を読み取れない場合は、配布物の破損として例外を送出する","name":"manifest を読み取れない場合は、配布物の破損として例外を送出する","status":"passed","testResultsByEnv":{"default":"76c4539d6dc906a980359774d5cd318c"}}

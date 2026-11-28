@@ -1,0 +1,27 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-visual",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "spy"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"spy\",\"theme\":{\"source\":\"default\",\"fonts\":{\"body\":[]}}}"
+    }
+  ],
+  "structuredContent": {
+    "event": "spy",
+    "theme": {
+      "source": "default",
+      "fonts": {
+        "body": []
+      }
+    }
+  }
+}

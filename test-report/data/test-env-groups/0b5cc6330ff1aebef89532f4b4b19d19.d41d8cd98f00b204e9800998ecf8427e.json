@@ -1,0 +1,1 @@
+{"id":"0b5cc6330ff1aebef89532f4b4b19d19.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#parsePythonInteger \"-7\" を渡すと、Python の int() と同じく整数 -7 を返す","name":"\"-7\" を渡すと、Python の int() と同じく整数 -7 を返す","status":"passed","testResultsByEnv":{"default":"15b109f83dace23a36157690177421ec"}}

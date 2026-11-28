@@ -1,0 +1,1 @@
+{"id":"69a863cc26ee56981c0e643a9f79aa14.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 未編集プレースホルダの検出と正当な `<...>` の通過（#962） `<#<issue番号> <タイトル>>` のような入れ子も中のトークンを拾う","name":"`<#<issue番号> <タイトル>>` のような入れ子も中のトークンを拾う","status":"passed","testResultsByEnv":{"default":"57f87bf4e637f9d0606415f6901e846b"}}

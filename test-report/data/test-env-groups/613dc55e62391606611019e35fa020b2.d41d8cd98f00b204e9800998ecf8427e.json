@@ -1,0 +1,1 @@
+{"id":"613dc55e62391606611019e35fa020b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: clone 先の書き方 clone 先がプロジェクト配下の絶対パスのとき、exit 10 を返す","name":"clone 先がプロジェクト配下の絶対パスのとき、exit 10 を返す","status":"passed","testResultsByEnv":{"default":"8f46a333c5521eb7c45eb3dfffd645b9"}}

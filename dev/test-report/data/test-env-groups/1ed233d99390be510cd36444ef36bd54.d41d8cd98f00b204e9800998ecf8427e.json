@@ -1,0 +1,1 @@
+{"id":"1ed233d99390be510cd36444ef36bd54.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 見本のリポジトリ interface-missing を検証すると、検証エラーの行を過不足なく決まった順で返す","name":"見本のリポジトリ interface-missing を検証すると、検証エラーの行を過不足なく決まった順で返す","status":"passed","testResultsByEnv":{"default":"db3d2fb43dce6640d6307416bf5471bc"}}

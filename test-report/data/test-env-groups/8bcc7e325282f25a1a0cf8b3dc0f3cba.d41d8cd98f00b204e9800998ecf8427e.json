@@ -1,0 +1,1 @@
+{"id":"8bcc7e325282f25a1a0cf8b3dc0f3cba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge MCP の data PR の取得で GitHub API がエラーを返すと、失敗を返す","name":"PR の取得で GitHub API がエラーを返すと、失敗を返す","status":"passed","testResultsByEnv":{"default":"0de557de6822d0d6e52f530748d099fb"}}

@@ -1,0 +1,1 @@
+{"id":"2471b97d0eefb43008a47e45e59e1c82.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript 日本語を含まない文字列は、段落として取り出さない","name":"日本語を含まない文字列は、段落として取り出さない","status":"passed","testResultsByEnv":{"default":"a7ddf872bec40307c922daeeb1a5e083"}}

@@ -1,0 +1,41 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.issues: read acme/demo/5 with issue_read (method get): the column depends on whether the prerequisites are done"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/5 with issue_read (method get): the column depends on whether the prerequisites are done\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[{\"issue\":\"#5\",\"wait\":\"stack\"}],\"approach\":\"stack\",\"stackOn\":\"#5\"}],\"stackableChains\":[[\"#5\",\"issues[0]\"]]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/5 with issue_read (method get): the column depends on whether the prerequisites are done"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [
+          {
+            "issue": "#5",
+            "wait": "stack"
+          }
+        ],
+        "approach": "stack",
+        "stackOn": "#5"
+      }
+    ],
+    "stackableChains": [
+      [
+        "#5",
+        "issues[0]"
+      ]
+    ]
+  }
+}

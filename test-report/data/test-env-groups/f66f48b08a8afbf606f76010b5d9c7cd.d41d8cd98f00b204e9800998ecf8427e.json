@@ -1,0 +1,1 @@
+{"id":"f66f48b08a8afbf606f76010b5d9c7cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#readSvgPixelSize 単位がない値は、px として扱う","name":"単位がない値は、px として扱う","status":"passed","testResultsByEnv":{"default":"5ad35dee5ab48947875c94f1405604d3"}}

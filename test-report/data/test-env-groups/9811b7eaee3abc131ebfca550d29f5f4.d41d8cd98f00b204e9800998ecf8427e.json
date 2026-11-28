@@ -1,0 +1,1 @@
+{"id":"9811b7eaee3abc131ebfca550d29f5f4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_cache_server#test_summary_line_on_sigterm","name":"SIGTERM を受けると、GET と PUT の件数を 1 行で出力して終了する","status":"passed","testResultsByEnv":{"default":"12fb4f38e7eae01919b7f4e1f6edd2dc"}}

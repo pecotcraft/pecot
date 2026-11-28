@@ -1,0 +1,3 @@
+
+## Findings — 先頭に改行がある
+## Resolution — 書き手の対応

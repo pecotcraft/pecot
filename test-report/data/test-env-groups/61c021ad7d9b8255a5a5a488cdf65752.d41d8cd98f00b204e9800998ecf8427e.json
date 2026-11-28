@@ -1,0 +1,1 @@
+{"id":"61c021ad7d9b8255a5a5a488cdf65752.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#findConfigsForRepository .active が projects/ の外の設定を指す場合は、候補に含め、名前をパスにする","name":".active が projects/ の外の設定を指す場合は、候補に含め、名前をパスにする","status":"passed","testResultsByEnv":{"default":"11ca82f45deb5bdcbdae4f3b881c3ab0"}}

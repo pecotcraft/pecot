@@ -1,0 +1,8 @@
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_run_files_runs_every_file0/a/sample.test.sh
+FAIL: 落ちる — 理由
+
+PASS: 0 / FAIL: 1 / SKIP: 0
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_run_files_runs_every_file0/b/sample.test.sh
+PASS: 通る
+
+PASS: 1 / FAIL: 0 / SKIP: 0

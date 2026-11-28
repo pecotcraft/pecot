@@ -1,0 +1,1 @@
+{"id":"2b35ed64797de76e87b432356e82fb67.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/yaml-document.test.ts#parseYamlDocument 文字列でないキーは文字列にして読む（Python は int・真偽値・None のキー。検証後の結果は同じ）","name":"文字列でないキーは文字列にして読む（Python は int・真偽値・None のキー。検証後の結果は同じ）","status":"passed","testResultsByEnv":{"default":"462a25bfd232a5b9b7cd3996f91564cb"}}

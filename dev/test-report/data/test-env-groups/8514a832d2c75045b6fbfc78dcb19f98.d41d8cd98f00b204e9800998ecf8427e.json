@@ -1,0 +1,1 @@
+{"id":"8514a832d2c75045b6fbfc78dcb19f98.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory 相対パスのセッションのディレクトリが存在しなければ、解決後の絶対パスを理由に含める","name":"相対パスのセッションのディレクトリが存在しなければ、解決後の絶対パスを理由に含める","status":"passed","testResultsByEnv":{"default":"7331f2eb4e05ba89cb4e549ca8a76042"}}

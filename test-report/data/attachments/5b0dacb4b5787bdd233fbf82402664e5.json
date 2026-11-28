@@ -1,0 +1,108 @@
+{
+  "name": "project_set",
+  "title": "Set project config",
+  "description": "Set a key of the project config (aggregation_repo: the Epic aggregation repository)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "key": {
+        "type": "string",
+        "enum": [
+          "aggregation_repo"
+        ],
+        "description": "Key of the project config (aggregation_repo: the Epic aggregation repository)"
+      },
+      "value": {
+        "type": "string",
+        "description": "Aggregation repository (owner/repo form)"
+      },
+      "yes": {
+        "default": false,
+        "description": "Overwrite an existing value without confirmation (a warning goes to stderr)",
+        "type": "boolean"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "key",
+      "value"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "key": {
+        "type": "string",
+        "enum": [
+          "aggregation_repo"
+        ],
+        "description": "Key of the project config"
+      },
+      "value": {
+        "type": "string",
+        "description": "Value of the key after the command"
+      },
+      "previous": {
+        "description": "Value before the command (omitted when the key was not set)",
+        "type": "string"
+      },
+      "change": {
+        "type": "string",
+        "enum": [
+          "create",
+          "update",
+          "unchanged"
+        ],
+        "description": "create: the key was not set; update: its value was replaced; unchanged: it already had the value"
+      },
+      "configPath": {
+        "type": "string",
+        "description": "Path of the project config file"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "key",
+          "value",
+          "change",
+          "configPath"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"002c540853cd7de5b6b37bb1c974e2c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-install.test.ts#workflow_install pecot の action を使わない雛形を書き出す ときは、reads.commit が無くても成功を返す","name":"pecot の action を使わない雛形を書き出す ときは、reads.commit が無くても成功を返す","status":"passed","testResultsByEnv":{"default":"da87c4fd21a3ca6013f4a4414310e5f6"}}

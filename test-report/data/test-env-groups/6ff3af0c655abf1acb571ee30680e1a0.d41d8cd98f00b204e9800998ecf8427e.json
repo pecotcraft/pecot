@@ -1,0 +1,1 @@
+{"id":"6ff3af0c655abf1acb571ee30680e1a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#deck-lint.config.js に @v-slidev の bare import が残っていない","name":"deck-lint.config.js に @v-slidev の bare import が残っていない","status":"passed","testResultsByEnv":{"default":"0a9b0b2acbd04b0666b485d88d1cda13"}}

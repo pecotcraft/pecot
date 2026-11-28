@@ -1,0 +1,1 @@
+PECOT_RESULT {"operation":"repo-settings","request_id":"req-1","ok":false,"error":{"kind":"github-auth","message":"delete_branch_on_merge was not returned; the token needs contents: write"}}

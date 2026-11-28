@@ -1,0 +1,1 @@
+{"id":"7c2745c27662cebc6e182b3790459e3b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_root_package_manifest#test_root_has_no_prepare","name":"root の package.json に、prepare スクリプトを定義しない","status":"passed","testResultsByEnv":{"default":"99edb80c2537ea7a7a422539f5fc5bc5"}}

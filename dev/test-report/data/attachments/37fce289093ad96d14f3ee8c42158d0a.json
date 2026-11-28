@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_sts_get_caller_identity failed (auth-expired). Authentication has expired. Run aws_sso_login to sign in again"
+    },
+    {
+      "type": "text",
+      "text": "{\"log\":\"\\naws: [ERROR]: Error when retrieving token from sso: Token has expired and refresh failed\\n\",\"kind\":\"auth-expired\",\"detail\":\"aws_sts_get_caller_identity failed (auth-expired). Authentication has expired. Run aws_sso_login to sign in again\"}"
+    }
+  ],
+  "structuredContent": {
+    "log": "\naws: [ERROR]: Error when retrieving token from sso: Token has expired and refresh failed\n",
+    "kind": "auth-expired",
+    "detail": "aws_sts_get_caller_identity failed (auth-expired). Authentication has expired. Run aws_sso_login to sign in again"
+  },
+  "isError": true
+}

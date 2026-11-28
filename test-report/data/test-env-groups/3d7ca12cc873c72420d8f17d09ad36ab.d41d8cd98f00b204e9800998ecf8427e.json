@@ -1,0 +1,1 @@
+{"id":"3d7ca12cc873c72420d8f17d09ad36ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#executeSlideLint 相対の dir は relative-dir の失敗になる","name":"相対の dir は relative-dir の失敗になる","status":"passed","testResultsByEnv":{"default":"b01883224cff37ac07a392796a85879f"}}

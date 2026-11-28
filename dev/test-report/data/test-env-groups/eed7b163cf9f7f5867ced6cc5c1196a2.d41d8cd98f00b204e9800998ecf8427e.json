@@ -1,0 +1,1 @@
+{"id":"eed7b163cf9f7f5867ced6cc5c1196a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#textOf 文字列 を指定すると、Python の str() と同じ文字列に変換する","name":"文字列 を指定すると、Python の str() と同じ文字列に変換する","status":"passed","testResultsByEnv":{"default":"147eeda4836cd4a598673e3429a0d4e0"}}

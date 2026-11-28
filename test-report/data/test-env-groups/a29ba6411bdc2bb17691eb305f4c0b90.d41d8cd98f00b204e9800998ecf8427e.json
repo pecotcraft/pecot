@@ -1,0 +1,1 @@
+{"id":"a29ba6411bdc2bb17691eb305f4c0b90.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check .gitignore が UTF-8 として読めないと、.gitignore の節に (read error) を出す","name":".gitignore が UTF-8 として読めないと、.gitignore の節に (read error) を出す","status":"passed","testResultsByEnv":{"default":"149738cc95ca6140686b9253b395f585"}}

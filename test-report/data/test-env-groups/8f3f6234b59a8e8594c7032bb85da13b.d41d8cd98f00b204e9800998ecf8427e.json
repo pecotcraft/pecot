@@ -1,0 +1,1 @@
+{"id":"8f3f6234b59a8e8594c7032bb85da13b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start MCP の data ブランチを作れないと、失敗の kind と detail を返し、成功の項目を返さない","name":"ブランチを作れないと、失敗の kind と detail を返し、成功の項目を返さない","status":"passed","testResultsByEnv":{"default":"c8d70bd4c67224726599faba773942c0"}}

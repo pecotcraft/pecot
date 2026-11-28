@@ -1,0 +1,1 @@
+{"id":"f8613acc64f566a5c8543e2ed1d8b36b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript tsx の JSX の属性の文字列にも、違反があれば指摘を返す","name":"tsx の JSX の属性の文字列にも、違反があれば指摘を返す","status":"passed","testResultsByEnv":{"default":"36460a4887c34065bad92ac7d994f6af"}}

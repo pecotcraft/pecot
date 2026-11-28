@@ -1,0 +1,1 @@
+{"id":"98a9c693a7d0659f5896cd1a4e207057.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#supportsBlockedBy AddBlockedByInput の型が存在する場合は、true を返す","name":"AddBlockedByInput の型が存在する場合は、true を返す","status":"passed","testResultsByEnv":{"default":"989a57ed150f971e5c04e8910c955445"}}

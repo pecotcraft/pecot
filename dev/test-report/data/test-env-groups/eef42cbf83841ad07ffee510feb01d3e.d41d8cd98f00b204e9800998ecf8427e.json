@@ -1,0 +1,1 @@
+{"id":"eef42cbf83841ad07ffee510feb01d3e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#ensureWorkDirectory 作業ディレクトリを作成できない場合（work がファイルの場合）は、undefined を返す","name":"作業ディレクトリを作成できない場合（work がファイルの場合）は、undefined を返す","status":"passed","testResultsByEnv":{"default":"fe6ee35d277f650fdc6d2758a3252605"}}

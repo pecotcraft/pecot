@@ -1,0 +1,1 @@
+{"id":"6e771b1a96b832c05a1f15fd9de60ce5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check .active が無くても、対象のリポを含む設定が 1 つならその設定で確かめる","name":".active が無くても、対象のリポを含む設定が 1 つならその設定で確かめる","status":"passed","testResultsByEnv":{"default":"d836c97cc45512b3f23a42647353c1cc"}}

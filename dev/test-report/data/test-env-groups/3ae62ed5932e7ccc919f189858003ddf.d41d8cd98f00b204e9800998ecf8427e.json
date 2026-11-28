@@ -1,0 +1,1 @@
+{"id":"3ae62ed5932e7ccc919f189858003ddf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#兄弟 PDF PDF 生成に失敗しても SVG は残り、pdf: null / pdfFailed / warnings 1 になる","name":"PDF 生成に失敗しても SVG は残り、pdf: null / pdfFailed / warnings 1 になる","status":"passed","testResultsByEnv":{"default":"b9518e964f69b62ebf092a0c24b7c89e"}}

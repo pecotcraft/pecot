@@ -1,0 +1,1 @@
+{"id":"18b6fea4fd88ae75f1e87742878bbf7c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/text-file.test.ts#readTextFile 存在しないファイルを読み込むと、Python の FileNotFoundError と同じ文の OsError を発生させる","name":"存在しないファイルを読み込むと、Python の FileNotFoundError と同じ文の OsError を発生させる","status":"passed","testResultsByEnv":{"default":"614007bed7e430dc06c682cea1bbc0e6"}}

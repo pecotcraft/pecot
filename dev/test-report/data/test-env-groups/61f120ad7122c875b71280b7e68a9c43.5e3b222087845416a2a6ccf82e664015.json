@@ -1,0 +1,1 @@
+{"id":"61f120ad7122c875b71280b7e68a9c43.5e3b222087845416a2a6ccf82e664015","fullName":".githooks.tests.test_ci_report_results#test_stage_results_stages_nothing","name":"結果のディレクトリが存在しないのとき、結果を集めず、何も上げない","status":"passed","testResultsByEnv":{"default":"2fe3267de715baf06bb7f09fd179e62e"}}

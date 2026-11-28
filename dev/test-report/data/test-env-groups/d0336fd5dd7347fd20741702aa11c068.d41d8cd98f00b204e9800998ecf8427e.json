@@ -1,0 +1,1 @@
+{"id":"d0336fd5dd7347fd20741702aa11c068.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#getItemSetFieldIds Issue が存在しない場合は、空の集合を返す","name":"Issue が存在しない場合は、空の集合を返す","status":"passed","testResultsByEnv":{"default":"c2c675dcfd74cfb8c04bb778eaab3159"}}

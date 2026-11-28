@@ -1,0 +1,1 @@
+{"id":"9fec79530ac1c04c9b0ba7cceddb2a66.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 Blocked の列が存在しなくても、Ready に戻す動きは止めない","name":"Blocked の列が存在しなくても、Ready に戻す動きは止めない","status":"passed","testResultsByEnv":{"default":"d6ee67b00f443996729e1f1540269a66"}}

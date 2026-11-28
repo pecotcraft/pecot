@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not read the settings of acme/demo: GitHub API error: 500"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-api\",\"detail\":\"could not read the settings of acme/demo: GitHub API error: 500\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "could not read the settings of acme/demo: GitHub API error: 500"
+  },
+  "isError": true
+}

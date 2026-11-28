@@ -1,0 +1,1 @@
+{"id":"d23c6082b3bb0b17dc5274b950367c52.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_release_tags_ruleset_lets_only_the_release_app_write","name":"リリースのタグの ruleset は、リリース用の GitHub App だけに書き込みを許す","status":"passed","testResultsByEnv":{"default":"bb3a2fd504c1193789af384ebd482ae8"}}

@@ -1,0 +1,1 @@
+{"id":"ab2c77847603da5dff4bfd10bd4ca64c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/direct-hint-lint.test.ts#案内の文字列を止める lint グループ release のコマンドの案内を書くと、lint が 1 件報告する","name":"グループ release のコマンドの案内を書くと、lint が 1 件報告する","status":"passed","testResultsByEnv":{"default":"66353d577b3fa0b73008fedb05b21e8b"}}

@@ -1,0 +1,1 @@
+{"id":"ab9e61709f1ef5168677f4568a526731.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/release-check.test.ts#release check secret scanning に open の alert があると、error の行を出して失敗にする","name":"secret scanning に open の alert があると、error の行を出して失敗にする","status":"passed","testResultsByEnv":{"default":"84c2c9dce2f3a5f62ca1f9fef35fcac0"}}

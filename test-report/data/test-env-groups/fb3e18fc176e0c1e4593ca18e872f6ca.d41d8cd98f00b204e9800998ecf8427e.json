@@ -1,0 +1,1 @@
+{"id":"fb3e18fc176e0c1e4593ca18e872f6ca.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/attach-mcp-tgz.test.sh#origin が scp 形式 でも dry-run は gh を呼ばない","name":"origin が scp 形式 でも dry-run は gh を呼ばない","status":"passed","testResultsByEnv":{"default":"8744da76e22164fd237582fc395f5cc7"}}

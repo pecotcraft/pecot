@@ -1,0 +1,1 @@
+{"id":"f1d8800eeb5f86bdfddc486da0449ec3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-tracker.test.ts#normalizeAlerts GHSA が \"GHSA-AAAA-bbbb-cccc\" なら、GHSA を捨てる","name":"GHSA が \"GHSA-AAAA-bbbb-cccc\" なら、GHSA を捨てる","status":"passed","testResultsByEnv":{"default":"b73b4a9acd7b560b9777f4ce962138d6"}}

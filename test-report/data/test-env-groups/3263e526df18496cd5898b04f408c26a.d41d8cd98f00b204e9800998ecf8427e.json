@@ -1,0 +1,1 @@
+{"id":"3263e526df18496cd5898b04f408c26a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/visibility-helpers.test.ts#waitForCssAnimations アニメーションの完了待ちが失敗しても、エラーにせず待機済みとして数える","name":"アニメーションの完了待ちが失敗しても、エラーにせず待機済みとして数える","status":"passed","testResultsByEnv":{"default":"984867a593255b33c91b9f8815114bf4"}}

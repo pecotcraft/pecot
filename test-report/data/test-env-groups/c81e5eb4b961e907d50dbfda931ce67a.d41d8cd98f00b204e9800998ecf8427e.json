@@ -1,0 +1,1 @@
+{"id":"c81e5eb4b961e907d50dbfda931ce67a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#ホスト設定 scopes が配列でない場合は、空の配列を返す","name":"scopes が配列でない場合は、空の配列を返す","status":"passed","testResultsByEnv":{"default":"952f7b4a25715c84ddbb90d40c1d4768"}}

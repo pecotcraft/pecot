@@ -1,0 +1,1 @@
+{"id":"61818be3257f16d8509adb19e0413412.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show MCP の data Issue が閉じていると、activeIssue の state を CLOSED で返す","name":"Issue が閉じていると、activeIssue の state を CLOSED で返す","status":"passed","testResultsByEnv":{"default":"bc3d15bac7b206c448293483312ba415"}}

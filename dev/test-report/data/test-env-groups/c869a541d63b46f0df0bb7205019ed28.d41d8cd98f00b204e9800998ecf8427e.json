@@ -1,0 +1,1 @@
+{"id":"c869a541d63b46f0df0bb7205019ed28.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.bats#版が上がると、新しい版のタグと tgz で publish する","name":"版が上がると、新しい版のタグと tgz で publish する","status":"passed","testResultsByEnv":{"default":"739a3ffa3037392940f4393288a75c70"}}

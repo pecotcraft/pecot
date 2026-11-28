@@ -1,0 +1,1 @@
+{"id":"c36f113f6591754337ee3878ea893163.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#免除した advisory を配布ツリー側でも列挙する","name":"免除した advisory を配布ツリー側でも列挙する","status":"passed","testResultsByEnv":{"default":"76c4502ac359c1346d5f9deae1a0fe1c"}}

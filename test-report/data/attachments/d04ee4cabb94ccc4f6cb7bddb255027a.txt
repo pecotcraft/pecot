@@ -1,0 +1,3 @@
+affected -t test-cli,test-hooks,test-unit --base=5d41aa600a179f9daa6fda08c4d2b9bd932e39f7 --head=fa8fc39e57df1ab8de1eda7e867db851614c18cc --parallel=4 --nxBail --output-style=stream
+ENV PECOTV_PM_GUARD_BEHAVIOR=0
+ENV NO_COLOR=1

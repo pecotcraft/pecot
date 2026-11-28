@@ -1,0 +1,1 @@
+{"id":"f4ece851be5bcfa94f5b3ba9e53f8a34.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_sts_get_caller_identity region が数値 の入力を、スキーマの検証で拒否する","name":"region が数値 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"2ffd4bdd4996d939157d869a51575dd7"}}

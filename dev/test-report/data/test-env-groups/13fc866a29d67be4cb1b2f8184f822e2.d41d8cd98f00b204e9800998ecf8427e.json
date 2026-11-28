@@ -1,0 +1,1 @@
+{"id":"13fc866a29d67be4cb1b2f8184f822e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/error-utils.test.ts#errorMessage null と undefined を渡した場合は、文字列に変換した結果を返す","name":"null と undefined を渡した場合は、文字列に変換した結果を返す","status":"passed","testResultsByEnv":{"default":"75a1beb0831a253b35d94747e25005eb"}}

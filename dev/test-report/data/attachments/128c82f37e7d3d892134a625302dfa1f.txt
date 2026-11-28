@@ -1,0 +1,3 @@
+plugins/pecot-visual/skills/v-slidev/SKILL.md:1:uv run --directory /x do_something
+
+SKILL.md/README.md に直叩き表記を検出。allow-list 機構はありません。

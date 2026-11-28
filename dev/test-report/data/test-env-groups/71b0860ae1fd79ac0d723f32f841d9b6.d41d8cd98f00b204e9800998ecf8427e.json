@@ -1,0 +1,1 @@
+{"id":"71b0860ae1fd79ac0d723f32f841d9b6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#upsertWaitsForMerge 節が存在しない本文には、末尾に空行を挟んで節を追加する","name":"節が存在しない本文には、末尾に空行を挟んで節を追加する","status":"passed","testResultsByEnv":{"default":"a3c4ff1b9c94000799555b624bd5566a"}}

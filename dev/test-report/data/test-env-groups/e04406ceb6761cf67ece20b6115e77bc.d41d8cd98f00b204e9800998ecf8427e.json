@@ -1,0 +1,1 @@
+{"id":"e04406ceb6761cf67ece20b6115e77bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_get 値を設定していると、その値を標準出力に出す","name":"値を設定していると、その値を標準出力に出す","status":"passed","testResultsByEnv":{"default":"97f6a61eeb2477ec8d0514f7377506a2"}}

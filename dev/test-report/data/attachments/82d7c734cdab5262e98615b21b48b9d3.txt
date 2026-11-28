@@ -1,0 +1,1 @@
+{"issue":"acme/demo/7","number":7,"kind":"","proceed":false,"reason":"the Issue is blocked: blocked by #3 (not in review: #3 (not started))","branch":"","pr":0,"ci_attempts":0}

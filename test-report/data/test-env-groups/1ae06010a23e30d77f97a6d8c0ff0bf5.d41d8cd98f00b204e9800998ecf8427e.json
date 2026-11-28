@@ -1,0 +1,1 @@
+{"id":"1ae06010a23e30d77f97a6d8c0ff0bf5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/screenshot.test.ts#capturePng / exportViaEmbed PECOTV_FORCE_PNG_FAIL に 1 を指定すると、Playwright を起動する前に失敗する","name":"PECOTV_FORCE_PNG_FAIL に 1 を指定すると、Playwright を起動する前に失敗する","status":"passed","testResultsByEnv":{"default":"a0607218b96fe756aba003734d7c88be"}}

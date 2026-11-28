@@ -1,0 +1,1 @@
+{"id":"ca1e2712eada4609288987f31ca9206e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-tools.test.ts#MCP のツール (stdio) `slide_dev` は実際の slidev の開発サーバーを起動し、停止とサーバーの終了でポートを解放する","name":"`slide_dev` は実際の slidev の開発サーバーを起動し、停止とサーバーの終了でポートを解放する","status":"passed","testResultsByEnv":{"default":"823ab1bc03a8a221a56b0c803b50d972"}}

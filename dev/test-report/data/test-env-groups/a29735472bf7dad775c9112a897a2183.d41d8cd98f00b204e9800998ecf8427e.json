@@ -1,0 +1,1 @@
+{"id":"a29735472bf7dad775c9112a897a2183.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.bats#導入した配布物を mcp を付けて起動しても、引数を読まずに tools/list が全ツールを返す","name":"導入した配布物を mcp を付けて起動しても、引数を読まずに tools/list が全ツールを返す","status":"passed","testResultsByEnv":{"default":"1f19d2da1b6c8365bf83c21730097e0a"}}

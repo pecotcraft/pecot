@@ -1,0 +1,1 @@
+{"id":"8cbc7cb4eb6f57c59a56ddf669bf7c67.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_merge_group_no_runs","name":"merge_group で artifact が存在しないと、run なしの理由を出力する","status":"passed","testResultsByEnv":{"default":"19c94d5800581789b2c659b59f8900e0"}}

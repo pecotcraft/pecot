@@ -1,0 +1,1 @@
+{"id":"51cb4e6b0cc9a8abafca7556de22fb81.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page の引数検証 dir が相対パスなら、実処理を呼ばずに invalid-path のエラーを返す","name":"dir が相対パスなら、実処理を呼ばずに invalid-path のエラーを返す","status":"passed","testResultsByEnv":{"default":"b8b8a2325ca32233c9590e4f80bae751"}}

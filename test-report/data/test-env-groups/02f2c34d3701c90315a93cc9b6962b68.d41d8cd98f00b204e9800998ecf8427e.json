@@ -1,0 +1,1 @@
+{"id":"02f2c34d3701c90315a93cc9b6962b68.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#runDrawioExport `--print-hash` は export と書き出しを行わず、ハッシュだけを返す","name":"`--print-hash` は export と書き出しを行わず、ハッシュだけを返す","status":"passed","testResultsByEnv":{"default":"1490aa3f3e540766d4413ff6564dd44f"}}

@@ -1,0 +1,1 @@
+{"id":"4bf20934c5b16c84dd01d8757cf6dfaa.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_git_reader_tells_unreadable_blob_from_missing_path","name":"git のリーダーは、パスが存在しない場合と、blob を読めない場合を区別する","status":"passed","testResultsByEnv":{"default":"8c1adc76f99b595f2597eabaeaabdf3f"}}

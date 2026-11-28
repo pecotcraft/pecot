@@ -1,0 +1,1 @@
+{"id":"1dc75843ab6bb2253a232afe0a476b5e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck repo の形が誤っていると、error を出して失敗にする","name":"repo の形が誤っていると、error を出して失敗にする","status":"passed","testResultsByEnv":{"default":"13c275797bddeabd4b2640c8e6cc92db"}}

@@ -1,0 +1,1 @@
+{"id":"519be89d70c11f6550efa90692e0d5f6.8cb1f09363d15f6a35fea24d9888c029","fullName":".githooks.tests.test_nx_affected_mapping#test_outside_project_file_affects_only_the_root_project","name":"プラグインの外の .pecot/config/.worktreeignore を変更すると、ルートの project だけが affected になる","status":"passed","testResultsByEnv":{"default":"09d64a1d6ad50c062b71238830c7d35f"}}

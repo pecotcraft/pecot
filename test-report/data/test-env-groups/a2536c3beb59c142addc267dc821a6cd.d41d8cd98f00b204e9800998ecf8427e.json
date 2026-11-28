@@ -1,0 +1,1 @@
+{"id":"a2536c3beb59c142addc267dc821a6cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/page-compare/tests/compare-pages.bats#RGBA と RGB の PNG は、alpha を比べずに画素で比べる","name":"RGBA と RGB の PNG は、alpha を比べずに画素で比べる","status":"passed","testResultsByEnv":{"default":"564c4a094245785d32548c366576a202"}}

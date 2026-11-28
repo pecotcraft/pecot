@@ -1,0 +1,1 @@
+{"id":"54e44a8055a158b3861641121bd116df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#ルートの解決 永続層はデータ置き場の mcp-dist として返し、データ置き場を決められなければ undefined を返す","name":"永続層はデータ置き場の mcp-dist として返し、データ置き場を決められなければ undefined を返す","status":"passed","testResultsByEnv":{"default":"e9ea0dbb2da72d5df968ee07c85c9e07"}}

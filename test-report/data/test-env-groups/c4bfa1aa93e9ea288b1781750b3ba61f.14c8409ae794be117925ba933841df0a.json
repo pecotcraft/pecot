@@ -1,0 +1,1 @@
+{"id":"c4bfa1aa93e9ea288b1781750b3ba61f.14c8409ae794be117925ba933841df0a","fullName":".githooks.tests.test_check_release_group_changelog#test_non_string_changelog_file_warns_and_skips","name":"CHANGELOG のパスが文字列でない group（True）は、警告を出して確認を飛ばす","status":"passed","testResultsByEnv":{"default":"a11aeac676d6f72c60aeb999446675ff"}}

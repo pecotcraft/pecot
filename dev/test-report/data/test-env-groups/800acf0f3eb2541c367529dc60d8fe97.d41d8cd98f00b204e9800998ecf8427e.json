@@ -1,0 +1,1 @@
+{"id":"800acf0f3eb2541c367529dc60d8fe97.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#createLinkedBranch linkedBranch が null で repositoryId を指定していると、そのリポを読んで理由を書く","name":"linkedBranch が null で repositoryId を指定していると、そのリポを読んで理由を書く","status":"passed","testResultsByEnv":{"default":"554235188779835e1531973809b8b65d"}}

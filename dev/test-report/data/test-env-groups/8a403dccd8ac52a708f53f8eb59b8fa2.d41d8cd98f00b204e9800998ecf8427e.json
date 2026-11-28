@@ -1,0 +1,1 @@
+{"id":"8a403dccd8ac52a708f53f8eb59b8fa2.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_read_output_attaches_file_once","name":"read_output で読むと、中身を出してファイル名で添付し、同じファイルは 1 回だけ添付する","status":"passed","testResultsByEnv":{"default":"60d6aa5a327f71f69cc1617dcf47a849"}}

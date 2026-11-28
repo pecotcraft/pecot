@@ -1,0 +1,1 @@
+{"id":"0d694770c1167399fe1d859fa3e4c983.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/pptx-archive.test.ts#YauzlYazlPptxArchive アーカイブを読み込むと、すべてのパートを Buffer として取得できる","name":"アーカイブを読み込むと、すべてのパートを Buffer として取得できる","status":"passed","testResultsByEnv":{"default":"3ab466543b709d24ea557be7029fe4d4"}}

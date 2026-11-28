@@ -1,0 +1,1 @@
+{"id":"5b4aed5d9c90229d97f9cbace151370d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/screenshot.test.ts#capturePng / exportViaEmbed 時間切れの診断 イベントを 1 つも受け取らなかった場合は、最後のイベントを none と書く","name":"イベントを 1 つも受け取らなかった場合は、最後のイベントを none と書く","status":"passed","testResultsByEnv":{"default":"cc78ab5f17cde3586aa73a1f0b42edcd"}}

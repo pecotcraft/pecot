@@ -1,0 +1,1 @@
+{"id":"17a23100e0336383cd0d7daad348ce4e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/screenshot.test.ts#capturePng / exportViaEmbed 書体名にアポストロフィがあっても、URL にはエンコードして出力し、@import の引用符を壊さない","name":"書体名にアポストロフィがあっても、URL にはエンコードして出力し、@import の引用符を壊さない","status":"passed","testResultsByEnv":{"default":"d9fe4461918757eab7be6507c88e861d"}}

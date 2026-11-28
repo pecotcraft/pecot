@@ -1,0 +1,1 @@
+{"id":"cff48c328034ffb18f95d91e5ce15906.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/text-violation.test.ts#evidence_create の文面確認 title に違反がある場合は、text-violation で失敗し、xlsx を書き出さない","name":"title に違反がある場合は、text-violation で失敗し、xlsx を書き出さない","status":"passed","testResultsByEnv":{"default":"2821e15876ab22ac2215df05c9a6d5a4"}}

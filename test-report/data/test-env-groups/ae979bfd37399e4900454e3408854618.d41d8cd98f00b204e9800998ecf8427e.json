@@ -1,0 +1,1 @@
+{"id":"ae979bfd37399e4900454e3408854618.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/pr-waiting.test.ts#moveWaitingIssues 作った PR が待つ Issue の判定に出ていると、列を動かし、moved の行と動かした列を返す","name":"作った PR が待つ Issue の判定に出ていると、列を動かし、moved の行と動かした列を返す","status":"passed","testResultsByEnv":{"default":"bb007ba3d2ae75afe7698fd5ac0dc3f9"}}

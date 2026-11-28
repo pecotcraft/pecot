@@ -1,0 +1,1 @@
+{"id":"1748a8fff88d22d9a7fbc315140914de.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#runSlideLint 集計 違反があれば、outcome を violations にして、talk-dir からの相対パスで違反の一覧を返す","name":"違反があれば、outcome を violations にして、talk-dir からの相対パスで違反の一覧を返す","status":"passed","testResultsByEnv":{"default":"840ba7432f509623edc8a06161eeaeba"}}

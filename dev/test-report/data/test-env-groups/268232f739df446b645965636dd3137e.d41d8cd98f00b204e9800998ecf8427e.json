@@ -1,0 +1,1 @@
+{"id":"268232f739df446b645965636dd3137e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) slide_create のパスを指定するパラメータに相対パスを渡すと、実際の処理の前に invalid-path で失敗する","name":"slide_create のパスを指定するパラメータに相対パスを渡すと、実際の処理の前に invalid-path で失敗する","status":"passed","testResultsByEnv":{"default":"98c6e21ea4370f85d7da876d3539f606"}}

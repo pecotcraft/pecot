@@ -1,0 +1,1 @@
+{"id":"7406e1a6bfc6e4e2e69771634a249e4c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/review-finish.test.ts#review finish job の success で呼ぶと、PR を読まずに、書かずに skipped の行を出す","name":"job の success で呼ぶと、PR を読まずに、書かずに skipped の行を出す","status":"passed","testResultsByEnv":{"default":"981931a318a86a644d7f91981a17532d"}}

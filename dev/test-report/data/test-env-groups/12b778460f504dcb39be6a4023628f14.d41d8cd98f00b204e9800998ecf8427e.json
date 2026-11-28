@@ -1,0 +1,1 @@
+{"id":"12b778460f504dcb39be6a4023628f14.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: チェックボックス記法（#962） 複数行あっても、チェックボックスの報告は 1 件にまとめる","name":"複数行あっても、チェックボックスの報告は 1 件にまとめる","status":"passed","testResultsByEnv":{"default":"cebd1f8c70397e642ef7eff823d09241"}}

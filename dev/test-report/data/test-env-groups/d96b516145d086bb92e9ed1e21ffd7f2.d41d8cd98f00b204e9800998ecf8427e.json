@@ -1,0 +1,1 @@
+{"id":"d96b516145d086bb92e9ed1e21ffd7f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#loadNamedConfig 名前で設定を読み込み、.json は省略でき、存在しない名前は undefined を返す","name":"名前で設定を読み込み、.json は省略でき、存在しない名前は undefined を返す","status":"passed","testResultsByEnv":{"default":"068346a910c207e853a41a89424c9b59"}}

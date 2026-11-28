@@ -1,0 +1,1 @@
+{"id":"13f3a6585220ae390449c18905c0f68f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#runGit 実際の git に引数を渡して実行すると、標準出力と終了コードを返す","name":"実際の git に引数を渡して実行すると、標準出力と終了コードを返す","status":"passed","testResultsByEnv":{"default":"6761cae9607054bea13d49a1e0ceedef"}}

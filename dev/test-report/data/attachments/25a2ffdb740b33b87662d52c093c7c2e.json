@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pecot-status: the board has no pecot-status field; add a rename change from pecot-workflow-acme to pecot-status, which keeps its options and the values on the cards"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"pecot-status\",\"code\":\"missing-field\",\"message\":\"the board has no pecot-status field; add a rename change from pecot-workflow-acme to pecot-status, which keeps its options and the values on the cards\",\"candidates\":[\"Pending\",\"Backlog\",\"Blocked\",\"Ready\",\"Active\",\"In Review\",\"Archived\"]}],\"deletable\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "pecot-status",
+        "code": "missing-field",
+        "message": "the board has no pecot-status field; add a rename change from pecot-workflow-acme to pecot-status, which keeps its options and the values on the cards",
+        "candidates": [
+          "Pending",
+          "Backlog",
+          "Blocked",
+          "Ready",
+          "Active",
+          "In Review",
+          "Archived"
+        ]
+      }
+    ],
+    "deletable": []
+  }
+}

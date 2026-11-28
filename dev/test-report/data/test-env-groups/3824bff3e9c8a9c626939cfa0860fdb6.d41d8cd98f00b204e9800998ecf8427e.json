@@ -1,0 +1,1 @@
+{"id":"3824bff3e9c8a9c626939cfa0860fdb6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#nodeLinker の値がクォートされていても、値だけを返す","name":"nodeLinker の値がクォートされていても、値だけを返す","status":"passed","testResultsByEnv":{"default":"6eda5f591257cebb420e3d7c2bd16e98"}}

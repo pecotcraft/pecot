@@ -1,0 +1,8 @@
+:iface-id: PA-GITHUB-OPS
+:iface-plugin: actions
+:iface-kind: Action
+
+github ops
+====================
+
+.. iface-defs:: actions PA-GITHUB-OPS

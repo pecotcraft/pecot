@@ -1,0 +1,9 @@
+## 保管
+
+- 側: リリース版
+- 種類: 定義書
+- コミット: `ab36caba9a4f5096964f148dbdc63ea70b2c2ebd`
+- 採否: 保管した
+- 消した PR の側: なし
+- pages-store の大きさ: 0.0 MB
+- pages-store のコミット: `ec19d781a303b8d0aa68be7dae1bc8b9c7c9b08d`（1 回目の push）

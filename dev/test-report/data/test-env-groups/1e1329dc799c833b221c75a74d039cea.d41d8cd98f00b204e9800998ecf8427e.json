@@ -1,0 +1,1 @@
+{"id":"1e1329dc799c833b221c75a74d039cea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#yamlStrings プレーンスカラーの値 のとき、引用符を含まない本文だけを切り出す","name":"プレーンスカラーの値 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"388a09a939fa86267fcdba4b4d3c7e7a"}}

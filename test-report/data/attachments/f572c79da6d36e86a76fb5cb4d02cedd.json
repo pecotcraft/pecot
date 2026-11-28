@@ -1,0 +1,240 @@
+{
+  "name": "drawio_create",
+  "title": "Create draw.io diagram",
+  "description": "Turns drawio XML into a deliverable that opens directly in a browser. Writes viewer HTML (.html; opening it redirects to draw.io) to out_path and, by default, also writes a rendered PNG (useful for checking the rendering). icon:// references are resolved to data URIs and embedded. Before generating, it checks the diagram labels against the text rules and generates nothing if there is a violation. The font and font size are checked against the theme declaration (theme, or the theme of the talk-dir that is an ancestor of the diagram), and the result is returned in theme.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "input_path": {
+        "type": "string",
+        "description": "Absolute path of the input .drawio file. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+      },
+      "mode": {
+        "default": "view",
+        "type": "string",
+        "enum": [
+          "view",
+          "edit"
+        ],
+        "description": "Purpose of the generated URL (view / edit). The generated URL is the same for both"
+      },
+      "out_path": {
+        "type": "string",
+        "description": "Absolute path of the .html file to write the viewer HTML to (opening it redirects to draw.io). If omitted, only the URL is returned in url. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+      },
+      "theme": {
+        "type": "string",
+        "description": "Theme used to check the font and font size: `git+https://<host>/<owner>/<repo>.git#<tag>`, `file:<absolute path>`, or the absolute path of a talk-dir or a theme root. If omitted, the theme of the talk-dir is used when the diagram is under its `public/`; otherwise the built-in default (sans-serif) is used. When the diagram for a slide is placed outside the talk-dir, pass the absolute path of the talk-dir. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+      },
+      "png": {
+        "default": true,
+        "type": "boolean",
+        "description": "Whether to also write a PNG as a sibling file (<out_path with the extension replaced by .png>) when out_path is given"
+      }
+    },
+    "required": [
+      "input_path"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "event": {
+        "type": "string",
+        "description": "drawio.url.done on success, drawio.url.error on failure (omitted when a path argument is rejected)"
+      },
+      "url": {
+        "description": "Generated draw.io URL (success only, when out_path is omitted)",
+        "type": "string"
+      },
+      "file": {
+        "description": "Absolute path of the written viewer HTML (success only, when out_path is given)",
+        "type": "string"
+      },
+      "png": {
+        "description": "Absolute path of the written PNG, or null when writing it failed (success only, when out_path is given and png is true)",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "pngFailed": {
+        "description": "Whether writing the PNG failed (success only, when out_path is given and png is true)",
+        "type": "boolean"
+      },
+      "theme": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "talk-dir",
+              "option",
+              "default"
+            ],
+            "description": "Where the theme came from: talk-dir (ancestor talk-dir of the diagram), option (theme argument), default (built-in default)"
+          },
+          "name": {
+            "description": "Package name of the theme (omitted for the built-in default)",
+            "type": "string"
+          },
+          "fonts": {
+            "type": "object",
+            "properties": {
+              "body": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Body fonts the labels are checked against"
+              },
+              "eastAsian": {
+                "description": "East Asian font (omitted when the theme does not declare one)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "body"
+            ],
+            "additionalProperties": false,
+            "description": "Fonts the labels are checked against"
+          },
+          "fontSizes": {
+            "description": "Font sizes (px) the labels are checked against (only when the theme came from a talk-dir or the theme argument)",
+            "type": "object",
+            "properties": {
+              "heading": {
+                "type": "number"
+              },
+              "headingSm": {
+                "type": "number"
+              },
+              "body": {
+                "type": "number"
+              },
+              "bodySm": {
+                "type": "number"
+              },
+              "label": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "heading",
+              "headingSm",
+              "body",
+              "bodySm",
+              "label"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "source",
+          "fonts"
+        ],
+        "additionalProperties": false,
+        "description": "Theme the font and font size were checked against (success only)"
+      },
+      "violations": {
+        "description": "Text rule violations (failure only, kind text-violation)",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "item": {
+              "type": "string",
+              "description": "Where the text is"
+            },
+            "ruleId": {
+              "type": "string",
+              "description": "ID of the violated rule"
+            },
+            "message": {
+              "type": "string",
+              "description": "What is wrong"
+            },
+            "text": {
+              "type": "string",
+              "description": "The checked text"
+            }
+          },
+          "required": [
+            "item",
+            "ruleId",
+            "message",
+            "text"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "invalidPaths": {
+        "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "convertedPaths": {
+        "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Value that was passed"
+            },
+            "to": {
+              "type": "string",
+              "description": "Path it was converted to"
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full text of the failure and how to recover (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "event",
+          "theme"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  }
+}

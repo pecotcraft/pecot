@@ -1,0 +1,1 @@
+{"id":"fad09ef6dff8d3617cd55f36afa0233a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#statusViolation 許可する値を指定しない場合は、blocked は既定の status ではないため違反にする","name":"許可する値を指定しない場合は、blocked は既定の status ではないため違反にする","status":"passed","testResultsByEnv":{"default":"ae8e309b60f91dba1a51d7606afa5adf"}}

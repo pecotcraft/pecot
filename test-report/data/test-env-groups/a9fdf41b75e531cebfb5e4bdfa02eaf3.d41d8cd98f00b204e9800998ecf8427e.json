@@ -1,0 +1,1 @@
+{"id":"a9fdf41b75e531cebfb5e4bdfa02eaf3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#number の lax な変換（Python の実出力どおり） number に true を渡した場合は、整数 1 として読み取る","name":"number に true を渡した場合は、整数 1 として読み取る","status":"passed","testResultsByEnv":{"default":"de137e2a859e11b0f1a0a0c22ebf3b81"}}

@@ -1,0 +1,1 @@
+{"id":"6b1ac9068742de74984aa49a1b738b09.b37405a6fd380d05e83969cd8a67d944","fullName":".githooks.tests.test_run_affected_tests#test_ci_mode_unset_or_other_value_keeps_stream_and_bail","name":"`PECOT_NX_CI` が true の場合は、stream の出力と `--nxBail` のままにする","status":"passed","testResultsByEnv":{"default":"eeba4f0806884c6267105e619ddbbcee"}}

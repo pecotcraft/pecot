@@ -1,0 +1,1 @@
+{"id":"83248c795b8a0f26fe9471e4fcdbedc2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#findPrerenderImages 連番のファイルが存在する場合は、すべての entry を返す (0、1、2 が存在し、3 で止まる)","name":"連番のファイルが存在する場合は、すべての entry を返す (0、1、2 が存在し、3 で止まる)","status":"passed","testResultsByEnv":{"default":"7d192f37374168962afd52c8735b41ae"}}

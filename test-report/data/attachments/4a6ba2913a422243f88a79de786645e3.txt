@@ -1,0 +1,4 @@
+checks: success
+lanes: success
+lint: run
+LANES_COUNT が数ではありません: 'abc'

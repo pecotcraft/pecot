@@ -1,0 +1,1 @@
+{"id":"b0023e1ab604e4b31f4815fbf0816414.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#ensureEnvironmentFile 未定義のホストの新規作成では、フォールバックの環境変数名を使い、description にホスト名を書く","name":"未定義のホストの新規作成では、フォールバックの環境変数名を使い、description にホスト名を書く","status":"passed","testResultsByEnv":{"default":"134bc0acb3fa456d69a3ab49e721ee9f"}}

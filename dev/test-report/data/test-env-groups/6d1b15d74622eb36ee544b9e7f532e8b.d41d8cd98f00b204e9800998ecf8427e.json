@@ -1,0 +1,1 @@
+{"id":"6d1b15d74622eb36ee544b9e7f532e8b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#judgeReadiness の順 済んだ merge の前提と、済んだ別のリポジトリの前提は、判定の対象にしない","name":"済んだ merge の前提と、済んだ別のリポジトリの前提は、判定の対象にしない","status":"passed","testResultsByEnv":{"default":"eb0c3cb8418a761498355038845fcc0e"}}

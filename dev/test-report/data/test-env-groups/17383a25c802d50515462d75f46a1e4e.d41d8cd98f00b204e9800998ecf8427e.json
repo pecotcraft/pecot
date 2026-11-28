@@ -1,0 +1,1 @@
+{"id":"17383a25c802d50515462d75f46a1e4e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/queue.test.ts#createExecutionQueue 同時に実行されるタスクは 1 件以下に保たれる","name":"同時に実行されるタスクは 1 件以下に保たれる","status":"passed","testResultsByEnv":{"default":"d33b6e825bf233865689df97362d49a7"}}

@@ -1,0 +1,1 @@
+{"id":"a9887f256ea0d754a2180a541c3183f5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 MCP の呼び出し Epic は判定をせず、readiness を null にする","name":"Epic は判定をせず、readiness を null にする","status":"passed","testResultsByEnv":{"default":"afcd08e7f7ef2d6b8cfacf23277e470a"}}

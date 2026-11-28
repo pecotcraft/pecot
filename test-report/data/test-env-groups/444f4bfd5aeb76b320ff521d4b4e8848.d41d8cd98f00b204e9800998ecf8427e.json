@@ -1,0 +1,1 @@
+{"id":"444f4bfd5aeb76b320ff521d4b4e8848.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/tracker-body.test.ts#cell セルを作成すると、U+200B は空白として扱わない","name":"セルを作成すると、U+200B は空白として扱わない","status":"passed","testResultsByEnv":{"default":"a74b09b74366014c48e1af1d07036e58"}}

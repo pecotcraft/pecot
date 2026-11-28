@@ -1,0 +1,1 @@
+{"id":"47b96bf653b789e8a69428eb60f0c6ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites 対象の Issue と blockedBy を取り出し、ボードの値は projectId のものだけにする","name":"対象の Issue と blockedBy を取り出し、ボードの値は projectId のものだけにする","status":"passed","testResultsByEnv":{"default":"e9a32060de87ab62cd530c437cb9a0d5"}}

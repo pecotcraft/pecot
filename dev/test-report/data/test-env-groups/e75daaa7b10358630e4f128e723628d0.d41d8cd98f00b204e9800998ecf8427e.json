@@ -1,0 +1,1 @@
+{"id":"e75daaa7b10358630e4f128e723628d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/failure.test.ts#exitCodeOfFailure 使い方の誤りは、メッセージを標準エラー出力へ表示して終了コード 2 を返す","name":"使い方の誤りは、メッセージを標準エラー出力へ表示して終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"9c573b6164aabc20eb06fafba25f6ba0"}}

@@ -1,0 +1,1 @@
+{"id":"3f698e9256aa419ce916d199c43c20c8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#gh-command-check.sh コマンドが GH_HOST=x\\tgh pr create のとき、終了コード 1 で止める","name":"コマンドが GH_HOST=x\\tgh pr create のとき、終了コード 1 で止める","status":"passed","testResultsByEnv":{"default":"22f2e629fe3222fe08a04431ac4f903d"}}

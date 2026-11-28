@@ -1,0 +1,1 @@
+{"id":"1f051d47d9064ac6f8b084579eba35f5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/release-check.test.ts#release check log-file を渡すと、出力の行を同じ順でそのファイルにも書く","name":"log-file を渡すと、出力の行を同じ順でそのファイルにも書く","status":"passed","testResultsByEnv":{"default":"ff409040b7d37bd75b5bcb70a6ea8d3b"}}

@@ -1,0 +1,1 @@
+{"id":"df22b103fff0785772ef337b5ebb7ccd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#toIssueFacts リンクしたブランチの fork からの PR は捨て、閉じる参照の fork からの PR は残す","name":"リンクしたブランチの fork からの PR は捨て、閉じる参照の fork からの PR は残す","status":"passed","testResultsByEnv":{"default":"7d02d7994e9c42b0f63549b54a586f0a"}}

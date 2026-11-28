@@ -1,0 +1,1 @@
+{"id":"d35d4e7aa815dd0db26b364427c52f28.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: 実行時依存 (永続層) exit 0 でも解決できなければ失敗として扱う","name":"exit 0 でも解決できなければ失敗として扱う","status":"passed","testResultsByEnv":{"default":"038da02228333af8f8fd3899c1a8c7c1"}}

@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "head: Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"head\",\"code\":\"unpushed-commits\",\"message\":\"Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)\"},{\"field\":\"head\",\"code\":\"uncommitted-changes\",\"message\":\"Git Status: modified or untracked files (fix: commit)\"},{\"field\":\"head\",\"code\":\"stash-left\",\"message\":\"Stash List: 1 stash entries (fix: check them)\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "head",
+        "code": "unpushed-commits",
+        "message": "Push Status: origin/feat/demo/12 does not exist (not pushed) (fix: git push)"
+      },
+      {
+        "field": "head",
+        "code": "uncommitted-changes",
+        "message": "Git Status: modified or untracked files (fix: commit)"
+      },
+      {
+        "field": "head",
+        "code": "stash-left",
+        "message": "Stash List: 1 stash entries (fix: check them)"
+      }
+    ]
+  }
+}

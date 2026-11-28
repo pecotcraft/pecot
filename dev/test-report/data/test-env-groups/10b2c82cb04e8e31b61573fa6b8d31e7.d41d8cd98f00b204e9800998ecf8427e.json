@@ -1,0 +1,1 @@
+{"id":"10b2c82cb04e8e31b61573fa6b8d31e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#readSvgPixelSize SVG のルート要素が存在しない場合は、例外が発生する","name":"SVG のルート要素が存在しない場合は、例外が発生する","status":"passed","testResultsByEnv":{"default":"27485b8a6d45a015adf4c0d8e0fbac65"}}

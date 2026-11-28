@@ -1,0 +1,1 @@
+{"id":"ab0e23e1ec0031652ab82eccafdddea1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add no_link を付けて呼ぶと、シンボリックリンクを作らない","name":"no_link を付けて呼ぶと、シンボリックリンクを作らない","status":"passed","testResultsByEnv":{"default":"46779532ea4b008addd933d6e40e81fd"}}

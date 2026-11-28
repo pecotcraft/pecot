@@ -1,0 +1,1 @@
+{"id":"27e08c321326a5b671a11874ac42e6f6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/runtime-manifest.bats#@slidev/cli の版指定が無い manifest を渡すと、非ゼロで終了し、版指定が無い旨を出す","name":"@slidev/cli の版指定が無い manifest を渡すと、非ゼロで終了し、版指定が無い旨を出す","status":"passed","testResultsByEnv":{"default":"f3442253bc1d389c257204c55c7573e0"}}

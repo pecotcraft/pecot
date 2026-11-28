@@ -1,0 +1,1 @@
+{"id":"51333fece7361361dac0906b21bce7b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#runAwscli 実行中に abort すると、awscli のプロセスに SIGTERM を送り、timedOut は立てない","name":"実行中に abort すると、awscli のプロセスに SIGTERM を送り、timedOut は立てない","status":"passed","testResultsByEnv":{"default":"2a5d1d58bbca995c8b4b4917de9e2cb2"}}

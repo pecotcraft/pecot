@@ -1,0 +1,1 @@
+{"id":"2c3cd13173e92676fa1d1b544946237a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#applyBoardMove Status の値だけを移動する場合は、set の行を表示し、列は移動しない","name":"Status の値だけを移動する場合は、set の行を表示し、列は移動しない","status":"passed","testResultsByEnv":{"default":"7539f8d10e14a79033e1945f0e858d23"}}

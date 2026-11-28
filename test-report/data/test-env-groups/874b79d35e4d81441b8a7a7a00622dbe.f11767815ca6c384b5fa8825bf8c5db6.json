@@ -1,0 +1,1 @@
+{"id":"874b79d35e4d81441b8a7a7a00622dbe.f11767815ca6c384b5fa8825bf8c5db6","fullName":".githooks.tests.test_find_pr_ci_base#test_bad_artifact_gives_reason","name":"artifact の検証（missing）に失敗すると、理由として「ci-base なし」を出力し、pr_main を出力しない","status":"passed","testResultsByEnv":{"default":"3bc4b5a116c0d070066af938927b3091"}}

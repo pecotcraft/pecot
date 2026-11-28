@@ -1,0 +1,1 @@
+{"id":"2ff821b81055ec459539a34a437a4bc7.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_lane_mode_multiple_tips_run_lane_once_and_guard_is_one_if_any","name":"lane モードでは、複数の tip でもレーンを 1 回だけ実行し、1 つでも pm-guard の対象があれば 1 にする","status":"passed","testResultsByEnv":{"default":"68c8466755bb1724df346dc092e80b8c"}}

@@ -1,0 +1,1 @@
+{"id":"120d6d6fab39d587cf22694553e5ee86.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface-export.test.ts#generated.json の書き出し --write が失敗すると、error: cannot write の行を出力し、終了コード 1 で終わる","name":"--write が失敗すると、error: cannot write の行を出力し、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"fdb08443350d8b43ce168240471e70c0"}}

@@ -1,0 +1,1 @@
+{"id":"a96efdc016520795d28ec04b6bad2f9d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/label-text.test.ts#labelTexts style に html=1 がない value は、タグのように見える文字も、そのまま返す","name":"style に html=1 がない value は、タグのように見える文字も、そのまま返す","status":"passed","testResultsByEnv":{"default":"e64bf21112c026aaddf3f9a426af4373"}}

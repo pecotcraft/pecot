@@ -1,0 +1,1 @@
+{"id":"86ee5065c410ed5a138d6e3c52be9675.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor review では、Claude の App は確かめず、その項目を skipped で入れる","name":"review では、Claude の App は確かめず、その項目を skipped で入れる","status":"passed","testResultsByEnv":{"default":"fde76927478419e47f9ebb7a1c589b3c"}}

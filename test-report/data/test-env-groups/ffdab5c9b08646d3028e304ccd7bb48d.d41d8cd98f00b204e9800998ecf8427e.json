@@ -1,0 +1,1 @@
+{"id":"ffdab5c9b08646d3028e304ccd7bb48d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check MCP の data stash に項目があると、Stash List の文を warnings に入れ、stashList に一覧を入れる","name":"stash に項目があると、Stash List の文を warnings に入れ、stashList に一覧を入れる","status":"passed","testResultsByEnv":{"default":"29f6dbc1edb7fe4de393a91a4004e79c"}}

@@ -1,0 +1,1 @@
+{"id":"a27d012bab5f67aac287585260914740.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start sha が SHA の形でない と、何も書かずに kind が invalid-input の失敗を返す","name":"sha が SHA の形でない と、何も書かずに kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"76bea22c836cca6ab76c8f8950372570"}}

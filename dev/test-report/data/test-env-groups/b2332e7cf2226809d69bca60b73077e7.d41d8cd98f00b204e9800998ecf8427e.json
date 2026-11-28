@@ -1,0 +1,1 @@
+{"id":"b2332e7cf2226809d69bca60b73077e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#blockedByReadCount 一覧の件数が上限より多い の場合、前提の読み込み件数は 50 になる","name":"一覧の件数が上限より多い の場合、前提の読み込み件数は 50 になる","status":"passed","testResultsByEnv":{"default":"9f3b5f3e710e7bf4b4e4cede754483e0"}}

@@ -1,0 +1,1 @@
+{"id":"69d9de4bc340fd398bf46dd2da0a9dbc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/tests/diagnostics.test.ts#診断行の共通の関数（error・warning・note） passthrough は、受け取った文字列を加工せずに書き出す","name":"passthrough は、受け取った文字列を加工せずに書き出す","status":"passed","testResultsByEnv":{"default":"0d92ead642a7d7101e435a31d8d8b17e"}}

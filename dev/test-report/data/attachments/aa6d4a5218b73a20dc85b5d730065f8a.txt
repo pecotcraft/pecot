@@ -1,0 +1,3 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_outside_lane_writes_no_at0/suite/sample.bats
+1..1
+ok 1 書かない

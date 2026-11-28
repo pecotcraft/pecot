@@ -1,0 +1,1 @@
+{"id":"b12d22c4693f9bb8975e9be5fe75f5e5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#screenWorkflowRun conclusion が neutral の場合は、処理を進めず何も書き込まない","name":"conclusion が neutral の場合は、処理を進めず何も書き込まない","status":"passed","testResultsByEnv":{"default":"b3091c502f1e03b538b1f69c2e21fd7e"}}

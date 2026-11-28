@@ -1,0 +1,1 @@
+{"id":"0e5983ae8d5f2ec58953e210fb533096.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-gate.test.ts#auto gate イベントのファイルが JSON でないと、入力の誤りで止まる","name":"イベントのファイルが JSON でないと、入力の誤りで止まる","status":"passed","testResultsByEnv":{"default":"67e9fae230fa91883d68584df1ec3323"}}

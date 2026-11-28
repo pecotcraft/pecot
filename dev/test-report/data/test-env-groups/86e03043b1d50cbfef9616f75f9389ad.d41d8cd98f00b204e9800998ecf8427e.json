@@ -1,0 +1,1 @@
+{"id":"86e03043b1d50cbfef9616f75f9389ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「hasExplicitAnimation 型不一致」の場合は、undefined を返す","name":"エントリが「hasExplicitAnimation 型不一致」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"e34b322a5fcabac165921110ef14c0fd"}}

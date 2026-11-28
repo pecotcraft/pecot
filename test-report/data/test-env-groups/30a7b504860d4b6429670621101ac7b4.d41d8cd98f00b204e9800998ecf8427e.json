@@ -1,0 +1,1 @@
+{"id":"30a7b504860d4b6429670621101ac7b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#リストの記号で始まる行 Python の文字列の句点の無い箇条書きを、項目ごとに 1 文として数える","name":"Python の文字列の句点の無い箇条書きを、項目ごとに 1 文として数える","status":"passed","testResultsByEnv":{"default":"7080be6c1245647ae3508380aee0eb77"}}

@@ -1,0 +1,1 @@
+{"id":"4b61d251f879bcce24c37eb667df22ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#linkNodeModules (張り直し) 張り直しのとき、実ディレクトリの中の symlink の先にある依存ルートの中身を削除しない","name":"張り直しのとき、実ディレクトリの中の symlink の先にある依存ルートの中身を削除しない","status":"passed","testResultsByEnv":{"default":"dd58ff9b6212ca58faf4b84ace084bec"}}

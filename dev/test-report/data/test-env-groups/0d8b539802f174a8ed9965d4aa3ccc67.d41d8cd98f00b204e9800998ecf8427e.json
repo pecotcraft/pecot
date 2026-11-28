@@ -1,0 +1,1 @@
+{"id":"0d8b539802f174a8ed9965d4aa3ccc67.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-policy.test.ts#mode=reject で共通の分岐 repo の指定が現在の Git の remote と一致すれば、そのリポジトリを採用して続行する","name":"repo の指定が現在の Git の remote と一致すれば、そのリポジトリを採用して続行する","status":"passed","testResultsByEnv":{"default":"a5ccfc55bca4617036bed93e885b04bd"}}

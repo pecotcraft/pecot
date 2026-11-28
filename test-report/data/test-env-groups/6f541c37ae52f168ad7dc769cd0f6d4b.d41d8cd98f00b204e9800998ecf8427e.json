@@ -1,0 +1,1 @@
+{"id":"6f541c37ae52f168ad7dc769cd0f6d4b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 定型の外 コマンドが定型の外（; でコマンドを連結している）のとき、許可せず何も出力しない","name":"コマンドが定型の外（; でコマンドを連結している）のとき、許可せず何も出力しない","status":"passed","testResultsByEnv":{"default":"4131f746dbe68c1754783bf01342d5be"}}

@@ -1,0 +1,1 @@
+{"id":"2b4b178356fc81ed4eaf5ccadc7cb210.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#transformItems 空の fieldValue のノードがあっても、エラーにならず変換する","name":"空の fieldValue のノードがあっても、エラーにならず変換する","status":"passed","testResultsByEnv":{"default":"6d779d708f5cb4b4b4fe15a0315132e0"}}

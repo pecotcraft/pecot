@@ -1,0 +1,1 @@
+{"id":"26778c08d8ed425d08065aee2c6e02b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-stop.test.ts#requireConfigFor project を指定した場合は、候補が 2 つあっても指定した設定を返す","name":"project を指定した場合は、候補が 2 つあっても指定した設定を返す","status":"passed","testResultsByEnv":{"default":"8e7f29aa0f9d41f23dc88c117a9c5085"}}

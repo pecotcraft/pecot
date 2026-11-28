@@ -1,0 +1,1 @@
+{"id":"d7dd66583d67fd504d2037eca991cfcc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — 非対応形式 空バッファ の場合は、未対応の形式として扱う","name":"空バッファ の場合は、未対応の形式として扱う","status":"passed","testResultsByEnv":{"default":"9067d16bd9ecf03c5c8b3a0b72325c26"}}

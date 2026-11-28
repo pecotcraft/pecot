@@ -1,0 +1,1 @@
+{"id":"594a850d236528e610a8dd0c3a98dbda.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/declaration.test.ts#readThemeDeclaration 宣言が存在するテーマでは、宣言の値をそのまま返し、警告を表示しない","name":"宣言が存在するテーマでは、宣言の値をそのまま返し、警告を表示しない","status":"passed","testResultsByEnv":{"default":"2e5b6fbb6097b5b86b2832a79f5d97d6"}}

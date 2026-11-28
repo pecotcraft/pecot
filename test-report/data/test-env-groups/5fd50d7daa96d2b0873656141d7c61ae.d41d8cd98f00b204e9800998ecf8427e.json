@@ -1,0 +1,1 @@
+{"id":"5fd50d7daa96d2b0873656141d7c61ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 終端語が CRLF のとき、引用符を含まない本文だけを切り出す","name":"終端語が CRLF のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"ce53350b0a966fb2ab006a9c007d61d5"}}

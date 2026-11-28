@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "slide_dev: stopped (/tmp/pecotv-test-e2e-9VLKfm/dev-talk)"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.dev.stopped\",\"dir\":\"/tmp/pecotv-test-e2e-9VLKfm/dev-talk\",\"stopped\":true,\"port\":45765}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.dev.stopped",
+    "dir": "/tmp/pecotv-test-e2e-9VLKfm/dev-talk",
+    "stopped": true,
+    "port": 45765
+  }
+}

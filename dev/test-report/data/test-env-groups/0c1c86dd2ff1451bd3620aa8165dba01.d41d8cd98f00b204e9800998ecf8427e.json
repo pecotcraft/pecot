@@ -1,0 +1,1 @@
+{"id":"0c1c86dd2ff1451bd3620aa8165dba01.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/sso-output.test.ts#parseSsoLoginOutput 実際の awscli の出力の全文から、URL、コード、自動入力用の URL を取り出す","name":"実際の awscli の出力の全文から、URL、コード、自動入力用の URL を取り出す","status":"passed","testResultsByEnv":{"default":"5769330b7fbc00af80f4ea8f5ba6d2bf"}}

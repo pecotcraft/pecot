@@ -1,0 +1,1 @@
+{"id":"74ec013f1151ac64cbe6a246ce132a01.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql 404 で JSON だが data と errors が無い のとき、GitHubAPIError が発生する","name":"404 で JSON だが data と errors が無い のとき、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"0b3d640c15cf6b3f3db750826e3eb9e4"}}

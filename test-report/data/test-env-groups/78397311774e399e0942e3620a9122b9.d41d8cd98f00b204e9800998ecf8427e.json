@@ -1,0 +1,1 @@
+{"id":"78397311774e399e0942e3620a9122b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create 待っている Issue ボードの読み取り に失敗すると、PR を作ったまま warning の行を出し、終了コード 0 で終わる","name":"ボードの読み取り に失敗すると、PR を作ったまま warning の行を出し、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"a47c94a8c6c67c8b24e591a4f56b3e51"}}

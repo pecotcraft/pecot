@@ -1,0 +1,1 @@
+{"id":"361bddd4f57b9bd01b1e8effc65f4630.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_review_workflow_copy#test_workflow_is_a_copy_of_the_template","name":"自動レビューのワークフローは、版とこのリポだけの step を除いて雛形と一致する","status":"passed","testResultsByEnv":{"default":"252f5edce2f33a2927be19fc68bf4e25"}}

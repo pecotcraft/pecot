@@ -1,0 +1,1 @@
+{"id":"3e16c245e6f4f3ee0a11fff0af8e99b5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_33_block_actions_only","name":"github-actions の commit だけの範囲は、失敗する","status":"passed","testResultsByEnv":{"default":"636b9b50a8bf1d0d03f6abb806c06db0"}}

@@ -1,0 +1,1 @@
+{"id":"c76d9d9c2aa073db5d9c30513a5287c6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check remote のリポジトリを決められないと、終了コード 1 で終わる","name":"remote のリポジトリを決められないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"e4b7830357427a1afbf406b854f4ade6"}}

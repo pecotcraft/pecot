@@ -1,0 +1,1 @@
+{"id":"b2e6151113a0b54c7aecfef53a4ab2e5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/errors.test.ts#MCP ツールの異常系応答 相対パスを指定すると、実際の処理を呼び出さずに、invalid-path で失敗する","name":"相対パスを指定すると、実際の処理を呼び出さずに、invalid-path で失敗する","status":"passed","testResultsByEnv":{"default":"3c13db039f06dae7ffc6cb4e3e16d51f"}}

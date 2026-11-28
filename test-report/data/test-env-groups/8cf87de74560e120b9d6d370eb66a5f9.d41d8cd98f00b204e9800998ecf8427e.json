@@ -1,0 +1,1 @@
+{"id":"8cf87de74560e120b9d6d370eb66a5f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/server.test.ts#createMcpServer ツールが 0 件でも、tools/list は空の配列を返す","name":"ツールが 0 件でも、tools/list は空の配列を返す","status":"passed","testResultsByEnv":{"default":"1586b65c3dc7a5ddeaab6851736d9943"}}

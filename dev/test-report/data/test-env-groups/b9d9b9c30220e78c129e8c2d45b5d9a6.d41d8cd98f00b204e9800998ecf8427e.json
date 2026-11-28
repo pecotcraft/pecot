@@ -1,0 +1,1 @@
+{"id":"b9d9b9c30220e78c129e8c2d45b5d9a6.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_failure_guide_names_part_artifact","name":"`--part=tests` の失敗の案内は、artifact の名前を `ci-logs-tests` にする","status":"passed","testResultsByEnv":{"default":"a9b991eae60c35bf9748ed12461e786a"}}

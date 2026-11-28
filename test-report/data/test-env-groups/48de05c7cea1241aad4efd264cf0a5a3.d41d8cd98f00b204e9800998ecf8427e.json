@@ -1,0 +1,1 @@
+{"id":"48de05c7cea1241aad4efd264cf0a5a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#installRuntimeDependencies インストールが成功した場合に、stamp を置く","name":"インストールが成功した場合に、stamp を置く","status":"passed","testResultsByEnv":{"default":"48e895e7835d27d681e856ba04853128"}}

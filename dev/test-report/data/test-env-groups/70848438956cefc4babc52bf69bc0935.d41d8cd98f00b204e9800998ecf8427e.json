@@ -1,0 +1,1 @@
+{"id":"70848438956cefc4babc52bf69bc0935.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#stripLeadingHtmlComment（冒頭ガイドコメント除去 #958 F-02） PR のコンテンツを読み取るときに、冒頭のコメントを除去する","name":"PR のコンテンツを読み取るときに、冒頭のコメントを除去する","status":"passed","testResultsByEnv":{"default":"aa01bc0f021bfbaf46acbdef60eb14e2"}}

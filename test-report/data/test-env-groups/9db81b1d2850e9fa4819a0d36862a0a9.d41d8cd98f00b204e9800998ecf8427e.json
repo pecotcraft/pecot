@@ -1,0 +1,1 @@
+{"id":"9db81b1d2850e9fa4819a0d36862a0a9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_build_has_side_and_build_jobs","name":"pages-build は、側を決める job の後に、ビルドの job を実行する","status":"passed","testResultsByEnv":{"default":"8248ada1a5779db4aa21a9487ac6b9ac"}}

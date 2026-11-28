@@ -1,0 +1,1 @@
+{"id":"34cdc68ba639a868783eed078273827a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_with_timing#test_passes_args_and_stdin_through","name":"子のコマンドに、空白を含む引数と標準入力をそのまま渡す","status":"passed","testResultsByEnv":{"default":"1f18e4df2a600facf084e72b26e80949"}}

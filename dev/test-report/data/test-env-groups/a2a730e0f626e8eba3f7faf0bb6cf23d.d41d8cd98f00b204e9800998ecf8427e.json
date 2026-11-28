@@ -1,0 +1,1 @@
+{"id":"a2a730e0f626e8eba3f7faf0bb6cf23d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#judgeReadiness の順 順 4: 済んでいない merge の前提があると waits-merge で blocked になり、理由を添える","name":"順 4: 済んでいない merge の前提があると waits-merge で blocked になり、理由を添える","status":"passed","testResultsByEnv":{"default":"c7d6a375e6e1bd68b83edc98a991c877"}}

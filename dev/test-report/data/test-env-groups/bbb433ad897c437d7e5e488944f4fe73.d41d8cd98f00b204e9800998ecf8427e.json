@@ -1,0 +1,1 @@
+{"id":"bbb433ad897c437d7e5e488944f4fe73.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/tracker-body.test.ts#findTracker オブジェクトでない要素と、本文や番号の型が誤っている要素は、無視する","name":"オブジェクトでない要素と、本文や番号の型が誤っている要素は、無視する","status":"passed","testResultsByEnv":{"default":"0758e4bec02cf0a5b075db7aafdb93a0"}}

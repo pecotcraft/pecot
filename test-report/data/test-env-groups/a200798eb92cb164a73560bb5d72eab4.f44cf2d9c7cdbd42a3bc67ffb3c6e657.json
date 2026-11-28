@@ -1,0 +1,1 @@
+{"id":"a200798eb92cb164a73560bb5d72eab4.f44cf2d9c7cdbd42a3bc67ffb3c6e657","fullName":".githooks.tests.test_allure_report_labels#test_severity_minor_is_added_to_every_result","name":"-o で project を指定すると、.githooks/tests/conftest.py の conftest はすべての結果に minor の severity を 1 つ付ける","status":"passed","testResultsByEnv":{"default":"48679d27e5d08d2d42134218da63e3d6"}}

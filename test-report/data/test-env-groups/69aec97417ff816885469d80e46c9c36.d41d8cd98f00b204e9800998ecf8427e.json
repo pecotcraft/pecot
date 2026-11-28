@@ -1,0 +1,1 @@
+{"id":"69aec97417ff816885469d80e46c9c36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/stack-registration.test.ts#planStackRegistration 親のスタックの一番上が親 場合は、add を返す","name":"親のスタックの一番上が親 場合は、add を返す","status":"passed","testResultsByEnv":{"default":"7a23dc0fe4f789aa478237a4559e7415"}}

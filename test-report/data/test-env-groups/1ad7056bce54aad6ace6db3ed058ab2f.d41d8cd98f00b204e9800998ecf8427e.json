@@ -1,0 +1,1 @@
+{"id":"1ad7056bce54aad6ace6db3ed058ab2f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-delete.test.ts#branch_delete ブランチの削除で GitHub API がエラーを返すと、終了コード 1 で終わる","name":"ブランチの削除で GitHub API がエラーを返すと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"0a8c12a8e26feb4f25d2fc36b7821e4b"}}

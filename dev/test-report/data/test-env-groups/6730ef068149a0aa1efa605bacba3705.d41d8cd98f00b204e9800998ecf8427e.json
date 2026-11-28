@@ -1,0 +1,1 @@
+{"id":"6730ef068149a0aa1efa605bacba3705.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/frontmatter-file.test.ts#parsePullRequestFile PR のファイルが存在しない場合は、file not found のエラーにする","name":"PR のファイルが存在しない場合は、file not found のエラーにする","status":"passed","testResultsByEnv":{"default":"9af7adf620ca09203804efa2b2f35991"}}

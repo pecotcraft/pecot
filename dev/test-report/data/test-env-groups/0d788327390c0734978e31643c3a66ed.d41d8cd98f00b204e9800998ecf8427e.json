@@ -1,0 +1,1 @@
+{"id":"0d788327390c0734978e31643c3a66ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#validateWhitespaceWrap 改行を含み、角丸で折り返し指定のないセルには、警告を 1 件返す","name":"改行を含み、角丸で折り返し指定のないセルには、警告を 1 件返す","status":"passed","testResultsByEnv":{"default":"11e40f8ddaef99438fbef76cfc8a6a6f"}}

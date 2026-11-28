@@ -1,0 +1,1 @@
+{"id":"8105ba777257b360744a7feed15e7972.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_deploy_does_not_suggest_aws_login_for_other_credentials","name":"SSO など aws login ではない認証情報の期限が切れても、aws login を案内しない","status":"passed","testResultsByEnv":{"default":"e9630c733eb072d827eef47dc5c3a988"}}

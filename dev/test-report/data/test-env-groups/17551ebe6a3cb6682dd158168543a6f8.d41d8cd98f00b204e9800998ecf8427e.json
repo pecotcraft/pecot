@@ -1,0 +1,1 @@
+{"id":"17551ebe6a3cb6682dd158168543a6f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/command-definition.test.ts#hasOwnRepo hasOwnRepo を指定しないツールは、repo を共通の入力として受け取る","name":"hasOwnRepo を指定しないツールは、repo を共通の入力として受け取る","status":"passed","testResultsByEnv":{"default":"d46b8c45e6b2d6bf2fa82e4bd2f0b41f"}}

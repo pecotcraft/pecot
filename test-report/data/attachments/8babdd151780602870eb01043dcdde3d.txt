@@ -1,0 +1,4 @@
+count: open Dependabot alerts: 0
+count: open code scanning alerts: 0
+count: open secret scanning alerts: 0
+count: commits to release (origin/develop -> origin/main): 2

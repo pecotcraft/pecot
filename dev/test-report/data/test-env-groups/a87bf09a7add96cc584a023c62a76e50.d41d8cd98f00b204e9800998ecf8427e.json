@@ -1,0 +1,1 @@
+{"id":"a87bf09a7add96cc584a023c62a76e50.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#bun run で起動する script があると、違反として返す","name":"bun run で起動する script があると、違反として返す","status":"passed","testResultsByEnv":{"default":"87f6460331af780dbec0d67b8694aa7c"}}

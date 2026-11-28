@@ -1,0 +1,1 @@
+{"event":"drawio.export.done","file":"/tmp/pecotv-drawio-pdf-e2e-hcCjgj/success/out.svg","sourceSha256":"c7da086798484902159c09f3c9aed33fcda7d51666e40da8cf6929fa22b02a1d","icons":0,"pdf":"/tmp/pecotv-drawio-pdf-e2e-hcCjgj/success/out.pdf","pdfFailed":false}

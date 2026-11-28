@@ -1,0 +1,1 @@
+{"id":"d49cc95360c2818817539f85f95c159e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 作業の跡がある場合は、列が Active でも、どの判定でも列を動かさない","name":"作業の跡がある場合は、列が Active でも、どの判定でも列を動かさない","status":"passed","testResultsByEnv":{"default":"dc7afff2d700d7644ebddc3661310f0e"}}

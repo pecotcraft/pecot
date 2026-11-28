@@ -1,0 +1,15 @@
+[
+  "githooks:test-checks",
+  "pecot-tools:build-cli",
+  "pecot-tools:install",
+  "pecot-tools:test-cli",
+  "pecot-visual:build-cli",
+  "pecot-visual:build-slidev",
+  "pecot-visual:check-pm-guard",
+  "pecot-visual:chromium-preflight",
+  "pecot-visual:install",
+  "pecot-visual:test-cli",
+  "pecot:install",
+  "text-rules:build",
+  "text-rules:install"
+]

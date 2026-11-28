@@ -1,0 +1,1 @@
+{"id":"23a09a3da1c0b2c992425f7c2744a466.c51b2f6c0901fe1402cd721587f251a3","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_sides_without_report_show_neither_link","name":"レポートのない側（release-empty）では、フッターにも要件の行にも、テストレポートへのリンクを表示しない","status":"passed","testResultsByEnv":{"default":"962831c706d5035f994a2ce46659e781"}}

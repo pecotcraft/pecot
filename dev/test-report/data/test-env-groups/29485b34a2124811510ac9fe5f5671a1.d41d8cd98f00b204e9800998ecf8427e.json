@@ -1,0 +1,1 @@
+{"id":"29485b34a2124811510ac9fe5f5671a1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add .active が無くても、remote のリポを含む設定が 1 つなら、その設定で作る","name":".active が無くても、remote のリポを含む設定が 1 つなら、その設定で作る","status":"passed","testResultsByEnv":{"default":"45672cd0b8a110827dca3da6b6c9163b"}}

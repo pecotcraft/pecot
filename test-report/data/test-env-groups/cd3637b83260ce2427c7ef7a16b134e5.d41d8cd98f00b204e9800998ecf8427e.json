@@ -1,0 +1,1 @@
+{"id":"cd3637b83260ce2427c7ef7a16b134e5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_download_failed_without_artifact","name":"--download-failed で artifact が存在しないと、キャッシュのディレクトリを削除し、artifact なしの理由を出力する","status":"passed","testResultsByEnv":{"default":"49c0dae7510ccf4096728b4e324aae91"}}

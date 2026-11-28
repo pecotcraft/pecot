@@ -1,0 +1,1 @@
+{"id":"a339fe4e10b2161826d942b556e0bf1c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/plugin-manifests.test.ts#プラグインの 2 組の manifest plugin.json の name・version が .claude-plugin/plugin.json と一致する","name":"plugin.json の name・version が .claude-plugin/plugin.json と一致する","status":"passed","testResultsByEnv":{"default":"fee522d9346ab1cba2f58e8264617ee6"}}

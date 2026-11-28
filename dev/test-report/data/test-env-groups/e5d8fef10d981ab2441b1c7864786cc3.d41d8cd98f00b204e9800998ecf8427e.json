@@ -1,0 +1,1 @@
+{"id":"e5d8fef10d981ab2441b1c7864786cc3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_remove worktree とローカルブランチを削除すると、removed と deleted の行を標準エラーに出す","name":"worktree とローカルブランチを削除すると、removed と deleted の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"b9e59002f89e0b7bc7f8ef1a86f1a09a"}}

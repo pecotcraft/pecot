@@ -1,0 +1,1 @@
+{"id":"996bed4b3495896390b305c3f24549b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-finish.test.ts#auto finish PR を開いたブランチが Development のブランチから外れていても、目印のブランチに開いた PR の head を書く","name":"PR を開いたブランチが Development のブランチから外れていても、目印のブランチに開いた PR の head を書く","status":"passed","testResultsByEnv":{"default":"57077703e92082702e04ed006fe2d204"}}

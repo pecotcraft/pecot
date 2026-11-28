@@ -1,0 +1,1 @@
+{"id":"6a94a3db5c9e882d044b1d48bd7492c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#NX_DRY_RUN=1 が dry-run であることをログに出す","name":"NX_DRY_RUN=1 が dry-run であることをログに出す","status":"passed","testResultsByEnv":{"default":"049c7311ec77635a47a7e989db87a745"}}

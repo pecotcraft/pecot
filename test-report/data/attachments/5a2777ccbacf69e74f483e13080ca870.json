@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the result of issue_dependency_read in reads.blocked_by[0].result is not in the shape of the official GitHub MCP server\n  issues[0].state: Invalid input: expected string, received undefined"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-mcp-shape\",\"detail\":\"the result of issue_dependency_read in reads.blocked_by[0].result is not in the shape of the official GitHub MCP server\\n  issues[0].state: Invalid input: expected string, received undefined\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-mcp-shape",
+    "detail": "the result of issue_dependency_read in reads.blocked_by[0].result is not in the shape of the official GitHub MCP server\n  issues[0].state: Invalid input: expected string, received undefined"
+  },
+  "isError": true
+}

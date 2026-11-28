@@ -1,0 +1,1 @@
+{"id":"157b8220c80e199d74a49a3d62c0cad0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) ツール aws_logs_get_log_events は、配列の要素のオブジェクトに宣言外のキーを許可しない","name":"ツール aws_logs_get_log_events は、配列の要素のオブジェクトに宣言外のキーを許可しない","status":"passed","testResultsByEnv":{"default":"4c5f6f4a25d97cf8d68fd8605973444a"}}

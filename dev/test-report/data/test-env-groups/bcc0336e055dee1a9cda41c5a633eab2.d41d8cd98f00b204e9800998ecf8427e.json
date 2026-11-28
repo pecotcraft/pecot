@@ -1,0 +1,1 @@
+{"id":"bcc0336e055dee1a9cda41c5a633eab2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry ポートの指定が無ければ既定のポートを小さい順に試し、最初の空きで起動する","name":"ポートの指定が無ければ既定のポートを小さい順に試し、最初の空きで起動する","status":"passed","testResultsByEnv":{"default":"52b959345f6ffcc4a0196dd5a6ec10b1"}}

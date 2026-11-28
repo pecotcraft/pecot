@@ -1,0 +1,1 @@
+{"id":"6fed374c338bb2da28683a6cbdf84a01.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#AmbiguousRepositoryError Error を継承し、投げると AmbiguousRepositoryError として捕捉できる","name":"Error を継承し、投げると AmbiguousRepositoryError として捕捉できる","status":"passed","testResultsByEnv":{"default":"3ba227233971a8e2a3915acb9b5ae8c9"}}

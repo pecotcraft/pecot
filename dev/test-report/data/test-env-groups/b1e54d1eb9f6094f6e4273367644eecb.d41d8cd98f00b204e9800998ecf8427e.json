@@ -1,0 +1,1 @@
+{"id":"b1e54d1eb9f6094f6e4273367644eecb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#main の --check 欄の値の差は 1 を返し、前と後の値と直すコマンドを formatStale の形で出す","name":"欄の値の差は 1 を返し、前と後の値と直すコマンドを formatStale の形で出す","status":"passed","testResultsByEnv":{"default":"fa3c02126e9d101e310f09a48167ddc2"}}

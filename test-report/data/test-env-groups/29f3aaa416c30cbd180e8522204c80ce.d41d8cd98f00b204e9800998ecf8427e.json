@@ -1,0 +1,1 @@
+{"id":"29f3aaa416c30cbd180e8522204c80ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery EXPLAIN のオプションの括弧が閉じていないときは、理由を not-read-only として拒否する","name":"EXPLAIN のオプションの括弧が閉じていないときは、理由を not-read-only として拒否する","status":"passed","testResultsByEnv":{"default":"b6376190989972b9f7937008aca5e622"}}

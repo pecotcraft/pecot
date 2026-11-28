@@ -1,0 +1,2 @@
+created: worktree config /tmp/pecot-cli-24MDol/workspaces/base/demo/.pecot/config/worktree-config.json
+created: worktree ignore file /tmp/pecot-cli-24MDol/workspaces/base/demo/.pecot/config/.worktreeignore

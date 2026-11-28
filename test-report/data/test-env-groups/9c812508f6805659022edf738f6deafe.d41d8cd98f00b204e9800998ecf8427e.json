@@ -1,0 +1,1 @@
+{"id":"9c812508f6805659022edf738f6deafe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-order.test.ts#planOrders 案内する次に使える番号は、自動で振る場合と同じく、既存と明示した番号の最大の次になる","name":"案内する次に使える番号は、自動で振る場合と同じく、既存と明示した番号の最大の次になる","status":"passed","testResultsByEnv":{"default":"47ae381b1f5fe21891ca33ad937108c5"}}

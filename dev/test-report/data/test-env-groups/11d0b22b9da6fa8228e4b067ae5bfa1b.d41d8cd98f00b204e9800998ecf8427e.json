@@ -1,0 +1,1 @@
+{"id":"11d0b22b9da6fa8228e4b067ae5bfa1b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/textlint-body-rule.test.ts#本文に箇条書きの書式の違反があると、markdown モードで確認して本文の行で報告する","name":"本文に箇条書きの書式の違反があると、markdown モードで確認して本文の行で報告する","status":"passed","testResultsByEnv":{"default":"b38e4ed14384562ab8e90a679b6d29d4"}}

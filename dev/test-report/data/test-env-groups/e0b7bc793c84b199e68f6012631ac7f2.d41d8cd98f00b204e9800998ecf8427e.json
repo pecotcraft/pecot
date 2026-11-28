@@ -1,0 +1,1 @@
+{"id":"e0b7bc793c84b199e68f6012631ac7f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#prerender replace (CUJ 1-5) 座標とサイズが一致する場合は、1 段目の判定で、画像を高解像度版に差し替える（CUJ 1）","name":"座標とサイズが一致する場合は、1 段目の判定で、画像を高解像度版に差し替える（CUJ 1）","status":"passed","testResultsByEnv":{"default":"72171d4b9bd25632a31ad52760b0ef9c"}}

@@ -1,0 +1,1 @@
+{"id":"126142e283903068d6d7d3e669c2461f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-delete.test.ts#branch_delete MCP の data ブランチを削除すると、ブランチ・リポジトリ・deleted を data に返す","name":"ブランチを削除すると、ブランチ・リポジトリ・deleted を data に返す","status":"passed","testResultsByEnv":{"default":"5666cb4e4422692d62370c2b0fc558f3"}}

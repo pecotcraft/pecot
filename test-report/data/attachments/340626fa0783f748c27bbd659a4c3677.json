@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_cloudwatch_get_metric_statistics: dimensions.0: Unrecognized key: \"extra\""
+    }
+  ],
+  "isError": true
+}

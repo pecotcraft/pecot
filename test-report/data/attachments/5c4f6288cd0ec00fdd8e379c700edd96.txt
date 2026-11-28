@@ -1,0 +1,1 @@
+error: could not confirm the merge of PR #11: it is neither merged nor in the merge queue

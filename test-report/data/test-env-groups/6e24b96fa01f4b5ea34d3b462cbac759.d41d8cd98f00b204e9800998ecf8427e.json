@@ -1,0 +1,1 @@
+{"id":"6e24b96fa01f4b5ea34d3b462cbac759.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.test.sh#セルフテスト: ${SCRIPT_DIR%/*} は 1 段上のディレクトリ起点で解決される","name":"セルフテスト: ${SCRIPT_DIR%/*} は 1 段上のディレクトリ起点で解決される","status":"passed","testResultsByEnv":{"default":"be1f82aa539001fccf183abb26341bf4"}}

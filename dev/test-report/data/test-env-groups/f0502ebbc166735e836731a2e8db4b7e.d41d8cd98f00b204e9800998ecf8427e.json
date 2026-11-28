@@ -1,0 +1,1 @@
+{"id":"f0502ebbc166735e836731a2e8db4b7e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order 定義にない template を指定すると、FrontmatterError の例外が発生する","name":"定義にない template を指定すると、FrontmatterError の例外が発生する","status":"passed","testResultsByEnv":{"default":"d33fa54ac3cb204a2421965ae1d284c0"}}

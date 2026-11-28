@@ -1,0 +1,1 @@
+{"id":"aaa61f14c86ca846024e400703e024df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#clearOrphanedCacheArtifacts cache ディレクトリが存在しない場合も、失敗しない","name":"cache ディレクトリが存在しない場合も、失敗しない","status":"passed","testResultsByEnv":{"default":"c381b7618d4c78e6b33b8c8e53904956"}}

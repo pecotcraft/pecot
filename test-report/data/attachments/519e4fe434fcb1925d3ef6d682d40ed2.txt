@@ -1,0 +1,2 @@
+error: PR #31 has conflicts that must be resolved
+  to try a forced merge, add admin: true

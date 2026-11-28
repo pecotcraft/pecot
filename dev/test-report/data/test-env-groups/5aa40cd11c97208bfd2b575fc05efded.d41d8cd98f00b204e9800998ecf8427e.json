@@ -1,0 +1,1 @@
+{"id":"5aa40cd11c97208bfd2b575fc05efded.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#areRuntimeDependenciesInstalled 同梱の依存が本体の位置から解決できるなら、true を返す","name":"同梱の依存が本体の位置から解決できるなら、true を返す","status":"passed","testResultsByEnv":{"default":"e70eb4abf583616bb28bb8e46226be2e"}}

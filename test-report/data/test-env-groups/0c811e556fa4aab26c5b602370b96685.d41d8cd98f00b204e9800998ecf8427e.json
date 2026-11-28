@@ -1,0 +1,1 @@
+{"id":"0c811e556fa4aab26c5b602370b96685.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check MCP の data code scanning の状態を判定できない と、kind が preflight-failed の失敗を返す","name":"code scanning の状態を判定できない と、kind が preflight-failed の失敗を返す","status":"passed","testResultsByEnv":{"default":"7db3190ed041cf14067c3cdd9f54f68b"}}

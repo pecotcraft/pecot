@@ -1,0 +1,1 @@
+{"id":"47da4998b560f3fdf0b9e1c7a62f9298.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#listIssuesByLabel state=all・labels・per_page=100 を指定して取得し、Pull Request を除く","name":"state=all・labels・per_page=100 を指定して取得し、Pull Request を除く","status":"passed","testResultsByEnv":{"default":"3f76ce11b80e5394690cf42bd57b6f7d"}}

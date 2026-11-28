@@ -1,0 +1,1 @@
+{"id":"9ba818b9fcc785d31cb43e5d2ac7f2c6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#validateInput shorthand-list の要素が空のオブジェクトのときは、拒否する","name":"shorthand-list の要素が空のオブジェクトのときは、拒否する","status":"passed","testResultsByEnv":{"default":"7b399988976f7a41ee70851f0e114fa1"}}

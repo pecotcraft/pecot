@@ -1,0 +1,1 @@
+{"id":"8073ec6a009279dd1052e6003c1eea24.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/server.test.ts#createMcpServer toCallToolResult で変換した結果が、クライアントの callTool まで同じ内容で届く","name":"toCallToolResult で変換した結果が、クライアントの callTool まで同じ内容で届く","status":"passed","testResultsByEnv":{"default":"5c9d899c9eb37859c66cb951ad5e4af7"}}

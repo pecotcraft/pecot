@@ -1,0 +1,1 @@
+{"id":"1927a10d3f989d25771469df7e6aeb3d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: legacy) slide_dev 全パラメータの入力を受理し、そのままハンドラへ渡す","name":"全パラメータの入力を受理し、そのままハンドラへ渡す","status":"passed","testResultsByEnv":{"default":"0f0ac6fb371c1c7f3324671d7762b969"}}

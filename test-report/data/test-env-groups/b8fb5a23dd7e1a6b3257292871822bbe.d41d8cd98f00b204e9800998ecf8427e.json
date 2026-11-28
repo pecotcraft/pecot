@@ -1,0 +1,1 @@
+{"id":"b8fb5a23dd7e1a6b3257292871822bbe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/_helpers/fake-github/server.test.ts#識別子（fragment） fragment が自分自身を参照しても、展開が止まる","name":"fragment が自分自身を参照しても、展開が止まる","status":"passed","testResultsByEnv":{"default":"00ae9533926155e670ab9fc6e5b7d4bf"}}

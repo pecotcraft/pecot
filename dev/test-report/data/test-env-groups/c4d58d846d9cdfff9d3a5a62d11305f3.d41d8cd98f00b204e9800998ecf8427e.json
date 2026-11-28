@@ -1,0 +1,1 @@
+{"id":"c4d58d846d9cdfff9d3a5a62d11305f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-check.test.ts#branch_check PR の無い開いた前提を持つ Issue を渡すと、prerequisite-open の problem を返す","name":"PR の無い開いた前提を持つ Issue を渡すと、prerequisite-open の problem を返す","status":"passed","testResultsByEnv":{"default":"50588b05b0870574a9f8dd818c66c78b"}}

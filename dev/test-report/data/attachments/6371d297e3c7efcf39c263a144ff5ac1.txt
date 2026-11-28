@@ -1,0 +1,2 @@
+warning: using repo acme/demo (could not read the repository from the URL of the Git remote origin)
+error: cannot get the repository information: check that a git remote is set to a GitHub repository URL

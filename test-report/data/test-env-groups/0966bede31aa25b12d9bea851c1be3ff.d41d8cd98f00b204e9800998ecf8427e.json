@@ -1,0 +1,1 @@
+{"id":"0966bede31aa25b12d9bea851c1be3ff.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_cli_takes_tar_and_writes_changed","name":"`publish` コマンドは、tar を受け取り、変更の有無を `GITHUB_OUTPUT` に書く","status":"passed","testResultsByEnv":{"default":"9a8731f49fb8492ebbd057427285899c"}}

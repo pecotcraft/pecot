@@ -1,0 +1,1 @@
+{"id":"adc71d4203250a75c0cbbe4ee2c91b7b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#extractReferencesIssueNumbers 本文が undefined か空文字なら、空を返す","name":"本文が undefined か空文字なら、空を返す","status":"passed","testResultsByEnv":{"default":"d8da5315d1a95c579a30f870a3cf649b"}}

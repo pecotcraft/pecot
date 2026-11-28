@@ -1,0 +1,1 @@
+{"id":"d9835f60bf5d05f2606ab5a309933e5b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — items imagePath が空文字 の場合は、items[0].imagePath のエラーとして拒否する","name":"imagePath が空文字 の場合は、items[0].imagePath のエラーとして拒否する","status":"passed","testResultsByEnv":{"default":"1bf81f1a42e421e897a9181829890826"}}

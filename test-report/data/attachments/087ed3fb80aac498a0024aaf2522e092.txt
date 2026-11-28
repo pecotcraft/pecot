@@ -1,0 +1,4 @@
+warning: reading Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:35233/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500; not closed
+count: Issues to close: 0
+warning: current repository (acme/demo) differs from the PR's (acme/other); skipped local cleanup

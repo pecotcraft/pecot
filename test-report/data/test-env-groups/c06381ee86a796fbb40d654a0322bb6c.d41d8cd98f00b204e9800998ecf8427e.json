@@ -1,0 +1,1 @@
+{"id":"c06381ee86a796fbb40d654a0322bb6c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#createProject プロジェクトの作成で GraphQL のエラーの場合は、GitHubAPIError が発生する","name":"プロジェクトの作成で GraphQL のエラーの場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"0f76d50b6eeedd2fb4b3f720b72aa28b"}}

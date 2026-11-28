@@ -1,0 +1,27 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "code scanning has 1 open alert\n  #10\n  → https://ghes.example.com/acme/demo/security/code-scanning\n  close them (fixed, or dismissed with a reason) and run the check again"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"code scanning has 1 open alert\\n  #10\\n  → https://ghes.example.com/acme/demo/security/code-scanning\\n  close them (fixed, or dismissed with a reason) and run the check again\",\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":2,\"maxSeverity\":\"critical\",\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"warnings\":[\"2 open Dependabot alerts (highest severity: critical). The release is not blocked.\\n  #1 (medium)\\n  #2 (critical)\\n  → https://ghes.example.com/acme/demo/security/dependabot\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "code scanning has 1 open alert\n  #10\n  → https://ghes.example.com/acme/demo/security/code-scanning\n  close them (fixed, or dismissed with a reason) and run the check again",
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 2,
+      "maxSeverity": "critical",
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "warnings": [
+      "2 open Dependabot alerts (highest severity: critical). The release is not blocked.\n  #1 (medium)\n  #2 (critical)\n  → https://ghes.example.com/acme/demo/security/dependabot"
+    ]
+  },
+  "isError": true
+}

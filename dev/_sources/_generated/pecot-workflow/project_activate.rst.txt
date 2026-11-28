@@ -1,0 +1,8 @@
+:iface-id: PW-PROJECT-ACTIVATE
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Activate project
+================================
+
+.. iface-defs:: pecot-workflow PW-PROJECT-ACTIVATE

@@ -1,0 +1,1 @@
+{"id":"11041c9d590b5a4a14850c1f4b6a648e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations Point / Rect x と w の合計が 1 を超える box は、w のパスで拒否する","name":"x と w の合計が 1 を超える box は、w のパスで拒否する","status":"passed","testResultsByEnv":{"default":"4d100af419349a93f84f9f3d7e2ba378"}}

@@ -1,0 +1,1 @@
+{"id":"e2d6027b7e53a8e94bd43488694ed6d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template 引用符の無い属性値の後ろの属性値 に違反があると、元のファイルの行と桁で指摘を返す","name":"引用符の無い属性値の後ろの属性値 に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"782684d12d74b5dd7b69906bce833ce0"}}

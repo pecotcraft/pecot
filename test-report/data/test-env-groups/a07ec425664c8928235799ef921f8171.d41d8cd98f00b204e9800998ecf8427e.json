@@ -1,0 +1,1 @@
+{"id":"a07ec425664c8928235799ef921f8171.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#removeAnimationTiming p:timing がないスライドの場合は、何も変更しない","name":"p:timing がないスライドの場合は、何も変更しない","status":"passed","testResultsByEnv":{"default":"5c611a405d6f36629c763b81cf573f1e"}}

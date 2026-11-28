@@ -1,0 +1,1 @@
+{"id":"724fe1582f7348054192a17afb876633.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge MCP で一番下でない PR を渡すと、kind が pr-state の失敗を返す","name":"MCP で一番下でない PR を渡すと、kind が pr-state の失敗を返す","status":"passed","testResultsByEnv":{"default":"5acec30c326c6e72507aa751d99ac7fd"}}

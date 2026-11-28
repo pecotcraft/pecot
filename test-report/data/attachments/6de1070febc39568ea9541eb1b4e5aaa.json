@@ -1,0 +1,193 @@
+{
+  "name": "pr_create",
+  "title": "Create PR",
+  "description": "Create a PR (pull request)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "file": {
+        "description": "Path to a Markdown file with front matter",
+        "type": "string"
+      },
+      "message": {
+        "description": "PR body, given directly",
+        "type": "string"
+      },
+      "title": {
+        "description": "PR title (required with `message`)",
+        "type": "string"
+      },
+      "base": {
+        "description": "Base branch (required with `message`)",
+        "type": "string"
+      },
+      "head": {
+        "description": "Head branch, or owner:branch for a branch of a fork (default: the current branch)",
+        "type": "string"
+      },
+      "draft": {
+        "default": false,
+        "description": "Create as a draft PR",
+        "type": "boolean"
+      },
+      "repo": {
+        "description": "Repository in owner/repo form (with `message`)",
+        "type": "string"
+      },
+      "no_issue_ref": {
+        "default": false,
+        "description": "Skip the automatic related-Issue setup (extraction from the branch name, adding it to the body, and the validation check)",
+        "type": "boolean"
+      },
+      "template": {
+        "default": "default",
+        "description": "PR template kind (default / release)",
+        "type": "string"
+      },
+      "screenshot": {
+        "description": "Reason to omit an image from Summary (with `message`)",
+        "type": "string"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "URL of the created PR"
+      },
+      "number": {
+        "description": "Number of the created PR (omitted when the response has none)",
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      },
+      "head": {
+        "type": "string",
+        "description": "Head branch of the PR, owner:branch for a branch of a fork"
+      },
+      "base": {
+        "type": "string",
+        "description": "Base branch of the PR"
+      },
+      "title": {
+        "type": "string",
+        "description": "Title of the PR"
+      },
+      "inReview": {
+        "description": "Issue number whose status was set to In Review (omitted when not set)",
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      },
+      "stack": {
+        "description": "Stack of the PR (omitted when the PR is not stacked)",
+        "type": "object",
+        "properties": {
+          "lower": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "PR number of the lower stage the new PR is stacked on"
+          },
+          "registered": {
+            "type": "boolean",
+            "description": "Whether the new PR was registered to the stack"
+          },
+          "number": {
+            "description": "Stack number (omitted when not registered)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "lower",
+          "registered"
+        ],
+        "additionalProperties": false
+      },
+      "moves": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "type": "string",
+              "description": "Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)"
+            },
+            "from": {
+              "description": "Column before the move (omitted when only the Status changed)",
+              "type": "string"
+            },
+            "to": {
+              "description": "Column after the move (omitted when only the Status changed)",
+              "type": "string"
+            },
+            "label": {
+              "description": "Status value set (omitted when the Status did not change)",
+              "type": "string"
+            },
+            "reason": {
+              "type": "string",
+              "description": "Readiness that decided the move"
+            }
+          },
+          "required": [
+            "issue",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Issues waiting for this PR whose column or Status was written"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "url",
+          "head",
+          "base",
+          "title",
+          "moves"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

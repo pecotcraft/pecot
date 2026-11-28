@@ -1,0 +1,1 @@
+{"id":"9daecf2a210387f237ffd1c0a10f17a1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/hint-catalog.test.ts#ACTION_HINT_COMMANDS board-sync の形の inputs が、action.yml の token 以外の inputs と同じになる","name":"board-sync の形の inputs が、action.yml の token 以外の inputs と同じになる","status":"passed","testResultsByEnv":{"default":"457275d5f2f3523a2a57c7daf96c4aa1"}}

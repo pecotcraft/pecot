@@ -1,0 +1,1 @@
+{"id":"3095ea83c4560718cd533503fac9de21.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/merge.test.ts#mergePptxFiles スライドが 10 枚以上でも、rId、Content_Types、sldIdLst が連続して並ぶ","name":"スライドが 10 枚以上でも、rId、Content_Types、sldIdLst が連続して並ぶ","status":"passed","testResultsByEnv":{"default":"d45f9e1efc172bac4536f73e2d5ff34a"}}

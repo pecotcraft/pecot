@@ -1,0 +1,1 @@
+{"id":"5a58210e8b2bcfc43b6d5de188533cb3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/rules.test.ts#buildRules 除外する規則の ID は、いずれかの preset に存在し、buildRules の結果に含まれない","name":"除外する規則の ID は、いずれかの preset に存在し、buildRules の結果に含まれない","status":"passed","testResultsByEnv":{"default":"c1ce1ec356ab4e1be24df831e72b3ce8"}}

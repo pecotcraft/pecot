@@ -1,0 +1,1 @@
+{"id":"4ff39d8ef497a5ea5e4908bc85987257.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_image_workflow_gives_packages_write_only_to_the_non_pr_job","name":"devcontainer-image.yml は、packages の書き込み権限を、PR ではないジョブにだけ与える","status":"passed","testResultsByEnv":{"default":"dd86504401e9c1aadc80619ec4602370"}}

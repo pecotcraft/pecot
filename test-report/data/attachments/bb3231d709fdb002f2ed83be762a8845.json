@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "not a talk-dir (no slides.md): /tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing; specify the root of a Slidev project"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.dev.error\",\"dir\":\"/tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing\",\"kind\":\"slides-md-not-found\",\"detail\":\"not a talk-dir (no slides.md): /tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing; specify the root of a Slidev project\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.dev.error",
+    "dir": "/tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing",
+    "kind": "slides-md-not-found",
+    "detail": "not a talk-dir (no slides.md): /tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing; specify the root of a Slidev project"
+  },
+  "isError": true
+}

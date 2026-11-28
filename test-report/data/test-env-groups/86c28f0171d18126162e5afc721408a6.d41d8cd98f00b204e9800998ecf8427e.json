@@ -1,0 +1,1 @@
+{"id":"86c28f0171d18126162e5afc721408a6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#isAssignable 担当者の確認で状態コード 404 が返った場合は、false を返す","name":"担当者の確認で状態コード 404 が返った場合は、false を返す","status":"passed","testResultsByEnv":{"default":"706153b81bc50b129ff2b85aafe34545"}}

@@ -1,0 +1,1 @@
+{"id":"2b574d1d16bfadf2b43f4587c1daa9e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh の .pecot/work 配下 work に名前が似たディレクトリには、一致させない","name":"work に名前が似たディレクトリには、一致させない","status":"passed","testResultsByEnv":{"default":"7d2a1cd0aeb3343dce752df6156c23f8"}}

@@ -1,0 +1,1 @@
+{"id":"ac45aa698d41a706fbcb1eabfb610d11.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml — 注記図形 注記の a:off は、レイアウトで求めた位置（offsetXEmu、offsetYEmu）と一致する","name":"注記の a:off は、レイアウトで求めた位置（offsetXEmu、offsetYEmu）と一致する","status":"passed","testResultsByEnv":{"default":"61bbf7bbcb215a532f96d2c7b21370fc"}}

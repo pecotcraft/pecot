@@ -1,0 +1,1 @@
+{"id":"2762f8d6b3adef2431decd23133e375c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_push_skips_deleted_files","name":"push の範囲で削除したファイルは、確認の対象にしない","status":"passed","testResultsByEnv":{"default":"51b4d4f72cdad21d346f8415c20efc2b"}}

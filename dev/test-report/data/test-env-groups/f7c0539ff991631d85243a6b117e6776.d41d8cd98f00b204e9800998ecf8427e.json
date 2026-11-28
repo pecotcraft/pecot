@@ -1,0 +1,1 @@
+{"id":"f7c0539ff991631d85243a6b117e6776.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#writeSessionTitle タイトルを取得できなかった場合は、番号だけのセッション名にする","name":"タイトルを取得できなかった場合は、番号だけのセッション名にする","status":"passed","testResultsByEnv":{"default":"dc0bd0d115dafddc8d11bddcb038bed2"}}

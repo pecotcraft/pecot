@@ -1,0 +1,1 @@
+{"id":"f1749907c9e035ca172f9eb78f97c232.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-directive-on-br.test.ts#no-directive-on-br valid h1 の中の br に v-if があっても、報告しない","name":"h1 の中の br に v-if があっても、報告しない","status":"passed","testResultsByEnv":{"default":"ed050a66da61d3a598bb7ee7d3bc8b63"}}

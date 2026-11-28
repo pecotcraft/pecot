@@ -1,0 +1,1 @@
+{"id":"2a07966d0fda5d0bacaca4901af9a12e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#number の lax な変換（Python の実出力どおり） number に \"+5\" を渡した場合は、整数 5 として読み取る","name":"number に \"+5\" を渡した場合は、整数 5 として読み取る","status":"passed","testResultsByEnv":{"default":"c7d09fe5f3247fc137cdc09770165937"}}

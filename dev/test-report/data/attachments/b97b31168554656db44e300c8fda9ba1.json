@@ -1,0 +1,27 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "params: release_type is nx: Nx Release creates the tag and the release; call release_check without params"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"params\",\"code\":\"unexpected\",\"message\":\"release_type is nx: Nx Release creates the tag and the release; call release_check without params\"}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"}}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "params",
+        "code": "unexpected",
+        "message": "release_type is nx: Nx Release creates the tag and the release; call release_check without params"
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  }
+}

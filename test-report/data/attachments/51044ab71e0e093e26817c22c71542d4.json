@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "base branch feat/demo/11 is gone and it has no merged PR"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"pr-state\",\"detail\":\"base branch feat/demo/11 is gone and it has no merged PR\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "pr-state",
+    "detail": "base branch feat/demo/11 is gone and it has no merged PR"
+  },
+  "isError": true
+}

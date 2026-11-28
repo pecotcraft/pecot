@@ -1,0 +1,1 @@
+{"id":"24d63157ebcdcbd28abe7bf43fe4a4f1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate MCP の data host が渡した設定ファイルの host と違うと、warnings に 1 つ入れる","name":"host が渡した設定ファイルの host と違うと、warnings に 1 つ入れる","status":"passed","testResultsByEnv":{"default":"29f0b0b26af41338c063bb760e7a68a0"}}

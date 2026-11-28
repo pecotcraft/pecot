@@ -1,0 +1,1 @@
+{"id":"529fd3a385ef56e3d1dc0d955c442311.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#案内の文字列を止める lint src/domain/work-start.ts のパス 文字列 に pecot のコマンドの案内を書くと、lint の違反になる","name":"文字列 に pecot のコマンドの案内を書くと、lint の違反になる","status":"passed","testResultsByEnv":{"default":"05d720cfafd80fd32f785b53d864a192"}}

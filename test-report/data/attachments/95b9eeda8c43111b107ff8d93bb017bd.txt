@@ -1,0 +1,2 @@
+error: invalid input: ✖ Invalid input: expected boolean, received string
+  → at dry_run

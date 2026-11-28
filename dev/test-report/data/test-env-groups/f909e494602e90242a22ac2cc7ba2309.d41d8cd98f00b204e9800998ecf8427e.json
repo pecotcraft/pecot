@@ -1,0 +1,1 @@
+{"id":"f909e494602e90242a22ac2cc7ba2309.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 通る値 本文の前後の空白だけが CHANGELOG の節と違うと、同じ本文とみなす","name":"本文の前後の空白だけが CHANGELOG の節と違うと、同じ本文とみなす","status":"passed","testResultsByEnv":{"default":"e65ae7f8d949ef2b77473f0d89801ee4"}}

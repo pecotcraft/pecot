@@ -1,0 +1,1 @@
+{"id":"a205446fdfe8711cc52d113275100a0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyTransition cSld と clrMapOvr が存在しない場合は、スライドの末尾に追加する","name":"cSld と clrMapOvr が存在しない場合は、スライドの末尾に追加する","status":"passed","testResultsByEnv":{"default":"61598ce687ff10ef5210850348d6091f"}}

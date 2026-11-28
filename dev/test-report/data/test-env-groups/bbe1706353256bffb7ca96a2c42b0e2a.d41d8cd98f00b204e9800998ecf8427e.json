@@ -1,0 +1,1 @@
+{"id":"bbe1706353256bffb7ca96a2c42b0e2a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/mcp/session-directory.test.ts#MCP のサーバのセッションのディレクトリ どちらの環境変数も指定しなければ、プラグインの root のリポを使わず、理由を失敗で返す","name":"どちらの環境変数も指定しなければ、プラグインの root のリポを使わず、理由を失敗で返す","status":"passed","testResultsByEnv":{"default":"2bd1c2a976b2a7b49c12cd14d77d6ddc"}}

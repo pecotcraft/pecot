@@ -1,0 +1,36 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-visual",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "spy"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"spy\",\"runtime\":{\"installed\":true,\"downloaded\":false,\"durationMs\":0},\"chromium\":{\"installed\":true,\"downloaded\":false,\"durationMs\":0},\"hostDeps\":{\"installed\":true,\"downloaded\":false,\"durationMs\":0}}"
+    }
+  ],
+  "structuredContent": {
+    "event": "spy",
+    "runtime": {
+      "installed": true,
+      "downloaded": false,
+      "durationMs": 0
+    },
+    "chromium": {
+      "installed": true,
+      "downloaded": false,
+      "durationMs": 0
+    },
+    "hostDeps": {
+      "installed": true,
+      "downloaded": false,
+      "durationMs": 0
+    }
+  }
+}

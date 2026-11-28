@@ -1,0 +1,1 @@
+{"id":"b7869d385934d02eeb27750d4d653d40.a70033ba5c11cffcd82a750d8f6a91e9","fullName":".githooks.tests.test_report_generate#test_real_allure_reads_what_generate_passes_as_readable","name":"履歴が読める形（ideographic-space-line）のとき、本物の allure でも履歴を維持して追記する","status":"passed","testResultsByEnv":{"default":"341cd684f61eabb05c3642164de4aeea"}}

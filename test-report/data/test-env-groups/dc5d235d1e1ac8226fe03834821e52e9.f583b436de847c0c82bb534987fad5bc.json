@@ -1,0 +1,1 @@
+{"id":"dc5d235d1e1ac8226fe03834821e52e9.f583b436de847c0c82bb534987fad5bc","fullName":".githooks.tests.test_pre_commit_config_wiring#test_plugin_validate_runs_when_definitions_change","name":"plugins/pecot-workflow/skills/w-pr/SKILL.md を変更すると、plugin-validate が起動する","status":"passed","testResultsByEnv":{"default":"d73e0c6bcb875f372169ecae8c30c253"}}

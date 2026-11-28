@@ -1,0 +1,1 @@
+{"id":"954fabe09c9c9b99e761dc2341aa282b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の workflow_run CI を直した回数には、別のブランチの目印と、人が書いた目印を含めない","name":"CI を直した回数には、別のブランチの目印と、人が書いた目印を含めない","status":"passed","testResultsByEnv":{"default":"08eda77d07a20282e92d5ba7a8827187"}}

@@ -1,0 +1,1 @@
+{"id":"730d08fb84410c56fcbcf84f53fb3cf7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#足して外すと元の本文に戻る 本文 \"a\\n\\nb\\n\" に行を追加してから削除すると、元の本文に戻る","name":"本文 \"a\\n\\nb\\n\" に行を追加してから削除すると、元の本文に戻る","status":"passed","testResultsByEnv":{"default":"816e692a007270f1ce1a083524396d07"}}

@@ -1,0 +1,1 @@
+{"id":"3f7a22805978e370f591960ee2b71db6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project-check.test.ts#project_check fields project が無く、create の入力を渡し、欄の一覧を読んでいないと、その順に problem にする","name":"project が無く、create の入力を渡し、欄の一覧を読んでいないと、その順に problem にする","status":"passed","testResultsByEnv":{"default":"029f0af2b0f6bd76ea1215e78b956d1b"}}

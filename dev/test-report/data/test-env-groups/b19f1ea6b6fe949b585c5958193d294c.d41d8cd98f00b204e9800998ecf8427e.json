@@ -1,0 +1,1 @@
+{"id":"b19f1ea6b6fe949b585c5958193d294c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/session-start-common.test.ts#session-start-common.sh 別のプロセスが同じロックを保持している間、本体はロックの取得に失敗して何もせず終わる","name":"別のプロセスが同じロックを保持している間、本体はロックの取得に失敗して何もせず終わる","status":"passed","testResultsByEnv":{"default":"81b313e7dc68c449ed251517d4d2e93f"}}

@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated: .github/workflows/pecot-review.yml"
+    },
+    {
+      "type": "text",
+      "text": "{\"path\":\".github/workflows/pecot-review.yml\",\"version\":11,\"installedVersion\":11,\"written\":true,\"removedLines\":[\"      - run: pnpm install --frozen-lockfile\"],\"warnings\":[\"these lines between the markers will be removed:\\n        - run: pnpm install --frozen-lockfile\"]}"
+    }
+  ],
+  "structuredContent": {
+    "path": ".github/workflows/pecot-review.yml",
+    "version": 11,
+    "installedVersion": 11,
+    "written": true,
+    "removedLines": [
+      "      - run: pnpm install --frozen-lockfile"
+    ],
+    "warnings": [
+      "these lines between the markers will be removed:\n        - run: pnpm install --frozen-lockfile"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not find the root directory of the git repository"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\"could not find the root directory of the git repository\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": "could not find the root directory of the git repository"
+  },
+  "isError": true
+}

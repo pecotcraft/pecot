@@ -1,0 +1,21 @@
+[
+  "actions:install",
+  "actions:lint",
+  "interface-spec:install",
+  "interface-spec:lint",
+  "interface-spec:lint-defs",
+  "nx-release:lint-eslint",
+  "pecot-tools:lint",
+  "pecot-visual:install",
+  "pecot-visual:lint-cli",
+  "pecot-visual:lint-slidev",
+  "pecot-workflow:install",
+  "pecot-workflow:lint-cli",
+  "pecot:install",
+  "text-rules:build",
+  "text-rules:install",
+  "text-rules:lint",
+  "workflow-core:build",
+  "workflow-core:install",
+  "workflow-core:lint"
+]

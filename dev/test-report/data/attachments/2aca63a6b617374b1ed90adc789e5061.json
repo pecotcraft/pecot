@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Output validation error: Invalid structured content for tool slide_lint: data must have required property 'outcome', data must have required property 'kind', data must have required property 'detail', data must match a schema in anyOf"
+    }
+  ],
+  "isError": true
+}

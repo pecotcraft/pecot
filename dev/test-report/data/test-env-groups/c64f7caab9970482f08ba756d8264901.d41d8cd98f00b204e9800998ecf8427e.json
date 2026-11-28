@@ -1,0 +1,1 @@
+{"id":"c64f7caab9970482f08ba756d8264901.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_cli_release_with_sources","name":"`publish` コマンドでリリース版を渡すと、`sources` を記録に書き、存在しない作業ディレクトリも作る","status":"passed","testResultsByEnv":{"default":"f2a681b0bce902db8bf1201211858ba2"}}

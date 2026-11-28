@@ -1,0 +1,1 @@
+{"id":"4e328d2a57b8a5263bd86cf1c5b769e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge スタックの一番下の PR をマージすると、スタックの番号と PR の数を添えた merged の行を出す","name":"スタックの一番下の PR をマージすると、スタックの番号と PR の数を添えた merged の行を出す","status":"passed","testResultsByEnv":{"default":"c05a2ed828e299eb46211d552cb46e93"}}

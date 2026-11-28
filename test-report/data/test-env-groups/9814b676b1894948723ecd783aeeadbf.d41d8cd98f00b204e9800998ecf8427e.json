@@ -1,0 +1,1 @@
+{"id":"9814b676b1894948723ecd783aeeadbf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start Issue がボードに載っていないと、Status を変えずに warning の行を標準エラーに出す","name":"Issue がボードに載っていないと、Status を変えずに warning の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"9add04b0798b1b78b75c2a0cdac3b7ea"}}

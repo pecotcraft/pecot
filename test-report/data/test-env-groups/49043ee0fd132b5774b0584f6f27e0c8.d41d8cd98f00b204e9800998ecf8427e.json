@@ -1,0 +1,1 @@
+{"id":"49043ee0fd132b5774b0584f6f27e0c8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_github_ops_workflow_copy#test_ignores_only_the_ref_of_an_action","name":"action の行は、@ の後ろの版だけを伏せ字にする","status":"passed","testResultsByEnv":{"default":"4e63ebac6e01bda538f2e88be14e85c5"}}

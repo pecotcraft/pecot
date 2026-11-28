@@ -1,0 +1,1 @@
+{"id":"697c103b4349e0fa4027409a1368f9cb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#applyPrerenderImageReplace 位置と大きさで一致した場合は、partMap の画像を高解像度の画像に差し替える","name":"位置と大きさで一致した場合は、partMap の画像を高解像度の画像に差し替える","status":"passed","testResultsByEnv":{"default":"b845817dbe436f09e1d1ee50d8869f5a"}}

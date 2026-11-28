@@ -1,0 +1,1 @@
+{"id":"81566dff4642d510b78ab745832e04a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 本体リポジトリだけで使う ruleset release-tags が検証用に存在しなくても、比較の対象にしない","name":"本体リポジトリだけで使う ruleset release-tags が検証用に存在しなくても、比較の対象にしない","status":"passed","testResultsByEnv":{"default":"12cc522b904d29491fc8c9a76845ed3e"}}

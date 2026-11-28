@@ -1,0 +1,1 @@
+{"id":"c3094ce11f47749b8d090fc634b59638.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/pptx-archive.test.ts#YauzlYazlPptxArchive close の後に entries を呼び出すと、エラーが発生する","name":"close の後に entries を呼び出すと、エラーが発生する","status":"passed","testResultsByEnv":{"default":"f29f25726936ad9715b3af8f77da1e0f"}}

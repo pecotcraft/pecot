@@ -1,0 +1,1 @@
+{"id":"14a43a5f818198e75c55f4b8d9af6b72.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/session-start-common.test.ts#session-start-common.sh 設定が無いとき、git pull を呼ばない","name":"設定が無いとき、git pull を呼ばない","status":"passed","testResultsByEnv":{"default":"99b926ddf01b9cc4f1d9d4f9ecf5f2e8"}}

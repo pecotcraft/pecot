@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_athena_get_query_execution succeeded"
+    },
+    {
+      "type": "text",
+      "text": "{\"warnings\":[\"Dropped undeclared top-level keys: NextToken\"]}"
+    }
+  ],
+  "structuredContent": {
+    "warnings": [
+      "Dropped undeclared top-level keys: NextToken"
+    ]
+  }
+}

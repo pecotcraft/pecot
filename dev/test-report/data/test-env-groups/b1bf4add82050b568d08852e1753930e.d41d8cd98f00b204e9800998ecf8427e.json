@@ -1,0 +1,1 @@
+{"id":"b1bf4add82050b568d08852e1753930e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 参照クエリ \"WITH t AS (SELECT 1 AS n) SELECT n FROM t\" は、許可する","name":"参照クエリ \"WITH t AS (SELECT 1 AS n) SELECT n FROM t\" は、許可する","status":"passed","testResultsByEnv":{"default":"b2b0b0011e841d61c306ab051d2c1ede"}}

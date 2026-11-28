@@ -1,0 +1,1 @@
+{"id":"892077e1652d5c69bef1e15c51bb9b5e.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#GHSA- で始まらない advisory で exit 1","name":"GHSA- で始まらない advisory で exit 1","status":"passed","testResultsByEnv":{"default":"cca8ea45c4289b67f4fdae8c9eb6bdba"}}

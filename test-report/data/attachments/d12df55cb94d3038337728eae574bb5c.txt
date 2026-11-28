@@ -1,0 +1,7 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_severity_overrides_only_t0/suite/sample.bats
+1..2
+# pecot-description: 書くテストです。
+# pecot-severity: trivial
+ok 1 書く # in 141 ms
+# pecot-description: 書かないテストです。
+ok 2 書かない # in 106 ms

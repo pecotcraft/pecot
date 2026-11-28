@@ -1,0 +1,1 @@
+{"id":"26d1361b6d8fd8e7aa5a48ee45b44ad8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/issue-surface.test.ts#extractIssueSurface OpenAPI の $ref が文書の外を指す 場合は、REST の項目を出力しない","name":"OpenAPI の $ref が文書の外を指す 場合は、REST の項目を出力しない","status":"passed","testResultsByEnv":{"default":"cbc30555df719c399b18d46cfc6b8961"}}

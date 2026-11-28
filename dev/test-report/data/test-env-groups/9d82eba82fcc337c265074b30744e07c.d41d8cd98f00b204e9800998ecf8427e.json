@@ -1,0 +1,1 @@
+{"id":"9d82eba82fcc337c265074b30744e07c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getCurrentWorktreeName .claude/worktrees のフォルダ名の + を / に戻したブランチがあれば、その名前を返す","name":".claude/worktrees のフォルダ名の + を / に戻したブランチがあれば、その名前を返す","status":"passed","testResultsByEnv":{"default":"b483f695022739eb46afff7954707fb0"}}

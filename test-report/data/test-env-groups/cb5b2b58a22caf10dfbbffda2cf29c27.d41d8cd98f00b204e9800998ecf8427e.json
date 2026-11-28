@@ -1,0 +1,1 @@
+{"id":"cb5b2b58a22caf10dfbbffda2cf29c27.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#judgeSnapshot 取得に失敗した Issue は、判定せずに unreadable のまま返す","name":"取得に失敗した Issue は、判定せずに unreadable のまま返す","status":"passed","testResultsByEnv":{"default":"9c4baeecb074fa88f24336941ccce4fe"}}

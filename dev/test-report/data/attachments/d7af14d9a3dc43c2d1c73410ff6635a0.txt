@@ -1,0 +1,3 @@
+audit cache=/tmp/tmp.pVeHqEfOUy/npm-cache prefer_offline=false offline=false cwd=canary
+audit cache=/tmp/tmp.pVeHqEfOUy/npm-cache prefer_offline=false offline=false cwd=audit-dist-hostile
+audit cache=/tmp/tmp.pVeHqEfOUy/npm-cache prefer_offline=false offline=false cwd=audit-runtime-hostile

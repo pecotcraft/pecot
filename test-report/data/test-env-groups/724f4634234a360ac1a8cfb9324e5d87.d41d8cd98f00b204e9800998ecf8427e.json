@@ -1,0 +1,1 @@
+{"id":"724f4634234a360ac1a8cfb9324e5d87.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#tgz に .map と cert を含むパスが無い","name":"tgz に .map と cert を含むパスが無い","status":"passed","testResultsByEnv":{"default":"cff4d048a3f62a59fa707993a151acb8"}}

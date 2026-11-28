@@ -1,0 +1,1 @@
+{"id":"0d719561ba6aa6210982a93bab14f69e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/attributes.test.ts#validateAttributes number に Infinity を渡すと、取りうる値を示して invalid_value にする","name":"number に Infinity を渡すと、取りうる値を示して invalid_value にする","status":"passed","testResultsByEnv":{"default":"1401fcd60a9167c582b259c1fee1a409"}}

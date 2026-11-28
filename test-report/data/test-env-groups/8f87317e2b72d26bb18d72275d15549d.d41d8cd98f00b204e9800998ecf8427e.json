@@ -1,0 +1,1 @@
+{"id":"8f87317e2b72d26bb18d72275d15549d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-security.test.ts#tracker sync Tracker を作る open の Tracker が無く、載せる alert も無いと、Tracker の Issue を作らない","name":"open の Tracker が無く、載せる alert も無いと、Tracker の Issue を作らない","status":"passed","testResultsByEnv":{"default":"9868b54f5a7abec59cdeffd18d5d6ea4"}}

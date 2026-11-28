@@ -1,0 +1,1 @@
+{"id":"cc65ec801418e019b596d82f21f80d4a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-unknown-props.test.ts#__proto__ などの危険なキーがあると、prototype を汚染せず skip する","name":"__proto__ などの危険なキーがあると、prototype を汚染せず skip する","status":"passed","testResultsByEnv":{"default":"ab4cca2c0713ae6ccec1a60fb25389a0"}}

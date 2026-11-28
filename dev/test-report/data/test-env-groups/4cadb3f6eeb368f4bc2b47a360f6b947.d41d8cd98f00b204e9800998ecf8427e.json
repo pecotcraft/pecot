@@ -1,0 +1,1 @@
+{"id":"4cadb3f6eeb368f4bc2b47a360f6b947.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/changelog-file.test.ts#readChangelogIfExists ファイルが存在すれば内容を、存在しなければ undefined を返す","name":"ファイルが存在すれば内容を、存在しなければ undefined を返す","status":"passed","testResultsByEnv":{"default":"753e19c27bdefadd088e2c1d8f86f3d2"}}

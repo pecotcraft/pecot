@@ -1,0 +1,4 @@
+lanes=[{"lane":"p:test-cli","slug":"p-test-cli"},{"lane":"q:test-hooks","slug":"q-test-hooks"}]
+count=2
+skipped=[]
+lint=run

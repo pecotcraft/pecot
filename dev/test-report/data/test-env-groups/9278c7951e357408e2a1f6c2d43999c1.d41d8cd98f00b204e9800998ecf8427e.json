@@ -1,0 +1,1 @@
+{"id":"9278c7951e357408e2a1f6c2d43999c1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_real_allure_keeps_ten_entries_of_history","name":"本物の allure に 11 行の履歴を渡すと、古い行を捨てて 10 行に詰める","status":"passed","testResultsByEnv":{"default":"f19cdefdbd566788c53d5dac21296b77"}}

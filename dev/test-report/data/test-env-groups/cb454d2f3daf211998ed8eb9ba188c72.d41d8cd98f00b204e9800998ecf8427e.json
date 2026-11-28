@@ -1,0 +1,1 @@
+{"id":"cb454d2f3daf211998ed8eb9ba188c72.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator layout files props を持たないレイアウトのファイルを渡すと、検証を通す","name":"props を持たないレイアウトのファイルを渡すと、検証を通す","status":"passed","testResultsByEnv":{"default":"0d35afb6a7d92cbaa0c081881b5f4934"}}

@@ -1,0 +1,1 @@
+{"id":"1735fbd5493489693226675fd17e2c05.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release .githooks/scripts/tests/attach-mcp-tgz.test.sh#origin が URL でも scp 形式でもない文字列 のとき gh を呼ばない","name":"origin が URL でも scp 形式でもない文字列 のとき gh を呼ばない","status":"passed","testResultsByEnv":{"default":"1075612e9dbba7b455a4ab859b7f27e8"}}

@@ -1,0 +1,1 @@
+{"id":"6d057f9d56131d13c6c8148156715617.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry 認証が完了すると completed になり、output には案内の出力と成功の行の両方が残る","name":"認証が完了すると completed になり、output には案内の出力と成功の行の両方が残る","status":"passed","testResultsByEnv":{"default":"a3914aa618d2f04cdbf29a97392f4e2d"}}

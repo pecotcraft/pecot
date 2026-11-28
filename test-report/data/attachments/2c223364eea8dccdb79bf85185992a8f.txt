@@ -1,0 +1,1 @@
+warning: could not confirm that GitHub reflects PR #21 in the readiness of #13; its column was not moved; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) later to move it

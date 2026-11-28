@@ -1,0 +1,1 @@
+{"id":"a546ad8b774fc199575b2f0e26680c46.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/mcp-cancel.test.ts#session_finish が git pull を待つ間、ping に答え、取り消すとリモートの接続を止める","name":"session_finish が git pull を待つ間、ping に答え、取り消すとリモートの接続を止める","status":"passed","testResultsByEnv":{"default":"2ebea3164ad0ee2fb4f7df1a34213862"}}

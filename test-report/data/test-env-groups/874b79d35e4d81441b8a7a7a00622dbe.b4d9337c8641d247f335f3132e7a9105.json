@@ -1,0 +1,1 @@
+{"id":"874b79d35e4d81441b8a7a7a00622dbe.b4d9337c8641d247f335f3132e7a9105","fullName":".githooks.tests.test_find_pr_ci_base#test_bad_artifact_gives_reason","name":"artifact の検証（not_ancestor）に失敗すると、理由として「main_sha が base の祖先でない」を出力し、pr_main を出力しない","status":"passed","testResultsByEnv":{"default":"0d2821647dcc6242508e716989a3e401"}}

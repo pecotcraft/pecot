@@ -1,0 +1,1 @@
+{"id":"4a376928efd419c2a80e77547a7b68fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.bats#未対応の引数の --dryRun=true と廃止した --repo を渡すと、非ゼロで終了する","name":"未対応の引数の --dryRun=true と廃止した --repo を渡すと、非ゼロで終了する","status":"passed","testResultsByEnv":{"default":"f8f3431b9ef6e8c334fa9373645b9b2c"}}

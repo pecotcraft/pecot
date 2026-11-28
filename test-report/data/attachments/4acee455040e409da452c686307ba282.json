@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_logs_describe_log_groups: log_group_name_prefix: Invalid input: expected string, received number"
+    }
+  ],
+  "isError": true
+}

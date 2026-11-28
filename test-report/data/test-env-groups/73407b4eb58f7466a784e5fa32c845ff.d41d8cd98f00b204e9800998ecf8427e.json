@@ -1,0 +1,1 @@
+{"id":"73407b4eb58f7466a784e5fa32c845ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/tests/lint-rules.test.ts#domain の依存方向 domain から infra を import すると、import-x/no-restricted-paths の違反になる","name":"domain から infra を import すると、import-x/no-restricted-paths の違反になる","status":"passed","testResultsByEnv":{"default":"d542db44fbe80d5a951054ef6fcb5c68"}}

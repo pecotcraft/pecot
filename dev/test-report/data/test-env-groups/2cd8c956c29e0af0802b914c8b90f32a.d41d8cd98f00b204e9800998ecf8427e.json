@@ -1,0 +1,1 @@
+{"id":"2cd8c956c29e0af0802b914c8b90f32a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#readWaitsForMerge 同じリポジトリの Issue を owner/repo#N の形で書いた行も読む","name":"同じリポジトリの Issue を owner/repo#N の形で書いた行も読む","status":"passed","testResultsByEnv":{"default":"eb3755a4d01b6dee19c4724361d32664"}}

@@ -1,0 +1,1 @@
+{"id":"923daf45dac6a673f431eb1a2b479dd1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-describe-title.test.ts#describe-title invalid skipIf で修飾した describe も、題が name に無ければ止める","name":"skipIf で修飾した describe も、題が name に無ければ止める","status":"passed","testResultsByEnv":{"default":"5e381a8c5ccd608042aee65c64908334"}}

@@ -1,0 +1,1 @@
+{"id":"0a5a3abfafe41fb2c4c87540db9079d6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/caret-range.test.ts#caretRangeOutside ^8.3.5 は ^8.3.6 の範囲の外で、理由が「下限未満」になる","name":"^8.3.5 は ^8.3.6 の範囲の外で、理由が「下限未満」になる","status":"passed","testResultsByEnv":{"default":"232326dc82cf2f1101d99f3adbf50c93"}}

@@ -1,0 +1,1 @@
+{"id":"bebd901c1081a0f957441b9b1ac82945.68364969801ee701da8cd1ca1424b0a3","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_superseded_rejects_malformed_run_number","name":"`dev-superseded.mjs` は、run 番号が  のとき、エラーで終了する","status":"passed","testResultsByEnv":{"default":"0895da2f1c1434d96f96a35659412957"}}

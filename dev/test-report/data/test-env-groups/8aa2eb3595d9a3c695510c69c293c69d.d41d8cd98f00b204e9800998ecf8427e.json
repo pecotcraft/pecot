@@ -1,0 +1,1 @@
+{"id":"8aa2eb3595d9a3c695510c69c293c69d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/drawio-icons.test.ts#createIconResolver warn を指定しない場合は、警告を破棄し、例外を発生させない","name":"warn を指定しない場合は、警告を破棄し、例外を発生させない","status":"passed","testResultsByEnv":{"default":"4e5a91d08616357dfeffc5a17221fe68"}}

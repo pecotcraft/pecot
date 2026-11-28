@@ -1,0 +1,1 @@
+{"id":"80a865746d57f0503e74af88f79dbc0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor reads.settings を省く と、secret と変数の項目を skipped にして、不足として数えない","name":"reads.settings を省く と、secret と変数の項目を skipped にして、不足として数えない","status":"passed","testResultsByEnv":{"default":"ee1fadbd4a72b34dd925463aa824e0b3"}}

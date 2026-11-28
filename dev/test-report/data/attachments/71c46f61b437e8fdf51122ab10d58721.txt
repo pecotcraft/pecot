@@ -1,0 +1,3 @@
+count: Issues to close: 1
+skipped: closing Issue #10 (Epic)
+closed: Issue #12

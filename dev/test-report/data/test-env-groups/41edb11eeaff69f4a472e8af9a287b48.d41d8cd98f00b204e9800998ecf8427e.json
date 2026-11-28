@@ -1,0 +1,1 @@
+{"id":"41edb11eeaff69f4a472e8af9a287b48.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_github_ops_workflow_copy#test_reads_a_local_pecot_action_as_the_one_of_the_template","name":"同じリポの pecot の action の行は、雛形の pecot の action の行に読み替える","status":"passed","testResultsByEnv":{"default":"54f8bd09d526a5c2bf2f454f411442b0"}}

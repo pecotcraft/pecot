@@ -1,0 +1,1 @@
+{"id":"680af8843690b2aa59b5dd705e9b3bad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack スタックし直し済みの判断 親ブランチが古い位置へ戻された後に check を付けると、needs restack の行を出す","name":"親ブランチが古い位置へ戻された後に check を付けると、needs restack の行を出す","status":"passed","testResultsByEnv":{"default":"b8e7fe3e5f5b68721677036bb458bfa7"}}

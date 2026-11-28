@@ -1,0 +1,1 @@
+{"id":"f4399795d7b52e74008a956381139aaa.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.bats#SCRIPT_DIR の末尾の 1 段を削った参照は、1 段上のディレクトリから解決する","name":"SCRIPT_DIR の末尾の 1 段を削った参照は、1 段上のディレクトリから解決する","status":"passed","testResultsByEnv":{"default":"998f9aa36b7c5b6cbe671a827c1daf1b"}}

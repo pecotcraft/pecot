@@ -1,0 +1,1 @@
+{"id":"e177ae502e9f7b27c5005b8b77b85431.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/plugin-manifests.test.ts#プラグインの 2 組の manifest plugin.json の name・version が .claude-plugin/plugin.json と一致する","name":"plugin.json の name・version が .claude-plugin/plugin.json と一致する","status":"passed","testResultsByEnv":{"default":"f3b5f4f2ac3f7faa3f0cb16563c13369"}}

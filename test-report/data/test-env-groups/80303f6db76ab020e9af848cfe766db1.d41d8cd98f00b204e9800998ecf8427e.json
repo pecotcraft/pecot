@@ -1,0 +1,1 @@
+{"id":"80303f6db76ab020e9af848cfe766db1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/mcp/session-directory.test.ts#MCP のサーバのセッションのディレクトリ プラグインの root で起動され、COPILOT_SESSION_CWD があれば、そのリポを対象にする","name":"プラグインの root で起動され、COPILOT_SESSION_CWD があれば、そのリポを対象にする","status":"passed","testResultsByEnv":{"default":"647a7a75a5178b3b28758c93c5a750e6"}}

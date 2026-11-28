@@ -1,0 +1,1 @@
+{"id":"7bba011ef7af8f52f74bd0b28f1fc389.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#例外クラス InvalidVersionError は ChangelogError を継承している","name":"InvalidVersionError は ChangelogError を継承している","status":"passed","testResultsByEnv":{"default":"5827fe1e8b7f4c258e888e8540106cb6"}}

@@ -1,0 +1,1 @@
+{"id":"21a56589406a1f6631d9351b16d026c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 未編集プレースホルダの検出と正当な `<...>` の通過（#962） `<` を閉じ忘れても、次の行以降を検証の対象から外さない","name":"`<` を閉じ忘れても、次の行以降を検証の対象から外さない","status":"passed","testResultsByEnv":{"default":"e47a73937d8b4672a5fc703e094bba32"}}

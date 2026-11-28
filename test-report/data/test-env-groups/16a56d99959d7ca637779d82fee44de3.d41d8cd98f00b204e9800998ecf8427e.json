@@ -1,0 +1,1 @@
+{"id":"16a56d99959d7ca637779d82fee44de3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/verifies.test.ts#verifies NX_TASK_TARGET_TARGET が空だと、annotate だけを呼び出し、リンクと tag のラベルは追加しない","name":"NX_TASK_TARGET_TARGET が空だと、annotate だけを呼び出し、リンクと tag のラベルは追加しない","status":"passed","testResultsByEnv":{"default":"607be8c70178c9feb13873b89bed8e42"}}

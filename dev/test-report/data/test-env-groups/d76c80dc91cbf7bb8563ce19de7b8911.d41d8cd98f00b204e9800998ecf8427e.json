@@ -1,0 +1,1 @@
+{"id":"d76c80dc91cbf7bb8563ce19de7b8911.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/plugin-manifests.test.ts#プラグインの 2 組の manifest plugin.json は 1.0 の閉じたスキーマに無いキーを持たず、description を持つ","name":"plugin.json は 1.0 の閉じたスキーマに無いキーを持たず、description を持つ","status":"passed","testResultsByEnv":{"default":"db33ae06a0759152308e45909f464d79"}}

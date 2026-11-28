@@ -1,0 +1,1 @@
+{"id":"f9aef6b692329770e0b86fc4bdcaccb4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/issues.test.ts#issuesToFindings 空の文字列は is empty とし、既定値を書ける欄には括弧の案内を付けて報告する","name":"空の文字列は is empty とし、既定値を書ける欄には括弧の案内を付けて報告する","status":"passed","testResultsByEnv":{"default":"3f72dedd70ea76f16ff77addca0634f0"}}

@@ -1,0 +1,1 @@
+{"id":"7b99785711a3f2ac6178900de66547d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/failure-kinds-definition.test.ts#定義書の exit_status と FAILURE_KINDS 定義書の `exit_status[].kind` の集合が、`FAILURE_KINDS` と一致する","name":"定義書の `exit_status[].kind` の集合が、`FAILURE_KINDS` と一致する","status":"passed","testResultsByEnv":{"default":"0627e8011237e174db8bec4e3e36409b"}}

@@ -1,0 +1,1 @@
+{"id":"4e3005b15b6b6b984f262ce3d0d619c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#markerBranch 開いた PR を持つブランチを、末尾が Issue の番号のブランチより優先して選ぶ","name":"開いた PR を持つブランチを、末尾が Issue の番号のブランチより優先して選ぶ","status":"passed","testResultsByEnv":{"default":"8eb14fc2520f3dfb4487ff7960db0151"}}

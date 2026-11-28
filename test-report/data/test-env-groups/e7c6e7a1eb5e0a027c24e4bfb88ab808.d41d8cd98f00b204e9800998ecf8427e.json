@@ -1,0 +1,1 @@
+{"id":"e7c6e7a1eb5e0a027c24e4bfb88ab808.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations Point / Rect box で y が文字列 の場合は、拒否する","name":"box で y が文字列 の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"043c9997c385694d40634f61823ce4c5"}}

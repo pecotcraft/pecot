@@ -1,0 +1,1 @@
+{"id":"2af3f71a124b3cea0ec49e029f44354e.5830c16a512b34c30bb4dbbfee3039ab","fullName":".githooks.tests.test_pages_release#test_build_passes_plugins_in_the_report_to_container","name":"リリース版の build は、レポートに入るプラグインを、partial の場合の値でコンテナに渡す","status":"passed","testResultsByEnv":{"default":"62af5e57776bac3a8200b12d56815b1f"}}

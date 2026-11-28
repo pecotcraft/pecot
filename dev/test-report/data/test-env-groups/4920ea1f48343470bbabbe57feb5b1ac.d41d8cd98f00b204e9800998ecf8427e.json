@@ -1,0 +1,1 @@
+{"id":"4920ea1f48343470bbabbe57feb5b1ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slide-url.test.ts#parseSlideUrl クエリに clicks=N がある URL は、N を clickStep として解析する","name":"クエリに clicks=N がある URL は、N を clickStep として解析する","status":"passed","testResultsByEnv":{"default":"17b6ee303813f68ee1064f0955de0e2e"}}

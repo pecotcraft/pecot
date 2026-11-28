@@ -1,0 +1,1 @@
+{"id":"70ec208ccc0c29d29fb29c580d3abcc4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#401 のときの gh auth token への切り替え 診断の出力先に createOutput を渡すと、stderr に変更前と同じ 2 行の警告を出力する","name":"診断の出力先に createOutput を渡すと、stderr に変更前と同じ 2 行の警告を出力する","status":"passed","testResultsByEnv":{"default":"47bab96b2bed091cb465b073d66b0ce9"}}

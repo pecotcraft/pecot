@@ -1,0 +1,1 @@
+{"id":"002727b04d8763ac848fc91491ab9cbd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-stop.test.ts#stopWith 終了コードを指定した場合は、その終了コードで処理を止める","name":"終了コードを指定した場合は、その終了コードで処理を止める","status":"passed","testResultsByEnv":{"default":"9d0e2c76993bd939fdbcc4f79b9e5818"}}

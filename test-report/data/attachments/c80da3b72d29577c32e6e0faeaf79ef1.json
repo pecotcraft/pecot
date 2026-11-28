@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_cloudwatch_get_metric_statistics: statistics: Too big: expected array to have <=5 items"
+    }
+  ],
+  "isError": true
+}

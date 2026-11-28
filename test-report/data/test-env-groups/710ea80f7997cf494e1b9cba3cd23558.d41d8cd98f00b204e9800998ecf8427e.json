@@ -1,0 +1,1 @@
+{"id":"710ea80f7997cf494e1b9cba3cd23558.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/text-violation.test.ts#SC-002 止める場所ごとの規則名の一致 fragment を lintText に渡すと、ほかの止める場所と同じ 3 つの規則名を返す","name":"fragment を lintText に渡すと、ほかの止める場所と同じ 3 つの規則名を返す","status":"passed","testResultsByEnv":{"default":"e663150d092afd1f908fa518e6fc282f"}}

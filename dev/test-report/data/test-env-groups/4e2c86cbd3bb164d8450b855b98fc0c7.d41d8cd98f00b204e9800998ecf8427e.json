@@ -1,0 +1,1 @@
+{"id":"4e2c86cbd3bb164d8450b855b98fc0c7.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.bats#変数で始まらない裸の参照は、UNRESOLVED と判定する","name":"変数で始まらない裸の参照は、UNRESOLVED と判定する","status":"passed","testResultsByEnv":{"default":"e78a1833eda829fa4a0d4874ca86a9bd"}}

@@ -1,0 +1,1 @@
+{"id":"8e461a3403c6562f42abbbc9faa564a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/drawio-icons.test.ts#createIconResolver スラッシュだけのパスを指定すると、アイコンを解決せず undefined を返す","name":"スラッシュだけのパスを指定すると、アイコンを解決せず undefined を返す","status":"passed","testResultsByEnv":{"default":"0ac76eec60a87989b62d2b8f22d06d1a"}}

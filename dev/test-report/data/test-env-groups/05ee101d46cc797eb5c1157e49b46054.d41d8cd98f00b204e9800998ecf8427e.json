@@ -1,0 +1,1 @@
+{"id":"05ee101d46cc797eb5c1157e49b46054.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#manifest の読み書き 書き込みに失敗した場合も、一時ファイルを残さず、旧 manifest を変更しない","name":"書き込みに失敗した場合も、一時ファイルを残さず、旧 manifest を変更しない","status":"passed","testResultsByEnv":{"default":"97cb8a4f6e421d9cb9d9ff91814edf90"}}

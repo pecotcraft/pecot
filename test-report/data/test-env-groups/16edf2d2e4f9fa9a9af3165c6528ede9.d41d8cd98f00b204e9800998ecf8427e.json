@@ -1,0 +1,1 @@
+{"id":"16edf2d2e4f9fa9a9af3165c6528ede9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#typescriptStrings: 構文の誤りを含むコード 閉じていない文字列の行は調べず、終了コード 2 の実行の失敗にもしない","name":"閉じていない文字列の行は調べず、終了コード 2 の実行の失敗にもしない","status":"passed","testResultsByEnv":{"default":"af64e7daa9ddc5215ca6734cdeb6d3c7"}}

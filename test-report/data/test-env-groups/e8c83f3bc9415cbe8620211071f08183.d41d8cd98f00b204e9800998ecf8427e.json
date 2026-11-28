@@ -1,0 +1,1 @@
+{"id":"e8c83f3bc9415cbe8620211071f08183.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-shared.test.ts#status の検証 定義に存在しない status を指定した場合は、有効な値を案内して止める","name":"定義に存在しない status を指定した場合は、有効な値を案内して止める","status":"passed","testResultsByEnv":{"default":"97ea2aa6f60b16b3347f94028c9f473c"}}

@@ -1,0 +1,1 @@
+{"id":"2fdf40d25c30d2b85bd5b574bc416b7d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#.pecot/.gitignore の生成スクリプトの探索 プラグインのルートにスクリプトが存在しない場合でも、その場所の候補パスを返す","name":"プラグインのルートにスクリプトが存在しない場合でも、その場所の候補パスを返す","status":"passed","testResultsByEnv":{"default":"f30ce77e657e3378a2bc62fac5ea68be"}}

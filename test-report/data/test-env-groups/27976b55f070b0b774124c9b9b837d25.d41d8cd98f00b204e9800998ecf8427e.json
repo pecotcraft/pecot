@@ -1,0 +1,1 @@
+{"id":"27976b55f070b0b774124c9b9b837d25.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#parseReads 形が合わない カード の結果があると、github-mcp-shape で止める","name":"形が合わない カード の結果があると、github-mcp-shape で止める","status":"passed","testResultsByEnv":{"default":"cb1a75fb1a6d8b8935f16fd762afad60"}}

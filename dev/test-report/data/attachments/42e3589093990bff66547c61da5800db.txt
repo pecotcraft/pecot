@@ -1,0 +1,5 @@
+[NG] /tmp/lint-design-wKDacf/error.md: errors 1 / warnings 1 / infos 2
+  error broken-ref components.title: Reference {colors.missing} does not resolve to any defined token.
+  warning orphaned-tokens colors.text-primary: 'text-primary' is defined but never referenced by any component.
+[NG] /tmp/lint-design-wKDacf/error.md: 未解決の参照 1 件
+  {colors.missing}

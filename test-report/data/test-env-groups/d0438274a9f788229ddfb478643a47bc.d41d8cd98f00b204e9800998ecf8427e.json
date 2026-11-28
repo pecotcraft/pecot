@@ -1,0 +1,1 @@
+{"id":"d0438274a9f788229ddfb478643a47bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#errorData — 失敗時の data spec を読めないときは input-not-found を返す","name":"spec を読めないときは input-not-found を返す","status":"passed","testResultsByEnv":{"default":"baadf56450007e0901f4852bd17fc0d2"}}

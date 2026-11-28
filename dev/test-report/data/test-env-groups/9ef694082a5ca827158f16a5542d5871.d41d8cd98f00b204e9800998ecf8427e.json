@@ -1,0 +1,1 @@
+{"id":"9ef694082a5ca827158f16a5542d5871.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#writeSessionTitle プロジェクトルートを特定できない場合は、ProjectRootNotFoundError を送出する","name":"プロジェクトルートを特定できない場合は、ProjectRootNotFoundError を送出する","status":"passed","testResultsByEnv":{"default":"35575e2cc42405d4cc6a9c57ca14de6c"}}

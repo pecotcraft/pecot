@@ -1,0 +1,1 @@
+{"id":"cfb96ba0b53aea2264fcdfbc5a31f222.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#executeSlideLint clean な talk-dir は slide.lint.done に件数を載せる","name":"clean な talk-dir は slide.lint.done に件数を載せる","status":"passed","testResultsByEnv":{"default":"f11af6947566e3a411ca69313a2d4fa3"}}

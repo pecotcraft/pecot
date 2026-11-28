@@ -1,0 +1,1 @@
+{"id":"8a36abf2c04ceaa79357c8bf1f9b0874.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/annotations.test.ts#effects against mcp.annotations destructiveHint が effects の destructive と食い違うと、検証エラーにする","name":"destructiveHint が effects の destructive と食い違うと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"0e161618459119141df4b5ed93c5cfe8"}}

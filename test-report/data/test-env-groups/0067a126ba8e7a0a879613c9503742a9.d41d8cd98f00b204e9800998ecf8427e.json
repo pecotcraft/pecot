@@ -1,0 +1,1 @@
+{"id":"0067a126ba8e7a0a879613c9503742a9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_without_arguments_passes","name":"引数を渡さずに check-text.sh を実行すると、成功で終わる","status":"passed","testResultsByEnv":{"default":"3819721278652b15ee09b30e1ac4942e"}}

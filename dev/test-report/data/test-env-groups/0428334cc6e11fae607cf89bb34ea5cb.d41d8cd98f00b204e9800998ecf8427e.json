@@ -1,0 +1,1 @@
+{"id":"0428334cc6e11fae607cf89bb34ea5cb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/board-sync-workflow-template.test.ts#board sync のワークフローの雛形 checkout は ref を指定せず、資格情報を残さない","name":"checkout は ref を指定せず、資格情報を残さない","status":"passed","testResultsByEnv":{"default":"8a67c19bf9bc2d092d1ab3fc1c5cc440"}}

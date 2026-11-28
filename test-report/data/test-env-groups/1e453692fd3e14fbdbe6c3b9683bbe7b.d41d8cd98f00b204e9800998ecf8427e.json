@@ -1,0 +1,1 @@
+{"id":"1e453692fd3e14fbdbe6c3b9683bbe7b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#manifest の読み書き 一時ファイルが残っていても、次回の読み込みは成功する","name":"一時ファイルが残っていても、次回の読み込みは成功する","status":"passed","testResultsByEnv":{"default":"d37309dc7201d099061d55213304e4fa"}}

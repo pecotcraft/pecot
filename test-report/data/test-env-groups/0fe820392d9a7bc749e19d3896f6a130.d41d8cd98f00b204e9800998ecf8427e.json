@@ -1,0 +1,1 @@
+{"id":"0fe820392d9a7bc749e19d3896f6a130.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-gate.test.ts#auto gate 読めないイベントと GitHub の失敗 ラベルを付けた人の権限を読めないと、Issue を読まずに proceed を偽にする","name":"ラベルを付けた人の権限を読めないと、Issue を読まずに proceed を偽にする","status":"passed","testResultsByEnv":{"default":"755fe385d43ec693a4f079ad9d1dfa13"}}

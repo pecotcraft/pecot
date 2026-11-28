@@ -1,0 +1,1 @@
+{"id":"23ad97041989f8fdeaa5500dbc13a7b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/branch-name.test.ts#activeIssueFromBranch ブランチ main の場合は、作業中の Issue は存在しないとして undefined を返す","name":"ブランチ main の場合は、作業中の Issue は存在しないとして undefined を返す","status":"passed","testResultsByEnv":{"default":"83e9887ad9c0ed1b544c1f56e505d7e3"}}

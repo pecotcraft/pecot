@@ -1,0 +1,1 @@
+{"id":"43be2cde7767947bbddb58fe434bd4eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#runSlideLint の talk-dir 検証 talk-dir に相対パスを指定すると、使い方の誤りの例外が発生する","name":"talk-dir に相対パスを指定すると、使い方の誤りの例外が発生する","status":"passed","testResultsByEnv":{"default":"515eb520960fa518a18f24e4f12f7ce3"}}

@@ -1,0 +1,1 @@
+{"id":"6fbf9489260196983092512687d86840.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#isMissingHostDependencies ライブラリ名を取り出せる失敗と、パッケージの案内だけの枠付きの失敗は、どちらも依存の不足と判定する","name":"ライブラリ名を取り出せる失敗と、パッケージの案内だけの枠付きの失敗は、どちらも依存の不足と判定する","status":"passed","testResultsByEnv":{"default":"f32cc60461518ccc7b44530d85225fb3"}}

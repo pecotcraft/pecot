@@ -1,0 +1,1 @@
+{"id":"02edf8751ad2f3bed3b629c7d670faa1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/hint-catalog.test.ts#ACTION_HINT_COMMANDS review-finish の形の inputs が、action.yml の token 以外の inputs と同じになる","name":"review-finish の形の inputs が、action.yml の token 以外の inputs と同じになる","status":"passed","testResultsByEnv":{"default":"853a3ee83046d8cc855f18e3fd7c5156"}}

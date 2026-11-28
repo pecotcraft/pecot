@@ -1,0 +1,1 @@
+{"id":"ab91e5d05c2493e04352480e87ad7b7e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#アクティブ設定 .active に絶対パスが書かれている場合は、そのパスを返す","name":".active に絶対パスが書かれている場合は、そのパスを返す","status":"passed","testResultsByEnv":{"default":"09ea0eb82bcca87af1e0024963d4e1a4"}}

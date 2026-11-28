@@ -1,0 +1,1 @@
+{"id":"00bb9382e1fa38d7d1d848b61f3cc078.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: Chromium の OS ライブラリ Chromium の取得に失敗したら OS ライブラリの確認はしない","name":"Chromium の取得に失敗したら OS ライブラリの確認はしない","status":"passed","testResultsByEnv":{"default":"c17540d156c0ec7ad6646cfab2274b11"}}

@@ -1,0 +1,1 @@
+{"id":"837905047da85c74f552bd2aa163bf67.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#parseFrontmatter title・type・repository・status と本文のあるコンテンツを渡すと、フロントマターと本文を取り出す","name":"title・type・repository・status と本文のあるコンテンツを渡すと、フロントマターと本文を取り出す","status":"passed","testResultsByEnv":{"default":"9f452a64207210893b7b5ddcd6ca074f"}}

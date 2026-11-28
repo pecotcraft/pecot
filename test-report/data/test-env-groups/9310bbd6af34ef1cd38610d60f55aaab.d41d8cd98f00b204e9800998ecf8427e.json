@@ -1,0 +1,1 @@
+{"id":"9310bbd6af34ef1cd38610d60f55aaab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish Issue の close に失敗したなら、ほかの Issue と後の処理を続ける","name":"Issue の close に失敗したなら、ほかの Issue と後の処理を続ける","status":"passed","testResultsByEnv":{"default":"60ee8918cf2d5af3943db5bc92f541f8"}}

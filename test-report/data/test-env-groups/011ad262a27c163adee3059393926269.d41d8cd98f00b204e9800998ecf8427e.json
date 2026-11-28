@@ -1,0 +1,1 @@
+{"id":"011ad262a27c163adee3059393926269.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add path の worktree が wt1 を使っていても、それを数えて次の番号のセットに worktree を作る","name":"path の worktree が wt1 を使っていても、それを数えて次の番号のセットに worktree を作る","status":"passed","testResultsByEnv":{"default":"d55bc5fb64b781fcce79ab1fda08bed7"}}

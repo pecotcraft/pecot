@@ -1,0 +1,1 @@
+{"id":"9d3b3766c4766b6b932f6d268e96c8c8.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_sections_appear_in_order_and_empty_ones_are_left_out","name":"節は決まった順に並び、内容のない節は表示しない","status":"passed","testResultsByEnv":{"default":"d3779f65c221f39d8148910a1c5cf981"}}

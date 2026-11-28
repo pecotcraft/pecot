@@ -1,0 +1,1 @@
+{"id":"4f114961ebcd452c7c7c110a172133c7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-finish.test.ts#auto finish result の無い body-file を渡すと、何も読まずに終了コード 1 で終わる","name":"result の無い body-file を渡すと、何も読まずに終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"a961a660b32522b793cf041d965804d6"}}

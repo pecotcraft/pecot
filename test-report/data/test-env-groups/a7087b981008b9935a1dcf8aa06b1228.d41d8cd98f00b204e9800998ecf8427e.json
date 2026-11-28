@@ -1,0 +1,1 @@
+{"id":"a7087b981008b9935a1dcf8aa06b1228.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#removeIssueLabel ラベルの削除で状態コード 500 が返った場合は、GitHubAPIError が発生する","name":"ラベルの削除で状態コード 500 が返った場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"6ba99bc1ffdc264d06abcfe5e5375d0d"}}

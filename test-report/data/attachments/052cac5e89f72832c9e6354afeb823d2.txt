@@ -1,0 +1,3 @@
+dry-run: would move config file /p/old.json to /p/new.json
+warning: the project config is now named new
+  use this name for the project input and the PECOT_REVIEW_PROJECT variable

@@ -1,0 +1,1 @@
+{"id":"69934d213e78e4e547bce998da119ac6.93254117a68b5d9e05556ae92058bf7a","fullName":".githooks.tests.test_pages_provenance#test_head_not_ancestor_of_main_is_dropped","name":"workflow_dispatch の run は、head が main の祖先でないと破棄する","status":"passed","testResultsByEnv":{"default":"4e9ca3ce93cd4b11a95bddaaba4b8a50"}}

@@ -1,0 +1,1 @@
+{"id":"f61308e03354dcfbc3e9f201123252f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestForFinish 既定ブランチがないリポジトリでは、default_branch を undefined にする","name":"既定ブランチがないリポジトリでは、default_branch を undefined にする","status":"passed","testResultsByEnv":{"default":"9a8cf386781a7899f71d7be0cb4b2fee"}}

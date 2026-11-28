@@ -1,0 +1,1 @@
+{"id":"e42285c5107224f57be43a6d5b4db3b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — PNG PNG は、シグネチャが一致していても、24 バイトに満たない場合は、読み取れないものとして扱う","name":"PNG は、シグネチャが一致していても、24 バイトに満たない場合は、読み取れないものとして扱う","status":"passed","testResultsByEnv":{"default":"4bc0b26f05d1cbff3956fc26da2320c4"}}

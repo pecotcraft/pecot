@@ -1,0 +1,1 @@
+{"id":"45a7aa5d093ca83eb2249cca1897a1b0.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_environment_section_defaults","name":"`PECOT_CI_IMAGE` を指定しない場合は、イメージを `-` と表示する","status":"passed","testResultsByEnv":{"default":"49c36928d88fb6a2cdb9d021ac8146e3"}}

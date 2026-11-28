@@ -1,0 +1,1 @@
+{"id":"f92954c89c1b7498733ba7754343d233.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyHyperlinkFix a:rPr が存在しない run の場合は、変換しない (ハイパーリンクの変換)","name":"a:rPr が存在しない run の場合は、変換しない (ハイパーリンクの変換)","status":"passed","testResultsByEnv":{"default":"ee4d5c27278a4e11a52797538e564d9b"}}

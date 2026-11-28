@@ -1,0 +1,1 @@
+{"id":"1c73ef6e801c1b9cec9a8714c22372fd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#isDone・isInReview・hasStarted open の PR をちょうど 1 本持ち、fork からの PR でない Issue は、PR 中と判定する","name":"open の PR をちょうど 1 本持ち、fork からの PR でない Issue は、PR 中と判定する","status":"passed","testResultsByEnv":{"default":"f0d43bfd28e08934a1d420e9b3bdc339"}}

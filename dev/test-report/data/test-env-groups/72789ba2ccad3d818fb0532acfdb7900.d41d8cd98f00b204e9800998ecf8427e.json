@@ -1,0 +1,1 @@
+{"id":"72789ba2ccad3d818fb0532acfdb7900.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueNodeId / getIssueNodeIdAndTitle owner・repo・番号を変数に送信し、Node ID を返す","name":"owner・repo・番号を変数に送信し、Node ID を返す","status":"passed","testResultsByEnv":{"default":"a900ce569d28109730372e7f988b88af"}}

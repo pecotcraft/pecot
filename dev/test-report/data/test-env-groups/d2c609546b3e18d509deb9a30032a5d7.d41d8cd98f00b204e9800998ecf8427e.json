@@ -1,0 +1,1 @@
+{"id":"d2c609546b3e18d509deb9a30032a5d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-case.test.ts#interface-case の準備 入力の検証に失敗すると、ZodError をそのまま投げる","name":"入力の検証に失敗すると、ZodError をそのまま投げる","status":"passed","testResultsByEnv":{"default":"d2dd2576a57de88adf25f4dc909c4c18"}}

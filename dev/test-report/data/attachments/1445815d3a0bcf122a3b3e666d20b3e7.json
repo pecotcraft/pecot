@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid input: method: Invalid option: expected one of \"add\"|\"update\""
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid input: method: Invalid option: expected one of \\\"add\\\"|\\\"update\\\"\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: method: Invalid option: expected one of \"add\"|\"update\""
+  },
+  "isError": true
+}

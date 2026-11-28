@@ -1,0 +1,1 @@
+{"id":"fef58d0d26a670124f04ba5662f24a4b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の style とその他 閉じていないコメントは、style の末尾までをコメントとして読む","name":"閉じていないコメントは、style の末尾までをコメントとして読む","status":"passed","testResultsByEnv":{"default":"18bea7748a0d0c7d5e549370b3b67923"}}

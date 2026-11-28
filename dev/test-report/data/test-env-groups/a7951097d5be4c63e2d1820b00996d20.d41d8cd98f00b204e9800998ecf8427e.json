@@ -1,0 +1,1 @@
+{"id":"a7951097d5be4c63e2d1820b00996d20.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: Python 先頭に BOM があっても、指摘の桁がずれない","name":"先頭に BOM があっても、指摘の桁がずれない","status":"passed","testResultsByEnv":{"default":"89e86799a68a11655f00c31e9cab9eda"}}

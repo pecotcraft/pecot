@@ -1,0 +1,1 @@
+error: screenshot is for message; write the reason in the `screenshot` frontmatter field instead

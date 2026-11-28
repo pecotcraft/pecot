@@ -1,0 +1,6 @@
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "additionalContext": "warning: the Bash command contains `/tmp/<X>`.\n  Work products of an agent or session are not visible to the user, so use `.pecot/work/<task ID>/<X>` instead.\n  - Example: `/tmp/release-smoke` -> `.pecot/work/655/release-smoke`\n  - System inspection (`find /tmp`, `ls /tmp`, etc.) and `/tmpfs` paths can be ignored\n  - A `/tmp/<path>` the user explicitly specified can be ignored."
+  }
+}

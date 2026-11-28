@@ -1,0 +1,5 @@
+-C	/tmp/pecot-hooks-nVfMpv/sync-entry	rev-parse	--show-toplevel	
+-C	/tmp/pecot-hooks-nVfMpv/sync-entry	diff	--quiet	
+-C	/tmp/pecot-hooks-nVfMpv/sync-entry	diff	--staged	--quiet	
+-C	/tmp/pecot-hooks-nVfMpv/sync-entry	branch	--show-current	
+pull	

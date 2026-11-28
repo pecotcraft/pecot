@@ -1,0 +1,1 @@
+{"id":"b461797860850e75ea7c6cbd0205f23a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/body-extractor.test.ts#段落の中のコメントを消しても、後続の本文の行をずらさない","name":"段落の中のコメントを消しても、後続の本文の行をずらさない","status":"passed","testResultsByEnv":{"default":"4488abf6e996670fb41e4b84160e1e63"}}

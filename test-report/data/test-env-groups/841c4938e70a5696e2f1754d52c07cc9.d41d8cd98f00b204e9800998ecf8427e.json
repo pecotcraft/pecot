@@ -1,0 +1,1 @@
+{"id":"841c4938e70a5696e2f1754d52c07cc9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 3 種の機能が無効だと、skipped の行を標準エラーに出し、終了コード 0 で終わる","name":"3 種の機能が無効だと、skipped の行を標準エラーに出し、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"3ad9fd854f2cb922cc332bd07157471f"}}

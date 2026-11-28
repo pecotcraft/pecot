@@ -1,0 +1,1 @@
+{"id":"6779811b537c701a3e1713487b0642bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#extractVersionReleaseNotes のリンクと脚注の定義 節の外から加える脚注の定義の中で使う定義も加え、除く脚注の定義の中の参照は数えない","name":"節の外から加える脚注の定義の中で使う定義も加え、除く脚注の定義の中の参照は数えない","status":"passed","testResultsByEnv":{"default":"a939686baa19439b39622bcad1e7edfe"}}

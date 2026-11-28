@@ -1,0 +1,170 @@
+{
+  "name": "project_create",
+  "title": "Create project",
+  "description": "Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project_init)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "owner": {
+        "type": "string",
+        "description": "Project owner"
+      },
+      "title": {
+        "type": "string",
+        "description": "Project title"
+      },
+      "host": {
+        "default": "github.com",
+        "description": "GitHub host",
+        "type": "string"
+      },
+      "lanes": {
+        "description": "Values of the pecot-lane field: the areas of work, such as plugins, teams or services. GitHub shows them on the board, so use English names. Values already on the board are kept",
+        "minItems": 1,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "owner",
+      "title"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "number": {
+        "description": "Number of the created project (omitted when the response has none)",
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      },
+      "url": {
+        "description": "URL of the created project (omitted when the response has none)",
+        "type": "string"
+      },
+      "title": {
+        "type": "string",
+        "description": "Title of the project"
+      },
+      "owner": {
+        "type": "string",
+        "description": "Project owner"
+      },
+      "fields": {
+        "description": "The fields of the created project, in the same rows as project_init (omitted when the command stopped before the fields)",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name of the project field"
+            },
+            "change": {
+              "type": "string",
+              "enum": [
+                "create",
+                "update",
+                "unchanged",
+                "skip",
+                "rename",
+                "delete"
+              ],
+              "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status; delete: the field was deleted with confirm_delete"
+            },
+            "addedOptions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Names of the options added to the field (empty when none)"
+            }
+          },
+          "required": [
+            "name",
+            "change",
+            "addedOptions"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "view": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "boolean",
+            "description": "Whether the view was created; false when a view of that name already exists or it has to be created by hand"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the view (Lanes)"
+          },
+          "url": {
+            "description": "URL of the view (omitted when it has to be created by hand)",
+            "type": "string"
+          },
+          "manual_steps": {
+            "description": "Steps to create the view on the board, when GitHub refused to create it (omitted otherwise)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "created",
+          "name"
+        ],
+        "additionalProperties": false,
+        "description": "The Lanes view, with pecot-status as the columns and pecot-lane as the groups (omitted when the board has no single select pecot-lane field)"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "title",
+          "owner"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

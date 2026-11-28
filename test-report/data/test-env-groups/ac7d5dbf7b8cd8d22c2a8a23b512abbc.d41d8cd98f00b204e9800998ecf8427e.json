@@ -1,0 +1,1 @@
+{"id":"ac7d5dbf7b8cd8d22c2a8a23b512abbc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create owner:branch の head でも、ブランチ名の末尾の番号の Closes を本文に足す","name":"owner:branch の head でも、ブランチ名の末尾の番号の Closes を本文に足す","status":"passed","testResultsByEnv":{"default":"67fb9af44519a35a4b84c563d509da76"}}

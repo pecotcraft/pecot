@@ -1,0 +1,1 @@
+{"id":"a5fbf9a31b56dc318eee10c072fdc283.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-unknown-props.test.ts#テーマが宣言した references の props に無いキーがあると、報告する","name":"テーマが宣言した references の props に無いキーがあると、報告する","status":"passed","testResultsByEnv":{"default":"5a0b27ceb80c09962c25de9c6ad33953"}}

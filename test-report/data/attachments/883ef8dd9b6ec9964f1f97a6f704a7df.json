@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "boom"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"boom\",\"url\":\"https://ghes.example.com/acme/demo/pull/21\",\"number\":21,\"head\":\"feat/demo/12\",\"base\":\"main\",\"title\":\"feat(demo): #12 見本の変更\",\"inReview\":12,\"moves\":[{\"issue\":\"#13\",\"from\":\"Blocked\",\"to\":\"Ready\",\"reason\":\"stackable on #12\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "boom",
+    "url": "https://ghes.example.com/acme/demo/pull/21",
+    "number": 21,
+    "head": "feat/demo/12",
+    "base": "main",
+    "title": "feat(demo): #12 見本の変更",
+    "inReview": 12,
+    "moves": [
+      {
+        "issue": "#13",
+        "from": "Blocked",
+        "to": "Ready",
+        "reason": "stackable on #12"
+      }
+    ]
+  },
+  "isError": true
+}

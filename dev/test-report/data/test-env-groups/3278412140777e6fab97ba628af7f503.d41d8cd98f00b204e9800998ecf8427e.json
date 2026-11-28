@@ -1,0 +1,1 @@
+{"id":"3278412140777e6fab97ba628af7f503.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_picks_newer_run_that_passes","name":"成功した run が複数あるときは、検証に合格した新しい run の pr_main を出力する","status":"passed","testResultsByEnv":{"default":"3a0037407f7cfde987b3409b888f7075"}}

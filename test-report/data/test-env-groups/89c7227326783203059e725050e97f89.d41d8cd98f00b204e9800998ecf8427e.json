@@ -1,0 +1,1 @@
+{"id":"89c7227326783203059e725050e97f89.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#gitToplevel GIT_DIR が別の場所を指していても、stripGitEnvironment を指定すれば cwd を基準に解決する","name":"GIT_DIR が別の場所を指していても、stripGitEnvironment を指定すれば cwd を基準に解決する","status":"passed","testResultsByEnv":{"default":"c79905c314e0099389a6357d7a585337"}}

@@ -1,0 +1,1 @@
+{"id":"4685976ec1ccf3db791f18dd9e78610d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_push_regexes_match_config","name":"check-text-push.sh の対象判定は、check-text の files と一致する","status":"passed","testResultsByEnv":{"default":"4b6ca5c35e89a34f3670d284b1846b23"}}

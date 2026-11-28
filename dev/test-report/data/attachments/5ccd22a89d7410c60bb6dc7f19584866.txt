@@ -1,0 +1,1 @@
+ERROR: --out-dir は不在か空のディレクトリのみ指定できます（構築前に全消去するため）: /tmp/bats-run-3pRNpn/test/23/nonempty

@@ -1,0 +1,1 @@
+{"id":"de6b62ef36fdac7e98b9aa39540529f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath ほかのディストリビューションを指す UNC パスは、理由を付けて変換できないものとして扱う","name":"ほかのディストリビューションを指す UNC パスは、理由を付けて変換できないものとして扱う","status":"passed","testResultsByEnv":{"default":"4860ce42bf69dad4b7c893a18732f723"}}

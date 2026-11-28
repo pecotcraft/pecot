@@ -1,0 +1,1 @@
+{"id":"112c23d33d1a2476347780aaaf078c1b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#結果の項目 終了コード 0 で項目が output に合わないと、再実行しないよう detail で伝える失敗にし、報告先にも通知する","name":"終了コード 0 で項目が output に合わないと、再実行しないよう detail で伝える失敗にし、報告先にも通知する","status":"passed","testResultsByEnv":{"default":"bbf46c92cafab2f7e03cf30bf612a6d9"}}

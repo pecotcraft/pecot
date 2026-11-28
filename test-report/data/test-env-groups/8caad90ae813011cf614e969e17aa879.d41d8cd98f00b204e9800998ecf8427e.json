@@ -1,0 +1,1 @@
+{"id":"8caad90ae813011cf614e969e17aa879.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor もしワークフローのファイルが存在しないなら、その項目を missing にして失敗を返す","name":"もしワークフローのファイルが存在しないなら、その項目を missing にして失敗を返す","status":"passed","testResultsByEnv":{"default":"30950eb3671432170d47cb4ce24354fa"}}

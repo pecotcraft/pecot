@@ -1,0 +1,1 @@
+{"id":"424e90e1ba081a5d9c6ce9606dd71a0b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#applyBoardMove 列を移動し、移動先の列と moved の行を返す","name":"列を移動し、移動先の列と moved の行を返す","status":"passed","testResultsByEnv":{"default":"86161418598a9b3a52fb587424cb4466"}}

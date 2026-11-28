@@ -1,0 +1,1 @@
+{"id":"3c53919da9553df0a6d30573020f2b05.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#installLockPath プラグインルート配下に node_modules が存在する場合は、そこにロックを置く","name":"プラグインルート配下に node_modules が存在する場合は、そこにロックを置く","status":"passed","testResultsByEnv":{"default":"a355e84ef5c1437b0c2ecd5fdc88157d"}}

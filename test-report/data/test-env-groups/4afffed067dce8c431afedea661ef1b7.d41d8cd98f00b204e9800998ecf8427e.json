@@ -1,0 +1,1 @@
+{"id":"4afffed067dce8c431afedea661ef1b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 一覧で前提が 0 件の Issue は、前提を個別に読まず、一覧の値で判定する","name":"一覧で前提が 0 件の Issue は、前提を個別に読まず、一覧の値で判定する","status":"passed","testResultsByEnv":{"default":"bc457228d3804079d0a1f10a5acf8942"}}

@@ -1,0 +1,1 @@
+{"id":"6eb0d61e46c03c06ba869ae0128d7d92.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/evidence-xlsx-soffice.test.ts#生成 xlsx の soffice 変換 追加のヘッダーと画像の指定順が、PDF でも宣言した順に並ぶ","name":"追加のヘッダーと画像の指定順が、PDF でも宣言した順に並ぶ","status":"passed","testResultsByEnv":{"default":"c6db8d394235f2591077dd7211a2885f"}}

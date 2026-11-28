@@ -1,0 +1,1 @@
+{"id":"db26a255b0c8da3254761663adaa7080.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) ツール aws_rds_describe_events は、配列の要素のオブジェクトに宣言外のキーを許可しない","name":"ツール aws_rds_describe_events は、配列の要素のオブジェクトに宣言外のキーを許可しない","status":"passed","testResultsByEnv":{"default":"e07cd2aa81bcd9df03e9c32a56343337"}}

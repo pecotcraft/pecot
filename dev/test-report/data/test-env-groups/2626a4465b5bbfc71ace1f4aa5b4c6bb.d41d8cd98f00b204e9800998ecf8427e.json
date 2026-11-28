@@ -1,0 +1,1 @@
+{"id":"2626a4465b5bbfc71ace1f4aa5b4c6bb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry 同じ profile の pending のログインがあるときの再度の開始は、新しく起動せず、既存の結果を返す","name":"同じ profile の pending のログインがあるときの再度の開始は、新しく起動せず、既存の結果を返す","status":"passed","testResultsByEnv":{"default":"a885d84382fb3d8c5fe8aa2fe1530aa4"}}

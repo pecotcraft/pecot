@@ -1,0 +1,1 @@
+{"id":"79afcf43a3ed959d87a6a00d642abf9e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#pickPrimaryRemote remote が [\"upstream\",\"origin\"] のとき、\"origin\" を選ぶ","name":"remote が [\"upstream\",\"origin\"] のとき、\"origin\" を選ぶ","status":"passed","testResultsByEnv":{"default":"e0cbf4ca5d8ce441fb477ff036242f9d"}}

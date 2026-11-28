@@ -1,0 +1,1 @@
+ERROR: 監査がスキップされたリリースで pecot-visual の配布はできません: /tmp/bats-run-c8L97U/test/19/audit-record.json

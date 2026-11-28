@@ -1,0 +1,3 @@
+warning: Issue acme/demo/7 is not on the board; the Status stays as it is
+created: auto result comment (failed) on Issue acme/demo/7
+removed: label pecot-auto from Issue acme/demo/7

@@ -1,0 +1,1 @@
+{"id":"15baad5dc8f270019eddda07b052de79.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#applyBoardMove Active 列の Issue が blocked と判定された場合は、警告を表示し、列を移動しない","name":"Active 列の Issue が blocked と判定された場合は、警告を表示し、列を移動しない","status":"passed","testResultsByEnv":{"default":"4636bb52f3a306a45addfaa8cb7fafb0"}}

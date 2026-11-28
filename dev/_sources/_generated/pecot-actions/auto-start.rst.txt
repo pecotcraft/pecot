@@ -1,0 +1,8 @@
+:iface-id: PA-AUTO-START
+:iface-plugin: pecot-actions
+:iface-kind: Action
+
+auto start
+====================
+
+.. iface-defs:: pecot-actions PA-AUTO-START

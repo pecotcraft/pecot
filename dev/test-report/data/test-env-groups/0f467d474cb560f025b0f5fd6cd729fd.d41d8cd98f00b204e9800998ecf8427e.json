@@ -1,0 +1,1 @@
+{"id":"0f467d474cb560f025b0f5fd6cd729fd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory CLAUDE_PROJECT_DIR があってもディレクトリが存在しなければ、変数名と値を含めて決められない","name":"CLAUDE_PROJECT_DIR があってもディレクトリが存在しなければ、変数名と値を含めて決められない","status":"passed","testResultsByEnv":{"default":"cb6eb115aaffb59d09704eb9f98aaeb9"}}

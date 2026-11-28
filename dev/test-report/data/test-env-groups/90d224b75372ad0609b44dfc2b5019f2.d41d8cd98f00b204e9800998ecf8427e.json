@@ -1,0 +1,1 @@
+{"id":"90d224b75372ad0609b44dfc2b5019f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#installRuntimeDependencies dependencies に catalog: が残る manifest では、npm を起動せずに失敗を返す","name":"dependencies に catalog: が残る manifest では、npm を起動せずに失敗を返す","status":"passed","testResultsByEnv":{"default":"918f41b77a2375fe7a2600c4aa368ad9"}}

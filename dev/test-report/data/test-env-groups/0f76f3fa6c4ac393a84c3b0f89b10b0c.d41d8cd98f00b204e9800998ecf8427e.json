@@ -1,0 +1,1 @@
+{"id":"0f76f3fa6c4ac393a84c3b0f89b10b0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted AccessDenied は permission-denied と判定し、log には資格情報を伏せ字にした出力を入れる","name":"AccessDenied は permission-denied と判定し、log には資格情報を伏せ字にした出力を入れる","status":"passed","testResultsByEnv":{"default":"84d3fea00924bd9b014c912a9cd0bf0e"}}

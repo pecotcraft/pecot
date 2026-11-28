@@ -1,0 +1,1 @@
+{"id":"9b2a32fe5c7df1d46c1a1bde21398bd2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 本文と題の欠け create に題を渡さないと、同梱のテンプレートの本文 では本文から作った題を候補にして problem にする","name":"create に題を渡さないと、同梱のテンプレートの本文 では本文から作った題を候補にして problem にする","status":"passed","testResultsByEnv":{"default":"e6a8967f03d9efb754404d97968f65d7"}}

@@ -1,0 +1,1 @@
+{"id":"777519d2c4bcdb11e7a45dd7cef905e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#getProjectFields user と organization のどちらも存在しない場合は、フィールドの取得で undefined を返す","name":"user と organization のどちらも存在しない場合は、フィールドの取得で undefined を返す","status":"passed","testResultsByEnv":{"default":"447f31d7782f7a1a1b31374a5ab17a93"}}

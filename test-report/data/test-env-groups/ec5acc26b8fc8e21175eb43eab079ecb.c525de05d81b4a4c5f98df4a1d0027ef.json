@@ -1,0 +1,1 @@
+{"id":"ec5acc26b8fc8e21175eb43eab079ecb.c525de05d81b4a4c5f98df4a1d0027ef","fullName":".githooks.tests.test_pages_release#test_build_stops_on_host_or_install_or_site_failure","name":"リリース版の build は、checkout --force bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb のコマンドが失敗すると、そこで止まって終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"a5524a40dfe5b44c0bc46c2d609e19a2"}}

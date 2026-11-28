@@ -1,0 +1,1 @@
+{"id":"43b04bcbd671b712968f62d0cc1bcbec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/text-file.test.ts#readTextFile 途中で切れた UTF-8 のバイト列を含むファイルを読み込むと、TextDecodeError を発生させる","name":"途中で切れた UTF-8 のバイト列を含むファイルを読み込むと、TextDecodeError を発生させる","status":"passed","testResultsByEnv":{"default":"4c9f606a3d2e516265e438abda158dc6"}}

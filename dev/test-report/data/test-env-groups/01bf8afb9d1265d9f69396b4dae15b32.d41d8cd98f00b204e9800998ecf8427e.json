@@ -1,0 +1,1 @@
+{"id":"01bf8afb9d1265d9f69396b4dae15b32.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url-theme.test.ts#移行前の talk-dir と、解けないテーマ テーマの root の `package.json` を読めないときは、ディレクトリ名をテーマの名前にする","name":"テーマの root の `package.json` を読めないときは、ディレクトリ名をテーマの名前にする","status":"passed","testResultsByEnv":{"default":"3e67878a076d61f4b962f9f649a0f740"}}

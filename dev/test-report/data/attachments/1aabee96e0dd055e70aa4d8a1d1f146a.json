@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "related_issue_number: blocked-by would form a cycle: #7 -> #5 -> #6 -> #7"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"related_issue_number\",\"code\":\"cycle\",\"message\":\"blocked-by would form a cycle: #7 -> #5 -> #6 -> #7\"}],\"expected_status\":\"Blocked\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "related_issue_number",
+        "code": "cycle",
+        "message": "blocked-by would form a cycle: #7 -> #5 -> #6 -> #7"
+      }
+    ],
+    "expected_status": "Blocked"
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"8986d432035c01592e519ccc0474d343.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#findMainWorktree 一覧を取得できなければ WorktreeRuntimeError。git の stderr を含む","name":"一覧を取得できなければ WorktreeRuntimeError。git の stderr を含む","status":"passed","testResultsByEnv":{"default":"856ed84594f4a05b94782b9132bae0f7"}}

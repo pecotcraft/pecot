@@ -1,0 +1,1 @@
+{"id":"0a840f962845beb6a6777130411a503a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#parseProjectConfig（検証エラー） 設定がオブジェクトではない場合は、model_type の検証エラーを返す","name":"設定がオブジェクトではない場合は、model_type の検証エラーを返す","status":"passed","testResultsByEnv":{"default":"38a98b915f570e99d74d9957552591ab"}}

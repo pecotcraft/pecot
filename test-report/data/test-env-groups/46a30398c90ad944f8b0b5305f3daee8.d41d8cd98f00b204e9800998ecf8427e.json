@@ -1,0 +1,1 @@
+{"id":"46a30398c90ad944f8b0b5305f3daee8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/launch.test.ts#launchChromium Error 以外の値が投げられた場合も、取得のコマンドを添えたエラーに包み直す","name":"Error 以外の値が投げられた場合も、取得のコマンドを添えたエラーに包み直す","status":"passed","testResultsByEnv":{"default":"ed51afbde01a7bdb021f37fd77fe4b41"}}

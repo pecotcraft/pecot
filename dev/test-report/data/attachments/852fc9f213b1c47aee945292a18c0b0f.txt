@@ -1,0 +1,3 @@
+配布ツリー: 1 パッケージ / critical 0 / high 0 / moderate 0 / low 0 / info 0 / 例外 0 件 / 指紋 e5956d8d41c9a01ea4ba03e63a6b408ebf899b62341da7379bd2e9f67a78677d
+永続層: 3 パッケージ / critical 0 / high 0 / moderate 0 / low 0 / info 0 / 例外 0 件 / 指紋 c6605cd0d7a81b7ee32c9425c76ffe74da84f4e914f7dcda802c92a578db065f
+registry http://127.0.0.1:41749

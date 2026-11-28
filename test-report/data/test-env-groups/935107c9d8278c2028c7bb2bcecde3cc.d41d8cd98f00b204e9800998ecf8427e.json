@@ -1,0 +1,1 @@
+{"id":"935107c9d8278c2028c7bb2bcecde3cc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/layer-file-placement.test.ts#layer-file-placement valid layouts 直下に _ で始まるテンプレートのファイル名を置くと、報告しない","name":"layouts 直下に _ で始まるテンプレートのファイル名を置くと、報告しない","status":"passed","testResultsByEnv":{"default":"887c3486921d271fdde6cf64df95ed0a"}}

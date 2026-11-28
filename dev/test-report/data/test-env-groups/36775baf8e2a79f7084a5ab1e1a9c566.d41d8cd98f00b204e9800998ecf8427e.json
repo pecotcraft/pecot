@@ -1,0 +1,1 @@
+{"id":"36775baf8e2a79f7084a5ab1e1a9c566.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_release_report_writes_sources","name":"リリース版のレポートを保管すると、`sources` をレポートの記録に書く","status":"passed","testResultsByEnv":{"default":"6f13959e70047b2973e13eee5f3d2f97"}}

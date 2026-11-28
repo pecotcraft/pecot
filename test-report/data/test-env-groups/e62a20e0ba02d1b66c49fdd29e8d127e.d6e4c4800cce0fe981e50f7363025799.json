@@ -1,0 +1,1 @@
+{"id":"e62a20e0ba02d1b66c49fdd29e8d127e.d6e4c4800cce0fe981e50f7363025799","fullName":".githooks.tests.test_board_sync_workflow_copy#test_no_step_runs_the_npm_package","name":"actions/templates/pecot-board-sync.yml は、npm のパッケージを呼ぶ step を持たない","status":"passed","testResultsByEnv":{"default":"6d5fbd067e10150d95a328b817ca605a"}}

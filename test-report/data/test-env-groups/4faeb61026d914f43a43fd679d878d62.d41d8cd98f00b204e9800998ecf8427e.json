@@ -1,0 +1,1 @@
+{"id":"4faeb61026d914f43a43fd679d878d62.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#extractVersionReleaseNotes 最後のバージョンの場合は、後続の見出しが存在しないため、末尾までを本文として返す","name":"最後のバージョンの場合は、後続の見出しが存在しないため、末尾までを本文として返す","status":"passed","testResultsByEnv":{"default":"39eb05b960fdf8ba0268af969265c890"}}

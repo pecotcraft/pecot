@@ -1,0 +1,4 @@
+api
+repos/owner/repo/collaborators/alice/permission
+--jq
+.permission

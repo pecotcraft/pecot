@@ -1,0 +1,1 @@
+{"id":"cc96dbad0e646658c95977529dd80b7b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 MCP の呼び出し 前提の Issue への言及を読まず、Development 欄のマージ済みの PR で、済んだ前提と判定する","name":"前提の Issue への言及を読まず、Development 欄のマージ済みの PR で、済んだ前提と判定する","status":"passed","testResultsByEnv":{"default":"9f5df6f85cc0bdfc180ce0d7ea8bb497"}}

@@ -1,0 +1,1 @@
+{"id":"0f2f2f5c811ed864242ec26cded09c1d.1a904dc558927d8694e4abbb8675cd19","fullName":".githooks.tests.test_report_lanes#test_plugin_only_for_release_units","name":"項目 workflow-core:test-unit は、リリース版の単位の project にだけ、project 名と同じ plugin を持つ","status":"passed","testResultsByEnv":{"default":"4ad7706baf788da6858e5082ae26e46b"}}

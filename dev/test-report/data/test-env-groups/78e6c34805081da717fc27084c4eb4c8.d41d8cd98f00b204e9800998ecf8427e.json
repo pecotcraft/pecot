@@ -1,0 +1,1 @@
+{"id":"78e6c34805081da717fc27084c4eb4c8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#rels パーツ workbook.xml.rels は、worksheet と styles だけを持ち、theme を持たない","name":"workbook.xml.rels は、worksheet と styles だけを持ち、theme を持たない","status":"passed","testResultsByEnv":{"default":"829580bf79448b75830a246cd32c81b0"}}

@@ -1,0 +1,8 @@
+:iface-id: PW-ISSUE-CHECK
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Check Issue
+======================
+
+.. iface-defs:: pecot-workflow PW-ISSUE-CHECK

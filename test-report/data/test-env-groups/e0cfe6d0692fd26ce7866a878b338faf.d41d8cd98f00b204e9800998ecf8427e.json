@@ -1,0 +1,1 @@
+{"id":"e0cfe6d0692fd26ce7866a878b338faf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor リポのサブディレクトリを directory に渡すと、リポのルートに置いたワークフローのファイルを見る","name":"リポのサブディレクトリを directory に渡すと、リポのルートに置いたワークフローのファイルを見る","status":"passed","testResultsByEnv":{"default":"a4f280624e689e2a068fabf78c8a9183"}}

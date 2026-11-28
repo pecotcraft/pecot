@@ -1,0 +1,1 @@
+{"id":"21fbae91071afd014fdb8cb76bdc2972.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start MCP の data 前提の PR にスタックして作ると、スタック先の Issue の番号を stackedOn に返す","name":"前提の PR にスタックして作ると、スタック先の Issue の番号を stackedOn に返す","status":"passed","testResultsByEnv":{"default":"48c5205945fb5986e37d04c4281ea438"}}

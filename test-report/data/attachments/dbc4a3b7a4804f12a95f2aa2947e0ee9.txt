@@ -1,0 +1,5 @@
+
+[7m[1m[32m NX [39m[22m[27m  [32mJSON output created in /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_lint_gate_selects_only_th4[39m
+
+/tmp/pytest-of-vscode/pytest-0/popen-gw1/test_lint_gate_selects_only_th4/affected-tasks.json
+

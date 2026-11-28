@@ -1,0 +1,1 @@
+{"id":"f20a55baa74ec205524551cfb6f70859.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 行頭のコメントは読まない のとき、引用符を含まない本文だけを切り出す","name":"行頭のコメントは読まない のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"80b1d0293e98889e4612835010f35083"}}

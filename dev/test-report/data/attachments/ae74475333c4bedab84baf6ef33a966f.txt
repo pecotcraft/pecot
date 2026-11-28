@@ -1,0 +1,3 @@
+release view pecot-visual-v0.0.0-test1812 -R test-owner/test-repo
+release upload pecot-visual-v0.0.0-test1812 /tmp/tmp.PpcXEW8cOh/pecot-visual-mcp-0.0.0-test1812.tgz --clobber -R test-owner/test-repo
+workflow run publish-npm.yml -f tag=pecot-visual-v0.0.0-test1812 --ref pecot-visual-v0.0.0-test1812 -R test-owner/test-repo

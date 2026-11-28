@@ -1,0 +1,1 @@
+{"id":"92388b739f1b50bae48710b75e2b55cb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/tests/node-runtime.test.ts#checkNodeRuntime Node.js のバージョンが 26.12.2-rc.1 の場合は、起動を許可する","name":"Node.js のバージョンが 26.12.2-rc.1 の場合は、起動を許可する","status":"passed","testResultsByEnv":{"default":"97d8bd5aca9ef66d6112b271995a7c2d"}}

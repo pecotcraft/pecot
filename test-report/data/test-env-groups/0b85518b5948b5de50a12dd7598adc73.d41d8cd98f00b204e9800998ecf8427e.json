@@ -1,0 +1,1 @@
+{"id":"0b85518b5948b5de50a12dd7598adc73.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show ブランチ名 wt4 の末尾が番号でないとき、Active Issue の行に none を出して続ける","name":"ブランチ名 wt4 の末尾が番号でないとき、Active Issue の行に none を出して続ける","status":"passed","testResultsByEnv":{"default":"a7b32831b10d9637dd9a6d7cfe3ed979"}}

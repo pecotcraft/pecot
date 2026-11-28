@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "destination already exists (pass force: true to overwrite): /tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.create.error\",\"kind\":\"dest-exists\",\"detail\":\"destination already exists (pass force: true to overwrite): /tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.create.error",
+    "kind": "dest-exists",
+    "detail": "destination already exists (pass force: true to overwrite): /tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing"
+  },
+  "isError": true
+}

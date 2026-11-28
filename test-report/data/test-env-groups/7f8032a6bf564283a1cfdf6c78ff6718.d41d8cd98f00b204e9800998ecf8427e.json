@@ -1,0 +1,1 @@
+{"id":"7f8032a6bf564283a1cfdf6c78ff6718.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/version-range.test.ts#doesRangeAllowMajor: 解釈できない表記 workspace:・URL・git の依存の指定は、どのメジャーバージョンも許可しない","name":"workspace:・URL・git の依存の指定は、どのメジャーバージョンも許可しない","status":"passed","testResultsByEnv":{"default":"a0457749e6539484736a9fe35801f697"}}

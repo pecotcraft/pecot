@@ -1,0 +1,3 @@
+warning: target does not exist: /tmp/pecot-cli-8uNhfn/workspaces/base/demo/CLAUDE.local.md
+count: symlinks created in /tmp/pecot-cli-8uNhfn/workspaces/wt1/demo: 0
+skipped: symlink /tmp/pecot-cli-8uNhfn/workspaces/wt1/demo/CLAUDE.local.md (target does not exist: /tmp/pecot-cli-8uNhfn/workspaces/base/demo/CLAUDE.local.md)

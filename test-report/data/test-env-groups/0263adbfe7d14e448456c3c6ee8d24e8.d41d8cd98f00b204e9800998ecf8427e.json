@@ -1,0 +1,1 @@
+{"id":"0263adbfe7d14e448456c3c6ee8d24e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync GitHub のトークンが見つからないと、error の行を標準エラーに出して step を失敗にする","name":"GitHub のトークンが見つからないと、error の行を標準エラーに出して step を失敗にする","status":"passed","testResultsByEnv":{"default":"5b62c8c9f0ec45909cc64054ebfe5bac"}}

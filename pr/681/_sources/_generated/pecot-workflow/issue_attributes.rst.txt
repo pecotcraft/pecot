@@ -1,0 +1,8 @@
+:iface-id: PW-ISSUE-ATTRIBUTES
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+List Issue attributes
+==========================================
+
+.. iface-defs:: pecot-workflow PW-ISSUE-ATTRIBUTES

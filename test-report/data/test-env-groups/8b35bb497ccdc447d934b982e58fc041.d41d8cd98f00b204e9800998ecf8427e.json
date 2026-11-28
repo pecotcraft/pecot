@@ -1,0 +1,1 @@
+{"id":"8b35bb497ccdc447d934b982e58fc041.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create nx のリポジトリで scope が違うタイトルを message の形で渡すと、終了コード 3 で終わる","name":"nx のリポジトリで scope が違うタイトルを message の形で渡すと、終了コード 3 で終わる","status":"passed","testResultsByEnv":{"default":"b2313db7f1c229b63c11664e6e9e9953"}}

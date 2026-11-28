@@ -1,0 +1,1 @@
+{"id":"0e35b1dd21edc3d0cf7c965d2fec1fd3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/merge-hook-outputs.test.ts#merge-hook-outputs.sh サブスクリプトが 1 つのとき、additionalContext をそのまま出す","name":"サブスクリプトが 1 つのとき、additionalContext をそのまま出す","status":"passed","testResultsByEnv":{"default":"33f4ca7aeb84723d8903346956713798"}}

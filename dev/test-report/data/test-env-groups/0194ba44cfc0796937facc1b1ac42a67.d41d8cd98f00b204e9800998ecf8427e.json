@@ -1,0 +1,1 @@
+{"id":"0194ba44cfc0796937facc1b1ac42a67.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#getIssueBoardItem 進行の列に値が存在しない場合は、workflow を null にする","name":"進行の列に値が存在しない場合は、workflow を null にする","status":"passed","testResultsByEnv":{"default":"d7b432f49b3dfff4504494aa40431c7f"}}

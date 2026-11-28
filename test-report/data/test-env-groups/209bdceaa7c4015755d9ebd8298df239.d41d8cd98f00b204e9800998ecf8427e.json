@@ -1,0 +1,1 @@
+{"id":"209bdceaa7c4015755d9ebd8298df239.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/server.test.ts#startServer サーバーの起動後にエラーが発生した場合は、握りつぶさずに logger.error へ出力する","name":"サーバーの起動後にエラーが発生した場合は、握りつぶさずに logger.error へ出力する","status":"passed","testResultsByEnv":{"default":"eed607fb53d2a26583c1e1453fe3ef31"}}

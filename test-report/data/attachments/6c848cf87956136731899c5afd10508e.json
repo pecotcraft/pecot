@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "failed to create the worktree: fatal: '/tmp/pecot-cli-VaJuk2/workspaces/occupied' already exists"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"failed to create the worktree: fatal: '/tmp/pecot-cli-VaJuk2/workspaces/occupied' already exists\",\"log\":\"Preparing worktree (new branch 'wt1')\\nfatal: '/tmp/pecot-cli-VaJuk2/workspaces/occupied' already exists\\n\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "failed to create the worktree: fatal: '/tmp/pecot-cli-VaJuk2/workspaces/occupied' already exists",
+    "log": "Preparing worktree (new branch 'wt1')\nfatal: '/tmp/pecot-cli-VaJuk2/workspaces/occupied' already exists\n"
+  },
+  "isError": true
+}

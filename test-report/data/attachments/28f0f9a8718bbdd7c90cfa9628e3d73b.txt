@@ -1,0 +1,4 @@
+ずれは 1 件
+merge-settings / allow_rebase_merge
+  このリポ: false
+  検証用: true

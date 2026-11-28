@@ -1,0 +1,1 @@
+{"id":"5b4fe419c1f8066de2cf662ffe1594d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry.stopAndWait 動いていなければ待たずに stopped: false で戻る","name":"動いていなければ待たずに stopped: false で戻る","status":"passed","testResultsByEnv":{"default":"339f431da508738136502c3438614033"}}

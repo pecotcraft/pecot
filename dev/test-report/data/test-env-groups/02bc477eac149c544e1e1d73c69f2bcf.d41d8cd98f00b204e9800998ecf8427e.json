@@ -1,0 +1,1 @@
+{"id":"02bc477eac149c544e1e1d73c69f2bcf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check 設定と入力の誤り 対象のリポを含む設定が無いと、repo の not-in-project の problem を返す","name":"対象のリポを含む設定が無いと、repo の not-in-project の problem を返す","status":"passed","testResultsByEnv":{"default":"6899bed2dd9215569330bdbadaa411d1"}}

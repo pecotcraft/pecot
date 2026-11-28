@@ -1,0 +1,1 @@
+{"id":"99055e6236c3ec99bedcd467eeabcdd7.2b6ef7b04a256bda78d63f97436c2f8d","fullName":".githooks.tests.test_report_dev_sources#test_resolve_skips_previous_runs_without_a_usable_index","name":"前の開発版の run が lane-latest が無い とき、持ち越さない","status":"passed","testResultsByEnv":{"default":"ba1060c0bf8baf7c2ce37e35ef039a98"}}

@@ -1,0 +1,1 @@
+{"id":"859bd6e6f19db395ea54bd590b8939ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#frontmatterOf frontmatter の前に空行があっても、読み飛ばして値を切り出す","name":"frontmatter の前に空行があっても、読み飛ばして値を切り出す","status":"passed","testResultsByEnv":{"default":"bfed22421f24b1470cc2712dd19b3eb4"}}

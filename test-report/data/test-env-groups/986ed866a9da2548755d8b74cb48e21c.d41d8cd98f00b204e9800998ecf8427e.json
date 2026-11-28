@@ -1,0 +1,1 @@
+{"id":"986ed866a9da2548755d8b74cb48e21c.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/page-compare/tests/compare-pages.bats#片側にしか無いページは、固有のページとして別掲し、FAIL と判定する","name":"片側にしか無いページは、固有のページとして別掲し、FAIL と判定する","status":"passed","testResultsByEnv":{"default":"a7fb8ad37b4a207c20c6f20df1181a17"}}

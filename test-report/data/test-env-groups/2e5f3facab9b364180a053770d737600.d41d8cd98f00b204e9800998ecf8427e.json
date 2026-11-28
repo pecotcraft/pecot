@@ -1,0 +1,1 @@
+{"id":"2e5f3facab9b364180a053770d737600.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/project-stop.test.ts#pruneArchivedItems dry-run では削除を呼ばず、削除する予定の件数を表示する","name":"dry-run では削除を呼ばず、削除する予定の件数を表示する","status":"passed","testResultsByEnv":{"default":"c03683249cb3f4d90a08b485c14b8ca2"}}

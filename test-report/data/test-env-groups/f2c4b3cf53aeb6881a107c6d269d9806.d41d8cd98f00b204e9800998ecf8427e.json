@@ -1,0 +1,1 @@
+{"id":"f2c4b3cf53aeb6881a107c6d269d9806.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#origin が scp 形式でも -R が owner/name になる","name":"origin が scp 形式でも -R が owner/name になる","status":"passed","testResultsByEnv":{"default":"c1802ab8aeebf8893f7dfb09c8c35188"}}

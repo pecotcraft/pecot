@@ -1,0 +1,1 @@
+{"id":"983e29bd305bf5a0c56e997517f0d883.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） どの worktree にも使われていない孤児ブランチは、削除して作り直す","name":"どの worktree にも使われていない孤児ブランチは、削除して作り直す","status":"passed","testResultsByEnv":{"default":"1ab07bbcef7e25de6a7e7a1a5e6f0117"}}

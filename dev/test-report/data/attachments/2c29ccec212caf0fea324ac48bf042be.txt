@@ -1,0 +1,1 @@
+ERROR: /tmp/bats-run-IHNnqy/test/7/interlace/b/1.png: インターレース PNG には対応していません

@@ -1,0 +1,1 @@
+{"id":"ee0650a5d45d48a46a3dc83fcd5ecabc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/paths.test.ts#resolveRealPath 存在しないパスは、存在する最も深い親ディレクトリの実パスに、残りをそのままつなぐ","name":"存在しないパスは、存在する最も深い親ディレクトリの実パスに、残りをそのままつなぐ","status":"passed","testResultsByEnv":{"default":"baa2b2e8370ecde2087882a593f43c77"}}

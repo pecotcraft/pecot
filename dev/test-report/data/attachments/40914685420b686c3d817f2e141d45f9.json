@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "comment_id: update needs comment_id, the id of the comment to rewrite"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"comment_id\",\"code\":\"required\",\"message\":\"update needs comment_id, the id of the comment to rewrite\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "comment_id",
+        "code": "required",
+        "message": "update needs comment_id, the id of the comment to rewrite"
+      }
+    ]
+  }
+}

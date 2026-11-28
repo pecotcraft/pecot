@@ -1,0 +1,1 @@
+{"id":"66ba64de0b9a3c5db432457732abb16b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/attributes.test.ts#validateAttributes ボードの列 Status は、board_move を案内して read_only_attribute にする","name":"ボードの列 Status は、board_move を案内して read_only_attribute にする","status":"passed","testResultsByEnv":{"default":"de6ea08a1f359c6467d39213b41fd155"}}

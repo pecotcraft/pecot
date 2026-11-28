@@ -1,0 +1,1 @@
+{"id":"5c50f2b32ad0d86dafd033b18216e3c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#gh-command-check.sh コマンドが echo x & gh issue create のとき、終了コード 1 で止める","name":"コマンドが echo x & gh issue create のとき、終了コード 1 で止める","status":"passed","testResultsByEnv":{"default":"facc52ba7d6439cabca7b0bff287bf40"}}

@@ -1,0 +1,1 @@
+{"id":"705d59bbc06d9bf6208045f49f77e36b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order order が 0 の場合は、エラーにする","name":"order が 0 の場合は、エラーにする","status":"passed","testResultsByEnv":{"default":"ef680f3aca764045f6a688e16ed7e008"}}

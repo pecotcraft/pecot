@@ -1,0 +1,1 @@
+{"id":"56c7ca1afca8f5c74682e922ff97f62d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） setup_command 引数で指定しなければ、config の setup_command を使う","name":"引数で指定しなければ、config の setup_command を使う","status":"passed","testResultsByEnv":{"default":"0269da870933a6a42dfbcacf58f731db"}}

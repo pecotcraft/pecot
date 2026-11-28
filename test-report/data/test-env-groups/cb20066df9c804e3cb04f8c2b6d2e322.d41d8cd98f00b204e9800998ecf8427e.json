@@ -1,0 +1,1 @@
+{"id":"cb20066df9c804e3cb04f8c2b6d2e322.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#例外を適用しても未解決参照の fallback で high が残る","name":"例外を適用しても未解決参照の fallback で high が残る","status":"passed","testResultsByEnv":{"default":"edbd0b5d0a021c95d8333caba3d1ec8c"}}

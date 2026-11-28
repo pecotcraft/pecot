@@ -1,0 +1,1 @@
+{"id":"99b4eae819b01e091dfa0eee5b11d11d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/pecotv-dir-init-detection.bats#pecot-v: のスキルを呼んでも、stdout は空で init は副作用だけになる","name":"pecot-v: のスキルを呼んでも、stdout は空で init は副作用だけになる","status":"passed","testResultsByEnv":{"default":"0399e5eeba0dbf0ddcc948f7aa98545e"}}

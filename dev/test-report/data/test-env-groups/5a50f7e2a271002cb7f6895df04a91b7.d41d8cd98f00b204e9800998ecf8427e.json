@@ -1,0 +1,1 @@
+{"id":"5a50f7e2a271002cb7f6895df04a91b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185） 末尾の句点は、エラーにしない","name":"末尾の句点は、エラーにしない","status":"passed","testResultsByEnv":{"default":"1664a3e05dd76d37afa9b897c926878b"}}

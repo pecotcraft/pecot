@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "PR was created, but the response has no html_url; find it on GitHub"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"PR was created, but the response has no html_url; find it on GitHub\",\"number\":21,\"head\":\"feat/demo/12\",\"base\":\"main\",\"title\":\"feat(demo): #12 見本の変更\",\"inReview\":12,\"moves\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "PR was created, but the response has no html_url; find it on GitHub",
+    "number": 21,
+    "head": "feat/demo/12",
+    "base": "main",
+    "title": "feat(demo): #12 見本の変更",
+    "inReview": 12,
+    "moves": []
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"e7f6289e28187a587ac95d59dc38cf03.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#installStdoutGuard 返した Writable だけが本物の stdout に届き、ほかの書き込みは stderr に送る","name":"返した Writable だけが本物の stdout に届き、ほかの書き込みは stderr に送る","status":"passed","testResultsByEnv":{"default":"27205985fcf1d21ea9f399080b8aa04b"}}

@@ -1,0 +1,1 @@
+{"id":"86dd17d68f1c6e6025896eeec0d4d5cc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_side_builds_nothing_for_closed_and_fork_pull_requests","name":"閉じた PR とフォークの PR では、サイトをビルドしない","status":"passed","testResultsByEnv":{"default":"e325e680e978cddab8785d212b9b9ef1"}}

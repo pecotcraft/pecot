@@ -1,0 +1,1 @@
+{"id":"950a591f3c1d4492f77176d24b7a6729.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ board-move-state-not-on-board を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ board-move-state-not-on-board を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"2f8e19f24523fa3de043c9eb6061595a"}}

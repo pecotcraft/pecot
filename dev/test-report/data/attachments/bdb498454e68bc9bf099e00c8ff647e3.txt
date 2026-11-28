@@ -1,0 +1,2 @@
+WARN: --pr-main・--queue-base・head のどれかが commit として読めません。積を取らず通常のモードに戻します。
+モード: 通常（nx affected -t test-cli,test-hooks,test-unit --base=44fbb3255d937045bd38f24bb4b8942207b38a6c --head=44fbb3255d937045bd38f24bb4b8942207b38a6c）

@@ -1,0 +1,1 @@
+{"id":"621b40e4983152342f81b708d4bd9f66.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh すべて git の外のとき、渡された CLAUDE_PROJECT_DIR を保つ","name":"すべて git の外のとき、渡された CLAUDE_PROJECT_DIR を保つ","status":"passed","testResultsByEnv":{"default":"373c002bc1e6c6bfd77de310200ed29b"}}

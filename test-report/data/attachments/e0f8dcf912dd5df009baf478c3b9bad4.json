@@ -1,0 +1,44 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "second: body: add the line of first to the ## Waits for merge section at the end of the body"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"issue\":\"second\",\"field\":\"body\",\"code\":\"waits-for-merge\",\"message\":\"add the line of first to the ## Waits for merge section at the end of the body\",\"candidates\":[\"- {{issue:first}}: スキーマが先に要る\"]}],\"plan\":[{\"key\":\"first\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"},{\"key\":\"second\",\"order\":3,\"blockedBy\":[{\"issue\":\"first\",\"wait\":\"merge\"}],\"approach\":\"wait-merge\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "issue": "second",
+        "field": "body",
+        "code": "waits-for-merge",
+        "message": "add the line of first to the ## Waits for merge section at the end of the body",
+        "candidates": [
+          "- {{issue:first}}: スキーマが先に要る"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "first",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      },
+      {
+        "key": "second",
+        "order": 3,
+        "blockedBy": [
+          {
+            "issue": "first",
+            "wait": "merge"
+          }
+        ],
+        "approach": "wait-merge"
+      }
+    ]
+  }
+}

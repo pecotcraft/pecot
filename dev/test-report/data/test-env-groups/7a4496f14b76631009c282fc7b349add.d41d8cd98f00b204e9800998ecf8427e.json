@@ -1,0 +1,1 @@
+{"id":"7a4496f14b76631009c282fc7b349add.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#stripCommitComments コミットメッセージを整えるとき、行頭以外の # は残す","name":"コミットメッセージを整えるとき、行頭以外の # は残す","status":"passed","testResultsByEnv":{"default":"a2d684c3976f29bc325d9cc1fb11ab60"}}

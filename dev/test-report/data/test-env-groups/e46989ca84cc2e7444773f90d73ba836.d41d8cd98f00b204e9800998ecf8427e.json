@@ -1,0 +1,1 @@
+{"id":"e46989ca84cc2e7444773f90d73ba836.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#symlink 経由の talk-dir pages 配下のサブディレクトリが symlink の場合は、無通知でスキップせず、警告の対象にする","name":"pages 配下のサブディレクトリが symlink の場合は、無通知でスキップせず、警告の対象にする","status":"passed","testResultsByEnv":{"default":"c0fe179ec85466f5b8a077ebee4cb225"}}

@@ -1,0 +1,1 @@
+{"id":"406ce0d3efc7664cee52fe6f6329c0f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings 単引用符のトリプル のとき、引用符を含まない本文だけを切り出す","name":"単引用符のトリプル のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"809816b9c8f171d68137dea9554f1cb3"}}

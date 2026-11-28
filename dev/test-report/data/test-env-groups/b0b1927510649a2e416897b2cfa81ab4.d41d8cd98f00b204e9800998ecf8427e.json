@@ -1,0 +1,1 @@
+{"id":"b0b1927510649a2e416897b2cfa81ab4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 対象のリポジトリと設定 対象のリポを含む設定が存在しない と、kind が repo-not-in-project の失敗を返す","name":"対象のリポを含む設定が存在しない と、kind が repo-not-in-project の失敗を返す","status":"passed","testResultsByEnv":{"default":"845ffdae30b37a55a0dd4ec0a6e1b3b3"}}

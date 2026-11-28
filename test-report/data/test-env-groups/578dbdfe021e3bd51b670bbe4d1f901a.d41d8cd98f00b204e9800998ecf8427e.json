@@ -1,0 +1,1 @@
+{"id":"578dbdfe021e3bd51b670bbe4d1f901a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show 短い形 N の参照を渡すと、repo（git の remote と違う値） で補って読む","name":"短い形 N の参照を渡すと、repo（git の remote と違う値） で補って読む","status":"passed","testResultsByEnv":{"default":"b84fd049dc950e212b235c2de62daea9"}}

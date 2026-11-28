@@ -1,0 +1,1 @@
+{"id":"2c89fb4c788e5ee79ea08644211a916d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: TLS 証明書の検証で落ちた場合 取得先 URL に cert の語が含まれるだけでは誘導が付かない","name":"取得先 URL に cert の語が含まれるだけでは誘導が付かない","status":"passed","testResultsByEnv":{"default":"3b35743ad69f813b31d79ea65d11f497"}}

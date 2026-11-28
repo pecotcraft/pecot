@@ -1,0 +1,1 @@
+{"id":"d70d87a1a1953266cf0ae9d2e18cd5ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main --commit-msg の type(scope) 件名の先頭が feat(x)!: の形でも、先頭の type と印を外して、違反なしで通す","name":"件名の先頭が feat(x)!: の形でも、先頭の type と印を外して、違反なしで通す","status":"passed","testResultsByEnv":{"default":"5776022b8b28f2b883307d0c08e04018"}}

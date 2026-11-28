@@ -1,0 +1,1 @@
+{"id":"d8d22e529c7423719f9be693b18c590e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#judgeReadiness の順 順 8: 間接の PR が存在しないと、鎖が切れて diverged になる","name":"順 8: 間接の PR が存在しないと、鎖が切れて diverged になる","status":"passed","testResultsByEnv":{"default":"23823d320b41a21f2d8207e9bb36f02e"}}

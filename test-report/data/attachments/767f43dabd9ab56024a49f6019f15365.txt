@@ -1,0 +1,11 @@
+{
+  "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "pr": null,
+  "pr_head": null,
+  "pr_run": null,
+  "merge_group": [
+    "githooks:test-ci",
+    "p:test-cli"
+  ],
+  "pull_request": []
+}

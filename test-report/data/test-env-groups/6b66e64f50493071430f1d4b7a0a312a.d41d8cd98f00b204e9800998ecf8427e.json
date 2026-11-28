@@ -1,0 +1,1 @@
+{"id":"6b66e64f50493071430f1d4b7a0a312a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_line_separators_that_allure_writes_are_escaped","name":"allure が書いた U+2028 と U+2029 は、エスケープして履歴に残す","status":"passed","testResultsByEnv":{"default":"08c0d36f5e1b039c53864e7a5517f55a"}}

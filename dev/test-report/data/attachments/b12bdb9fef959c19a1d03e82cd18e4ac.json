@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "drawio_create: output accepts only the .html extension: /tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"drawio.url.error\",\"kind\":\"invalid-output-extension\",\"detail\":\"drawio_create: output accepts only the .html extension: /tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "drawio.url.error",
+    "kind": "invalid-output-extension",
+    "detail": "drawio_create: output accepts only the .html extension: /tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing"
+  },
+  "isError": true
+}

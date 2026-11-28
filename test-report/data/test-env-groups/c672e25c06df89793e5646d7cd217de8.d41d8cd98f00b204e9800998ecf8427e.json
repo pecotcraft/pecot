@@ -1,0 +1,1 @@
+{"id":"c672e25c06df89793e5646d7cd217de8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_push_without_push_info_warns_and_passes","name":"push の情報が渡されないと、警告を出力して成功で終わる","status":"passed","testResultsByEnv":{"default":"0c0bd0e7046a93378ac05a00ab80aef1"}}

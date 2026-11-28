@@ -1,0 +1,1 @@
+{"id":"232d50af07497d7f169222cb5add6167.c8871ba498cb5e7f7a5be52e20308938","fullName":".githooks.tests.test_release_workflow#test_pages_release_build_trigger_reads_land_log","name":"land.log が error のとき、リリース版のサイトのビルドを起動するかを決める","status":"passed","testResultsByEnv":{"default":"4ce5310ff66d83201508a21a33d53d20"}}

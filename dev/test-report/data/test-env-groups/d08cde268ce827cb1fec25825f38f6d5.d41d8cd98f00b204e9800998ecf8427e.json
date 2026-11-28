@@ -1,0 +1,1 @@
+{"id":"d08cde268ce827cb1fec25825f38f6d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#pythonRepr 小数点位置が 16 桁以内の大きい実数は、固定表記にして整数値には .0 を付ける","name":"小数点位置が 16 桁以内の大きい実数は、固定表記にして整数値には .0 を付ける","status":"passed","testResultsByEnv":{"default":"35e8b2bede1a699573c9a1cb808a3f75"}}

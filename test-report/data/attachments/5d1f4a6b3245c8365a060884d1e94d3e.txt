@@ -1,0 +1,2 @@
+/workspaces/base/pecot/plugins/pecot-workflow/hooks/lib/core/config-dispatcher.sh: line 96: cd: null directory
+warning: failed to parse hooks-config.json; using the default value (true)

@@ -1,0 +1,1 @@
+{"id":"cdda60b042cac24cabe753257d30e98a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-start-features.test.ts#session-start のロジックスクリプト git-sync.sh CLAUDE_PROJECT_DIR が未設定のとき、何もせず、空パスの警告も出さない","name":"CLAUDE_PROJECT_DIR が未設定のとき、何もせず、空パスの警告も出さない","status":"passed","testResultsByEnv":{"default":"102a8369dedd46faea37769229e4e626"}}

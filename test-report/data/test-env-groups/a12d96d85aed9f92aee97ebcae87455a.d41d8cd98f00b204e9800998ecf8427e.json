@@ -1,0 +1,1 @@
+{"id":"a12d96d85aed9f92aee97ebcae87455a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add no_copy を付けて呼ぶと、未追跡のファイルをコピーしない","name":"no_copy を付けて呼ぶと、未追跡のファイルをコピーしない","status":"passed","testResultsByEnv":{"default":"b4369bbd6aa3722504f26fd9e57ac8fe"}}

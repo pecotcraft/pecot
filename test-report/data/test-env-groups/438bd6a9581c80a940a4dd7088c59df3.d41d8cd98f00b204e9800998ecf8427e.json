@@ -1,0 +1,1 @@
+{"id":"438bd6a9581c80a940a4dd7088c59df3.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/parallel-lib.test.sh#INT: 子の EXIT trap が動く（後始末ができる）","name":"INT: 子の EXIT trap が動く（後始末ができる）","status":"passed","testResultsByEnv":{"default":"ed2e4b90219917691a58fa04f79baa56"}}

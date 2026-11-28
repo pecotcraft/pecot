@@ -1,0 +1,1 @@
+WARN: nofile: changelog.file が文字列でないため確認対象外（既定パスは確認しない）

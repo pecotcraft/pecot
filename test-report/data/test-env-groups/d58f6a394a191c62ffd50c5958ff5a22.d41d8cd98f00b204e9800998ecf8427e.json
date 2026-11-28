@@ -1,0 +1,1 @@
+{"id":"d58f6a394a191c62ffd50c5958ff5a22.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 判定を取得できない場合は、何も返さない","name":"判定を取得できない場合は、何も返さない","status":"passed","testResultsByEnv":{"default":"6f92a34485688efeccb59d16cbd2db0b"}}

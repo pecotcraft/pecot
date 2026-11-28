@@ -1,0 +1,1 @@
+{"id":"a8b778649d16f2a1166715f74665dfe0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#configFor どの設定にも無いリポなら、見つからない理由の文を返す","name":"どの設定にも無いリポなら、見つからない理由の文を返す","status":"passed","testResultsByEnv":{"default":"4b3a7d3259c63d997a5404cb06e77660"}}

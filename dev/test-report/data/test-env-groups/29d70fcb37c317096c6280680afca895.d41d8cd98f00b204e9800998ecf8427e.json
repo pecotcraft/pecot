@@ -1,0 +1,1 @@
+{"id":"29d70fcb37c317096c6280680afca895.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#スキルの本文とスクリプトのファイル スキルとエージェントの本文に、node で実行するスクリプトを埋め込まない","name":"スキルとエージェントの本文に、node で実行するスクリプトを埋め込まない","status":"passed","testResultsByEnv":{"default":"cd79f9ac761b74e59d7c00493a8b39e7"}}

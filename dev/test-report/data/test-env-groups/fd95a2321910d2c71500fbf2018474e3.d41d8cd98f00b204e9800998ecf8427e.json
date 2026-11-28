@@ -1,0 +1,1 @@
+{"id":"fd95a2321910d2c71500fbf2018474e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check merge の値 PR が 閉じている だと、not-mergeable の problem を返す","name":"PR が 閉じている だと、not-mergeable の problem を返す","status":"passed","testResultsByEnv":{"default":"61eeb9b209477e0e848693326c51014f"}}

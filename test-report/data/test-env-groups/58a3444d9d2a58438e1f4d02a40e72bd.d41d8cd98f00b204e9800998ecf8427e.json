@@ -1,0 +1,1 @@
+{"id":"58a3444d9d2a58438e1f4d02a40e72bd.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_permissions_are_limited_per_job","name":"test-report の権限は、contents の読み取りと、side と report の actions の読み取りと、履歴の job の id-token に限る","status":"passed","testResultsByEnv":{"default":"7dbb5b592f43bb7b398835620f296209"}}

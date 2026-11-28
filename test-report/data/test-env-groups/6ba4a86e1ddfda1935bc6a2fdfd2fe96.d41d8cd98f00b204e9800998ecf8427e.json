@@ -1,0 +1,1 @@
+{"id":"6ba4a86e1ddfda1935bc6a2fdfd2fe96.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-add.test.ts#board_add MCP の呼び出し 番号だけを渡して repo を付けると、そのリポジトリの Issue を足す","name":"番号だけを渡して repo を付けると、そのリポジトリの Issue を足す","status":"passed","testResultsByEnv":{"default":"04d390b14394aff3cc2296a3cdd12040"}}

@@ -1,0 +1,1 @@
+{"id":"be956e46b3038089adb8191930c8737f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-output-lint.test.ts#直接の出力を止める lint src/commands-shared/board-view.ts のパス ファイルに console.log(\"x\") を書くと、lint の違反になる","name":"ファイルに console.log(\"x\") を書くと、lint の違反になる","status":"passed","testResultsByEnv":{"default":"0fb37670bf432b5db2237e035c66c4b3"}}

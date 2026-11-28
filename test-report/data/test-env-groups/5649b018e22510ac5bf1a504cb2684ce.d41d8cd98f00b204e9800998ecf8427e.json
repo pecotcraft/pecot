@@ -1,0 +1,1 @@
+{"id":"5649b018e22510ac5bf1a504cb2684ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#列幅換算 ラベルの列と値の列の幅の合計が、1 列で 960 ピクセルの幅と一致する","name":"ラベルの列と値の列の幅の合計が、1 列で 960 ピクセルの幅と一致する","status":"passed","testResultsByEnv":{"default":"052118f6db4191a5504d0139cff3d77b"}}

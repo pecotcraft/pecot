@@ -1,0 +1,1 @@
+{"id":"60525f41eff269c7d4f9434d19460fd7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-finish.test.ts#auto finish 起動ラベルが既に外れていても、unchanged の行を出して成功する","name":"起動ラベルが既に外れていても、unchanged の行を出して成功する","status":"passed","testResultsByEnv":{"default":"3843ce8f41101e399d4020f116c3c2a0"}}

@@ -1,0 +1,1 @@
+{"id":"db2293b6a9857b1fbc4bfcf11c2d74f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish PR がマージされていないなら、GitHub の画面でマージするよう案内し、終了コード 1 で終わる","name":"PR がマージされていないなら、GitHub の画面でマージするよう案内し、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"1698ed9f8722d2199c3a915aac587bb1"}}

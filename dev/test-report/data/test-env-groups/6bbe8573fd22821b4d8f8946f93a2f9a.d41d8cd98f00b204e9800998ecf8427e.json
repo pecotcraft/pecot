@@ -1,0 +1,1 @@
+{"id":"6bbe8573fd22821b4d8f8946f93a2f9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「hasExplicitAnimation 欠落」の場合は、undefined を返す","name":"エントリが「hasExplicitAnimation 欠落」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"d54c9478209522359f17ee360bd3c876"}}

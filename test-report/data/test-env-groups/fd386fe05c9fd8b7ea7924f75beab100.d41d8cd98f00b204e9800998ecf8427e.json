@@ -1,0 +1,1 @@
+{"id":"fd386fe05c9fd8b7ea7924f75beab100.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 引用符を 2 つ重ねたエスケープは、リテラルの途中として扱い、閉じたことにしない","name":"引用符を 2 つ重ねたエスケープは、リテラルの途中として扱い、閉じたことにしない","status":"passed","testResultsByEnv":{"default":"555ded385ad16128142a5fbc0658c731"}}

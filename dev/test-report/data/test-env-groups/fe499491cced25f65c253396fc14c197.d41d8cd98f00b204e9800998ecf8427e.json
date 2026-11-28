@@ -1,0 +1,1 @@
+{"id":"fe499491cced25f65c253396fc14c197.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#expectedScope scope が repo のプロジェクトは、昇順に並べず、末尾へ置く","name":"scope が repo のプロジェクトは、昇順に並べず、末尾へ置く","status":"passed","testResultsByEnv":{"default":"02fea70db0324cd20a1e6ce9792fa1bc"}}

@@ -1,0 +1,1 @@
+{"id":"b1d24864eb6f115e71c77c326d686c63.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_does_not_pick_sha_outside_pr_commits","name":"PR のコミットに含まれない sha の artifact は、選ばない","status":"passed","testResultsByEnv":{"default":"b92e0a7ba8958cce750b0dac6521d1bd"}}

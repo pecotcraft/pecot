@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "git command failed: git ls-remote --tags origin refs/tags/v0.2.0\n  fatal: '/tmp/pecot-release-NyMTED/remotes/acme/demo.git' does not appear to be a git repository\n  fatal: Could not read from remote repository.\n  \n  Please make sure you have the correct access rights\n  and the repository exists."
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"git command failed: git ls-remote --tags origin refs/tags/v0.2.0\\n  fatal: '/tmp/pecot-release-NyMTED/remotes/acme/demo.git' does not appear to be a git repository\\n  fatal: Could not read from remote repository.\\n  \\n  Please make sure you have the correct access rights\\n  and the repository exists.\",\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"}}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "git command failed: git ls-remote --tags origin refs/tags/v0.2.0\n  fatal: '/tmp/pecot-release-NyMTED/remotes/acme/demo.git' does not appear to be a git repository\n  fatal: Could not read from remote repository.\n  \n  Please make sure you have the correct access rights\n  and the repository exists.",
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  },
+  "isError": true
+}

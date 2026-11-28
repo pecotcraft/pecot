@@ -1,0 +1,1 @@
+{"id":"e31bf5ee34c90a8e3562acf03cd577d2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 複数のリポがあるボードでは、設定の最初のリポ以外の Issue を owner/repo#N で表す","name":"複数のリポがあるボードでは、設定の最初のリポ以外の Issue を owner/repo#N で表す","status":"passed","testResultsByEnv":{"default":"10b0b2f24fa93811d4e349a88b7c19c8"}}

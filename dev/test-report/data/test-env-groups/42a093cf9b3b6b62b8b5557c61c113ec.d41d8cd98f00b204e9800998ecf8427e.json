@@ -1,0 +1,1 @@
+{"id":"42a093cf9b3b6b62b8b5557c61c113ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#配布ツリーの import を、同梱の text-rules への相対パスに書き換える","name":"配布ツリーの import を、同梱の text-rules への相対パスに書き換える","status":"passed","testResultsByEnv":{"default":"aa9073d55cfdbae830275aa8c7fa16f2"}}

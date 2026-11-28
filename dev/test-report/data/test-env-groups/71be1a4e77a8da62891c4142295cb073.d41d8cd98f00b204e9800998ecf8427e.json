@@ -1,0 +1,1 @@
+{"id":"71be1a4e77a8da62891c4142295cb073.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#loadConfig / saveConfig 設定ファイルが存在しない場合は、WorktreeConfigError を送出する","name":"設定ファイルが存在しない場合は、WorktreeConfigError を送出する","status":"passed","testResultsByEnv":{"default":"ba64a0da6b4ce37602a5e69ae257e00a"}}

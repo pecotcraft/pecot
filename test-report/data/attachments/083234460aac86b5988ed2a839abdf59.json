@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "base branch must be feat/demo/11 while its PR #20 is open (given: main)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"content-invalid\",\"detail\":\"base branch must be feat/demo/11 while its PR #20 is open (given: main)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "content-invalid",
+    "detail": "base branch must be feat/demo/11 while its PR #20 is open (given: main)"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"978c9d299029a8c833793f5bdc4aa00e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings 閉じ引用符のエスケープ のとき、引用符を含まない本文だけを切り出す","name":"閉じ引用符のエスケープ のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"635aad1d17386702b27a48fc20608632"}}

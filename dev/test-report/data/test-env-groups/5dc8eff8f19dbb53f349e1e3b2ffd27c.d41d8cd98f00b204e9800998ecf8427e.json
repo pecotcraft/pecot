@@ -1,0 +1,1 @@
+{"id":"5dc8eff8f19dbb53f349e1e3b2ffd27c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#進行の欄の判定 同じ名前で選択肢を持つフィールドが複数ある場合は後のものを返し、選択肢を持たないフィールドは選ばない","name":"同じ名前で選択肢を持つフィールドが複数ある場合は後のものを返し、選択肢を持たないフィールドは選ばない","status":"passed","testResultsByEnv":{"default":"102576c92cc9592aaf7a474d128c9fb6"}}

@@ -1,0 +1,1 @@
+{"id":"d6c68f61992001fbcd3d2c759f763e33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/coverage-include.test.ts#coverage include の各パターンが、tests 以外の実在ファイルに当たる","name":"include の各パターンが、tests 以外の実在ファイルに当たる","status":"passed","testResultsByEnv":{"default":"70c9628c98ebba2f2cc76bdf84697cb4"}}

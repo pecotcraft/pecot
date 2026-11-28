@@ -1,0 +1,1 @@
+{"id":"a5a1085eeecd72708d824b4f8e219821.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toToolResult 失敗の場合は、途中まで進んだ項目を kind と detail に並べて置き、reason を置かない","name":"失敗の場合は、途中まで進んだ項目を kind と detail に並べて置き、reason を置かない","status":"passed","testResultsByEnv":{"default":"8f395feb012131ca7fb483e490c25710"}}

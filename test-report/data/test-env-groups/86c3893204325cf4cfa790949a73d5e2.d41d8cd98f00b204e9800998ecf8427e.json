@@ -1,0 +1,1 @@
+{"id":"86c3893204325cf4cfa790949a73d5e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init 同じボードを指す旧い名前の設定ファイルが 2 つあると、欄を改名せず、何も移さずに終了コード 1 で終わる","name":"同じボードを指す旧い名前の設定ファイルが 2 つあると、欄を改名せず、何も移さずに終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"5201c572e4c76767c5a7ddc59ee4b287"}}

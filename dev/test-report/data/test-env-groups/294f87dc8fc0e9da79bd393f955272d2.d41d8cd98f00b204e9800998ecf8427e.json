@@ -1,0 +1,1 @@
+{"id":"294f87dc8fc0e9da79bd393f955272d2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/session-start-common.test.ts#session-start-common.sh .pecot があるとき、.gitignore を作り、config を除外の対象から外す行を書く","name":".pecot があるとき、.gitignore を作り、config を除外の対象から外す行を書く","status":"passed","testResultsByEnv":{"default":"b403cd11bc4cba95dec070e013a9611e"}}

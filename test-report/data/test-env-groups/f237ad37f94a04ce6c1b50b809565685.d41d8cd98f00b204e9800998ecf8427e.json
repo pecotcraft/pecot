@@ -1,0 +1,1 @@
+{"id":"f237ad37f94a04ce6c1b50b809565685.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-finish.test.ts#auto finish GitHub の読み書きの失敗 Status の書き込みが失敗すると、コメントを書いた行の後にその理由で止まる","name":"Status の書き込みが失敗すると、コメントを書いた行の後にその理由で止まる","status":"passed","testResultsByEnv":{"default":"7ddebdbf48c45c296d548fb388b2f06b"}}

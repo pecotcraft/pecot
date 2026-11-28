@@ -1,0 +1,1 @@
+{"id":"c1c2c79d097fa4148dec23579e6a8f05.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start ブランチが無いとき feat/auto/<番号> と同じ名前のブランチが既にあって GitHub が作らないと、そのことと直し方で止まる","name":"feat/auto/<番号> と同じ名前のブランチが既にあって GitHub が作らないと、そのことと直し方で止まる","status":"passed","testResultsByEnv":{"default":"7781767a7dac889f32edbb11e52a2dbf"}}

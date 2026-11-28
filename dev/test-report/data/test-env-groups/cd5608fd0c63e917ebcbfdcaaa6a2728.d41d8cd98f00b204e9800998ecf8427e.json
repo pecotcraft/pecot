@@ -1,0 +1,1 @@
+{"id":"cd5608fd0c63e917ebcbfdcaaa6a2728.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#aggregation_repo aggregation_repo が owner/repo の形式の場合は、受け付ける","name":"aggregation_repo が owner/repo の形式の場合は、受け付ける","status":"passed","testResultsByEnv":{"default":"8620f52fa599c5b5942581b323843c1b"}}

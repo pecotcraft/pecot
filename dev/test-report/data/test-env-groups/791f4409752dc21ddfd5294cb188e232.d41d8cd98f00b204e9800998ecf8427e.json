@@ -1,0 +1,1 @@
+{"id":"791f4409752dc21ddfd5294cb188e232.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/process.test.ts#spawnPromise 起動に失敗した場合は、拒否せず、終了コードを null にして標準エラーにメッセージを含める","name":"起動に失敗した場合は、拒否せず、終了コードを null にして標準エラーにメッセージを含める","status":"passed","testResultsByEnv":{"default":"80aa513e1a6a45e538ad1ab96adfcc0c"}}

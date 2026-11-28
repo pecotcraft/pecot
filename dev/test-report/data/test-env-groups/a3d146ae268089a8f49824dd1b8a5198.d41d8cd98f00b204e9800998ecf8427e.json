@@ -1,0 +1,1 @@
+{"id":"a3d146ae268089a8f49824dd1b8a5198.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference \"owner/repo#\" を渡すと、形式が不正として例外が発生する","name":"\"owner/repo#\" を渡すと、形式が不正として例外が発生する","status":"passed","testResultsByEnv":{"default":"45200742ff607601cb1944cb3956eae3"}}

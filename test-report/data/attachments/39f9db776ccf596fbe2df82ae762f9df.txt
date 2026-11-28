@@ -1,0 +1,5 @@
+
+[7m[1m[32m NX [39m[22m[27m  [32mJSON output created in /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_workspace_catalog_commit_0[39m
+
+/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_workspace_catalog_commit_0/graph-test.json
+

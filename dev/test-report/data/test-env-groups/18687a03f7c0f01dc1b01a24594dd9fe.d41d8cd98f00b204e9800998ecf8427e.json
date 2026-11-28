@@ -1,0 +1,1 @@
+{"id":"18687a03f7c0f01dc1b01a24594dd9fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add remote のリポを含む設定が 2 つで選べなければ止まり、project を付けるとその設定で作る","name":"remote のリポを含む設定が 2 つで選べなければ止まり、project を付けるとその設定で作る","status":"passed","testResultsByEnv":{"default":"f40bad856969d0729808065c1ca85777"}}

@@ -1,0 +1,1 @@
+{"id":"25ae69425f79c383cffffefec8b12e4d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — createdDate createdDate が不正な値（暦にない日 (2 月 31 日)）の場合は、拒否する","name":"createdDate が不正な値（暦にない日 (2 月 31 日)）の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"2860be85ff06d605d30c3c77a52d7dc6"}}

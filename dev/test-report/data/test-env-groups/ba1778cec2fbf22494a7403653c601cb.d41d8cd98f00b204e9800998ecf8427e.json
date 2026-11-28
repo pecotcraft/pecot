@@ -1,0 +1,1 @@
+{"id":"ba1778cec2fbf22494a7403653c601cb.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot:.nx/nx-release/tests/dependabot-plans.test.mjs#actions の本番の依存から届く indirect は pecot-actions に作り、dev の依存からだけなら作らない","name":"actions の本番の依存から届く indirect は pecot-actions に作り、dev の依存からだけなら作らない","status":"passed","testResultsByEnv":{"default":"fe76d88ccbc55a4b3361c87729288712"}}

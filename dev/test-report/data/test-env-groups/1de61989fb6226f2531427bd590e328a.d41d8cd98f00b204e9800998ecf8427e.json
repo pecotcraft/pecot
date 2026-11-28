@@ -1,0 +1,1 @@
+{"id":"1de61989fb6226f2531427bd590e328a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_validate 参照の dir の外の yaml を渡すと、検証せずに空のオブジェクトを返す","name":"参照の dir の外の yaml を渡すと、検証せずに空のオブジェクトを返す","status":"passed","testResultsByEnv":{"default":"c78e92d61ed8fdcf8ecc755ad7551c88"}}

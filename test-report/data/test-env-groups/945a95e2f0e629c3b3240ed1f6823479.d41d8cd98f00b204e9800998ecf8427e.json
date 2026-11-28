@@ -1,0 +1,1 @@
+{"id":"945a95e2f0e629c3b3240ed1f6823479.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#失敗種別 fixture access-denied の失敗は、失敗の種類 permission-denied と判定する","name":"fixture access-denied の失敗は、失敗の種類 permission-denied と判定する","status":"passed","testResultsByEnv":{"default":"651e3f85b5a7aa1eeb4e21b4874711e6"}}

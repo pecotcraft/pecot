@@ -1,0 +1,1 @@
+{"id":"2eba6912bf1ba50ce626cf93f1768943.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move 番号だけを渡して repo を付けると、そのリポジトリの Issue の Status を設定する","name":"番号だけを渡して repo を付けると、そのリポジトリの Issue の Status を設定する","status":"passed","testResultsByEnv":{"default":"cb1555807ac416393211202e31053bfd"}}

@@ -1,0 +1,1 @@
+{"id":"e2250e9b5962e6c52c4d05a8fb87dd43.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_permissions_are_granted_per_job","name":"権限は workflow ではなく、job ごとに必要なものだけを付与する","status":"passed","testResultsByEnv":{"default":"391db000df2aa6bb04cf2ae7144ea057"}}

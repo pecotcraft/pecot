@@ -1,0 +1,1 @@
+{"id":"a021882f1247cfe1f7657daa7138bf77.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_unknown_part_exit_2","name":"不明な `--part` を指定すると、使い方を表示して終了コード 2 で終了する","status":"passed","testResultsByEnv":{"default":"1d813d396af65b9b99887d9ab07276fc"}}

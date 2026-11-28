@@ -1,0 +1,1 @@
+{"id":"74a17fbc36568ed8bab0922570d0cf89.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#pythonRepr JSON の値 1e-5 を渡すと、Python の repr と同じ文字列を返す","name":"JSON の値 1e-5 を渡すと、Python の repr と同じ文字列を返す","status":"passed","testResultsByEnv":{"default":"d642290fb8aa190f5c7fb35f55939420"}}

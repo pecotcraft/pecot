@@ -1,0 +1,1 @@
+{"id":"6cc48bb0b337322ba0bffa5511bbab1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_create Status に Needs Attention を足せなくても、warning の行を出して設定ファイルを作る","name":"Status に Needs Attention を足せなくても、warning の行を出して設定ファイルを作る","status":"passed","testResultsByEnv":{"default":"21f41941b5855f502061cce6b2ad71ca"}}

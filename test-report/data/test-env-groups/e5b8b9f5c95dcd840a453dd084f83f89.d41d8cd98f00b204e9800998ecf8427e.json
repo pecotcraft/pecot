@@ -1,0 +1,1 @@
+{"id":"e5b8b9f5c95dcd840a453dd084f83f89.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/fs.test.ts#SlideCreateRuntimeError reason の値を、name や message とは別に取得できる","name":"reason の値を、name や message とは別に取得できる","status":"passed","testResultsByEnv":{"default":"b97c7099fc06878e086bfaf89359fefe"}}

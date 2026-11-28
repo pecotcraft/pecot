@@ -1,0 +1,1 @@
+{"id":"cd9068cb98af9aaf28cdbb501c5c9435.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/process.test.ts#spawnPromise 標準エラーへ出力して終了するコマンドは、出力した内容をそのまま標準エラーとして返す","name":"標準エラーへ出力して終了するコマンドは、出力した内容をそのまま標準エラーとして返す","status":"passed","testResultsByEnv":{"default":"d3cf0f54e8f46cee3b81f45db833a734"}}

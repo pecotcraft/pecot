@@ -1,0 +1,1 @@
+{"id":"a57168e86d5c61105d1c5fd644b18897.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#appendIssueCloseIfNeeded 本文 \"Closes #123\" には参照があるため、そのまま返す","name":"本文 \"Closes #123\" には参照があるため、そのまま返す","status":"passed","testResultsByEnv":{"default":"73137d05295b07be5a984ab28dcd5622"}}

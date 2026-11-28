@@ -1,0 +1,1 @@
+{"id":"829f07ccd52b11a5bb9e8c686a4ea1fc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#generated.json checks generated.json の plugin 名がディレクトリ名と違い、接頭辞も不正だと、検証エラーにする","name":"generated.json の plugin 名がディレクトリ名と違い、接頭辞も不正だと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"5430bf54e9339f4e501bd8b38fdf1270"}}

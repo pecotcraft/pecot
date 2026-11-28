@@ -1,0 +1,1 @@
+release view pecot-visual-v0.0.0-test1812 -R test-owner/test-repo

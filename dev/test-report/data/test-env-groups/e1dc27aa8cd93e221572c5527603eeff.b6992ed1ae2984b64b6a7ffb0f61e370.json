@@ -1,0 +1,1 @@
+{"id":"e1dc27aa8cd93e221572c5527603eeff.b6992ed1ae2984b64b6a7ffb0f61e370","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_the_githooks_lanes_that_read_the_change","name":"libs/text-rules/index.ts を変更すると、それを読む githooks のレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"cc4a7559c8a34d0afd93f2f936fa4866"}}

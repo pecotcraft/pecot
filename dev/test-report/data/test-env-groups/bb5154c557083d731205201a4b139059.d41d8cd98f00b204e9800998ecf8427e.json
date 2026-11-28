@@ -1,0 +1,1 @@
+{"id":"bb5154c557083d731205201a4b139059.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#案内の文字列を止める lint グループ session の案内を書くと、lint の違反になる","name":"グループ session の案内を書くと、lint の違反になる","status":"passed","testResultsByEnv":{"default":"bd53c28c559d48fed6776b862890b82f"}}

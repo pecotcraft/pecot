@@ -1,0 +1,1 @@
+{"id":"3f0576e6fd35f25efed26724392a4fd4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 setup の Check は、run のトークンとラベルを付けた人と本文を env で受け、run に式を埋め込まない","name":"setup の Check は、run のトークンとラベルを付けた人と本文を env で受け、run に式を埋め込まない","status":"passed","testResultsByEnv":{"default":"25053356b96367cf5d606ab0a4df352b"}}

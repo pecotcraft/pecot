@@ -1,0 +1,1 @@
+{"id":"271164656b23bcb4dc0cdceed1d883b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/screenshot.test.ts#capturePng / exportViaEmbed 応答が base64 の data URI でなければ、空のファイルを書かず、エラーにする","name":"応答が base64 の data URI でなければ、空のファイルを書かず、エラーにする","status":"passed","testResultsByEnv":{"default":"c17befa0580beaa64f857bc48d131d51"}}

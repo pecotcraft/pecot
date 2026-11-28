@@ -1,0 +1,1 @@
+{"id":"6d641190d49b9ef84c8c02793d1185dd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/initial-pages.test.ts#buildInitialPages 参照の yaml を読み込めない場合は、examples が存在しないものとして扱う","name":"参照の yaml を読み込めない場合は、examples が存在しないものとして扱う","status":"passed","testResultsByEnv":{"default":"48606df862b1e565e1b20bd4c58c1eba"}}

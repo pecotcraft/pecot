@@ -1,0 +1,1 @@
+{"id":"9429988c72464688b85594effbc1feca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start 作業ディレクトリの git remote のリポジトリが Issue のリポジトリと違うと、終了コード 2 で終わる","name":"作業ディレクトリの git remote のリポジトリが Issue のリポジトリと違うと、終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"4c8f49e9ecd3451b55eceeab43507bd6"}}

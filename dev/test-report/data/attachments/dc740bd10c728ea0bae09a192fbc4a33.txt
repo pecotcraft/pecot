@@ -1,0 +1,3 @@
+==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)
+  NG: engine-strict=true が無い: /tmp/bats-run-EjpMIs/test/53/fix/.npmrc
+check-pm-guard: 静的確認 FAILED (1 件)

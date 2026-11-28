@@ -1,0 +1,1 @@
+{"id":"4d8cd6dc8c2d6de09c3f5429a853c6b6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#main の --check Node の側の項目が不正なとき 項目がスキーマに合わなければ、invalid entries の行を出して 1 を返し、ファイルを書かない","name":"項目がスキーマに合わなければ、invalid entries の行を出して 1 を返し、ファイルを書かない","status":"passed","testResultsByEnv":{"default":"9e0edb8ba03025f31ea997c874bc68ae"}}

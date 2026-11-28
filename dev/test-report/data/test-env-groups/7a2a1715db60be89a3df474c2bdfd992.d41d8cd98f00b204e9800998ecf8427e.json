@@ -1,0 +1,1 @@
+{"id":"7a2a1715db60be89a3df474c2bdfd992.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments shorthand-list の入力は、配列全体を JSON の 1 つの引数にして渡す","name":"shorthand-list の入力は、配列全体を JSON の 1 つの引数にして渡す","status":"passed","testResultsByEnv":{"default":"ba55eea5c081ab6267a578558edb918a"}}

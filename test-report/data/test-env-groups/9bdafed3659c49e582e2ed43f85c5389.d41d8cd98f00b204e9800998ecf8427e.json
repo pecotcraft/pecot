@@ -1,0 +1,1 @@
+{"id":"9bdafed3659c49e582e2ed43f85c5389.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh remote が無い とき、作業中の Issue は無いとして、出力せず記録を残さない","name":"remote が無い とき、作業中の Issue は無いとして、出力せず記録を残さない","status":"passed","testResultsByEnv":{"default":"e31ae8d70c9f0655f60f3a635ee67b8f"}}

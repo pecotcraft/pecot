@@ -1,0 +1,1 @@
+{"id":"9cdbdfad9b66758b5eb07699e8249b51.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#リリースタグがあれば plan 無しでも exit 0","name":"リリースタグがあれば plan 無しでも exit 0","status":"passed","testResultsByEnv":{"default":"06ccc71ba3303579ce4a130d04dfbd5b"}}

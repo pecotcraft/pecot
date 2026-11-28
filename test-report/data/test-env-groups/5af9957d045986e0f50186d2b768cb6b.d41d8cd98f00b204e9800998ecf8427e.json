@@ -1,0 +1,1 @@
+{"id":"5af9957d045986e0f50186d2b768cb6b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create message に base を渡さないと、終了コード 1 で終わる","name":"message に base を渡さないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"d38b037c47ae09a0c3918fb300f9af2d"}}

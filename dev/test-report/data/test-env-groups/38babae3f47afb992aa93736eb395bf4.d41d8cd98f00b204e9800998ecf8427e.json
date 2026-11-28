@@ -1,0 +1,1 @@
+{"id":"38babae3f47afb992aa93736eb395bf4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-show.test.ts#board_show repo を付けると、そのリポジトリの項目だけを board に入れ、lanes もその項目で数える","name":"repo を付けると、そのリポジトリの項目だけを board に入れ、lanes もその項目で数える","status":"passed","testResultsByEnv":{"default":"8f0dbc7d5ef87ed907e447fea0ee4db4"}}

@@ -1,0 +1,1 @@
+{"id":"3bc5bc1e648dccd42d456ed1ca04bb10.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/session-start-git-sync.test.ts#git-sync.sh 設定が無いとき、pull しない","name":"設定が無いとき、pull しない","status":"passed","testResultsByEnv":{"default":"45cffb651ba149d85955d1d1781efda7"}}

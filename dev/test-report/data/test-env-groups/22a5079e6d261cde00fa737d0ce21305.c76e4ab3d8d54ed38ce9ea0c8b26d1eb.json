@@ -1,0 +1,1 @@
+{"id":"22a5079e6d261cde00fa737d0ce21305.c76e4ab3d8d54ed38ce9ea0c8b26d1eb","fullName":".githooks.tests.test_sandbox_ops_workflow#test_app_token_scope","name":"diff の App の token は、検証用のリポだけに絞り、権限を {'permission-contents': 'write', 'permission-organization-projects': 'read'} にする","status":"passed","testResultsByEnv":{"default":"6dcbbb8f109556198a15db3587adb1c1"}}

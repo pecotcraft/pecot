@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "removed: worktree wt2"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt2\",\"deletedBranch\":false,\"warnings\":[\"could not delete local branch wt2: error: branch 'wt2' not found\"]}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt2",
+    "deletedBranch": false,
+    "warnings": [
+      "could not delete local branch wt2: error: branch 'wt2' not found"
+    ]
+  }
+}

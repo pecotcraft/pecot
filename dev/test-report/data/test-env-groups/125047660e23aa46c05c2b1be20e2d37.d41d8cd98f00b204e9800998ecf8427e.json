@@ -1,0 +1,1 @@
+{"id":"125047660e23aa46c05c2b1be20e2d37.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/plugin-manifests.test.ts#プラグインの 2 組の manifest 旧 .github/plugin/plugin.json を持たない（1.0 形式では Copilot CLI が読まない）","name":"旧 .github/plugin/plugin.json を持たない（1.0 形式では Copilot CLI が読まない）","status":"passed","testResultsByEnv":{"default":"4fe53f0db9d1c24228fd340bf0ca132a"}}

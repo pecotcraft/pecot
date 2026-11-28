@@ -1,0 +1,1 @@
+{"id":"1537a13dcde68005bc53aca68af637d6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start 前の PR の手元の後片付けの取りこぼし 今のブランチの PR を読むとき 接続が切れる と、warnings に入れてブランチを作る","name":"今のブランチの PR を読むとき 接続が切れる と、warnings に入れてブランチを作る","status":"passed","testResultsByEnv":{"default":"b9bc1bbb3545e6c0399522b9535de222"}}

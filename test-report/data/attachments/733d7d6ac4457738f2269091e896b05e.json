@@ -1,0 +1,22 @@
+{
+  "project": "nx-release",
+  "target": "lint-types",
+  "runtime": [
+    "dpkg-query -W -f='${Package}=${Version}\\n'",
+    "git hash-object pnpm-lock.yaml",
+    "node --version",
+    "node -p \"require('@types/node/package.json').version\"",
+    "node -p \"require('nx/package.json').version\"",
+    "node -p \"require('typescript7/package.json').version\""
+  ],
+  "environment": [
+    "HOME",
+    "NODE_OPTIONS",
+    "NODE_V8_COVERAGE",
+    "NX_CLOUD_ENCRYPTION_KEY",
+    "PECOT_REPORT_SITE_URL"
+  ],
+  "external": [
+    "AllExternalDependencies"
+  ]
+}

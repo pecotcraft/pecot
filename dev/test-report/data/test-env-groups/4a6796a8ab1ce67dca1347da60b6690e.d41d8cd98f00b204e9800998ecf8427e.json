@@ -1,0 +1,1 @@
+{"id":"4a6796a8ab1ce67dca1347da60b6690e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml — 注記図形 複数の画像に注記が付いている場合でも、cNvPr の id が drawing 全体で一意になる","name":"複数の画像に注記が付いている場合でも、cNvPr の id が drawing 全体で一意になる","status":"passed","testResultsByEnv":{"default":"c99f30cd7ee5e3ccc4aeedaeb818a1f3"}}

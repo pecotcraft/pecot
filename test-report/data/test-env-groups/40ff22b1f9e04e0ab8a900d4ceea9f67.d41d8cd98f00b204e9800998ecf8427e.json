@@ -1,0 +1,1 @@
+{"id":"40ff22b1f9e04e0ab8a900d4ceea9f67.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#detectProjectRoot メインの worktree が base 直下にある場合は、プロジェクトのルートを返す","name":"メインの worktree が base 直下にある場合は、プロジェクトのルートを返す","status":"passed","testResultsByEnv":{"default":"e8bac6cc6a93fdacf207d4e651f732e5"}}

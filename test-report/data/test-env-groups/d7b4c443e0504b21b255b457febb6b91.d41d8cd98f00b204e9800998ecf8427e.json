@@ -1,0 +1,1 @@
+{"id":"d7b4c443e0504b21b255b457febb6b91.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#リリースタグが無いとき配布ツリーを作らず早期 return する","name":"リリースタグが無いとき配布ツリーを作らず早期 return する","status":"passed","testResultsByEnv":{"default":"081f6ffb2b4e4edf28bd1cf98ec4a361"}}

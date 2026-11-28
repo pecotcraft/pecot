@@ -1,0 +1,1 @@
+ERROR: push 情報なし（pre-commit env と pre-push stdin のどちらからも取得できず）のため version plan check を skip。PECOT_VERSION_PLAN_STRICT=1 のため失敗にします

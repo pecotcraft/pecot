@@ -1,0 +1,1 @@
+{"id":"2e0234231c9cba232c73e279bac7a73d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-describe-title.test.ts#describeTitleConfig 定義書が無いパスを渡すと、パスを添えて throw する","name":"定義書が無いパスを渡すと、パスを添えて throw する","status":"passed","testResultsByEnv":{"default":"79b260a95e25374398c28c58edc46a05"}}

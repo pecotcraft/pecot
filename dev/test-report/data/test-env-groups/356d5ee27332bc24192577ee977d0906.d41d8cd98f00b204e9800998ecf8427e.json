@@ -1,0 +1,1 @@
+{"id":"356d5ee27332bc24192577ee977d0906.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#入力の検証の誤り 定義に存在しないキーが複数あると、すべてを名指しして、コマンドの本体を実行しない","name":"定義に存在しないキーが複数あると、すべてを名指しして、コマンドの本体を実行しない","status":"passed","testResultsByEnv":{"default":"82b1a64bac2b273565e8b2a988a95dff"}}

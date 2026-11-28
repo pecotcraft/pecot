@@ -1,0 +1,1 @@
+{"id":"1bf579a3ccfe53de99788e336ca419be.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#allowlistedTool JSON を出力するツールは、responseRequired を指定したときだけ anyOf を設定する","name":"JSON を出力するツールは、responseRequired を指定したときだけ anyOf を設定する","status":"passed","testResultsByEnv":{"default":"4df21ad6b4cebbf3a638713352c810b9"}}

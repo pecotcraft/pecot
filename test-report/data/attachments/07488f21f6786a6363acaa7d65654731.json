@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid head: :feat/demo/12 (expected: branch or owner:branch)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid head: :feat/demo/12 (expected: branch or owner:branch)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid head: :feat/demo/12 (expected: branch or owner:branch)"
+  },
+  "isError": true
+}

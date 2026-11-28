@@ -1,0 +1,1 @@
+{"id":"9984315057f4bbead2c7f5c6b4e2d92e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-comment-check.test.ts#issue_comment_check 本文がテンプレートの見出しを持たないと、不足している見出しを 1 つずつ problem にする","name":"本文がテンプレートの見出しを持たないと、不足している見出しを 1 つずつ problem にする","status":"passed","testResultsByEnv":{"default":"dd0369fec4a8816a39a6f22631a2ad8d"}}

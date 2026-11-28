@@ -1,0 +1,1 @@
+{"id":"8782ca14a981537db5d0cb8a4f241f3d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#pnpm run で自分を呼ぶ script があると、違反として返す","name":"pnpm run で自分を呼ぶ script があると、違反として返す","status":"passed","testResultsByEnv":{"default":"eeeb29d9bf00b3f45523a5f500775170"}}

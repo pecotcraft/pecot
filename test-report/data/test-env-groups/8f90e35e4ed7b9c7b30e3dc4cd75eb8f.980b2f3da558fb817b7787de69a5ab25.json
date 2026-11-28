@@ -1,0 +1,1 @@
+{"id":"8f90e35e4ed7b9c7b30e3dc4cd75eb8f.980b2f3da558fb817b7787de69a5ab25","fullName":".githooks.tests.test_cli_output_lines_match#test_error_and_warning_cases_match_across_plugins","name":"3 つのプラグインの error の診断行の期待は、同じ集合になる","status":"passed","testResultsByEnv":{"default":"78931078ab16fbef01a9042aa8aae3ab"}}

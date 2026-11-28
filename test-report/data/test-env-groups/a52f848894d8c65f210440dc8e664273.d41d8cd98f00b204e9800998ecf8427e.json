@@ -1,0 +1,1 @@
+{"id":"a52f848894d8c65f210440dc8e664273.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/_helpers/fake-github/server.test.ts#GraphQL 名前のない query は、構造から operation 名を判定し、名前と変数を記録する","name":"名前のない query は、構造から operation 名を判定し、名前と変数を記録する","status":"passed","testResultsByEnv":{"default":"9e2fd255907fafaa11920c0d20ab3528"}}

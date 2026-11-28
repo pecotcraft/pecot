@@ -1,0 +1,1 @@
+{"id":"ab949bb07e6b9833733900bf9e54a733.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath ディストリビューション名の後ろの区切り文字が混在していても、変換できる","name":"ディストリビューション名の後ろの区切り文字が混在していても、変換できる","status":"passed","testResultsByEnv":{"default":"c565bed6154adef953c48b536546bb51"}}

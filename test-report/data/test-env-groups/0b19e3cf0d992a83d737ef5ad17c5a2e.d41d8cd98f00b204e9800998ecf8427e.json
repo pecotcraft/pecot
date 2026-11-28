@@ -1,0 +1,1 @@
+{"id":"0b19e3cf0d992a83d737ef5ad17c5a2e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestForFinish PR の終了処理で、閉じる Issue を決める項目を返す","name":"PR の終了処理で、閉じる Issue を決める項目を返す","status":"passed","testResultsByEnv":{"default":"90a6497025ea9645ce704e2226f8a7f0"}}

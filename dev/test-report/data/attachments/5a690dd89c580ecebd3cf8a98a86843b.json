@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_sqs_get_queue_attributes: profile: Invalid string: must match pattern /^[\\w.-]+$/"
+    }
+  ],
+  "isError": true
+}

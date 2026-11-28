@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "/tmp/pecot-nogit-nmv5Lb is not in a Git repository"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\"/tmp/pecot-nogit-nmv5Lb is not in a Git repository\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": "/tmp/pecot-nogit-nmv5Lb is not in a Git repository"
+  },
+  "isError": true
+}

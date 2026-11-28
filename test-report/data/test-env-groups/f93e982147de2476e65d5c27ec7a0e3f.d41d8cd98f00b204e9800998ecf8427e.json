@@ -1,0 +1,1 @@
+{"id":"f93e982147de2476e65d5c27ec7a0e3f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#handleHttpError 403 のそれ以外は GitHubAPIError（サブクラスではない）","name":"403 のそれ以外は GitHubAPIError（サブクラスではない）","status":"passed","testResultsByEnv":{"default":"f6fae97ae4d77e9e8a0905a0264a1f8d"}}

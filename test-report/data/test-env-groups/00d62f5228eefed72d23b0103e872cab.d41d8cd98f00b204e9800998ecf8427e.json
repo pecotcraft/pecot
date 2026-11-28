@@ -1,0 +1,1 @@
+{"id":"00d62f5228eefed72d23b0103e872cab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge head ブランチを削除できない もし head ブランチを削除できなかったなら、warning の行を標準エラーに出す","name":"もし head ブランチを削除できなかったなら、warning の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"0486a8879de5ffd5f9f7085f7a6efd64"}}

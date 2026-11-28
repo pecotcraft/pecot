@@ -1,0 +1,1 @@
+{"id":"5dfc6b21e54bef1486b6b093f3895046.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh cd 先が保護ブランチで HOOK_WORKING_DIR が feature のとき、cd 先で判定して止める","name":"cd 先が保護ブランチで HOOK_WORKING_DIR が feature のとき、cd 先で判定して止める","status":"passed","testResultsByEnv":{"default":"ff6410417822ac2df78f93eaaec45adf"}}

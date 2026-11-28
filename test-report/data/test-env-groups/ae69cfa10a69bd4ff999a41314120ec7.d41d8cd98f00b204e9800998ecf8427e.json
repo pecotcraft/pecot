@@ -1,0 +1,1 @@
+{"id":"ae69cfa10a69bd4ff999a41314120ec7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-decorative-bar-element.test.ts#no-decorative-bar-element invalid border-radius の祖先の中にバーが複数あると、すべて報告する","name":"border-radius の祖先の中にバーが複数あると、すべて報告する","status":"passed","testResultsByEnv":{"default":"b9d6beb5f628bd7a8b5b0570726d5f82"}}

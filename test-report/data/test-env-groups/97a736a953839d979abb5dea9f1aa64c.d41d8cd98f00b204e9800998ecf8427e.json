@@ -1,0 +1,1 @@
+{"id":"97a736a953839d979abb5dea9f1aa64c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show ボードの取得で GitHub API がエラーを返すと、終了コード 1 で終わる","name":"ボードの取得で GitHub API がエラーを返すと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"8e2c2144686a73c227a8ed064441c9d4"}}

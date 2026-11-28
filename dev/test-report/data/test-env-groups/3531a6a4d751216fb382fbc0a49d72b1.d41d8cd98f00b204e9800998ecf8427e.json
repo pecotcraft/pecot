@@ -1,0 +1,1 @@
+{"id":"3531a6a4d751216fb382fbc0a49d72b1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide convert のスライド構成変更 (T012) スライドを並べ替えた場合は、位置の変わったスライドだけキャッシュに一致せず、出力の並びが入れ替わる","name":"スライドを並べ替えた場合は、位置の変わったスライドだけキャッシュに一致せず、出力の並びが入れ替わる","status":"passed","testResultsByEnv":{"default":"13399b8aece11cad2337858c8dafbb7f"}}

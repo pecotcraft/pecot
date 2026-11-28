@@ -1,0 +1,1 @@
+{"id":"095914003e6348bd36e0aad3c15f348f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#placeProjectConfig 同じボードを指す旧い名前の設定ファイルが 2 つ以上の場合は、ファイル名を並べて止める","name":"同じボードを指す旧い名前の設定ファイルが 2 つ以上の場合は、ファイル名を並べて止める","status":"passed","testResultsByEnv":{"default":"0a5c9b769db016b9699f1c6fdb828061"}}

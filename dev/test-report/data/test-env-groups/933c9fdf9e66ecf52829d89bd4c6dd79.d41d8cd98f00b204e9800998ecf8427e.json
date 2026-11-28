@@ -1,0 +1,1 @@
+{"id":"933c9fdf9e66ecf52829d89bd4c6dd79.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getWorktreeList detached HEAD の worktree は、ブランチを undefined として返す（実 git）","name":"detached HEAD の worktree は、ブランチを undefined として返す（実 git）","status":"passed","testResultsByEnv":{"default":"cc1cc487ef4b4dddba07371d1dabf217"}}

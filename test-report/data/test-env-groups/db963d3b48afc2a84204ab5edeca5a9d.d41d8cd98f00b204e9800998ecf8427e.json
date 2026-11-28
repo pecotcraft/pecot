@@ -1,0 +1,1 @@
+{"id":"db963d3b48afc2a84204ab5edeca5a9d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-sso.test.ts#SSO の 2 段構成 開始すると URL とコードを返し、承認後の状態確認で completed になる","name":"開始すると URL とコードを返し、承認後の状態確認で completed になる","status":"passed","testResultsByEnv":{"default":"ad546eeadc0fc86656796356130ec1e9"}}

@@ -1,0 +1,1 @@
+{"id":"d95f52bdfbe7ace7a62ad4784c4070dd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_set MCP の data アクティブなプロジェクトが存在しないと、kind が no-active-project の失敗を返す","name":"アクティブなプロジェクトが存在しないと、kind が no-active-project の失敗を返す","status":"passed","testResultsByEnv":{"default":"dfa37091ba119d99913095a29ebd4528"}}

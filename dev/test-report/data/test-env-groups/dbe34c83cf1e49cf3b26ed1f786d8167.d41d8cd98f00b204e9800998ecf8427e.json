@@ -1,0 +1,1 @@
+{"id":"dbe34c83cf1e49cf3b26ed1f786d8167.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_real_allure_reads_the_results","name":"実際の Allure で結果を読み込むと、説明・状態・期待値と実際の値・添付がレポートに含まれる","status":"passed","testResultsByEnv":{"default":"23736850336b35525d0da5b24a4e1242"}}

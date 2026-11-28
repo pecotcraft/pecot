@@ -1,0 +1,1 @@
+{"id":"a81e90ec2f6fe0613a514bb2721ed936.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/paths.test.ts#projectRoot 環境変数 GIT_DIR が別の場所を指していても、cwd を基準に解決する","name":"環境変数 GIT_DIR が別の場所を指していても、cwd を基準に解決する","status":"passed","testResultsByEnv":{"default":"9e6fc7f41ea2fa25f830e5e99805679b"}}

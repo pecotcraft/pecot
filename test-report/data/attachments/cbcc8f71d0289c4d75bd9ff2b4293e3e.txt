@@ -1,0 +1,3 @@
+warning: using repo acme/demo (could not read the repository from the URL of the Git remote origin)
+removed: worktree wt1
+deleted: local branch wt1

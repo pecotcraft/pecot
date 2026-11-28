@@ -1,0 +1,1 @@
+{"id":"6e03f8ac1fa5f5388cbc95f3217dd2fc.ce356219a520cb6ba8d459e970173d27","fullName":".githooks.tests.test_nx_affected_mapping#test_lint_gate_selects_only_the_lanes_the_change_reaches","name":"libs/interface-spec/src/eslint/table-key.ts を変更すると、その変更が届く lint のレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"aecc31cfd1f27deef733853d96059bc1"}}

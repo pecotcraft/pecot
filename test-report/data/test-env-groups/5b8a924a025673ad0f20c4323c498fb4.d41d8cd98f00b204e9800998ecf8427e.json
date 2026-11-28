@@ -1,0 +1,1 @@
+{"id":"5b8a924a025673ad0f20c4323c498fb4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/annotations.test.ts#effects against mcp.annotations MCP の annotations にヒントが含まれていないと、effects との整合を検証しない","name":"MCP の annotations にヒントが含まれていないと、effects との整合を検証しない","status":"passed","testResultsByEnv":{"default":"3de4d46ee261f017d50f551bf3d715a2"}}

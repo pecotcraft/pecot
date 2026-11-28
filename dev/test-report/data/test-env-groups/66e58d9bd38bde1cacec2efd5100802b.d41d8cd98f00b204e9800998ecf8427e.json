@@ -1,0 +1,1 @@
+{"id":"66e58d9bd38bde1cacec2efd5100802b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/integration.test.ts#統合: エントリ 免除のフラグを残したまま pecot issue quick -m x -r owner/repo を送っても、結果は変わらない","name":"免除のフラグを残したまま pecot issue quick -m x -r owner/repo を送っても、結果は変わらない","status":"passed","testResultsByEnv":{"default":"01c0c83263ac81c31e91e2eb77b592e1"}}

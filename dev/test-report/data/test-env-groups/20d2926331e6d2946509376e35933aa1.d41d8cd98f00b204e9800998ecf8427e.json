@@ -1,0 +1,1 @@
+{"id":"20d2926331e6d2946509376e35933aa1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#judgeMove 開発ブランチが undefined だと、開発ブランチの未設定を理由にする","name":"開発ブランチが undefined だと、開発ブランチの未設定を理由にする","status":"passed","testResultsByEnv":{"default":"6ff7e30290ea10cbc4676f3f30f3a5a2"}}

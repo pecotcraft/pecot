@@ -1,0 +1,1 @@
+{"id":"d665d18524796d6d0f2d94bbf75c8da7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter.test.ts#readSlidesTitle frontmatter に title が存在しない場合は、null を返す","name":"frontmatter に title が存在しない場合は、null を返す","status":"passed","testResultsByEnv":{"default":"1b1fdd4372efc4fca11d8b1a74388611"}}

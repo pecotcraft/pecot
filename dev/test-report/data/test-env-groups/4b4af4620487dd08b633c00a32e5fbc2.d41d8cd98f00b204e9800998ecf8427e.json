@@ -1,0 +1,1 @@
+{"id":"4b4af4620487dd08b633c00a32e5fbc2.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_land_does_not_depend_on_the_checked_out_branch","name":"checkout しているブランチが main でも、`release-land.sh` は反映できる","status":"passed","testResultsByEnv":{"default":"8005b9432b7a887650f302ddef33f1fb"}}

@@ -1,0 +1,5 @@
+# Session status
+
+- Branch: wt4
+- Repository: acme/demo
+- Active Issue: none

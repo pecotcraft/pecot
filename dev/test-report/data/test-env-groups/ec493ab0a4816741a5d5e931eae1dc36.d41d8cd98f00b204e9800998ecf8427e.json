@@ -1,0 +1,1 @@
+{"id":"ec493ab0a4816741a5d5e931eae1dc36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#convertStepsSinglePass 事前の読み込みで時間切れになっても、撮影前の再待機で読み込みが完了すれば、1 パスのまま撮影する","name":"事前の読み込みで時間切れになっても、撮影前の再待機で読み込みが完了すれば、1 パスのまま撮影する","status":"passed","testResultsByEnv":{"default":"3a943c418b59398a917a0013986c514a"}}

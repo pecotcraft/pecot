@@ -1,0 +1,1 @@
+{"id":"e3245f478f2109f594d50b8738f0ec3a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — 失敗ルート 書き込めない出力先を指定すると、output-write-failed のエラーになる","name":"書き込めない出力先を指定すると、output-write-failed のエラーになる","status":"passed","testResultsByEnv":{"default":"4f3c31da20efdb615d199ac709516a5a"}}

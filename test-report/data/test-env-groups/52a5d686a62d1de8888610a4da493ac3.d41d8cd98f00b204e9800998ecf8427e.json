@@ -1,0 +1,1 @@
+{"id":"52a5d686a62d1de8888610a4da493ac3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#buildRules 2 回呼び出すと、同じ配列を返す","name":"2 回呼び出すと、同じ配列を返す","status":"passed","testResultsByEnv":{"default":"af1ccbbcabd5a386eb4aae9ebc33e6f8"}}

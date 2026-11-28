@@ -1,0 +1,1 @@
+{"id":"451b70fac596a058a930808a7ca4d3a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release .githooks/scripts/tests/attach-mcp-tgz.bats#本実行が gh を 3 回、release view・release upload・workflow run の順に呼ぶ","name":"本実行が gh を 3 回、release view・release upload・workflow run の順に呼ぶ","status":"passed","testResultsByEnv":{"default":"67c9a3ee8fd242ccc8e65c764d6167bb"}}

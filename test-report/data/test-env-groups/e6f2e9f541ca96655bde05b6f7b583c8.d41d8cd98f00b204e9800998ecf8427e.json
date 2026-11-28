@@ -1,0 +1,1 @@
+{"id":"e6f2e9f541ca96655bde05b6f7b583c8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#本体の runtime manifest との整合 pptxgenjs の image-size の宣言は、override が必要な範囲のまま残っている","name":"pptxgenjs の image-size の宣言は、override が必要な範囲のまま残っている","status":"passed","testResultsByEnv":{"default":"edb988cca7a5da3e74eab662ea880a91"}}

@@ -1,0 +1,1 @@
+{"id":"0908913b11db48575e31239f2d530216.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#findConfigFor 候補が 1 つの場合はその設定を返し、0 個の場合は none を返す","name":"候補が 1 つの場合はその設定を返し、0 個の場合は none を返す","status":"passed","testResultsByEnv":{"default":"6fb43011917257d6a54f504d6278c694"}}

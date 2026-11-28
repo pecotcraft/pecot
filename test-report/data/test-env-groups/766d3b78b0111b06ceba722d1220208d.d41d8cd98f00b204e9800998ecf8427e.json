@@ -1,0 +1,1 @@
+{"id":"766d3b78b0111b06ceba722d1220208d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#applyPrerenderImageReplace スライドに画像が存在しない場合、ppt/media の PNG 以外のパスは調べない","name":"スライドに画像が存在しない場合、ppt/media の PNG 以外のパスは調べない","status":"passed","testResultsByEnv":{"default":"d0974e7a02bd96485ec3783d47b6054f"}}

@@ -1,0 +1,1 @@
+{"id":"07b796de0ad4b41726520c5caa8c4b1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toolOutputSchema 成功の必須項目が存在しなければ、anyOf を置かない","name":"成功の必須項目が存在しなければ、anyOf を置かない","status":"passed","testResultsByEnv":{"default":"b486d582f8512abf40de877b0079e670"}}

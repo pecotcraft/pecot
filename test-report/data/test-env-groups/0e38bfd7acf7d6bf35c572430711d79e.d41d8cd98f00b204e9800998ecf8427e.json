@@ -1,0 +1,1 @@
+{"id":"0e38bfd7acf7d6bf35c572430711d79e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#ルートの解決 依存ルートを探す順序は、プラグイン側、永続層の順にする","name":"依存ルートを探す順序は、プラグイン側、永続層の順にする","status":"passed","testResultsByEnv":{"default":"c5db401fb5f18ec67a16eaebb74eedc2"}}

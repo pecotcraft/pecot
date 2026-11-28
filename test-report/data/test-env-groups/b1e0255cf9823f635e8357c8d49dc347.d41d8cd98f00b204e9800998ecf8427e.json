@@ -1,0 +1,1 @@
+{"id":"b1e0255cf9823f635e8357c8d49dc347.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/drawio.test.ts#drawio_create PNG 生成が失敗しても表示用 HTML は残り、png:null / pngFailed:true になる","name":"PNG 生成が失敗しても表示用 HTML は残り、png:null / pngFailed:true になる","status":"passed","testResultsByEnv":{"default":"34e0f8548013df075eef38e0a6b50167"}}

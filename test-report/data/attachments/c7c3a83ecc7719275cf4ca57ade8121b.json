@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.project_fields: read the board fields with projects_list (method list_project_fields): the check needs the columns and fields of the board"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.project_fields\",\"code\":\"read-required\",\"message\":\"read the board fields with projects_list (method list_project_fields): the check needs the columns and fields of the board\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.project_fields",
+        "code": "read-required",
+        "message": "read the board fields with projects_list (method list_project_fields): the check needs the columns and fields of the board"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

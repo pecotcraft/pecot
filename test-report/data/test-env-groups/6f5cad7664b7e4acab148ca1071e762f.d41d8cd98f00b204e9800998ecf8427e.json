@@ -1,0 +1,1 @@
+{"id":"6f5cad7664b7e4acab148ca1071e762f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/no-cross-layer-import.test.ts#no-cross-layer-import valid アーキテクチャ外のファイルからの import は、検証せず報告しない","name":"アーキテクチャ外のファイルからの import は、検証せず報告しない","status":"passed","testResultsByEnv":{"default":"28e468346de754e77ae46676638625a0"}}

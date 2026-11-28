@@ -1,0 +1,1 @@
+{"id":"5cc959d85fc33b755af116f31a043a4c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#changedFiles（実 git） git を実行できない場合（実行権限がない場合）は、無視せずに OsError を送出する","name":"git を実行できない場合（実行権限がない場合）は、無視せずに OsError を送出する","status":"passed","testResultsByEnv":{"default":"cc0ff6c23e5818e09c08b84959c5c3a9"}}

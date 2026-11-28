@@ -1,0 +1,1 @@
+{"id":"eabf1e5ab6cd9b96dda60eec051abea9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName wt1/myrepo が既にあって wt2/ が空なら、wt2 に参加する","name":"wt1/myrepo が既にあって wt2/ が空なら、wt2 に参加する","status":"passed","testResultsByEnv":{"default":"47b0598ecc4c08bb9d66fa1c528800b0"}}

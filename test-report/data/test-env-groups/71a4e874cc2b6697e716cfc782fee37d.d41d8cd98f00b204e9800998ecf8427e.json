@@ -1,0 +1,1 @@
+{"id":"71a4e874cc2b6697e716cfc782fee37d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/template-store.test.ts#templatesDirectory・templateFile テンプレートのパスは、プラグインの cli/templates の下を指す","name":"テンプレートのパスは、プラグインの cli/templates の下を指す","status":"passed","testResultsByEnv":{"default":"c2bb52ed27a6f4717ff7a289301d19a2"}}

@@ -1,0 +1,1 @@
+{"id":"0c1752771a7652e4d172780591949ec2.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/npm-cache-opt-in.bats#opt-in に相対パスを設定して dry-run でない publish を動かすと、拒否する","name":"opt-in に相対パスを設定して dry-run でない publish を動かすと、拒否する","status":"passed","testResultsByEnv":{"default":"f94b0da302d64da01bf6291c39178f21"}}

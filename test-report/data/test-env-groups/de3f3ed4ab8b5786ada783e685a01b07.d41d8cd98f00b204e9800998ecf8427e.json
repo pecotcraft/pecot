@@ -1,0 +1,1 @@
+{"id":"de3f3ed4ab8b5786ada783e685a01b07.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 前提が無くブランチのある Blocked の Issue は、Ready へ動かさない","name":"前提が無くブランチのある Blocked の Issue は、Ready へ動かさない","status":"passed","testResultsByEnv":{"default":"54a3f0955cbde2600d342ce7eec5d515"}}

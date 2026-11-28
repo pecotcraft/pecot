@@ -1,0 +1,8 @@
+:iface-id: PA-TRACKER-SYNC
+:iface-plugin: pecot-actions
+:iface-kind: Action
+
+tracker sync
+========================
+
+.. iface-defs:: pecot-actions PA-TRACKER-SYNC

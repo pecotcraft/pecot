@@ -1,0 +1,2 @@
+ERROR: nx graph が失敗したため test のレーン名を集められません。
+       graph boom

@@ -1,0 +1,1 @@
+{"id":"4dc9040918c7d3fdc5695e9652071775.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#resolveShortReferenceBase 明示した値がなく URL を読み取れなければ、base を決めず、読み取れない remote を返す","name":"明示した値がなく URL を読み取れなければ、base を決めず、読み取れない remote を返す","status":"passed","testResultsByEnv":{"default":"9aebd83bcec941f1b4f9fb0f6078d910"}}

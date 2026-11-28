@@ -1,0 +1,17 @@
+
+> nx run fx:test  [remote cache]
+
+> echo hi
+
+hi
+
+
+
+ NX   Successfully ran target test for project fx
+
+Nx read the output from the cache instead of running the command for 1 out of 1 tasks.
+
+  Run duration:      4ms
+  Cache:             1/1 hit (100%)
+  Critical path:     1ms (1 task)
+  Recoverable time:  <1ms

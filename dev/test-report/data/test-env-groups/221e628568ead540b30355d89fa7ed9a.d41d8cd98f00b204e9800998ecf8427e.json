@@ -1,0 +1,1 @@
+{"id":"221e628568ead540b30355d89fa7ed9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インラインコードの Code ノード シェルの文字列 のバッククォートで囲んだ区間は、規則の対象にしない","name":"シェルの文字列 のバッククォートで囲んだ区間は、規則の対象にしない","status":"passed","testResultsByEnv":{"default":"eb530e135749c106e6d006a25908718b"}}

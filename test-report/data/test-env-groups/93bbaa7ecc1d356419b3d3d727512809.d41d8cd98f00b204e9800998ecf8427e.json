@@ -1,0 +1,1 @@
+{"id":"93bbaa7ecc1d356419b3d3d727512809.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け gh が 3 回続けて失敗すると、理由を標準エラーに出力して終了コード 1 で止まる","name":"gh が 3 回続けて失敗すると、理由を標準エラーに出力して終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"8ffb8915d147b6c0a1cee03487d4322e"}}

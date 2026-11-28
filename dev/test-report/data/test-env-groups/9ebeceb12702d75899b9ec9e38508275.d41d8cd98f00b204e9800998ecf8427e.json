@@ -1,0 +1,1 @@
+{"id":"9ebeceb12702d75899b9ec9e38508275.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#リストの記号で始まる行 小数 の行は、リストの項目として扱わず、段落を分けない","name":"小数 の行は、リストの項目として扱わず、段落を分けない","status":"passed","testResultsByEnv":{"default":"fc781890e54c8dc118b7bea9d70ea24b"}}

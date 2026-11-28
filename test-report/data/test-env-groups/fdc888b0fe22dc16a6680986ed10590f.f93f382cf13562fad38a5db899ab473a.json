@@ -1,0 +1,1 @@
+{"id":"fdc888b0fe22dc16a6680986ed10590f.f93f382cf13562fad38a5db899ab473a","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_only_the_lanes_the_change_reaches","name":"libs/text-rules/index.ts を変更すると、その変更が届くテストのレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"3faf6824dcd4e4ed01fbb6710cbe5dde"}}

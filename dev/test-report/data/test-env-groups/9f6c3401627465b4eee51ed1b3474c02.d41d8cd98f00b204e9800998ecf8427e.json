@@ -1,0 +1,1 @@
+{"id":"9f6c3401627465b4eee51ed1b3474c02.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName 全セットに対象のリポジトリが参加済みなら、最大の番号に 1 を足した新しいセットにする","name":"全セットに対象のリポジトリが参加済みなら、最大の番号に 1 を足した新しいセットにする","status":"passed","testResultsByEnv":{"default":"2317468c19d36230a2dac93b57118794"}}

@@ -1,0 +1,1 @@
+==> libs/text-rules の依存が欠けているため、root で pnpm install --frozen-lockfile で戻します

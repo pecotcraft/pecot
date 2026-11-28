@@ -1,0 +1,1 @@
+{"id":"997b1586514618b40fa5462b7c143f26.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-definition.test.ts#defineTool parse は本体を実行せず、検証した入力を持つ実行準備済みのツール（PreparedCommand）を返す","name":"parse は本体を実行せず、検証した入力を持つ実行準備済みのツール（PreparedCommand）を返す","status":"passed","testResultsByEnv":{"default":"94c8cf4d4728b3e6a9d8513525d6bd22"}}

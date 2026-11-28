@@ -1,0 +1,1 @@
+{"id":"f64f151dfc6b0a8d6230ddb8a46ebe5a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/tests/lint-rules.test.ts#domain の依存方向 infra から node:fs を import しても、違反にならない","name":"infra から node:fs を import しても、違反にならない","status":"passed","testResultsByEnv":{"default":"5c46d138f1914b29cc33c7478619d882"}}

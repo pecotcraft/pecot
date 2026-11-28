@@ -1,0 +1,1 @@
+{"id":"6f5aeec6f6f61598a7712a59fccfc396.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bash_test_lib#test_leaves_no_temporary_files","name":"確認を含まないファイルを runner で実行しても、一時ディレクトリにファイルを残さない","status":"passed","testResultsByEnv":{"default":"0cdcdd147e6dc5c588278531af45fdbc"}}

@@ -1,0 +1,1 @@
+{"id":"af423f835b430c411461d96fd3fbe192.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move MCP の呼び出し 番号だけを渡して repo を付けると、そのリポジトリの Issue の Status を設定する","name":"番号だけを渡して repo を付けると、そのリポジトリの Issue の Status を設定する","status":"passed","testResultsByEnv":{"default":"07c232f2eb61e1c22b376b4aab9f9742"}}

@@ -1,0 +1,1 @@
+{"id":"722e76b2c0db9eb71d96c9ef1c28a979.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript 空の入力でも、エラーにならず、段落を持たない結果を返す","name":"空の入力でも、エラーにならず、段落を持たない結果を返す","status":"passed","testResultsByEnv":{"default":"69c1d8fe1ee86e3e73661fd7ed694042"}}

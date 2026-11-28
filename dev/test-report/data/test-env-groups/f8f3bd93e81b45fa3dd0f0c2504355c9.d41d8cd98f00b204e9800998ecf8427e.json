@@ -1,0 +1,1 @@
+{"id":"f8f3bd93e81b45fa3dd0f0c2504355c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#runSlideConvert (fake DI 経由 / 全分岐) 宣言に pptx の値が存在しない場合は、東アジアのフォントを書き込まない","name":"宣言に pptx の値が存在しない場合は、東アジアのフォントを書き込まない","status":"passed","testResultsByEnv":{"default":"c8cb7db4f3a28ce8f3ccc217cb707377"}}

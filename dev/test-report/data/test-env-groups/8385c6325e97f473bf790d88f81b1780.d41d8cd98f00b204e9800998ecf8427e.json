@@ -1,0 +1,1 @@
+{"id":"8385c6325e97f473bf790d88f81b1780.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#splitOwnerRepository \"octo\" を渡すと、2 つに分けられないので undefined を返す","name":"\"octo\" を渡すと、2 つに分けられないので undefined を返す","status":"passed","testResultsByEnv":{"default":"3034cd34086f40f0a09a824009458843"}}

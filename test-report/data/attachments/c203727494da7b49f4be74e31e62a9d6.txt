@@ -1,0 +1,1 @@
+note: pecot-theme.json schema 2 is not supported (supported: 1); ignoring the declaration and continuing with the defaults

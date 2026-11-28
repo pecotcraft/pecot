@@ -1,0 +1,1 @@
+{"id":"2c071906072c4db02b981e3ee165f105.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory cwd がプラグインのルートの中でなければ、環境変数に関わらず cwd のままにする","name":"cwd がプラグインのルートの中でなければ、環境変数に関わらず cwd のままにする","status":"passed","testResultsByEnv":{"default":"c43a83b78bb6d7aa43d8a7076deb5bd2"}}

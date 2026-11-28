@@ -1,0 +1,1 @@
+{"id":"cf28f821c5506a52d379cf94f0a1d208.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish 待っている Issue 待つ Issue の判定に閉じた Issue が済んだ前提として出なければ、1 回だけ読み直してから動かす","name":"待つ Issue の判定に閉じた Issue が済んだ前提として出なければ、1 回だけ読み直してから動かす","status":"passed","testResultsByEnv":{"default":"6e619cf1c2ba7ea3272cb66869d27a74"}}

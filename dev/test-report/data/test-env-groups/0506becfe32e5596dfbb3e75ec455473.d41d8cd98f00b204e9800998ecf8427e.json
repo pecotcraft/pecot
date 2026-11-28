@@ -1,0 +1,1 @@
+{"id":"0506becfe32e5596dfbb3e75ec455473.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/template-store.test.ts#pr/release.md の実体から抽出した必須セクション（#958 F-06） 4 つの見出しがすべて含まれる場合だけ検証を通り、1 つ不足していればその見出しを返す","name":"4 つの見出しがすべて含まれる場合だけ検証を通り、1 つ不足していればその見出しを返す","status":"passed","testResultsByEnv":{"default":"59b22752c9535f0aa9351f9ea495aaf8"}}

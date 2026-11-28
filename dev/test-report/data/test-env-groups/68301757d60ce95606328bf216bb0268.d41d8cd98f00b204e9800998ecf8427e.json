@@ -1,0 +1,1 @@
+{"id":"68301757d60ce95606328bf216bb0268.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#installRuntimeDependencies データ置き場を決められなければ、取得先が決まらないので、起動の失敗として返す","name":"データ置き場を決められなければ、取得先が決まらないので、起動の失敗として返す","status":"passed","testResultsByEnv":{"default":"9092917b80df9521380491e2ef9b9b68"}}

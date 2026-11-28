@@ -1,0 +1,1 @@
+{"id":"cbb94131dabab92de2d2d4942a13806e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: Python 2 行目から始まる docstring に違反があると、2 行目と 3 行目の正しい桁で指摘を返す","name":"2 行目から始まる docstring に違反があると、2 行目と 3 行目の正しい桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"5b3dbea70b6a5f591aa6aebd1837f3c8"}}

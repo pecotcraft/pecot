@@ -1,0 +1,1 @@
+{"id":"dee0e980ee28860d1eeca50ac1188661.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli ツール aws_ec2_describe_instances の引数の並びは、実際の awscli が構文として受理する","name":"ツール aws_ec2_describe_instances の引数の並びは、実際の awscli が構文として受理する","status":"passed","testResultsByEnv":{"default":"26194eed4cf4cfd32ca4c1f0c22b1522"}}

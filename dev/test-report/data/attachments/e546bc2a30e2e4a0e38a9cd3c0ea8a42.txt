@@ -1,0 +1,1 @@
+ERROR: --out-dir はリポジトリ (/workspaces/base/pecot) の外を指定してください: /workspaces/base/pecot/plugins/pecot-tools/scripts

@@ -1,0 +1,1 @@
+{"id":"6981f91fba4b7d0b325a76aa02d7191b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init.test.ts#pecot-dir-init.sh CLAUDE_PROJECT_DIR が未設定のとき、何もせず、.pecot を作らない","name":"CLAUDE_PROJECT_DIR が未設定のとき、何もせず、.pecot を作らない","status":"passed","testResultsByEnv":{"default":"947e1ad68c5607062b98183a20697c06"}}

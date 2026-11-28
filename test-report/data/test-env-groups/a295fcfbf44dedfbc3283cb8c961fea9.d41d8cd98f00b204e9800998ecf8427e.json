@@ -1,0 +1,1 @@
+{"id":"a295fcfbf44dedfbc3283cb8c961fea9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create message で repo を省くと、設定のリポジトリが 1 つならそのリポジトリに PR を作る","name":"message で repo を省くと、設定のリポジトリが 1 つならそのリポジトリに PR を作る","status":"passed","testResultsByEnv":{"default":"49d2dad565f4a2131ef906dcb3b42550"}}

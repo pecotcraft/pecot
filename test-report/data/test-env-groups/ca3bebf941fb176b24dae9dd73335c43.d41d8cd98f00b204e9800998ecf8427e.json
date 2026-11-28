@@ -1,0 +1,1 @@
+{"id":"ca3bebf941fb176b24dae9dd73335c43.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_mcp_arguments_use_mcparg_and_examples_are_tools_call_params","name":"MCP の引数は `mcparg` で表し、使用例は `tools/call` の引数の JSON にする","status":"passed","testResultsByEnv":{"default":"4c696cb3a7358f4c46c4ee0dc633eaf3"}}

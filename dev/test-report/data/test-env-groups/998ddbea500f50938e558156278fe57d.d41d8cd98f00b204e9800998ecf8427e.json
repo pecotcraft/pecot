@@ -1,0 +1,1 @@
+{"id":"998ddbea500f50938e558156278fe57d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#parseTitleScope タイトル \"feat(a,b): #1 x\" の場合は、scope の配列か undefined を返す","name":"タイトル \"feat(a,b): #1 x\" の場合は、scope の配列か undefined を返す","status":"passed","testResultsByEnv":{"default":"b8207546c845ff785097863b472da967"}}

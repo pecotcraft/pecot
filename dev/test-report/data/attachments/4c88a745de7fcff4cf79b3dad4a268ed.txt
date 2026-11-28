@@ -1,0 +1,1 @@
+error: invalid config file: /tmp/pecot-repo-AzYENi/.pecot/config/projects/github.com_acme_board_acme.json: Expected property name or '}' in JSON at position 2 (line 1 column 3)

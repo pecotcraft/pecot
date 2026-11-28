@@ -1,0 +1,22 @@
+{
+  "name": "@pecot/tools-mcp",
+  "version": "4.0.2",
+  "type": "module",
+  "description": "pecot-tools MCP server (standalone distribution)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pecotcraft/pecot.git",
+    "directory": "plugins/pecot-tools"
+  },
+  "bin": {
+    "pecot-tools-mcp": "cli/dist/main.js"
+  },
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.4.0",
+    "zod": "^4.6.7"
+  }
+}

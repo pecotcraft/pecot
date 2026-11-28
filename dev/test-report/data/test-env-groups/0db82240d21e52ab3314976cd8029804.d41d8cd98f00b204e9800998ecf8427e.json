@@ -1,0 +1,1 @@
+{"id":"0db82240d21e52ab3314976cd8029804.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/branch-name.test.ts#extractIssueNumberFromBranch ブランチ feat/description/470 の場合は、末尾の番号 470 を返す","name":"ブランチ feat/description/470 の場合は、末尾の番号 470 を返す","status":"passed","testResultsByEnv":{"default":"95a52a8aa2148ea24237fbb29bd5eeb9"}}

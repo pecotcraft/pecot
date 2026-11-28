@@ -1,0 +1,4 @@
+count: open Dependabot alerts: 0
+count: open code scanning alerts: 0
+count: open secret scanning alerts: 0
+error: no difference between origin/main and origin/develop: there is nothing to release

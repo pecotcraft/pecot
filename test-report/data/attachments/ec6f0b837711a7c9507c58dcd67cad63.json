@@ -1,0 +1,42 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: project #1 https://ghes.example.com/users/acme/projects/1"
+    },
+    {
+      "type": "text",
+      "text": "{\"number\":1,\"url\":\"https://ghes.example.com/users/acme/projects/1\",\"title\":\"board\",\"owner\":\"acme\",\"fields\":[{\"name\":\"pecot-status\",\"change\":\"create\",\"addedOptions\":[]},{\"name\":\"pecot-lane\",\"change\":\"create\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"update\",\"addedOptions\":[\"Needs Attention\"]}],\"view\":{\"created\":true,\"name\":\"Lanes\",\"url\":\"https://ghes.example.com/users/acme/projects/1/views/2\"}}"
+    }
+  ],
+  "structuredContent": {
+    "number": 1,
+    "url": "https://ghes.example.com/users/acme/projects/1",
+    "title": "board",
+    "owner": "acme",
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "create",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "create",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "update",
+        "addedOptions": [
+          "Needs Attention"
+        ]
+      }
+    ],
+    "view": {
+      "created": true,
+      "name": "Lanes",
+      "url": "https://ghes.example.com/users/acme/projects/1/views/2"
+    }
+  }
+}

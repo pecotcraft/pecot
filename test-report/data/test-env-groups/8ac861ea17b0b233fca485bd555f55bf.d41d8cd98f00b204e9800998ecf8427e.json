@@ -1,0 +1,1 @@
+{"id":"8ac861ea17b0b233fca485bd555f55bf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/allowlist.test.ts#findAllowlistEntry ツール名だけを渡して検索すると、組み込みの許可リスト ALLOWLIST から検索する","name":"ツール名だけを渡して検索すると、組み込みの許可リスト ALLOWLIST から検索する","status":"passed","testResultsByEnv":{"default":"fd61e5280d64722a1b38d9332e70bf94"}}

@@ -1,0 +1,1 @@
+{"id":"365444644e720c23d0c5fb4f1abd7add.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface-export.test.ts#export-interface 引数が --check・--write でないと、使い方を出して 2 を返す","name":"引数が --check・--write でないと、使い方を出して 2 を返す","status":"passed","testResultsByEnv":{"default":"b6487f11b4d37e10afcd3d2f00ed8417"}}

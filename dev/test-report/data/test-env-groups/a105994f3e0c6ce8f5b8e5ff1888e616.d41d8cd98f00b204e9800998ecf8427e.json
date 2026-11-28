@@ -1,0 +1,1 @@
+{"id":"a105994f3e0c6ce8f5b8e5ff1888e616.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_link MCP の data リポジトリの所有者がプロジェクトの所有者と違うと、kind が invalid-input の失敗を返す","name":"リポジトリの所有者がプロジェクトの所有者と違うと、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"d4d21f13fd9119f0d99c5f8750b77625"}}

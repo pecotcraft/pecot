@@ -1,0 +1,1 @@
+{"id":"602dcee88914b89ff5d4b02adb3ec65a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_17_pass_doc_only_across_dirs","name":"複数のディレクトリの README.md と CHANGELOG.md だけを変更した場合は、成功する","status":"passed","testResultsByEnv":{"default":"05ace4b8f49a337cbd9208372fb58236"}}

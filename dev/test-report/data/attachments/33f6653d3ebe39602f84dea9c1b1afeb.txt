@@ -1,0 +1,1 @@
+error: package and changelog_file cannot be used together

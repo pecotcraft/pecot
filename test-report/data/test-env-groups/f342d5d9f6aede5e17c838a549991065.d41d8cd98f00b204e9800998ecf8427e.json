@@ -1,0 +1,1 @@
+{"id":"f342d5d9f6aede5e17c838a549991065.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#getIssueBoardItem 指定のプロジェクトの項目 ID と進行の列を、ボードの一覧と同じ形で返す","name":"指定のプロジェクトの項目 ID と進行の列を、ボードの一覧と同じ形で返す","status":"passed","testResultsByEnv":{"default":"fdb87c5ba1141cc32d68ce950c2bfd41"}}

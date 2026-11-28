@@ -1,0 +1,1 @@
+{"id":"dd0c1bd4685b222eab6f245c608e3734.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インライン HTML の Html ノード タグではない < と > は、通常の文字として、規則の対象にする","name":"タグではない < と > は、通常の文字として、規則の対象にする","status":"passed","testResultsByEnv":{"default":"363881633d4271c835cb5b11d105ccc6"}}

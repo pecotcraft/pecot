@@ -1,0 +1,1 @@
+{"id":"7595e813d7d24c01d0bdf9af6460fb03.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#detectProjectRoot メインの worktree のパスがシンボリックリンクでも、リンクを解決してから配置を判定する（偽の git）","name":"メインの worktree のパスがシンボリックリンクでも、リンクを解決してから配置を判定する（偽の git）","status":"passed","testResultsByEnv":{"default":"005b65c300308811d94d09aa2a5354e2"}}

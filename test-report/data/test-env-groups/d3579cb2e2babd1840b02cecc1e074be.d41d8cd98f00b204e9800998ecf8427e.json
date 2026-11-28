@@ -1,0 +1,1 @@
+{"id":"d3579cb2e2babd1840b02cecc1e074be.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh の .pecot/work 配下 cwd が work の外のとき、セッションの worktree を無視する","name":"cwd が work の外のとき、セッションの worktree を無視する","status":"passed","testResultsByEnv":{"default":"948d231001fb4e996788cc0e11ff3ed5"}}

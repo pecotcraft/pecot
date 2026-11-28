@@ -1,0 +1,1 @@
+{"id":"bde01904099d0e5675fd6ea536103e0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/github-ops/branch-and-stack.test.ts#github ops link-branch に Issue へつながった名前を渡すと、作らずにその名前と base との分かれ目を返す","name":"link-branch に Issue へつながった名前を渡すと、作らずにその名前と base との分かれ目を返す","status":"passed","testResultsByEnv":{"default":"76f728c4e3f965c96309b50afcd5585f"}}

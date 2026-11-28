@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: missing section (pecot-template://issue/task): ## Acceptance — <summary>; the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"missing-section\",\"message\":\"missing section (pecot-template://issue/task): ## Acceptance — <summary>; the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "missing-section",
+        "message": "missing section (pecot-template://issue/task): ## Acceptance — <summary>; the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

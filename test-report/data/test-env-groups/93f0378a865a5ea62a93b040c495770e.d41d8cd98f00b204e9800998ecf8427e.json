@@ -1,0 +1,1 @@
+{"id":"93f0378a865a5ea62a93b040c495770e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/label-text.test.ts#labelTexts 圧縮形式の <diagram> 複数の diagram をすべて読み取り、圧縮されたものと、圧縮されていないものが混在していても対応する","name":"複数の diagram をすべて読み取り、圧縮されたものと、圧縮されていないものが混在していても対応する","status":"passed","testResultsByEnv":{"default":"3b08fc6b82777b0f86aa9324e5241f4c"}}

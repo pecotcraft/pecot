@@ -1,0 +1,1 @@
+{"id":"dfee6ba412a2972fe44f6ab54ea6a715.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_pull_request_run_is_never_dev_or_release","name":"pull_request の run は、開発版やリリース版の artifact があっても、開発版やリリース版として受け付けない","status":"passed","testResultsByEnv":{"default":"190a52b585fcd635a1121f4e824358d6"}}

@@ -1,0 +1,1 @@
+{"id":"681bbafba4362f07a3292cbf4b20c2d7.5f8270b834321ddcdb2013fb8bd94f29","fullName":".githooks.tests.test_pages_provenance#test_dispatch_without_exactly_one_side_artifact_is_dropped","name":"手動実行の run は、側の artifact が 1 つに決まらないと、artifact 名が ['pages-side-dev', 'pages-side-release'] の場合に破棄する","status":"passed","testResultsByEnv":{"default":"8a68fcc2e6656a36040d07317ea03fa1"}}

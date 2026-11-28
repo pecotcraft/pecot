@@ -1,0 +1,1 @@
+{"id":"182ab4f5ddd6d19a96766751c7ca381d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/visibility-helpers.test.ts#waitForCssAnimations 待機時間を過ぎた場合は、timedOut が true になり、タイムアウトをログに記録する","name":"待機時間を過ぎた場合は、timedOut が true になり、タイムアウトをログに記録する","status":"passed","testResultsByEnv":{"default":"26746df3db811080c445f60250eb8998"}}

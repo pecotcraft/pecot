@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "/tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing does not reference a theme (theme in slides.md is none or unset); to migrate to a theme reference, call slide_sync with theme: <theme-spec>"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.page.error\",\"kind\":\"theme-none\",\"detail\":\"/tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing does not reference a theme (theme in slides.md is none or unset); to migrate to a theme reference, call slide_sync with theme: <theme-spec>\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.page.error",
+    "kind": "theme-none",
+    "detail": "/tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing does not reference a theme (theme in slides.md is none or unset); to migrate to a theme reference, call slide_sync with theme: <theme-spec>"
+  },
+  "isError": true
+}

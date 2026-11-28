@@ -1,0 +1,1 @@
+{"id":"0d096f2c553a00fd123ae219e34518c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-tracker.test.ts#renderTrackerBody と parseTrackerEntries 同じ advisory の alert は 1 行にまとめ、重大度は束の最大にする","name":"同じ advisory の alert は 1 行にまとめ、重大度は束の最大にする","status":"passed","testResultsByEnv":{"default":"7376f5e4d7f62bef3bd84fe886d0fea3"}}

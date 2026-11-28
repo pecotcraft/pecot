@@ -1,0 +1,1 @@
+{"id":"5462af6413eae307a38e9d9ce070661b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_issue_surface_workflow#test_compare_step_uses_tracker_sync_with_issue_surface","name":"比べの step は、このリポの tracker-sync を issue-surface で呼び、写しのパスと dry-run と App のトークンを渡す","status":"passed","testResultsByEnv":{"default":"35ec5e999700f6cc52fadaddff0ba45f"}}

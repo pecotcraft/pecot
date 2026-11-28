@@ -1,0 +1,4 @@
+warning: the board has no option Needs Attention for Status; the Status stays as it is
+  call project_init
+created: auto result comment (failed) on Issue acme/demo/7
+removed: label pecot-auto from Issue acme/demo/7

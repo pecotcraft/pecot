@@ -1,0 +1,1 @@
+{"id":"cdfd57ef401dfc5c8810a652b76a3507.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#ルートの解決 永続層を決められなければ、プラグインのパスだけを返す","name":"永続層を決められなければ、プラグインのパスだけを返す","status":"passed","testResultsByEnv":{"default":"77756c5ee49ee623a5e566131050e16d"}}

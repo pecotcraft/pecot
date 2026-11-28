@@ -1,0 +1,1 @@
+{"id":"feadb968ed6f5e8c4ba6ee56050588a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/issue-surface.test.ts#extractIssueSurface 対象の型の項目と値、Issue を対象にする mutation、REST の起票の本文の項目を、コードポイントの順に返す","name":"対象の型の項目と値、Issue を対象にする mutation、REST の起票の本文の項目を、コードポイントの順に返す","status":"passed","testResultsByEnv":{"default":"56f4df7622484f3e53147b1407bf8276"}}

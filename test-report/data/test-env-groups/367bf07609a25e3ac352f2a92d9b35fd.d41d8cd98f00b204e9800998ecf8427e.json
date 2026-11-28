@@ -1,0 +1,1 @@
+{"id":"367bf07609a25e3ac352f2a92d9b35fd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/plugin-manifests.test.ts#MCP のサーバの起動 mcp.json は stdio の npx で、plugin.json と同じ版の npm の package を起動する","name":"mcp.json は stdio の npx で、plugin.json と同じ版の npm の package を起動する","status":"passed","testResultsByEnv":{"default":"636e0aa51299c5822302615633cba5b3"}}

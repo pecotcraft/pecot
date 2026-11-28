@@ -1,0 +1,1 @@
+{"id":"3b64776fd35d2de9d31c40526a210f1d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#primaryRemoteRepository origin が存在しない場合は、最初の remote の URL を分解する","name":"origin が存在しない場合は、最初の remote の URL を分解する","status":"passed","testResultsByEnv":{"default":"fba62b7aaeb654da34a7441dacfe1c6c"}}

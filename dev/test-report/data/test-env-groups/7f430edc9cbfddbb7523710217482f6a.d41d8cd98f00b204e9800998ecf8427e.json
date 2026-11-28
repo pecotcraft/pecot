@@ -1,0 +1,1 @@
+{"id":"7f430edc9cbfddbb7523710217482f6a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#loadCopyExcludeSpec Python の splitlines と同じ文字（垂直タブ・改ページ・U+2028）でも、行を分割する","name":"Python の splitlines と同じ文字（垂直タブ・改ページ・U+2028）でも、行を分割する","status":"passed","testResultsByEnv":{"default":"6a304317f99d61c9343d0539437efbdd"}}

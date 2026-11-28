@@ -1,0 +1,1 @@
+{"id":"804027aab48b0fbd1ff25c23c07adb56.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#引数の組み立て S3 の一覧では、位置引数を先に置き、--output json を付けずに実行する","name":"S3 の一覧では、位置引数を先に置き、--output json を付けずに実行する","status":"passed","testResultsByEnv":{"default":"a76a98ca1de6410b8cc90c76feed3b97"}}

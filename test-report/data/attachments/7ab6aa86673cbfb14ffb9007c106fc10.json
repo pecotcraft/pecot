@@ -1,0 +1,106 @@
+{
+  "name": "workflow_doctor",
+  "title": "Check workflow setup",
+  "description": "Check that the repository has the workflow file and the settings it needs",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Name of the workflow template (board-sync, review, handoff, auto, github-ops)"
+      },
+      "directory": {
+        "description": "Root of the target Git repository (absolute or relative path; default: the current directory)",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "repository": {
+        "type": "string",
+        "description": "Repository of the git remote (owner/repo)"
+      },
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "What was checked: the workflow file, the template version, a secret or variable, or the Claude GitHub App (only for a template that uses it)"
+            },
+            "state": {
+              "type": "string",
+              "enum": [
+                "ok",
+                "missing",
+                "outdated",
+                "skipped"
+              ],
+              "description": "ok, missing, outdated, or skipped (not readable with the token; not counted as missing)"
+            }
+          },
+          "required": [
+            "name",
+            "state"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Checked items in the order of the output lines"
+      },
+      "ready": {
+        "type": "boolean",
+        "description": "Whether nothing is missing or outdated"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "repository",
+          "items",
+          "ready"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"922ffb7e214a303a491db9ee5e1552d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#TypeScript reads TypeScript のソースに a template with substitutions があると、名前を解決できない行を返す","name":"TypeScript のソースに a template with substitutions があると、名前を解決できない行を返す","status":"passed","testResultsByEnv":{"default":"c39c95f6129d2fd7cd129225f83f1edf"}}

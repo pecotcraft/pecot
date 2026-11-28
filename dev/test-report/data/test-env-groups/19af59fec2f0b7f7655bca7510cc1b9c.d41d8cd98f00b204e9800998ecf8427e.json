@@ -1,0 +1,1 @@
+{"id":"19af59fec2f0b7f7655bca7510cc1b9c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-start-features.test.ts#session-start のロジックスクリプト git-sync.sh uvx が PATH に無くても、pull して同期した旨を出す","name":"uvx が PATH に無くても、pull して同期した旨を出す","status":"passed","testResultsByEnv":{"default":"e0b921586d9ffb0d42dc8efcebafcab0"}}

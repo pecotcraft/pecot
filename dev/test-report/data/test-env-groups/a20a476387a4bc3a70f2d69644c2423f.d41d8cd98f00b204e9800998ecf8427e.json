@@ -1,0 +1,1 @@
+{"id":"a20a476387a4bc3a70f2d69644c2423f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/baseline-scripts.test.ts#baseline.json の hooks.scripts テストが名指しするスクリプトと間接に動くスクリプトで、すべてを覆っている","name":"テストが名指しするスクリプトと間接に動くスクリプトで、すべてを覆っている","status":"passed","testResultsByEnv":{"default":"16d2f5bc9f9040f89606295ef7d50537"}}

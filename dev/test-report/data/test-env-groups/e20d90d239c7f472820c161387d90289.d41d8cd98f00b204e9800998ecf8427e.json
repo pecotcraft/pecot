@@ -1,0 +1,1 @@
+{"id":"e20d90d239c7f472820c161387d90289.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) drawio_export のパスを指定するパラメータに相対パスを渡すと、実際の処理の前に invalid-path で失敗する","name":"drawio_export のパスを指定するパラメータに相対パスを渡すと、実際の処理の前に invalid-path で失敗する","status":"passed","testResultsByEnv":{"default":"e8b616f5416e86b594264f6c99303983"}}

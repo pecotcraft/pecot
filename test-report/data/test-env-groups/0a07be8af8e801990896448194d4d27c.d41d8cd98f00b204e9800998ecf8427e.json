@@ -1,0 +1,1 @@
+{"id":"0a07be8af8e801990896448194d4d27c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#isStackedOn 着手済みで、指定した Issue を stack で待つ Issue だけを、スタック済みと判定する","name":"着手済みで、指定した Issue を stack で待つ Issue だけを、スタック済みと判定する","status":"passed","testResultsByEnv":{"default":"efbfc2796660c9dec52ff2b721d95d05"}}

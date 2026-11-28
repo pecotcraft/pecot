@@ -1,0 +1,6 @@
+count: Issues to close: 1
+closed: Issue #12
+deleted: remote branch feat/demo/12
+unchanged: current branch main
+updated: main from origin/main
+warning: deleting local branch feat/demo/12 failed: Command ['git', 'branch', '-D', 'feat/demo/12'] returned non-zero exit status 1.

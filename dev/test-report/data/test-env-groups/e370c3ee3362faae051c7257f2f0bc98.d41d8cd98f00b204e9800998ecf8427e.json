@@ -1,0 +1,1 @@
+{"id":"e370c3ee3362faae051c7257f2f0bc98.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#createResolvedRepository 解決元が current-git で remoteName が存在しなければ、例外が発生する","name":"解決元が current-git で remoteName が存在しなければ、例外が発生する","status":"passed","testResultsByEnv":{"default":"882e036657d4e5d93a76085080459fbd"}}

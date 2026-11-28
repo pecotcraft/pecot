@@ -1,0 +1,1 @@
+{"id":"7deb55aee10ed3e159ce58e4ea06fe94.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#URL のパスの符号化 リポジトリ名 \".\" は、パスを辿る意味になるので、要求せずに GitHubAPIError を発生させる","name":"リポジトリ名 \".\" は、パスを辿る意味になるので、要求せずに GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"1c603c4f2ad10daa2e569968b61b3dca"}}

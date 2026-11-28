@@ -1,0 +1,1 @@
+{"id":"10ff5c08ac180fab60a06debbbda7493.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry shutdown は預かっている全てのサーバを止める","name":"shutdown は預かっている全てのサーバを止める","status":"passed","testResultsByEnv":{"default":"a0080ccc24d872c8c9de85d00b88b5cd"}}

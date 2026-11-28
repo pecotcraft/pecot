@@ -1,0 +1,1 @@
+{"id":"d627834d67922800c0ce0466551d524c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pr_run#test_pr_load_head_api_failure","name":"PR の API の呼び出しに失敗すると、終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"0181865444502f211ed79fd25fbfbac0"}}

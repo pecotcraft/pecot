@@ -1,0 +1,1 @@
+{"id":"0b667ddfdc1b80acb27a51443f5ef068.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#repositoryFullName 名前にドットを含む owner/repo を、そのまま owner/repo の形で返す","name":"名前にドットを含む owner/repo を、そのまま owner/repo の形で返す","status":"passed","testResultsByEnv":{"default":"e359cad65d89fab928388550aa530011"}}

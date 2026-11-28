@@ -1,0 +1,1 @@
+{"id":"85cffc7da22084a263774db3e4921161.34cef11d489dcca41ec6556d650b92d7","fullName":".githooks.tests.test_pages_store#test_report_check_refuses_history_in_the_tar","name":"release のレポートの tar の直下に履歴（empty-release）があると、保管に置かない旨を指摘する","status":"passed","testResultsByEnv":{"default":"2bf92f69704031924a73d81475d04bfd"}}

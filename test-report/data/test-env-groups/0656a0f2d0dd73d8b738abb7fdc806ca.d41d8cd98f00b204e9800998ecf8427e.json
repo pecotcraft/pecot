@@ -1,0 +1,1 @@
+{"id":"0656a0f2d0dd73d8b738abb7fdc806ca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#runDrawioExport 書き出す SVG は color-scheme が light 固定で、入力の合成ハッシュを持つ","name":"書き出す SVG は color-scheme が light 固定で、入力の合成ハッシュを持つ","status":"passed","testResultsByEnv":{"default":"b12099c8ad51a1aab192a669d344fca3"}}

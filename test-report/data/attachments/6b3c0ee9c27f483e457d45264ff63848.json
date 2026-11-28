@@ -1,0 +1,216 @@
+{
+  "name": "project_init",
+  "title": "Initialize project fields",
+  "description": "Add the pecot-status field to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view. The fields pecot does not use (pecot-priority, pecot-size, and the old suffixed workflow field when pecot-status also exists) are listed in migration.pending_delete, and deleted only with confirm_delete",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "owner": {
+        "type": "string",
+        "description": "Project owner"
+      },
+      "name": {
+        "type": "string",
+        "description": "Project title"
+      },
+      "host": {
+        "default": "github.com",
+        "description": "GitHub host",
+        "type": "string"
+      },
+      "lanes": {
+        "description": "Values of the pecot-lane field: the areas of work, such as plugins, teams or services. GitHub shows them on the board, so use English names. Values already on the board are kept",
+        "minItems": 1,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "confirm_delete": {
+        "default": false,
+        "description": "Delete the fields listed in migration.pending_delete. Their values on every item are deleted too and cannot be restored. Set it to true only after the user has approved deleting those fields",
+        "type": "boolean"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "owner",
+      "name"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "fields": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name of the project field"
+            },
+            "change": {
+              "type": "string",
+              "enum": [
+                "create",
+                "update",
+                "unchanged",
+                "skip",
+                "rename",
+                "delete"
+              ],
+              "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status; delete: the field was deleted with confirm_delete"
+            },
+            "addedOptions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Names of the options added to the field (empty when none)"
+            }
+          },
+          "required": [
+            "name",
+            "change",
+            "addedOptions"
+          ],
+          "additionalProperties": false
+        },
+        "description": "The pecot-status and pecot-lane fields, the Status field when its options were looked at, and the fields deleted with confirm_delete"
+      },
+      "migration": {
+        "description": "What was moved from the old form (omitted when the command stopped before the project config)",
+        "type": "object",
+        "properties": {
+          "renamed": {
+            "description": "Old name of the workflow field that was renamed to pecot-status (null when none)",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "config_moved": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "description": "File name of the old project config"
+                  },
+                  "to": {
+                    "type": "string",
+                    "description": "File name the project config was moved to"
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The old project config file that was moved to the new name (null when none)"
+          },
+          "pending_delete": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields to delete that were left because confirm_delete was not given: pecot-priority, pecot-size, and the old pecot-workflow-<suffix> field when pecot-status also exists (empty when none)"
+          },
+          "deleted": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields deleted with confirm_delete (empty when none)"
+          }
+        },
+        "required": [
+          "renamed",
+          "config_moved",
+          "pending_delete",
+          "deleted"
+        ],
+        "additionalProperties": false
+      },
+      "view": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "boolean",
+            "description": "Whether the view was created; false when a view of that name already exists or it has to be created by hand"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the view (Lanes)"
+          },
+          "url": {
+            "description": "URL of the view (omitted when it has to be created by hand)",
+            "type": "string"
+          },
+          "manual_steps": {
+            "description": "Steps to create the view on the board, when GitHub refused to create it (omitted otherwise)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "created",
+          "name"
+        ],
+        "additionalProperties": false,
+        "description": "The Lanes view, with pecot-status as the columns and pecot-lane as the groups (omitted when the board has no single select pecot-lane field)"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "fields"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

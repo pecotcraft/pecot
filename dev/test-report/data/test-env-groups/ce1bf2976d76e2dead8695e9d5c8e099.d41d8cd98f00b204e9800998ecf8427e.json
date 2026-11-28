@@ -1,0 +1,1 @@
+{"id":"ce1bf2976d76e2dead8695e9d5c8e099.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish 待っている Issue 片付けると、閉じた Issue を待つ Issue の列を動かし、着手の跡がある Issue は動かさない","name":"片付けると、閉じた Issue を待つ Issue の列を動かし、着手の跡がある Issue は動かさない","status":"passed","testResultsByEnv":{"default":"9f5c7f4c4c6d358e957fbf5291cf71d0"}}

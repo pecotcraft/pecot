@@ -1,0 +1,1 @@
+{"id":"2809acfd7188a0a80eb7f0d3941f0a96.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 Epic は判定を出さず、JSON の readiness は null","name":"Epic は判定を出さず、JSON の readiness は null","status":"passed","testResultsByEnv":{"default":"ee97c1cbf6c04992f12be9ce325b14dc"}}

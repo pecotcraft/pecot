@@ -1,0 +1,1 @@
+{"id":"ff0d88dd70fc3a4f8030e639597e92e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_s3_ls s3_uri が数値 の入力を、スキーマの検証で拒否する","name":"s3_uri が数値 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"d5993d1725609c8fb6aec1986d94296d"}}

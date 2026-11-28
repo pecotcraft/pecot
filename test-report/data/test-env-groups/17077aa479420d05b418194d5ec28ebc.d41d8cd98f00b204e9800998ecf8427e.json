@@ -1,0 +1,1 @@
+{"id":"17077aa479420d05b418194d5ec28ebc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show 子 PR 子 PR を読めなければ、warning を出し、stacked above の行を省いて base の行は残す","name":"子 PR を読めなければ、warning を出し、stacked above の行を省いて base の行は残す","status":"passed","testResultsByEnv":{"default":"76c683fef5c6bd358b54b07580e7a9f8"}}

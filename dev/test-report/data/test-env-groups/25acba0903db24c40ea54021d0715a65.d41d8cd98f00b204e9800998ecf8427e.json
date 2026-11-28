@@ -1,0 +1,1 @@
+{"id":"25acba0903db24c40ea54021d0715a65.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/work-start.test.ts#decideStart スタックできない前提でも PR がマージ済みの場合は、マージ済みと表示し、スタックへ切り替える案内を表示しない","name":"スタックできない前提でも PR がマージ済みの場合は、マージ済みと表示し、スタックへ切り替える案内を表示しない","status":"passed","testResultsByEnv":{"default":"05a2875507cf5b12b32ddc8b3ba967c5"}}

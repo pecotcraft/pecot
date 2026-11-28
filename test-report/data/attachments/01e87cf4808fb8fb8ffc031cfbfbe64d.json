@@ -1,0 +1,181 @@
+{
+  "name": "aws_cloudwatch_get_metric_statistics",
+  "title": "Get CloudWatch metric statistics",
+  "description": "Gets statistics of one metric over a time range. Specify all dimensions exactly as when the metric was published, or the result is empty",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "namespace": {
+        "type": "string",
+        "description": "Metric namespace (e.g. AWS/SQS, AWS/Lambda)"
+      },
+      "metric_name": {
+        "type": "string",
+        "description": "Metric name (e.g. NumberOfMessagesSent)"
+      },
+      "dimensions": {
+        "description": "Dimensions to filter by. Specify exactly the combination the metric has",
+        "maxItems": 30,
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Dimension name (e.g. QueueName, FunctionName)"
+            },
+            "value": {
+              "type": "string",
+              "description": "Dimension value"
+            }
+          },
+          "required": [
+            "name",
+            "value"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "start_time": {
+        "type": "string",
+        "description": "Start time. ISO 8601 with a required timezone (Z or +09:00 form), e.g. 2026-09-01T00:00:00Z / 2026-09-01T09:00:00+09:00"
+      },
+      "end_time": {
+        "type": "string",
+        "description": "End time. ISO 8601 with a required timezone (Z or +09:00 form), same format as start_time"
+      },
+      "period": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991,
+        "description": "Aggregation period in seconds. Must be a multiple of 60"
+      },
+      "statistics": {
+        "minItems": 1,
+        "maxItems": 5,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "SampleCount",
+            "Average",
+            "Sum",
+            "Minimum",
+            "Maximum"
+          ]
+        },
+        "description": "Statistics to get. Specify 1 to 5"
+      },
+      "unit": {
+        "description": "Unit to filter by. The result is empty if it does not match the unit of the data",
+        "type": "string",
+        "enum": [
+          "Seconds",
+          "Microseconds",
+          "Milliseconds",
+          "Bytes",
+          "Kilobytes",
+          "Megabytes",
+          "Gigabytes",
+          "Terabytes",
+          "Bits",
+          "Kilobits",
+          "Megabits",
+          "Gigabits",
+          "Terabits",
+          "Percent",
+          "Count",
+          "Bytes/Second",
+          "Kilobytes/Second",
+          "Megabytes/Second",
+          "Gigabytes/Second",
+          "Terabytes/Second",
+          "Bits/Second",
+          "Kilobits/Second",
+          "Megabits/Second",
+          "Gigabits/Second",
+          "Terabits/Second",
+          "Count/Second",
+          "None"
+        ]
+      },
+      "profile": {
+        "description": "AWS profile name. If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[\\w.-]+$"
+      },
+      "region": {
+        "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+      }
+    },
+    "required": [
+      "namespace",
+      "metric_name",
+      "start_time",
+      "end_time",
+      "period",
+      "statistics"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "Label": {
+        "type": "string",
+        "description": "Metric label (CloudWatch GetMetricStatistics response)"
+      },
+      "Datapoints": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {}
+        },
+        "description": "Datapoint objects of the CloudWatch GetMetricStatistics response"
+      },
+      "lines": {
+        "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "output": {
+        "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+        "type": "string"
+      },
+      "truncated": {
+        "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+        "type": "boolean"
+      },
+      "kind": {
+        "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+        "type": "string"
+      },
+      "detail": {
+        "description": "Full text of the failure and how to recover (failure only)",
+        "type": "string"
+      },
+      "log": {
+        "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+        "type": "string"
+      },
+      "warnings": {
+        "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "openWorldHint": true
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"592ccbf05024b7059e2ce0f9100d9b7c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 対象のリポジトリと設定 repo が今の git remote のリポジトリと食い違うと、warnings に入れて repo を使う","name":"repo が今の git remote のリポジトリと食い違うと、warnings に入れて repo を使う","status":"passed","testResultsByEnv":{"default":"07c50a5016bfdbab9f2ea9f9b36be92f"}}

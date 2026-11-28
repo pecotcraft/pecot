@@ -1,0 +1,1 @@
+{"id":"ca0a3edde9a60a036f1ec05e4ee9fe9f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-alerts.test.ts#listOpenAlerts Dependabot の一覧を取得できたら、応答の alert をそのまま返す","name":"Dependabot の一覧を取得できたら、応答の alert をそのまま返す","status":"passed","testResultsByEnv":{"default":"01303f8c1deae330d96a623381f7b87d"}}

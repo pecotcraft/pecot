@@ -1,0 +1,1 @@
+{"id":"a0dabc6089e0853411f317f02a199998.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 未編集プレースホルダの検出と正当な `<...>` の通過（#962） `<OS 等>` のような ASCII 語 + 空白 + 日本語も通さない","name":"`<OS 等>` のような ASCII 語 + 空白 + 日本語も通さない","status":"passed","testResultsByEnv":{"default":"4da2e81ed67440615640fc90c20f47f7"}}

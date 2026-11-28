@@ -1,0 +1,4 @@
+count: open Dependabot alerts: 0
+count: open code scanning alerts: 0
+count: open secret scanning alerts: 0
+error: CHANGELOG.md not found: /tmp/pecot-repo-0QZjqd/CHANGELOG.md

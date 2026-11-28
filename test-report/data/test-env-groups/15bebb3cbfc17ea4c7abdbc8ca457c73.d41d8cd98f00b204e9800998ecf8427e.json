@@ -1,0 +1,1 @@
+{"id":"15bebb3cbfc17ea4c7abdbc8ca457c73.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_38c_strict_fails_without_plans_script","name":"dependabot-plans.js が存在しないと、通常は警告で成功し、strict では失敗する","status":"passed","testResultsByEnv":{"default":"98cf5bb983a478147766d9dc928bc41e"}}

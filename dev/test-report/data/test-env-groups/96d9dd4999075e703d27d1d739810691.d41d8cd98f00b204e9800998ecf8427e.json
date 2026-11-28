@@ -1,0 +1,1 @@
+{"id":"96d9dd4999075e703d27d1d739810691.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/slides-md.test.ts#slidesMdSource 数字を含んでいても文字列として読まれる title は、引用符で囲まない","name":"数字を含んでいても文字列として読まれる title は、引用符で囲まない","status":"passed","testResultsByEnv":{"default":"eb0650d17f32935a7d6a4a7750bc4d9c"}}

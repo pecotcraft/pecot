@@ -1,0 +1,1 @@
+{"id":"6047c40a3311be62ab682cde388613be.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#初期化の URL host が github.com のとき、API と GraphQL の URL を github.com のものにする","name":"host が github.com のとき、API と GraphQL の URL を github.com のものにする","status":"passed","testResultsByEnv":{"default":"ea9df2d90e69620093187ae0d8ae0d8d"}}

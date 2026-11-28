@@ -1,0 +1,1 @@
+{"id":"aec4fbc9d4021f7271f6457faf8b1558.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#writeSessionTitle 番号が数字ではない場合は、InvalidValueError を送出し、何も書き込まない","name":"番号が数字ではない場合は、InvalidValueError を送出し、何も書き込まない","status":"passed","testResultsByEnv":{"default":"d4a8c32a191cb45cad6a18e86050f9de"}}

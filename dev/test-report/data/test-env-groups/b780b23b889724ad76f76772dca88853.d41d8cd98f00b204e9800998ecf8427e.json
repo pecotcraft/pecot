@@ -1,0 +1,1 @@
+{"id":"b780b23b889724ad76f76772dca88853.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#ensureWorkDirectory 作業ディレクトリが既に存在する場合でも、例外が発生しない","name":"作業ディレクトリが既に存在する場合でも、例外が発生しない","status":"passed","testResultsByEnv":{"default":"e33bbb82fe994814da773684f5759c40"}}

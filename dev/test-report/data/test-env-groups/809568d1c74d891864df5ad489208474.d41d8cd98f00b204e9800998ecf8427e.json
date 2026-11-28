@@ -1,0 +1,1 @@
+{"id":"809568d1c74d891864df5ad489208474.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 先頭の書体が Display Extended の見出しには、書体の警告を 1 件だけ返す","name":"先頭の書体が Display Extended の見出しには、書体の警告を 1 件だけ返す","status":"passed","testResultsByEnv":{"default":"91ae6c1c3d450417b5168c2d9922178a"}}

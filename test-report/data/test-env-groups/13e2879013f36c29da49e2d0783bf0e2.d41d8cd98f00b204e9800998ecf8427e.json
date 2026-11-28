@@ -1,0 +1,1 @@
+{"id":"13e2879013f36c29da49e2d0783bf0e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-breakdown の手順 確認が通らずやり直すときは、tasks の Step のコードブロックを貼り直し、外れた箇所を 1 行追加する","name":"確認が通らずやり直すときは、tasks の Step のコードブロックを貼り直し、外れた箇所を 1 行追加する","status":"passed","testResultsByEnv":{"default":"e88a0d226411717a2e068df35bf4a10c"}}

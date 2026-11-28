@@ -1,0 +1,2 @@
+error: invalid params for release-create: ✖ a full commit SHA
+  → at sha

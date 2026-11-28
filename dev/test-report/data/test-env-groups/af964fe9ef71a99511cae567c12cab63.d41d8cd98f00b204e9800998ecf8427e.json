@@ -1,0 +1,1 @@
+{"id":"af964fe9ef71a99511cae567c12cab63.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/github-ops/project.test.ts#github ops project-fields に ボードに存在しない欄の rename を渡すと、書き込まずに ok: false を返す","name":"project-fields に ボードに存在しない欄の rename を渡すと、書き込まずに ok: false を返す","status":"passed","testResultsByEnv":{"default":"e6547e15a2e27ad92866dd0ba31713d8"}}

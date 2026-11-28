@@ -1,0 +1,1 @@
+{"id":"4ff704234f3b1f0d000756c9125f1a43.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-onboarding の兄弟リポの検出 origin が foo だと、解析できない旨の ERROR の行を出力して終了コード 1 で止まる","name":"origin が foo だと、解析できない旨の ERROR の行を出力して終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"6dfd0a991f9fca36cddca87d772bab01"}}

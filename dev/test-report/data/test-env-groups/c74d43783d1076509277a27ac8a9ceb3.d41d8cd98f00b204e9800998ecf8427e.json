@@ -1,0 +1,1 @@
+{"id":"c74d43783d1076509277a27ac8a9ceb3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#resolveIconsForExport 解決済みの参照が、別の参照の先頭部分と同じ場合は、未解決の参照として扱わない","name":"解決済みの参照が、別の参照の先頭部分と同じ場合は、未解決の参照として扱わない","status":"passed","testResultsByEnv":{"default":"a20fd1a37b74fa0725a291dc86e733ab"}}

@@ -1,0 +1,294 @@
+{
+  "name": "pr_show",
+  "title": "Get PR details",
+  "description": "Get PR details efficiently (GraphQL, only the needed fields)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pr_ref": {
+        "type": "string",
+        "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+      },
+      "json": {
+        "default": false,
+        "description": "Output as JSON",
+        "type": "boolean"
+      },
+      "reviews": {
+        "default": false,
+        "description": "Include review details (bodies and line comments)",
+        "type": "boolean"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "pr_ref"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "number": {
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991,
+        "description": "PR number"
+      },
+      "state": {
+        "type": "string",
+        "description": "State of the PR (OPEN, CLOSED or MERGED)"
+      },
+      "title": {
+        "type": "string",
+        "description": "Title of the PR"
+      },
+      "body": {
+        "type": "string",
+        "description": "Body of the PR"
+      },
+      "head_ref": {
+        "type": "string",
+        "description": "Head branch"
+      },
+      "base_ref": {
+        "type": "string",
+        "description": "Base branch"
+      },
+      "is_draft": {
+        "type": "boolean",
+        "description": "Whether the PR is a draft"
+      },
+      "mergeable": {
+        "type": "string",
+        "description": "Mergeability (MERGEABLE, CONFLICTING or UNKNOWN)"
+      },
+      "comments": {
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991,
+        "description": "Number of comments"
+      },
+      "closing_issues": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "number": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Issue number"
+            },
+            "title": {
+              "type": "string",
+              "description": "Title of the Issue (empty for referenced_issues)"
+            }
+          },
+          "required": [
+            "number",
+            "title"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Issues the PR closes"
+      },
+      "referenced_issues": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "number": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Issue number"
+            },
+            "title": {
+              "type": "string",
+              "description": "Title of the Issue (empty for referenced_issues)"
+            }
+          },
+          "required": [
+            "number",
+            "title"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Issues referenced by Refs in the body and not in closing_issues"
+      },
+      "reviews": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "description": "State of the review"
+            },
+            "author": {
+              "description": "Login of the reviewer (null when deleted)",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "body": {
+              "description": "Body of the review (only with reviews)",
+              "type": "string"
+            },
+            "submitted_at": {
+              "description": "Submission time (only with reviews)",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "state",
+            "author"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Reviews"
+      },
+      "review_threads": {
+        "description": "Line comment threads (only with reviews)",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "is_resolved": {
+              "type": "boolean",
+              "description": "Whether the thread is resolved"
+            },
+            "path": {
+              "description": "File path of the thread",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "line": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Line of the thread"
+            },
+            "comments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "author": {
+                    "description": "Login of the author (null when deleted)",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "body": {
+                    "type": "string",
+                    "description": "Body of the comment"
+                  },
+                  "created_at": {
+                    "description": "Creation time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "url": {
+                    "description": "URL of the comment",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "author",
+                  "body",
+                  "created_at",
+                  "url"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Comments in the thread"
+            }
+          },
+          "required": [
+            "is_resolved",
+            "path",
+            "line",
+            "comments"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "number",
+          "state",
+          "title",
+          "body",
+          "head_ref",
+          "base_ref",
+          "is_draft",
+          "mergeable",
+          "comments",
+          "closing_issues",
+          "referenced_issues",
+          "reviews"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

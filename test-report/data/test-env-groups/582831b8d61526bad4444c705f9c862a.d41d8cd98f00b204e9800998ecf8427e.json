@@ -1,0 +1,1 @@
+{"id":"582831b8d61526bad4444c705f9c862a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#installChromium signal が中断された場合は、子プロセスを終了させる","name":"signal が中断された場合は、子プロセスを終了させる","status":"passed","testResultsByEnv":{"default":"ee2c6293b3d8ae82424f82df8bd1005f"}}

@@ -1,0 +1,1 @@
+{"id":"2ece2c3a0b37358c2de6fff772e320b1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/config-dispatcher.test.ts#pecot_hook_enabled ファイルが無いとき、既定値の true に従って有効を返す","name":"ファイルが無いとき、既定値の true に従って有効を返す","status":"passed","testResultsByEnv":{"default":"fab68ad0424513065bee320e6ef2c558"}}

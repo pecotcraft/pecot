@@ -1,0 +1,3 @@
+error: host is required
+  example: project_activate with project: "1", host: "github.com", owner: "example-org", owner_type: "org"
+  example: project_activate with project: "ghes.example.com_example-org_1"

@@ -1,0 +1,1 @@
+{"id":"657c00c27e7dff39225ba143913ef7fd.2cfcc8045808361ab33f7bd96bc4c5f8","fullName":".githooks.tests.test_find_pr_ci_base#test_missing_input","name":"QUEUE_BASE が空だと、入力の不足の理由を出力する","status":"passed","testResultsByEnv":{"default":"2121f82a9f16994c90ea0d290c94eb66"}}

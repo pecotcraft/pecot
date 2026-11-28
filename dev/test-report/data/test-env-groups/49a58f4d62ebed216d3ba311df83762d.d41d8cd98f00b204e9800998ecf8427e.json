@@ -1,0 +1,1 @@
+{"id":"49a58f4d62ebed216d3ba311df83762d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#release group の解決結果が空か空要素を含むと、監査先へ問い合わせずに中止する","name":"release group の解決結果が空か空要素を含むと、監査先へ問い合わせずに中止する","status":"passed","testResultsByEnv":{"default":"fd51ed88a50fcac68c4099a6153c336d"}}

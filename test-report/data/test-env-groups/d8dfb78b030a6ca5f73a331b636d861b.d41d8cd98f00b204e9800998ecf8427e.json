@@ -1,0 +1,1 @@
+{"id":"d8dfb78b030a6ca5f73a331b636d861b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_has_no_exclude","name":"check-text には、`.textlintignore` と重複する exclude を指定しない","status":"passed","testResultsByEnv":{"default":"4bdce4c50cfcbb83b7af7ebf2e980018"}}

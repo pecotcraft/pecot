@@ -1,0 +1,1 @@
+{"id":"78894e016681ad10ec7b66720f39ae7d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/tool-result-fields.test.ts#ツールの結果の入れ物 スキルは、結果の項目を data. 付きで読ませず、ok・exitCode・artifacts で分岐させない","name":"スキルは、結果の項目を data. 付きで読ませず、ok・exitCode・artifacts で分岐させない","status":"passed","testResultsByEnv":{"default":"ba54a3954e8ea3382f6ad5194c2b7375"}}

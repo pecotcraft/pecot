@@ -1,0 +1,1 @@
+{"id":"647acb36f459f9eabef3ec4b9a1e0c4c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/pre-tool-use-temporary-path-warner.test.ts#tmp-path-warner.sh sudo の後ろが rm のとき、前置きを飛ばしても許可リスト外なので警告する","name":"sudo の後ろが rm のとき、前置きを飛ばしても許可リスト外なので警告する","status":"passed","testResultsByEnv":{"default":"df4a0b2ca041645a991e3c80d168aee1"}}

@@ -1,0 +1,1 @@
+{"id":"1c42336e28d06ac7cea0f4ff11547dfd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main 存在しないファイルを渡すと、理由を標準エラーへ出力し、終了コード 2 を返す","name":"存在しないファイルを渡すと、理由を標準エラーへ出力し、終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"ed9c14dba2082bc13ceb3e2c92fd9da3"}}

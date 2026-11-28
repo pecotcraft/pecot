@@ -1,0 +1,1 @@
+{"id":"ce3d94431d0f5cc3dfadde563bc0ff6c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check もし git コマンドが失敗したなら、終了コード 1 で終わる","name":"もし git コマンドが失敗したなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"5a6d913eb9615c00166e92ac6356f83d"}}

@@ -1,0 +1,1 @@
+{"id":"c1bad1e619f5aae14fb1f67dbbbec9ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け PR が開いたまま待ち時間の上限に達すると、TIMEOUT を出力して終了コード 0 で終了する","name":"PR が開いたまま待ち時間の上限に達すると、TIMEOUT を出力して終了コード 0 で終了する","status":"passed","testResultsByEnv":{"default":"fbcd715306b20d7c17f18bfd54cec388"}}

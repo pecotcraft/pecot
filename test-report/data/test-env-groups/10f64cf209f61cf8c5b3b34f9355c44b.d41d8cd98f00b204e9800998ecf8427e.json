@@ -1,0 +1,1 @@
+{"id":"10f64cf209f61cf8c5b3b34f9355c44b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/version-range.test.ts#doesRangeAllowMajor: 解釈できない表記 プレリリースの付いた上限や範囲は、どのメジャーバージョンも許可しない","name":"プレリリースの付いた上限や範囲は、どのメジャーバージョンも許可しない","status":"passed","testResultsByEnv":{"default":"a827bad2bac6a080acc045efc6b1edfd"}}

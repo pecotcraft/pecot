@@ -1,0 +1,1 @@
+{"id":"29bffcb8e1fe8b83249d05b79596e18c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#TypeScript reads TypeScript のソースに a spread があると、名前を解決できない行を返す","name":"TypeScript のソースに a spread があると、名前を解決できない行を返す","status":"passed","testResultsByEnv":{"default":"7f4b52be7443f90fc8e62b60bf384ca1"}}

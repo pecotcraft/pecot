@@ -1,0 +1,1 @@
+{"id":"dfe2b16486131b2bc8ca64f6c8ddba08.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-check.test.ts#board_check updated_field に id と name の両方 を渡すと、欄の指定を求める problem を返す","name":"updated_field に id と name の両方 を渡すと、欄の指定を求める problem を返す","status":"passed","testResultsByEnv":{"default":"8066944444fc292681cccbb7bbbf07c5"}}

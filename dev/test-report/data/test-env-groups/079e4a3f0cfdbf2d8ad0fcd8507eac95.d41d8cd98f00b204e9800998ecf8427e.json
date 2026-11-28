@@ -1,0 +1,1 @@
+{"id":"079e4a3f0cfdbf2d8ad0fcd8507eac95.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 本文とテンプレート テンプレートの種別と kind が違うと、テンプレートの種別を候補にして problem にする","name":"テンプレートの種別と kind が違うと、テンプレートの種別を候補にして problem にする","status":"passed","testResultsByEnv":{"default":"2c0fc835105bce86457176f3c9d76cc6"}}

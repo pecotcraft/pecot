@@ -1,0 +1,1 @@
+{"id":"51ca7053b4e3efa0181558401a5da61c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-gate.test.ts#auto gate issues のイベント 進めないときも、outputs の proceed を false にして出す","name":"進めないときも、outputs の proceed を false にして出す","status":"passed","testResultsByEnv":{"default":"2b7c664339871f028b51e137a8a4032e"}}

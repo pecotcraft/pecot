@@ -1,0 +1,1 @@
+{"id":"6d8460f070cc74e1ea8e955281b89b01.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate owner_type で、board_url を個人のボードか organization のボードの URL にする","name":"owner_type で、board_url を個人のボードか organization のボードの URL にする","status":"passed","testResultsByEnv":{"default":"a1c8ef0d244c7de7084034fe6eba618c"}}

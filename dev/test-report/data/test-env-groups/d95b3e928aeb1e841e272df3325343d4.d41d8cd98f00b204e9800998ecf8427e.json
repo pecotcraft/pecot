@@ -1,0 +1,1 @@
+{"id":"d95b3e928aeb1e841e272df3325343d4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/paths.test.ts#resolveRealPath シンボリックリンクが循環している場合は、ELOOP のエラーを発生させる","name":"シンボリックリンクが循環している場合は、ELOOP のエラーを発生させる","status":"passed","testResultsByEnv":{"default":"a7976f56908d78fa64f31148f480d32d"}}

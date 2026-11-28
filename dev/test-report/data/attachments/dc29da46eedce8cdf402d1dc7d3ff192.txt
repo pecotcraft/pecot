@@ -1,0 +1,3 @@
+devcontainer --version 
+docker pull ghcr.io/example/img:def-73537cf2fde6dea18311cb613f1efa2e5e6ddfbe
+devcontainer build --workspace-folder /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_build_failure_exits_1_wit0/ws --image-name pecot-ci-local --cache-from ghcr.io/example/img:latest 

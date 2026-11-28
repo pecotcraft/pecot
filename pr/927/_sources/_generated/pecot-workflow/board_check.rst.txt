@@ -1,0 +1,8 @@
+:iface-id: PW-BOARD-CHECK
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Check board move
+================================
+
+.. iface-defs:: pecot-workflow PW-BOARD-CHECK

@@ -1,0 +1,1 @@
+{"id":"3d27858da2fb86011791fe824589ff83.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#relativeToCwd 名前が .. で始まるファイルは、親ディレクトリではなく、作業ディレクトリの中のファイルとして扱う","name":"名前が .. で始まるファイルは、親ディレクトリではなく、作業ディレクトリの中のファイルとして扱う","status":"passed","testResultsByEnv":{"default":"fdb171a4f5d9abee458a2c99edf18da7"}}

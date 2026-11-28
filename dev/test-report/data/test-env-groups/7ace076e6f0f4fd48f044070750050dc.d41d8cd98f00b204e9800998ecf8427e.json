@@ -1,0 +1,1 @@
+{"id":"7ace076e6f0f4fd48f044070750050dc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/failure-kinds-definition.test.ts#項目ごとの exit_status 返らないとみなす箇所は、どれもソースに残っている","name":"返らないとみなす箇所は、どれもソースに残っている","status":"passed","testResultsByEnv":{"default":"29a95e39d38d36f0c3b1bc5198736871"}}

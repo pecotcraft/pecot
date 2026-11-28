@@ -1,0 +1,1 @@
+{"id":"3a5b354fdd0a57cbcabcc7a851903c04.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/pecotv-dir-init-detection.bats#pecotv 以外のスキルを呼ぶと、stdout に何も出さない","name":"pecotv 以外のスキルを呼ぶと、stdout に何も出さない","status":"passed","testResultsByEnv":{"default":"4268399ff7aeadd43fc92b36521bc126"}}

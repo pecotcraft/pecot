@@ -1,0 +1,1 @@
+{"id":"7184e8b1c965853eca653a481aec318f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml — 注記図形 アンカーの ext、グループの ext と chExt、画像の ext が同じ大きさで、chOff が原点になる","name":"アンカーの ext、グループの ext と chExt、画像の ext が同じ大きさで、chOff が原点になる","status":"passed","testResultsByEnv":{"default":"67efa308a92947a88743cea5e52c426c"}}

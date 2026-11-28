@@ -1,0 +1,1 @@
+{"id":"2e70b505176b261bdd123fdb1851d6ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start ボードの読み書きの失敗 Status を戻す書き込みが失敗すると、その理由で止まる","name":"Status を戻す書き込みが失敗すると、その理由で止まる","status":"passed","testResultsByEnv":{"default":"2f8a7cf41f71f2abe30c05ffde269a45"}}

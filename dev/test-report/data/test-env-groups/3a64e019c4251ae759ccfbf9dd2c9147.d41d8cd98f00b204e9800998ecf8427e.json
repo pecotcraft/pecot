@@ -1,0 +1,1 @@
+{"id":"3a64e019c4251ae759ccfbf9dd2c9147.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_pr_head_commit_missing_locally","name":"PR の head のコミットがローカルに存在しないと、merge-tree の失敗の理由を出力する","status":"passed","testResultsByEnv":{"default":"ecb47789ae861175ca95dcbdb506166a"}}

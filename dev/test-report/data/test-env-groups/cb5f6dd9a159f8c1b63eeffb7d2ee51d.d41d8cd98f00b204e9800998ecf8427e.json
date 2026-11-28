@@ -1,0 +1,1 @@
+{"id":"cb5f6dd9a159f8c1b63eeffb7d2ee51d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#issueFactsOf カードが無ければ列と札を空にし、渡した種類を使う","name":"カードが無ければ列と札を空にし、渡した種類を使う","status":"passed","testResultsByEnv":{"default":"2a0a47dea898dab9f0ddc3dae3c23adf"}}

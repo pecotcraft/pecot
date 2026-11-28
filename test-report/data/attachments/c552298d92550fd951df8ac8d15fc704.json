@@ -1,0 +1,44 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "title: order 2 under acme/demo/3 is given to more than one Issue: first, second"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"title\",\"code\":\"order-conflict\",\"message\":\"order 2 under acme/demo/3 is given to more than one Issue: first, second\"},{\"issue\":\"third\",\"field\":\"title\",\"code\":\"title-order\",\"message\":\"the title of a sub-issue of acme/demo/3 starts with #3-<order>: after the prefix\"}],\"plan\":[{\"key\":\"first\",\"blockedBy\":[],\"approach\":\"alone\"},{\"key\":\"second\",\"blockedBy\":[],\"approach\":\"alone\"},{\"key\":\"third\",\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "title",
+        "code": "order-conflict",
+        "message": "order 2 under acme/demo/3 is given to more than one Issue: first, second"
+      },
+      {
+        "issue": "third",
+        "field": "title",
+        "code": "title-order",
+        "message": "the title of a sub-issue of acme/demo/3 starts with #3-<order>: after the prefix"
+      }
+    ],
+    "plan": [
+      {
+        "key": "first",
+        "blockedBy": [],
+        "approach": "alone"
+      },
+      {
+        "key": "second",
+        "blockedBy": [],
+        "approach": "alone"
+      },
+      {
+        "key": "third",
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

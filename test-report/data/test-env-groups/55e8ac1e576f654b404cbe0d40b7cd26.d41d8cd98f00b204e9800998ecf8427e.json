@@ -1,0 +1,1 @@
+{"id":"55e8ac1e576f654b404cbe0d40b7cd26.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#applyPrerenderImageReplace スライドに画像が存在しない場合、PNG として不正なファイルは差し替えの対象から外す","name":"スライドに画像が存在しない場合、PNG として不正なファイルは差し替えの対象から外す","status":"passed","testResultsByEnv":{"default":"b3fb770fc850276cb022dc6d93e1dc64"}}

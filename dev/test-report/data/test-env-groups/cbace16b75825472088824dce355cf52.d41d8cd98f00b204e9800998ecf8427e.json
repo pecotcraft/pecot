@@ -1,0 +1,1 @@
+{"id":"cbace16b75825472088824dce355cf52.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck Dependabot alert を読めなくても、理由を warning に出して通る","name":"Dependabot alert を読めなくても、理由を warning に出して通る","status":"passed","testResultsByEnv":{"default":"0fac65a161695d520f5a795330f7875b"}}

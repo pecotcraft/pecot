@@ -1,0 +1,1 @@
+{"id":"53d3e0a0795a36b59fd99a3559f642df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/pptx-archive.test.ts#YauzlYazlPptxArchive close を 2 回呼び出しても、エラーにならない","name":"close を 2 回呼び出しても、エラーにならない","status":"passed","testResultsByEnv":{"default":"f4d7dafcb5079d6b4699c0307bf9d4b5"}}

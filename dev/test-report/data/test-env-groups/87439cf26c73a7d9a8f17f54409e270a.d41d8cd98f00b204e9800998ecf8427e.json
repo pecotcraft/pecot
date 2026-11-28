@@ -1,0 +1,1 @@
+{"id":"87439cf26c73a7d9a8f17f54409e270a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#parsePythonInteger \"1_000\" を渡すと、Python の int() と同じく整数 1000 を返す","name":"\"1_000\" を渡すと、Python の int() と同じく整数 1000 を返す","status":"passed","testResultsByEnv":{"default":"5e55f883034c2cbdc4a124be28872f98"}}

@@ -1,0 +1,1 @@
+{"id":"d2139720732fc9cc1429f95c71ead4c7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight 空文字列の tagPrefix は、prefix なしとして扱う（Python の if tag_prefix と同じ）","name":"空文字列の tagPrefix は、prefix なしとして扱う（Python の if tag_prefix と同じ）","status":"passed","testResultsByEnv":{"default":"a9a26712a177c4c7439acc696c842c9d"}}

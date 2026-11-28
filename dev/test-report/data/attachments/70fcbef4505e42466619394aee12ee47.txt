@@ -1,0 +1,4 @@
+error: several config files point to project #1:
+  - a.json
+  - b.json
+  remove all but one, then run again; it is moved to github.com_acme_1.json

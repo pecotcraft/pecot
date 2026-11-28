@@ -1,0 +1,28 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "params.body: version not found in CHANGELOG.md: 9.9.9; merge the CHANGELOG section of 9.9.9 before the release"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"params.body\",\"code\":\"changelog-missing\",\"message\":\"version not found in CHANGELOG.md: 9.9.9; merge the CHANGELOG section of 9.9.9 before the release\"}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"9.9.9\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "params.body",
+        "code": "changelog-missing",
+        "message": "version not found in CHANGELOG.md: 9.9.9; merge the CHANGELOG section of 9.9.9 before the release"
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "9.9.9"
+  }
+}

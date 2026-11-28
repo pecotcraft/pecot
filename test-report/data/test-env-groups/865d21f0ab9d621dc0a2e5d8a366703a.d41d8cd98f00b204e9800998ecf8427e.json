@@ -1,0 +1,1 @@
+{"id":"865d21f0ab9d621dc0a2e5d8a366703a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 注記図形の導出 anchor が box の外を指す場合でも、adj の値を範囲内に収めない","name":"anchor が box の外を指す場合でも、adj の値を範囲内に収めない","status":"passed","testResultsByEnv":{"default":"d8003df58043d869da14d016fee88908"}}

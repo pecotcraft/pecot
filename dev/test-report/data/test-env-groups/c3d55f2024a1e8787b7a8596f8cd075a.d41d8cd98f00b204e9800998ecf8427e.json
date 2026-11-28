@@ -1,0 +1,1 @@
+{"id":"c3d55f2024a1e8787b7a8596f8cd075a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 本文とテンプレート frontmatter を残した本文 を渡すと、body の problem にする","name":"frontmatter を残した本文 を渡すと、body の problem にする","status":"passed","testResultsByEnv":{"default":"4bf528f6590b818476acfd9b6c1053dc"}}

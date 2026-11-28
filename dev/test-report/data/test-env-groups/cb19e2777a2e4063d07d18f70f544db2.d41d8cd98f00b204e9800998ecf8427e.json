@@ -1,0 +1,1 @@
+{"id":"cb19e2777a2e4063d07d18f70f544db2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_sso_login すべてのパラメータを指定した入力を受け付け、そのまま handler へ渡す","name":"すべてのパラメータを指定した入力を受け付け、そのまま handler へ渡す","status":"passed","testResultsByEnv":{"default":"715aa07dcf5f39538adbf0853091ab94"}}

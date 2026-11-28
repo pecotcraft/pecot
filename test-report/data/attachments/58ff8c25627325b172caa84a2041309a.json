@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: references validation not run: /tmp/pecotv-test-file-tools-IjbT7z/talk/node_modules/slidev-theme-pecotv-test-declared/references/plain.yaml\\n  The validation environment is incomplete (missing: assets/slidev/scripts/eslint/validate-references/dist/index.js / assets: /tmp/pecotv-test-file-tools-IjbT7z/empty-root/assets/slidev).\\n  To restore it, call the `runtime_setup` tool (it fetches the runtime dependencies).\\n  No validation ran for this file, so violations have not been detected.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: references validation not run: /tmp/pecotv-test-file-tools-IjbT7z/talk/node_modules/slidev-theme-pecotv-test-declared/references/plain.yaml\n  The validation environment is incomplete (missing: assets/slidev/scripts/eslint/validate-references/dist/index.js / assets: /tmp/pecotv-test-file-tools-IjbT7z/empty-root/assets/slidev).\n  To restore it, call the `runtime_setup` tool (it fetches the runtime dependencies).\n  No validation ran for this file, so violations have not been detected."
+    }
+  }
+}

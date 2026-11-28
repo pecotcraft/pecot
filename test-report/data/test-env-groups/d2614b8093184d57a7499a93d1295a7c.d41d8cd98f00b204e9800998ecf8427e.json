@@ -1,0 +1,1 @@
+{"id":"d2614b8093184d57a7499a93d1295a7c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#main の --write 挿入順のまま、字下げ 2・末尾に改行 1 つで書き、wrote の行を出して 0 を返す","name":"挿入順のまま、字下げ 2・末尾に改行 1 つで書き、wrote の行を出して 0 を返す","status":"passed","testResultsByEnv":{"default":"65387597ae41537de0f30f39015a26ae"}}

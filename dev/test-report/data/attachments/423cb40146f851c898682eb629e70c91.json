@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "title: without template, the title is the first line of the body (up to 50 characters, spaces joined into one)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"title\",\"code\":\"freeform-title\",\"message\":\"without template, the title is the first line of the body (up to 50 characters, spaces joined into one)\",\"candidates\":[\"[Task] #3-02: 一覧に状態を出す\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "title",
+        "code": "freeform-title",
+        "message": "without template, the title is the first line of the body (up to 50 characters, spaces joined into one)",
+        "candidates": [
+          "[Task] #3-02: 一覧に状態を出す"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

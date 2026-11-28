@@ -1,0 +1,1 @@
+{"id":"4011ad7c848572fe7be93ddfe35cd6d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/attach-mcp-tgz.test.sh#release view の失敗は gh の出力を添えて「確認できません」と出す","name":"release view の失敗は gh の出力を添えて「確認できません」と出す","status":"passed","testResultsByEnv":{"default":"1e0f21231381cb7cf7092e2f48fa16c0"}}

@@ -1,0 +1,1 @@
+{"id":"276d3a31911bab16ede69f5320c98ec0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/talk-theme.test.ts#resolveTalkTheme の失敗 package.json が存在しない場合は、理由 theme-unlinked のエラーを返す","name":"package.json が存在しない場合は、理由 theme-unlinked のエラーを返す","status":"passed","testResultsByEnv":{"default":"5a121d1a9abcf13d2a772bfb04b6ec6e"}}

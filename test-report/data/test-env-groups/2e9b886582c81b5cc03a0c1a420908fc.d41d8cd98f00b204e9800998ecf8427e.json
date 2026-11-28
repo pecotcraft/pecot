@@ -1,0 +1,1 @@
+{"id":"2e9b886582c81b5cc03a0c1a420908fc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#401 のときの gh auth token への切り替え 切り替えは 1 回だけ。再試行も 401 なら、そのまま 401 を返し、以後 gh は呼ばない","name":"切り替えは 1 回だけ。再試行も 401 なら、そのまま 401 を返し、以後 gh は呼ばない","status":"passed","testResultsByEnv":{"default":"6626e58597fa7ad08eef798cb330ea21"}}

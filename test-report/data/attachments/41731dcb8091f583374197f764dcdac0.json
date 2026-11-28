@@ -1,0 +1,30 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "skipped: closing Issue #12 (Epic)"
+    },
+    {
+      "type": "text",
+      "text": "{\"closedIssues\":[],\"skippedIssues\":[{\"number\":12,\"reason\":\"epic\"}],\"deletedBranches\":[{\"branch\":\"feat/demo/12\",\"location\":\"local\"}],\"readinessChanges\":[],\"restack\":[],\"currentBranch\":\"main\"}"
+    }
+  ],
+  "structuredContent": {
+    "closedIssues": [],
+    "skippedIssues": [
+      {
+        "number": 12,
+        "reason": "epic"
+      }
+    ],
+    "deletedBranches": [
+      {
+        "branch": "feat/demo/12",
+        "location": "local"
+      }
+    ],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "main"
+  }
+}

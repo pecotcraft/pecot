@@ -1,0 +1,1 @@
+{"id":"ac1ca9883d1b4f14c4c8d732338733cb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender.test.ts#prerenderComplexElements deviceScaleFactor が 0 の場合は、5 を使って高解像度用のページを作成する","name":"deviceScaleFactor が 0 の場合は、5 を使って高解像度用のページを作成する","status":"passed","testResultsByEnv":{"default":"d70d1eced4e2286ca74a9118e536cf78"}}

@@ -1,0 +1,1 @@
+{"id":"1744d8dc56ca004dbae337a5f6333f38.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments boolean の入力は、true なら --flag、false なら --no-flag の形で渡す","name":"boolean の入力は、true なら --flag、false なら --no-flag の形で渡す","status":"passed","testResultsByEnv":{"default":"819d0505f9e5c55b7ac36bfff4c1503a"}}

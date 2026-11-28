@@ -1,0 +1,1 @@
+{"id":"f40113b660355ab55c18b98b31f9a5c7.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_runs_before_heavy_hooks","name":"check-text は、重い nx-affected-lint より前に実行する順序で定義する","status":"passed","testResultsByEnv":{"default":"281d4dc6ceecd086c026dad1b6c071b7"}}

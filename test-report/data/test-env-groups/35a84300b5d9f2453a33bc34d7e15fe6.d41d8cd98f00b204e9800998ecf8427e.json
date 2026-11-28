@@ -1,0 +1,1 @@
+{"id":"35a84300b5d9f2453a33bc34d7e15fe6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.test.sh#静的確認: メンバーに packageManager があると落ちる","name":"静的確認: メンバーに packageManager があると落ちる","status":"passed","testResultsByEnv":{"default":"5ea3db5c1740b8fc3ddb95f1d50125ec"}}

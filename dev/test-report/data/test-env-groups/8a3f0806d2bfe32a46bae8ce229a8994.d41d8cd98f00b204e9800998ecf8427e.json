@@ -1,0 +1,1 @@
+{"id":"8a3f0806d2bfe32a46bae8ce229a8994.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#runDrawioExport 解決できない `icon://` があれば、export へ進まず `icon-unresolved` で失敗する","name":"解決できない `icon://` があれば、export へ進まず `icon-unresolved` で失敗する","status":"passed","testResultsByEnv":{"default":"5f2a7431ac853491bdcb22712a1e8000"}}

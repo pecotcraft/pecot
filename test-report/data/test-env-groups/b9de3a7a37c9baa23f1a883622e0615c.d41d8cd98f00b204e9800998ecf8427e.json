@@ -1,0 +1,1 @@
+{"id":"b9de3a7a37c9baa23f1a883622e0615c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#formatValidationError（入力値の省略はバイト長で決まる） 入力値が japanese-17 の場合は、Python の入力値の表記と一致する","name":"入力値が japanese-17 の場合は、Python の入力値の表記と一致する","status":"passed","testResultsByEnv":{"default":"0b3ac3b39a4ff3afe2dd037797c9a639"}}

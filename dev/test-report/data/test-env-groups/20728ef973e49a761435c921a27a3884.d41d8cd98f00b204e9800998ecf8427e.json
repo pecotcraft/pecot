@@ -1,0 +1,1 @@
+{"id":"20728ef973e49a761435c921a27a3884.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter 定義にない status を渡すと、FrontmatterError の例外が発生する","name":"定義にない status を渡すと、FrontmatterError の例外が発生する","status":"passed","testResultsByEnv":{"default":"f281b28b34000300f4a41c011e82c05d"}}

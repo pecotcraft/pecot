@@ -1,0 +1,1 @@
+{"id":"6b713e851bdca5b289fdfb41fbf37afd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/review-finish.test.ts#review finish PR が閉じていると、書かずに skipped の行を出す","name":"PR が閉じていると、書かずに skipped の行を出す","status":"passed","testResultsByEnv":{"default":"ec204a9e9b614424d201f5651e59112c"}}

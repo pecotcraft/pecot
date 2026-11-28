@@ -1,0 +1,1 @@
+{"id":"7e6e62ffbbb09edc7a25945c3e36fc34.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-view.test.ts#pruneArchivedItems Archived 列の項目が 20 件以下の場合は、何も削除しない","name":"Archived 列の項目が 20 件以下の場合は、何も削除しない","status":"passed","testResultsByEnv":{"default":"431e27e49122b9eec1bb7265e3d4dccc"}}

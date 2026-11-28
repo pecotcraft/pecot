@@ -1,0 +1,1 @@
+{"id":"e23a1a747a8a5b0a9a2b8691cbd0f661.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create 版を渡して打つと、CHANGELOG のその版の節をリリースノートにして GitHub のリリースを作る","name":"版を渡して打つと、CHANGELOG のその版の節をリリースノートにして GitHub のリリースを作る","status":"passed","testResultsByEnv":{"default":"4fadc577789c5679feaa2a250350c99c"}}

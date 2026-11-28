@@ -1,0 +1,1 @@
+{"id":"2f945c6dcfa40914d76190c4ad0b997c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_lambda_list_functions max_items が 0 の入力を、スキーマの検証で拒否する","name":"max_items が 0 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"eb99a7e19c9d8f4ad87f6496e37fb0cf"}}

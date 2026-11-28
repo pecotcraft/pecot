@@ -1,0 +1,1 @@
+{"id":"03896ff23ea16661d688696265c01f18.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry 復元先のファイル名は、復元時に指定した slidePrefix で決まる","name":"復元先のファイル名は、復元時に指定した slidePrefix で決まる","status":"passed","testResultsByEnv":{"default":"49f698da1da6fdbc8df894634cd783ac"}}

@@ -1,0 +1,1 @@
+{"id":"1bb1b20324c788070103352cd1c1e46f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#autoMarker failed の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","name":"failed の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","status":"passed","testResultsByEnv":{"default":"acb830a622c4098f9cff3487eee9b652"}}

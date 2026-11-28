@@ -1,0 +1,1 @@
+{"id":"0a57d44d260321a260b9c393dafbccf3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor 打つと、確かめた項目を状態と名前の行で標準出力に出す","name":"打つと、確かめた項目を状態と名前の行で標準出力に出す","status":"passed","testResultsByEnv":{"default":"b52135c03021fc4785b5c2e38b8cbae4"}}

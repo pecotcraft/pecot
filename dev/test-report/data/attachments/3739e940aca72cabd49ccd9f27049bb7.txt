@@ -1,0 +1,3 @@
+plugins/pecot-visual/skills/v-drawio/SKILL.md:2:python3 scripts/drawio-url.py ./output/foo.drawio
+
+SKILL.md/README.md に直叩き表記を検出。allow-list 機構はありません。

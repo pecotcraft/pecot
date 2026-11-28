@@ -1,0 +1,1 @@
+{"id":"8c45ecf0d00c66770fd2da68a0cd1649.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#generated.json checks generated.json の id の接頭辞の欠落・id の重複・surface の欠落は、それぞれ検証エラーにする","name":"generated.json の id の接頭辞の欠落・id の重複・surface の欠落は、それぞれ検証エラーにする","status":"passed","testResultsByEnv":{"default":"43fb7814b7e22269d8fe4198a16e2aea"}}

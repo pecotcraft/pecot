@@ -1,0 +1,1 @@
+{"id":"6b37a0edef011d6625a3274564c02fc1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 消したツールの golden の書き込み issue_edit がボードの欄を書き換えた書き込みを渡すと、problem の無い結果を返す","name":"issue_edit がボードの欄を書き換えた書き込みを渡すと、problem の無い結果を返す","status":"passed","testResultsByEnv":{"default":"110f26e1034cb9804b77c5128fd80277"}}

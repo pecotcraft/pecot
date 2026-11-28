@@ -1,0 +1,1 @@
+{"id":"87cd2a93a4883e936f54cf13961163b3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_09_nx_unresolved_skips","name":"nx を解決できないと、警告を出力して成功する","status":"passed","testResultsByEnv":{"default":"448fdc946ace9f20d90bc25868991ee1"}}

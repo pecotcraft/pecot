@@ -1,0 +1,1 @@
+/tmp/bats-run-5KndcQ/test/9/empty-dir

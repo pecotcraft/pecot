@@ -1,0 +1,1 @@
+{"event":"drawio.url.done","file":"/tmp/pecotv-drawio-png-e2e-zpcaZ0/ja-minimal.drawio.html","png":"/tmp/pecotv-drawio-png-e2e-zpcaZ0/ja-minimal.drawio.png","pngFailed":false,"theme":{"source":"default","fonts":{"body":["sans-serif"]}}}

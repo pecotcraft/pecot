@@ -1,0 +1,13 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "echo hi"
+    },
+    {
+      "type": "text",
+      "text": "{}"
+    }
+  ],
+  "structuredContent": {}
+}

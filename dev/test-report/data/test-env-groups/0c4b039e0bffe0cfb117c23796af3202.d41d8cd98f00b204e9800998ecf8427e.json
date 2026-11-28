@@ -1,0 +1,1 @@
+{"id":"0c4b039e0bffe0cfb117c23796af3202.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#parsePythonInteger \"12\" を渡すと、Python の int() と同じく整数 12 を返す","name":"\"12\" を渡すと、Python の int() と同じく整数 12 を返す","status":"passed","testResultsByEnv":{"default":"42eebfde20a6d1786737ff985d76a184"}}

@@ -1,0 +1,1 @@
+{"id":"252ae69790121de1924073ea172f4f3e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_cache_server#test_concurrent_puts_one_wins","name":"同じ hash への PUT が同時に 8 件あっても、成功するのは 1 件だけにする","status":"passed","testResultsByEnv":{"default":"ede12adfce207a86fb6eb9fbb10233d9"}}

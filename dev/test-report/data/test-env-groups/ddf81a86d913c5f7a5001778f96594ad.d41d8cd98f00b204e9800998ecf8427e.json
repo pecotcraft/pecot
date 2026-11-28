@@ -1,0 +1,1 @@
+{"id":"ddf81a86d913c5f7a5001778f96594ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql errors が null なら data を返す のとき、data を返す","name":"errors が null なら data を返す のとき、data を返す","status":"passed","testResultsByEnv":{"default":"c3e2e3b5a8cb2bc03eddabbcf2f8805d"}}

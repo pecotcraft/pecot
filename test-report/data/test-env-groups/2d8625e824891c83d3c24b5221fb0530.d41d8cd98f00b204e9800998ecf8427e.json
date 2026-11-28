@@ -1,0 +1,1 @@
+{"id":"2d8625e824891c83d3c24b5221fb0530.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/handoff-workflow-template.test.ts#handoff のワークフローの雛形 すべての action を 40 桁の SHA で固定する","name":"すべての action を 40 桁の SHA で固定する","status":"passed","testResultsByEnv":{"default":"be9dfe794e4a3b9ae4f9654a3a4a61b4"}}

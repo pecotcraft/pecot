@@ -1,0 +1,1 @@
+{"id":"bddd18e658ece1ea2b71b6141db6309b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish project を渡すと、対象のリポを含む設定が 2 つあってもその設定で片付ける","name":"project を渡すと、対象のリポを含む設定が 2 つあってもその設定で片付ける","status":"passed","testResultsByEnv":{"default":"ce86a411f0bd6821439741514e16c660"}}

@@ -1,0 +1,1 @@
+{"id":"fdc888b0fe22dc16a6680986ed10590f.a290165d372cf0c1e75a0ab8184ddb37","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_only_the_lanes_the_change_reaches","name":"libs/interface-spec/src/cli.ts を変更すると、その変更が届くテストのレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"c2d7ff4bbc64c6590335f793ecf10654"}}

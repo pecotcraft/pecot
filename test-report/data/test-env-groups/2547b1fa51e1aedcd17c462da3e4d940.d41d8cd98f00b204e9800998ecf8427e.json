@@ -1,0 +1,1 @@
+{"id":"2547b1fa51e1aedcd17c462da3e4d940.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_scan_skips_interface_env_none_and_markers_inside_strings","name":"interface-env の none と、文字列の中の目印は数えない","status":"passed","testResultsByEnv":{"default":"eb77e24fe3eee2b9c167f8e561824d2d"}}

@@ -1,0 +1,1 @@
+{"id":"691dda54f02fed94fd0c1983e60f1d28.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#executeMcpServe 起動に失敗した場合は、標準エラー出力へ出力し、終了コードを 1 にする","name":"起動に失敗した場合は、標準エラー出力へ出力し、終了コードを 1 にする","status":"passed","testResultsByEnv":{"default":"103c0f6ec79ec83c5bbb1f80f2fe0d34"}}

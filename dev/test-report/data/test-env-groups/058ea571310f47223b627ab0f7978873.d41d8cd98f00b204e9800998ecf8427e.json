@@ -1,0 +1,1 @@
+{"id":"058ea571310f47223b627ab0f7978873.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#素の URL の Link ノード バッククォートの中 は、Link として扱わない","name":"バッククォートの中 は、Link として扱わない","status":"passed","testResultsByEnv":{"default":"b163abd1bdf7b46946c49797f3ded2a8"}}

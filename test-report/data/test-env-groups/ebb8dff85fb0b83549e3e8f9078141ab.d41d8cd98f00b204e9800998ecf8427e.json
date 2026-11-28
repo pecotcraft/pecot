@@ -1,0 +1,1 @@
+{"id":"ebb8dff85fb0b83549e3e8f9078141ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: チェックボックス記法（#962） 番号付きリストのチェックボックスは、書式のエラーにする: 1. [ ] a","name":"番号付きリストのチェックボックスは、書式のエラーにする: 1. [ ] a","status":"passed","testResultsByEnv":{"default":"27b9b0b1fc8589a0e26a95870ed58753"}}

@@ -1,0 +1,1 @@
+{"id":"affc14e0b5b09eb97b48e8e1667ca808.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-drift.test.ts#drift.ts 作成した Tracker のボードの列を設定できないと、error の行を出力して終了コード 1 で終了する","name":"作成した Tracker のボードの列を設定できないと、error の行を出力して終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"feeb3e0dacabee209a0c9166a0b28bff"}}

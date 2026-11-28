@@ -1,0 +1,1 @@
+{"id":"7d99126a68c89fce337280ba18a74ab7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys 末尾にスライドを追加した場合も、既存のスライドの slideHash は変わらない","name":"末尾にスライドを追加した場合も、既存のスライドの slideHash は変わらない","status":"passed","testResultsByEnv":{"default":"0800623b621181e2a1d84bebd5022d42"}}

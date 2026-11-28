@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "merged: PR #11 into main"
+    },
+    {
+      "type": "text",
+      "text": "{\"pullRequest\":\"acme/demo/11\",\"base\":\"main\",\"status\":\"merged\"}"
+    }
+  ],
+  "structuredContent": {
+    "pullRequest": "acme/demo/11",
+    "base": "main",
+    "status": "merged"
+  }
+}

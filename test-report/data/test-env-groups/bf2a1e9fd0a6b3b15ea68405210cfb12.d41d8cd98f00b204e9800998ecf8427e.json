@@ -1,0 +1,1 @@
+{"id":"bf2a1e9fd0a6b3b15ea68405210cfb12.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show 関連 Issue がある PR を読むと、closing issues を出す","name":"関連 Issue がある PR を読むと、closing issues を出す","status":"passed","testResultsByEnv":{"default":"9df9fad7606348bc7b3ab5488175ec2a"}}

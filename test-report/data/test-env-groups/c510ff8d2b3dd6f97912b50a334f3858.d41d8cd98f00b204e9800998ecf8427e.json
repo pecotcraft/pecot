@@ -1,0 +1,1 @@
+{"id":"c510ff8d2b3dd6f97912b50a334f3858.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseRepositoryReference セグメントが不正な場合も、参照エラーに包み、元の入力を保持する","name":"セグメントが不正な場合も、参照エラーに包み、元の入力を保持する","status":"passed","testResultsByEnv":{"default":"f1a162838fc079226a00225fad61a89d"}}

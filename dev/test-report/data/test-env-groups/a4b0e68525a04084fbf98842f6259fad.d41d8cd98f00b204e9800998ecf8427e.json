@@ -1,0 +1,1 @@
+{"id":"a4b0e68525a04084fbf98842f6259fad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/validate-clicks.test.ts#validate-clicks invalid count で offset が無いと、offset を 0 として数える","name":"count で offset が無いと、offset を 0 として数える","status":"passed","testResultsByEnv":{"default":"13656b3ca2a5b96030257aa9bd04d74a"}}

@@ -1,0 +1,1 @@
+{"id":"36b2416cea1a9acaa95fde652cea28f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#sanitizeCssOnlyTypefaces 書体をすべて削除して rPr が空になった場合も、再び解析できる","name":"書体をすべて削除して rPr が空になった場合も、再び解析できる","status":"passed","testResultsByEnv":{"default":"99bae0dc215f1e50aa5e212bb141bb72"}}

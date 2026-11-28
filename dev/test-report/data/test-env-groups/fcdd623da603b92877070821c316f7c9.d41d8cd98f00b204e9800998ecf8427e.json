@@ -1,0 +1,1 @@
+{"id":"fcdd623da603b92877070821c316f7c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#yamlStrings 二重引用符の値は中身だけ のとき、引用符を含まない本文だけを切り出す","name":"二重引用符の値は中身だけ のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"2a7a3de5b30ec67a1b65ca0f3d372ed9"}}

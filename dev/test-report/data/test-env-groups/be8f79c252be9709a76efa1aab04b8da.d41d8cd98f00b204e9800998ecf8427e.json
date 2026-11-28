@@ -1,0 +1,1 @@
+{"id":"be8f79c252be9709a76efa1aab04b8da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-tools.test.ts#MCP のツール (stdio) `runtime_setup` は、Chromium が取得済みならダウンロードせずに成功を返す","name":"`runtime_setup` は、Chromium が取得済みならダウンロードせずに成功を返す","status":"passed","testResultsByEnv":{"default":"66e996bcbc614853aee81de41aa85883"}}

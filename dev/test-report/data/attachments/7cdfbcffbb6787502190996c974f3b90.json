@@ -1,0 +1,11 @@
+[
+  "interface-spec:install",
+  "interface-spec:test-site",
+  "interface-spec:test-unit",
+  "pecot-workflow:build-cli",
+  "pecot-workflow:install",
+  "pecot-workflow:test-cli",
+  "pecot:install",
+  "workflow-core:build",
+  "workflow-core:install"
+]

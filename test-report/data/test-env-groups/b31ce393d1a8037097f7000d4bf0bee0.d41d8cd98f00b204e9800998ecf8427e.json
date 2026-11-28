@@ -1,0 +1,1 @@
+{"id":"b31ce393d1a8037097f7000d4bf0bee0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#dataDirectory の解決順 HOME と有効な XDG_DATA_HOME のどちらも無ければ解決できない のとき、undefined を返す","name":"HOME と有効な XDG_DATA_HOME のどちらも無ければ解決できない のとき、undefined を返す","status":"passed","testResultsByEnv":{"default":"4ddd6868b7a6c3e2db0d25168f04bc5c"}}

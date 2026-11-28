@@ -1,0 +1,1 @@
+{"id":"7205424ce465a692afe5225c20214459.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create release_branch が設定に無い と、検証の前に終了コード 1 で終わる","name":"release_branch が設定に無い と、検証の前に終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"6e129034f149294da084de7f40d2816e"}}

@@ -1,0 +1,1 @@
+{"id":"d3bb50f732d14be3f0560b1d7cc4461c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript .tsx の文字列に違反があると、元のファイルの行と桁で指摘を返す","name":".tsx の文字列に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"56c5cf7c4bcd319ffaade3579bcd69ac"}}

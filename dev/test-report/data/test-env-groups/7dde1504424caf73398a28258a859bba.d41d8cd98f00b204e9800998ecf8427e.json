@@ -1,0 +1,1 @@
+{"id":"7dde1504424caf73398a28258a859bba.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#プラグインのルートの scripts が package manager を呼ぶと、静的確認が落ちる","name":"プラグインのルートの scripts が package manager を呼ぶと、静的確認が落ちる","status":"passed","testResultsByEnv":{"default":"de825f9ea70946fa7ef657ebfafbb6bf"}}

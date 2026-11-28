@@ -1,0 +1,1 @@
+{"id":"1957d211d8ee5631d1d353bac801c250.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start 着手の判定 blocked の理由が diverged なら、直し方は unblock の行だけにする","name":"blocked の理由が diverged なら、直し方は unblock の行だけにする","status":"passed","testResultsByEnv":{"default":"d784887565e11aa457767dec962e1e33"}}

@@ -1,0 +1,1 @@
+{"id":"2f17f050c712d559be0452f0aff26a58.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show MCP の data GitHub API がエラーを返すと、失敗を返す","name":"GitHub API がエラーを返すと、失敗を返す","status":"passed","testResultsByEnv":{"default":"9fe27743db7c83bcaff56b422437f9b4"}}

@@ -1,0 +1,2 @@
+created: Tracker "[Tracker] GitHub issue surface — 2026-11-09"
+error: could not set status backlog of Tracker #12: GraphQL query error: {'message': 'boom'}

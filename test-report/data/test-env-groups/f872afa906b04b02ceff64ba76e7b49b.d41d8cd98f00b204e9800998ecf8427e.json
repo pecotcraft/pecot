@@ -1,0 +1,1 @@
+{"id":"f872afa906b04b02ceff64ba76e7b49b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（git） 別の取得が pnpm の実行前に置き終えていた場合は、pnpm と patch を実行せず再利用する","name":"別の取得が pnpm の実行前に置き終えていた場合は、pnpm と patch を実行せず再利用する","status":"passed","testResultsByEnv":{"default":"45a71d5f70263d2d28bf49ca4a6a095f"}}

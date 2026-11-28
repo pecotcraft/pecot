@@ -1,0 +1,1 @@
+{"id":"ce2594f9b8d8ee2229e8d657f0170ded.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link リンクを作れないと、そのリンクを作らず、warnings に 1 つ入れて、残りのリンクの処理を続ける","name":"リンクを作れないと、そのリンクを作らず、warnings に 1 つ入れて、残りのリンクの処理を続ける","status":"passed","testResultsByEnv":{"default":"2df0ef977323a4b23a0e412e79eaf136"}}

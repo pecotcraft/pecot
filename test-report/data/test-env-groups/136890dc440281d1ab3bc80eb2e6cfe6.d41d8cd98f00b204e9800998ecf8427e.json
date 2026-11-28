@@ -1,0 +1,1 @@
+{"id":"136890dc440281d1ab3bc80eb2e6cfe6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#TypeScript reads TypeScript のソースに an import of env があると、名前を解決できない行を返す","name":"TypeScript のソースに an import of env があると、名前を解決できない行を返す","status":"passed","testResultsByEnv":{"default":"03dce10a3dd85f9a2f251f0a94d35d38"}}

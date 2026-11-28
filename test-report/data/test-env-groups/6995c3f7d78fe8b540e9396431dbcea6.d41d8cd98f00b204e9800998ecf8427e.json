@@ -1,0 +1,1 @@
+{"id":"6995c3f7d78fe8b540e9396431dbcea6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init 値を足すと、設定ファイルを同期して Blocked・In Progress・Needs Attention の id を書く","name":"値を足すと、設定ファイルを同期して Blocked・In Progress・Needs Attention の id を書く","status":"passed","testResultsByEnv":{"default":"5cf7d9af46adfeb1fa06e4b3a73c4c80"}}

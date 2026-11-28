@@ -1,0 +1,1 @@
+{"id":"8833f81398a136b24c379ec4b4388a4f.5106c4d479039198d35ff2bbc8e6a620","fullName":".githooks.tests.test_nx_task_cache#test_non_cacheable_target_says_cache_false","name":"pecot-workflow:install は、cache を false と明示している","status":"passed","testResultsByEnv":{"default":"53723c80a67e80d234c42081b71ad64d"}}

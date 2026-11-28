@@ -1,0 +1,1 @@
+{"id":"80b1a6bf2e1d19659f946c9177f77a66.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/state.test.ts#formatSessionTitle タイトルが空、もしくは接頭辞のみなら、セッション名は番号になる","name":"タイトルが空、もしくは接頭辞のみなら、セッション名は番号になる","status":"passed","testResultsByEnv":{"default":"0cf2a6f8b5f4ef8eb0201f323a54bc74"}}

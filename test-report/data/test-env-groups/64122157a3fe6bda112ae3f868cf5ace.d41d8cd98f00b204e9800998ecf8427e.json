@@ -1,0 +1,1 @@
+{"id":"64122157a3fe6bda112ae3f868cf5ace.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#pythonTypeName JSON の値 null を渡すと、Python の型名 NoneType を返す","name":"JSON の値 null を渡すと、Python の型名 NoneType を返す","status":"passed","testResultsByEnv":{"default":"91741e1aed43f4663db091491959368c"}}

@@ -1,0 +1,1 @@
+{"id":"76fa2ff1a09e2c5d86b8962498a653d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight 指定したバージョンが X.Y.Z の形でなければ、InvalidVersionError を投げる","name":"指定したバージョンが X.Y.Z の形でなければ、InvalidVersionError を投げる","status":"passed","testResultsByEnv":{"default":"eb5b65e03587c3d348ad9a54561b0833"}}

@@ -1,0 +1,3 @@
+skipped: Dependabot alerts (feature disabled)
+count: open code scanning alerts: 0
+count: open secret scanning alerts: 0

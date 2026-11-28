@@ -1,0 +1,1 @@
+{"id":"062f7556d89f9850c586e76a64ada8b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#リリースタグがあれば監査を実際に行う","name":"リリースタグがあれば監査を実際に行う","status":"passed","testResultsByEnv":{"default":"91aa33012cde5ab27380d711549faa8c"}}

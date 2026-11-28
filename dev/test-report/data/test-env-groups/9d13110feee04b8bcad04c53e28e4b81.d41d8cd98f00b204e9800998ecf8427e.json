@@ -1,0 +1,1 @@
+{"id":"9d13110feee04b8bcad04c53e28e4b81.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_real_03_block_delete_only","name":"実際の nx で、ファイルの削除だけでも、その group を示して失敗する","status":"passed","testResultsByEnv":{"default":"6ccc11f176486ee547dab9f26f9492b9"}}

@@ -1,0 +1,1 @@
+{"id":"53f1786e91b62788f7dcf7603e5d36d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#isRebaseInProgress .git がファイルの worktree でも、衝突中は true を返し、衝突の前と中止した後は false を返す","name":".git がファイルの worktree でも、衝突中は true を返し、衝突の前と中止した後は false を返す","status":"passed","testResultsByEnv":{"default":"4860732eb71574514984563091906ebd"}}

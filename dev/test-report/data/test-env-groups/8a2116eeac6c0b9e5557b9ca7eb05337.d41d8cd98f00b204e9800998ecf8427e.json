@@ -1,0 +1,1 @@
+{"id":"8a2116eeac6c0b9e5557b9ca7eb05337.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_refuses_pr_side_with_report_links","name":"PR 版は、テストレポートへのリンクを含む tar を拒否する","status":"passed","testResultsByEnv":{"default":"0fd0f603c364996a084baf464459d949"}}

@@ -1,0 +1,1 @@
+{"id":"512b52807f16ac07249b4f8d3fea705c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-case.test.ts#interface-case の準備 前のテストで移った作業ディレクトリと偽のタイマーは、次のテストに持ち越さない","name":"前のテストで移った作業ディレクトリと偽のタイマーは、次のテストに持ち越さない","status":"passed","testResultsByEnv":{"default":"c3a540774ecef241831ab9c534aa8862"}}

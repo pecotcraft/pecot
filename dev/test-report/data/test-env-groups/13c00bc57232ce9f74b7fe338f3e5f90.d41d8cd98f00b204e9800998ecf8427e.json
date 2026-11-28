@@ -1,0 +1,1 @@
+{"id":"13c00bc57232ce9f74b7fe338f3e5f90.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 単引用符にエスケープは無い のとき、引用符を含まない本文だけを切り出す","name":"単引用符にエスケープは無い のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"c35981575c2f9e14c23764bdae2a92e7"}}

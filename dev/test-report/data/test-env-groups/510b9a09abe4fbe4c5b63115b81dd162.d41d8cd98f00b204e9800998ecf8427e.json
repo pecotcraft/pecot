@@ -1,0 +1,1 @@
+{"id":"510b9a09abe4fbe4c5b63115b81dd162.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine ノードに対する selectNodes は、そのノードを起点にした相対パスの XPath を解釈する","name":"ノードに対する selectNodes は、そのノードを起点にした相対パスの XPath を解釈する","status":"passed","testResultsByEnv":{"default":"febb0e296dc5aa0e60be64e7f0e17075"}}

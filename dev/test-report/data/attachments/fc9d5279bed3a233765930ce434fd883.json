@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "issue_ref: invalid reference: demo#7\n  accepted forms:\n    - full: 'owner/repo/N'\n    - short: 'N' (with a base repository)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"issue_ref: invalid reference: demo#7\\n  accepted forms:\\n    - full: 'owner/repo/N'\\n    - short: 'N' (with a base repository)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "issue_ref: invalid reference: demo#7\n  accepted forms:\n    - full: 'owner/repo/N'\n    - short: 'N' (with a base repository)"
+  },
+  "isError": true
+}

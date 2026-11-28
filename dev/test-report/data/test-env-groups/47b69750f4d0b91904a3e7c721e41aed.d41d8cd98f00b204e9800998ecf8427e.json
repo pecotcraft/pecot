@@ -1,0 +1,1 @@
+{"id":"47b69750f4d0b91904a3e7c721e41aed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings here-string は heredoc にしない のとき、引用符を含まない本文だけを切り出す","name":"here-string は heredoc にしない のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"c0ea31acde826b1ab084ab918bfb97e2"}}

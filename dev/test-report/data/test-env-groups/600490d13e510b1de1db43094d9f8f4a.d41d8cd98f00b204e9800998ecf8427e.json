@@ -1,0 +1,1 @@
+{"id":"600490d13e510b1de1db43094d9f8f4a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/deck-lint-rules.test.ts#DECK_LINT_RULE_IDS deck-lint.config.js は固定の規則を持たず、受け取った rules を設定に使う","name":"deck-lint.config.js は固定の規則を持たず、受け取った rules を設定に使う","status":"passed","testResultsByEnv":{"default":"364fb66742c5cdea5dfe255bd98afbbd"}}

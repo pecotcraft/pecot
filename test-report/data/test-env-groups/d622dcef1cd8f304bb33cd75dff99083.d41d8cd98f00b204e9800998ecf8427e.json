@@ -1,0 +1,1 @@
+{"id":"d622dcef1cd8f304bb33cd75dff99083.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_real_allure_keeps_history_of_a_test_name_with_line_separator","name":"テスト名に U+2028 を含んでも、履歴を維持して追記する","status":"passed","testResultsByEnv":{"default":"21c9bd4f0969a7b3a2d21cde6bd01150"}}

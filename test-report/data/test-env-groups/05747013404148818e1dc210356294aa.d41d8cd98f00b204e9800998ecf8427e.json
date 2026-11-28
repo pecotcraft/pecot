@@ -1,0 +1,1 @@
+{"id":"05747013404148818e1dc210356294aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/project-stop.test.ts#project_link の package NAME の形が不正だと、GitHub を呼ぶ前に終了コード 1 で止まる","name":"NAME の形が不正だと、GitHub を呼ぶ前に終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"43268042f8446c5f96014014aeea5f4d"}}

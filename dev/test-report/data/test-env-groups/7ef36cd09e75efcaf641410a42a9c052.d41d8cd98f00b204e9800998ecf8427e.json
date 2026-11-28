@@ -1,0 +1,1 @@
+{"id":"7ef36cd09e75efcaf641410a42a9c052.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_build_requires_runner_env","name":"リリース版の build は、GITHUB_WORKSPACE と RUNNER_TEMP が存在しないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"6b2c83ec381a4cce4b7c9cd5927e7186"}}

@@ -1,0 +1,1 @@
+{"id":"76f50b0d076f6cb27c388806930fccfc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-image-border-radius.test.ts#require-image-border-radius valid :style が変数参照で静的に読めないと、報告しない","name":":style が変数参照で静的に読めないと、報告しない","status":"passed","testResultsByEnv":{"default":"bd3edc758168289d16a8de4c09d3c559"}}

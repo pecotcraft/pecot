@@ -1,0 +1,1 @@
+{"id":"9f9c2f427423e4fa22bf3e87e7e6063e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/english-only.test.ts#判定器 ソースが const a = `${日本}` のとき、日本語を含むリテラルを 0 件見つける","name":"ソースが const a = `${日本}` のとき、日本語を含むリテラルを 0 件見つける","status":"passed","testResultsByEnv":{"default":"78329f37a89aadf882f8f6bb10318619"}}

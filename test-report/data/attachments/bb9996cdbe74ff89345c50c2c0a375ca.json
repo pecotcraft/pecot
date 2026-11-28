@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ok"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[],\"warnings\":[\"whether #7 can stack on its prerequisites is not decided: find the open pull request whose head is feat/4 (list_pull_requests with head) and pass its pull_request_read (method get) result in reads.pull_requests to decide it; keep its column, or move it by the pecot rules\"]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [],
+    "warnings": [
+      "whether #7 can stack on its prerequisites is not decided: find the open pull request whose head is feat/4 (list_pull_requests with head) and pass its pull_request_read (method get) result in reads.pull_requests to decide it; keep its column, or move it by the pecot rules"
+    ]
+  }
+}

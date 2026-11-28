@@ -1,0 +1,1 @@
+{"id":"421df2e42a51e19819c1bc988ce07243.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-finish.test.ts#auto finish job の様子から結果を決める 同じ run・同じ試行の結果のコメントがあると、コメントを書かずに Status とラベルを書き直す","name":"同じ run・同じ試行の結果のコメントがあると、コメントを書かずに Status とラベルを書き直す","status":"passed","testResultsByEnv":{"default":"1eb960b5ed293a2b5cdfc7708ee8f468"}}

@@ -1,0 +1,1 @@
+{"id":"ce73ca4e1d535db2c711f8bc72f75c70.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-finish.test.ts#auto finish job-status に決まった値でない文字を渡すと、何も読まずに入力の誤りで止まる","name":"job-status に決まった値でない文字を渡すと、何も読まずに入力の誤りで止まる","status":"passed","testResultsByEnv":{"default":"caa9c2912e6891a6464d10a1d6f50c27"}}

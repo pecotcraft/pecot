@@ -1,0 +1,1 @@
+{"id":"5348547b47eed4d7d378199b3eac1763.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath PECOTV_WSL_MOUNT_ROOT の末尾の区切り文字は、正規化して取り除く","name":"PECOTV_WSL_MOUNT_ROOT の末尾の区切り文字は、正規化して取り除く","status":"passed","testResultsByEnv":{"default":"f8501bc6e9db58502ea4278b83b27fc6"}}

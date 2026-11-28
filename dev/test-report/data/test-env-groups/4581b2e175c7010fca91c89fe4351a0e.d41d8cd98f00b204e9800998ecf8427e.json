@@ -1,0 +1,1 @@
+{"id":"4581b2e175c7010fca91c89fe4351a0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/interface-export.test.ts#generated.json の書き出し --check は、JSON として解析できないときは、error と run の 2 行を出力して終了コード 1 で終わる","name":"--check は、JSON として解析できないときは、error と run の 2 行を出力して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"764f4b792227fbfab35f4a680ed9fd4f"}}

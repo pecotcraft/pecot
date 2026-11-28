@@ -1,0 +1,1 @@
+{"id":"7fc51e2b5ce11c741ed239ef5c8c03ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/entry-point-library-references.test.ts#hooks のスクリプトの参照先 抽出器の自己テスト .sh で始まる別拡張子（foo.shellcheckrc）は偽トークンにしない","name":".sh で始まる別拡張子（foo.shellcheckrc）は偽トークンにしない","status":"passed","testResultsByEnv":{"default":"fb7d768b7725e2a0bd1f56e3ec3b284c"}}

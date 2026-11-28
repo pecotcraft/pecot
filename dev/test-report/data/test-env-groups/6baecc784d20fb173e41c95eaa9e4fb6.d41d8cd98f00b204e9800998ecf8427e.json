@@ -1,0 +1,1 @@
+{"id":"6baecc784d20fb173e41c95eaa9e4fb6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#judgeMove 前提の PR が開発ブランチに届けば、stackable と判定し、決められない理由を持たない","name":"前提の PR が開発ブランチに届けば、stackable と判定し、決められない理由を持たない","status":"passed","testResultsByEnv":{"default":"79a69e928a39a252806eafe32c007be1"}}

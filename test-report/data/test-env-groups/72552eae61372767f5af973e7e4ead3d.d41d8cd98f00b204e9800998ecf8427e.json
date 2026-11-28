@@ -1,0 +1,1 @@
+{"id":"72552eae61372767f5af973e7e4ead3d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 点数の差が負なら、使用量の行を省く","name":"点数の差が負なら、使用量の行を省く","status":"passed","testResultsByEnv":{"default":"80e34063cb8c024c6c53f17920cd06ac"}}

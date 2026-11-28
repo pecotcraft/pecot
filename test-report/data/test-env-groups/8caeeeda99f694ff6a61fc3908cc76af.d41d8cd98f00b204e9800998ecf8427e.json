@@ -1,0 +1,1 @@
+{"id":"8caeeeda99f694ff6a61fc3908cc76af.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-output-lint.test.ts#直接の出力を止める lint enum を書くと、commands-shared のファイルでも共通の規則で lint の違反になる","name":"enum を書くと、commands-shared のファイルでも共通の規則で lint の違反になる","status":"passed","testResultsByEnv":{"default":"8672e4e80d2fba69031f5c6b60a396fb"}}

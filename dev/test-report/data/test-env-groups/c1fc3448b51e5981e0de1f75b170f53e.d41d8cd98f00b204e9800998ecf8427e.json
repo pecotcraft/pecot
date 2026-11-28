@@ -1,0 +1,1 @@
+{"id":"c1fc3448b51e5981e0de1f75b170f53e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree base/ の配置でない場合は、ディレクトリの掃除を省いて正常終了する","name":"base/ の配置でない場合は、ディレクトリの掃除を省いて正常終了する","status":"passed","testResultsByEnv":{"default":"14465cc418f9ea6e476582a2e06b4de0"}}

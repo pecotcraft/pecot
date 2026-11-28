@@ -1,0 +1,1 @@
+{"id":"1c7de795ea71e40c51d2fa377a78ee9d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url-theme.test.ts#talk-dir の外 theme file:<dir> は pecot-theme.json を直接読み、取得（install）を呼ばない","name":"theme file:<dir> は pecot-theme.json を直接読み、取得（install）を呼ばない","status":"passed","testResultsByEnv":{"default":"a990eff0030d8bca83473b90f7ff5aa7"}}

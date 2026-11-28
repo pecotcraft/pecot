@@ -1,0 +1,1 @@
+{"id":"98c5ab8a22c1f8d82465cdfb6b244a7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/mcp/resources.test.ts#initialize つなぐと、capabilities に resources を持ち、テンプレートの使い方を instructions に返す","name":"つなぐと、capabilities に resources を持ち、テンプレートの使い方を instructions に返す","status":"passed","testResultsByEnv":{"default":"552cd71c2cc9be76ad11941be2568c61"}}

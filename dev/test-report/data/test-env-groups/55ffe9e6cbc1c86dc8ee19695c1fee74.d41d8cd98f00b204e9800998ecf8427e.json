@@ -1,0 +1,1 @@
+{"id":"55ffe9e6cbc1c86dc8ee19695c1fee74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine replaceWithXml に、ルート要素を持たない断片を渡すと、例外が発生する","name":"replaceWithXml に、ルート要素を持たない断片を渡すと、例外が発生する","status":"passed","testResultsByEnv":{"default":"88b01cdde9ec3447b88bff6e9ce352d9"}}

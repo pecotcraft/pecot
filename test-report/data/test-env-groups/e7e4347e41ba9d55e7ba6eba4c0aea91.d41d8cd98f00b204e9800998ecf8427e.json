@@ -1,0 +1,1 @@
+{"id":"e7e4347e41ba9d55e7ba6eba4c0aea91.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/gitignore-spec.test.ts#compileGitIgnoreSpec（pathspec 1.1.1 の GitIgnoreSpec と同じ判定） [ '[^a].txt' ] を渡すと、各ファイルの一致が期待の判定になる","name":"[ '[^a].txt' ] を渡すと、各ファイルの一致が期待の判定になる","status":"passed","testResultsByEnv":{"default":"820a3f403309ae5fe2a1cc248b527fd8"}}

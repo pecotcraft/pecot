@@ -1,0 +1,1 @@
+{"id":"5d354ca3fa6bee341be8b19836898c69.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck 開発ブランチが未設定だと、設定の案内つきの error を出して失敗にする","name":"開発ブランチが未設定だと、設定の案内つきの error を出して失敗にする","status":"passed","testResultsByEnv":{"default":"4027ee96f47324cd26b4064b87597edd"}}

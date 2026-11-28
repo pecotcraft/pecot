@@ -1,0 +1,1 @@
+{"id":"f6563d5f14d1ccc3686315b4d25a586c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_check_cli_prints_markdown_and_fails","name":"`check` コマンドは、指摘を Markdown の箇条書きで標準出力に表示し、終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"b06c9fa03b42c8e40c26ab4a51a6f728"}}

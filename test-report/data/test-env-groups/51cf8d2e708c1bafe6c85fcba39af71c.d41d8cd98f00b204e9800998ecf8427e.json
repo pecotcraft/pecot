@@ -1,0 +1,1 @@
+{"id":"51cf8d2e708c1bafe6c85fcba39af71c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ release-create-usage-bad-version を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ release-create-usage-bad-version を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"7e94b7bf740c93b37df6141777ab6f55"}}

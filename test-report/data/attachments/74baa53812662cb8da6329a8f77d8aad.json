@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "cannot infer the stacked base: blocked by #11 (not in review: #11 (not started))\n  the PR is not created, since a PR to the develop branch can include the changes of the layer below\n  fix the cause and call it again, or call pr_create in the work directory where session_start wrote .pecot/state/.pecot-base"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\"cannot infer the stacked base: blocked by #11 (not in review: #11 (not started))\\n  the PR is not created, since a PR to the develop branch can include the changes of the layer below\\n  fix the cause and call it again, or call pr_create in the work directory where session_start wrote .pecot/state/.pecot-base\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": "cannot infer the stacked base: blocked by #11 (not in review: #11 (not started))\n  the PR is not created, since a PR to the develop branch can include the changes of the layer below\n  fix the cause and call it again, or call pr_create in the work directory where session_start wrote .pecot/state/.pecot-base"
+  },
+  "isError": true
+}

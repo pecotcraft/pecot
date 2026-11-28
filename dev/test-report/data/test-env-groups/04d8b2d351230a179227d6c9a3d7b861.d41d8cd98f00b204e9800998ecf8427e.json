@@ -1,0 +1,1 @@
+{"id":"04d8b2d351230a179227d6c9a3d7b861.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main --commit-msg の type(scope) scope にカンマで区切った複数の値があっても、件名の先頭の type(scope): を外して、違反なしで通す","name":"scope にカンマで区切った複数の値があっても、件名の先頭の type(scope): を外して、違反なしで通す","status":"passed","testResultsByEnv":{"default":"dfd0bcc0b7fb639515c303b2ee16d281"}}

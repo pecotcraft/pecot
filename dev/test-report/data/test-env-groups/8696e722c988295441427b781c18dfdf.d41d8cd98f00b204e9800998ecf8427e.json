@@ -1,0 +1,1 @@
+{"id":"8696e722c988295441427b781c18dfdf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-kind.test.ts#isEpicIssue Issue Type が未設定で sub-issue がある場合は、Epic と判定する（フォールバック）","name":"Issue Type が未設定で sub-issue がある場合は、Epic と判定する（フォールバック）","status":"passed","testResultsByEnv":{"default":"45cdb47623a07a2e60a037f5c4c3d6ec"}}

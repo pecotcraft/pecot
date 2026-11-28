@@ -1,0 +1,1 @@
+{"id":"786e7180a4f163f1573e085cdb9b4d77.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender.test.ts#prerenderComplexElements 待機方法が selectorState で、待機がタイムアウトした場合は、警告を出力する","name":"待機方法が selectorState で、待機がタイムアウトした場合は、警告を出力する","status":"passed","testResultsByEnv":{"default":"addab173a82d37e6929a3aa7d71bf120"}}

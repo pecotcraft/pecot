@@ -1,0 +1,1 @@
+{"id":"e9beb81849e0efb2cc66da2a6339c8e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/mcp/resources.test.ts#resources/list 一覧を読むと、12 本のテンプレートの URI・名前・Markdown の MIME 型を返す","name":"一覧を読むと、12 本のテンプレートの URI・名前・Markdown の MIME 型を返す","status":"passed","testResultsByEnv":{"default":"eb3498a5cdc0d7dcb53561d4f8d206c9"}}

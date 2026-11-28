@@ -1,0 +1,1 @@
+{"id":"8dd0ed16197a3399b1d48717072d4b80.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/s3-input.test.ts#validateS3ListUri s3 以外のスキームの URI とローカルパスは、s3:// の形式を示すエラーで拒否する","name":"s3 以外のスキームの URI とローカルパスは、s3:// の形式を示すエラーで拒否する","status":"passed","testResultsByEnv":{"default":"f9fcbdb5b8dee6373efcfd1bd17844f4"}}

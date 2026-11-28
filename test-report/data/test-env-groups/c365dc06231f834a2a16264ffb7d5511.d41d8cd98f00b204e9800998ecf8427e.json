@@ -1,0 +1,1 @@
+{"id":"c365dc06231f834a2a16264ffb7d5511.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#executeSlideSync の入力エラー 存在しない絶対パスは dir-not-found になる","name":"存在しない絶対パスは dir-not-found になる","status":"passed","testResultsByEnv":{"default":"1c075faa34cfbeb7076d7e54e39b5b35"}}

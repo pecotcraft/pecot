@@ -1,0 +1,1 @@
+{"id":"0840a765b6acd37a01892d91c33d4b7d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#脆弱性なしなら要約行に high 0 が出る","name":"脆弱性なしなら要約行に high 0 が出る","status":"passed","testResultsByEnv":{"default":"835d850c5fa15fbb7e0289519d185021"}}

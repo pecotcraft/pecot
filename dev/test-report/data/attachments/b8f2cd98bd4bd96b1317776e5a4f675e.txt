@@ -1,0 +1,1 @@
+devcontainer up の出力に結果の JSON が無い

@@ -1,0 +1,1 @@
+{"id":"fba20ebb353d9c6beab117599bb26066.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-alerts.test.ts#fetchCodeScanningStatus 取得が failure の場合は、SecurityAlertError の例外が発生する","name":"取得が failure の場合は、SecurityAlertError の例外が発生する","status":"passed","testResultsByEnv":{"default":"d9a0673749866b84728cb3429d2dda51"}}

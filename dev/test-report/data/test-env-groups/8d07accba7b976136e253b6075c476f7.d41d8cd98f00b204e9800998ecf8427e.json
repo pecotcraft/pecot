@@ -1,0 +1,1 @@
+{"id":"8d07accba7b976136e253b6075c476f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/pecotv-dir-init-detection.bats#名前空間なしで自プラグインのスキルを呼ぶと、stdout は空で .pecotv/ を作る","name":"名前空間なしで自プラグインのスキルを呼ぶと、stdout は空で .pecotv/ を作る","status":"passed","testResultsByEnv":{"default":"0e9bb4ca99063dc4af5c266ff62f6adb"}}

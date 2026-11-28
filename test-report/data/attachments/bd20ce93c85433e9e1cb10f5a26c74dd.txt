@@ -1,0 +1,9 @@
+ERROR: ルート直下に、許可の一覧に無いディレクトリがあります
+  - scripts/
+
+許可の一覧と置き場所は .claude/rules/repo-root-layout.md にあります。
+  リポ全体のスクリプト: .githooks/scripts/
+  プラグインの中身: plugins/<name>/
+  ライブラリ: libs/<name>/
+  作業ファイル: .pecot/work/<Issue番号>/
+一覧を増やすには、ユーザーの明示の同意が要ります。

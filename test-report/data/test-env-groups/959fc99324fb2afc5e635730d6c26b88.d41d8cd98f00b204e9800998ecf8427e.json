@@ -1,0 +1,1 @@
+{"id":"959fc99324fb2afc5e635730d6c26b88.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/visibility-helpers.test.ts#waitForIframeLoad iframe が存在しない場合は、待機せずに終了する","name":"iframe が存在しない場合は、待機せずに終了する","status":"passed","testResultsByEnv":{"default":"c51417db4762dafa2f94902e8f76b0fb"}}

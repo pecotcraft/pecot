@@ -1,0 +1,1 @@
+{"id":"ef1a83af6e5f639c09bdebc97db8a576.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#doesContainJapanese カタカナ（入力 \"コンニチハ\"）のとき、true を返す","name":"カタカナ（入力 \"コンニチハ\"）のとき、true を返す","status":"passed","testResultsByEnv":{"default":"a3fbc0708e884c5dc7aecfcac3a3dd37"}}

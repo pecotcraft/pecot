@@ -1,0 +1,1 @@
+{"id":"fdc888b0fe22dc16a6680986ed10590f.a73fa01b16e9f6e474490154987d1f2c","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_only_the_lanes_the_change_reaches","name":"libs/workflow-core/test-layers.txt を変更すると、その変更が届くテストのレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"ff2e62afbd45a8eac3ec3ab278ec542d"}}

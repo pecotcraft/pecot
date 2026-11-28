@@ -1,0 +1,1 @@
+{"id":"4df5e5a0ff799d2972425fb5518ec5a7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/pptx-archive.test.ts#YauzlYazlPptxArchive close の後に read を呼び出すと、エラーが発生する","name":"close の後に read を呼び出すと、エラーが発生する","status":"passed","testResultsByEnv":{"default":"99f68bc3181acf5239322dd21c0ef75d"}}

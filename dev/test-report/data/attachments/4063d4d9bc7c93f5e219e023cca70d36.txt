@@ -1,0 +1,16 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_real_allure_reads_the_res0/suite/sample.bats
+1..2
+# pecot-description: 通るテストです。
+# pecot-attachment: 09f0914b-3147-49b3-b781-e1cac97a5b89-attachment.txt text/plain echo hi（終了コード 0） stdout
+ok 1 通る # in 107 ms
+# pecot-description: 失敗するテストです。
+not ok 2 等しくない # in 102 ms
+# (from function `assert_equal' in file node_modules/bats-assert/src/assert_equal.bash, line 40,
+#  in test file suite/sample.bats, line 12)
+#   `assert_equal "a" "b"' failed
+# 
+# -- values do not equal --
+# expected : b
+# actual   : a
+# --
+# 

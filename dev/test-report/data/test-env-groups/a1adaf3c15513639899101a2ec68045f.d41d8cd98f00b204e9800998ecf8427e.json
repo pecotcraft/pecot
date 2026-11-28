@@ -1,0 +1,1 @@
+{"id":"a1adaf3c15513639899101a2ec68045f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_04_pass_release_commit","name":"リリースの commit は、version plan が存在しなくても成功する","status":"passed","testResultsByEnv":{"default":"2f5efb26a2647da9168f3fc49e5e3b1a"}}

@@ -1,0 +1,1 @@
+{"id":"e93e0742a7dc8cf3e75c22d5668e22dc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool 生成ファイルを書き直したときも、起動済みのサーバを止めてから起動し直す","name":"生成ファイルを書き直したときも、起動済みのサーバを止めてから起動し直す","status":"passed","testResultsByEnv":{"default":"c726de51be9c095fa6fcf7dfbfe781cd"}}

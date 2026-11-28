@@ -1,0 +1,1 @@
+{"id":"786004c4680c8ab938e1c8fa5634bd41.c980318cb6dc144152b6e63b8038291a","fullName":".githooks.tests.test_pages_store#test_publish_report_option_errors","name":"レポートの `publish` に不正なオプション {'tar': None, 'tree': PosixPath('.')} を渡すと、--tar に関する例外が発生する","status":"passed","testResultsByEnv":{"default":"7cafc90d8e0e9d852e40a1fbf6ff0be8"}}

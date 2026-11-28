@@ -1,0 +1,1 @@
+{"id":"a6e97523be384cb278ef66e3de663c4e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page の失敗ルート includes 宣言に挟まったコメント行は読み飛ばし、後続の項目も読む","name":"includes 宣言に挟まったコメント行は読み飛ばし、後続の項目も読む","status":"passed","testResultsByEnv":{"default":"11c239101fc91cc9a60008c25496b2ba"}}

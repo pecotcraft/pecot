@@ -1,0 +1,3 @@
+==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)
+  NG: scripts が package manager を呼んでいる（node / bin だけで完結させる）: /tmp/bats-run-EjpMIs/test/61/fix/libs/text-rules/package.json の x: pnpm run y
+check-pm-guard: 静的確認 FAILED (1 件)

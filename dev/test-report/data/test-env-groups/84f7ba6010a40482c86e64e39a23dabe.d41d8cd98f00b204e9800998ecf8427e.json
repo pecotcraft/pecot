@@ -1,0 +1,1 @@
+{"id":"84f7ba6010a40482c86e64e39a23dabe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/allowlist.test.ts#ALLOWLIST ALLOWLIST のツール名は aws_<service>_<subcommand> の形で、入力名に aws を含まない","name":"ALLOWLIST のツール名は aws_<service>_<subcommand> の形で、入力名に aws を含まない","status":"passed","testResultsByEnv":{"default":"4e9a13dcd33c2ec0d240f16f0215e20c"}}

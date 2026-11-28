@@ -1,0 +1,1 @@
+{"id":"a2da7c5acfa31d3b05d7ae9757e5eed2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#実行前拒否 (reject) reject が invalid-input を返したときも、awscli を起動せず失敗を返す","name":"reject が invalid-input を返したときも、awscli を起動せず失敗を返す","status":"passed","testResultsByEnv":{"default":"cf6ccfd711dc8e14214c78a593cbb3c1"}}

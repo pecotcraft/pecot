@@ -1,0 +1,1 @@
+{"id":"49d9fb94b673f001dbf0196c0fd0ffc9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#judgeSnapshot 追加で取得した PR が 1 本に決まらない場合は、判定が diverged のままになる","name":"追加で取得した PR が 1 本に決まらない場合は、判定が diverged のままになる","status":"passed","testResultsByEnv":{"default":"4cbcbe2c3e5f528ddacddfc3dc58418a"}}

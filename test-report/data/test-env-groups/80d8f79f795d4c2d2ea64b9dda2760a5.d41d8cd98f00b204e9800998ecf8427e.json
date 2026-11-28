@@ -1,0 +1,1 @@
+{"id":"80d8f79f795d4c2d2ea64b9dda2760a5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_multiline_expected_and_actual","name":"複数行の期待値と実際の値を、行を保ったまま expected と actual に入れる","status":"passed","testResultsByEnv":{"default":"e19b0a927530b2be3e1ebbe180f35762"}}

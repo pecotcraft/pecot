@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated_field: give updated_field.id or updated_field.name"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"updated_field\",\"code\":\"required\",\"message\":\"give updated_field.id or updated_field.name\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "updated_field",
+        "code": "required",
+        "message": "give updated_field.id or updated_field.name"
+      }
+    ]
+  }
+}

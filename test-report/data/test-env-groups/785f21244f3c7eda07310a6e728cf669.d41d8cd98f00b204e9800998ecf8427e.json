@@ -1,0 +1,1 @@
+{"id":"785f21244f3c7eda07310a6e728cf669.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 MCP の呼び出し 前提が存在しない Issue だけのボードでは、すべて startable にし、列を動かさない","name":"前提が存在しない Issue だけのボードでは、すべて startable にし、列を動かさない","status":"passed","testResultsByEnv":{"default":"dda4a436686d324190e9854213653b46"}}

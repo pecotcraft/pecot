@@ -1,0 +1,1 @@
+{"id":"a8cb91a2a593ecf178dc02fcc07c5ba2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（git） 利用者の NODE_EXTRA_CA_CERTS をそのまま pnpm に渡し、未設定の場合は追加しない","name":"利用者の NODE_EXTRA_CA_CERTS をそのまま pnpm に渡し、未設定の場合は追加しない","status":"passed","testResultsByEnv":{"default":"e36417a3760967ecde0d91decec1d58f"}}

@@ -1,0 +1,1 @@
+{"id":"4050119b98e91670025473ae72537b21.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url-theme.test.ts#宣言の値が違う 2 つのテーマの talk-dir 既定と同じ書体を宣言した talk-dir では、書体の警告を出さず、文字サイズの警告だけを出す","name":"既定と同じ書体を宣言した talk-dir では、書体の警告を出さず、文字サイズの警告だけを出す","status":"passed","testResultsByEnv":{"default":"b34696d2f1faaa542dcdf6866bae3ce3"}}

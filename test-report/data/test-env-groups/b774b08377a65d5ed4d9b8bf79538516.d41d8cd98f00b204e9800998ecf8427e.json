@@ -1,0 +1,1 @@
+{"id":"b774b08377a65d5ed4d9b8bf79538516.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#partitionStepsBySlide 同じスライドのステップは同じグループに入れ、グループ内の順序は入力のままにする","name":"同じスライドのステップは同じグループに入れ、グループ内の順序は入力のままにする","status":"passed","testResultsByEnv":{"default":"0e4878c209f24f253d5d032544342ced"}}

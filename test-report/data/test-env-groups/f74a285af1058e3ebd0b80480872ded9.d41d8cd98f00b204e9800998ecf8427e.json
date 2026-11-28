@@ -1,0 +1,1 @@
+{"id":"f74a285af1058e3ebd0b80480872ded9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_skips_run_of_other_event","name":"イベントが pull_request ではない run は除外し、次の run の pr_main を出力する","status":"passed","testResultsByEnv":{"default":"3d17332c61c3b1fd781339a51fd17cb4"}}

@@ -1,0 +1,1 @@
+{"id":"81b91ca1ddd82826df289a8c786b01c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine parse・selectNodes・setAttr・serialize の順に呼ぶと、変更した属性が出力に反映される","name":"parse・selectNodes・setAttr・serialize の順に呼ぶと、変更した属性が出力に反映される","status":"passed","testResultsByEnv":{"default":"01cc4e537dc15499bb89434e9d76e67d"}}

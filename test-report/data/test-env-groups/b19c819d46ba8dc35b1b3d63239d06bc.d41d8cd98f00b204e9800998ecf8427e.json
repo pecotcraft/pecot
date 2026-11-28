@@ -1,0 +1,1 @@
+{"id":"b19c819d46ba8dc35b1b3d63239d06bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#authored.yaml checks authored.yaml の behavior がオブジェクトでないと、項目の ID を含む検証エラーにする","name":"authored.yaml の behavior がオブジェクトでないと、項目の ID を含む検証エラーにする","status":"passed","testResultsByEnv":{"default":"30d0eccc9f6893a0434d6c1941a8ac12"}}

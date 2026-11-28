@@ -1,0 +1,1 @@
+{"id":"efb2e320bd93f446688fa92d2d820f92.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/redact.test.ts#redactSecrets aws_session_token は、値の部分だけを伏せ字にする","name":"aws_session_token は、値の部分だけを伏せ字にする","status":"passed","testResultsByEnv":{"default":"3c014db4a852544b6b299097633f7583"}}

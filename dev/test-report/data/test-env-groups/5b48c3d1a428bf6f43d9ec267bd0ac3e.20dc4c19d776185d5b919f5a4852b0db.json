@@ -1,0 +1,1 @@
+{"id":"5b48c3d1a428bf6f43d9ec267bd0ac3e.20dc4c19d776185d5b919f5a4852b0db","fullName":".githooks.tests.test_sandbox_ops_workflow#test_job_runs_only_for_its_operation","name":"sweep の job は、operation が sweep で App の変数があるときだけ動く","status":"passed","testResultsByEnv":{"default":"df0a2fc35677905aca487b745671b588"}}

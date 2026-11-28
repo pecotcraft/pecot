@@ -1,0 +1,5 @@
+
+ NX   JSON output created in /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_gate_selects_the_githooks8
+
+/tmp/pytest-of-vscode/pytest-0/popen-gw3/test_gate_selects_the_githooks8/affected-tasks.json
+

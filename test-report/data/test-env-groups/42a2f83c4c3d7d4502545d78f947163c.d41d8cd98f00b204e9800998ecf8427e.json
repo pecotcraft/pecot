@@ -1,0 +1,1 @@
+{"id":"42a2f83c4c3d7d4502545d78f947163c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/copilot-skill-names.test.ts#pre-tool-use-skill.sh このプラグインのものでないスキル（他の名前空間）のとき、何も出力せず、.pecot も作らない","name":"このプラグインのものでないスキル（他の名前空間）のとき、何も出力せず、.pecot も作らない","status":"passed","testResultsByEnv":{"default":"f9b54037ca1f752fe4b097c1c7d5a018"}}

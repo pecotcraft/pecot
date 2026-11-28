@@ -1,0 +1,1 @@
+{"id":"6c51561c0f1bf233ddc9f97d8ece07fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/workflow-template.test.ts#evaluateRequirements（board-sync） App の変数と secret があると、token の組の項目を ok にする","name":"App の変数と secret があると、token の組の項目を ok にする","status":"passed","testResultsByEnv":{"default":"db4a164001b07911f4d7406d1f446e1c"}}

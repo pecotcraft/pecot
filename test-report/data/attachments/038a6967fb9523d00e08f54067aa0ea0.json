@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "preflight found warnings; fix them before creating a PR"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"preflight found warnings; fix them before creating a PR\",\"warnings\":[\"Push Status: origin/feat/demo/other does not exist (not pushed) (fix: git push)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "preflight found warnings; fix them before creating a PR",
+    "warnings": [
+      "Push Status: origin/feat/demo/other does not exist (not pushed) (fix: git push)"
+    ]
+  },
+  "isError": true
+}

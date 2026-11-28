@@ -1,0 +1,1 @@
+{"id":"296f31334a911cfb46fc515acffc1eb4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と Issue field Issue field の読み取りに照らすと、値の無い欄と選択肢に無い値を problem にする","name":"Issue field の読み取りに照らすと、値の無い欄と選択肢に無い値を problem にする","status":"passed","testResultsByEnv":{"default":"e3924d4ac6eb06a4990c7d21d7570cc3"}}

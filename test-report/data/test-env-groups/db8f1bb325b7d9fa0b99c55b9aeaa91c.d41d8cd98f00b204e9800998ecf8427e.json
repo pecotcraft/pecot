@@ -1,0 +1,1 @@
+{"id":"db8f1bb325b7d9fa0b99c55b9aeaa91c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/tests/version.test.ts#loadVersionFromPluginJson JSON として解析できないファイルを渡すと、undefined を返す","name":"JSON として解析できないファイルを渡すと、undefined を返す","status":"passed","testResultsByEnv":{"default":"4aae2faf778951a9fc0e7d802799bf23"}}

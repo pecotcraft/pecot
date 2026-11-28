@@ -1,0 +1,34 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.sub_issues[0].parent: acme-demo-3 is not owner/repo/N"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.sub_issues[0].parent\",\"code\":\"value\",\"message\":\"acme-demo-3 is not owner/repo/N\"},{\"field\":\"reads.sub_issues\",\"code\":\"read-required\",\"message\":\"read the sub-issues of acme/demo/3 with issue_read (method get_sub_issues) and add it to reads.sub_issues with parent acme/demo/3: the order in the title must not be used by a sibling\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.sub_issues[0].parent",
+        "code": "value",
+        "message": "acme-demo-3 is not owner/repo/N"
+      },
+      {
+        "field": "reads.sub_issues",
+        "code": "read-required",
+        "message": "read the sub-issues of acme/demo/3 with issue_read (method get_sub_issues) and add it to reads.sub_issues with parent acme/demo/3: the order in the title must not be used by a sibling"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

@@ -1,0 +1,2 @@
+error: version and package cannot be used when release_type is nx
+  call the tool without them (Nx Release decides the version)

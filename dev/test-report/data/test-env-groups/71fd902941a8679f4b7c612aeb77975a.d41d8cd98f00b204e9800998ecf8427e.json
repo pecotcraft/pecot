@@ -1,0 +1,1 @@
+{"id":"71fd902941a8679f4b7c612aeb77975a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#runtimeInstallSpecs @slidev/cli の宣言が空文字の場合は、例外を送出する","name":"@slidev/cli の宣言が空文字の場合は、例外を送出する","status":"passed","testResultsByEnv":{"default":"830ade5c9433a50c22bd267deb8aff3a"}}

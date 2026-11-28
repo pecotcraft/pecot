@@ -1,0 +1,1 @@
+{"id":"065bf6e0ef972fb9b1cf455eec6af67f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-definition.test.ts#defineTool output が MCP の結果の共通の項目名 warnings を持つ場合は、TypeError が発生する","name":"output が MCP の結果の共通の項目名 warnings を持つ場合は、TypeError が発生する","status":"passed","testResultsByEnv":{"default":"8fe44b7dbbd59d22be802321136ca1be"}}

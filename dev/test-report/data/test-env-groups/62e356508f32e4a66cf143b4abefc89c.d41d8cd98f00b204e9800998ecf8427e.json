@@ -1,0 +1,1 @@
+{"id":"62e356508f32e4a66cf143b4abefc89c.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#宣言しない例外の監査の canary を置いても、静的確認が通る","name":"宣言しない例外の監査の canary を置いても、静的確認が通る","status":"passed","testResultsByEnv":{"default":"328323a12140e8c7f6b5df0397883b5e"}}

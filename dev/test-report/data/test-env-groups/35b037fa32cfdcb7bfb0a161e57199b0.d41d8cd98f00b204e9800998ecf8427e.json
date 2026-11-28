@@ -1,0 +1,1 @@
+{"id":"35b037fa32cfdcb7bfb0a161e57199b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#runEvidenceCreate 検証を通った spec と出力先で writeWorkbook を呼び出し、caption は補完した値を渡す","name":"検証を通った spec と出力先で writeWorkbook を呼び出し、caption は補完した値を渡す","status":"passed","testResultsByEnv":{"default":"28c780d76642d29c5fab76dc70da181f"}}

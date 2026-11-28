@@ -1,0 +1,2 @@
+side=dev
+site_url=https://pecotcraft.github.io/pecot/dev/

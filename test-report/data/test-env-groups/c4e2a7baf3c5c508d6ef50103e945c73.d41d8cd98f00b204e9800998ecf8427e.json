@@ -1,0 +1,1 @@
+{"id":"c4e2a7baf3c5c508d6ef50103e945c73.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/restack.test.ts#describeNeedsRestack not-stacked の判断では、- needs restack: no を返す","name":"not-stacked の判断では、- needs restack: no を返す","status":"passed","testResultsByEnv":{"default":"edfe8b79b72ec85557d483b76d2b57b9"}}

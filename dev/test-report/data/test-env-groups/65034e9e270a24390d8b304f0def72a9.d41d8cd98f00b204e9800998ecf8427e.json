@@ -1,0 +1,1 @@
+{"id":"65034e9e270a24390d8b304f0def72a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/tests/lint-rules.test.ts#domain の依存方向 infra でグローバルの fetch と process を参照しても、違反にならない","name":"infra でグローバルの fetch と process を参照しても、違反にならない","status":"passed","testResultsByEnv":{"default":"7b3eae5e11c82d1d70c9b4e560308adb"}}

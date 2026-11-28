@@ -1,0 +1,1 @@
+{"id":"24678e23a6edc4c1e32a20f3fa273c24.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#アクティブ設定 .active の指す先が存在しない場合は、アクティブな設定のパスを返さない","name":".active の指す先が存在しない場合は、アクティブな設定のパスを返さない","status":"passed","testResultsByEnv":{"default":"e030e8d59cae5e47d904b2cb19eec428"}}

@@ -1,0 +1,1 @@
+{"id":"dc5d235d1e1ac8226fe03834821e52e9.38d2d442e61ce5e2dde9264cdd5bfa6d","fullName":".githooks.tests.test_pre_commit_config_wiring#test_plugin_validate_runs_when_definitions_change","name":"plugins/pecot-visual/agents/v-diagram-creator.md を変更すると、plugin-validate が起動する","status":"passed","testResultsByEnv":{"default":"05ea56beecdeae6d625bd6896935a81d"}}

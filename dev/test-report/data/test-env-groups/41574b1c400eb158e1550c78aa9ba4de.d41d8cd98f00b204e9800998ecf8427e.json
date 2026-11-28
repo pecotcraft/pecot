@@ -1,0 +1,1 @@
+{"id":"41574b1c400eb158e1550c78aa9ba4de.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/version-range.test.ts#doesRangeAllowMajor: 比較子なし / ワイルドカード ワイルドカード（* や x）と空文字は、どのメジャーバージョンも許可する","name":"ワイルドカード（* や x）と空文字は、どのメジャーバージョンも許可する","status":"passed","testResultsByEnv":{"default":"38fc2e102b64a18985c53bac405df84d"}}

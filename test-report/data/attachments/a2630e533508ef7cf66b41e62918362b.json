@@ -1,0 +1,25 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "=== Projects of acme (ghes.example.com) ==="
+    },
+    {
+      "type": "text",
+      "text": "{\"owner\":\"acme\",\"host\":\"ghes.example.com\",\"projects\":[{\"number\":1,\"title\":\"board\",\"url\":\"https://ghes.example.com/users/acme/projects/1\",\"initialized\":true,\"active\":false}]}"
+    }
+  ],
+  "structuredContent": {
+    "owner": "acme",
+    "host": "ghes.example.com",
+    "projects": [
+      {
+        "number": 1,
+        "title": "board",
+        "url": "https://ghes.example.com/users/acme/projects/1",
+        "initialized": true,
+        "active": false
+      }
+    ]
+  }
+}

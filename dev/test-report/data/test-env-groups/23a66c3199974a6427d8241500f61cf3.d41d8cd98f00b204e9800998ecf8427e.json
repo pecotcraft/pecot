@@ -1,0 +1,1 @@
+{"id":"23a66c3199974a6427d8241500f61cf3.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/inspect-pptx.bats#3 本の入力を渡すと、終了コード 0 で終わり、--out を指定したので stdout には何も出さない","name":"3 本の入力を渡すと、終了コード 0 で終わり、--out を指定したので stdout には何も出さない","status":"passed","testResultsByEnv":{"default":"df99d69ea4b3e270defae74a58bd8c59"}}

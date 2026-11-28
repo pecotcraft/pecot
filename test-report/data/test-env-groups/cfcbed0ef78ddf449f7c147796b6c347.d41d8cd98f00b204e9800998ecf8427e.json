@@ -1,0 +1,1 @@
+{"id":"cfcbed0ef78ddf449f7c147796b6c347.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — 正常系 xlsx のパーツを決まった順に並べ、画像を加工せずに格納する","name":"xlsx のパーツを決まった順に並べ、画像を加工せずに格納する","status":"passed","testResultsByEnv":{"default":"b537b93b49ddc8c0fe6204f0a916ee6c"}}

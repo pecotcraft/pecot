@@ -1,0 +1,42 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "renamed: field pecot-workflow-acme to pecot-status"
+    },
+    {
+      "type": "text",
+      "text": "{\"fields\":[{\"name\":\"pecot-status\",\"change\":\"rename\",\"addedOptions\":[\"Blocked\"]},{\"name\":\"pecot-lane\",\"change\":\"skip\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"skip\",\"addedOptions\":[]}],\"migration\":{\"renamed\":\"pecot-workflow-acme\",\"config_moved\":null,\"pending_delete\":[],\"deleted\":[]},\"warnings\":[\"field pecot-lane was not created because no lanes were given\\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes\"]}"
+    }
+  ],
+  "structuredContent": {
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "rename",
+        "addedOptions": [
+          "Blocked"
+        ]
+      },
+      {
+        "name": "pecot-lane",
+        "change": "skip",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "skip",
+        "addedOptions": []
+      }
+    ],
+    "migration": {
+      "renamed": "pecot-workflow-acme",
+      "config_moved": null,
+      "pending_delete": [],
+      "deleted": []
+    },
+    "warnings": [
+      "field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes"
+    ]
+  }
+}

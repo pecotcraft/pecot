@@ -1,0 +1,1 @@
+{"id":"4b2830a9dc86a7274a9b47c735d03ccb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/errors.test.ts#独自例外は PecotError を継承する ProjectRootNotFoundError は PecotError を継承する","name":"ProjectRootNotFoundError は PecotError を継承する","status":"passed","testResultsByEnv":{"default":"9338e094b9e54c114e40435a464f3632"}}

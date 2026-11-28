@@ -1,0 +1,1 @@
+{"id":"03e929a8e1bbc1c073923ea161b64305.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data スタックし直して push すると、outcome が restacked で pushed が true になる","name":"スタックし直して push すると、outcome が restacked で pushed が true になる","status":"passed","testResultsByEnv":{"default":"a271fc4033be9460003219139dfac4d0"}}

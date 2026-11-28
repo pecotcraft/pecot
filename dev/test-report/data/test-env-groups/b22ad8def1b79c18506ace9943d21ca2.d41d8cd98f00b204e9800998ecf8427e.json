@@ -1,0 +1,1 @@
+{"id":"b22ad8def1b79c18506ace9943d21ca2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#transformItems labels のフィールドが存在しなくても、エラーにならず変換する","name":"labels のフィールドが存在しなくても、エラーにならず変換する","status":"passed","testResultsByEnv":{"default":"d03abed4850ff29459e96859ece58e3b"}}

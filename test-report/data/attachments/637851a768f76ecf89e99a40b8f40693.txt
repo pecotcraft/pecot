@@ -1,0 +1,5 @@
+moved: config file /tmp/pecot-cli-FCWlPj/.pecot/config/projects/old.json to /tmp/pecot-cli-FCWlPj/.pecot/config/projects/github.com_acme_1.json
+warning: the project config is now named github.com_acme_1
+  use this name for the project input and the PECOT_REVIEW_PROJECT variable
+updated: config file /tmp/pecot-cli-FCWlPj/.pecot/config/projects/github.com_acme_1.json
+set: active project to github.com_acme_1

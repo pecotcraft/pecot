@@ -1,0 +1,1 @@
+{"id":"f16a311e7c7260da0c54931f9a85911e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#ツールが捕まえなかった独自の例外が起きると、リポジトリが曖昧なときも kind が other の失敗を返す","name":"ツールが捕まえなかった独自の例外が起きると、リポジトリが曖昧なときも kind が other の失敗を返す","status":"passed","testResultsByEnv":{"default":"36fad971ede4e751967af4459f033807"}}

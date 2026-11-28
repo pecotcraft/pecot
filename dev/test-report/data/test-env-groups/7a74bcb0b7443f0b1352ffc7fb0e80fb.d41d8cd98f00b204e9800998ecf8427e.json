@@ -1,0 +1,1 @@
+{"id":"7a74bcb0b7443f0b1352ffc7fb0e80fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#installStdoutGuard 同じ stdout に 2 回設定しても、初回の Writable を返す","name":"同じ stdout に 2 回設定しても、初回の Writable を返す","status":"passed","testResultsByEnv":{"default":"ee1e3fed0f9b3977394b326987586cf6"}}

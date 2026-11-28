@@ -1,0 +1,1 @@
+{"id":"0889f2a183f54626263c560087a05071.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_convert 変換に成功すると slide.convert.done を data に載せ、出力 PPTX を output に返す","name":"変換に成功すると slide.convert.done を data に載せ、出力 PPTX を output に返す","status":"passed","testResultsByEnv":{"default":"d4ddec793ee01adbc979f908dca39a67"}}

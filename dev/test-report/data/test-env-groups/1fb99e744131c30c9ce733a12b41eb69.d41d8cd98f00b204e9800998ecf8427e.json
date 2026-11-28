@@ -1,0 +1,1 @@
+{"id":"1fb99e744131c30c9ce733a12b41eb69.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/version-range.test.ts#doesRangeAllowMajor: 比較子なし / ワイルドカード AND で結んだ範囲にワイルドカードがあっても、もう一方の比較子の結果だけで判定する","name":"AND で結んだ範囲にワイルドカードがあっても、もう一方の比較子の結果だけで判定する","status":"passed","testResultsByEnv":{"default":"79ae9ac813e3c57d9531a1ac86297715"}}

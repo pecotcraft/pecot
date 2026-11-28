@@ -1,0 +1,1 @@
+{"id":"23da25fedc3ae05e6b8823ec1578c65a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/commands-md.test.ts#commands-md commands-md --write は、内容が変わると updated を出力し、変わらないと何も出力せず 0 で終了する","name":"commands-md --write は、内容が変わると updated を出力し、変わらないと何も出力せず 0 で終了する","status":"passed","testResultsByEnv":{"default":"6231459a349a6489df6c62bf53f3ae9a"}}

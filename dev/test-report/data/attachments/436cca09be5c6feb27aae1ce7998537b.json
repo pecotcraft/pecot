@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the short form 'N' needs a base_repo: pass repo: <owner/repo> or use the full form 'owner/repo/N'"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"the short form 'N' needs a base_repo: pass repo: <owner/repo> or use the full form 'owner/repo/N'\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "the short form 'N' needs a base_repo: pass repo: <owner/repo> or use the full form 'owner/repo/N'"
+  },
+  "isError": true
+}

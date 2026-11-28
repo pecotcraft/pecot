@@ -1,0 +1,1 @@
+{"id":"fe0b036780f5834b8e24279187a7886f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack check 親ブランチにコミットが足されていると、base moved を添えた needs restack の行を出す","name":"親ブランチにコミットが足されていると、base moved を添えた needs restack の行を出す","status":"passed","testResultsByEnv":{"default":"7733fceb1b77a52854cd884c8dab3eaa"}}

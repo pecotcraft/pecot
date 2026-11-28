@@ -1,0 +1,1 @@
+{"id":"ee8271b1ca80cd5fc247c1d84103cba7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/registry.test.ts#ツールの一覧 workflow_install の output は、入力の向きと出力の向きで JSON Schema が同じになる","name":"workflow_install の output は、入力の向きと出力の向きで JSON Schema が同じになる","status":"passed","testResultsByEnv":{"default":"45a3db2c6d8330d697a3a46189af8d40"}}

@@ -1,0 +1,15 @@
+
+> nx run p:tgt
+
+> touch ran-the-task
+
+
+
+
+ NX   Successfully ran target tgt for project p
+
+
+  Run duration:      17ms
+  Cache:             Skipped (--skip-nx-cache)
+  Critical path:     15ms (1 task)
+  Recoverable time:  <1ms

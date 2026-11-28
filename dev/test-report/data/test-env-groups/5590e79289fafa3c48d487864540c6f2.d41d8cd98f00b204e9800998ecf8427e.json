@@ -1,0 +1,1 @@
+{"id":"5590e79289fafa3c48d487864540c6f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/fs-sync.test.ts#removeTemplateEntries 存在しない名前は飛ばして一覧に含めず、2 回目の実行では何も削除しない","name":"存在しない名前は飛ばして一覧に含めず、2 回目の実行では何も削除しない","status":"passed","testResultsByEnv":{"default":"07f4d8514ff189b866f59cfd6db2f56c"}}

@@ -1,0 +1,1 @@
+{"id":"a2e9076382585a254478483bcbd1e531.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_empty_repo","name":"REPO が空だと、取得の失敗の理由を出力する","status":"passed","testResultsByEnv":{"default":"75343d567a7155f4cfa1202520b50a1d"}}

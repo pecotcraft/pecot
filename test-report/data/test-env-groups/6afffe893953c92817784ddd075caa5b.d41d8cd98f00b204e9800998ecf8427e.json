@@ -1,0 +1,1 @@
+{"id":"6afffe893953c92817784ddd075caa5b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations callout callout の text にタブが含まれる場合は、受理する","name":"callout の text にタブが含まれる場合は、受理する","status":"passed","testResultsByEnv":{"default":"632aa384ad75c063ef217dde6c32f31c"}}

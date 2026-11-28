@@ -1,0 +1,1 @@
+{"id":"79e6dcf7e78a2a907522050a06f794fc.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#参照先が報告に無ければ当該パッケージの severity へ倒す","name":"参照先が報告に無ければ当該パッケージの severity へ倒す","status":"passed","testResultsByEnv":{"default":"fe63f1e4b4896230f17162b07dbdb51d"}}

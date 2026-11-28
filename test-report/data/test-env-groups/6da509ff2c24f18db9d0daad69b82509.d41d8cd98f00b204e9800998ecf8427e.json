@@ -1,0 +1,1 @@
+{"id":"6da509ff2c24f18db9d0daad69b82509.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#失敗種別 fixture no-credentials の失敗は、失敗の種類 auth-missing と判定する","name":"fixture no-credentials の失敗は、失敗の種類 auth-missing と判定する","status":"passed","testResultsByEnv":{"default":"a3db529ca4c7949f1130ae4f85611532"}}

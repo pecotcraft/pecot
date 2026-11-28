@@ -1,0 +1,1 @@
+{"id":"b2008f422b83741be036d3b47bc2d173.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_finish_reports_infra_failure","name":"outcome が失敗の場合は、基盤の失敗と Summary に書き、終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"7e9c0a32bc07d438b16097734d8c3dd2"}}

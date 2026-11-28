@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "repository acme/demo is not in the project"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-not-in-project\",\"detail\":\"repository acme/demo is not in the project\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-not-in-project",
+    "detail": "repository acme/demo is not in the project"
+  },
+  "isError": true
+}

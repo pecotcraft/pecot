@@ -1,0 +1,1 @@
+{"id":"1f2e66c9329e9c9dee22ca0bc63b57a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#findMainWorktree 作業ディレクトリが存在しなければ OsError を投げる（Python の FileNotFoundError に当たる）","name":"作業ディレクトリが存在しなければ OsError を投げる（Python の FileNotFoundError に当たる）","status":"passed","testResultsByEnv":{"default":"8b6c118685e169f7a6fa351ea3acb385"}}

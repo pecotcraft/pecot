@@ -1,0 +1,1 @@
+{"id":"01b26edc0486ee8d37e5c491ec459d2c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#errorData — 失敗時の data 検証エラーは invalid-spec と detail に全件を返す","name":"検証エラーは invalid-spec と detail に全件を返す","status":"passed","testResultsByEnv":{"default":"cb540e36e3fada9e017aaefdbdb25502"}}

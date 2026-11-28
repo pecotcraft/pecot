@@ -1,0 +1,1 @@
+{"id":"91dd1d74093c821c962a0ae55689c34f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project-check.test.ts#project_check fields pecot-status の欄が無いと、missing-field の problem に作る選択肢を順に並べる","name":"pecot-status の欄が無いと、missing-field の problem に作る選択肢を順に並べる","status":"passed","testResultsByEnv":{"default":"879f854900abce0c5fcae315acb82fcd"}}

@@ -1,0 +1,1 @@
+{"id":"5a9a4768373eb628c2f9123cb9a30932.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#runMcpServe (実 stdio transport) 接続が確立した後に不正な行を受け取った場合は、標準エラー出力へ 1 件だけ出力する","name":"接続が確立した後に不正な行を受け取った場合は、標準エラー出力へ 1 件だけ出力する","status":"passed","testResultsByEnv":{"default":"0fd37e16ec3397b62408dc747b33f5f6"}}

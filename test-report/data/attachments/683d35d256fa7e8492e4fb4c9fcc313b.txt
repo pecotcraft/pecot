@@ -1,0 +1,1 @@
+WARN: nx.json release.groups の解析に失敗したため release group CHANGELOG check を skip

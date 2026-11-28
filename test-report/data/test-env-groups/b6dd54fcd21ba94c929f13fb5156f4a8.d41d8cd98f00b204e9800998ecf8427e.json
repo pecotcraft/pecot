@@ -1,0 +1,1 @@
+{"id":"b6dd54fcd21ba94c929f13fb5156f4a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/validate-clicks.test.ts#count タイプで source_prop が欠けていると、null を返す","name":"count タイプで source_prop が欠けていると、null を返す","status":"passed","testResultsByEnv":{"default":"1fb28a7a6e6d91cac0bbe94f160d0d04"}}

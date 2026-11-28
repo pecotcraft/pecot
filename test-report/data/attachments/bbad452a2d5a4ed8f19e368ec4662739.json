@@ -1,0 +1,88 @@
+{
+  "name": "worktree_remove",
+  "title": "Remove worktree",
+  "description": "Remove a worktree",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Name of the worktree to remove (the recorded wtN, the wtN directory, or the branch name)"
+      },
+      "directory": {
+        "description": "Target Git repository (absolute or relative path)",
+        "type": "string"
+      },
+      "force": {
+        "default": false,
+        "description": "Force removal even if there are changes",
+        "type": "boolean"
+      },
+      "keep_branch": {
+        "default": false,
+        "description": "Keep the branch",
+        "type": "boolean"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "directory"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Name of the worktree that was removed, as given"
+      },
+      "deletedBranch": {
+        "type": "boolean",
+        "description": "Whether the local branch was deleted (false when kept or when the deletion failed)"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "name",
+          "deletedBranch"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

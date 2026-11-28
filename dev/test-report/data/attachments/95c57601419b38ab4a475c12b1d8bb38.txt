@@ -1,0 +1,1 @@
+error: orgs/pecotcraft/projectsV2/3 の応答に fields がありません（権限の不足とみられます）

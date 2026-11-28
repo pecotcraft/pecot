@@ -1,0 +1,1 @@
+{"id":"f2de1f834d3c624362fe318a65dc3975.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と列 update で列を書くと、列は決まりで動くとして problem にする","name":"update で列を書くと、列は決まりで動くとして problem にする","status":"passed","testResultsByEnv":{"default":"77d92306f9983bfdbd92698cd89d6587"}}

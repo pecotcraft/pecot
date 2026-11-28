@@ -1,0 +1,1 @@
+{"id":"9ecccd35a6e47645a6bede0022da365b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_sqs_list_queues すべてのパラメータを指定した入力を受け付け、そのまま handler へ渡す","name":"すべてのパラメータを指定した入力を受け付け、そのまま handler へ渡す","status":"passed","testResultsByEnv":{"default":"7e809ae61739aa07963ea0c9cad8ae56"}}

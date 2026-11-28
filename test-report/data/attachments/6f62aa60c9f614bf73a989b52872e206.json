@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "related_issue_number: #7 is already blocked by #5: do not call issue_dependency_write"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"related_issue_number\",\"code\":\"already-linked\",\"message\":\"#7 is already blocked by #5: do not call issue_dependency_write\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "related_issue_number",
+        "code": "already-linked",
+        "message": "#7 is already blocked by #5: do not call issue_dependency_write"
+      }
+    ]
+  }
+}

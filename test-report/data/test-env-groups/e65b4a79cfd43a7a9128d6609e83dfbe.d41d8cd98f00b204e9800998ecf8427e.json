@@ -1,0 +1,1 @@
+{"id":"e65b4a79cfd43a7a9128d6609e83dfbe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#readPullRequestOf repo が null なら、fork かを決めず、fork でない PR にする","name":"repo が null なら、fork かを決めず、fork でない PR にする","status":"passed","testResultsByEnv":{"default":"6b59a3acf9dc7ee7ba53143588935412"}}

@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "repo: acme/bad repo! is not a repository name"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"repo\",\"code\":\"value\",\"message\":\"acme/bad repo! is not a repository name\"},{\"field\":\"related_repo\",\"code\":\"value\",\"message\":\"acme/bad repo! is not a repository name\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "repo",
+        "code": "value",
+        "message": "acme/bad repo! is not a repository name"
+      },
+      {
+        "field": "related_repo",
+        "code": "value",
+        "message": "acme/bad repo! is not a repository name"
+      }
+    ]
+  }
+}

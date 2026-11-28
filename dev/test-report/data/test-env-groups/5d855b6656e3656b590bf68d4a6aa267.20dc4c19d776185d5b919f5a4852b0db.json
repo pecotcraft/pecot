@@ -1,0 +1,1 @@
+{"id":"5d855b6656e3656b590bf68d4a6aa267.20dc4c19d776185d5b919f5a4852b0db","fullName":".githooks.tests.test_sandbox_ops_workflow#test_checkout_does_not_persist_credentials","name":"sweep の checkout は、認証情報を残さない","status":"passed","testResultsByEnv":{"default":"ce9203f05dd7fc7b6e5843337bbb1edd"}}

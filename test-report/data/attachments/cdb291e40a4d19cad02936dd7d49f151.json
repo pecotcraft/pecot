@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "base: \"release\" differs from the base chosen by readiness: feat/3 (stacked on #3)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"base: \\\"release\\\" differs from the base chosen by readiness: feat/3 (stacked on #3)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "base: \"release\" differs from the base chosen by readiness: feat/3 (stacked on #3)"
+  },
+  "isError": true
+}

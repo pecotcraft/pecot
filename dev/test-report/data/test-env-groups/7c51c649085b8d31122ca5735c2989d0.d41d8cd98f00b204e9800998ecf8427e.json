@@ -1,0 +1,1 @@
+{"id":"7c51c649085b8d31122ca5735c2989d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#assertTalkDirectory 指定したパスがファイルの場合は、理由 not-a-directory の実行エラーを返す","name":"指定したパスがファイルの場合は、理由 not-a-directory の実行エラーを返す","status":"passed","testResultsByEnv":{"default":"5e56dac300e46433f96bbc4e08996f8b"}}

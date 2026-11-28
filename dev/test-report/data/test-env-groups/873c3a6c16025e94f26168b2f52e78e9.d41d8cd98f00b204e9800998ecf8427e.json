@@ -1,0 +1,1 @@
+{"id":"873c3a6c16025e94f26168b2f52e78e9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Processor 空白だけの行を含む空行で段落を分け、空行の無い複数行は 1 つの段落のままにする","name":"空白だけの行を含む空行で段落を分け、空行の無い複数行は 1 つの段落のままにする","status":"passed","testResultsByEnv":{"default":"38a8e8d4e1f9236993e8523051bcb6ba"}}

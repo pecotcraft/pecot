@@ -1,0 +1,1 @@
+{"id":"bdfdd5fcb7d8c03cbc24cb18ca6e5bd6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#createIssue タイトル・本文・ラベルを渡した場合は、JSON の本文を POST し、応答の Issue を返す","name":"タイトル・本文・ラベルを渡した場合は、JSON の本文を POST し、応答の Issue を返す","status":"passed","testResultsByEnv":{"default":"52c59d7d837bb5147273e557cb13431f"}}

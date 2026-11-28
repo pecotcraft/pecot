@@ -1,0 +1,1 @@
+{"id":"2e58cef0d6fde6d6e3f19bcc167c5113.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/mcp-cancel.test.ts#pr_check の題の scope の確認が nx graph を待つ間、ping に答え、取り消すと nx を止める","name":"pr_check の題の scope の確認が nx graph を待つ間、ping に答え、取り消すと nx を止める","status":"passed","testResultsByEnv":{"default":"bf027a879960bc26408d895f91249496"}}

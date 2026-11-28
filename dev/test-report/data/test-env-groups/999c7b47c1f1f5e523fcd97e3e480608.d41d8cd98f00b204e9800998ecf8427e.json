@@ -1,0 +1,1 @@
+{"id":"999c7b47c1f1f5e523fcd97e3e480608.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.bats#版を上げて publish すると、新しい版のタグと tgz でワークフローを起動する","name":"版を上げて publish すると、新しい版のタグと tgz でワークフローを起動する","status":"passed","testResultsByEnv":{"default":"664534fd6529fbaac38feb4754fc7008"}}

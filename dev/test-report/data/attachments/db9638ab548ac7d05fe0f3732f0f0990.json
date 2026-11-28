@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "give aggregation_repo as owner/repo: 'roadmap'"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"give aggregation_repo as owner/repo: 'roadmap'\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "give aggregation_repo as owner/repo: 'roadmap'"
+  },
+  "isError": true
+}

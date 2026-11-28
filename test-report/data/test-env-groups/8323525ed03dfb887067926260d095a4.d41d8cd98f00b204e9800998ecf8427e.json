@@ -1,0 +1,1 @@
+{"id":"8323525ed03dfb887067926260d095a4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toToolResult 成功で結果の行が存在しなければ、標準出力の最初の空でない行を文にする","name":"成功で結果の行が存在しなければ、標準出力の最初の空でない行を文にする","status":"passed","testResultsByEnv":{"default":"c0762f97ef226debbcfab44fa37349f2"}}

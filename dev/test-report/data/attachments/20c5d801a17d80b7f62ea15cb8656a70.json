@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "title: create needs title"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"title\",\"code\":\"required\",\"message\":\"create needs title\"},{\"field\":\"head\",\"code\":\"required\",\"message\":\"create needs head\"},{\"field\":\"base\",\"code\":\"required\",\"message\":\"create needs base\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "title",
+        "code": "required",
+        "message": "create needs title"
+      },
+      {
+        "field": "head",
+        "code": "required",
+        "message": "create needs head"
+      },
+      {
+        "field": "base",
+        "code": "required",
+        "message": "create needs base"
+      }
+    ]
+  }
+}

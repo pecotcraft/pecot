@@ -1,0 +1,8 @@
+:iface-id: PA-AUTO-FINISH
+:iface-plugin: actions
+:iface-kind: Action
+
+auto finish
+======================
+
+.. iface-defs:: actions PA-AUTO-FINISH

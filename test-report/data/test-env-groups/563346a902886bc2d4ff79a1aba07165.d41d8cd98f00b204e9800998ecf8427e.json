@@ -1,0 +1,1 @@
+{"id":"563346a902886bc2d4ff79a1aba07165.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-missing-marker-cell.test.ts#存在しない ID を渡すと、そのセルの行で invalidCell を報告する（陰性対照 1）","name":"存在しない ID を渡すと、そのセルの行で invalidCell を報告する（陰性対照 1）","status":"passed","testResultsByEnv":{"default":"4e5cb2319198ea348b9f8415ae99293e"}}

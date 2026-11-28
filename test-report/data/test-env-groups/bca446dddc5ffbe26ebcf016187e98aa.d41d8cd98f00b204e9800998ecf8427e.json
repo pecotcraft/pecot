@@ -1,0 +1,1 @@
+{"id":"bca446dddc5ffbe26ebcf016187e98aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#embedSourceHash / readSourceHash color-scheme の固定と SHA-256 の埋め込みを続けて行っても、両方の属性がルート要素に残る","name":"color-scheme の固定と SHA-256 の埋め込みを続けて行っても、両方の属性がルート要素に残る","status":"passed","testResultsByEnv":{"default":"48a331900394c0664835ad40f9179455"}}

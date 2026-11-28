@@ -1,0 +1,1 @@
+{"id":"6994b47b55339e51dd602e0d2c3386f6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#frontmatterOf --- で始まらない ときは undefined を返す","name":"--- で始まらない ときは undefined を返す","status":"passed","testResultsByEnv":{"default":"0a5f2e9d6568bd35e158388ded941fcc"}}

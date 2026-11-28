@@ -1,0 +1,1 @@
+{"id":"7d083917c1ed67bdc1f39707494742f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-kind.test.ts#isEpicIssue Issue Type が空白だけの場合は、未設定として扱い、前後の空白は無視する","name":"Issue Type が空白だけの場合は、未設定として扱い、前後の空白は無視する","status":"passed","testResultsByEnv":{"default":"5d03e7baf75abe9b2193e562a2a9bb4f"}}

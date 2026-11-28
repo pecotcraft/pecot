@@ -1,0 +1,2 @@
+warning: An executable named `gitlint` is not provided by package `gitlint` but is available via the dependency `gitlint-core`. Consider using `uvx --from gitlint-core gitlint` instead.
+1: T1 Title exceeds max length (79>72): "build(repo): bump the root-minor-patch group across 1 directory with 28 updates"

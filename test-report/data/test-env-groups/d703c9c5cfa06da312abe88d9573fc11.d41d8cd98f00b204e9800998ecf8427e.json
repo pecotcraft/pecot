@@ -1,0 +1,1 @@
+{"id":"d703c9c5cfa06da312abe88d9573fc11.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#runSlideConvert (fake DI 経由 / 全分岐) --theme を指定した場合は、runner.build に theme の値を渡す","name":"--theme を指定した場合は、runner.build に theme の値を渡す","status":"passed","testResultsByEnv":{"default":"23ed17a46c5b25e119d8812759820716"}}

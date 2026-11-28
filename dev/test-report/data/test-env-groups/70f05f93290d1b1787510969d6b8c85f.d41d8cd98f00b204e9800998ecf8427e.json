@@ -1,0 +1,1 @@
+{"id":"70f05f93290d1b1787510969d6b8c85f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#shorthand-list の項目値 要素に宣言されていないキーを含む場合は、入力検証エラーになる","name":"要素に宣言されていないキーを含む場合は、入力検証エラーになる","status":"passed","testResultsByEnv":{"default":"3aa33a094bc4bcf2e9ddce81e4e85af7"}}

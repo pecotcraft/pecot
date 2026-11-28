@@ -1,0 +1,1 @@
+{"id":"02fb9fdc111d65bf285005b942226313.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check MCP の data ブランチが次の状態だと（remote とずれた）、Push Status の文を warnings に入れる","name":"ブランチが次の状態だと（remote とずれた）、Push Status の文を warnings に入れる","status":"passed","testResultsByEnv":{"default":"a302e364c50f807fe3cdf0ebda961f2b"}}

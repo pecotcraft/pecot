@@ -1,0 +1,1 @@
+{"id":"f44e7707552d94a826fb6c5658b7fc4a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/names.test.ts#項目の名前と names 区切りが違う名前は、語の数の不一致と語彙にない語の 2 件で検証エラーにする","name":"区切りが違う名前は、語の数の不一致と語彙にない語の 2 件で検証エラーにする","status":"passed","testResultsByEnv":{"default":"3b997c6055eb7def271345dbc39436d8"}}

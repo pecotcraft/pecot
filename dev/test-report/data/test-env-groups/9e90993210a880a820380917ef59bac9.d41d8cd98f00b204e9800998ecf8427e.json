@@ -1,0 +1,1 @@
+{"id":"9e90993210a880a820380917ef59bac9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_ci_mode_failure_reports_only_the_failed_task_chunk","name":"CI のモードで失敗した場合は、失敗した task の塊だけを標準エラー出力に表示する","status":"passed","testResultsByEnv":{"default":"aa737b2f73c9f52fbe12762e5c9434a1"}}

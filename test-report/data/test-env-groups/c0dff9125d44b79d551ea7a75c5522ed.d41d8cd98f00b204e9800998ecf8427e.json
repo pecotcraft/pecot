@@ -1,0 +1,1 @@
+{"id":"c0dff9125d44b79d551ea7a75c5522ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add wt1 から wt9 までのセットがすべて使われていても、最大の番号の次の wt10 のセットに worktree を作る","name":"wt1 から wt9 までのセットがすべて使われていても、最大の番号の次の wt10 のセットに worktree を作る","status":"passed","testResultsByEnv":{"default":"9e4060845ca64c22bc50ad2c19f87e90"}}

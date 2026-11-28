@@ -1,0 +1,1 @@
+{"id":"ac29219c158d3add9d663585bbef3d35.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_setup_file_failure_is_broken","name":"setup_file で失敗したファイルは、broken の結果にする","status":"passed","testResultsByEnv":{"default":"d9982d5701ad4ea2cfa9c076503d24c0"}}

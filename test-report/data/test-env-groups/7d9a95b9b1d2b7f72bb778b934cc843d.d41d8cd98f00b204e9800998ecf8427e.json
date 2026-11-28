@@ -1,0 +1,1 @@
+{"id":"7d9a95b9b1d2b7f72bb778b934cc843d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 宣言ごとの許す書体 (T051) 宣言にある書体には警告を返さず、宣言にない書体には警告を返す","name":"宣言にある書体には警告を返さず、宣言にない書体には警告を返す","status":"passed","testResultsByEnv":{"default":"8df848439a5aa17ba738d27c989926d5"}}

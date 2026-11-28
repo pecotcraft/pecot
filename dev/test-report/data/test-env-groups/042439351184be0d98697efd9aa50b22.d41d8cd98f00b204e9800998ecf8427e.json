@@ -1,0 +1,1 @@
+{"id":"042439351184be0d98697efd9aa50b22.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate MCP の data 進行の欄に必須の値が欠けていると、kind が not-initialized の失敗を返す","name":"進行の欄に必須の値が欠けていると、kind が not-initialized の失敗を返す","status":"passed","testResultsByEnv":{"default":"41e2dd33e342a1086ddf5e8054defb9c"}}

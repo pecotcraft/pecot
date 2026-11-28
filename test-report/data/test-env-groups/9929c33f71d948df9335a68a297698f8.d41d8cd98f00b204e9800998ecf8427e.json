@@ -1,0 +1,1 @@
+{"id":"9929c33f71d948df9335a68a297698f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_init ファイルを書くと、ファイルごとに created の行を標準エラーに出す","name":"ファイルを書くと、ファイルごとに created の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"2b11365f28034767360c27d421bf4146"}}

@@ -1,0 +1,111 @@
+{
+  "name": "project_search",
+  "title": "Search projects",
+  "description": "Search projects through the GitHub API, and show which are initialized and which is active",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "owner": {
+        "type": "string",
+        "description": "Project owner"
+      },
+      "host": {
+        "default": "github.com",
+        "description": "GitHub host",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "owner"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "owner": {
+        "type": "string",
+        "description": "Project owner that was searched"
+      },
+      "host": {
+        "type": "string",
+        "description": "GitHub host that was searched"
+      },
+      "projects": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "number": {
+              "description": "Project number (omitted when GitHub did not return it)",
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "title": {
+              "description": "Project title (omitted when GitHub did not return it)",
+              "type": "string"
+            },
+            "url": {
+              "description": "Project URL (omitted when GitHub did not return it)",
+              "type": "string"
+            },
+            "initialized": {
+              "description": "Whether project_init has set up the fields (omitted without a number, or when the fields could not be read)",
+              "type": "boolean"
+            },
+            "active": {
+              "description": "Whether this project is the active one (omitted without a number)",
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "description": "Projects of the owner"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "owner",
+          "host",
+          "projects"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

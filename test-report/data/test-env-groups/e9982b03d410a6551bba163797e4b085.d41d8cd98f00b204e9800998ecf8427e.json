@@ -1,0 +1,1 @@
+{"id":"e9982b03d410a6551bba163797e4b085.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter status を省くと、undefined にして返す","name":"status を省くと、undefined にして返す","status":"passed","testResultsByEnv":{"default":"3ed55ff03f76b557b63b9db32a6953ed"}}

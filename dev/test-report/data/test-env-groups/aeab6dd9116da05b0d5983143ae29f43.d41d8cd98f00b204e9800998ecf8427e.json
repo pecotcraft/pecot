@@ -1,0 +1,1 @@
+{"id":"aeab6dd9116da05b0d5983143ae29f43.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/template-store.test.ts#templatesDirectory・templateFile 環境変数 CLAUDE_PLUGIN_ROOT を指定しても、ソースからの相対位置のテンプレートを指す","name":"環境変数 CLAUDE_PLUGIN_ROOT を指定しても、ソースからの相対位置のテンプレートを指す","status":"passed","testResultsByEnv":{"default":"6aee2df1b3a8dd6de6c3a29c87d3421e"}}

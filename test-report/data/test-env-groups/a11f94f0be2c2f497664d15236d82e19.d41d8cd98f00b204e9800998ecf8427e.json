@@ -1,0 +1,1 @@
+{"id":"a11f94f0be2c2f497664d15236d82e19.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#git 管理対象のガード git が追跡しているディレクトリにも、シンボリックリンクを作成しない","name":"git が追跡しているディレクトリにも、シンボリックリンクを作成しない","status":"passed","testResultsByEnv":{"default":"91baac57bd035eb0cf598c4072821489"}}

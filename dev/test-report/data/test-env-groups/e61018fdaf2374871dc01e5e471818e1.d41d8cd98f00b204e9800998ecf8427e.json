@@ -1,0 +1,1 @@
+{"id":"e61018fdaf2374871dc01e5e471818e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/step.test.ts#step レーンの中で本体が投げると、step を失敗で閉じ、同じ例外を投げる","name":"レーンの中で本体が投げると、step を失敗で閉じ、同じ例外を投げる","status":"passed","testResultsByEnv":{"default":"b7b005052115b5356077310785142110"}}

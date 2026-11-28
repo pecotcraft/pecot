@@ -1,0 +1,1 @@
+{"id":"4edb8a125bcaf09062eb5badc94b2b59.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyHyperlinkFix srgbClr に val 属性が存在しない場合は、リンクの色と一致しないものとして変換しない","name":"srgbClr に val 属性が存在しない場合は、リンクの色と一致しないものとして変換しない","status":"passed","testResultsByEnv":{"default":"80be6d850380695ee974c10266ce0933"}}

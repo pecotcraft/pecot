@@ -1,0 +1,1 @@
+{"id":"c1f612d891c821d4e9ecb322eea0337a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/caret-range.test.ts#caretRangeOutside ^08.3.6 は ^8.3.6 の範囲の外で、理由が「caret range ではない」になる","name":"^08.3.6 は ^8.3.6 の範囲の外で、理由が「caret range ではない」になる","status":"passed","testResultsByEnv":{"default":"6467b4445cde5dc1e3058d0f9d775abb"}}

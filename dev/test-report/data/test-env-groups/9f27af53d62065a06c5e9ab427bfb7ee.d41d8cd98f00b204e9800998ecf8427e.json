@@ -1,0 +1,1 @@
+{"id":"9f27af53d62065a06c5e9ab427bfb7ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#collectIo stdout と stderr に書いた文字列を、書いた順につなげて返す","name":"stdout と stderr に書いた文字列を、書いた順につなげて返す","status":"passed","testResultsByEnv":{"default":"1d964ab788a272402adf0748682a09ca"}}

@@ -1,0 +1,1 @@
+{"id":"0d035fa836c6c6b840d4b17d52d70fdc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/tracker-body.test.ts#cell セルを作成すると、NBSP と全角の空白も、改行の前後なら取り込む","name":"セルを作成すると、NBSP と全角の空白も、改行の前後なら取り込む","status":"passed","testResultsByEnv":{"default":"efc1294717e453190c8cc9816d59b3db"}}

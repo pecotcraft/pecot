@@ -1,0 +1,1 @@
+{"id":"a1161e5f341f23ec26158cb36d62f8b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data MCP の呼び出し スタックし直すと、base の記録を新しい base のブランチと位置に書き直す","name":"スタックし直すと、base の記録を新しい base のブランチと位置に書き直す","status":"passed","testResultsByEnv":{"default":"1e98d442b3bb4813e45a35947bf77125"}}

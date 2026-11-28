@@ -1,0 +1,1 @@
+{"id":"5dc2d1c0a3a118d4d4e2137c460f93f0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 縮小と EMU 縮尺が整数にならない画像（1000x333）は、表示の大きさを四捨五入してから EMU に換算する","name":"縮尺が整数にならない画像（1000x333）は、表示の大きさを四捨五入してから EMU に換算する","status":"passed","testResultsByEnv":{"default":"750134309db708056cd3732169b39fda"}}

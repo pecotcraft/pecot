@@ -1,0 +1,2 @@
+warning: using repo acme/demo (could not read the repository from the URL of the Git remote origin)
+count: symlinks created in /tmp/pecot-cli-nrPObD/workspaces/wt1/demo: 1

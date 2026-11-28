@@ -1,0 +1,1 @@
+{"id":"de4e45053b69d3b853e42441dcc83605.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getCurrentWorktreeName サブの worktree では、リポジトリのディレクトリの親の名前（wtN）を返す","name":"サブの worktree では、リポジトリのディレクトリの親の名前（wtN）を返す","status":"passed","testResultsByEnv":{"default":"004f05f608d84b2ab58f8bb4a12dbdcd"}}

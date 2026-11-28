@@ -1,0 +1,1 @@
+{"id":"048def75bc966ef291daafe152606720.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の blocked_by stack の前提に reason がある場合も、検証を通す","name":"stack の前提に reason がある場合も、検証を通す","status":"passed","testResultsByEnv":{"default":"3f1a1c6d1ca554a118065bf2e2263c35"}}

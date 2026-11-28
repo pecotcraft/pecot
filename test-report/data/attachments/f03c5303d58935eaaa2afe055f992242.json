@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not merge PR acme/demo/11: access denied Forbidden"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-api\",\"detail\":\"could not merge PR acme/demo/11: access denied Forbidden\",\"pullRequest\":\"acme/demo/11\",\"base\":\"main\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "could not merge PR acme/demo/11: access denied Forbidden",
+    "pullRequest": "acme/demo/11",
+    "base": "main"
+  },
+  "isError": true
+}

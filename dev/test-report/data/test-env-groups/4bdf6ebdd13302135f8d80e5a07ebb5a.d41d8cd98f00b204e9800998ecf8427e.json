@@ -1,0 +1,1 @@
+{"id":"4bdf6ebdd13302135f8d80e5a07ebb5a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#installRuntimeDependencies optionalDependencies に catalog: が残る場合も、npm を起動せずに失敗を返す","name":"optionalDependencies に catalog: が残る場合も、npm を起動せずに失敗を返す","status":"passed","testResultsByEnv":{"default":"42b294206a29d3a4aa4c16c40774df4a"}}

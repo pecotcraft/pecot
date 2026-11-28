@@ -1,0 +1,1 @@
+{"id":"f98f17f1e1907a9b8d24de85be91d805.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#syncProjectConfig 設定ファイルが存在しない場合は、読んだボードの値から作成してアクティブにする","name":"設定ファイルが存在しない場合は、読んだボードの値から作成してアクティブにする","status":"passed","testResultsByEnv":{"default":"d3e4a92a27d980753fc9b2b493b059e3"}}

@@ -1,0 +1,1 @@
+{"id":"8ca74d90d5d85a19a831bc4c0bf230a9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_dev_sources#test_cli_pack_writes_the_tree","name":"CLI の pack は、材料のファイルから lane-latest を作り、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"223a840a973ecb441160b2b6460a3526"}}

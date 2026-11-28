@@ -1,0 +1,1 @@
+{"id":"bd1b71a91a99c466f687e46086bba3fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#isRuntimeLayerInstalled: 永続層の版判定 データ置き場を決められなければ、未インストールとして扱う","name":"データ置き場を決められなければ、未インストールとして扱う","status":"passed","testResultsByEnv":{"default":"f199d555e00d436068e4810565c34952"}}

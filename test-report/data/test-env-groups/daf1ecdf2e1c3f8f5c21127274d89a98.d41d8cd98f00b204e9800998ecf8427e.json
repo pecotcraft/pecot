@@ -1,0 +1,1 @@
+{"id":"daf1ecdf2e1c3f8f5c21127274d89a98.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#runSlideConvert (fake DI 経由 / 全分岐) 結合した後に、フォントの補正と CSS だけの書体の除去が適用される（#391 の回帰防止）","name":"結合した後に、フォントの補正と CSS だけの書体の除去が適用される（#391 の回帰防止）","status":"passed","testResultsByEnv":{"default":"1e25e6da25f33217f8d544bca7c4399d"}}

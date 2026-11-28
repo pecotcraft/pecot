@@ -1,0 +1,1 @@
+{"id":"93d12d52bf045e08f7d837f04c25aab5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#gitRemoteUrl remote 名を指定すると、その remote の URL を返し、指定しなければ undefined を返す","name":"remote 名を指定すると、その remote の URL を返し、指定しなければ undefined を返す","status":"passed","testResultsByEnv":{"default":"1f75d2bae5453c5de527f29e30483642"}}

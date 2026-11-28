@@ -1,0 +1,1 @@
+{"id":"57feb896b0d8ed29086a325502bb5ae3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/layer-file-placement.test.ts#layer-file-placement invalid layouts の下にレイアウト名のディレクトリ content を作ると、報告する","name":"layouts の下にレイアウト名のディレクトリ content を作ると、報告する","status":"passed","testResultsByEnv":{"default":"a160b3ff4539db309b59bb318e0e6794"}}

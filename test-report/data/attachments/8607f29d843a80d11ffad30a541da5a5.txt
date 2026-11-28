@@ -1,0 +1,2 @@
+error: package 'unknown' is not registered in acme/demo
+  available: pkg-a

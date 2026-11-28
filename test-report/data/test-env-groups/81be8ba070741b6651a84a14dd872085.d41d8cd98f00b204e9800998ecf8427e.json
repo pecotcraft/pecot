@@ -1,0 +1,1 @@
+{"id":"81be8ba070741b6651a84a14dd872085.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-start.test.ts#auto start issue に owner/repo/N を渡すと、そのリポの Issue を読む","name":"issue に owner/repo/N を渡すと、そのリポの Issue を読む","status":"passed","testResultsByEnv":{"default":"f77f0ea780e0b05f9ecf1226192ab30a"}}

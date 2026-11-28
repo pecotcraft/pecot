@@ -1,0 +1,1 @@
+{"id":"52a448badb7a74085fba4cacce304e4b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#allowlistedTool 種類が read のツールの annotations は、{ readOnlyHint: true, …(1) } になる","name":"種類が read のツールの annotations は、{ readOnlyHint: true, …(1) } になる","status":"passed","testResultsByEnv":{"default":"0edaa8da7a702acfcefb9dfd15ef4887"}}

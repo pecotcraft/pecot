@@ -1,0 +1,1 @@
+note: plugin update available: pecot-v 0.30.0 (installed: 0.29.0). Update: `copilot plugin update pecot-v@pecot`

@@ -1,0 +1,1 @@
+{"id":"52cca9cc711da448b436f180a31a6e6b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/board-sync-workflow-template.test.ts#board sync のワークフローの雛形 sync の job は finish の後に動き、finish が失敗しても取り消されない限り動く","name":"sync の job は finish の後に動き、finish が失敗しても取り消されない限り動く","status":"passed","testResultsByEnv":{"default":"cc1bb83dc1e45519dbdf469b7d5ea28c"}}

@@ -1,0 +1,1 @@
+error: could not delete remote branch feat/7 in acme/demo: GitHub API error: 422

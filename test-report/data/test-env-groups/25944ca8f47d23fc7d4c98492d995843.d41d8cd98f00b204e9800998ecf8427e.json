@@ -1,0 +1,1 @@
+{"id":"25944ca8f47d23fc7d4c98492d995843.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference 短縮形 N に全角数字や丸数字を渡すと、例外が発生する","name":"短縮形 N に全角数字や丸数字を渡すと、例外が発生する","status":"passed","testResultsByEnv":{"default":"220331037653b3d2fd7bd610cd0606c2"}}

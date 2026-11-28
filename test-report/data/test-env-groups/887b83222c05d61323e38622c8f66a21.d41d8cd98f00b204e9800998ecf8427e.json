@@ -1,0 +1,1 @@
+{"id":"887b83222c05d61323e38622c8f66a21.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-comment-check.test.ts#issue_comment_check 差し替えたテンプレートのパス では、本文にテンプレートの決まりを当てずに problem の無い結果を返す","name":"差し替えたテンプレートのパス では、本文にテンプレートの決まりを当てずに problem の無い結果を返す","status":"passed","testResultsByEnv":{"default":"c985185a13588e9712d0103221be6b5e"}}

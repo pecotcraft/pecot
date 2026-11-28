@@ -1,0 +1,1 @@
+{"id":"ab624b444933cf2f81329587133a854e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/slidev-runner.test.ts#ChildProcessSlidevRunner signal を中断すると、子プロセスを止め、タイムアウトを待たずに返る","name":"signal を中断すると、子プロセスを止め、タイムアウトを待たずに返る","status":"passed","testResultsByEnv":{"default":"5b23472bece715d51837705cdf3f29db"}}

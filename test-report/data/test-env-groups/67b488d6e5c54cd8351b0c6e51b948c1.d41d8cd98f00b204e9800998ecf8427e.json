@@ -1,0 +1,1 @@
+{"id":"67b488d6e5c54cd8351b0c6e51b948c1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order parallel に値がある場合は、種類 parallel の誤りにする","name":"parallel に値がある場合は、種類 parallel の誤りにする","status":"passed","testResultsByEnv":{"default":"6b0ba25c0eee2d50852e934501623c08"}}

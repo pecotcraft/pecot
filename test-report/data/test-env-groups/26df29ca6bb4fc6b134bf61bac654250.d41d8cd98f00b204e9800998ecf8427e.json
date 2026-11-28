@@ -1,0 +1,1 @@
+{"id":"26df29ca6bb4fc6b134bf61bac654250.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — extraHeaders extraHeaders で label が空文字 の場合は、拒否する","name":"extraHeaders で label が空文字 の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"7678f98cc51aa8125d0aaec0ef4046a4"}}

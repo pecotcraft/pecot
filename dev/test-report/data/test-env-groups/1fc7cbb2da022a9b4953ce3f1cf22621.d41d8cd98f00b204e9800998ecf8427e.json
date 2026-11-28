@@ -1,0 +1,1 @@
+{"id":"1fc7cbb2da022a9b4953ce3f1cf22621.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_library_project_files_are_scanned_against_the_common_env","name":"libs の追跡ファイルは走査し、宣言済みとみなすのは共通の env だけにする","status":"passed","testResultsByEnv":{"default":"01a9d1349033156833b33f44189ea2c0"}}

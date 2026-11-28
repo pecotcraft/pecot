@@ -1,0 +1,1 @@
+{"id":"3386219e6188787510186933905ecb75.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/failure.test.ts#exitCodeOfFailure 確認が中止された場合は、Aborted. と表示して終了コード 1 を返す","name":"確認が中止された場合は、Aborted. と表示して終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"b996f465750fb4fd52131938fb09c337"}}

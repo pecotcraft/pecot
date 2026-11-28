@@ -1,0 +1,1 @@
+{"id":"27709a4a987a88e244b38a4e7249bc39.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/attach.test.ts#attach Allure の reporter が動くレーンの中 attachContent に中身と拡張子を渡すと、その中身を拡張子に対応する型で添付に追加する","name":"attachContent に中身と拡張子を渡すと、その中身を拡張子に対応する型で添付に追加する","status":"passed","testResultsByEnv":{"default":"a5672d0ea2cc65ef47a5df943bcbd818"}}

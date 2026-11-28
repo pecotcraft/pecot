@@ -1,0 +1,1 @@
+{"id":"2186c9639344d54ae733809584126304.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create .pecot/state/ の無い clone で紐づいたブランチにいるときファイルで作ると、Closes にブランチの番号を入れる","name":".pecot/state/ の無い clone で紐づいたブランチにいるときファイルで作ると、Closes にブランチの番号を入れる","status":"passed","testResultsByEnv":{"default":"866e4981522be7f59ce02afa3ea5e4b1"}}

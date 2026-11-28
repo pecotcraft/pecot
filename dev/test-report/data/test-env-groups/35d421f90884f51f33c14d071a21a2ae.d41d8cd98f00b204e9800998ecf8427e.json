@@ -1,0 +1,1 @@
+{"id":"35d421f90884f51f33c14d071a21a2ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-unknown-props.test.ts#talk-dir 側の references が先にあると、テーマ側の同名のレイアウトより優先する","name":"talk-dir 側の references が先にあると、テーマ側の同名のレイアウトより優先する","status":"passed","testResultsByEnv":{"default":"063d474c78f4820a6ef52692e4bf2829"}}

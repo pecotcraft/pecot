@@ -1,0 +1,1 @@
+{"id":"a04fc9d843977cbc69d499a8c58ddcc6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#fetchRemote 取り消すと、待機中の upload-pack ごと停止し、CancelledError を発生させる","name":"取り消すと、待機中の upload-pack ごと停止し、CancelledError を発生させる","status":"passed","testResultsByEnv":{"default":"85a7d9487b54445821b25f65f2a6547b"}}

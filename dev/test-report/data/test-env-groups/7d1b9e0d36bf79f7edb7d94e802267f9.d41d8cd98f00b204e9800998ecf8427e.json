@@ -1,0 +1,1 @@
+{"id":"7d1b9e0d36bf79f7edb7d94e802267f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init.test.ts#pecot-dir-init.sh 最初のコピー対象が dangling symlink で失敗しても、untracked が残らない","name":"最初のコピー対象が dangling symlink で失敗しても、untracked が残らない","status":"passed","testResultsByEnv":{"default":"771e73c68cadd049e61605c49ed74186"}}

@@ -1,0 +1,1 @@
+{"id":"e481b7902ddf8e88c1522e8bef0f47c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-image-border-radius.test.ts#require-image-border-radius valid img が adaptive-image の直接の子だと、報告しない","name":"img が adaptive-image の直接の子だと、報告しない","status":"passed","testResultsByEnv":{"default":"e4ff081d9564b0f0e0b211dbe81ba54c"}}

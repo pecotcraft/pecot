@@ -1,0 +1,1 @@
+{"id":"72774d7539882bb492c2d57a8c759aeb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_sqs_get_queue_attributes 必須の入力 queue_url が指定されていないと、拒否する","name":"必須の入力 queue_url が指定されていないと、拒否する","status":"passed","testResultsByEnv":{"default":"77d13f96f4f88b64712ed6d85dfa07e9"}}

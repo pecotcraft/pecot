@@ -1,0 +1,1 @@
+{"id":"5be28437d2a3d286afe3a339ef0d37da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/release-check.test.ts#release check CHANGELOG が無いと、error の行を出して失敗にする","name":"CHANGELOG が無いと、error の行を出して失敗にする","status":"passed","testResultsByEnv":{"default":"15234d5791316784c025160958e3f1c5"}}

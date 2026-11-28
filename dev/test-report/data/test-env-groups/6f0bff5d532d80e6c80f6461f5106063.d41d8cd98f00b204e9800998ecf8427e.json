@@ -1,0 +1,1 @@
+{"id":"6f0bff5d532d80e6c80f6461f5106063.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#ホスト設定 hosts.json が存在しない場合は、空の設定を返す","name":"hosts.json が存在しない場合は、空の設定を返す","status":"passed","testResultsByEnv":{"default":"1dd717864617127d87babc3f07765860"}}

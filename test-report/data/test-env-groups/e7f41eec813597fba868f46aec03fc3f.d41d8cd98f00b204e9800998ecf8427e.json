@@ -1,0 +1,1 @@
+{"id":"e7f41eec813597fba868f46aec03fc3f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/errors.test.ts#BaseError BaseError を継承したクラスは、name にクラス名を設定し、cause を保持する","name":"BaseError を継承したクラスは、name にクラス名を設定し、cause を保持する","status":"passed","testResultsByEnv":{"default":"ef7a66b600e3cedf8687882f172610f2"}}

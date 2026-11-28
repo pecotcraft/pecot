@@ -1,0 +1,1 @@
+{"id":"be9a3a66b6f7451ecaff986cd4c622a1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_direct_commit#test_main_release_commit_allowed","name":"main ブランチでも、chore(release) で始まるコミットメッセージは許可する","status":"passed","testResultsByEnv":{"default":"99c9056f08513305e1815d4dc1d42077"}}

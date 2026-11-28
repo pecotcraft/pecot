@@ -1,0 +1,1 @@
+{"id":"b8369cdbfbbc8312032383859f1cf8fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: Chromium の OS ライブラリ OS ライブラリだけを入れた回は setup.skipped ではなく setup.done にする","name":"OS ライブラリだけを入れた回は setup.skipped ではなく setup.done にする","status":"passed","testResultsByEnv":{"default":"2b454c06a7ec3dd7e564ef799eae33bb"}}

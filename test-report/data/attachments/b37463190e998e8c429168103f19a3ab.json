@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "spy"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"spy\",\"outPath\":\"/spy.xlsx\",\"items\":0,\"annotations\":0,\"skipped\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "event": "spy",
+    "outPath": "/spy.xlsx",
+    "items": 0,
+    "annotations": 0,
+    "skipped": []
+  }
+}

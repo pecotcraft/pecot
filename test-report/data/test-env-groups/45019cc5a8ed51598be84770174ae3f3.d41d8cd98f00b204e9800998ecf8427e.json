@@ -1,0 +1,1 @@
+{"id":"45019cc5a8ed51598be84770174ae3f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#generated.json checks generated.json の接頭辞が小文字だと、検証エラーにする","name":"generated.json の接頭辞が小文字だと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"ea30e2228af45dd8cefa0ef7d421bd90"}}

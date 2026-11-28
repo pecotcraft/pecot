@@ -1,0 +1,1 @@
+{"id":"dc08d3b27643b6b6cb861820017c2923.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/sso.test.ts#ssoTools 成功の必須項目を欠いた結果は、outputSchema の検証で拒否する","name":"成功の必須項目を欠いた結果は、outputSchema の検証で拒否する","status":"passed","testResultsByEnv":{"default":"5e7f6f3e6680033a199cf1eaa2c7e909"}}

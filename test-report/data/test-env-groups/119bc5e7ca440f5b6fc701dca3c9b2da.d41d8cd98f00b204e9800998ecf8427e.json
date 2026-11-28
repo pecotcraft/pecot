@@ -1,0 +1,1 @@
+{"id":"119bc5e7ca440f5b6fc701dca3c9b2da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check MCP の data 引っかかりがあるときに呼ぶと、失敗の結果にも集めた項目を全部入れ、1 件ごとの文を warnings に入れる","name":"引っかかりがあるときに呼ぶと、失敗の結果にも集めた項目を全部入れ、1 件ごとの文を warnings に入れる","status":"passed","testResultsByEnv":{"default":"a6da27c52bd9f53f4604eae810475bcd"}}

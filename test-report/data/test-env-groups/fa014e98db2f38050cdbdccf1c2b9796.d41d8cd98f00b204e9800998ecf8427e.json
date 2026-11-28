@@ -1,0 +1,1 @@
+{"id":"fa014e98db2f38050cdbdccf1c2b9796.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-view.test.ts#board show の表示 MCP の data に、リリースの種類・パッケージ・CHANGELOG のファイルと、不一致の件数を追加する","name":"MCP の data に、リリースの種類・パッケージ・CHANGELOG のファイルと、不一致の件数を追加する","status":"passed","testResultsByEnv":{"default":"49f02290f5c47ee6b3f26d9c55b43197"}}

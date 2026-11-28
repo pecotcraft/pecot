@@ -1,0 +1,1 @@
+{"id":"a82845324acf42bdcfbc223281d87ffa.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_report_check_ignores_history_below_the_root","name":"レポートの tar の下のディレクトリにある `history.jsonl` は、指摘しない","status":"passed","testResultsByEnv":{"default":"b246625f2f2b0facfcb546c5063addba"}}

@@ -1,0 +1,1 @@
+{"id":"6f79c98eed9c9bd915095371a85b3861.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: シェル echo の文字列に違反があると、文字列の位置に指摘を 1 件返す","name":"echo の文字列に違反があると、文字列の位置に指摘を 1 件返す","status":"passed","testResultsByEnv":{"default":"27b7a254eafc04d8653420f4a9070437"}}

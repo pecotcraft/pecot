@@ -1,0 +1,1 @@
+{"id":"e2e6c7b822c172b781ee5d31e8e08d4f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/branch-name.test.ts#extractIssueNumberFromBranch ブランチ \"main\" のように、末尾が数字だけの区切りでない場合は、undefined を返す","name":"ブランチ \"main\" のように、末尾が数字だけの区切りでない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"9d8926ec5ae017c811a4ac6c008ece3a"}}

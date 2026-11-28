@@ -1,0 +1,1 @@
+{"id":"36590cf1cbd35ffc1c5cc17797eb5f10.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_requirement_tables_have_id_and_requirement_columns","name":"要件の表は、ID と要件の 2 列を持ち、テスト結果の列は持たない","status":"passed","testResultsByEnv":{"default":"508f842ac0f9cbdbc5de4fe21d9f5f90"}}

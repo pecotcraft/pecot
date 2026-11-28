@@ -1,0 +1,1 @@
+{"id":"a82e24dc28e6725f056722f22c065dba.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_falls_back_to_older_run_when_newer_fails_check","name":"新しい run の artifact が検証に合格しないと、古い run の pr_main を出力する","status":"passed","testResultsByEnv":{"default":"5e34afa7e1cdc7b3e2bc056509edfe06"}}

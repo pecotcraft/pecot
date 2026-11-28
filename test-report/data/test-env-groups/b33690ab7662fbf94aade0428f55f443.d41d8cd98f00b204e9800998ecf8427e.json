@@ -1,0 +1,1 @@
+{"id":"b33690ab7662fbf94aade0428f55f443.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 前提 wait merge の前提に理由が無いと、reason の problem にする","name":"wait merge の前提に理由が無いと、reason の problem にする","status":"passed","testResultsByEnv":{"default":"b395aab652722756bcce636c029dede1"}}

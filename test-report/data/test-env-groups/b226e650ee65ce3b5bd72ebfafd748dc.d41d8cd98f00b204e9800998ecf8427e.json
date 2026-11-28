@@ -1,0 +1,1 @@
+{"id":"b226e650ee65ce3b5bd72ebfafd748dc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_issue_surface_workflow#test_app_token_permissions_are_issues_and_projects_write_only","name":"GitHub App のトークンの権限は、issues と organization の projects の write だけにする","status":"passed","testResultsByEnv":{"default":"d46ab0d7e9561d2ac623cf680aadb58a"}}

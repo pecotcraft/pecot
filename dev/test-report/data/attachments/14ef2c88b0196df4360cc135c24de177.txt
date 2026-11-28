@@ -1,0 +1,2 @@
+created: auto result comment (pr-created) on Issue acme/demo/7
+error: could not remove the label pecot-auto from Issue acme/demo/7: GitHub API error: 502

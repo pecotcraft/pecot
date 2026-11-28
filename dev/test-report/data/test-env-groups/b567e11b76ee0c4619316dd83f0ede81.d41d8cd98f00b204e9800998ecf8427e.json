@@ -1,0 +1,1 @@
+{"id":"b567e11b76ee0c4619316dd83f0ede81.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#runMcpServe の失敗 サーバーを作成できなければ、終了コードを 1 にして接続を閉じる","name":"サーバーを作成できなければ、終了コードを 1 にして接続を閉じる","status":"passed","testResultsByEnv":{"default":"f690f62e98cbe320ee6beaa6135c7822"}}

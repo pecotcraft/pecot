@@ -1,0 +1,1 @@
+{"id":"ada03b71fc17bacdc518e929227d549a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/cli.test.ts#validate 定義書がディレクトリで読み取れないと、エラーを 1 行出力し、2 で終了する","name":"定義書がディレクトリで読み取れないと、エラーを 1 行出力し、2 で終了する","status":"passed","testResultsByEnv":{"default":"dc4e46ff9a8a9f0679340cc99881fd50"}}

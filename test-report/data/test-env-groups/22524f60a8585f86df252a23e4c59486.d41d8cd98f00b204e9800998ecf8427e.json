@@ -1,0 +1,1 @@
+{"id":"22524f60a8585f86df252a23e4c59486.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — 受理 extraHeaders の value は、空文字を許可する","name":"extraHeaders の value は、空文字を許可する","status":"passed","testResultsByEnv":{"default":"e5fee0f570ae18de2675ed6e007d555a"}}

@@ -1,0 +1,1 @@
+{"issue":"acme/demo/7","number":7,"kind":"","proceed":false,"reason":"another CI run of sha-head failed","branch":"","pr":0,"ci_attempts":0}

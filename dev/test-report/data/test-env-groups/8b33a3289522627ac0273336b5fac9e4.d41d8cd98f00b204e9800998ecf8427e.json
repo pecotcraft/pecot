@@ -1,0 +1,1 @@
+{"id":"8b33a3289522627ac0273336b5fac9e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#resolveIconsInStyle 色の指定がない icon も、解決関数の戻り値に置き換える","name":"色の指定がない icon も、解決関数の戻り値に置き換える","status":"passed","testResultsByEnv":{"default":"7a6eece48bd342302e2f775797b0cd38"}}

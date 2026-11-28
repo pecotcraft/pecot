@@ -1,0 +1,1 @@
+{"id":"9ce6845d45755a7dbedaf2c6d4db02a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getWorktreeList 空白を含むパスの worktree を、一覧・メインの特定・削除で扱える（実 git）","name":"空白を含むパスの worktree を、一覧・メインの特定・削除で扱える（実 git）","status":"passed","testResultsByEnv":{"default":"65f5aeecf12a4b3ba36169d0cacbcb80"}}

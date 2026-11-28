@@ -1,0 +1,1 @@
+{"id":"2f3453c5a8496ddc0144bbb3df2c6cdc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#removeWaitsForMerge 節の後ろに別の節がある場合は、後ろの節の手前の空行を残して、節だけを削除する","name":"節の後ろに別の節がある場合は、後ろの節の手前の空行を残して、節だけを削除する","status":"passed","testResultsByEnv":{"default":"a4dd8c772695583cf0f9d6e115fdc2de"}}

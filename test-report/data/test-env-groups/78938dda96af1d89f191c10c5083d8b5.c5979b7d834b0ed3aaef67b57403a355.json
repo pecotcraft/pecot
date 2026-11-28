@@ -1,0 +1,1 @@
+{"id":"78938dda96af1d89f191c10c5083d8b5.c5979b7d834b0ed3aaef67b57403a355","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_targets_rejects_unknown_arguments","name":"`dev-targets.mjs` は、引数が ['--all', '--patterns'] のとき、エラーで終了する","status":"passed","testResultsByEnv":{"default":"0a8981133205348ece7257585b99d817"}}

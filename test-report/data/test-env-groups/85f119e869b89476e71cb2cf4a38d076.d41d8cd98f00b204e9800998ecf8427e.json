@@ -1,0 +1,1 @@
+{"id":"85f119e869b89476e71cb2cf4a38d076.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#dry-run の tgz の中身に証明書（certs 配下・.pem・.crt・.cer）が無い","name":"dry-run の tgz の中身に証明書（certs 配下・.pem・.crt・.cer）が無い","status":"passed","testResultsByEnv":{"default":"8a406b19c27d5ddc83da9ed505b4c4bf"}}

@@ -1,0 +1,1 @@
+{"id":"e3472e982f1147c5e48921ebc6d37596.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#browsersRoot PLAYWRIGHT_BROWSERS_PATH が 0 の場合は、場所を特定できないため undefined を返す","name":"PLAYWRIGHT_BROWSERS_PATH が 0 の場合は、場所を特定できないため undefined を返す","status":"passed","testResultsByEnv":{"default":"aacba58bf33434c2ab094f339af7286f"}}

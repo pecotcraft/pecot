@@ -1,0 +1,1 @@
+{"id":"6c7ebd7a9c1eef2a1980a93237cb4d93.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#isAutoInstallEnabled PECOTV_AUTO_INSTALL_BROWSER が 1 の場合だけ、自動取得を有効と判定する","name":"PECOTV_AUTO_INSTALL_BROWSER が 1 の場合だけ、自動取得を有効と判定する","status":"passed","testResultsByEnv":{"default":"bbb070b81bed34712f66dbff80d9ee61"}}

@@ -1,0 +1,1 @@
+{"id":"3eed8f529182331fa10466a5b1e9cf9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data MCP の呼び出し 本文に閉じるキーワードが無い とき、PR の本文を保存し直さず、relinked を返さない","name":"本文に閉じるキーワードが無い とき、PR の本文を保存し直さず、relinked を返さない","status":"passed","testResultsByEnv":{"default":"9045fda6e4663ee34be354baad381fae"}}

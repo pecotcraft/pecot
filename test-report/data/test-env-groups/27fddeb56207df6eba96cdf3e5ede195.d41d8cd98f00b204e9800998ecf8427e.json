@@ -1,0 +1,1 @@
+{"id":"27fddeb56207df6eba96cdf3e5ede195.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/changelog-file.test.ts#readLatestVersionFromFile / extractReleaseNotesFromFile バージョンが存在しない場合のメッセージにも、読み込んだファイル名を使う","name":"バージョンが存在しない場合のメッセージにも、読み込んだファイル名を使う","status":"passed","testResultsByEnv":{"default":"214afdd512cf1ee5307feabc98cac57a"}}

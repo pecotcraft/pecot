@@ -1,0 +1,1 @@
+{"id":"6df492c51f1bda9a7129e17744fd0077.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（pnpm の段の子プロセス失敗） 子プロセスが時間切れになった場合は、時間切れであることを案内する","name":"子プロセスが時間切れになった場合は、時間切れであることを案内する","status":"passed","testResultsByEnv":{"default":"5b7bf8eba761b4cff4f81e1077d8f7e4"}}

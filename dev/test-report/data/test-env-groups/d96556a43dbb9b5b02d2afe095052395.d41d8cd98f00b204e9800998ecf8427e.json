@@ -1,0 +1,1 @@
+{"id":"d96556a43dbb9b5b02d2afe095052395.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_unparsable_head_ref","name":"HEAD_REF から PR 番号を取り出せないと、PR 番号不明の理由を出力する","status":"passed","testResultsByEnv":{"default":"1ff97578a9541de2aa0d55a6ac2ec88d"}}

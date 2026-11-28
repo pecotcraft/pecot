@@ -1,0 +1,1 @@
+{"id":"dd13a86e9230cfdd27bf2aecec2421b6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/visibility-helpers.test.ts#waitForSelectorInVisibleSlide waitForFunction が失敗した場合は、そのエラーで失敗する","name":"waitForFunction が失敗した場合は、そのエラーで失敗する","status":"passed","testResultsByEnv":{"default":"a9b1774d122c4a3998fc8b2f12dd0bc1"}}

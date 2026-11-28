@@ -1,0 +1,1 @@
+{"id":"84ccc483978ea46fdeb10ca67a8b9975.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#exportEntries required が空でも [] を出し、additionalProperties: false を付け、$schema を外す","name":"required が空でも [] を出し、additionalProperties: false を付け、$schema を外す","status":"passed","testResultsByEnv":{"default":"16892ee3c34d562cd9d000004298d37f"}}

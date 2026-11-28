@@ -1,0 +1,1 @@
+{"id":"e4fbaaff4ddeaf1ea51d126d7444c036.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_explicit_pre_commit_env","name":"`PECOT_PRE_COMMIT` を指定すると、その実行ファイルを `pre-commit` として使う","status":"passed","testResultsByEnv":{"default":"eeeaa02fe7067f05cff059f8b3debf06"}}

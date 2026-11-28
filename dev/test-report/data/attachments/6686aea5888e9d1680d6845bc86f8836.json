@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"deletedBranches\":[],\"readinessChanges\":[],\"restack\":[],\"warnings\":[\"current repository (acme/demo) differs from the PR's (acme/other); skipped local cleanup\"]}"
+    }
+  ],
+  "structuredContent": {
+    "deletedBranches": [],
+    "readinessChanges": [],
+    "restack": [],
+    "warnings": [
+      "current repository (acme/demo) differs from the PR's (acme/other); skipped local cleanup"
+    ]
+  }
+}

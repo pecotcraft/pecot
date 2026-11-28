@@ -1,0 +1,1 @@
+{"id":"3ab554755d7a8b7273651884b30d4723.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ worktree-add-state-not-registered を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ worktree-add-state-not-registered を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"88833acf49893cbd12ea7f1839a3148b"}}

@@ -1,0 +1,1 @@
+{"id":"ea1bf5689a1d969cba2f409bfc82aedf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter.test.ts#readSlidesTitle title が引用符で囲まれている場合は、引用符を取り除いて返す","name":"title が引用符で囲まれている場合は、引用符を取り除いて返す","status":"passed","testResultsByEnv":{"default":"c2c98e0a435c24e2fa7144e06cdd683d"}}

@@ -1,0 +1,1 @@
+{"id":"c09985f785ba764b7573d191f2db2893.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_errors_when_build_fails","name":"dist のビルドに失敗すると、ERROR を出力して失敗で終わり、source-hash を書き込まない","status":"passed","testResultsByEnv":{"default":"5d3b8b3a8eb9079753df3e65b3b31337"}}

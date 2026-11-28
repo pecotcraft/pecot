@@ -1,0 +1,1 @@
+{"id":"21d16d697b3ef91e49401ae8fe19ae78.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#波括弧で囲んだ npm_execpath を node に渡す script があると、違反として返す","name":"波括弧で囲んだ npm_execpath を node に渡す script があると、違反として返す","status":"passed","testResultsByEnv":{"default":"4a1aac4ace950ed4c9e512186e60f5bc"}}

@@ -1,0 +1,1 @@
+{"id":"3f5f15e731f76fb038a7c01c881579cf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add setup のコマンドが失敗した と、warnings に 1 つ入れ、setupFailed を true にして成功を返す","name":"setup のコマンドが失敗した と、warnings に 1 つ入れ、setupFailed を true にして成功を返す","status":"passed","testResultsByEnv":{"default":"234e42f15c56f93acbf8aaa1956357c5"}}

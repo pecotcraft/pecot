@@ -1,0 +1,1 @@
+{"id":"b942369ef49ed6109a8d5a885cc44114.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#stripCommitComments コミットメッセージを整えるとき、scissors 行以降を捨てる","name":"コミットメッセージを整えるとき、scissors 行以降を捨てる","status":"passed","testResultsByEnv":{"default":"175e5484c0c40cc019629be219daba0a"}}

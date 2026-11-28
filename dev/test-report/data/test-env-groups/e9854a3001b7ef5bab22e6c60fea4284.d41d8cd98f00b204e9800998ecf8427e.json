@@ -1,0 +1,1 @@
+{"id":"e9854a3001b7ef5bab22e6c60fea4284.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: 両系統が失敗した場合 message と detail に両方の理由を載せる","name":"message と detail に両方の理由を載せる","status":"passed","testResultsByEnv":{"default":"78ba630a849845353424a3bf1016d871"}}

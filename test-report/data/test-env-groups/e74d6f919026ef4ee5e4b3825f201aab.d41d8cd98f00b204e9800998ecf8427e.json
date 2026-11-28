@@ -1,0 +1,1 @@
+{"id":"e74d6f919026ef4ee5e4b3825f201aab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/screenshot.test.ts#capturePng / exportViaEmbed 形式に svg を指定すると、svg を書き出す指示を送り、デコードした SVG の文字列を返す","name":"形式に svg を指定すると、svg を書き出す指示を送り、デコードした SVG の文字列を返す","status":"passed","testResultsByEnv":{"default":"9216c3cc589915ede67335840926aa37"}}

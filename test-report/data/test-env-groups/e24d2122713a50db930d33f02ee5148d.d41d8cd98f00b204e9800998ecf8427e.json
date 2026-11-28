@@ -1,0 +1,1 @@
+{"id":"e24d2122713a50db930d33f02ee5148d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — 非対応形式 GIF89a の場合は、未対応の形式として扱う","name":"GIF89a の場合は、未対応の形式として扱う","status":"passed","testResultsByEnv":{"default":"e729e6e86542f74f921427ef49197514"}}

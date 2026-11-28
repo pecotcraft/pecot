@@ -1,0 +1,1 @@
+{"id":"846ce4b409018a5fc91c9420cd7c6310.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_api_failure_exits_zero_with_reason","name":"API の呼び出しに失敗しても、終了コード 0 で終わり、取得の失敗の理由を出力する","status":"passed","testResultsByEnv":{"default":"4d5a42a901204fd62ac036dc63d1dc58"}}

@@ -1,0 +1,1 @@
+{"id":"a9de536903de6d7c240a4c322f6fa3ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url.test.ts#runDrawioUrl `whiteSpace=wrap` がない図は、標準エラー出力へ警告を出し、`warningCount` に数える","name":"`whiteSpace=wrap` がない図は、標準エラー出力へ警告を出し、`warningCount` に数える","status":"passed","testResultsByEnv":{"default":"a63c2debc5d96b95f75586fc5695fd1b"}}

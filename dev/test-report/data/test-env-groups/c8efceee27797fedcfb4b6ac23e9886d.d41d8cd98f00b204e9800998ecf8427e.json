@@ -1,0 +1,1 @@
+{"id":"c8efceee27797fedcfb4b6ac23e9886d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_dev_variables_name_the_run_of_each_lane","name":"開発版の変数は、runs のレーンにこの run、latest のレーンに試した run の URL を付ける","status":"passed","testResultsByEnv":{"default":"7ca498f5b2a1d2de6b814f70c1dc916f"}}

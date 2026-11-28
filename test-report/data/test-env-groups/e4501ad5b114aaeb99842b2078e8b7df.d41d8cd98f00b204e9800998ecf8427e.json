@@ -1,0 +1,1 @@
+{"id":"e4501ad5b114aaeb99842b2078e8b7df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#mcpServeDefaultDependencies 既定の依存は、実際のプロセスの stdio と、SDK の stdio transport を組み立てる","name":"既定の依存は、実際のプロセスの stdio と、SDK の stdio transport を組み立てる","status":"passed","testResultsByEnv":{"default":"760f050f85e23954dd04b9dbdcd9dade"}}

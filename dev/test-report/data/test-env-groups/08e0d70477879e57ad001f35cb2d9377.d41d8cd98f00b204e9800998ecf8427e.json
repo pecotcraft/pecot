@@ -1,0 +1,1 @@
+{"id":"08e0d70477879e57ad001f35cb2d9377.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys exportToPptx のオプションを変更した場合は envHash が変わり、同じ設定なら一致する","name":"exportToPptx のオプションを変更した場合は envHash が変わり、同じ設定なら一致する","status":"passed","testResultsByEnv":{"default":"5d520b543f65169de1b630ccbaf63da3"}}

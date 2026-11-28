@@ -1,0 +1,1 @@
+{"id":"c4b6457accee5f35f0947c4d252b2c46.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys node_modules・dist・pptx の配下にファイルを追加しても、envHash は変わらない","name":"node_modules・dist・pptx の配下にファイルを追加しても、envHash は変わらない","status":"passed","testResultsByEnv":{"default":"a61385ec7bd74a99b02f1a3764d45917"}}

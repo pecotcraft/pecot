@@ -1,0 +1,1 @@
+{"id":"450a9f8e31c16248cec39e9bcec80c36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#validateHtml font の color と style の fontColor が同じ値の場合は、重大度 note の通知を返す","name":"font の color と style の fontColor が同じ値の場合は、重大度 note の通知を返す","status":"passed","testResultsByEnv":{"default":"6761f3fe2feb2091fd2e03f8845d1608"}}

@@ -1,0 +1,1 @@
+{"id":"f23c831da700596538405f566dcb5c35.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show json を付けて打つと、同じ内容を JSON で出す","name":"json を付けて打つと、同じ内容を JSON で出す","status":"passed","testResultsByEnv":{"default":"bcb0a651b275d28dba5f3c43ad6fa983"}}

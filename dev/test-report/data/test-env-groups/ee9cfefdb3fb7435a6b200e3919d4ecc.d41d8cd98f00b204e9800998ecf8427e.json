@@ -1,0 +1,1 @@
+{"id":"ee9cfefdb3fb7435a6b200e3919d4ecc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/review-workflow-template.test.ts#review のワークフローの雛形 後始末の step は、pecot の action の review-finish を、リリースのタグで呼ぶ","name":"後始末の step は、pecot の action の review-finish を、リリースのタグで呼ぶ","status":"passed","testResultsByEnv":{"default":"1bf0ba01bf15da201371c25f989cc451"}}

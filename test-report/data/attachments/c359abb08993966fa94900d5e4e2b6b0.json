@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not check code scanning: acme/demo: code scanning: access denied Resource not accessible by integration\nsecret scanning has 1 open alert\n  #5\n  → https://ghes.example.com/acme/demo/security/secret-scanning\n  close them (fixed, or dismissed with a reason) and run the check again"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"could not check code scanning: acme/demo: code scanning: access denied Resource not accessible by integration\\nsecret scanning has 1 open alert\\n  #5\\n  → https://ghes.example.com/acme/demo/security/secret-scanning\\n  close them (fixed, or dismissed with a reason) and run the check again\",\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"}}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "could not check code scanning: acme/demo: code scanning: access denied Resource not accessible by integration\nsecret scanning has 1 open alert\n  #5\n  → https://ghes.example.com/acme/demo/security/secret-scanning\n  close them (fixed, or dismissed with a reason) and run the check again",
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  },
+  "isError": true
+}

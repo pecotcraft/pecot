@@ -1,0 +1,1 @@
+{"id":"6b99f8fd39b1ea46a05b2cf98d020080.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/output-settle.test.ts#settle dry-run の場合は、実行予定の行だけを標準エラー出力に表示する","name":"dry-run の場合は、実行予定の行だけを標準エラー出力に表示する","status":"passed","testResultsByEnv":{"default":"14fa68d626b14b6c1b5893542d50da1a"}}

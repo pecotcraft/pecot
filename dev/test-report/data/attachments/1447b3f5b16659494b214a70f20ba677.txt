@@ -1,0 +1,4 @@
+bad
+Aborted.
+error: no token
+error: x

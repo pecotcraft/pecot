@@ -1,0 +1,1 @@
+{"id":"cd340c17ac9862878c1aa51d6f76c45d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#rebaseOnto 親ブランチを squash で開発ブランチに統合した後は、子ブランチを開発ブランチの上に載せ、親ブランチのコミットを除外する","name":"親ブランチを squash で開発ブランチに統合した後は、子ブランチを開発ブランチの上に載せ、親ブランチのコミットを除外する","status":"passed","testResultsByEnv":{"default":"0374d70f5fd6b709847cea6af4487747"}}

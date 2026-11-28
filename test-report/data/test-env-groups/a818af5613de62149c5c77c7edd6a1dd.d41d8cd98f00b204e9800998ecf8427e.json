@@ -1,0 +1,1 @@
+{"id":"a818af5613de62149c5c77c7edd6a1dd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#splitCodePoints / truncateCodePoints 絵文字を 1 文字として数え、切り取る位置もずれない","name":"絵文字を 1 文字として数え、切り取る位置もずれない","status":"passed","testResultsByEnv":{"default":"e911e132254be68c0a6ff1f1133740fb"}}

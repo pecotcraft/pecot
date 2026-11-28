@@ -1,0 +1,1 @@
+{"id":"269a914c2221cd652055ad15a99ebfc7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む","name":"project を渡すと、対象のリポを含む設定が 2 つあってもその設定で読む","status":"passed","testResultsByEnv":{"default":"0e86fc914027909df19ee5444308abe8"}}

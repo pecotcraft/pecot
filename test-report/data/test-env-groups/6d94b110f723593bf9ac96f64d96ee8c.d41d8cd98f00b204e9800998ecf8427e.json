@@ -1,0 +1,1 @@
+{"id":"6d94b110f723593bf9ac96f64d96ee8c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#応答の中身 aws_athena_get_query_results の NextToken を nextToken へ転記する","name":"aws_athena_get_query_results の NextToken を nextToken へ転記する","status":"passed","testResultsByEnv":{"default":"d2e4a763237750fabe3211c4c81ce2b7"}}

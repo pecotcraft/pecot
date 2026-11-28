@@ -1,0 +1,1 @@
+{"id":"b9332255783435bac8a8cb2d707482fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move Issue の参照と Status を渡すと、ボード上のその Issue の Status を渡した値にして set の行を出す","name":"Issue の参照と Status を渡すと、ボード上のその Issue の Status を渡した値にして set の行を出す","status":"passed","testResultsByEnv":{"default":"86e17990a53cbd544e55bcca801e6b10"}}

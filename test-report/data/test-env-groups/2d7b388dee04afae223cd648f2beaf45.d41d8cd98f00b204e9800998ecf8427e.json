@@ -1,0 +1,1 @@
+{"id":"2d7b388dee04afae223cd648f2beaf45.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/merge.test.ts#mergePptxFiles: 埋め込みフォントの統合 スライド 1 にない書体も、すべてのスライドの和集合として残す","name":"スライド 1 にない書体も、すべてのスライドの和集合として残す","status":"passed","testResultsByEnv":{"default":"b4cb42e161b9919cc64bea2dc7bebd8d"}}

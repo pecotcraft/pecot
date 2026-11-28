@@ -1,0 +1,1 @@
+{"id":"d08927843412db17035889cd43ab0f51.810645cdad728ccbbf597235802b2157","fullName":".githooks.tests.test_gitlint_japanese_rule#test_title_passes","name":"タイトルが「build(repo): 依存を上げる」のコミットは、日本語の規則に違反しない","status":"passed","testResultsByEnv":{"default":"4dc7722336340a0ad6b9cb6c7391b261"}}

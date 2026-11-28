@@ -1,0 +1,1 @@
+{"id":"0465611b6ecff656c276e1ab5835e9fc.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.bats#origin が scp 形式と ssh:// 形式でも、gh の -R が owner/name になる","name":"origin が scp 形式と ssh:// 形式でも、gh の -R が owner/name になる","status":"passed","testResultsByEnv":{"default":"70d602a50409ef2f36a1820b524575db"}}

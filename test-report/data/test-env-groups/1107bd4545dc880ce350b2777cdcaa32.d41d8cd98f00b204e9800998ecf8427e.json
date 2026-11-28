@@ -1,0 +1,1 @@
+{"id":"1107bd4545dc880ce350b2777cdcaa32.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/failure.test.ts#classifyFailure どの種類にも当てはまらない失敗は、other と判定する","name":"どの種類にも当てはまらない失敗は、other と判定する","status":"passed","testResultsByEnv":{"default":"0fd9efe8d9cdeaa20388972aa12d1b7e"}}

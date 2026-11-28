@@ -1,0 +1,1 @@
+{"id":"1659d0dd0424c2e3b22400f5466499a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/git-url.test.ts#parseRemoteUrl \"gh-alias:/o/r\" を渡すと、host・owner・repository に分けて返す","name":"\"gh-alias:/o/r\" を渡すと、host・owner・repository に分けて返す","status":"passed","testResultsByEnv":{"default":"5b974651f0bb31ae8be74210903b6251"}}

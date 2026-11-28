@@ -1,0 +1,1 @@
+{"id":"1fffea42d4d1971246e0bd306c696cde.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/hint-catalog.test.ts#ACTION_HINT_COMMANDS auto-gate の形の inputs が、action.yml の token 以外の inputs と同じになる","name":"auto-gate の形の inputs が、action.yml の token 以外の inputs と同じになる","status":"passed","testResultsByEnv":{"default":"31cabd9143c284ec8099b11e38588432"}}

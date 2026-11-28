@@ -1,0 +1,1 @@
+{"id":"1839021b82a68af5981adfc232bf11df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/drawio-pdf-chromium.test.ts#CUJ: drawio export が実 chromium で SVG と兄弟 PDF を書き出す 書き出した PDF から日本語ラベルが文字として抽出できる","name":"書き出した PDF から日本語ラベルが文字として抽出できる","status":"passed","testResultsByEnv":{"default":"b49a9c263e2c777e4c6fca9f3e9da544"}}

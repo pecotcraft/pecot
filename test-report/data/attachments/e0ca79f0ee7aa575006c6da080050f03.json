@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool slide_convert: cache: Invalid input: expected boolean, received string"
+    }
+  ],
+  "isError": true
+}

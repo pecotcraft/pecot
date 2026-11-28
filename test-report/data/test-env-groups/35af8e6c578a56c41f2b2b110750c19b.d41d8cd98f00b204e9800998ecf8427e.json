@@ -1,0 +1,1 @@
+{"id":"35af8e6c578a56c41f2b2b110750c19b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#parseProjectConfig（検証エラー） options が辞書ではない場合は、dict_type の検証エラーを返す","name":"options が辞書ではない場合は、dict_type の検証エラーを返す","status":"passed","testResultsByEnv":{"default":"df0f83e27e788b02ea0051ce7d1d368f"}}

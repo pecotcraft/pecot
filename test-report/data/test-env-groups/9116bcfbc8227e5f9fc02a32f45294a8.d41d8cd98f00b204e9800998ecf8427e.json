@@ -1,0 +1,1 @@
+{"id":"9116bcfbc8227e5f9fc02a32f45294a8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_side_installs_node_only_for_dev","name":"side の job は、開発版のときだけ、report の job と同じ手順で Node.js と依存を入れる","status":"passed","testResultsByEnv":{"default":"6fb7adadff18f536af22a1cf8ca72986"}}

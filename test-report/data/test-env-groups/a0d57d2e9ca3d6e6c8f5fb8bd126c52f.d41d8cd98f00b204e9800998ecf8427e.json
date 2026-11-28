@@ -1,0 +1,1 @@
+{"id":"a0d57d2e9ca3d6e6c8f5fb8bd126c52f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/rule-tester.test.ts#no-numeric-filename-prefix valid ファイル名が数字で始まらないと、報告しない","name":"ファイル名が数字で始まらないと、報告しない","status":"passed","testResultsByEnv":{"default":"0a6ca016b8e8641c0e01dcb0ea645dcd"}}

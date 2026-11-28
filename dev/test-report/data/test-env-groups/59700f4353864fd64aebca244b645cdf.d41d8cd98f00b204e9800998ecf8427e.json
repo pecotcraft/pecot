@@ -1,0 +1,1 @@
+{"id":"59700f4353864fd64aebca244b645cdf.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_image_workflow_derives_publish_args_from_event_and_ref","name":"devcontainer-image.yml は、イベントと ref から publish の引数を決める","status":"passed","testResultsByEnv":{"default":"bdc22b5daff55c01d19655ae5cde3f97"}}

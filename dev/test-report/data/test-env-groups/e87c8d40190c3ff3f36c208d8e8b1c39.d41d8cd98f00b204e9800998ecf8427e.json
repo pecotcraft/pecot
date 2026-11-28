@@ -1,0 +1,1 @@
+{"id":"e87c8d40190c3ff3f36c208d8e8b1c39.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#コマンドの実体 .textlintignore 除外の対象ではないファイルを渡すと、違反を返す","name":"除外の対象ではないファイルを渡すと、違反を返す","status":"passed","testResultsByEnv":{"default":"bcb6eb1b8de37614921de497b68945e2"}}

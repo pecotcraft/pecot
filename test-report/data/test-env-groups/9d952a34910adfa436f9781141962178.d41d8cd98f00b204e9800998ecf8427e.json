@@ -1,0 +1,1 @@
+{"id":"9d952a34910adfa436f9781141962178.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#parseProjectConfig（検証エラー） 入力値の表記が 50 文字を超える場合は、途中を省略して表示する（Python の実出力）","name":"入力値の表記が 50 文字を超える場合は、途中を省略して表示する（Python の実出力）","status":"passed","testResultsByEnv":{"default":"f17141712da3be3a0611c96d88ced59b"}}

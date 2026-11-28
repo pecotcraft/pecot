@@ -1,0 +1,1 @@
+{"id":"be707b2444a5cf5947cb79828662ef4b.8ec30d8aca0d198c41053e5b8a9e1bec","fullName":".githooks.tests.test_report_generate#test_config_refuses_unreadable_variables","name":"レポートの変数の環境変数が array のとき、Allure の設定の読み込みを止める","status":"passed","testResultsByEnv":{"default":"42988ea5f7dda94925ac29838acd988f"}}

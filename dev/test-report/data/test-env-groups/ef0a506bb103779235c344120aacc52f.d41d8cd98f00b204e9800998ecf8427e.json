@@ -1,0 +1,1 @@
+{"id":"ef0a506bb103779235c344120aacc52f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#resolvePluginRoot CLAUDE_PLUGIN_ROOT があっても読まず、自身の置き場所から求める","name":"CLAUDE_PLUGIN_ROOT があっても読まず、自身の置き場所から求める","status":"passed","testResultsByEnv":{"default":"0cedae90810fbe2f4252dae9f089d6c8"}}

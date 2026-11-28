@@ -1,0 +1,1 @@
+{"id":"9e94ecfce28a4e6ba3a27c76a70aa721.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#authored.yaml checks authored.yaml の環境変数名が不正、または effect に日本語があると、検証エラーにする","name":"authored.yaml の環境変数名が不正、または effect に日本語があると、検証エラーにする","status":"passed","testResultsByEnv":{"default":"901fe4b3334c34daab1b223b073a5db3"}}

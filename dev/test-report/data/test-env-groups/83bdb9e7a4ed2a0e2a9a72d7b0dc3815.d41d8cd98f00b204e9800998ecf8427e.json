@@ -1,0 +1,1 @@
+{"id":"83bdb9e7a4ed2a0e2a9a72d7b0dc3815.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/coverage-include.test.ts#coverage lines の閾値は baseline の行カバレッジと 90 の大きいほう","name":"lines の閾値は baseline の行カバレッジと 90 の大きいほう","status":"passed","testResultsByEnv":{"default":"0b0f8dafb2b053da13ac3ec8ff448faa"}}

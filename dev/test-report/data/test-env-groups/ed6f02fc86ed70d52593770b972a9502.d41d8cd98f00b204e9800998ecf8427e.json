@@ -1,0 +1,1 @@
+{"id":"ed6f02fc86ed70d52593770b972a9502.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sc005-no-github-io.test.ts#SC-005: MCP のツールは GitHub に読み書きしない ツールの定義のファイルが、registry.ts のグループのファイルを含む","name":"ツールの定義のファイルが、registry.ts のグループのファイルを含む","status":"passed","testResultsByEnv":{"default":"435a572baae06666a2d30c785f7a7964"}}

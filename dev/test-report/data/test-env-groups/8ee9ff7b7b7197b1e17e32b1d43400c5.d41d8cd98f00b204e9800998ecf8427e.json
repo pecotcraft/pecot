@@ -1,0 +1,1 @@
+{"id":"8ee9ff7b7b7197b1e17e32b1d43400c5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_deploy_env_keys_parse_from_template","name":"deploy.sh が使う環境変数名の抽出は、template の環境変数と一致する","status":"passed","testResultsByEnv":{"default":"7928a773cb61c38dae50b4d06761985a"}}

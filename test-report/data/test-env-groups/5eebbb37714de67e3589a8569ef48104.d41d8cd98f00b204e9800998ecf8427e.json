@@ -1,0 +1,1 @@
+{"id":"5eebbb37714de67e3589a8569ef48104.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueKind subIssues が存在しない場合は、サブ Issue の総数を 0 にする","name":"subIssues が存在しない場合は、サブ Issue の総数を 0 にする","status":"passed","testResultsByEnv":{"default":"31b0d6366a3d174961ba71b93bdb34f6"}}

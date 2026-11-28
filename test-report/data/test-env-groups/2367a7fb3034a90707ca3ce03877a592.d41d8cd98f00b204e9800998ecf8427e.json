@@ -1,0 +1,1 @@
+{"id":"2367a7fb3034a90707ca3ce03877a592.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_local_never_passes_variables","name":"`--local` では、変数を渡さず、親の環境の変数も引き継がない","status":"passed","testResultsByEnv":{"default":"ab02122138601d09fde6aa8d11243f8d"}}

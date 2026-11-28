@@ -1,0 +1,1 @@
+{"id":"aac032e639d78746f2d7de2dc3252d24.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#yamlStrings 本文の無いブロックスカラー のとき、引用符を含まない本文だけを切り出す","name":"本文の無いブロックスカラー のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"cf5264d61bf4af15cec3c40d8616690c"}}

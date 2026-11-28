@@ -1,0 +1,3 @@
+error: conflict in upper.txt
+  resolve the conflicts and git add the files, then call pr_restack with continue: true
+  or go back to the position before the restack: pr_restack with abort: true

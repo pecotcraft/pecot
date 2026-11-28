@@ -1,0 +1,1 @@
+{"id":"6de082ec1718dc8fb9ba8e116da15c8f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#yamlStrings 入力が空 のとき、引用符を含まない本文だけを切り出す","name":"入力が空 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"6fdc16fe84f6842e9195d2b6e40317b9"}}

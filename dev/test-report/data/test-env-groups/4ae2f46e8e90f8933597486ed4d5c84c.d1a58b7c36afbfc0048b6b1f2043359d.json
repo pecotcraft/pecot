@@ -1,0 +1,1 @@
+{"id":"4ae2f46e8e90f8933597486ed4d5c84c.d1a58b7c36afbfc0048b6b1f2043359d","fullName":".githooks.tests.test_check_version_plan_format#test_invalid_filename_fails","name":"ファイル名が 227-Foo.md の version plan は、規則の形を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"4d708d2b649cc1e37ec967b831278ad8"}}

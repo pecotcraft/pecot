@@ -1,0 +1,1 @@
+{"id":"c07a60c8657a3857ff456a7880c661a7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx signal が変換の開始後に中断された場合は、失敗し、ブラウザとサーバーを閉じる","name":"signal が変換の開始後に中断された場合は、失敗し、ブラウザとサーバーを閉じる","status":"passed","testResultsByEnv":{"default":"0acb2e6460f6b0c6a1e815f03d5f521d"}}

@@ -1,0 +1,1 @@
+{"id":"02a5f7568728ad93e1f2733190d4b7d9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 寸法によらない不変条件 極端な横長 3840x200 の場合は、行が昇順で重複せず、各行のセルが列の昇順に並ぶ","name":"極端な横長 3840x200 の場合は、行が昇順で重複せず、各行のセルが列の昇順に並ぶ","status":"passed","testResultsByEnv":{"default":"758cafc6a9ed6ffc6bbcda3a439e63b2"}}

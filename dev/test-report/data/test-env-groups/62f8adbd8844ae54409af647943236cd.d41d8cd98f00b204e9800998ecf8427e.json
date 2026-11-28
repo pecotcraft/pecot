@@ -1,0 +1,1 @@
+{"id":"62f8adbd8844ae54409af647943236cd.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_scan_reads_shell_under_tests_but_not_under_hooks","name":"走査は、tests 配下のシェルは読み、hooks 配下と対象外の場所のシェルは読まない","status":"passed","testResultsByEnv":{"default":"009a422db52b562a0b64bde9d92100fe"}}

@@ -1,0 +1,1 @@
+{"id":"90d1b4a7707e3b0e3f258f8c4e988617.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync bot が書いた最後の自動処理の結果が failed なら、前提が済んでも Needs Attention を Todo に戻さない","name":"bot が書いた最後の自動処理の結果が failed なら、前提が済んでも Needs Attention を Todo に戻さない","status":"passed","testResultsByEnv":{"default":"22b0b71a53c38c35f6dc18687081bff4"}}

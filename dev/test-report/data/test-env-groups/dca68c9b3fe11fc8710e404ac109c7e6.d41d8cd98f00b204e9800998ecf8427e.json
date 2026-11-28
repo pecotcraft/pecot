@@ -1,0 +1,1 @@
+{"id":"dca68c9b3fe11fc8710e404ac109c7e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#assertTalkDirectory 絶対パスのディレクトリに slides.md が存在する場合は、エラーなく完了する","name":"絶対パスのディレクトリに slides.md が存在する場合は、エラーなく完了する","status":"passed","testResultsByEnv":{"default":"0a370f636f72719bc9f6457e93705131"}}

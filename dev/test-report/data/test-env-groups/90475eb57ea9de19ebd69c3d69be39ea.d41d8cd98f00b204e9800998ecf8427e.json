@@ -1,0 +1,1 @@
+{"id":"90475eb57ea9de19ebd69c3d69be39ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/setup.test.ts#createSandbox origin は git@host:owner/repo.git の形で、偽 ssh 経由で ベアリポジトリに届く","name":"origin は git@host:owner/repo.git の形で、偽 ssh 経由で ベアリポジトリに届く","status":"passed","testResultsByEnv":{"default":"c13b548f66afe0ba0347eb5506ad89a8"}}

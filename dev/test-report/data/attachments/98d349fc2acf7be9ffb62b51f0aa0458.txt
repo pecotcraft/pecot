@@ -1,0 +1,4 @@
+error: project not found: Non Existent
+  available projects:
+  - Other Project
+  the last page of list_projects has a next page; read it with after and add it to reads.projects

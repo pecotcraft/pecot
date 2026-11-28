@@ -1,0 +1,1 @@
+{"id":"66e4de4022a013bb88c9986436291b2c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry output に、資格情報と判断できる文字列を残さない","name":"output に、資格情報と判断できる文字列を残さない","status":"passed","testResultsByEnv":{"default":"28a2349f74ccda6337cc899d447560b2"}}

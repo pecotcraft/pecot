@@ -1,0 +1,1 @@
+{"id":"a28983539980b8ac9356f68489eb9ad5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint pecot-text-lint が 出力の無い exit 1 で終わると、違反と言わずに調べなかったことを返す","name":"pecot-text-lint が 出力の無い exit 1 で終わると、違反と言わずに調べなかったことを返す","status":"passed","testResultsByEnv":{"default":"7d7a9d53df2a955ebd460a5643bf1925"}}

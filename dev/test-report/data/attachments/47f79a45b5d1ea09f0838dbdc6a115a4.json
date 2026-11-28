@@ -1,0 +1,9 @@
+[
+  "githooks:test-checks",
+  "githooks:test-nx-affected",
+  "githooks:test-nx-cache",
+  "nx-release:test-unit",
+  "pecot:install",
+  "text-rules:build",
+  "text-rules:install"
+]

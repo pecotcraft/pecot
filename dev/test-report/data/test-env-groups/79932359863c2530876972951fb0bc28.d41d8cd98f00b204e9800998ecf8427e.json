@@ -1,0 +1,1 @@
+{"id":"79932359863c2530876972951fb0bc28.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_publish_uses_next_tag_and_honors_dry_run","name":"開発版の publish は next タグと provenance を使い、dry-run の指定に従う","status":"passed","testResultsByEnv":{"default":"65d8b2a66295bbe49a93fe3e9979d6d1"}}

@@ -1,0 +1,1 @@
+{"id":"fe49b9b63dbad2b1f7c5b92f78e71b53.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-finish.test.ts#session_finish カレントのリポジトリが PR のリポジトリと違うなら、warning の行を標準エラーに出す","name":"カレントのリポジトリが PR のリポジトリと違うなら、warning の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"f1b529eb9c4a917ce4d3c1f1f7b8c7aa"}}

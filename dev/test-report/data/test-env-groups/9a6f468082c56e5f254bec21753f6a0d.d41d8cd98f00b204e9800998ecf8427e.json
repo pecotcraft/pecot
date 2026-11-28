@@ -1,0 +1,1 @@
+{"id":"9a6f468082c56e5f254bec21753f6a0d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#describeReadiness 前提が存在しなければ startable を返す","name":"前提が存在しなければ startable を返す","status":"passed","testResultsByEnv":{"default":"06abbb54a8dd227b5e024511d4a5c877"}}

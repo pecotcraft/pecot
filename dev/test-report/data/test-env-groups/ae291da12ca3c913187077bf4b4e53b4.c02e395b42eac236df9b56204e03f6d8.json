@@ -1,0 +1,1 @@
+{"id":"ae291da12ca3c913187077bf4b4e53b4.c02e395b42eac236df9b56204e03f6d8","fullName":".githooks.tests.test_pages_served#test_marker_url","name":"目印の URL は、page_url の末尾の / の有無にかかわらず根の pages-version.txt になる","status":"passed","testResultsByEnv":{"default":"c29bc3cb13381e57ec8ec83470fed872"}}

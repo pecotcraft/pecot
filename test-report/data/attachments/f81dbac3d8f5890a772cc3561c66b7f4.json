@@ -1,0 +1,153 @@
+{
+  "name": "aws_scheduler_get_schedule",
+  "title": "Get schedule details",
+  "description": "Returns the schedule expression (ScheduleExpression), timezone, target, and state of one schedule",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Schedule name"
+      },
+      "group_name": {
+        "description": "Schedule group name. If omitted, the default group is used",
+        "type": "string"
+      },
+      "profile": {
+        "description": "AWS profile name. If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[\\w.-]+$"
+      },
+      "region": {
+        "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "ActionAfterCompletion": {
+        "type": "string",
+        "description": "Action after the schedule completes (NONE or DELETE) (EventBridge Scheduler GetSchedule response)"
+      },
+      "Arn": {
+        "type": "string",
+        "description": "Schedule ARN (EventBridge Scheduler GetSchedule response)"
+      },
+      "CreationDate": {
+        "description": "Creation time (EventBridge Scheduler GetSchedule response)",
+        "type": [
+          "string",
+          "number"
+        ]
+      },
+      "Description": {
+        "type": "string",
+        "description": "Schedule description (EventBridge Scheduler GetSchedule response)"
+      },
+      "EndDate": {
+        "description": "Time before which the schedule can invoke its target (EventBridge Scheduler GetSchedule response)",
+        "type": [
+          "string",
+          "number"
+        ]
+      },
+      "FlexibleTimeWindow": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "FlexibleTimeWindow object (EventBridge Scheduler GetSchedule response)"
+      },
+      "GroupName": {
+        "type": "string",
+        "description": "Schedule group name (EventBridge Scheduler GetSchedule response)"
+      },
+      "KmsKeyArn": {
+        "type": "string",
+        "description": "Customer managed KMS key ARN (EventBridge Scheduler GetSchedule response)"
+      },
+      "LastModificationDate": {
+        "description": "Last modification time (EventBridge Scheduler GetSchedule response)",
+        "type": [
+          "string",
+          "number"
+        ]
+      },
+      "Name": {
+        "type": "string",
+        "description": "Schedule name (EventBridge Scheduler GetSchedule response)"
+      },
+      "ScheduleExpression": {
+        "type": "string",
+        "description": "Schedule expression (at, rate, or cron) (EventBridge Scheduler GetSchedule response)"
+      },
+      "ScheduleExpressionTimezone": {
+        "type": "string",
+        "description": "Timezone of the schedule expression (EventBridge Scheduler GetSchedule response)"
+      },
+      "StartDate": {
+        "description": "Time after which the schedule can invoke its target (EventBridge Scheduler GetSchedule response)",
+        "type": [
+          "string",
+          "number"
+        ]
+      },
+      "State": {
+        "type": "string",
+        "description": "ENABLED or DISABLED (EventBridge Scheduler GetSchedule response)"
+      },
+      "Target": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "Target object (EventBridge Scheduler GetSchedule response)"
+      },
+      "lines": {
+        "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "output": {
+        "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+        "type": "string"
+      },
+      "truncated": {
+        "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+        "type": "boolean"
+      },
+      "kind": {
+        "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+        "type": "string"
+      },
+      "detail": {
+        "description": "Full text of the failure and how to recover (failure only)",
+        "type": "string"
+      },
+      "log": {
+        "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+        "type": "string"
+      },
+      "warnings": {
+        "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "openWorldHint": true
+  }
+}

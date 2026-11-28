@@ -1,0 +1,1 @@
+{"id":"6ef02b387956bdfb15b65b1b49c94d46.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 検証用の設定ファイルだけが旧い名前の形式だと、config-file の差異に両方の形式を表示する","name":"検証用の設定ファイルだけが旧い名前の形式だと、config-file の差異に両方の形式を表示する","status":"passed","testResultsByEnv":{"default":"84a0a8c8a21b84ec13128aea270486ea"}}

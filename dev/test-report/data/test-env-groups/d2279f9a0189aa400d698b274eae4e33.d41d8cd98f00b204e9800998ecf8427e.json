@@ -1,0 +1,1 @@
+{"id":"d2279f9a0189aa400d698b274eae4e33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-no-verify-check.sh 有効にしてコマンドが git config set core.hooksPath x のとき、終了コード 1 で止める","name":"有効にしてコマンドが git config set core.hooksPath x のとき、終了コード 1 で止める","status":"passed","testResultsByEnv":{"default":"b0a17722b3b027d52d95d4b87ba7a7f1"}}

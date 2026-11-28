@@ -1,0 +1,1 @@
+{"id":"043015a35e1ba8172032ceee4993eaee.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.test.sh#共通でない引数は 1 を返して呼び出し側に回す","name":"共通でない引数は 1 を返して呼び出し側に回す","status":"passed","testResultsByEnv":{"default":"da782a18057105eee69561c1dc1e67e4"}}

@@ -1,0 +1,1 @@
+{"id":"a192c918dd9537157e23689c8a211912.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#slide_sync の theme 指定 (移行前の talk-dir) theme が無ければ theme-required で、MCP の打ち方を示し、何も消さない","name":"theme が無ければ theme-required で、MCP の打ち方を示し、何も消さない","status":"passed","testResultsByEnv":{"default":"b044a24f8ed87ebd192bb3f03f437c6c"}}

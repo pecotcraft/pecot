@@ -1,0 +1,1 @@
+{"id":"cbf33fc2c604de940d6f0c27b1a21d71.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#readWaitsForMerge 同じリポジトリの Issue は #N、別のリポジトリの Issue は owner/repo#N の形で読む","name":"同じリポジトリの Issue は #N、別のリポジトリの Issue は owner/repo#N の形で読む","status":"passed","testResultsByEnv":{"default":"fd549bed56726239fe235548b59351c1"}}

@@ -1,0 +1,1 @@
+{"id":"b5ecbfa5482bb8ce56986e6766d71dad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ pr-check-state-unpushed を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ pr-check-state-unpushed を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"5e6e467a470b5223cafc489206f38b39"}}

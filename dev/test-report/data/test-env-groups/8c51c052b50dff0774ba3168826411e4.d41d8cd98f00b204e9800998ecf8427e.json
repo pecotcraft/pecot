@@ -1,0 +1,1 @@
+{"id":"8c51c052b50dff0774ba3168826411e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#兄弟 PDF `-o` の拡張子が `.pdf` なら、入力を読む前に `invalid-output-extension` で止まる","name":"`-o` の拡張子が `.pdf` なら、入力を読む前に `invalid-output-extension` で止まる","status":"passed","testResultsByEnv":{"default":"1923c379154ea1833c5593ee478719be"}}

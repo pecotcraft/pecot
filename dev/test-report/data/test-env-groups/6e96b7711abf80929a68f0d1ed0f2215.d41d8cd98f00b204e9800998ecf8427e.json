@@ -1,0 +1,1 @@
+{"id":"6e96b7711abf80929a68f0d1ed0f2215.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/require-slides-entry.test.ts#slides.md が存在しないディレクトリを渡すと、null を返す","name":"slides.md が存在しないディレクトリを渡すと、null を返す","status":"passed","testResultsByEnv":{"default":"82189e87d4babdbad004f57f103009bf"}}

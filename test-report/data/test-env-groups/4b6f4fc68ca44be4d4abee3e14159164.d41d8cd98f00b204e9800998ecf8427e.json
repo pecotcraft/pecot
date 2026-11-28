@@ -1,0 +1,1 @@
+{"id":"4b6f4fc68ca44be4d4abee3e14159164.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check MCP の data alert の確認が 1 つ失敗した と、kind が preflight-failed の失敗を返す","name":"alert の確認が 1 つ失敗した と、kind が preflight-failed の失敗を返す","status":"passed","testResultsByEnv":{"default":"35223e94c310bde565730b9b855cbc29"}}

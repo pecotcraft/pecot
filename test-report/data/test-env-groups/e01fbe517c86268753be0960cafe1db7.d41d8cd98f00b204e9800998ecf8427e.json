@@ -1,0 +1,1 @@
+{"id":"e01fbe517c86268753be0960cafe1db7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/pptx-archive.test.ts#YauzlYazlPptxArchive 空ファイルなど不正な ZIP を読み込むと、エラーで失敗する","name":"空ファイルなど不正な ZIP を読み込むと、エラーで失敗する","status":"passed","testResultsByEnv":{"default":"5c58d4f1648c283550919052c22a3e17"}}

@@ -1,0 +1,1 @@
+{"id":"9ec909a2585eae99c63f74e0f50e4bcc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の札 見直しが不要になり、札が Needs Attention の場合は、Todo に戻す","name":"見直しが不要になり、札が Needs Attention の場合は、Todo に戻す","status":"passed","testResultsByEnv":{"default":"947d66cc42e7444ac2fb703736a59cd6"}}

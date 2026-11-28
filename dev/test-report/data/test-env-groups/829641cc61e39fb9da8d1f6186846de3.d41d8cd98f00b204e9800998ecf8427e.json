@@ -1,0 +1,1 @@
+{"id":"829641cc61e39fb9da8d1f6186846de3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 複数の文からなるクエリは、理由を multi-statement として拒否する","name":"複数の文からなるクエリは、理由を multi-statement として拒否する","status":"passed","testResultsByEnv":{"default":"8639f1d410b5b2569cdd174f07d40fa6"}}

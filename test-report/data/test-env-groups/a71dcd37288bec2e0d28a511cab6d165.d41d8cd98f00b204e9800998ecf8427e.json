@@ -1,0 +1,1 @@
+{"id":"a71dcd37288bec2e0d28a511cab6d165.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/config-dispatcher.test.ts#hooks-config.json によるスクリプトの無効化 gh pr create のチェックを設定で無効にすると、通す","name":"gh pr create のチェックを設定で無効にすると、通す","status":"passed","testResultsByEnv":{"default":"e9a4bb3b418a37139c3950539b1f91bb"}}

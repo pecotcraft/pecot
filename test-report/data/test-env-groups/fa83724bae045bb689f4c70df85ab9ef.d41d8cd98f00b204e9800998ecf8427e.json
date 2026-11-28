@@ -1,0 +1,1 @@
+{"id":"fa83724bae045bb689f4c70df85ab9ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#yamlStrings コメントは読まない のとき、引用符を含まない本文だけを切り出す","name":"コメントは読まない のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"935cc59f5025e75930e9692466a1044b"}}

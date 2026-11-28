@@ -1,0 +1,1 @@
+{"id":"258cfc82210ce4571c196807e3e34dc7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues ラベルが PR に付いた場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","name":"ラベルが PR に付いた場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","status":"passed","testResultsByEnv":{"default":"bb24bd60a59456e240835157b168b89d"}}

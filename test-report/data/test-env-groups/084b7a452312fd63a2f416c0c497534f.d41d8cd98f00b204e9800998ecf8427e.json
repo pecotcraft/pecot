@@ -1,0 +1,1 @@
+{"id":"084b7a452312fd63a2f416c0c497534f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/frontmatter-file.test.ts#parseIssueFile Issue のファイルが存在しない場合は、FrontmatterError を送出する","name":"Issue のファイルが存在しない場合は、FrontmatterError を送出する","status":"passed","testResultsByEnv":{"default":"b5fb1ceb28c438e5cb9713bbb6d6184d"}}

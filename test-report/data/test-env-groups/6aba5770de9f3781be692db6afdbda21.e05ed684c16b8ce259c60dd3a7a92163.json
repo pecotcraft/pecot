@@ -1,0 +1,1 @@
+{"id":"6aba5770de9f3781be692db6afdbda21.e05ed684c16b8ce259c60dd3a7a92163","fullName":".githooks.tests.test_nx_task_cache#test_cacheable_target_declares_runtime_and_env","name":"githooks:test-nx-affected は、キャッシュを有効にし、runtime と環境変数を入力に宣言する","status":"passed","testResultsByEnv":{"default":"2892ccae25d1288866426f73aaf94d57"}}

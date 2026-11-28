@@ -1,0 +1,1 @@
+{"id":"26c59e074e09d34b3e8200bfc5d8081a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments 位置引数は、位置の番号の順にして、フラグより先に置く","name":"位置引数は、位置の番号の順にして、フラグより先に置く","status":"passed","testResultsByEnv":{"default":"c1a2f16d3d65c8bffa16ae9e3408d41b"}}

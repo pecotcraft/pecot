@@ -1,0 +1,1 @@
+{"id":"75e71db7bf4e41f26b44a901b2e1ebd9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show ブランチ名 feat/no-number の末尾が番号でないとき、Active Issue の行に none を出して続ける","name":"ブランチ名 feat/no-number の末尾が番号でないとき、Active Issue の行に none を出して続ける","status":"passed","testResultsByEnv":{"default":"a760e2869eb21c94d2ea171a6f3368ee"}}

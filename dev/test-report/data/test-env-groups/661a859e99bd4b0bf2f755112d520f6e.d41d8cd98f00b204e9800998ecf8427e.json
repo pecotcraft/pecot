@@ -1,0 +1,1 @@
+{"id":"661a859e99bd4b0bf2f755112d520f6e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/declaration.test.ts#parseThemeDeclaration 未対応の schema の番号を指定した場合は、警告を表示し、宣言の中身を使わず既定値を返す","name":"未対応の schema の番号を指定した場合は、警告を表示し、宣言の中身を使わず既定値を返す","status":"passed","testResultsByEnv":{"default":"e6665ebc7b307010d4d6edfe515ea206"}}

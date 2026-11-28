@@ -1,0 +1,1 @@
+{"id":"22f11bac5c208277d4ab635617dab721.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#saveConfig release_branch を含む設定を保存すると、読み込み直しても値が保持される","name":"release_branch を含む設定を保存すると、読み込み直しても値が保持される","status":"passed","testResultsByEnv":{"default":"70959b675bc7dedafee86ccb3bce13af"}}

@@ -1,0 +1,1 @@
+PECOT_RESULT {"operation":"stack-register","request_id":"req-1","ok":true,"result":{"change":"added","number":5,"pull_requests":[19,20,21]}}

@@ -1,0 +1,1 @@
+{"id":"bf7811f0c39500f90069503e66abb681.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.bats#起動したスクリプトのパスから SCRIPT_DIR を代入したファイルでは、SCRIPT_DIR で始まる参照を解決する","name":"起動したスクリプトのパスから SCRIPT_DIR を代入したファイルでは、SCRIPT_DIR で始まる参照を解決する","status":"passed","testResultsByEnv":{"default":"759a1e1cc9f1c29320a7dec33035ee7c"}}

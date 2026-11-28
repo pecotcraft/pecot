@@ -1,0 +1,1 @@
+{"id":"01d75db30400406fd42f1dcc66b8b823.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#runSlideConvert のキャンセル (#1228) signal を渡さない場合は、従来どおり最後まで完了する","name":"signal を渡さない場合は、従来どおり最後まで完了する","status":"passed","testResultsByEnv":{"default":"f655c7a653fcab4b947d46df37bafe9f"}}

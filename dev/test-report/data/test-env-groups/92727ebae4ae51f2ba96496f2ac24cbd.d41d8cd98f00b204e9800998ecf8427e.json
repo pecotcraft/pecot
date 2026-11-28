@@ -1,0 +1,1 @@
+{"id":"92727ebae4ae51f2ba96496f2ac24cbd.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#corepack pnpm で起動する script があると、違反として返す","name":"corepack pnpm で起動する script があると、違反として返す","status":"passed","testResultsByEnv":{"default":"bc78e14e445075234da72f150aa82ebc"}}

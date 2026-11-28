@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: worktree wt1 at /tmp/pecot-cli-O3giz5/workspaces/wt1/demo (branch wt1 from develop)"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt1\",\"path\":\"/tmp/pecot-cli-O3giz5/workspaces/wt1/demo\",\"branch\":\"wt1\",\"base\":\"develop\",\"setupFailed\":false,\"warnings\":[\"symlink creation skipped because the path is tracked by git: /tmp/pecot-cli-O3giz5/workspaces/wt1/demo/CLAUDE.local.md\"]}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt1",
+    "path": "/tmp/pecot-cli-O3giz5/workspaces/wt1/demo",
+    "branch": "wt1",
+    "base": "develop",
+    "setupFailed": false,
+    "warnings": [
+      "symlink creation skipped because the path is tracked by git: /tmp/pecot-cli-O3giz5/workspaces/wt1/demo/CLAUDE.local.md"
+    ]
+  }
+}

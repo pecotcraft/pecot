@@ -1,0 +1,1 @@
+{"id":"af3d2fd039cd7a29d8eac87cb1c820cb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の状態 検証が \"PENDING\" のまま 24 時間を超えた場合は、検証の停滞を理由にする","name":"検証が \"PENDING\" のまま 24 時間を超えた場合は、検証の停滞を理由にする","status":"passed","testResultsByEnv":{"default":"83839c5653eea84a12beb039ad797650"}}

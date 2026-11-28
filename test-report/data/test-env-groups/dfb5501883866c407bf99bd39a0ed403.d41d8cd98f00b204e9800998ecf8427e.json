@@ -1,0 +1,1 @@
+{"id":"dfb5501883866c407bf99bd39a0ed403.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/preview-normalize.test.ts#detectPreviewDivergence 図形に名前がない場合は、shapeName を持たない結果を返す","name":"図形に名前がない場合は、shapeName を持たない結果を返す","status":"passed","testResultsByEnv":{"default":"39f43fbb309b57699783aef8b2782fe5"}}

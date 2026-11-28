@@ -1,0 +1,1 @@
+{"id":"4007eadd5ca86beff78956ddc87ddcbc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations Point / Rect box で y が 1 超 の場合は、拒否する","name":"box で y が 1 超 の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"33566c93e7f5f8dc41aa64b9d00cebee"}}

@@ -1,0 +1,1 @@
+{"id":"0536398c42371dbb43b559db2499de5d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/lanes.test.ts#summarizeLanes レーンが未設定の Issue がある場合は、name が null の行を末尾に追加する","name":"レーンが未設定の Issue がある場合は、name が null の行を末尾に追加する","status":"passed","testResultsByEnv":{"default":"d6ab8364bb2916b3cf82c07b8c911179"}}

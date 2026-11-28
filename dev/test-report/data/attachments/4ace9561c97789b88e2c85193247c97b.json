@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "boom"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"boom\",\"count\":4,\"warnings\":[\"slow API\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "boom",
+    "count": 4,
+    "warnings": [
+      "slow API"
+    ]
+  },
+  "isError": true
+}

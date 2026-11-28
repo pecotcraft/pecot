@@ -1,0 +1,1 @@
+{"id":"fbb1047abd794aa7348e7b6d899f4f6a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_stages_and_flags","name":"check-text は pre-commit の stage だけで動き、fail_fast と require_serial を指定する","status":"passed","testResultsByEnv":{"default":"5db454cdf483676ab286d37dd3761283"}}

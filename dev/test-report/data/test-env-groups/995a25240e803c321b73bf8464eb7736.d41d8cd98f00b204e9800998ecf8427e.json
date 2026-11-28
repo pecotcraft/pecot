@@ -1,0 +1,1 @@
+{"id":"995a25240e803c321b73bf8464eb7736.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.bats#引数なしと mcp を付けた起動のどちらでも、tools/list が契約表の 24 件を契約表の順で返す","name":"引数なしと mcp を付けた起動のどちらでも、tools/list が契約表の 24 件を契約表の順で返す","status":"passed","testResultsByEnv":{"default":"e6939a1d00a56139b98cec3117ec907e"}}

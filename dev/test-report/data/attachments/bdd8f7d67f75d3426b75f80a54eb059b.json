@@ -1,0 +1,9 @@
+[
+  "interface-spec:install",
+  "interface-spec:test-site",
+  "interface-spec:test-unit",
+  "pecot-tools:build-cli",
+  "pecot-tools:install",
+  "pecot-tools:test-cli",
+  "pecot:install"
+]

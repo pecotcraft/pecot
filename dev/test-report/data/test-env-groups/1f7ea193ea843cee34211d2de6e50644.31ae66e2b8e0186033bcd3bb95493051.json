@@ -1,0 +1,1 @@
+{"id":"1f7ea193ea843cee34211d2de6e50644.31ae66e2b8e0186033bcd3bb95493051","fullName":".githooks.tests.test_pr_run#test_pr_number_from_head_ref_unreadable","name":"head_ref が gh-readonly-queue/main/pr-x-abc のとき、PR 番号を読み取れず終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"fdb6d45c1e472c36af9e7f4ba1e77ecf"}}

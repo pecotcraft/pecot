@@ -1,0 +1,1 @@
+{"id":"64bc9574786b3f32f7615f1e6b814067.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start project を渡すと、対象のリポを含む設定が 2 つあってもその設定でブランチを作る","name":"project を渡すと、対象のリポを含む設定が 2 つあってもその設定でブランチを作る","status":"passed","testResultsByEnv":{"default":"2d7a92257af8c4595d8d12a489a5f784"}}

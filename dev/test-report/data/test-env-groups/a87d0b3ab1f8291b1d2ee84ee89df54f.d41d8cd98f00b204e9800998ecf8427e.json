@@ -1,0 +1,1 @@
+{"id":"a87d0b3ab1f8291b1d2ee84ee89df54f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments shorthand-list の入力は、要素のキーの順にかかわらず、宣言した順に JSON のキーを並べる","name":"shorthand-list の入力は、要素のキーの順にかかわらず、宣言した順に JSON のキーを並べる","status":"passed","testResultsByEnv":{"default":"bf91aa0c5003f1ccc40d9b151a87844d"}}

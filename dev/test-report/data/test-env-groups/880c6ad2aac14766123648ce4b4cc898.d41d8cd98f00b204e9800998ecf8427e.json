@@ -1,0 +1,1 @@
+{"id":"880c6ad2aac14766123648ce4b4cc898.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_list MCP の data 設定が 1 つも存在しないと projects を空の配列で返す","name":"設定が 1 つも存在しないと projects を空の配列で返す","status":"passed","testResultsByEnv":{"default":"9e58e21052c00aa4941ac958ac6003ba"}}

@@ -1,0 +1,1 @@
+{"id":"dc6b94acd2eb96463e8e3542850fd6a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository mcp_output mcp.output の anyOf の枝だけが閉じていて最上位が閉じていないと、検証エラーにする","name":"mcp.output の anyOf の枝だけが閉じていて最上位が閉じていないと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"c11753b82703d8a9318ab62532f711a5"}}

@@ -1,0 +1,1 @@
+{"id":"d856150fc7f5c45d34ddf3d9d1483a59.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#judgeMove 前提の PR の base が輪になっていれば、見つからない base を理由にしない","name":"前提の PR の base が輪になっていれば、見つからない base を理由にしない","status":"passed","testResultsByEnv":{"default":"7fce63f88ccbb066e743b9083d84fa0c"}}

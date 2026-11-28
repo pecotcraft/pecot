@@ -1,0 +1,1 @@
+{"id":"342d0a08c807f05fc4b3924653866f16.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show MCP の data スタックして着手した作業ディレクトリでは、アクティブな Issue とスタック先を data に返す","name":"スタックして着手した作業ディレクトリでは、アクティブな Issue とスタック先を data に返す","status":"passed","testResultsByEnv":{"default":"295a5ab30766a1f00dff79ecdd98e426"}}

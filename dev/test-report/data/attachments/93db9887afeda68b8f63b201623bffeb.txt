@@ -1,0 +1,4 @@
+devcontainer --version 
+docker pull ghcr.io/example/img:def-73537cf2fde6dea18311cb613f1efa2e5e6ddfbe
+docker image inspect --format {{index .RepoDigests 0}} ghcr.io/example/img:def-73537cf2fde6dea18311cb613f1efa2e5e6ddfbe
+devcontainer read-configuration --workspace-folder /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_up_fails_when_workspace_m0/ws 

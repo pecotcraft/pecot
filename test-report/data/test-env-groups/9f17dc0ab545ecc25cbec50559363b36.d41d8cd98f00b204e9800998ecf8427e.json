@@ -1,0 +1,1 @@
+{"id":"9f17dc0ab545ecc25cbec50559363b36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/changelog-file.test.ts#resolveChangelogPath CHANGELOG.md が存在する場合は、そのパスを返す","name":"CHANGELOG.md が存在する場合は、そのパスを返す","status":"passed","testResultsByEnv":{"default":"45111b3d0c42b26a2010e2db45b54a7b"}}

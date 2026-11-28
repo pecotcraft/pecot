@@ -1,0 +1,1 @@
+{"id":"0c8fc7487a42f3b243246813ed0325c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx の差分キャッシュ 初回の変換では、すべてのステップが miss になり、manifest とキャッシュの成果物を作成する","name":"初回の変換では、すべてのステップが miss になり、manifest とキャッシュの成果物を作成する","status":"passed","testResultsByEnv":{"default":"462f5edb185af277906f87d8724e365e"}}

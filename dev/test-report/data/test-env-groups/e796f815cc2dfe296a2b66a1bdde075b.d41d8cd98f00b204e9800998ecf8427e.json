@@ -1,0 +1,1 @@
+{"id":"e796f815cc2dfe296a2b66a1bdde075b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator text_constraints validation bold_required が文字列だと、検証に失敗する","name":"bold_required が文字列だと、検証に失敗する","status":"passed","testResultsByEnv":{"default":"537b7e54acc433b7c8dd5801202fb424"}}

@@ -1,0 +1,1 @@
+{"id":"1b2ee43c4d16f323ca80cdc45d880e48.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-active の手順 利用者が一覧から選ぶと、allowed-tools の許可を得るため、選んだ Issue を引数にスキルを呼び直す","name":"利用者が一覧から選ぶと、allowed-tools の許可を得るため、選んだ Issue を引数にスキルを呼び直す","status":"passed","testResultsByEnv":{"default":"80f6ceeb51d992bfd6f634c4b2c93e4b"}}

@@ -1,0 +1,1 @@
+{"id":"7ca8e67cf6c27d696cd949696a796ea5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/asset-path/tests/require-resolve-asset-path.test.ts#require-resolve-asset-path invalid window.fetch に絶対パスを渡すと、報告する","name":"window.fetch に絶対パスを渡すと、報告する","status":"passed","testResultsByEnv":{"default":"9bf8c47a058366c7ea3c2e65373132b9"}}

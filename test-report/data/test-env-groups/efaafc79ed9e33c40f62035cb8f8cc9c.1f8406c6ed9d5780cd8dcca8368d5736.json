@@ -1,0 +1,1 @@
+{"id":"efaafc79ed9e33c40f62035cb8f8cc9c.1f8406c6ed9d5780cd8dcca8368d5736","fullName":".githooks.tests.test_run_pr_checks#test_missing_arguments_exit_2","name":"引数が ('', 'head') のように不足している場合は、使い方を表示して終了コード 2 で終了する","status":"passed","testResultsByEnv":{"default":"54613ca7e348ed413b5e45c19aa1cb7f"}}

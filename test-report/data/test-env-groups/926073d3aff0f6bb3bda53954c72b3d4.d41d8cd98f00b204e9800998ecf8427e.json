@@ -1,0 +1,1 @@
+{"id":"926073d3aff0f6bb3bda53954c72b3d4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ board-show-ok-python-state を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ board-show-ok-python-state を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"43c428650130b2ef9f817b1f6a4f030e"}}

@@ -1,0 +1,1 @@
+{"id":"a240744696dcf3a21c9ec3193bd59213.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_summary_names_the_site_kind","name":"定義書を保管した場合は、概要に種類として「定義書」を表示する","status":"passed","testResultsByEnv":{"default":"f53b91016772b82feb491aa3daabd8de"}}

@@ -1,0 +1,1 @@
+{"id":"d86980f5f29387a506422af0815c4d87.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main 読み込みに失敗したファイルの名前を、標準エラーの出力に含めて、終了コード 2 を返す","name":"読み込みに失敗したファイルの名前を、標準エラーの出力に含めて、終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"0c9a9e500d4023779ad5e840c7064941"}}

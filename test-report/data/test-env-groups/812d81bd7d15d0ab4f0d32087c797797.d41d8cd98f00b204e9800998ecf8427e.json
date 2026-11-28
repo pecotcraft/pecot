@@ -1,0 +1,1 @@
+{"id":"812d81bd7d15d0ab4f0d32087c797797.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/load.test.ts#syntax errors with a position 不正な JSON は、エラーの行番号を付けて syntax の状態で返す","name":"不正な JSON は、エラーの行番号を付けて syntax の状態で返す","status":"passed","testResultsByEnv":{"default":"b463663e5315f86f27d8d7f14c530437"}}

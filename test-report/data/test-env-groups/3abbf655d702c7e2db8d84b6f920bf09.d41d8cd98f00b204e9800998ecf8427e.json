@@ -1,0 +1,1 @@
+{"id":"3abbf655d702c7e2db8d84b6f920bf09.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestSlim ドラフトで mergeable が UNKNOWN の場合は、その値をそのまま返す","name":"ドラフトで mergeable が UNKNOWN の場合は、その値をそのまま返す","status":"passed","testResultsByEnv":{"default":"313e0fbc6c3d7063b8f2e6ced73f1c65"}}

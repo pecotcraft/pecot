@@ -1,0 +1,1 @@
+{"id":"96074aa795926a185239e65665f23248.97e1e20464543c585ead136b712f177d","fullName":".githooks.tests.test_report_generate#test_unreadable_history_is_emptied_with_notice","name":"履歴に読めない行(broken)があると、履歴を空にして、通知する","status":"passed","testResultsByEnv":{"default":"b20a568c75389cb30b8a2b2230f37c21"}}

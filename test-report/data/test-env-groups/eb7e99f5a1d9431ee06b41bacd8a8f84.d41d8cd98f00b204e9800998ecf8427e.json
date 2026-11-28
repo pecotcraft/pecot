@@ -1,0 +1,1 @@
+{"id":"eb7e99f5a1d9431ee06b41bacd8a8f84.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#doesContainJapanese 半角英数字のみ（入力 \"Hello World 123\"）のとき、false を返す","name":"半角英数字のみ（入力 \"Hello World 123\"）のとき、false を返す","status":"passed","testResultsByEnv":{"default":"90a777a4ccfa095a05f0607c0a42e58a"}}

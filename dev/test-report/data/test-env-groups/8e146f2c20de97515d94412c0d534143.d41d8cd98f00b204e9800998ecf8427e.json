@@ -1,0 +1,1 @@
+{"id":"8e146f2c20de97515d94412c0d534143.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#assumePullRequestState 前提の PR の一覧に該当の PR が存在しなければ、仮定した状態で追加する","name":"前提の PR の一覧に該当の PR が存在しなければ、仮定した状態で追加する","status":"passed","testResultsByEnv":{"default":"cbcbcc0abab0c3545a0f37ea64a86190"}}

@@ -1,0 +1,1 @@
+{"id":"fbc3ff7424979d3b55f9ac6f53e1f4d6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 失敗したときは、最上位に kind と detail を置き、reason と stderr を含めない","name":"失敗したときは、最上位に kind と detail を置き、reason と stderr を含めない","status":"passed","testResultsByEnv":{"default":"9a0502d21c36bb4987fbf8ace8e8dead"}}

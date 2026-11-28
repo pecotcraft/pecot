@@ -1,0 +1,1 @@
+{"id":"3d9a07083008e94d77504d8383afddde.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender.test.ts#restorePrerenderElements scopeSelector を指定した場合は、その要素の内側だけを元に戻す","name":"scopeSelector を指定した場合は、その要素の内側だけを元に戻す","status":"passed","testResultsByEnv":{"default":"942d62beb4d5e82dcb86e1b4763d5435"}}

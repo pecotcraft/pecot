@@ -1,0 +1,1 @@
+{"id":"4509b48abfe2a91d634c77fa426e387a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#judgeReadiness の順 順 8: base をたどる途中で輪になっても止まり、開発ブランチに届かない列は diverged になる","name":"順 8: base をたどる途中で輪になっても止まり、開発ブランチに届かない列は diverged になる","status":"passed","testResultsByEnv":{"default":"c88a79e4d19e3a0f8363fbc1d2d5d672"}}

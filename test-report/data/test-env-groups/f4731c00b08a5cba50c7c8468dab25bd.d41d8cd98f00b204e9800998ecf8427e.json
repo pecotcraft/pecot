@@ -1,0 +1,1 @@
+{"id":"f4731c00b08a5cba50c7c8468dab25bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/e2e/mcp-stdio.test.ts#pecot-tools-mcp (stdio) 入れ子の配列の引数は、JSON-RPC の通信を経由しても、awscli の引数として 1 つの JSON になる","name":"入れ子の配列の引数は、JSON-RPC の通信を経由しても、awscli の引数として 1 つの JSON になる","status":"passed","testResultsByEnv":{"default":"8fb2a47ce4bd1d4ab404be98bc8f900a"}}

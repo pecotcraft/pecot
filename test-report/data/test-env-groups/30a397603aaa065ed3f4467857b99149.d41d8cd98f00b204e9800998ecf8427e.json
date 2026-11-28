@@ -1,0 +1,1 @@
+{"id":"30a397603aaa065ed3f4467857b99149.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slides-title.test.ts#sanitizeFilename 禁止文字 / は _ に置換（入力 \"a/b\"）の場合は、ファイル名として使える文字列を返す","name":"禁止文字 / は _ に置換（入力 \"a/b\"）の場合は、ファイル名として使える文字列を返す","status":"passed","testResultsByEnv":{"default":"3a56255027f8f1e800d11a44eeeca90f"}}

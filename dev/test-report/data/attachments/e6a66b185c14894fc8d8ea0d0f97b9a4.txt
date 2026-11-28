@@ -1,0 +1,1 @@
+ERROR: --dist と --runtime-dist は両方指定するか両方省略してください

@@ -1,0 +1,1 @@
+{"id":"70937a32b414ba16c3e5931bcda8bc6d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/failure-kinds-definition.test.ts#定義書の exit_status と実装 ツール aws_s3_ls の exit_status は、awscli の実行の失敗で返しうる種類と一致する","name":"ツール aws_s3_ls の exit_status は、awscli の実行の失敗で返しうる種類と一致する","status":"passed","testResultsByEnv":{"default":"1cefd75be5f7c7030111c72ccd479934"}}

@@ -1,0 +1,100 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Project info"
+    },
+    {
+      "type": "text",
+      "text": "{\"project\":{\"name\":\"ghes.example.com_acme_board_acme\",\"host\":\"ghes.example.com\",\"owner\":\"acme\",\"number\":1,\"aggregation_repo\":null},\"repositories\":[{\"full_name\":\"acme/demo\",\"owner\":\"acme\",\"name\":\"demo\",\"develop_branch\":\"main\",\"release_branch\":null,\"dependabot_alerts\":{\"enabled\":true,\"open_count\":0,\"max_severity\":null,\"alerts_url\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"release_type\":\"single\",\"packages\":[]}],\"board\":{\"items\":[{\"id\":\"PVTI_7\",\"workflow\":\"Ready\",\"lane\":\"beta\",\"title\":\"課題7\",\"updatedAt\":\"2026-01-02T03:04:05Z\",\"content\":{\"number\":7,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/other/issues/7\",\"labels\":[],\"repository\":\"acme/other\"},\"readiness\":{\"kind\":\"startable\",\"stackOn\":null,\"reason\":null,\"text\":\"startable\"}},{\"id\":\"PVTI_8\",\"workflow\":\"Backlog\",\"lane\":null,\"title\":\"課題8\",\"updatedAt\":\"2026-01-02T03:04:05Z\",\"content\":{\"number\":8,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/other/issues/8\",\"labels\":[],\"repository\":\"acme/other\"},\"readiness\":null}]},\"lanes\":[{\"name\":\"alpha\",\"count\":0,\"startable\":0},{\"name\":\"beta\",\"count\":1,\"startable\":1},{\"name\":\"gamma\",\"count\":0,\"startable\":0},{\"name\":null,\"count\":1,\"startable\":0}],\"mismatches\":0}"
+    }
+  ],
+  "structuredContent": {
+    "project": {
+      "name": "ghes.example.com_acme_board_acme",
+      "host": "ghes.example.com",
+      "owner": "acme",
+      "number": 1,
+      "aggregation_repo": null
+    },
+    "repositories": [
+      {
+        "full_name": "acme/demo",
+        "owner": "acme",
+        "name": "demo",
+        "develop_branch": "main",
+        "release_branch": null,
+        "dependabot_alerts": {
+          "enabled": true,
+          "open_count": 0,
+          "max_severity": null,
+          "alerts_url": "https://ghes.example.com/acme/demo/security/dependabot"
+        },
+        "release_type": "single",
+        "packages": []
+      }
+    ],
+    "board": {
+      "items": [
+        {
+          "id": "PVTI_7",
+          "workflow": "Ready",
+          "lane": "beta",
+          "title": "課題7",
+          "updatedAt": "2026-01-02T03:04:05Z",
+          "content": {
+            "number": 7,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/other/issues/7",
+            "labels": [],
+            "repository": "acme/other"
+          },
+          "readiness": {
+            "kind": "startable",
+            "stackOn": null,
+            "reason": null,
+            "text": "startable"
+          }
+        },
+        {
+          "id": "PVTI_8",
+          "workflow": "Backlog",
+          "lane": null,
+          "title": "課題8",
+          "updatedAt": "2026-01-02T03:04:05Z",
+          "content": {
+            "number": 8,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/other/issues/8",
+            "labels": [],
+            "repository": "acme/other"
+          },
+          "readiness": null
+        }
+      ]
+    },
+    "lanes": [
+      {
+        "name": "alpha",
+        "count": 0,
+        "startable": 0
+      },
+      {
+        "name": "beta",
+        "count": 1,
+        "startable": 1
+      },
+      {
+        "name": "gamma",
+        "count": 0,
+        "startable": 0
+      },
+      {
+        "name": null,
+        "count": 1,
+        "startable": 0
+      }
+    ],
+    "mismatches": 0
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"b96e9bb007c86750a4bd84ba72a4ffc5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-check.test.ts#branch_check 開発ブランチから作るのに base を省くと、開発ブランチを候補にした required の problem を返す","name":"開発ブランチから作るのに base を省くと、開発ブランチを候補にした required の problem を返す","status":"passed","testResultsByEnv":{"default":"22eca7bc8700b71126bffbe0c1b03907"}}

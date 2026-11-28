@@ -1,0 +1,1 @@
+{"id":"ae411ee592c76650e93c09282c9c7a57.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#yamlStrings 単引用符の値は中身だけ のとき、引用符を含まない本文だけを切り出す","name":"単引用符の値は中身だけ のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"fe629b89d1758c3964a348c90e59a5ed"}}

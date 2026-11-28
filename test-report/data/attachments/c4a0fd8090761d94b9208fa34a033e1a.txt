@@ -1,0 +1,3 @@
+error: the base branch of PR #31 does not match release_branch
+  base: main
+  release_branch: release

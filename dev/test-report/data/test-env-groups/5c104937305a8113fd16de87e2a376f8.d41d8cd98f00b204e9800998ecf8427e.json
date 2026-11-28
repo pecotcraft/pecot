@@ -1,0 +1,1 @@
+{"id":"5c104937305a8113fd16de87e2a376f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#排他指定 image_ids と starting_token を同時に指定した場合は、invalid-input として拒否する","name":"image_ids と starting_token を同時に指定した場合は、invalid-input として拒否する","status":"passed","testResultsByEnv":{"default":"4eb3e9c34f8c68a29e8b53a0d0df0e02"}}

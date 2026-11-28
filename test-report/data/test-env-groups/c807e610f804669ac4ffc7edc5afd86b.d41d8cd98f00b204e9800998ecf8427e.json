@@ -1,0 +1,1 @@
+{"id":"c807e610f804669ac4ffc7edc5afd86b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyTransition p:timing がある場合は、transition を clrMapOvr の後、timing の前に挿入する","name":"p:timing がある場合は、transition を clrMapOvr の後、timing の前に挿入する","status":"passed","testResultsByEnv":{"default":"2024fc32d5ca66bd82ceef3693980ca6"}}

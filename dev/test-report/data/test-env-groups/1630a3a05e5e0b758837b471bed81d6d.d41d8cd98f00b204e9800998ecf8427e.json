@@ -1,0 +1,1 @@
+{"id":"1630a3a05e5e0b758837b471bed81d6d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/result.test.ts#toCallToolResult メッセージが空の結果を変換すると、content は JSON の text だけになる","name":"メッセージが空の結果を変換すると、content は JSON の text だけになる","status":"passed","testResultsByEnv":{"default":"9e2e40e7b3c138d574aae7db7557e506"}}

@@ -1,0 +1,1 @@
+{"id":"b79b8c89baf97c3d1f4947a019ac9474.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine serialize は、XML 宣言とルートの間の空白を取り除き、ルートの後に改行を 1 つ置く","name":"serialize は、XML 宣言とルートの間の空白を取り除き、ルートの後に改行を 1 つ置く","status":"passed","testResultsByEnv":{"default":"0ca9b18d99af7f9c780a2bcf99dd1b6c"}}

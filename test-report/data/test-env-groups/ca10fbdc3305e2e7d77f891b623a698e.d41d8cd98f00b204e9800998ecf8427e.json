@@ -1,0 +1,1 @@
+{"id":"ca10fbdc3305e2e7d77f891b623a698e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#computePruneTargets / removeEntries 指定したキーのエントリを除いた manifest を返す","name":"指定したキーのエントリを除いた manifest を返す","status":"passed","testResultsByEnv":{"default":"944a61abb9444583f7ee5b3985915c9b"}}

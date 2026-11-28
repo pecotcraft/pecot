@@ -1,0 +1,1 @@
+{"id":"e833c3f25eb3b66642ee326119c3b329.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — JPEG JPEG は、セグメントの長さのフィールドが途中で終わっている場合は、読み取れないものとして扱う","name":"JPEG は、セグメントの長さのフィールドが途中で終わっている場合は、読み取れないものとして扱う","status":"passed","testResultsByEnv":{"default":"9ec39c48901c47fc561e25ac524d6a65"}}

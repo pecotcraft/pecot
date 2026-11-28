@@ -1,0 +1,1 @@
+{"id":"b54fae63a203eed9c33b93d53bf2386d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#moderate の advisory だけなら、要約行に件数を出して監査を通す","name":"moderate の advisory だけなら、要約行に件数を出して監査を通す","status":"passed","testResultsByEnv":{"default":"12a81b2ce6df1c6e7d1ba8de76bb1e94"}}

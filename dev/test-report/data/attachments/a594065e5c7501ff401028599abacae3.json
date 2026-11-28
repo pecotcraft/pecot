@@ -1,0 +1,39 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: the body still has the frontmatter of the template: pass its keys as arguments and leave them out of body"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"frontmatter\",\"message\":\"the body still has the frontmatter of the template: pass its keys as arguments and leave them out of body\"},{\"field\":\"body\",\"code\":\"body-style\",\"message\":\"unusable notation (pecot-template://issue/task): horizontal rules are not allowed\"},{\"field\":\"body\",\"code\":\"body-style\",\"message\":\"unusable notation (pecot-template://issue/task): a paragraph is broken across lines: GitHub shows line breaks as written, so write each paragraph on one line and separate paragraphs with a blank line\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "frontmatter",
+        "message": "the body still has the frontmatter of the template: pass its keys as arguments and leave them out of body"
+      },
+      {
+        "field": "body",
+        "code": "body-style",
+        "message": "unusable notation (pecot-template://issue/task): horizontal rules are not allowed"
+      },
+      {
+        "field": "body",
+        "code": "body-style",
+        "message": "unusable notation (pecot-template://issue/task): a paragraph is broken across lines: GitHub shows line breaks as written, so write each paragraph on one line and separate paragraphs with a blank line"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

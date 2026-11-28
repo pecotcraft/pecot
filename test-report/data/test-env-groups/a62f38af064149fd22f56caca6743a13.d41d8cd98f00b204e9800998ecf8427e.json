@@ -1,0 +1,1 @@
+{"id":"a62f38af064149fd22f56caca6743a13.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_ruleset_main#test_bypass_is_release_app_only","name":"ルールを迂回できるのは、リリース用の GitHub App だけに限る","status":"passed","testResultsByEnv":{"default":"04ee20a5c3e01bacad0ea47e36e952d4"}}

@@ -1,0 +1,1 @@
+count: symlinks created in /tmp/pecot-cli-Y9bVCl/workspaces/wt1/demo: 1

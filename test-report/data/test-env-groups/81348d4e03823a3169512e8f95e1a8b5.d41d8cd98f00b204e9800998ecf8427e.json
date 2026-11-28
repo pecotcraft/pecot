@@ -1,0 +1,1 @@
+{"id":"81348d4e03823a3169512e8f95e1a8b5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#pushFixHintOf 判断を読めない の場合は、pr_restack with check: true を案内する","name":"判断を読めない の場合は、pr_restack with check: true を案内する","status":"passed","testResultsByEnv":{"default":"0a9eb660e80ea36d70ab61c37798afc1"}}

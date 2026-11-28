@@ -1,0 +1,1 @@
+{"id":"c6b9bcd281847fe76c8176d9ff26f23e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#symlink 経由の talk-dir talk-dir 自体が symlink でも、実際のパスで実行した場合と同じ結果を集計する","name":"talk-dir 自体が symlink でも、実際のパスで実行した場合と同じ結果を集計する","status":"passed","testResultsByEnv":{"default":"314fd1f3cb40c8a93698f375f44e20ae"}}

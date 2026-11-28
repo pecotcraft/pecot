@@ -1,0 +1,1 @@
+{"id":"2789f33ab40124379327a0756e6ad921.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template タグの名前が続かない < は、タグではなく、本文の文字として読む","name":"タグの名前が続かない < は、タグではなく、本文の文字として読む","status":"passed","testResultsByEnv":{"default":"4a63488f1609a12305bf0e62b7c1122f"}}

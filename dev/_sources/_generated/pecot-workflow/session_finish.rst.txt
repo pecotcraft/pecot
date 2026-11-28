@@ -1,0 +1,8 @@
+:iface-id: PW-SESSION-FINISH
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Clean up after merge
+========================================
+
+.. iface-defs:: pecot-workflow PW-SESSION-FINISH

@@ -1,0 +1,1 @@
+{"id":"a66e14fd960d80f4872560c354bbda06.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_verbose_only_on_hooks_that_print_a_success_line","name":"`verbose: true` は、成功時にも行を出力する nx-affected-tests にだけ指定する","status":"passed","testResultsByEnv":{"default":"4aac20c8bf8a56b7d230f50a5d1e0826"}}

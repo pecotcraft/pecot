@@ -1,0 +1,1 @@
+{"id":"519d93bf539dbb30c21e83beb2809eda.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_prefetch_pull_failure_falls_back_to_build","name":"prefetch の pull に失敗しても、up は build にフォールバックする","status":"passed","testResultsByEnv":{"default":"dfb4c1e95883b25837c6094ad28a5bb9"}}

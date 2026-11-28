@@ -1,0 +1,1 @@
+{"id":"057726a77625c1004258edfa97d74eec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/issue-surface-extract.test.ts#issue-surface-extract.ts 未定義の引数を指定する と、usage を出力して終了コード 2 で終了し、取得しない","name":"未定義の引数を指定する と、usage を出力して終了コード 2 で終了し、取得しない","status":"passed","testResultsByEnv":{"default":"72f9e81e10e132255c214149a3fb516d"}}

@@ -1,0 +1,1 @@
+{"id":"5243ebf7da2cdf7ee29fdbbf2987f5d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order エラーのメッセージは、validation error: の後に項目ごとの行を続ける","name":"エラーのメッセージは、validation error: の後に項目ごとの行を続ける","status":"passed","testResultsByEnv":{"default":"2eea5bb917a052686e7ee51c5d7af81a"}}

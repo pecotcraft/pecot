@@ -1,0 +1,1 @@
+{"id":"0cf69f328326ea8b25476158c3210ca1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#formatBoardOutput workflow が未設定でどのステータスにも項目がない場合は、プレースホルダだけを表示する","name":"workflow が未設定でどのステータスにも項目がない場合は、プレースホルダだけを表示する","status":"passed","testResultsByEnv":{"default":"7e61bb29f365cbd846969a9bce0bb8f1"}}

@@ -1,0 +1,1 @@
+{"id":"400651dab6c2d1e3479cc6f5765e2ed2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate Blocked が存在しないボードでも同期が通り、設定ファイルに blocked のキーを書かない","name":"Blocked が存在しないボードでも同期が通り、設定ファイルに blocked のキーを書かない","status":"passed","testResultsByEnv":{"default":"55da6dbb1c28d8af4842f48a3e191f2b"}}

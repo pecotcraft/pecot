@@ -1,0 +1,1 @@
+{"id":"afa95434492f80138addc3a4ef7706c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText 指摘の対象にならない入力 \"短い文です。\" は、どのモードでも空の配列を返す","name":"指摘の対象にならない入力 \"短い文です。\" は、どのモードでも空の配列を返す","status":"passed","testResultsByEnv":{"default":"40614d355d10559e77e6435e627ebd1f"}}

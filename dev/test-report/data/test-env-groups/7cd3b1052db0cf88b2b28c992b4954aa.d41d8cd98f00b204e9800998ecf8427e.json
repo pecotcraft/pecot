@@ -1,0 +1,1 @@
+{"id":"7cd3b1052db0cf88b2b28c992b4954aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/failure-kinds-definition.test.ts#定義書の exit_status と実装 定義書の exit_status の kind を集めた集合が、実装の FAILURE_KINDS と一致する","name":"定義書の exit_status の kind を集めた集合が、実装の FAILURE_KINDS と一致する","status":"passed","testResultsByEnv":{"default":"9b3b24ef6dc4fa9e1a16c758fc601ab1"}}

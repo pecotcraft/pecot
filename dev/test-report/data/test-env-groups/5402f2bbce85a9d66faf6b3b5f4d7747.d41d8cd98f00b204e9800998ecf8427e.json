@@ -1,0 +1,1 @@
+{"id":"5402f2bbce85a9d66faf6b3b5f4d7747.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.bats#SCRIPT_DIR を代入しないファイルでは、SCRIPT_DIR で始まる参照を UNRESOLVED と判定する","name":"SCRIPT_DIR を代入しないファイルでは、SCRIPT_DIR で始まる参照を UNRESOLVED と判定する","status":"passed","testResultsByEnv":{"default":"ce0ad496e7e87e6b8cf61b70f7b6b07c"}}

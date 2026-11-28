@@ -1,0 +1,1 @@
+{"id":"4dd1ec058c33349e2d16b4347425c5c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh HOOK_WORKING_DIR が未設定のとき、pwd のブランチで判定して止める","name":"HOOK_WORKING_DIR が未設定のとき、pwd のブランチで判定して止める","status":"passed","testResultsByEnv":{"default":"b4e4c9ca5f727f12644f68d8ce442118"}}

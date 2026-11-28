@@ -1,0 +1,1 @@
+{"id":"3096075470d797c141f0a53674145d88.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync Blocked の Issue の判定が startable なら、Ready へ動かす","name":"Blocked の Issue の判定が startable なら、Ready へ動かす","status":"passed","testResultsByEnv":{"default":"d613c081d01f624ab6e7500c98b9d5ac"}}

@@ -1,0 +1,1 @@
+{"id":"93f96fb4e4cfce40e294c14426fe9833.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/result.test.ts#createOutputCapture 1 回の書き込みが上限を超えた場合は、その末尾だけを残す","name":"1 回の書き込みが上限を超えた場合は、その末尾だけを残す","status":"passed","testResultsByEnv":{"default":"65e7a8f7d015bd64166f485edaac8356"}}

@@ -1,0 +1,1 @@
+{"id":"db6c52763b986fc7bb16999128127229.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show スタックしていて 親ブランチが remote に無いと答えた と、baseBranch を origin/main にする","name":"スタックしていて 親ブランチが remote に無いと答えた と、baseBranch を origin/main にする","status":"passed","testResultsByEnv":{"default":"8f400551d79bf68f465b1ae2a535683e"}}

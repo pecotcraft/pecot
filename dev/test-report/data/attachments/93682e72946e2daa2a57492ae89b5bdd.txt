@@ -1,0 +1,3 @@
+warning: theme /theme-root has no pecot-theme.json declaration; continuing with the defaults
+warning: pptx.linkColor is omitted, so links are not converted in the PPTX (no hyperlinks are added); to convert links, set pptx.linkColor in pecot-theme.json to 6 hex digits
+warning: pptx.eastAsianFont is omitted, so no East Asian font is written to the PPTX; to set the Japanese font, set pptx.eastAsianFont in pecot-theme.json to a font name

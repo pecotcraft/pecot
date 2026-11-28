@@ -1,0 +1,1 @@
+{"id":"f3946c750ab0ae9400a3ef5d1e952555.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint eslint の終わり方が 致命的なエラー なら、違反と言わずに lint しなかったことを返す","name":"eslint の終わり方が 致命的なエラー なら、違反と言わずに lint しなかったことを返す","status":"passed","testResultsByEnv":{"default":"b66b3d62f1fd16ff118e1fa190ee8ad2"}}

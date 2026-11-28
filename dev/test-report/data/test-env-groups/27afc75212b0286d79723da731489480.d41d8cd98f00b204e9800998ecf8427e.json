@@ -1,0 +1,1 @@
+{"id":"27afc75212b0286d79723da731489480.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#hasBoldEmphasis 全文を <strong> で囲むと、強調の対比が無いので false を返す","name":"全文を <strong> で囲むと、強調の対比が無いので false を返す","status":"passed","testResultsByEnv":{"default":"9fccac3423598201ae844511ef7bc2f2"}}

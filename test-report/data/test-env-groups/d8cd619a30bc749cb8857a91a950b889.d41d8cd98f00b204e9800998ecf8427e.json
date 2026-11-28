@@ -1,0 +1,1 @@
+{"id":"d8cd619a30bc749cb8857a91a950b889.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate リンクを外したリポジトリがあるプロジェクトを同期すると、そのリポジトリを設定ファイルから消す","name":"リンクを外したリポジトリがあるプロジェクトを同期すると、そのリポジトリを設定ファイルから消す","status":"passed","testResultsByEnv":{"default":"2ae0504ed93727320e476b85c367a571"}}

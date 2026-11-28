@@ -1,0 +1,1 @@
+{"id":"e0a1e16890bd329f1e476f08da50aa76.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: コードフェンス・インラインコード・HTML コメントのマスク（#962） 閉じていないコードフェンスは、エラーにする（フェンス以降の検証の回避を防ぐ）","name":"閉じていないコードフェンスは、エラーにする（フェンス以降の検証の回避を防ぐ）","status":"passed","testResultsByEnv":{"default":"a91794d7a64e5a4b6080edaf8ccf84c2"}}

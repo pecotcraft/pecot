@@ -1,0 +1,1 @@
+{"id":"d5751fbae52e7e18aa46cb74897e94c6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/slidev-runner.test.ts#ChildProcessSlidevRunner theme を指定すると、引数に --theme とテーマの名前を渡す","name":"theme を指定すると、引数に --theme とテーマの名前を渡す","status":"passed","testResultsByEnv":{"default":"cde5ba5374a50be58502dc59863065d9"}}

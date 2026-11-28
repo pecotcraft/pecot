@@ -1,0 +1,1 @@
+{"id":"21c88e8ac6f1672e9976b74a74c4ae3f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck 対象のリポジトリを決められないと、error を出して失敗にする","name":"対象のリポジトリを決められないと、error を出して失敗にする","status":"passed","testResultsByEnv":{"default":"537505558915118aa34d9a2b4b34c119"}}

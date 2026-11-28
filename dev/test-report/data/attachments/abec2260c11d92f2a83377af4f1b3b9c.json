@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_s3_ls failed (auth-missing). Not authenticated. Run aws_sso_login or specify a profile"
+    },
+    {
+      "type": "text",
+      "text": "{\"log\":\"fatal error: Unable to locate credentials\\n\",\"kind\":\"auth-missing\",\"detail\":\"aws_s3_ls failed (auth-missing). Not authenticated. Run aws_sso_login or specify a profile\"}"
+    }
+  ],
+  "structuredContent": {
+    "log": "fatal error: Unable to locate credentials\n",
+    "kind": "auth-missing",
+    "detail": "aws_s3_ls failed (auth-missing). Not authenticated. Run aws_sso_login or specify a profile"
+  },
+  "isError": true
+}

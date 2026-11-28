@@ -1,0 +1,1 @@
+{"id":"35adbe5edb203a1d22676404db453fcf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/payload.test.ts#必須の値 requireString（無い） の場合は、場所を示すメッセージの GitHubAPIError が発生する","name":"requireString（無い） の場合は、場所を示すメッセージの GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"8e14330b6e319061cc8c8624df973342"}}

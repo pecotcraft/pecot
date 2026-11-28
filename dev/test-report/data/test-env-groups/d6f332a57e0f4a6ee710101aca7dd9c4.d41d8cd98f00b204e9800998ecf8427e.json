@@ -1,0 +1,1 @@
+{"id":"d6f332a57e0f4a6ee710101aca7dd9c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync open の Tracker が複数あると、使わないものを閉じない","name":"open の Tracker が複数あると、使わないものを閉じない","status":"passed","testResultsByEnv":{"default":"8bcb1aaa92f732b14c97ed1880c2bc39"}}

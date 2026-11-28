@@ -1,0 +1,1 @@
+{"id":"65062759e1695646fd48204d5fb4abba.c88d2d410425f767677aead121236ca1","fullName":".githooks.tests.test_nx_task_cache#test_lane_that_runs_template_eslint_plugins_builds_them_first","name":"pecot-visual:test-cli は、eslint plugin の dist を作る build-slidev を先に実行する","status":"passed","testResultsByEnv":{"default":"09b4ff1ab097c697d72cb18e28dab411"}}

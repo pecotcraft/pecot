@@ -1,0 +1,1 @@
+{"id":"f015753bd109a175f1d73ce8fdd8ac0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data MCP の呼び出し 記録が無い作業ディレクトリ 判定を読む GitHub への接続が切れる とき、投稿では PR を作らずに失敗を返す","name":"判定を読む GitHub への接続が切れる とき、投稿では PR を作らずに失敗を返す","status":"passed","testResultsByEnv":{"default":"a501602e5b5f770ee0e5f7534583415c"}}

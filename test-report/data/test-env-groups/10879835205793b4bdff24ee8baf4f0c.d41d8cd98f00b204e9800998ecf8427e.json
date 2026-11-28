@@ -1,0 +1,1 @@
+{"id":"10879835205793b4bdff24ee8baf4f0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う","name":"project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う","status":"passed","testResultsByEnv":{"default":"22b8d5c853921e128c3f19ae69b32eb8"}}

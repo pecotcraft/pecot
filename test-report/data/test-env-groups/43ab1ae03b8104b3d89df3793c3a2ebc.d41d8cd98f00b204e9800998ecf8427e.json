@@ -1,0 +1,1 @@
+{"id":"43ab1ae03b8104b3d89df3793c3a2ebc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_fallback_run_many_failure_reports_failed_lane","name":"run-many に切り替えた場合も、ログへの保存と失敗したレーンの表示が有効になる","status":"passed","testResultsByEnv":{"default":"0c160cb15039cd2e598e7fe3157fa642"}}

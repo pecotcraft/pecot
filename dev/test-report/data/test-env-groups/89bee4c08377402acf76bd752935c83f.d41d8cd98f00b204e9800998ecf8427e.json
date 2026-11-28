@@ -1,0 +1,1 @@
+{"id":"89bee4c08377402acf76bd752935c83f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/process-run.test.ts#runProcess 子プロセスを、呼び出し元とは別のプロセスグループで実行する","name":"子プロセスを、呼び出し元とは別のプロセスグループで実行する","status":"passed","testResultsByEnv":{"default":"36c2022aff882d2f0bd987bf995c9c5b"}}

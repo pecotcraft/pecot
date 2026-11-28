@@ -1,0 +1,1 @@
+{"id":"557e7afcf2f6b3c4331396f30e50bbfc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/interface-export.test.ts#generated.json の書き出し names は区切りが _ で、aws とサービスの後ろに任意の語を許可し、どのツール名もサービスが語彙に存在する","name":"names は区切りが _ で、aws とサービスの後ろに任意の語を許可し、どのツール名もサービスが語彙に存在する","status":"passed","testResultsByEnv":{"default":"09eb711c784f001eb19533515f2f9bef"}}

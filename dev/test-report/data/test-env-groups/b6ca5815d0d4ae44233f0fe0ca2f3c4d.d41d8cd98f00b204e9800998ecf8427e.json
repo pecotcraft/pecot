@@ -1,0 +1,1 @@
+{"id":"b6ca5815d0d4ae44233f0fe0ca2f3c4d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_task_cache#test_graph_has_no_test_or_lint_target_outside_project_json","name":"project.json に宣言していない test と lint の target は、graph に存在しない","status":"passed","testResultsByEnv":{"default":"32c52e2de338c40b24d3ebcc04dbd9ab"}}

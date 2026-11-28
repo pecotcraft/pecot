@@ -1,0 +1,1 @@
+{"id":"e82b83f276071bb24da45e20ed7f6b3a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check もしコミットの数を GitHub から数えられないなら、error の行を出して終了コード 1 で終わる","name":"もしコミットの数を GitHub から数えられないなら、error の行を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"d938decb75fe7aec02616233ae984b04"}}

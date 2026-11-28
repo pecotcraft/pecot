@@ -1,0 +1,1 @@
+{"id":"1134e66fb60f38c177819f67de0de3e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#nxProjects graph ファイルは .pecot/tmp の下に作成し、処理が終わったら削除する","name":"graph ファイルは .pecot/tmp の下に作成し、処理が終わったら削除する","status":"passed","testResultsByEnv":{"default":"fd129894c9f4a459a2e6cd2609d3ab6b"}}

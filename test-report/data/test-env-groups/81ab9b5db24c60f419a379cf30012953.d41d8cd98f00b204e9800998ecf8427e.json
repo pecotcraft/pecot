@@ -1,0 +1,1 @@
+{"id":"81ab9b5db24c60f419a379cf30012953.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show MCP の data 短い形 N の参照を渡すと、origin が無いときの upstream の remote で補って読む","name":"短い形 N の参照を渡すと、origin が無いときの upstream の remote で補って読む","status":"passed","testResultsByEnv":{"default":"5a816ef131e26f75df7fb10dd62ab8db"}}

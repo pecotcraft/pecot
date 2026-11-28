@@ -1,0 +1,1 @@
+{"id":"dc5a97fe5cfec2838528db7f78ce5943.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-judgment.test.ts#applyJudgedMoves 列を移動する必要がない判定の場合は、何も書き込まない","name":"列を移動する必要がない判定の場合は、何も書き込まない","status":"passed","testResultsByEnv":{"default":"fb7cc45db2c2e6a1456aeabba84235c9"}}

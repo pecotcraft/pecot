@@ -1,0 +1,2 @@
+ERROR: 位置引数は before / after の 2 つ: 1 個を受け取った
+usage: node compare-pptx.mjs <before.pptx> <after.pptx> [--all] [--max-list <N>] [--out <path>]

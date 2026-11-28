@@ -1,0 +1,1 @@
+{"id":"505301fb3bc82dfe90565e74c1f549ac.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_other_parts_with_nx_cache_skip_the_cache","name":"tests 以外の part では、保存先を指定してもキャッシュを使わない","status":"passed","testResultsByEnv":{"default":"a3d1bf22c7d2066e12c4eb417927713b"}}

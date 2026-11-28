@@ -1,0 +1,1 @@
+{"id":"18ff25b1fb00d6762edf4f61cb4c00cc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-delete.test.ts#branch_delete リポジトリとブランチ名を渡して打つと、そのリポジトリのリモートブランチを削除する","name":"リポジトリとブランチ名を渡して打つと、そのリポジトリのリモートブランチを削除する","status":"passed","testResultsByEnv":{"default":"fa45e938fb128795e5180a4ae5a05982"}}

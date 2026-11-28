@@ -1,0 +1,1 @@
+{"id":"201c4155489e0483d07988709b58cc37.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/tracker-shared.test.ts#isBodyUnchanged 改行を LF にそろえて同じなら、変わっていないとみなす","name":"改行を LF にそろえて同じなら、変わっていないとみなす","status":"passed","testResultsByEnv":{"default":"eaa387c44139b7bf95b412345f0160f3"}}

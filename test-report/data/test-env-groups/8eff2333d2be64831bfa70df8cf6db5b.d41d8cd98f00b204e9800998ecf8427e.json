@@ -1,0 +1,1 @@
+{"id":"8eff2333d2be64831bfa70df8cf6db5b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 算術の左シフトは heredoc にしない のとき、引用符を含まない本文だけを切り出す","name":"算術の左シフトは heredoc にしない のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"ff1dc84d332063d8906f3c1c1f845caa"}}

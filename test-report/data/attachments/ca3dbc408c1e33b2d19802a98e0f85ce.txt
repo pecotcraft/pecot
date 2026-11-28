@@ -1,0 +1,2 @@
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf has-session -t pecot-base-parallel-a
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf attach-session -t pecot-base-parallel-a

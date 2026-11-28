@@ -1,0 +1,1 @@
+{"id":"a4e99ae11b2f42f12911bfaa65bf94b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#prose（人が書く欄の言語） prose が en のときと prose を省略したときは、日本語で書いた欄を検証エラーにする","name":"prose が en のときと prose を省略したときは、日本語で書いた欄を検証エラーにする","status":"passed","testResultsByEnv":{"default":"05f12acbacecee133aeef1462806f601"}}

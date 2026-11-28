@@ -1,0 +1,1 @@
+{"id":"dffd38e4febb989f40a36df69568bd0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#runSlideSync エラー伝播 リンクの張り直しが理由つきの実行エラーで失敗した場合は、その理由を変えずに返す","name":"リンクの張り直しが理由つきの実行エラーで失敗した場合は、その理由を変えずに返す","status":"passed","testResultsByEnv":{"default":"2a97c9d28fd44636865231748c783f5c"}}

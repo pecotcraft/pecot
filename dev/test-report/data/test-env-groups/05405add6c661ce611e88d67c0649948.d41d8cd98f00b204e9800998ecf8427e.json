@@ -1,0 +1,1 @@
+{"id":"05405add6c661ce611e88d67c0649948.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/blocked-by-change.test.ts#decideBlock stack で新しく前提を付ける場合は、本文を変えずに add を返す","name":"stack で新しく前提を付ける場合は、本文を変えずに add を返す","status":"passed","testResultsByEnv":{"default":"fdff3a193b2716145371c5b6410ef244"}}

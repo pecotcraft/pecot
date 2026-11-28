@@ -1,0 +1,1 @@
+{"id":"361f49a8129c7d1baf4842bf9cbd88d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#nodeLinker の行の末尾にコメントを付けても、静的確認が通る","name":"nodeLinker の行の末尾にコメントを付けても、静的確認が通る","status":"passed","testResultsByEnv":{"default":"0ea3c28a0b3bb0fe8846f5d417b7756a"}}

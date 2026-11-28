@@ -1,0 +1,1 @@
+{"id":"7cd181db8966524e4ff49d5f3e3d97cc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#XML 名前空間を含む drawio XML の扱い 宣言されていない名前空間の接頭辞を含む XML は、解釈に失敗したものとして、空の結果を返す","name":"宣言されていない名前空間の接頭辞を含む XML は、解釈に失敗したものとして、空の結果を返す","status":"passed","testResultsByEnv":{"default":"69ea07f0b3ee1c6819fcb355b19ad685"}}

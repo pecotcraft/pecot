@@ -1,0 +1,1 @@
+{"id":"c1683190447747bc9e4ec3f0857de86c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 版を省いて打つと、CHANGELOG の最初の版を対象にチェックする","name":"版を省いて打つと、CHANGELOG の最初の版を対象にチェックする","status":"passed","testResultsByEnv":{"default":"7d97dad08932efc50159495dcce42ed1"}}

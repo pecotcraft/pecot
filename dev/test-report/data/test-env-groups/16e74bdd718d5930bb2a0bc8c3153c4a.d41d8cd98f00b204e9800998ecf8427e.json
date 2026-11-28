@@ -1,0 +1,1 @@
+{"id":"16e74bdd718d5930bb2a0bc8c3153c4a.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#素性を満たさない監査記録では、本実行が gh を呼ばずに publish を拒否する","name":"素性を満たさない監査記録では、本実行が gh を呼ばずに publish を拒否する","status":"passed","testResultsByEnv":{"default":"cad471b201937a295bfd984642415d0b"}}

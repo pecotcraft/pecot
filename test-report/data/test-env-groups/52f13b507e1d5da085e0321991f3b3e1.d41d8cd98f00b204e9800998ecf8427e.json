@@ -1,0 +1,1 @@
+{"id":"52f13b507e1d5da085e0321991f3b3e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#statusViolation Issue の種類の既定の status と同じ値の場合は、違反にしない","name":"Issue の種類の既定の status と同じ値の場合は、違反にしない","status":"passed","testResultsByEnv":{"default":"42c88bd5d59e58bbff2d33588192801b"}}

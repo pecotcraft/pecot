@@ -1,0 +1,272 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "related_issue_number: #7 already has 50 blocked-by Issues"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"related_issue_number\",\"code\":\"limit\",\"message\":\"#7 already has 50 blocked-by Issues\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/100 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/101 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/102 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/103 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/104 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/105 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/106 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/107 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/108 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/109 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/110 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/111 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/112 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/113 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/114 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/115 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/116 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/117 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/118 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/119 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/120 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/121 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/122 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/123 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/124 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/125 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/126 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/127 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/128 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/129 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/130 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/131 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/132 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/133 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/134 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/135 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/136 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/137 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/138 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/139 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/140 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/141 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/142 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/143 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/144 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/145 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/146 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/147 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/148 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/149 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests\"}],\"body\":\"## Goal — 一覧画面から状態を確認できる\\n\\n利用者が一覧画面で各項目の状態を確認できる。\\n\\n## Acceptance — 一覧に状態の列が出る\\n\\n- 状態の列が一覧に出る — 確認: 一覧画面を開く\\n\\n## Waits for merge\\n\\n- #5: スキーマが先に要る\\n\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "related_issue_number",
+        "code": "limit",
+        "message": "#7 already has 50 blocked-by Issues"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/100 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/101 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/102 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/103 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/104 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/105 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/106 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/107 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/108 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/109 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/110 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/111 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/112 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/113 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/114 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/115 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/116 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/117 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/118 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/119 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/120 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/121 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/122 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/123 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/124 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/125 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/126 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/127 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/128 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/129 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/130 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/131 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/132 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/133 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/134 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/135 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/136 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/137 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/138 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/139 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/140 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/141 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/142 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/143 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/144 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/145 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/146 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/147 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/148 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/149 with issue_read (method get): whether a closed prerequisite is done depends on its merged pull requests"
+      }
+    ],
+    "body": "## Goal — 一覧画面から状態を確認できる\n\n利用者が一覧画面で各項目の状態を確認できる。\n\n## Acceptance — 一覧に状態の列が出る\n\n- 状態の列が一覧に出る — 確認: 一覧画面を開く\n\n## Waits for merge\n\n- #5: スキーマが先に要る\n"
+  }
+}

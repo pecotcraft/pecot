@@ -1,0 +1,1 @@
+{"id":"d9d094f09b986207413a9d8df16376c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#応答の中身 s3_uri を渡すと、出力を 1 行 1 要素にして lines に載せる","name":"s3_uri を渡すと、出力を 1 行 1 要素にして lines に載せる","status":"passed","testResultsByEnv":{"default":"f77428992812e04473084eb137d5123a"}}

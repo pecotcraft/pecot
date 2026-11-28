@@ -1,0 +1,1 @@
+{"id":"470e7c012797e036fdee6a6288717263.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#symlink 経由の talk-dir ページのファイルがディレクトリ外への symlink でも、そのページを lint する","name":"ページのファイルがディレクトリ外への symlink でも、そのページを lint する","status":"passed","testResultsByEnv":{"default":"704f845d16e5e0586f779c93819d27c0"}}

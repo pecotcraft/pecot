@@ -1,0 +1,1 @@
+{"id":"5e4b9a4c0e5af14b4c2f4914b851c691.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init.test.ts#pecot-dir-init.sh マーカーが plugin.json より古いとき、同期して更新する","name":"マーカーが plugin.json より古いとき、同期して更新する","status":"passed","testResultsByEnv":{"default":"e7ed0ab33f7cd1e263fcb111dcb99826"}}

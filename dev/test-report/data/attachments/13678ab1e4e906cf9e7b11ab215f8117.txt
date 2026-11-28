@@ -1,0 +1,3 @@
+==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)
+  NG: devEngines.packageManager の宣言が無い: libs/text-rules/package.json
+check-pm-guard: 静的確認 FAILED (1 件)

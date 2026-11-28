@@ -1,0 +1,1 @@
+{"id":"80f89d1fceb83d9dc88f78118f66604a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/no-python-runtime.test.ts#Phase 4 acceptance: Python ランタイム痕跡ゼロ件 リポジトリ全体に、旧ランタイムの切替変数 PECOTV_RUNTIME への参照が存在しない","name":"リポジトリ全体に、旧ランタイムの切替変数 PECOTV_RUNTIME への参照が存在しない","status":"passed","testResultsByEnv":{"default":"8f84639fda5ef4a09e23b9a51435557a"}}

@@ -1,0 +1,1 @@
+{"id":"c860c1f262735fabe7744155e9c4a393.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 文字列リテラルの中の -- と /* は、コメントの開始として扱わない","name":"文字列リテラルの中の -- と /* は、コメントの開始として扱わない","status":"passed","testResultsByEnv":{"default":"1c6c463374f57dc327b094d8f3d65900"}}

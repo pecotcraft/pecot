@@ -1,0 +1,1 @@
+{"id":"708b46efe05a8db9e8bc4974d8f889c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/plugin-update-notice.bats#既定の場所の利用者が無関係な CLAUDE_CONFIG_DIR を持っていても、更新案内を出す","name":"既定の場所の利用者が無関係な CLAUDE_CONFIG_DIR を持っていても、更新案内を出す","status":"passed","testResultsByEnv":{"default":"4349a937d9418bed7260ed4a6119fb17"}}

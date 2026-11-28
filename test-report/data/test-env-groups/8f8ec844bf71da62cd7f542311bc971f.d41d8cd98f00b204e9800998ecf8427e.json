@@ -1,0 +1,1 @@
+{"id":"8f8ec844bf71da62cd7f542311bc971f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/pre-tool-use-temporary-path-warner.test.ts#tmp-path-warner.sh --out=/tmp/foo のように = の直後に /tmp/ があるとき、警告する","name":"--out=/tmp/foo のように = の直後に /tmp/ があるとき、警告する","status":"passed","testResultsByEnv":{"default":"87a800db7bc5ad53c5d15d0fdb5d6e91"}}

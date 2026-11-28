@@ -1,0 +1,1 @@
+{"id":"eb25518be8f030c6cae9ea43279d40db.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/flag-hint.test.ts#入力の誤りの文の入力名 git の外で pr_show に短縮形を渡すと、repo を案内して止める","name":"git の外で pr_show に短縮形を渡すと、repo を案内して止める","status":"passed","testResultsByEnv":{"default":"445dd6fbfa30af1e8c3ede911457e4ed"}}

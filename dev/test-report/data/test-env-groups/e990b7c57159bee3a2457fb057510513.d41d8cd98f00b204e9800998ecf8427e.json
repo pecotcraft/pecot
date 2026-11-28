@@ -1,0 +1,1 @@
+{"id":"e990b7c57159bee3a2457fb057510513.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「prerenderFiles の要素が文字列でない」の場合は、undefined を返す","name":"エントリが「prerenderFiles の要素が文字列でない」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"74dbceaccfe9aa7ebc08fdf7a2ba4505"}}

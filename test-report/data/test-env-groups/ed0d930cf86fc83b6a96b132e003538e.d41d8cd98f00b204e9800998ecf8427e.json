@@ -1,0 +1,1 @@
+{"id":"ed0d930cf86fc83b6a96b132e003538e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_affected_mapping#test_project_set_is_the_expected_one","name":"nx が認識する project の集合は、期待する 9 件と一致する","status":"passed","testResultsByEnv":{"default":"9849e68d8b06cbe95aabd2777ddd15fd"}}

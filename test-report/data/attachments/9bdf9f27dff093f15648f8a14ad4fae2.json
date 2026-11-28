@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-tools",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "No SSO login in progress. Call aws_sso_login first"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"No SSO login in progress. Call aws_sso_login first\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "No SSO login in progress. Call aws_sso_login first"
+  },
+  "isError": true
+}

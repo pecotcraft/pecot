@@ -1,0 +1,1 @@
+{"id":"5597f39d3548702c43a9e200ae947a8e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/dependabot-source.test.ts#fetchDependabotAlertStatus につないだとき 一覧を取得できた場合は有効とし、件数と最大の severity を返す","name":"一覧を取得できた場合は有効とし、件数と最大の severity を返す","status":"passed","testResultsByEnv":{"default":"036b07db78d2246afcf8c787aa0d71a9"}}

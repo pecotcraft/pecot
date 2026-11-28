@@ -1,0 +1,1 @@
+{"id":"634ccd61648565bd73a6066a6945f624.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base release のテンプレートで PR を作ると、待っている Issue を読まない","name":"release のテンプレートで PR を作ると、待っている Issue を読まない","status":"passed","testResultsByEnv":{"default":"b7a5abd15bf38ca6ebb9f19db57310bf"}}

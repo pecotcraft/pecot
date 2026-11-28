@@ -1,0 +1,1 @@
+{"id":"2d0277094ab9ae1a48f0aa768eae0198.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-finish.test.ts#auto finish Issue の前提が部分エラーで読めないと、書かずにその理由で止まる","name":"Issue の前提が部分エラーで読めないと、書かずにその理由で止まる","status":"passed","testResultsByEnv":{"default":"f796b0a6e0de5221321d9aa0c86dd9bb"}}

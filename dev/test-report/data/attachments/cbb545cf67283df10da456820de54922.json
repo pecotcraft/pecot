@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "type: the repository has no Issue types: omit type"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"type\",\"code\":\"no-issue-types\",\"message\":\"the repository has no Issue types: omit type\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "type",
+        "code": "no-issue-types",
+        "message": "the repository has no Issue types: omit type"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

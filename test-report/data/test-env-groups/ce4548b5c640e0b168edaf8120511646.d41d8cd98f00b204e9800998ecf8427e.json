@@ -1,0 +1,1 @@
+{"id":"ce4548b5c640e0b168edaf8120511646.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh 多段の cd の先頭が git でないとき、後段の cd も評価して保護ブランチなら止める","name":"多段の cd の先頭が git でないとき、後段の cd も評価して保護ブランチなら止める","status":"passed","testResultsByEnv":{"default":"9c02b747573ee27c4088d50c93e720b6"}}

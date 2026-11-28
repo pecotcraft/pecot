@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "real file exists: /tmp/pecot-parity-OrAahh/wt1/demo/CLAUDE.local.md\noverwrite it?\nAborted."
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"aborted\",\"detail\":\"real file exists: /tmp/pecot-parity-OrAahh/wt1/demo/CLAUDE.local.md\\noverwrite it?\\nAborted.\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "aborted",
+    "detail": "real file exists: /tmp/pecot-parity-OrAahh/wt1/demo/CLAUDE.local.md\noverwrite it?\nAborted."
+  },
+  "isError": true
+}

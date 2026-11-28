@@ -1,0 +1,1 @@
+stage=manual|args=run --hook-stage manual --from-ref 647e867e511bc86d3d195be75a8308e54667ac87 --to-ref 9be8525a940da39e797c9effc64af58ebcc7161b --show-diff-on-failure --color=never|SKIP=check-version-plan-required|PVB=647e867e511bc86d3d195be75a8308e54667ac87|TO=unset|NXC=true|NXCI=1|LANE=a:test-b|SRV=unset|NXCF=unset

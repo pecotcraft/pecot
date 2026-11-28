@@ -1,0 +1,136 @@
+{
+  "name": "session_start",
+  "title": "Record Issue branch",
+  "description": "Record the start of work on a branch created with the link-branch operation: the base (.pecot-base), the work directory and the session name. Also reports a merged PR of the current branch whose local cleanup is left",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "issue_ref": {
+        "type": "string",
+        "description": "Work Issue (owner/repo/123)"
+      },
+      "base": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Base branch the branch was created from (base in the link-branch result)"
+      },
+      "sha": {
+        "type": "string",
+        "description": "Commit the branch was created from (sha in the link-branch result)"
+      },
+      "stacked_on": {
+        "description": "Prerequisite Issue the branch stacks on (owner/repo/N, stacked_on in the branch_check result; omitted when not stacked)",
+        "type": "string"
+      },
+      "title": {
+        "type": "string",
+        "description": "Title of the work Issue, for the session name"
+      },
+      "reads": {
+        "description": "Results of the official GitHub MCP reads",
+        "type": "object",
+        "properties": {
+          "pull_requests": {
+            "description": "Result of list_pull_requests with head <owner>:<current branch> and state all, to find a merged PR whose local cleanup is left"
+          }
+        }
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "issue_ref",
+      "base",
+      "sha",
+      "title"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "repository": {
+        "type": "string",
+        "description": "Repository of the branch (owner/repo)"
+      },
+      "base": {
+        "type": "string",
+        "description": "Base branch the branch starts from"
+      },
+      "stackedOn": {
+        "description": "Issue number whose branch this one is stacked on (omitted when not stacked)",
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      },
+      "issue": {
+        "type": "string",
+        "description": "Work Issue (owner/repo/N)"
+      },
+      "workDirectory": {
+        "description": "Absolute path of the work directory (omitted when it could not be created)",
+        "type": "string"
+      },
+      "leftovers": {
+        "description": "Earlier merged PRs whose local cleanup is left undone (omitted when there is none)",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pullRequest": {
+              "type": "string",
+              "description": "Merged PR of the current branch whose local cleanup with session_finish is left (owner/repo/N)"
+            }
+          },
+          "required": [
+            "pullRequest"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "repository",
+          "base",
+          "issue"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": true
+  }
+}

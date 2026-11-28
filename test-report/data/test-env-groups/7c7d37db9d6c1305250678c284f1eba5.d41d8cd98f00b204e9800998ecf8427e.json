@@ -1,0 +1,1 @@
+{"id":"7c7d37db9d6c1305250678c284f1eba5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ pr-show-ok-reviews を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ pr-show-ok-reviews を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"46354b44f836f3497f62a520eb488a58"}}

@@ -1,0 +1,1 @@
+{"id":"86275397dfb893bc23a2cfa33924686f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/review-finish.test.ts#review finish 起動した人の名前が [bot] で終わると、権限を読まずに書く","name":"起動した人の名前が [bot] で終わると、権限を読まずに書く","status":"passed","testResultsByEnv":{"default":"b0586e8ccf5187f128e07a5b998c8190"}}

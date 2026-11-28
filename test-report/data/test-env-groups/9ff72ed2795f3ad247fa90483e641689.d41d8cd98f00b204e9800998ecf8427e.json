@@ -1,0 +1,1 @@
+{"id":"9ff72ed2795f3ad247fa90483e641689.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/process-run.test.ts#runProcess 子プロセスが終了すると、終了コードと標準出力・標準エラーを返す","name":"子プロセスが終了すると、終了コードと標準出力・標準エラーを返す","status":"passed","testResultsByEnv":{"default":"db38279b38bd915e0e02715174256d74"}}

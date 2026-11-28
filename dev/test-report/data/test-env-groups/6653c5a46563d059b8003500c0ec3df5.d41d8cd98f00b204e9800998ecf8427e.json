@@ -1,0 +1,1 @@
+{"id":"6653c5a46563d059b8003500c0ec3df5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#exportNames 区切りは _ で、語の位置はグループと動詞の 2 つ。後ろに自由な語を許さない","name":"区切りは _ で、語の位置はグループと動詞の 2 つ。後ろに自由な語を許さない","status":"passed","testResultsByEnv":{"default":"195e0d688236cc0f78e5e5b0e1a6fa26"}}

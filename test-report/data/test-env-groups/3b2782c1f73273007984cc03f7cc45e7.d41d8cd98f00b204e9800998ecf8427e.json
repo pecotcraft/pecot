@@ -1,0 +1,1 @@
+{"id":"3b2782c1f73273007984cc03f7cc45e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#extractReferencesIssueNumbers 大文字と小文字を区別せずに、Refs を取り出す","name":"大文字と小文字を区別せずに、Refs を取り出す","status":"passed","testResultsByEnv":{"default":"cc0d674420f226b8b27d55e639e4a75a"}}

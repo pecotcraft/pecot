@@ -1,0 +1,1 @@
+{"id":"f2f02ab915de283e4cfb06dbacf049eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_release_does_not_link_items_of_a_plugin_left_out_of_the_report","name":"リリース版では、レポートに含まないプラグインの項目は、テストレポートへリンクしない","status":"passed","testResultsByEnv":{"default":"ba25183f798ef270fd6aba2d95ff4671"}}

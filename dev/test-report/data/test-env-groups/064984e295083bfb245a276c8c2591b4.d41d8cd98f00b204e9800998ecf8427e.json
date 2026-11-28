@@ -1,0 +1,1 @@
+{"id":"064984e295083bfb245a276c8c2591b4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_does_not_use_stringly_typed_inputs","name":"入力は、文字列として扱う `github.event.inputs` を使わない","status":"passed","testResultsByEnv":{"default":"f2ae022c3ebd104ec40b0e973483fe3a"}}

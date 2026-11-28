@@ -1,0 +1,1 @@
+{"id":"33397f239541e58f90a24233b18ab6f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#installStdoutGuard コールバックを encoding の位置に渡した書き込みでも、完了を通知する","name":"コールバックを encoding の位置に渡した書き込みでも、完了を通知する","status":"passed","testResultsByEnv":{"default":"1e03759ca1868530a0a7894450eff873"}}

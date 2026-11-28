@@ -1,0 +1,4859 @@
+{
+  "tools": [
+    {
+      "name": "project_list",
+      "title": "List projects",
+      "description": "List available projects",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of the project config (the file name without .json)"
+                },
+                "active": {
+                  "type": "boolean",
+                  "description": "Whether this config is the active project"
+                },
+                "owner": {
+                  "description": "Owner of the board, for projects_list and projects_write (omitted when the config cannot be read)",
+                  "type": "string"
+                },
+                "project_number": {
+                  "description": "Number of the board, for projects_list and projects_write (omitted when the config cannot be read)",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "name",
+                "active"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Project configs under the projects directory (an empty array when there is none)"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "projects"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "project_search",
+      "title": "Search projects",
+      "description": "Search projects through the GitHub API, and show which are initialized and which is active",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "description": "Project owner"
+          },
+          "host": {
+            "default": "github.com",
+            "description": "GitHub host",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "description": "Project owner that was searched"
+          },
+          "host": {
+            "type": "string",
+            "description": "GitHub host that was searched"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "description": "Project number (omitted when GitHub did not return it)",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "title": {
+                  "description": "Project title (omitted when GitHub did not return it)",
+                  "type": "string"
+                },
+                "url": {
+                  "description": "Project URL (omitted when GitHub did not return it)",
+                  "type": "string"
+                },
+                "initialized": {
+                  "description": "Whether project_init has set up the fields (omitted without a number, or when the fields could not be read)",
+                  "type": "boolean"
+                },
+                "active": {
+                  "description": "Whether this project is the active one (omitted without a number)",
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            },
+            "description": "Projects of the owner"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "owner",
+              "host",
+              "projects"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "project_init",
+      "title": "Initialize project fields",
+      "description": "Add the pecot-status field to an existing project, rename the old suffixed workflow field to pecot-status, add the Blocked and Needs Attention options to the fields that already exist, and add the lanes to the pecot-lane field with a Lanes view. The fields pecot does not use (pecot-priority, pecot-size, and the old suffixed workflow field when pecot-status also exists) are listed in migration.pending_delete, and deleted only with confirm_delete",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "description": "Project owner"
+          },
+          "name": {
+            "type": "string",
+            "description": "Project title"
+          },
+          "host": {
+            "default": "github.com",
+            "description": "GitHub host",
+            "type": "string"
+          },
+          "lanes": {
+            "description": "Values of the pecot-lane field: the areas of work, such as plugins, teams or services. GitHub shows them on the board, so use English names. Values already on the board are kept",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "confirm_delete": {
+            "default": false,
+            "description": "Delete the fields listed in migration.pending_delete. Their values on every item are deleted too and cannot be restored. Set it to true only after the user has approved deleting those fields",
+            "type": "boolean"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner",
+          "name"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of the project field"
+                },
+                "change": {
+                  "type": "string",
+                  "enum": [
+                    "create",
+                    "update",
+                    "unchanged",
+                    "skip",
+                    "rename",
+                    "delete"
+                  ],
+                  "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status; delete: the field was deleted with confirm_delete"
+                },
+                "addedOptions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Names of the options added to the field (empty when none)"
+                }
+              },
+              "required": [
+                "name",
+                "change",
+                "addedOptions"
+              ],
+              "additionalProperties": false
+            },
+            "description": "The pecot-status and pecot-lane fields, the Status field when its options were looked at, and the fields deleted with confirm_delete"
+          },
+          "migration": {
+            "description": "What was moved from the old form (omitted when the command stopped before the project config)",
+            "type": "object",
+            "properties": {
+              "renamed": {
+                "description": "Old name of the workflow field that was renamed to pecot-status (null when none)",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "config_moved": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string",
+                        "description": "File name of the old project config"
+                      },
+                      "to": {
+                        "type": "string",
+                        "description": "File name the project config was moved to"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The old project config file that was moved to the new name (null when none)"
+              },
+              "pending_delete": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Fields to delete that were left because confirm_delete was not given: pecot-priority, pecot-size, and the old pecot-workflow-<suffix> field when pecot-status also exists (empty when none)"
+              },
+              "deleted": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Fields deleted with confirm_delete (empty when none)"
+              }
+            },
+            "required": [
+              "renamed",
+              "config_moved",
+              "pending_delete",
+              "deleted"
+            ],
+            "additionalProperties": false
+          },
+          "view": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "boolean",
+                "description": "Whether the view was created; false when a view of that name already exists or it has to be created by hand"
+              },
+              "name": {
+                "type": "string",
+                "description": "Name of the view (Lanes)"
+              },
+              "url": {
+                "description": "URL of the view (omitted when it has to be created by hand)",
+                "type": "string"
+              },
+              "manual_steps": {
+                "description": "Steps to create the view on the board, when GitHub refused to create it (omitted otherwise)",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "created",
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "The Lanes view, with pecot-status as the columns and pecot-lane as the groups (omitted when the board has no single select pecot-lane field)"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "fields"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "project_create",
+      "title": "Create project",
+      "description": "Create a new project with the pecot-workflow fields, and the pecot-lane field and the Lanes view from lanes (to add the fields to an existing project, use project_init)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "owner": {
+            "type": "string",
+            "description": "Project owner"
+          },
+          "title": {
+            "type": "string",
+            "description": "Project title"
+          },
+          "host": {
+            "default": "github.com",
+            "description": "GitHub host",
+            "type": "string"
+          },
+          "lanes": {
+            "description": "Values of the pecot-lane field: the areas of work, such as plugins, teams or services. GitHub shows them on the board, so use English names. Values already on the board are kept",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner",
+          "title"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "description": "Number of the created project (omitted when the response has none)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "url": {
+            "description": "URL of the created project (omitted when the response has none)",
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the project"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Project owner"
+          },
+          "fields": {
+            "description": "The fields of the created project, in the same rows as project_init (omitted when the command stopped before the fields)",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of the project field"
+                },
+                "change": {
+                  "type": "string",
+                  "enum": [
+                    "create",
+                    "update",
+                    "unchanged",
+                    "skip",
+                    "rename",
+                    "delete"
+                  ],
+                  "description": "create: the field was created; update: options were added to it; unchanged: nothing to do; skip: the field was not found, pecot-lane was not created because no lanes were given, or pecot-lane is not a single select field; rename: the old pecot-workflow-<suffix> field was renamed to pecot-status; delete: the field was deleted with confirm_delete"
+                },
+                "addedOptions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Names of the options added to the field (empty when none)"
+                }
+              },
+              "required": [
+                "name",
+                "change",
+                "addedOptions"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "view": {
+            "type": "object",
+            "properties": {
+              "created": {
+                "type": "boolean",
+                "description": "Whether the view was created; false when a view of that name already exists or it has to be created by hand"
+              },
+              "name": {
+                "type": "string",
+                "description": "Name of the view (Lanes)"
+              },
+              "url": {
+                "description": "URL of the view (omitted when it has to be created by hand)",
+                "type": "string"
+              },
+              "manual_steps": {
+                "description": "Steps to create the view on the board, when GitHub refused to create it (omitted otherwise)",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "created",
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "The Lanes view, with pecot-status as the columns and pecot-lane as the groups (omitted when the board has no single select pecot-lane field)"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "title",
+              "owner"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "project_activate",
+      "title": "Activate project",
+      "description": "Activate an initialized project",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Project number or name, or config file path/file name (list the candidates with project_search)"
+          },
+          "owner": {
+            "description": "Project owner (defaults to the authenticated user)",
+            "type": "string"
+          },
+          "host": {
+            "description": "GitHub host",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "description": "Name of the project config that was made active",
+            "type": "string"
+          },
+          "configPath": {
+            "type": "string",
+            "description": "Path of the project config file"
+          },
+          "change": {
+            "type": "string",
+            "enum": [
+              "create",
+              "update",
+              "unchanged"
+            ],
+            "description": "What happened to the config file"
+          },
+          "config_moved": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "description": "File name of the old project config"
+                  },
+                  "to": {
+                    "type": "string",
+                    "description": "File name the project config was moved to"
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The old project config file that was moved to the new name (null when none)"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "configPath",
+              "change",
+              "config_moved"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "project_link",
+      "title": "Link repository to project",
+      "description": "Add or update a repository in the project config",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string",
+            "description": "Repository name in owner/repo form"
+          },
+          "develop_branch": {
+            "description": "Development branch name",
+            "type": "string"
+          },
+          "release_branch": {
+            "description": "Release branch name",
+            "type": "string"
+          },
+          "changelog_file": {
+            "description": "CHANGELOG file name",
+            "type": "string"
+          },
+          "package": {
+            "description": "Monorepo package to register, as NAME:PATH. Example: pecot:plugins/pecot-workflow/CHANGELOG.md",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "clear_packages": {
+            "default": false,
+            "description": "Clear the existing packages setting. After clearing, the CHANGELOG falls back to `changelog_file` or the default CHANGELOG.md",
+            "type": "boolean"
+          },
+          "release_type": {
+            "description": "Declare the release method explicitly; the w-release skill picks its procedure from it. single (1 CHANGELOG) / multi (packages) / nx (Nx Release). When omitted, it is inferred from the packages (with packages: multi, without: single)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "repo"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "repository": {
+            "type": "string",
+            "description": "Repository in owner/repo form"
+          },
+          "projectNumber": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of the active project"
+          },
+          "change": {
+            "type": "string",
+            "enum": [
+              "create",
+              "update"
+            ],
+            "description": "create: the repository was added to the config; update: its entry was changed"
+          },
+          "configPath": {
+            "type": "string",
+            "description": "Path of the project config file"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "repository",
+              "projectNumber",
+              "change",
+              "configPath"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "project_get",
+      "title": "Get project config",
+      "description": "Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "aggregation_repo"
+            ],
+            "description": "Key of the project config (aggregation_repo: the Epic aggregation repository)"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "aggregation_repo"
+            ],
+            "description": "Key of the project config"
+          },
+          "value": {
+            "description": "Value of the key (omitted when it is not set)",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "key"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "project_set",
+      "title": "Set project config",
+      "description": "Set a key of the project config (aggregation_repo: the Epic aggregation repository)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "aggregation_repo"
+            ],
+            "description": "Key of the project config (aggregation_repo: the Epic aggregation repository)"
+          },
+          "value": {
+            "type": "string",
+            "description": "Aggregation repository (owner/repo form)"
+          },
+          "yes": {
+            "default": false,
+            "description": "Overwrite an existing value without confirmation (a warning goes to stderr)",
+            "type": "boolean"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "value"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "aggregation_repo"
+            ],
+            "description": "Key of the project config"
+          },
+          "value": {
+            "type": "string",
+            "description": "Value of the key after the command"
+          },
+          "previous": {
+            "description": "Value before the command (omitted when the key was not set)",
+            "type": "string"
+          },
+          "change": {
+            "type": "string",
+            "enum": [
+              "create",
+              "update",
+              "unchanged"
+            ],
+            "description": "create: the key was not set; update: its value was replaced; unchanged: it already had the value"
+          },
+          "configPath": {
+            "type": "string",
+            "description": "Path of the project config file"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "key",
+              "value",
+              "change",
+              "configPath"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "project_unset",
+      "title": "Clear project config",
+      "description": "Clear a key of the project config; without aggregation_repo, creating an Epic needs the target repository given explicitly",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "aggregation_repo"
+            ],
+            "description": "Key of the project config (aggregation_repo: the Epic aggregation repository)"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "aggregation_repo"
+            ],
+            "description": "Key of the project config"
+          },
+          "previous": {
+            "description": "Value before the command (omitted when the key was not set)",
+            "type": "string"
+          },
+          "change": {
+            "type": "string",
+            "enum": [
+              "delete",
+              "unchanged"
+            ],
+            "description": "delete: the key was cleared; unchanged: it was not set"
+          },
+          "configPath": {
+            "type": "string",
+            "description": "Path of the project config file"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "key",
+              "change",
+              "configPath"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "board_show",
+      "title": "Show board dashboard",
+      "description": "Show the dashboard of the project board",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "json": {
+            "default": false,
+            "description": "Output as JSON",
+            "type": "boolean"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the project config"
+              },
+              "host": {
+                "type": "string",
+                "description": "GitHub host"
+              },
+              "owner": {
+                "type": "string",
+                "description": "Owner of the project"
+              },
+              "number": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Project number"
+              },
+              "aggregation_repo": {
+                "description": "Roadmap (aggregation) repository (null when not set)",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "host",
+              "owner",
+              "number",
+              "aggregation_repo"
+            ],
+            "additionalProperties": false,
+            "description": "Overview of the project"
+          },
+          "repositories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "full_name": {
+                  "type": "string",
+                  "description": "Repository (owner/repo)"
+                },
+                "owner": {
+                  "type": "string",
+                  "description": "Owner of the repository"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Name of the repository"
+                },
+                "develop_branch": {
+                  "description": "Develop branch (null when not set)",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "release_branch": {
+                  "description": "Release branch (null when not set)",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "dependabot_alerts": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "description": "Reason the Dependabot alerts could not be fetched"
+                        }
+                      },
+                      "required": [
+                        "error"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean",
+                          "description": "Whether Dependabot alerts are enabled"
+                        },
+                        "open_count": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991,
+                          "description": "Number of open alerts (0 when disabled)"
+                        },
+                        "max_severity": {
+                          "description": "Highest severity of the open alerts (null when there is none)",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "alerts_url": {
+                          "type": "string",
+                          "description": "URL of the alert list"
+                        }
+                      },
+                      "required": [
+                        "enabled",
+                        "open_count",
+                        "max_severity",
+                        "alerts_url"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ],
+                  "description": "Dependabot alert status, or the reason it could not be fetched"
+                },
+                "release_type": {
+                  "type": "string",
+                  "enum": [
+                    "single",
+                    "multi",
+                    "nx"
+                  ],
+                  "description": "Release type in effect"
+                },
+                "packages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Package name"
+                      },
+                      "changelog": {
+                        "type": "string",
+                        "description": "Path of the CHANGELOG of the package"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "changelog"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Packages of a monorepo (data only; empty when none)"
+                },
+                "changelog_file": {
+                  "description": "CHANGELOG path set for a repository without packages (data only; omitted when not set)",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "full_name",
+                "owner",
+                "name",
+                "develop_branch",
+                "release_branch",
+                "dependabot_alerts",
+                "release_type",
+                "packages"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Registered repositories, in registration order"
+          },
+          "board": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Project item ID"
+                    },
+                    "workflow": {
+                      "description": "Column (workflow field value) of the item",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lane": {
+                      "description": "Value of the pecot-lane field (null when the item has none or the board has no pecot-lane field)",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "title": {
+                      "description": "Title of the Issue or PR"
+                    },
+                    "updatedAt": {
+                      "description": "Last update time of the item"
+                    },
+                    "content": {
+                      "type": "object",
+                      "properties": {
+                        "number": {
+                          "description": "Issue or PR number"
+                        },
+                        "state": {
+                          "description": "State of the Issue or PR (OPEN etc.)"
+                        },
+                        "url": {
+                          "description": "URL of the Issue or PR"
+                        },
+                        "labels": {
+                          "description": "Label names",
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "repository": {
+                          "description": "Repository (owner/repo)",
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "description": "Issue or PR on the card"
+                    },
+                    "readiness": {
+                      "description": "Readiness of a Ready or Blocked Issue (null for other items; omitted when the server does not support issue dependencies)",
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "startable",
+                                "stackable",
+                                "blocked",
+                                "unknown"
+                              ],
+                              "description": "Readiness judgment (unknown when the prerequisites could not be read)"
+                            },
+                            "stackOn": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "number": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991,
+                                      "description": "Issue number to stack on"
+                                    },
+                                    "repository": {
+                                      "type": "string",
+                                      "description": "Repository of that Issue (owner/repo)"
+                                    },
+                                    "branch": {
+                                      "type": "string",
+                                      "description": "Branch to stack on"
+                                    }
+                                  },
+                                  "required": [
+                                    "number",
+                                    "repository",
+                                    "branch"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ],
+                              "description": "Prerequisite to stack on (null unless stackable)"
+                            },
+                            "reason": {
+                              "description": "Code of the reason for blocked (null unless blocked)",
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "text": {
+                              "type": "string",
+                              "description": "Readiness as shown in the Readiness column"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "stackOn",
+                            "reason",
+                            "text"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "content"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Open items in Backlog, Pending, Blocked, Ready, Active and In Review"
+              }
+            },
+            "required": [
+              "items"
+            ],
+            "additionalProperties": false,
+            "description": "Board status"
+          },
+          "lanes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "description": "Value of the pecot-lane field (null for the Issues without a value)",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Number of open Issues with this value"
+                },
+                "startable": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Number of those Issues in Ready whose readiness is startable"
+                }
+              },
+              "required": [
+                "name",
+                "count",
+                "startable"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Open Issues of the board items counted per pecot-lane value, in the order of the field options (values without Issues count 0; Issues without a value come last). Empty when the board has no pecot-lane field"
+          },
+          "mismatches": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of Ready or Blocked Issues whose column or Status may not match the judgment (data only)"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "project",
+              "repositories",
+              "board",
+              "lanes",
+              "mismatches"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "board_add",
+      "title": "Add Issue to board",
+      "description": "Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+          },
+          "status": {
+            "default": "ready",
+            "description": "Initial status (backlog/pending/blocked/ready/active/in_review/archived)",
+            "type": "string"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_ref"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "issue": {
+            "type": "string",
+            "description": "Issue (owner/repo/N)"
+          },
+          "added": {
+            "type": "boolean",
+            "description": "true when the Issue is on the board"
+          },
+          "status": {
+            "description": "Status set on the board (omitted when status is empty)",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "issue",
+              "added"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "board_move",
+      "title": "Move Issue on board",
+      "description": "Update the status of an Issue on the project board by Issue number (pecot commands normally set the status themselves)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status (backlog/pending/blocked/ready/active/in_review/archived)"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_ref",
+          "status"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "issue": {
+            "type": "string",
+            "description": "Issue (owner/repo/N)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status set on the board"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "issue",
+              "status"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "issue_check",
+      "title": "Check Issue",
+      "description": "Check the arguments for issue_write (and the board fields and blocked-by written after it) against the pecot rules before writing: the template of the body, the title prefix and order, the type, the Issue and board fields, the column to place the Issue in, and the prerequisites. A batch create gives the order numbers and how each Issue proceeds. Reads and writes nothing on GitHub; pass the results of the official reads in reads.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "create",
+              "update"
+            ],
+            "description": "create before issue_write with method create (several Issues for a batch, in the order to write), update before issue_write with method update (one Issue)"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "issues": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "description": "With a batch create: the name blocked_by and {{issue:key}} of later Issues use for this one",
+                  "type": "string"
+                },
+                "template": {
+                  "description": "Template the body follows: pecot-template://issue/<name> for a bundled one (its rules are checked); a replaced template's path or URL is accepted without checking the body; omit for the free form",
+                  "type": "string"
+                },
+                "template_text": {
+                  "description": "Text of a replaced template; the body is not checked against it",
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "task",
+                    "bug",
+                    "epic",
+                    "tracker"
+                  ],
+                  "description": "pecot kind of the Issue"
+                },
+                "owner": {
+                  "description": "Owner of the repository to write to",
+                  "type": "string"
+                },
+                "repo": {
+                  "description": "Name of the repository to write to",
+                  "type": "string"
+                },
+                "issue_number": {
+                  "description": "With update only: the Issue to rewrite",
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "title": {
+                  "description": "Same as issue_write",
+                  "type": "string"
+                },
+                "body": {
+                  "description": "Same as issue_write; without the frontmatter and the guide comment of the template",
+                  "type": "string"
+                },
+                "type": {
+                  "description": "Same as issue_write: a GitHub Issue type name",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Issue type name"
+                    },
+                    {
+                      "type": "null",
+                      "description": "Clears the type"
+                    }
+                  ]
+                },
+                "labels": {
+                  "description": "Same as issue_write",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "assignees": {
+                  "description": "Same as issue_write",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "milestone": {
+                  "description": "Same as issue_write",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "issue_fields": {
+                  "description": "Same as issue_write",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "field_name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Name of the Issue field"
+                      },
+                      "value": {
+                        "description": "Value of a text, number or date field",
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "description": "Value of a text or date field"
+                          },
+                          {
+                            "type": "number",
+                            "description": "Value of a number field"
+                          }
+                        ]
+                      },
+                      "field_option_name": {
+                        "description": "Option name of a single select field",
+                        "type": "string"
+                      },
+                      "delete": {
+                        "description": "True to clear the field",
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "field_name"
+                    ]
+                  }
+                },
+                "parent_owner": {
+                  "description": "Owner of the repository of the parent Epic",
+                  "type": "string"
+                },
+                "parent_repo": {
+                  "description": "Name of the repository of the parent Epic",
+                  "type": "string"
+                },
+                "parent_issue_number": {
+                  "description": "Number of the parent Epic",
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "blocked_by": {
+                  "description": "With create only: prerequisites to write with issue_dependency_write after the create",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "issue": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Prerequisite: owner/repo/N for an existing Issue, or the key of an earlier Issue in the batch"
+                      },
+                      "wait": {
+                        "default": "stack",
+                        "description": "stack (build on its branch; the default) or merge (wait until it is merged)",
+                        "type": "string",
+                        "enum": [
+                          "stack",
+                          "merge"
+                        ]
+                      },
+                      "reason": {
+                        "description": "With wait merge only: why it waits for the merge, in one line",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "issue"
+                    ]
+                  }
+                },
+                "project_fields": {
+                  "description": "Board fields to write with projects_write (update_project_item), including the column (pecot-status)",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "description": "Name of the board field",
+                        "type": "string"
+                      },
+                      "id": {
+                        "description": "Id of the board field (the id in list_project_fields; same as updated_field.id of projects_write)",
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "value": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "description": "Option name, option id or text"
+                          },
+                          {
+                            "type": "number",
+                            "description": "Number or option id"
+                          },
+                          {
+                            "type": "null",
+                            "description": "Clears the field"
+                          }
+                        ],
+                        "description": "Value as passed to projects_write: an option name or option id for a single select, null to clear"
+                      }
+                    },
+                    "required": [
+                      "value"
+                    ]
+                  }
+                },
+                "state": {
+                  "description": "With update only: same as issue_write",
+                  "type": "string"
+                },
+                "state_reason": {
+                  "description": "With update only: same as issue_write",
+                  "type": "string"
+                },
+                "duplicate_of": {
+                  "description": "With update only: same as issue_write",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "description": "Arguments of each Issue: the keys of the template, the same values passed to the write tools"
+          },
+          "reads": {
+            "description": "Results of the official GitHub MCP reads the check needs",
+            "type": "object",
+            "properties": {
+              "issues": {
+                "description": "Results of issue_read with method get (the structuredContent, { issue: ... }): the parent, prerequisites and, with update, the target",
+                "type": "array",
+                "items": {}
+              },
+              "sub_issues": {
+                "description": "Results of issue_read with method get_sub_issues for each parent Epic (every page)",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "parent": {
+                      "type": "string",
+                      "description": "The parent Epic whose sub-issues were read (owner/repo/N)"
+                    },
+                    "result": {
+                      "description": "Result of issue_read with method get_sub_issues"
+                    }
+                  },
+                  "required": [
+                    "parent",
+                    "result"
+                  ]
+                }
+              },
+              "project_items": {
+                "description": "Results of projects_list with method list_project_items (every page): the cards of the target, the parent and the prerequisites",
+                "type": "array",
+                "items": {}
+              },
+              "project_fields": {
+                "description": "Result of projects_list with method list_project_fields"
+              },
+              "pull_requests": {
+                "description": "Results of pull_request_read with method get: each open pull request that closes a prerequisite (closed_by_pull_requests of issue_read), and those its base branch stacks on; they decide whether the Issue can stack",
+                "type": "array",
+                "items": {}
+              },
+              "issue_fields": {
+                "description": "Result of list_issue_fields for the repository of the Issues"
+              },
+              "issue_types": {
+                "description": "Result of list_issue_types for the owner of the repository"
+              },
+              "collaborators": {
+                "description": "Result of list_repository_collaborators for the repository of the Issues"
+              }
+            }
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "issues"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "description": "Issue the problem belongs to: a batch key or owner/repo/N (omitted when the check covers one target)",
+                  "type": "string"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Name of the argument that breaks the rule (title, body, issue_fields.<name>, blocked_by.<i>, ...)"
+                },
+                "code": {
+                  "type": "string",
+                  "description": "Kind of the problem (missing-section, extra-heading, cycle, ...)"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "What is wrong and how to fix it, with the expected value when there is one"
+                },
+                "candidates": {
+                  "description": "Values that would be accepted (omitted when there is no fixed set)",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "field",
+                "code",
+                "message"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Rules the arguments break; when empty, the arguments can be passed to the write tool as they are"
+          },
+          "plan": {
+            "description": "With create: how each Issue proceeds, in the order given",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "description": "Key of the Issue (issues[i] when it has none)"
+                },
+                "order": {
+                  "description": "Order number in the title (omitted without a parent Epic)",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "blockedBy": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "issue": {
+                        "type": "string",
+                        "description": "Prerequisite: key of an Issue in the batch, or #N / owner/repo#N for an existing Issue"
+                      },
+                      "wait": {
+                        "type": "string",
+                        "enum": [
+                          "stack",
+                          "merge"
+                        ],
+                        "description": "How to wait for the prerequisite"
+                      }
+                    },
+                    "required": [
+                      "issue",
+                      "wait"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Prerequisites in the order written"
+                },
+                "approach": {
+                  "type": "string",
+                  "enum": [
+                    "alone",
+                    "wait-merge",
+                    "stack",
+                    "join"
+                  ],
+                  "description": "How to proceed"
+                },
+                "stackOn": {
+                  "description": "Prerequisite to stack on (only when approach is stack)",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "blockedBy",
+                "approach"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "stackableChains": {
+            "description": "Stackable chains, each from the bottom; Issues of the batch by key, existing Issues as #N or owner/repo#N (omitted when none)",
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "problems"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "issue_dependency_check",
+      "title": "Check Issue dependency",
+      "description": "Check the arguments for issue_dependency_write against the pecot rules before writing: the direction, wait kind and reason, a self reference or cycle, whether the blocked-by is already there, and the column the waiting Issue should move to after the change. Reads and writes nothing on GitHub; pass the results of the official reads in reads.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "add",
+              "remove"
+            ],
+            "description": "Same as the method of issue_dependency_write"
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Owner of the repository of the waiting Issue"
+          },
+          "repo": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of the repository of the waiting Issue"
+          },
+          "issue_number": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "description": "Number of the waiting Issue"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "blocked_by",
+              "blocking"
+            ],
+            "description": "Same as the type of issue_dependency_write; pecot writes only blocked_by"
+          },
+          "related_owner": {
+            "description": "Owner of the repository of the prerequisite Issue (defaults to owner)",
+            "type": "string",
+            "minLength": 1
+          },
+          "related_repo": {
+            "description": "Name of the repository of the prerequisite Issue (defaults to repo)",
+            "type": "string",
+            "minLength": 1
+          },
+          "related_issue_number": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "description": "Number of the prerequisite Issue"
+          },
+          "wait": {
+            "description": "With add only: stack (build on its branch; the default) or merge (wait until it is merged)",
+            "type": "string",
+            "enum": [
+              "stack",
+              "merge"
+            ]
+          },
+          "reason": {
+            "description": "With add and wait merge only: why it waits for the merge, in one line",
+            "type": "string"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "reads": {
+            "description": "Results of the official GitHub MCP reads the check needs",
+            "type": "object",
+            "properties": {
+              "issues": {
+                "description": "Results of issue_read with method get (the structuredContent, { issue: ... }): the parent, prerequisites and, with update, the target",
+                "type": "array",
+                "items": {}
+              },
+              "blocked_by": {
+                "description": "Results of issue_dependency_read with method get_blocked_by: the waiting Issue, and for add, the prerequisite and the Issues it waits for, until the chain ends",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "issue": {
+                      "type": "string",
+                      "description": "The Issue whose blocked-by was read (owner/repo/N)"
+                    },
+                    "result": {
+                      "description": "Result of issue_dependency_read with method get_blocked_by"
+                    }
+                  },
+                  "required": [
+                    "issue",
+                    "result"
+                  ]
+                }
+              },
+              "project_items": {
+                "description": "Results of projects_list with method list_project_items (every page): the cards of the target, the parent and the prerequisites",
+                "type": "array",
+                "items": {}
+              },
+              "project_fields": {
+                "description": "Result of projects_list with method list_project_fields"
+              },
+              "pull_requests": {
+                "description": "Results of pull_request_read with method get: each open pull request that closes a prerequisite (closed_by_pull_requests of issue_read), and those its base branch stacks on; they decide whether the Issue can stack",
+                "type": "array",
+                "items": {}
+              }
+            }
+          }
+        },
+        "required": [
+          "method",
+          "owner",
+          "repo",
+          "issue_number",
+          "type",
+          "related_issue_number"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "description": "Issue the problem belongs to: a batch key or owner/repo/N (omitted when the check covers one target)",
+                  "type": "string"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Name of the argument that breaks the rule (title, body, issue_fields.<name>, blocked_by.<i>, ...)"
+                },
+                "code": {
+                  "type": "string",
+                  "description": "Kind of the problem (missing-section, extra-heading, cycle, ...)"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "What is wrong and how to fix it, with the expected value when there is one"
+                },
+                "candidates": {
+                  "description": "Values that would be accepted (omitted when there is no fixed set)",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "field",
+                "code",
+                "message"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Rules the arguments break; when empty, the arguments can be passed to the write tool as they are"
+          },
+          "expected_status": {
+            "description": "Column (pecot-status) the waiting Issue should be moved to after the change, by its option name on the board (omitted when it stays)",
+            "type": "string"
+          },
+          "body": {
+            "description": "Body of the waiting Issue with the line of the prerequisite added to or removed from the Waits for merge section; write it with issue_check (method update) and issue_write (method update). Omitted when the body stays",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "problems"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "issue_comment_check",
+      "title": "Check issue comment",
+      "description": "Check the arguments for add_issue_comment or update_issue_comment against the pecot rules before writing: the bundled comment template the body follows, and with update, that the comment belongs to the Issue. Reads and writes nothing on GitHub; pass the results of the official reads in reads.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "add",
+              "update"
+            ],
+            "description": "add before add_issue_comment, update before update_issue_comment"
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Owner of the repository of the Issue or PR the comment is on"
+          },
+          "repo": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name of the repository of the Issue or PR the comment is on"
+          },
+          "issue_number": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "description": "Number of the Issue or PR the comment is on; with update, the Issue the comment must belong to"
+          },
+          "comment_id": {
+            "description": "With update only: id of the comment to rewrite (the id in the result of add_issue_comment)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "body": {
+            "type": "string",
+            "description": "Comment body, as passed to the write tool"
+          },
+          "template": {
+            "description": "Template the body follows: pecot-template://comment/<name> for a bundled one (its rules are checked); a replaced template's path or URL is accepted without checking the body",
+            "type": "string"
+          },
+          "template_text": {
+            "description": "Text of a replaced template; the body is not checked against it",
+            "type": "string"
+          },
+          "reads": {
+            "description": "Results of the official GitHub MCP reads the check needs",
+            "type": "object",
+            "properties": {
+              "comments": {
+                "description": "With update: the result of issue_read with method get_comments for the same Issue"
+              }
+            }
+          }
+        },
+        "required": [
+          "method",
+          "owner",
+          "repo",
+          "issue_number",
+          "body"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "problems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "description": "Issue the problem belongs to: a batch key or owner/repo/N (omitted when the check covers one target)",
+                  "type": "string"
+                },
+                "field": {
+                  "type": "string",
+                  "description": "Name of the argument that breaks the rule (title, body, issue_fields.<name>, blocked_by.<i>, ...)"
+                },
+                "code": {
+                  "type": "string",
+                  "description": "Kind of the problem (missing-section, extra-heading, cycle, ...)"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "What is wrong and how to fix it, with the expected value when there is one"
+                },
+                "candidates": {
+                  "description": "Values that would be accepted (omitted when there is no fixed set)",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "field",
+                "code",
+                "message"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Rules the arguments break; when empty, the arguments can be passed to the write tool as they are"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "problems"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "session_start",
+      "title": "Start Issue branch",
+      "description": "Create a branch linked to an Issue (shown in the Development section of the Issue)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "issue_ref": {
+            "type": "string",
+            "description": "Issue reference (owner/repo/123)"
+          },
+          "branch": {
+            "type": "string",
+            "description": "Name of the branch to create"
+          },
+          "base": {
+            "description": "Base branch (default: chosen by readiness, else develop_branch from the config)",
+            "type": "string"
+          },
+          "checkout": {
+            "default": true,
+            "description": "Kept for compatibility; has no effect",
+            "type": "boolean"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "issue_ref",
+          "branch"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string",
+            "description": "Branch created (or to be created), with the Issue number appended"
+          },
+          "repository": {
+            "type": "string",
+            "description": "Repository of the branch (owner/repo)"
+          },
+          "base": {
+            "type": "string",
+            "description": "Base branch the branch starts from"
+          },
+          "stackedOn": {
+            "description": "Issue number whose branch this one is stacked on (omitted when not stacked)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "issue": {
+            "type": "string",
+            "description": "Work Issue (owner/repo/N)"
+          },
+          "workDirectory": {
+            "description": "Absolute path of the work directory (omitted when it could not be created)",
+            "type": "string"
+          },
+          "leftovers": {
+            "description": "Earlier merged PRs whose local cleanup is left undone (omitted when there is none)",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pullRequest": {
+                  "type": "string",
+                  "description": "Merged PR of the current branch whose local cleanup with session_finish is left (owner/repo/N)"
+                }
+              },
+              "required": [
+                "pullRequest"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "branch",
+              "repository",
+              "base",
+              "issue"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "session_show",
+      "title": "Show session",
+      "description": "Show the branch, repository and work Issue of the session",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "description": "Target Git repository (absolute or relative path)",
+            "type": "string"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "description": "Current branch (omitted when it cannot be read)",
+            "type": "string"
+          },
+          "repository": {
+            "description": "Repository of the git remote (owner/repo; omitted when it cannot be read)",
+            "type": "string"
+          },
+          "activeIssue": {
+            "description": "Work Issue of the session (omitted when there is none)",
+            "type": "object",
+            "properties": {
+              "reference": {
+                "type": "string",
+                "description": "Work Issue found from the git remote and the number that ends the branch name (owner/repo/N, the form issue_ref takes)"
+              },
+              "title": {
+                "description": "Title of the Issue (omitted when it cannot be read from GitHub)",
+                "type": "string"
+              },
+              "state": {
+                "description": "State of the Issue, OPEN or CLOSED (omitted when it cannot be read from GitHub)",
+                "type": "string"
+              },
+              "body": {
+                "description": "Body of the Issue, empty when it has none (omitted when it cannot be read from GitHub)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "reference"
+            ],
+            "additionalProperties": false
+          },
+          "stack": {
+            "description": "Base the work was stacked on (omitted when not stacked)",
+            "type": "object",
+            "properties": {
+              "branch": {
+                "type": "string",
+                "description": "Base branch the work branch is stacked on"
+              },
+              "stackedOn": {
+                "type": "string",
+                "description": "Issue stacked on (owner/repo/N)"
+              },
+              "pullRequest": {
+                "description": "PR of the base branch (omitted when there is none or it cannot be read)",
+                "type": "object",
+                "properties": {
+                  "number": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991,
+                    "description": "PR number"
+                  },
+                  "state": {
+                    "type": "string",
+                    "description": "State of the PR"
+                  }
+                },
+                "required": [
+                  "number",
+                  "state"
+                ],
+                "additionalProperties": false
+              },
+              "needsRestack": {
+                "description": "Whether the branch needs pr_restack: the base branch moved or its PR is merged (omitted when it cannot be decided)",
+                "type": "boolean"
+              },
+              "readiness": {
+                "description": "Readiness of the active Issue (only when blocked)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "branch",
+              "stackedOn"
+            ],
+            "additionalProperties": false
+          },
+          "stackedAbove": {
+            "description": "Open PRs whose base is the current branch (omitted when there are none or they cannot be read)",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "PR number"
+                },
+                "branch": {
+                  "type": "string",
+                  "description": "Head branch of the PR"
+                }
+              },
+              "required": [
+                "number",
+                "branch"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "session_finish",
+      "title": "Clean up after merge",
+      "description": "Clean up after a merged PR (close related Issues, delete branches, local cleanup)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pr_ref": {
+            "type": "string",
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+          },
+          "delete_branch": {
+            "default": false,
+            "description": "Delete the branch",
+            "type": "boolean"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pr_ref"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "closedIssues": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "description": "Issue numbers this command closed; usually empty for a PR to the default branch, since GitHub closes them on merge"
+          },
+          "skippedIssues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Issue number"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "epic",
+                    "already-closed",
+                    "not-found",
+                    "failed"
+                  ],
+                  "description": "Why it was not closed: epic (protected), already-closed (including Issues GitHub closed on merge), not-found, or failed (see warnings)"
+                }
+              },
+              "required": [
+                "number",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Closing Issues of the PR that this command did not close"
+          },
+          "deletedBranches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "branch": {
+                  "type": "string",
+                  "description": "Name of the branch"
+                },
+                "location": {
+                  "type": "string",
+                  "enum": [
+                    "remote",
+                    "local"
+                  ],
+                  "description": "Whether the remote or the local branch was deleted"
+                }
+              },
+              "required": [
+                "branch",
+                "location"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Branches deleted"
+          },
+          "readinessChanges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "type": "string",
+                  "description": "Issue waiting for a closed Issue (#N, or owner/repo#N in another repository)"
+                },
+                "from": {
+                  "type": "string",
+                  "description": "Readiness before the merge (blocked, startable, or stackable on #N)"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Readiness after the merge (blocked, startable, or stackable on #N)"
+                }
+              },
+              "required": [
+                "issue",
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Issues waiting for the closed Issues whose readiness changed by the merge"
+          },
+          "restack": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "type": "string",
+                  "description": "Started Issue stacked on a closed Issue (#N, or owner/repo#N in another repository)"
+                },
+                "branch": {
+                  "description": "Branch linked to that Issue, to restack in its working directory (omitted when none)",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "issue"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Upper stacked Issues to restack with pr_restack in their working directories"
+          },
+          "currentBranch": {
+            "description": "Current branch after the local cleanup (omitted when the local cleanup was skipped)",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "closedIssues",
+              "skippedIssues",
+              "deletedBranches",
+              "readinessChanges",
+              "restack"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "pr_create",
+      "title": "Create PR",
+      "description": "Create a PR (pull request)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "description": "Path to a Markdown file with front matter",
+            "type": "string"
+          },
+          "message": {
+            "description": "PR body, given directly",
+            "type": "string"
+          },
+          "title": {
+            "description": "PR title (required with `message`)",
+            "type": "string"
+          },
+          "base": {
+            "description": "Base branch (required with `message`)",
+            "type": "string"
+          },
+          "head": {
+            "description": "Head branch, or owner:branch for a branch of a fork (default: the current branch)",
+            "type": "string"
+          },
+          "draft": {
+            "default": false,
+            "description": "Create as a draft PR",
+            "type": "boolean"
+          },
+          "repo": {
+            "description": "Repository in owner/repo form (with `message`)",
+            "type": "string"
+          },
+          "no_issue_ref": {
+            "default": false,
+            "description": "Skip the automatic related-Issue setup (extraction from the branch name, adding it to the body, and the validation check)",
+            "type": "boolean"
+          },
+          "template": {
+            "default": "default",
+            "description": "PR template kind (default / release)",
+            "type": "string"
+          },
+          "screenshot": {
+            "description": "Reason to omit an image from Summary (with `message`)",
+            "type": "string"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the created PR"
+          },
+          "number": {
+            "description": "Number of the created PR (omitted when the response has none)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "head": {
+            "type": "string",
+            "description": "Head branch of the PR, owner:branch for a branch of a fork"
+          },
+          "base": {
+            "type": "string",
+            "description": "Base branch of the PR"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the PR"
+          },
+          "inReview": {
+            "description": "Issue number whose status was set to In Review (omitted when not set)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "stack": {
+            "description": "Stack of the PR (omitted when the PR is not stacked)",
+            "type": "object",
+            "properties": {
+              "lower": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "PR number of the lower stage the new PR is stacked on"
+              },
+              "registered": {
+                "type": "boolean",
+                "description": "Whether the new PR was registered to the stack"
+              },
+              "number": {
+                "description": "Stack number (omitted when not registered)",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "lower",
+              "registered"
+            ],
+            "additionalProperties": false
+          },
+          "moves": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "type": "string",
+                  "description": "Issue as shown in the moved line (#N, or owner/repo#N outside the home repository)"
+                },
+                "from": {
+                  "description": "Column before the move (omitted when only the Status changed)",
+                  "type": "string"
+                },
+                "to": {
+                  "description": "Column after the move (omitted when only the Status changed)",
+                  "type": "string"
+                },
+                "label": {
+                  "description": "Status value set (omitted when the Status did not change)",
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "Readiness that decided the move"
+                }
+              },
+              "required": [
+                "issue",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Issues waiting for this PR whose column or Status was written"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "url",
+              "head",
+              "base",
+              "title",
+              "moves"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "pr_show",
+      "title": "Get PR details",
+      "description": "Get PR details efficiently (GraphQL, only the needed fields)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pr_ref": {
+            "type": "string",
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+          },
+          "json": {
+            "default": false,
+            "description": "Output as JSON",
+            "type": "boolean"
+          },
+          "reviews": {
+            "default": false,
+            "description": "Include review details (bodies and line comments)",
+            "type": "boolean"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pr_ref"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "PR number"
+          },
+          "state": {
+            "type": "string",
+            "description": "State of the PR (OPEN, CLOSED or MERGED)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the PR"
+          },
+          "body": {
+            "type": "string",
+            "description": "Body of the PR"
+          },
+          "head_ref": {
+            "type": "string",
+            "description": "Head branch"
+          },
+          "base_ref": {
+            "type": "string",
+            "description": "Base branch"
+          },
+          "is_draft": {
+            "type": "boolean",
+            "description": "Whether the PR is a draft"
+          },
+          "mergeable": {
+            "type": "string",
+            "description": "Mergeability (MERGEABLE, CONFLICTING or UNKNOWN)"
+          },
+          "comments": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of comments"
+          },
+          "closing_issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Issue number"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Title of the Issue (empty for referenced_issues)"
+                }
+              },
+              "required": [
+                "number",
+                "title"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Issues the PR closes"
+          },
+          "referenced_issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Issue number"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Title of the Issue (empty for referenced_issues)"
+                }
+              },
+              "required": [
+                "number",
+                "title"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Issues referenced by Refs in the body and not in closing_issues"
+          },
+          "reviews": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "description": "State of the review"
+                },
+                "author": {
+                  "description": "Login of the reviewer (null when deleted)",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "body": {
+                  "description": "Body of the review (only with reviews)",
+                  "type": "string"
+                },
+                "submitted_at": {
+                  "description": "Submission time (only with reviews)",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "state",
+                "author"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Reviews"
+          },
+          "review_threads": {
+            "description": "Line comment threads (only with reviews)",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "is_resolved": {
+                  "type": "boolean",
+                  "description": "Whether the thread is resolved"
+                },
+                "path": {
+                  "description": "File path of the thread",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "line": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Line of the thread"
+                },
+                "comments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "author": {
+                        "description": "Login of the author (null when deleted)",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "body": {
+                        "type": "string",
+                        "description": "Body of the comment"
+                      },
+                      "created_at": {
+                        "description": "Creation time",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "url": {
+                        "description": "URL of the comment",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "author",
+                      "body",
+                      "created_at",
+                      "url"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Comments in the thread"
+                }
+              },
+              "required": [
+                "is_resolved",
+                "path",
+                "line",
+                "comments"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "number",
+              "state",
+              "title",
+              "body",
+              "head_ref",
+              "base_ref",
+              "is_draft",
+              "mergeable",
+              "comments",
+              "closing_issues",
+              "referenced_issues",
+              "reviews"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "pr_check",
+      "title": "Check PR readiness",
+      "description": "Show all the information to check before creating a PR",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "description": "Target Git repository (absolute or relative path)",
+            "type": "string"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "remoteUrl": {
+            "type": "string",
+            "description": "URL of the primary git remote"
+          },
+          "currentBranch": {
+            "type": "string",
+            "description": "Current branch"
+          },
+          "pushed": {
+            "type": "boolean",
+            "description": "Whether the current branch is pushed and even with its remote branch"
+          },
+          "pushStatus": {
+            "type": "string",
+            "description": "Push status as shown in the Push Status section"
+          },
+          "baseBranch": {
+            "type": "string",
+            "description": "Remote branch compared against (remote/branch): the lower stage when stacked, else the develop branch"
+          },
+          "gitStatus": {
+            "type": "string",
+            "description": "Output of git status"
+          },
+          "commits": {
+            "type": "string",
+            "description": "Commits since the base branch, as shown in the Commits section"
+          },
+          "diffSummary": {
+            "type": "string",
+            "description": "Diff stat against the base branch, as shown in the Diff Summary section"
+          },
+          "worktree": {
+            "type": "object",
+            "properties": {
+              "list": {
+                "type": "string",
+                "description": "Output of git worktree list"
+              },
+              "directoryName": {
+                "type": "string",
+                "description": "Name of the current directory"
+              },
+              "isWorktree": {
+                "description": "Whether the directory is a linked worktree (omitted when it could not be determined)",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "list",
+              "directoryName"
+            ],
+            "additionalProperties": false,
+            "description": "Worktree information"
+          },
+          "stashList": {
+            "type": "string",
+            "description": "Stash list, as shown in the Stash List section"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "remoteUrl",
+              "currentBranch",
+              "pushed",
+              "pushStatus",
+              "baseBranch",
+              "gitStatus",
+              "commits",
+              "diffSummary",
+              "worktree",
+              "stashList"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "pr_merge",
+      "title": "Merge PR",
+      "description": "Merge a PR with the asynchronous merge API (a PR in a stack must be the bottom one)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pr_ref": {
+            "type": "string",
+            "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pr_ref"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "pullRequest": {
+            "type": "string",
+            "description": "PR (owner/repo/N)"
+          },
+          "base": {
+            "type": "string",
+            "description": "Base branch the PR is merged into"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "merged",
+              "enqueued"
+            ],
+            "description": "merged, or enqueued when the PR was added to the merge queue"
+          },
+          "stack": {
+            "description": "Stack the PR is the bottom of (absent for a PR outside a stack)",
+            "type": "object",
+            "properties": {
+              "number": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Stack number"
+              },
+              "size": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Number of PRs in the stack from this PR upward (K of \"1 of K\")"
+              }
+            },
+            "required": [
+              "number",
+              "size"
+            ],
+            "additionalProperties": false
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "pullRequest",
+              "base",
+              "status"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "pr_restack",
+      "title": "Restack branch",
+      "description": "Restack the current branch onto the new position of its base branch",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "check": {
+            "default": false,
+            "description": "Only report whether a restack is needed",
+            "type": "boolean"
+          },
+          "continue": {
+            "default": false,
+            "description": "Continue a restack that stopped on conflicts, after resolving them",
+            "type": "boolean"
+          },
+          "abort": {
+            "default": false,
+            "description": "Abort a restack that stopped on conflicts and go back to the position before it",
+            "type": "boolean"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string",
+            "description": "Branch that is restacked"
+          },
+          "base": {
+            "type": "string",
+            "description": "Base branch after the restack (the develop branch when the lower PR is merged)"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "up-to-date",
+              "needs-restack",
+              "restacked",
+              "synced",
+              "conflict",
+              "aborted"
+            ],
+            "description": "What happened, or with check, what a restack would do"
+          },
+          "cause": {
+            "description": "Why a restack is needed (only with check, when one is needed)",
+            "type": "string",
+            "enum": [
+              "base-moved",
+              "base-merged"
+            ]
+          },
+          "pullRequest": {
+            "description": "Merged PR of the lower branch (only when the cause is base-merged)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pushed": {
+            "description": "Whether the branch was pushed (only when restacked)",
+            "type": "boolean"
+          },
+          "conflicts": {
+            "description": "Files with conflicts (only on conflict)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "relinked": {
+            "description": "Open PR whose body was saved again so that GitHub links its closing Issues (only after a restack onto the develop branch)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "branch",
+              "base",
+              "outcome"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "release_check",
+      "title": "Check release readiness",
+      "description": "Run the pre-release checks; for an nx repository only the alerts are checked",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "description": "Release version (detected from the CHANGELOG when omitted)",
+            "type": "string"
+          },
+          "package": {
+            "description": "Package name in a monorepo (required for repositories with packages configured)",
+            "type": "string"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "description": "Version to release (omitted when release_type is nx, where only the alerts are checked)",
+            "type": "string"
+          },
+          "tag": {
+            "description": "Tag to create (omitted when release_type is nx)",
+            "type": "string"
+          },
+          "releaseNotes": {
+            "description": "Release notes from the CHANGELOG (omitted when release_type is nx)",
+            "type": "string"
+          },
+          "commitCount": {
+            "description": "Number of commits from the release branch to the develop branch (omitted when release_type is nx)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Checks skipped because the feature is disabled, as in the skipped lines (e.g. \"Dependabot alerts (feature disabled)\")"
+          },
+          "dependabotAlerts": {
+            "description": "Dependabot alert status (omitted when it could not be read; the release is not blocked)",
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether Dependabot alerts are enabled"
+              },
+              "openCount": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Number of open alerts (0 when disabled)"
+              },
+              "maxSeverity": {
+                "description": "Highest severity of the open alerts (omitted when there is none)",
+                "type": "string"
+              },
+              "alertsUrl": {
+                "type": "string",
+                "description": "URL of the alert list"
+              }
+            },
+            "required": [
+              "enabled",
+              "openCount",
+              "alertsUrl"
+            ],
+            "additionalProperties": false
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "skipped"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "release_create",
+      "title": "Create release",
+      "description": "Create a GitHub release and its tag (the release notes come from the CHANGELOG)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "Release version (for example 0.6.1)"
+          },
+          "package": {
+            "description": "Package name in a monorepo (required for repositories with packages configured)",
+            "type": "string"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string",
+            "description": "Tag of the release"
+          },
+          "url": {
+            "description": "URL of the created release (omitted when the response has none)",
+            "type": "string"
+          },
+          "releaseNotes": {
+            "type": "string",
+            "description": "Release notes from the CHANGELOG"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "tag",
+              "releaseNotes"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "release_merge",
+      "title": "Merge release PR",
+      "description": "Merge a release PR with a regular merge",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pr_ref": {
+            "type": "string",
+            "description": "PR reference (owner/repo/123)"
+          },
+          "delete_branch": {
+            "default": false,
+            "description": "Delete the branch after merging",
+            "type": "boolean"
+          },
+          "admin": {
+            "default": false,
+            "description": "Merge with admin rights (skip the mergeability check)",
+            "type": "boolean"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pr_ref"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "pullRequest": {
+            "type": "string",
+            "description": "Release PR (owner/repo/N)"
+          },
+          "head": {
+            "type": "string",
+            "description": "Head branch of the PR"
+          },
+          "base": {
+            "type": "string",
+            "description": "Base branch of the PR (the release branch)"
+          },
+          "deletedBranch": {
+            "type": "boolean",
+            "description": "Whether the remote head branch was deleted (false without delete_branch or when the deletion failed)"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "pullRequest",
+              "head",
+              "base",
+              "deletedBranch"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "worktree_add",
+      "title": "Add worktree",
+      "description": "Create a new worktree",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "description": "Target Git repository (absolute or relative path)",
+            "type": "string"
+          },
+          "base": {
+            "description": "Base branch (default: the develop_branch of the repository in its project config)",
+            "type": "string"
+          },
+          "path": {
+            "description": "Where to create the worktree (default: <project_root>/<auto-numbered>/<repository name>)",
+            "type": "string"
+          },
+          "no_copy": {
+            "default": false,
+            "description": "Skip copying untracked files",
+            "type": "boolean"
+          },
+          "no_link": {
+            "default": false,
+            "description": "Skip creating symlinks",
+            "type": "boolean"
+          },
+          "setup": {
+            "description": "Command to run after creation",
+            "type": "string"
+          },
+          "allow_existing_branch": {
+            "default": false,
+            "description": "Allow reusing an existing branch even if its upstream differs from develop_branch",
+            "type": "boolean"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the worktree (the wtN it was numbered as)"
+          },
+          "path": {
+            "type": "string",
+            "description": "Absolute path of the worktree"
+          },
+          "branch": {
+            "type": "string",
+            "description": "Branch checked out in the worktree"
+          },
+          "base": {
+            "type": "string",
+            "description": "Base branch the worktree branch starts from"
+          },
+          "setupFailed": {
+            "type": "boolean",
+            "description": "true when the setup command failed or timed out, false when it succeeded or was not run"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "name",
+              "path",
+              "branch",
+              "base",
+              "setupFailed"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "worktree_remove",
+      "title": "Remove worktree",
+      "description": "Remove a worktree",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the worktree to remove (the recorded wtN, the wtN directory, or the branch name)"
+          },
+          "directory": {
+            "description": "Target Git repository (absolute or relative path)",
+            "type": "string"
+          },
+          "force": {
+            "default": false,
+            "description": "Force removal even if there are changes",
+            "type": "boolean"
+          },
+          "keep_branch": {
+            "default": false,
+            "description": "Keep the branch",
+            "type": "boolean"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "directory"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the worktree that was removed, as given"
+          },
+          "deletedBranch": {
+            "type": "boolean",
+            "description": "Whether the local branch was deleted (false when kept or when the deletion failed)"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "name",
+              "deletedBranch"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "worktree_init",
+      "title": "Initialize worktree config",
+      "description": "Create the worktree config files in the main worktree",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "description": "Target Git repository (absolute or relative path)",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "configFile": {
+            "type": "string",
+            "description": "Absolute path of the worktree config file"
+          },
+          "ignoreFile": {
+            "type": "string",
+            "description": "Absolute path of the worktree ignore file"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "configFile",
+              "ignoreFile"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "worktree_link",
+      "title": "Update worktree symlinks",
+      "description": "Apply or update symlinks in existing worktrees",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "description": "Target Git repository (absolute or relative path)",
+            "type": "string"
+          },
+          "force": {
+            "default": false,
+            "description": "Overwrite real files and directories without asking",
+            "type": "boolean"
+          },
+          "all": {
+            "default": false,
+            "description": "Apply to all sub-worktrees",
+            "type": "boolean"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "directory"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Absolute path of the symlink"
+                },
+                "destination": {
+                  "type": "string",
+                  "description": "Absolute path the symlink points to"
+                },
+                "change": {
+                  "type": "string",
+                  "enum": [
+                    "create",
+                    "update",
+                    "skip",
+                    "error"
+                  ],
+                  "description": "create: a new symlink; update: an existing one was replaced; skip: left as it was; error: could not be made"
+                },
+                "reason": {
+                  "description": "Why the link was skipped or failed (omitted for create and update)",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "destination",
+                "change"
+              ],
+              "additionalProperties": false
+            },
+            "description": "One entry per link of the config in each target worktree (an empty array when there is no sub-worktree)"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "links"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "branch_delete",
+      "title": "Delete remote branch",
+      "description": "Delete a remote branch (a protected branch is never deleted)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {
+            "type": "string",
+            "description": "Repository reference (owner/repo)"
+          },
+          "branch": {
+            "type": "string",
+            "description": "Name of the branch to delete"
+          },
+          "project": {
+            "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+            "type": "string"
+          }
+        },
+        "required": [
+          "repo",
+          "branch"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string",
+            "description": "Name of the remote branch"
+          },
+          "repository": {
+            "type": "string",
+            "description": "Repository of the branch (owner/repo)"
+          },
+          "deleted": {
+            "type": "boolean",
+            "description": "Whether the remote branch was deleted"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "branch",
+              "repository",
+              "deleted"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "workflow_install",
+      "title": "Install workflow template",
+      "description": "Write a GitHub Actions workflow template of pecot into the repository",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the workflow template (board-sync, review, handoff, auto, github-ops)"
+          },
+          "check": {
+            "default": false,
+            "description": "Write nothing; check that the file in the repository has the version of the bundled template",
+            "type": "boolean"
+          },
+          "force": {
+            "default": false,
+            "description": "Overwrite the file when it already exists",
+            "type": "boolean"
+          },
+          "directory": {
+            "description": "Root of the target Git repository (absolute or relative path; default: the current directory)",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Path of the workflow file from the repository root"
+          },
+          "version": {
+            "type": "number",
+            "description": "Version of the bundled template"
+          },
+          "installedVersion": {
+            "description": "Version of the file already in the repository; omitted when there is no file or no version marker",
+            "type": "number"
+          },
+          "written": {
+            "type": "boolean",
+            "description": "Whether the file was written (false on check)"
+          },
+          "upToDate": {
+            "description": "With check: whether the file in the repository has the version of the bundled template",
+            "type": "boolean"
+          },
+          "removedLines": {
+            "description": "With force: lines you added between the begin and end markers, which the bundled template replaces",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "path",
+              "version",
+              "written"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    },
+    {
+      "name": "workflow_doctor",
+      "title": "Check workflow setup",
+      "description": "Check that the repository has the workflow file and the settings it needs",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the workflow template (board-sync, review, handoff, auto, github-ops)"
+          },
+          "directory": {
+            "description": "Root of the target Git repository (absolute or relative path; default: the current directory)",
+            "type": "string"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "repository": {
+            "type": "string",
+            "description": "Repository of the git remote (owner/repo)"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "What was checked: the workflow file, the template version, a secret or variable, or the Claude GitHub App (only for a template that uses it)"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "ok",
+                    "missing",
+                    "outdated",
+                    "skipped"
+                  ],
+                  "description": "ok, missing, outdated, or skipped (not readable with the token; not counted as missing)"
+                }
+              },
+              "required": [
+                "name",
+                "state"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Checked items in the order of the output lines"
+          },
+          "ready": {
+            "type": "boolean",
+            "description": "Whether nothing is missing or outdated"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "repository",
+              "items",
+              "ready"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    }
+  ]
+}

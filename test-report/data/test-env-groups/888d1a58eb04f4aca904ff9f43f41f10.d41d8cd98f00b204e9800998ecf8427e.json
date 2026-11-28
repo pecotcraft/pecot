@@ -1,0 +1,1 @@
+{"id":"888d1a58eb04f4aca904ff9f43f41f10.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#cli/dist に @pecot/workflow-core の import が残らない","name":"cli/dist に @pecot/workflow-core の import が残らない","status":"passed","testResultsByEnv":{"default":"dd388c9663c2f0e8760e9b03cdb387bc"}}

@@ -1,0 +1,1 @@
+{"id":"4d39dace6c3d01b753f0affe0a568725.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_create 相対の file: は実処理前に invalid-option・exitCode 2 で返す (サーバの cwd は呼び出し元と別)","name":"相対の file: は実処理前に invalid-option・exitCode 2 で返す (サーバの cwd は呼び出し元と別)","status":"passed","testResultsByEnv":{"default":"0247a4f8db7afd6de601bff0564f61c6"}}

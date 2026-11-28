@@ -1,0 +1,1 @@
+{"id":"2d72c7a628dbd7661d62f2ea2b270d48.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: 実行時依存 (永続層) 取得済みなら install を呼ばない","name":"取得済みなら install を呼ばない","status":"passed","testResultsByEnv":{"default":"7893766c63127a49780c302eb36fc99d"}}

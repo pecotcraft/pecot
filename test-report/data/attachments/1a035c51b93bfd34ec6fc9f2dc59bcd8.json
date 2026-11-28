@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "envHash": "66820945482b7667c47b22020353844347288bab16af88b5e7934523e1e04fba",
+  "entries": {
+    "100": {
+      "slideHash": "f1a1776af978bfa267addcdae2de9e32531047bc4449677c0f2eceff1096696d",
+      "slideNumber": 1,
+      "clickStep": null,
+      "pptxFile": "slide-100.pptx",
+      "prerenderFiles": [
+        "prerender-slide100-0.meta.json",
+        "prerender-slide100-0.png"
+      ],
+      "letterSpacingMap": {
+        "共通テキスト": {
+          "letterSpacing": "1.5px",
+          "fontSize": "14px"
+        }
+      },
+      "hrefMap": {
+        "共通テキスト": "https://example.com/slide-1"
+      },
+      "hasExplicitAnimation": false
+    },
+    "200": {
+      "slideHash": "acd2e951034d9cf675af2298b1551c79bab8a0e13ac413453cc6bb35984cea80",
+      "slideNumber": 2,
+      "clickStep": null,
+      "pptxFile": "slide-200.pptx",
+      "prerenderFiles": [
+        "prerender-slide200-0.meta.json",
+        "prerender-slide200-0.png"
+      ],
+      "letterSpacingMap": {
+        "共通テキスト": {
+          "letterSpacing": "2.5px",
+          "fontSize": "14px"
+        }
+      },
+      "hrefMap": {
+        "共通テキスト": "https://example.com/slide-2"
+      },
+      "hasExplicitAnimation": false
+    }
+  }
+}

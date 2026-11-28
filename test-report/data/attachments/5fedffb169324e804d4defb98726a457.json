@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: eslint skipped: /tmp/pecotv-test-file-tools-IjbT7z/talk/pages/cover.md\\n\\n  eslint did not lint the file because it judged the file to be outside its base path (talk root: /tmp/pecotv-test-file-tools-IjbT7z/talk / eslint argument: pages/cover.md). No lint ran, so violations in this file have not been detected.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: eslint skipped: /tmp/pecotv-test-file-tools-IjbT7z/talk/pages/cover.md\n\n  eslint did not lint the file because it judged the file to be outside its base path (talk root: /tmp/pecotv-test-file-tools-IjbT7z/talk / eslint argument: pages/cover.md). No lint ran, so violations in this file have not been detected."
+    }
+  }
+}

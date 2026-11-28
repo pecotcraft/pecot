@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "SSO authentication completed"
+    },
+    {
+      "type": "text",
+      "text": "{\"verificationUrl\":\"https://example.awsapps.com/start/#/device\",\"verificationUrlComplete\":\"https://example.awsapps.com/start/#/device?user_code=ABCD-EFGH\",\"userCode\":\"ABCD-EFGH\",\"state\":\"completed\",\"output\":\"Browser will not be automatically opened.\\nPlease visit the following URL:\\n\\nhttps://example.awsapps.com/start/#/device\\n\\nThen enter the code:\\n\\nABCD-EFGH\\n\\nAlternatively, you may visit the following URL which will autofill the code upon loading:\\nhttps://example.awsapps.com/start/#/device?user_code=ABCD-EFGH\\nSuccessfully logged into Start URL: https://example.awsapps.com/start/#\\n\"}"
+    }
+  ],
+  "structuredContent": {
+    "verificationUrl": "https://example.awsapps.com/start/#/device",
+    "verificationUrlComplete": "https://example.awsapps.com/start/#/device?user_code=ABCD-EFGH",
+    "userCode": "ABCD-EFGH",
+    "state": "completed",
+    "output": "Browser will not be automatically opened.\nPlease visit the following URL:\n\nhttps://example.awsapps.com/start/#/device\n\nThen enter the code:\n\nABCD-EFGH\n\nAlternatively, you may visit the following URL which will autofill the code upon loading:\nhttps://example.awsapps.com/start/#/device?user_code=ABCD-EFGH\nSuccessfully logged into Start URL: https://example.awsapps.com/start/#\n"
+  }
+}

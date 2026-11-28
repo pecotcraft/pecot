@@ -1,0 +1,1 @@
+{"id":"e4ee10224139d9cbc36f6ef4fdf7c6cc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: HOOK_COMMAND と設定 設定で無効にしたとき、許可せず何も出力しない","name":"設定で無効にしたとき、許可せず何も出力しない","status":"passed","testResultsByEnv":{"default":"1e6c42cfcd175830062dfd2b8f2109c3"}}

@@ -1,0 +1,1 @@
+{"id":"9de8497ffd5727d3b69d464b4b4488df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page の失敗ルート include 先の共通 yaml が無いテーマはページを作らずに失敗する","name":"include 先の共通 yaml が無いテーマはページを作らずに失敗する","status":"passed","testResultsByEnv":{"default":"c9ee6f267f686c630e55ca1a3b615a05"}}

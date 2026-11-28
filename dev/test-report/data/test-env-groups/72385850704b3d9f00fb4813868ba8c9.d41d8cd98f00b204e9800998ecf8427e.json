@@ -1,0 +1,1 @@
+{"id":"72385850704b3d9f00fb4813868ba8c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/attach.test.ts#attach Allure の reporter が動くレーンの中 渡したファイルが存在しないと、添付を追加せず、例外も発生しない","name":"渡したファイルが存在しないと、添付を追加せず、例外も発生しない","status":"passed","testResultsByEnv":{"default":"5c197f2ff8021d52376faf237c197654"}}

@@ -1,0 +1,1 @@
+{"id":"3316189b733c4940f30e63c7513d032e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-sweep.test.ts#sandbox-sweep.sh 契約の 6 つの場合 片付ける対象が存在しない場合は、0 件と表示して何も書き換えない","name":"片付ける対象が存在しない場合は、0 件と表示して何も書き換えない","status":"passed","testResultsByEnv":{"default":"d62c93d74d0474ae86a881f9af6d29b8"}}

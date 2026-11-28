@@ -1,0 +1,1 @@
+{"id":"575291725f379e886da0a6a764624a52.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_plugin_validate#test_broken_skill_frontmatter_fails","name":"SKILL.md の frontmatter が閉じていないと、非 0 で終了し、失敗した対象だけを表示する","status":"passed","testResultsByEnv":{"default":"2cbb1a16a7ef60ad718532d38ef854bf"}}

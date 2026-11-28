@@ -1,0 +1,1 @@
+{"id":"a621d1bc6e4a11cdaa0020aec69d83bf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と Issue field 設定の無いリポジトリへの起票で 列の欄が無いボード を読むと、欄の値をボードの読み取りだけで照らす","name":"設定の無いリポジトリへの起票で 列の欄が無いボード を読むと、欄の値をボードの読み取りだけで照らす","status":"passed","testResultsByEnv":{"default":"3ff6710a4784f90b87a678a2140210e9"}}

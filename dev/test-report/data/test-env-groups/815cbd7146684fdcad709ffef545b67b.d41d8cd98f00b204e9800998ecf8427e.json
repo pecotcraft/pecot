@@ -1,0 +1,1 @@
+{"id":"815cbd7146684fdcad709ffef545b67b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml 画像の枠線は、注記の枠線とは別の色にし、画像ごとに 1 本ずつ引く","name":"画像の枠線は、注記の枠線とは別の色にし、画像ごとに 1 本ずつ引く","status":"passed","testResultsByEnv":{"default":"b72f5d3f10ec95568aff63470c395580"}}

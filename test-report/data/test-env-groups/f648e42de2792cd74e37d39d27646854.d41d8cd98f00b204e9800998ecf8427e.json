@@ -1,0 +1,1 @@
+{"id":"f648e42de2792cd74e37d39d27646854.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestSlim isDraft が真偽値でない場合は、GitHubAPIError を発生させる","name":"isDraft が真偽値でない場合は、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"45a6297bf81c01cc068c3658149e2d82"}}

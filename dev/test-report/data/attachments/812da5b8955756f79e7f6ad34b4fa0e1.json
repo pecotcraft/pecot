@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated_field: give either updated_field.id or updated_field.name, not both"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"updated_field\",\"code\":\"value\",\"message\":\"give either updated_field.id or updated_field.name, not both\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "updated_field",
+        "code": "value",
+        "message": "give either updated_field.id or updated_field.name, not both"
+      }
+    ]
+  }
+}

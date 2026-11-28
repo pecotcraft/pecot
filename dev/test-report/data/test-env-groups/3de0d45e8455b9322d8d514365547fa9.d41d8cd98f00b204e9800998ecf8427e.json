@@ -1,0 +1,1 @@
+{"id":"3de0d45e8455b9322d8d514365547fa9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#matchPrerenderToMedia 大きさの相対誤差が 15% を超える場合は、undefined を返す","name":"大きさの相対誤差が 15% を超える場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"6aef7e69ca1d67e746aac1c0f5abd64c"}}

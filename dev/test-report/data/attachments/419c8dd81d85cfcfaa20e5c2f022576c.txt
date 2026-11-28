@@ -1,0 +1,1 @@
+docker pull が失敗したため、PR の定義から build する。pull.log の末尾:

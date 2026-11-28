@@ -1,0 +1,1 @@
+{"id":"9d5ab909650453cafd6e637b14be8479.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/copilot-skill-names.test.ts#pre-tool-use-skill.sh 自プラグインのスキル（名前空間付き）のとき、何も出力せず、.pecot を初期化する","name":"自プラグインのスキル（名前空間付き）のとき、何も出力せず、.pecot を初期化する","status":"passed","testResultsByEnv":{"default":"4a42f423911b53c9248ad297f4516f5c"}}

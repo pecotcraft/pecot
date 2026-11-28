@@ -1,0 +1,4 @@
+ずれは 1 件
+workflows / pecot-review.yml
+  このリポ: blob 7dcb7f2b14f7、2 行目: on: pull_request
+  検証用: blob cb9aca14c2d4、2 行目: on: push

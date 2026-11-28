@@ -1,0 +1,1 @@
+{"id":"c846aca56f007ef2d21b22b9b283f6ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyHyperlinkFix リンクの色に一致しないテキストの場合は、変換しない","name":"リンクの色に一致しないテキストの場合は、変換しない","status":"passed","testResultsByEnv":{"default":"95d8fdd41f6c2b81c789238ab2c3479a"}}

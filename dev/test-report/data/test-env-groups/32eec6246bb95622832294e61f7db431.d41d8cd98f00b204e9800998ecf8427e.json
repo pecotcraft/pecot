@@ -1,0 +1,1 @@
+{"id":"32eec6246bb95622832294e61f7db431.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_run_cmd_ls_remote_failure_is_reported_in_land_log","name":"`git ls-remote` が失敗すると、`runCmd` はその旨を land.log に記録する","status":"passed","testResultsByEnv":{"default":"618a4244d4405338ca6ec1ec78f81c70"}}

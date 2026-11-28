@@ -1,0 +1,2 @@
+使い方: dev-container.sh prefetch|up|exec -- <cmd>|give-owner|restore-owner|install-cli|tag|publish
+        publish の引数: [--push] [--latest] [--no-cache] [--base <branch>]

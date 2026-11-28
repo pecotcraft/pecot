@@ -1,0 +1,4 @@
+既存セッション 'pecot-base-parallel-a:wt1-pecot' では Remote Control を起動しません
+既存セッション 'pecot-base-parallel-a:wt2-pecot' では Remote Control を起動しません
+既存セッション 'pecot-base-parallel-a:wt3-pecot' では Remote Control を起動しません
+既存セッション 'pecot-base-parallel-a:wt4-pecot' では Remote Control を起動しません

@@ -1,0 +1,4 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_without_project_no_epic0/suite/sample.bats
+1..1
+# pecot-description: 通るテストです。
+ok 1 通る # in 110 ms

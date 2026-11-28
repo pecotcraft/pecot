@@ -1,0 +1,1 @@
+{"id":"97304ea0a3287f6686325cac46999641.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites 部分エラー blockedBy 自体が null の場合も、read-failed にする","name":"blockedBy 自体が null の場合も、read-failed にする","status":"passed","testResultsByEnv":{"default":"0e202b3e812722c4ddd9f52afde4fafb"}}

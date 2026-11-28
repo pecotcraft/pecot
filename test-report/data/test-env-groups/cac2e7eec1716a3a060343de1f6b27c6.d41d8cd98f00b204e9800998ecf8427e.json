@@ -1,0 +1,1 @@
+{"id":"cac2e7eec1716a3a060343de1f6b27c6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/tests/lint-rules.test.ts#domain の依存方向 domain で globalThis.fetch を参照すると、no-restricted-properties の違反になる","name":"domain で globalThis.fetch を参照すると、no-restricted-properties の違反になる","status":"passed","testResultsByEnv":{"default":"5fe3064b43bb972ef8ea60ffd0b41634"}}

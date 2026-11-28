@@ -1,0 +1,1 @@
+{"id":"9324ee9d4e1542bb1e82fe1baa83e70a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_summary_container_failure_and_skipped_are_told_apart","name":"コンテナの起動の失敗と skip で、サマリーのメッセージを分ける","status":"passed","testResultsByEnv":{"default":"22d84f5212b8ff0bca9a5972ed34f6ec"}}

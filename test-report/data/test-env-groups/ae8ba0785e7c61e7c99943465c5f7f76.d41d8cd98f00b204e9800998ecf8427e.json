@@ -1,0 +1,1 @@
+{"id":"ae8ba0785e7c61e7c99943465c5f7f76.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_ci_result#test_lint_skip_with_failed_checks_job","name":"lint を飛ばす設定でも、checks (lint) のジョブが失敗していれば、失敗で終わる","status":"passed","testResultsByEnv":{"default":"f31c0cdcada9329b2f77edd98b5538f1"}}

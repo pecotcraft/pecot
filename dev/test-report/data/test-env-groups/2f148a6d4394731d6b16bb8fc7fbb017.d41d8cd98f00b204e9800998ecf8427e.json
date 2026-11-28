@@ -1,0 +1,1 @@
+{"id":"2f148a6d4394731d6b16bb8fc7fbb017.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_athena_get_query_results の region region の書式に合わない値を渡すと、拒否する","name":"region の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"62d0d97f706daf83438aed866c046433"}}

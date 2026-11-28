@@ -1,0 +1,1 @@
+{"id":"d46a5937ff3848224f1b3b0eab0fd610.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx の差分キャッシュ cache ディレクトリを作成できない場合も、変換は成功し、警告だけを出力する","name":"cache ディレクトリを作成できない場合も、変換は成功し、警告だけを出力する","status":"passed","testResultsByEnv":{"default":"5932a6634630cd295cba6331484fa8b7"}}

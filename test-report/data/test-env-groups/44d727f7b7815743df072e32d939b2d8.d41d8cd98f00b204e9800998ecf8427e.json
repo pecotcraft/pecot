@@ -1,0 +1,1 @@
+{"id":"44d727f7b7815743df072e32d939b2d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#FontPolicy の省略 ea を指定しない場合も、letterSpacingMap の spc は書き込む","name":"ea を指定しない場合も、letterSpacingMap の spc は書き込む","status":"passed","testResultsByEnv":{"default":"df84a378f54519602ad897fe01df70cf"}}

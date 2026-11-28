@@ -1,0 +1,1 @@
+{"id":"b26ce1fc9356683b85b636eb4aad1f7b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の札 作業の跡が存在せず要見直しで、札の値が In Progress の場合は、Needs Attention を書き込む","name":"作業の跡が存在せず要見直しで、札の値が In Progress の場合は、Needs Attention を書き込む","status":"passed","testResultsByEnv":{"default":"448f13dbd8e96dc31c1a91970140054b"}}

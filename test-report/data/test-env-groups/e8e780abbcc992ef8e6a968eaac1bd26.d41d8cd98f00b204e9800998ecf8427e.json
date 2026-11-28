@@ -1,0 +1,1 @@
+{"id":"e8e780abbcc992ef8e6a968eaac1bd26.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#runSlideSync エラー伝播 リンクの張り直しで想定外の例外が発生した場合は、symlink-failed の実行エラーに包み直す","name":"リンクの張り直しで想定外の例外が発生した場合は、symlink-failed の実行エラーに包み直す","status":"passed","testResultsByEnv":{"default":"665adb746cc918de3203ee489f10ae67"}}

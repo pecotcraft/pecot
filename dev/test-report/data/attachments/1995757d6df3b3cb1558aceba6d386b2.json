@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "cannot run drawio_export: Playwright Chromium is not installed in /tmp/pecotv-test-e2e-nochromium-gc04v6; call the `runtime_setup` tool to download it (about 120MB); to automate the download, set PECOTV_AUTO_INSTALL_BROWSER=1"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"chromium.unavailable\",\"expectedAt\":\"/tmp/pecotv-test-e2e-nochromium-gc04v6\",\"kind\":\"chromium-not-installed\",\"detail\":\"cannot run drawio_export: Playwright Chromium is not installed in /tmp/pecotv-test-e2e-nochromium-gc04v6; call the `runtime_setup` tool to download it (about 120MB); to automate the download, set PECOTV_AUTO_INSTALL_BROWSER=1\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "chromium.unavailable",
+    "expectedAt": "/tmp/pecotv-test-e2e-nochromium-gc04v6",
+    "kind": "chromium-not-installed",
+    "detail": "cannot run drawio_export: Playwright Chromium is not installed in /tmp/pecotv-test-e2e-nochromium-gc04v6; call the `runtime_setup` tool to download it (about 120MB); to automate the download, set PECOTV_AUTO_INSTALL_BROWSER=1"
+  },
+  "isError": true
+}

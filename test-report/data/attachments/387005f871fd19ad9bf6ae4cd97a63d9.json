@@ -1,0 +1,83 @@
+{
+  "name": "branch_delete",
+  "title": "Delete remote branch",
+  "description": "Delete a remote branch (a protected branch is never deleted)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repo": {
+        "type": "string",
+        "description": "Repository reference (owner/repo)"
+      },
+      "branch": {
+        "type": "string",
+        "description": "Name of the branch to delete"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      }
+    },
+    "required": [
+      "repo",
+      "branch"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "branch": {
+        "type": "string",
+        "description": "Name of the remote branch"
+      },
+      "repository": {
+        "type": "string",
+        "description": "Repository of the branch (owner/repo)"
+      },
+      "deleted": {
+        "type": "boolean",
+        "description": "Whether the remote branch was deleted"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "branch",
+          "repository",
+          "deleted"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

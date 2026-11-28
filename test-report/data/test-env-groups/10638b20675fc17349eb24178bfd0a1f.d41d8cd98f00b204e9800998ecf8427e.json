@@ -1,0 +1,1 @@
+{"id":"10638b20675fc17349eb24178bfd0a1f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide.convert.done の errors 掲載 (#949) errors が複数件でも、done イベントにはすべてを含める","name":"errors が複数件でも、done イベントにはすべてを含める","status":"passed","testResultsByEnv":{"default":"7d30a0b32817f19ca820b31b1b005bf2"}}

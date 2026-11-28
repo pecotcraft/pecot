@@ -1,0 +1,1 @@
+{"id":"b7e3a8006d86549baa78260d3115540f.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release .githooks/scripts/tests/mcp-publish-common.bats#make_dist が、out-dir を空にして DIST にし、指定が無ければ終了時に消し、終了コードを保つ","name":"make_dist が、out-dir を空にして DIST にし、指定が無ければ終了時に消し、終了コードを保つ","status":"passed","testResultsByEnv":{"default":"56750c0ba93fce021f67d68c28cdf2e1"}}

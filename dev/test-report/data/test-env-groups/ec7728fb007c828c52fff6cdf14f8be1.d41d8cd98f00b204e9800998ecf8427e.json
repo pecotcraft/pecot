@@ -1,0 +1,1 @@
+{"id":"ec7728fb007c828c52fff6cdf14f8be1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 縮小と EMU 占有する行数は、表示の高さを行の高さで割って切り上げた値にする","name":"占有する行数は、表示の高さを行の高さで割って切り上げた値にする","status":"passed","testResultsByEnv":{"default":"7968bc4ef28e546859bb558a78a017ed"}}

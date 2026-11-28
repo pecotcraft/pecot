@@ -1,0 +1,1 @@
+{"id":"cd1b9b6f7cab3228ca1843d3eaaa852e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#exportEntries の失敗と refine 全体の refine を持つ input でも書き出せ、repo を出さない","name":"全体の refine を持つ input でも書き出せ、repo を出さない","status":"passed","testResultsByEnv":{"default":"98871f0d0752379f560337ccc564c8fd"}}

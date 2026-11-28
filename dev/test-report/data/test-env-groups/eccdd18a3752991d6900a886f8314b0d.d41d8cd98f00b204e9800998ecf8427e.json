@@ -1,0 +1,1 @@
+{"id":"eccdd18a3752991d6900a886f8314b0d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/dev-install-lib.bats#起動コマンドが corepack pnpm の 2 語でも、分けて install を動かす","name":"起動コマンドが corepack pnpm の 2 語でも、分けて install を動かす","status":"passed","testResultsByEnv":{"default":"fdb3215b517f0228dbf95ef9d3f2933f"}}

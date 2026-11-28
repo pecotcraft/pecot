@@ -1,0 +1,1 @@
+{"id":"1977b35bf7379452b05d0f13685217e3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_local_never_passes_history_from_the_parent_env","name":"`--local` では、親の環境の履歴の指定を引き継がない","status":"passed","testResultsByEnv":{"default":"fae86eba12e9a6da6b118f80a9b98dc2"}}

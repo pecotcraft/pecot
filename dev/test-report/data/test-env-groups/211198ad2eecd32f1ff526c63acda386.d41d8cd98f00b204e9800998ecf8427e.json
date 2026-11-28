@@ -1,0 +1,1 @@
+{"id":"211198ad2eecd32f1ff526c63acda386.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/pecotv-run-output.test.ts#formatOutputTails 標準出力の節には、stdoutTail で切り詰めた内容を使う","name":"標準出力の節には、stdoutTail で切り詰めた内容を使う","status":"passed","testResultsByEnv":{"default":"4ee0ef90b46473323ac93e8d2668b843"}}

@@ -1,0 +1,1 @@
+{"id":"c03e5e89633bb2d418fa7250b6fdb453.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#buildIssueTitle 親 Epic の番号と order を指定した場合は、タイトルに Epic の番号と order を付ける","name":"親 Epic の番号と order を指定した場合は、タイトルに Epic の番号と order を付ける","status":"passed","testResultsByEnv":{"default":"a2bf2491f7200330befd4fab799d502a"}}

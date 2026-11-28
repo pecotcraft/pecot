@@ -1,0 +1,415 @@
+{
+  "files": [
+    {
+      "label": "A",
+      "path": "/tmp/bats-run-1EtphK/file/1/base.pptx",
+      "deck": {
+        "slideCount": 2,
+        "slideSize": {
+          "cx": 9144000,
+          "cy": 5143500
+        },
+        "uniqueMedia": {
+          "raster": {
+            "count": 0,
+            "bytes": 0
+          },
+          "svg": {
+            "count": 0,
+            "bytes": 0
+          },
+          "parts": []
+        },
+        "typefaces": {
+          "latin": {},
+          "ea": {}
+        },
+        "embeddedFonts": {
+          "present": true,
+          "count": 3,
+          "parts": [
+            "ppt/fonts/201314.fntdata",
+            "ppt/fonts/201315.fntdata",
+            "ppt/fonts/201316.fntdata"
+          ]
+        },
+        "timingSlideCount": 0,
+        "fullImageSlideCount": 0
+      },
+      "slides": [
+        {
+          "index": 1,
+          "part": "ppt/slides/slide1.xml",
+          "missing": false,
+          "spCount": 3,
+          "textSpCount": 2,
+          "textRunCount": 2,
+          "picCount": 1,
+          "graphicFrame": {
+            "table": 0,
+            "chart": 0,
+            "other": 0
+          },
+          "prstGeom": {},
+          "custGeomCount": 0,
+          "timing": false,
+          "backgroundBlip": false,
+          "fullImage": false,
+          "fullImageReason": null,
+          "images": {
+            "raster": {
+              "count": 0,
+              "bytes": 0
+            },
+            "svg": {
+              "count": 0,
+              "bytes": 0
+            }
+          },
+          "cssRasterReasons": {},
+          "imageParts": []
+        },
+        {
+          "index": 2,
+          "part": "ppt/slides/slide2.xml",
+          "missing": false,
+          "spCount": 2,
+          "textSpCount": 2,
+          "textRunCount": 2,
+          "picCount": 1,
+          "graphicFrame": {
+            "table": 0,
+            "chart": 0,
+            "other": 0
+          },
+          "prstGeom": {},
+          "custGeomCount": 0,
+          "timing": false,
+          "backgroundBlip": false,
+          "fullImage": false,
+          "fullImageReason": null,
+          "images": {
+            "raster": {
+              "count": 0,
+              "bytes": 0
+            },
+            "svg": {
+              "count": 0,
+              "bytes": 0
+            }
+          },
+          "cssRasterReasons": {},
+          "imageParts": []
+        }
+      ]
+    },
+    {
+      "label": "B",
+      "path": "/tmp/bats-run-1EtphK/file/1/timing.pptx",
+      "deck": {
+        "slideCount": 3,
+        "slideSize": {
+          "cx": 9144000,
+          "cy": 5143500
+        },
+        "uniqueMedia": {
+          "raster": {
+            "count": 0,
+            "bytes": 0
+          },
+          "svg": {
+            "count": 0,
+            "bytes": 0
+          },
+          "parts": []
+        },
+        "typefaces": {
+          "latin": {},
+          "ea": {}
+        },
+        "embeddedFonts": {
+          "present": true,
+          "count": 3,
+          "parts": [
+            "ppt/fonts/201314.fntdata",
+            "ppt/fonts/201315.fntdata",
+            "ppt/fonts/201316.fntdata"
+          ]
+        },
+        "timingSlideCount": 1,
+        "fullImageSlideCount": 0
+      },
+      "slides": [
+        {
+          "index": 1,
+          "part": "ppt/slides/slide1.xml",
+          "missing": false,
+          "spCount": 3,
+          "textSpCount": 2,
+          "textRunCount": 2,
+          "picCount": 1,
+          "graphicFrame": {
+            "table": 0,
+            "chart": 0,
+            "other": 0
+          },
+          "prstGeom": {},
+          "custGeomCount": 0,
+          "timing": false,
+          "backgroundBlip": false,
+          "fullImage": false,
+          "fullImageReason": null,
+          "images": {
+            "raster": {
+              "count": 0,
+              "bytes": 0
+            },
+            "svg": {
+              "count": 0,
+              "bytes": 0
+            }
+          },
+          "cssRasterReasons": {},
+          "imageParts": []
+        },
+        {
+          "index": 2,
+          "part": "ppt/slides/slide2.xml",
+          "missing": false,
+          "spCount": 2,
+          "textSpCount": 2,
+          "textRunCount": 2,
+          "picCount": 1,
+          "graphicFrame": {
+            "table": 0,
+            "chart": 0,
+            "other": 0
+          },
+          "prstGeom": {},
+          "custGeomCount": 0,
+          "timing": false,
+          "backgroundBlip": false,
+          "fullImage": false,
+          "fullImageReason": null,
+          "images": {
+            "raster": {
+              "count": 0,
+              "bytes": 0
+            },
+            "svg": {
+              "count": 0,
+              "bytes": 0
+            }
+          },
+          "cssRasterReasons": {},
+          "imageParts": []
+        },
+        {
+          "index": 3,
+          "part": "ppt/slides/slide3.xml",
+          "missing": false,
+          "spCount": 1,
+          "textSpCount": 1,
+          "textRunCount": 1,
+          "picCount": 0,
+          "graphicFrame": {
+            "table": 0,
+            "chart": 0,
+            "other": 0
+          },
+          "prstGeom": {},
+          "custGeomCount": 0,
+          "timing": true,
+          "backgroundBlip": false,
+          "fullImage": false,
+          "fullImageReason": null,
+          "images": {
+            "raster": {
+              "count": 0,
+              "bytes": 0
+            },
+            "svg": {
+              "count": 0,
+              "bytes": 0
+            }
+          },
+          "cssRasterReasons": {},
+          "imageParts": []
+        }
+      ]
+    },
+    {
+      "label": "C",
+      "path": "/tmp/bats-run-1EtphK/file/1/full-image.pptx",
+      "deck": {
+        "slideCount": 4,
+        "slideSize": {
+          "cx": 9144000,
+          "cy": 5143500
+        },
+        "uniqueMedia": {
+          "raster": {
+            "count": 1,
+            "bytes": 14
+          },
+          "svg": {
+            "count": 0,
+            "bytes": 0
+          },
+          "parts": [
+            "ppt/media/image2.png"
+          ]
+        },
+        "typefaces": {
+          "latin": {},
+          "ea": {}
+        },
+        "embeddedFonts": {
+          "present": true,
+          "count": 3,
+          "parts": [
+            "ppt/fonts/201314.fntdata",
+            "ppt/fonts/201315.fntdata",
+            "ppt/fonts/201316.fntdata"
+          ]
+        },
+        "timingSlideCount": 0,
+        "fullImageSlideCount": 2
+      },
+      "slides": [
+        {
+          "index": 1,
+          "part": "ppt/slides/slide1.xml",
+          "missing": false,
+          "spCount": 3,
+          "textSpCount": 2,
+          "textRunCount": 2,
+          "picCount": 1,
+          "graphicFrame": {
+            "table": 0,
+            "chart": 0,
+            "other": 0
+          },
+          "prstGeom": {},
+          "custGeomCount": 0,
+          "timing": false,
+          "backgroundBlip": false,
+          "fullImage": false,
+          "fullImageReason": null,
+          "images": {
+            "raster": {
+              "count": 0,
+              "bytes": 0
+            },
+            "svg": {
+              "count": 0,
+              "bytes": 0
+            }
+          },
+          "cssRasterReasons": {},
+          "imageParts": []
+        },
+        {
+          "index": 2,
+          "part": "ppt/slides/slide2.xml",
+          "missing": false,
+          "spCount": 2,
+          "textSpCount": 2,
+          "textRunCount": 2,
+          "picCount": 1,
+          "graphicFrame": {
+            "table": 0,
+            "chart": 0,
+            "other": 0
+          },
+          "prstGeom": {},
+          "custGeomCount": 0,
+          "timing": false,
+          "backgroundBlip": false,
+          "fullImage": false,
+          "fullImageReason": null,
+          "images": {
+            "raster": {
+              "count": 0,
+              "bytes": 0
+            },
+            "svg": {
+              "count": 0,
+              "bytes": 0
+            }
+          },
+          "cssRasterReasons": {},
+          "imageParts": []
+        },
+        {
+          "index": 3,
+          "part": "ppt/slides/slide3.xml",
+          "missing": false,
+          "spCount": 0,
+          "textSpCount": 0,
+          "textRunCount": 0,
+          "picCount": 0,
+          "graphicFrame": {
+            "table": 0,
+            "chart": 0,
+            "other": 0
+          },
+          "prstGeom": {},
+          "custGeomCount": 0,
+          "timing": false,
+          "backgroundBlip": true,
+          "fullImage": true,
+          "fullImageReason": "background-only",
+          "images": {
+            "raster": {
+              "count": 1,
+              "bytes": 14
+            },
+            "svg": {
+              "count": 0,
+              "bytes": 0
+            }
+          },
+          "cssRasterReasons": {},
+          "imageParts": [
+            "ppt/media/image2.png"
+          ]
+        },
+        {
+          "index": 4,
+          "part": "ppt/slides/slide4.xml",
+          "missing": false,
+          "spCount": 0,
+          "textSpCount": 0,
+          "textRunCount": 0,
+          "picCount": 1,
+          "graphicFrame": {
+            "table": 0,
+            "chart": 0,
+            "other": 0
+          },
+          "prstGeom": {},
+          "custGeomCount": 0,
+          "timing": false,
+          "backgroundBlip": false,
+          "fullImage": true,
+          "fullImageReason": "full-size-pic",
+          "images": {
+            "raster": {
+              "count": 1,
+              "bytes": 14
+            },
+            "svg": {
+              "count": 0,
+              "bytes": 0
+            }
+          },
+          "cssRasterReasons": {},
+          "imageParts": [
+            "ppt/media/image2.png"
+          ]
+        }
+      ]
+    }
+  ]
+}

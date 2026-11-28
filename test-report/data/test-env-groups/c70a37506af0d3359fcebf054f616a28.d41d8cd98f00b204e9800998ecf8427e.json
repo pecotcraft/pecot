@@ -1,0 +1,1 @@
+{"id":"c70a37506af0d3359fcebf054f616a28.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueKind スキーマの失敗だが issueType を含まない場合は、読み直さずに GitHubAPIError が発生する","name":"スキーマの失敗だが issueType を含まない場合は、読み直さずに GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"7314385cd3a7e83cace6d2dd18529ddc"}}

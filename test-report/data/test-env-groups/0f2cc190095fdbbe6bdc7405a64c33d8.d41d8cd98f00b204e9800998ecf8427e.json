@@ -1,0 +1,1 @@
+{"id":"0f2cc190095fdbbe6bdc7405a64c33d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_create pecot-lane と Lanes のビュー lanes を渡すと、その値で pecot-lane を作り、Lanes のビューを作る","name":"lanes を渡すと、その値で pecot-lane を作り、Lanes のビューを作る","status":"passed","testResultsByEnv":{"default":"f219a4baf06f68b84028b7f5936731f0"}}

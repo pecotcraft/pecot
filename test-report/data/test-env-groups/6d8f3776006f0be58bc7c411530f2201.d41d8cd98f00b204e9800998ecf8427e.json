@@ -1,0 +1,1 @@
+{"id":"6d8f3776006f0be58bc7c411530f2201.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_land_fast_forward","name":"main が進んでいないとき、`release-land.sh` は fast-forward で main に反映する","status":"passed","testResultsByEnv":{"default":"89c9992f9905aa75225efb5004faabaa"}}

@@ -1,0 +1,1 @@
+{"id":"8d07bf9c9a4b7c1dc63050235b30c4e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/generated-files.test.ts#viteConfigSource の resolve.dedupe（読み込み時に求める） package.json が存在しない場合も、空の配列で設定を読み込める","name":"package.json が存在しない場合も、空の配列で設定を読み込める","status":"passed","testResultsByEnv":{"default":"d717afe05f1f70026989d3cc5bb02d4f"}}

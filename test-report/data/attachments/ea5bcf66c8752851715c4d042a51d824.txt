@@ -1,0 +1,2 @@
+error: the result of pull_request_read in reads.pull_requests[2] is not in the shape of the official GitHub MCP server
+  html_url: not a pull request URL: https://example.com/x

@@ -1,0 +1,1 @@
+{"id":"7c41d2cd40ca507f8ce08edff7e11fbc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/fs-sync.test.ts#talkDirectoryExists ディレクトリが存在する場合は、isDirectory を true にする","name":"ディレクトリが存在する場合は、isDirectory を true にする","status":"passed","testResultsByEnv":{"default":"c3bc1f70d6e0df17a0a425c6c4a68c31"}}

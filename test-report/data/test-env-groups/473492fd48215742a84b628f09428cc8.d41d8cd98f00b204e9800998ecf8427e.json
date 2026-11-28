@@ -1,0 +1,1 @@
+{"id":"473492fd48215742a84b628f09428cc8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#readCurrentGitRemote remote が origin だけなら、origin の URL からリポジトリを返す","name":"remote が origin だけなら、origin の URL からリポジトリを返す","status":"passed","testResultsByEnv":{"default":"a965bd9645378546ffd69ba38fd59801"}}

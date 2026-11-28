@@ -1,0 +1,1 @@
+{"id":"42096c21a947917aa3e39257639c88d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-theme.test.ts#executeSlideTheme の失敗 テーマが node_modules にリンクされていないと、theme-unlinked の例外が発生する","name":"テーマが node_modules にリンクされていないと、theme-unlinked の例外が発生する","status":"passed","testResultsByEnv":{"default":"f2f8e0d3203e9818953377a39145fad2"}}

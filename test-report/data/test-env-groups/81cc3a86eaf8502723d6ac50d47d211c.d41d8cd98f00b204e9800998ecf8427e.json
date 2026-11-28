@@ -1,0 +1,1 @@
+{"id":"81cc3a86eaf8502723d6ac50d47d211c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_cache_server#test_used_file_lists_hits_and_puts_only","name":"--used-file には、GET で命中した hash と PUT で保存した hash だけを書く","status":"passed","testResultsByEnv":{"default":"9801c92efb49ad87ee69911eb61a38d5"}}

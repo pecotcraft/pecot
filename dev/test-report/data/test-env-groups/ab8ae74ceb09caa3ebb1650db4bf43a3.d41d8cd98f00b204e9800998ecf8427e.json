@@ -1,0 +1,1 @@
+{"id":"ab8ae74ceb09caa3ebb1650db4bf43a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main --commit-msg の type(scope) type(scope): が付いていない件名は、全体を調べて、違反があると終了コード 1 を返す","name":"type(scope): が付いていない件名は、全体を調べて、違反があると終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"77121304d2acd6388d0bdfb61facadbf"}}

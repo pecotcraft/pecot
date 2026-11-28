@@ -1,0 +1,1 @@
+{"id":"bb6901b159aba0eb85c2188dade46eef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge 読んだ後に閉じられた PR など（400）は、GitHub の文を添えた error の行を出し、終了コード 1 を返す","name":"読んだ後に閉じられた PR など（400）は、GitHub の文を添えた error の行を出し、終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"abc29d07ea1ce9afe0db32d9481efef0"}}

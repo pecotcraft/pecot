@@ -1,0 +1,1 @@
+{"id":"cf154b37a2d152564a97811af9b1e321.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_head_branch_is_not_used_for_ancestor_run","name":"head_branch が main でなくても、main の祖先の commit なら、リリース版として受け付ける","status":"passed","testResultsByEnv":{"default":"8a721fee311460ab322690cc6199bfd2"}}

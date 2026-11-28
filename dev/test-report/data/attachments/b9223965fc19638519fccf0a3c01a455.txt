@@ -1,0 +1,6 @@
+devcontainer --version 
+devcontainer build --workspace-folder /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_dead_pull_process_falls_b0/ws --image-name pecot-ci-local --cache-from ghcr.io/example/img:latest 
+docker image inspect --format {{.Id}} pecot-ci-local
+devcontainer read-configuration --workspace-folder /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_dead_pull_process_falls_b0/ws 
+sudo chown -R 1000:1000 /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_dead_pull_process_falls_b0/ws
+devcontainer up --workspace-folder /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_dead_pull_process_falls_b0/ws --override-config /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_dead_pull_process_falls_b0/runner/pecot-dc/override/devcontainer.json --update-remote-user-uid-default never --remote-env $'PECOT_CI_IMAGE=pecot-ci-local\357\274\210PR \343\201\256\345\256\232\347\276\251\343\201\213\343\202\211 build, sha256:localid\357\274\211' 

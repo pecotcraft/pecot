@@ -1,0 +1,1 @@
+{"id":"6410dc400ed961214790aeaaf1021dbf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/cli.test.ts#validate --root を省略すると、既定の root がこのリポジトリの root になる","name":"--root を省略すると、既定の root がこのリポジトリの root になる","status":"passed","testResultsByEnv":{"default":"908358d2d3c43c41fed884258491d0df"}}

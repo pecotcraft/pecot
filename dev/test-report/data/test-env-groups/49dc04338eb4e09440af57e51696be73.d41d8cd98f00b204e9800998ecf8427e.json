@@ -1,0 +1,1 @@
+{"id":"49dc04338eb4e09440af57e51696be73.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_38b_check_receives_base_and_head","name":"dependabot の判定には、base と head の commit を引数で渡す","status":"passed","testResultsByEnv":{"default":"013aeac099ec7e5a841e2e2252b5c1db"}}

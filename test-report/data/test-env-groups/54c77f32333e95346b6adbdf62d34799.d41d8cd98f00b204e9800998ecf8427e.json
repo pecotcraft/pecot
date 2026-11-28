@@ -1,0 +1,1 @@
+{"id":"54c77f32333e95346b6adbdf62d34799.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_20_block_empty_bump_value","name":"version plan の bump の値が空だと、宣言として扱わず、失敗する","status":"passed","testResultsByEnv":{"default":"4472e4817358cc658cba697c2af97ffa"}}

@@ -1,0 +1,1 @@
+{"id":"26449b75b75866c5512686ad24b43a5a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/merge-hook-outputs.test.ts#merge-hook-outputs.sh additionalContext が無いとき、トップレベルにも出さない","name":"additionalContext が無いとき、トップレベルにも出さない","status":"passed","testResultsByEnv":{"default":"625dd7852db538ef7dbeb47ec2c6ed71"}}

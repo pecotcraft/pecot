@@ -1,0 +1,1 @@
+{"id":"d6f3434ba3f33bc4e7908e17573922e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 見本のリポジトリ pattern-mismatch を検証すると、検証エラーの行を過不足なく決まった順で返す","name":"見本のリポジトリ pattern-mismatch を検証すると、検証エラーの行を過不足なく決まった順で返す","status":"passed","testResultsByEnv":{"default":"3f687982a6a9ff896a2805127ffb46c3"}}

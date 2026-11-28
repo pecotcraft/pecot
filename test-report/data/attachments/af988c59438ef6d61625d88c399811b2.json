@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "version not found in CHANGELOG.md: 9.9.9"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"version not found in CHANGELOG.md: 9.9.9\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "version not found in CHANGELOG.md: 9.9.9"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"f5a057238373173618a3e957d1b15753.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#親が無いリポでも記録の HEAD 不一致を理由に出す","name":"親が無いリポでも記録の HEAD 不一致を理由に出す","status":"passed","testResultsByEnv":{"default":"8efa87613c6bc5fb69967c85d5dfcb97"}}

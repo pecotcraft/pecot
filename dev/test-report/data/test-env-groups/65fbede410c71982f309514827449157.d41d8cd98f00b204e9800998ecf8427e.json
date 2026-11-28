@@ -1,0 +1,1 @@
+{"id":"65fbede410c71982f309514827449157.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-setup-exit.test.ts#runSetupCommand（終了の理由が揃わない場合） 番号の表に無いシグナルで終了した場合は、終了コードを -1 にする","name":"番号の表に無いシグナルで終了した場合は、終了コードを -1 にする","status":"passed","testResultsByEnv":{"default":"d4d6cf344f9374e690e5cfc04ce96c98"}}

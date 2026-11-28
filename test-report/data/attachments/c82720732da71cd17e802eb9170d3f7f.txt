@@ -1,0 +1,40 @@
+# Project info
+
+## Overview
+- Project: ghes.example.com_acme_board_acme
+- Host: ghes.example.com
+- Owner: acme
+- Roadmap repo: none
+
+## Registered repositories
+- acme/demo (develop: main)
+    release_type: single
+    dependabot_alerts: open 0
+
+## Board status
+
+### Active (2)
+| Ref | Title |
+|-----|----------|
+| acme/demo#3 | 課題3 |
+| acme/demo#5 | 課題5 |
+
+### Ready (2)
+| Ref | Title | Readiness |
+|-----|----------|-----------|
+| acme/demo#1 | 課題1 | startable |
+| acme/demo#6 | 課題6 | blocked by #9 (not in review: #9 (not started)) |
+
+### Backlog (1)
+| Ref | Title |
+|-----|----------|
+| acme/demo#2 | 課題2 |
+
+## Lanes
+
+| Lane | Issues | Startable |
+|------|--------|-----------|
+| alpha | 3 | 1 |
+| beta | 0 | 0 |
+| gamma | 0 | 0 |
+| (none) | 1 | 0 |

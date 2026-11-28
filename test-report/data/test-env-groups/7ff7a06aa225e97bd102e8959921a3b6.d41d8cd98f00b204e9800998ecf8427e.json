@@ -1,0 +1,1 @@
+{"id":"7ff7a06aa225e97bd102e8959921a3b6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/template-rules.test.ts#plan テンプレート すべての <summary> が PLAN_FOLD_SUMMARY と同じ形になっている","name":"すべての <summary> が PLAN_FOLD_SUMMARY と同じ形になっている","status":"passed","testResultsByEnv":{"default":"6fe0fc7add700ab4dd0b8dd6e3a1a2b4"}}

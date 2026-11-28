@@ -1,0 +1,1 @@
+{"id":"8badbbede763bd9981e015dee8299cb5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_land_shows_branch_delete_failure_output","name":"ブランチの削除に失敗したとき、`release-land.sh` はその出力を表示する","status":"passed","testResultsByEnv":{"default":"8fafcdf6d16ac9181b6ffe75066cfeee"}}

@@ -1,0 +1,1 @@
+{"id":"177312ebe6184a9c78cb29d93d133b86.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check CLI の出力 機能が無効で飛ばした確認と Dependabot の警告を、標準エラーに出す","name":"機能が無効で飛ばした確認と Dependabot の警告を、標準エラーに出す","status":"passed","testResultsByEnv":{"default":"e44a6c0f69b18792c0b0073fe8082e9b"}}

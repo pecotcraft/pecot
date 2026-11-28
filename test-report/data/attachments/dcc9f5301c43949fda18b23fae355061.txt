@@ -1,0 +1,10 @@
+
+ RUN  v5.1.2 /workspaces/base/pecot/libs/interface-spec/tests/fixtures/unique-titles
+
+ ✓ unique.fixture.ts (3 tests) 4ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  17:04:56
+   Duration  125ms (transform 50%, setup 22%, tests 11%, worker 9%, import 8%)
+

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"deletedBranches\":[],\"readinessChanges\":[],\"restack\":[],\"currentBranch\":\"feat/demo/12\",\"warnings\":[\"checking out ghost failed: Command ['git', 'checkout', 'ghost'] returned non-zero exit status 1.\"]}"
+    }
+  ],
+  "structuredContent": {
+    "deletedBranches": [],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "feat/demo/12",
+    "warnings": [
+      "checking out ghost failed: Command ['git', 'checkout', 'ghost'] returned non-zero exit status 1."
+    ]
+  }
+}

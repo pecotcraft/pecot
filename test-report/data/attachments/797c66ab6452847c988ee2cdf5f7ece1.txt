@@ -1,0 +1,185 @@
+
+[7m[1m[38;5;214m NX [39m[22m[27m  [38;5;214mApplying configured ignore patterns to changed files for release group "pecot-workflow"[39m
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+[7m[1m[36m NX [39m[22m[27m  No touched projects found based on changed files combined with configured ignore patterns under release group "pecot-workflow"
+
+
+[7m[1m[38;5;214m NX [39m[22m[27m  [38;5;214mApplying configured ignore patterns to changed files for release group "pecot-visual"[39m
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+[7m[1m[36m NX [39m[22m[27m  No touched projects found based on changed files combined with configured ignore patterns under release group "pecot-visual"
+
+
+[7m[1m[38;5;214m NX [39m[22m[27m  [38;5;214mApplying configured ignore patterns to changed files for release group "pecot-tools"[39m
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+[7m[1m[36m NX [39m[22m[27m  No touched projects found based on changed files combined with configured ignore patterns under release group "pecot-tools"
+
+
+[7m[1m[38;5;214m NX [39m[22m[27m  [38;5;214mApplying configured ignore patterns to changed files for release group "text-rules"[39m
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+[7m[1m[36m NX [39m[22m[27m  No touched projects found based on changed files combined with configured ignore patterns under release group "text-rules"
+
+
+[7m[1m[38;5;214m NX [39m[22m[27m  [38;5;214mApplying configured ignore patterns to changed files for release group "workflow-core"[39m
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+[7m[1m[36m NX [39m[22m[27m  No touched projects found based on changed files combined with configured ignore patterns under release group "workflow-core"
+
+
+[7m[1m[38;5;214m NX [39m[22m[27m  [38;5;214mApplying configured ignore patterns to changed files for release group "actions"[39m
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+[7m[1m[36m NX [39m[22m[27m  No touched projects found based on changed files combined with configured ignore patterns under release group "actions"
+
+
+[7m[1m[32m NX [39m[22m[27m  [32mAll touched projects have, or do not require, version plans.[39m
+
+Run with --verbose to see the full list of changed files used for the touched projects logic.
+

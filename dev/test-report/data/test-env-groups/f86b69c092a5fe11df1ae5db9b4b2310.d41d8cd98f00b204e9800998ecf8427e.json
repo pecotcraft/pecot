@@ -1,0 +1,1 @@
+{"id":"f86b69c092a5fe11df1ae5db9b4b2310.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#main の --check 定義書にあって Node に無い ID も 1 を返し、entry: removed の行を出す","name":"定義書にあって Node に無い ID も 1 を返し、entry: removed の行を出す","status":"passed","testResultsByEnv":{"default":"dc1711d2b298bdf0426868ed0a8c8d45"}}

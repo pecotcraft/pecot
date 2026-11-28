@@ -1,0 +1,1 @@
+{"id":"ce03a04e3d955b1d5ebe1adc30269599.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 検証用の設定のディレクトリが存在しないと、error を表示して終了コード 2 で止まる","name":"検証用の設定のディレクトリが存在しないと、error を表示して終了コード 2 で止まる","status":"passed","testResultsByEnv":{"default":"91f49a16e39ef71810819cf25383bd4c"}}

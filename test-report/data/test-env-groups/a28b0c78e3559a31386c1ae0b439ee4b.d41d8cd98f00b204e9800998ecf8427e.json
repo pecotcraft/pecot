@@ -1,0 +1,1 @@
+{"id":"a28b0c78e3559a31386c1ae0b439ee4b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-table-complex-content.test.ts#no-table-complex-content invalid セルの中に禁止の要素が複数あると、すべて報告する","name":"セルの中に禁止の要素が複数あると、すべて報告する","status":"passed","testResultsByEnv":{"default":"67e8d7f24c348c86ebdd7852ec1b2b0d"}}

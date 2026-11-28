@@ -1,0 +1,3 @@
+release view pecot-workflow-v0.0.0-test2804 -R acme-labs/example-repo
+release upload pecot-workflow-v0.0.0-test2804 /tmp/tmp.UYSxu3IGFs/pecot-workflow-mcp-0.0.0-test2804.tgz --clobber -R acme-labs/example-repo
+workflow run publish-npm.yml -f tag=pecot-workflow-v0.0.0-test2804 --ref pecot-workflow-v0.0.0-test2804 -R acme-labs/example-repo

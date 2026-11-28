@@ -1,0 +1,1 @@
+{"id":"e27f55aa01d8c04e46ec9f270fe40883.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree と番号の記録（実 git） 作成した worktree の番号を、worktree の git のディレクトリに記録する","name":"作成した worktree の番号を、worktree の git のディレクトリに記録する","status":"passed","testResultsByEnv":{"default":"543b31a4777c82d8732817287895b102"}}

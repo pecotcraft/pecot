@@ -1,0 +1,1 @@
+{"id":"970e714c02c6f5152b8e152fdf8662c1.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#テストはリポジトリ本体に検証用タグ (版 1) を残さない","name":"テストはリポジトリ本体に検証用タグ (版 1) を残さない","status":"passed","testResultsByEnv":{"default":"f542ea4bc2944eb6d58c2c7818febae5"}}

@@ -1,0 +1,1 @@
+{"id":"f02f051e62a9ab856796ddf080df307e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/git-output.test.ts#gitReasonOf fatal の行がある場合は、その行より前の進捗の行を除く","name":"fatal の行がある場合は、その行より前の進捗の行を除く","status":"passed","testResultsByEnv":{"default":"e90c9ec6b58b6c9e6897f341e8948420"}}

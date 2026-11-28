@@ -1,0 +1,1 @@
+{"id":"17d84e468397aaf4a3b974b300551bba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#changelogNotFoundMessage パスが docs/CUSTOM.md の場合は、ファイル名を含む「見つからない」メッセージを返す","name":"パスが docs/CUSTOM.md の場合は、ファイル名を含む「見つからない」メッセージを返す","status":"passed","testResultsByEnv":{"default":"fedc614af0b9432b4d434db7442048a5"}}

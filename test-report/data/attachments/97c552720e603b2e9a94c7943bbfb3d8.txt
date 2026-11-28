@@ -1,0 +1,4 @@
+count: open Dependabot alerts: 0
+count: open code scanning alerts: 0
+count: open secret scanning alerts: 0
+error: could not count the commits from main to develop: resource not found: http://127.0.0.1:38017/repos/acme/demo/compare/main...develop?per_page=1

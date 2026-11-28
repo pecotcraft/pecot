@@ -1,0 +1,1 @@
+{"id":"06b502ef64d1551d0218a19993a0d1ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#extractVersionReleaseNotes リリースノートの本文が空の場合は、空文字列を返す","name":"リリースノートの本文が空の場合は、空文字列を返す","status":"passed","testResultsByEnv":{"default":"863c89a101403900f37d92e9729cf9d2"}}

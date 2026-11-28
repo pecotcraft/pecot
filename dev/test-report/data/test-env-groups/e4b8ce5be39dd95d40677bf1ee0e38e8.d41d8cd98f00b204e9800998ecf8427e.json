@@ -1,0 +1,1 @@
+{"id":"e4b8ce5be39dd95d40677bf1ee0e38e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath UNC パスのディストリビューション名は、大文字と小文字を区別せずに比較する","name":"UNC パスのディストリビューション名は、大文字と小文字を区別せずに比較する","status":"passed","testResultsByEnv":{"default":"d1ab3cf228fb2d64e7d5a12a62e6b7e2"}}

@@ -1,0 +1,1 @@
+{"id":"16e7d31b945937f808df7429a6ac30d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] 結果の outputSchema 検証 失敗の結果も、出力スキーマの検証を通ってクライアントへ届く","name":"失敗の結果も、出力スキーマの検証を通ってクライアントへ届く","status":"passed","testResultsByEnv":{"default":"eb9768b906329f7c2a82bec764e196bd"}}

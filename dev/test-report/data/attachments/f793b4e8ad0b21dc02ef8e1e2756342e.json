@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "params.sha: release branch release is not on origin"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"params.sha\",\"code\":\"sha-mismatch\",\"message\":\"release branch release is not on origin\"}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "params.sha",
+        "code": "sha-mismatch",
+        "message": "release branch release is not on origin"
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  }
+}

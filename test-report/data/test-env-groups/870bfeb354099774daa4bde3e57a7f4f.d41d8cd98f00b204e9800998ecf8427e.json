@@ -1,0 +1,1 @@
+{"id":"870bfeb354099774daa4bde3e57a7f4f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の workflow_run CI を直した回数は、同じブランチで最後の limit より後の ci-fix-pushed だけを数える","name":"CI を直した回数は、同じブランチで最後の limit より後の ci-fix-pushed だけを数える","status":"passed","testResultsByEnv":{"default":"bf8ce35c00def0bcdbf970ee848b3d46"}}

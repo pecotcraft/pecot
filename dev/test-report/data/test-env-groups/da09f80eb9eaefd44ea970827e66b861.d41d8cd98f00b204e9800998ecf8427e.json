@@ -1,0 +1,1 @@
+{"id":"da09f80eb9eaefd44ea970827e66b861.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/entry-point-linter.test.ts#check-entry-point-logic.sh ディスパッチャとして許される構文（source と export）のとき、PASS を返す","name":"ディスパッチャとして許される構文（source と export）のとき、PASS を返す","status":"passed","testResultsByEnv":{"default":"3731a561ea6176b3c3e47603e3a5d467"}}

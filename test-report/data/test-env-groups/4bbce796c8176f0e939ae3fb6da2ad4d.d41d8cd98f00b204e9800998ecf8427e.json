@@ -1,0 +1,1 @@
+{"id":"4bbce796c8176f0e939ae3fb6da2ad4d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の script 文字列 に違反があると、元のファイルの行と桁で指摘を返す","name":"文字列 に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"84593078277316539420fdcb61acd6b9"}}

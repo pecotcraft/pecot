@@ -1,0 +1,1 @@
+{"id":"a2ebd282e9084c69396b6cccc61f3adb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildSheetXml すべてのセルが s 属性を持ち、既定の書式のままのセルを作らない","name":"すべてのセルが s 属性を持ち、既定の書式のままのセルを作らない","status":"passed","testResultsByEnv":{"default":"7193aaea927cf37e68893345f2863298"}}

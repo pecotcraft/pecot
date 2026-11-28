@@ -1,0 +1,1 @@
+{"id":"c5e8754c8cfc56fec941237e4bcdf713.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 gh が失敗した場合は、手順を案内する GitHubAuthError が発生し、.env を生成する","name":"gh が失敗した場合は、手順を案内する GitHubAuthError が発生し、.env を生成する","status":"passed","testResultsByEnv":{"default":"b91d81a102e270f4f114621ddccb1f20"}}

@@ -1,0 +1,1 @@
+{"id":"8c2bb60b0d3acf3473fff2eb1b168a8a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page の失敗ルート 書き込みに失敗すると、例外を投げずに write-failed の結果を structuredContent つきで返す","name":"書き込みに失敗すると、例外を投げずに write-failed の結果を structuredContent つきで返す","status":"passed","testResultsByEnv":{"default":"43377d00c38f10bd0ee6bde2d6e8858f"}}

@@ -1,0 +1,1 @@
+{"id":"d4407392fcb2b3232d655c4bf604c10e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check merge の値 PR が 下書き だと、not-mergeable の problem を返す","name":"PR が 下書き だと、not-mergeable の problem を返す","status":"passed","testResultsByEnv":{"default":"91a5bb63e52f3176db30dbb336b88351"}}

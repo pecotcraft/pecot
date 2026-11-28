@@ -1,0 +1,1 @@
+{"id":"e1fb10822fcbffeb79689fb43d68486d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の script script と script setup が両方あると、どちらの違反も返す","name":"script と script setup が両方あると、どちらの違反も返す","status":"passed","testResultsByEnv":{"default":"5ca1e22b18ae3ef8c8911ed8c4b8592c"}}

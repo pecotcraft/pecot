@@ -1,0 +1,1 @@
+{"id":"8674113bdfc6128b9a34d3cc40b47096.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/evidence-xlsx-soffice.test.ts#生成 xlsx の soffice 変換 xlsx を Calc で修復せず PDF へ変換でき、タイトルと `No.1` の文言が含まれる","name":"xlsx を Calc で修復せず PDF へ変換でき、タイトルと `No.1` の文言が含まれる","status":"passed","testResultsByEnv":{"default":"3f517f6f399f06574658c9f85a2c9e87"}}

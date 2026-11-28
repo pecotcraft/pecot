@@ -1,0 +1,1 @@
+{"id":"d845736857d1c379f27534651380d879.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_publishes_image_before_push_without_blocking_it","name":"dependabot-commit.yml は、push の前にイメージを公開し、公開に失敗しても止めない","status":"passed","testResultsByEnv":{"default":"a2ef6209f293bce0e34e636752abfd43"}}

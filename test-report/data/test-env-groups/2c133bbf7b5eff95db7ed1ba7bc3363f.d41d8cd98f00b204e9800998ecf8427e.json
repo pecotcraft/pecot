@@ -1,0 +1,1 @@
+{"id":"2c133bbf7b5eff95db7ed1ba7bc3363f.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.test.sh#セルフテスト: SCRIPT_DIR 代入が無いファイルの $SCRIPT_DIR 参照は UNRESOLVED","name":"セルフテスト: SCRIPT_DIR 代入が無いファイルの $SCRIPT_DIR 参照は UNRESOLVED","status":"passed","testResultsByEnv":{"default":"8617e70fa36ad18cb7584a8c6048c5db"}}

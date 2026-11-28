@@ -1,0 +1,1 @@
+{"id":"0208241f79c002d9c9f3481bd55d9198.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/domain/tests/issue-surface.test.ts#checkIssueCoverage tool が TOOLS に存在しない 場合は、id を示した問題を返す","name":"tool が TOOLS に存在しない 場合は、id を示した問題を返す","status":"passed","testResultsByEnv":{"default":"f8ff8448d96ddfabda216ad479788d91"}}

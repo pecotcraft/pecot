@@ -1,0 +1,1 @@
+{"id":"90aecc6a16d3ee3b83dfcd8ce2759047.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move 対象のリポを含む設定が無いとき、error を出して終了コード 1 で終わる","name":"対象のリポを含む設定が無いとき、error を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"d7e29c0a2f8f947c85c2053be4b34985"}}

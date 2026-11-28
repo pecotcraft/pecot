@@ -1,0 +1,1 @@
+{"id":"8b5d761ce4e14555d213c1279f4b0083.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 注記図形の導出 丸めると潰れる大きさの callout の box でも、辺の長さを 0 にせず、adj を有限の値にする","name":"丸めると潰れる大きさの callout の box でも、辺の長さを 0 にせず、adj を有限の値にする","status":"passed","testResultsByEnv":{"default":"30723e972b94755d82c1ba3f7b54c9c5"}}

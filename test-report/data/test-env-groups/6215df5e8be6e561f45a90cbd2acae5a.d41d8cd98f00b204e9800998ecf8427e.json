@@ -1,0 +1,1 @@
+{"id":"6215df5e8be6e561f45a90cbd2acae5a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate 新しくリンクしたリポジトリがあるプロジェクトを同期すると、そのリポジトリを設定ファイルの末尾に足す","name":"新しくリンクしたリポジトリがあるプロジェクトを同期すると、そのリポジトリを設定ファイルの末尾に足す","status":"passed","testResultsByEnv":{"default":"7e669942bd33dedd7efeb61e2fc7ae2a"}}

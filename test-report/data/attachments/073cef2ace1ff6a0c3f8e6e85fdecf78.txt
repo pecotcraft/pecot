@@ -1,0 +1,5 @@
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_real_allure_reads_the_res0/suite/sample.test.sh
+PASS: 通る
+FAIL: 等しい — 期待 [a] / 実際 [b]
+
+PASS: 1 / FAIL: 1 / SKIP: 0

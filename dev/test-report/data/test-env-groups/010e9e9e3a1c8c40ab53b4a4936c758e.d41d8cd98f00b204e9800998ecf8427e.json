@@ -1,0 +1,1 @@
+{"id":"010e9e9e3a1c8c40ab53b4a4936c758e.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/inspect-pptx.bats#引数が無いとき、usage を stderr に出して終了コード 2 で終わる","name":"引数が無いとき、usage を stderr に出して終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"749973890bfb0be4406a3b32b75d18dc"}}

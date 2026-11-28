@@ -1,0 +1,1 @@
+{"id":"84f139ab3bb970c12bd7f9e65e9e8d7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/review-finish.test.ts#review finish 起動した人の権限を読めないと、warning の行を出して書く","name":"起動した人の権限を読めないと、warning の行を出して書く","status":"passed","testResultsByEnv":{"default":"387c826850ed42e44a197d972e4c3990"}}

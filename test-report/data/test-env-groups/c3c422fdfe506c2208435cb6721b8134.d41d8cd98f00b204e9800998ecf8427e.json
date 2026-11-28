@@ -1,0 +1,1 @@
+{"id":"c3c422fdfe506c2208435cb6721b8134.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-delete.test.ts#branch_delete .active が無くても、対象のリポを含む設定が 1 つならその設定で削除する","name":".active が無くても、対象のリポを含む設定が 1 つならその設定で削除する","status":"passed","testResultsByEnv":{"default":"e3bb0f114b7e21a235a571afff7ffed8"}}

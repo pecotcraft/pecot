@@ -1,0 +1,2 @@
+added: Issue acme/demo/7 to project
+set: Issue acme/demo/7 status ready

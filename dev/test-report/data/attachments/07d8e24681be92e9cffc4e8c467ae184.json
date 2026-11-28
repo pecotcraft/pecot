@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_logs_get_log_events: log_group_name: Invalid input: expected string, received undefined"
+    }
+  ],
+  "isError": true
+}

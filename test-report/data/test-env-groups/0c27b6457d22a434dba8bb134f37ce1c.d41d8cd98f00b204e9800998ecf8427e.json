@@ -1,0 +1,1 @@
+{"id":"0c27b6457d22a434dba8bb134f37ce1c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#listProjects user が null の場合は、organization のプロジェクトを返し、first を変数として送信する","name":"user が null の場合は、organization のプロジェクトを返し、first を変数として送信する","status":"passed","testResultsByEnv":{"default":"e3973b5a8cc7a92de1b5eeba626d68ff"}}

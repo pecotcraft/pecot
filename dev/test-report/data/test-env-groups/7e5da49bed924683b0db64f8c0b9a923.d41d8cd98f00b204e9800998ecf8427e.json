@@ -1,0 +1,1 @@
+{"id":"7e5da49bed924683b0db64f8c0b9a923.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-definition.test.ts#defineTool 読むだけの動詞のツールに writes がある場合は、TypeError が発生する","name":"読むだけの動詞のツールに writes がある場合は、TypeError が発生する","status":"passed","testResultsByEnv":{"default":"bb08ac788c2a3136df1f011e62d74349"}}

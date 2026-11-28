@@ -1,0 +1,1 @@
+{"id":"582e2ac2c61cae95b19ac940f6e77800.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#remoteTagExists remote に接続できない場合は、failure に git の標準エラーを返す","name":"remote に接続できない場合は、failure に git の標準エラーを返す","status":"passed","testResultsByEnv":{"default":"bc2a87c58d2a48fec7d3c9a71cdbeb71"}}

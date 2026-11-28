@@ -1,0 +1,1 @@
+{"id":"e94c06a2dbce7f1f46cdb02b013152f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/names.test.ts#項目の名前と names 項目の名前に names の語彙にない語があると、語の位置を含む検証エラーにする","name":"項目の名前に names の語彙にない語があると、語の位置を含む検証エラーにする","status":"passed","testResultsByEnv":{"default":"3ac73c1cf59b38c162c261087a68739d"}}

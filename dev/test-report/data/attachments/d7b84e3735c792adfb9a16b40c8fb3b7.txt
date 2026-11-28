@@ -1,0 +1,5 @@
+warning: mxCell id=s14: first font inter is not in the theme font (slidev-theme-pecotv-test-declared): "Alpha"; diagram text is set in the theme font (slidev-theme-pecotv-test-declared) (fix: add fontFamily=Test Sans, Test Sans JP, sans-serif to style)
+warning: mxCell id=s16: first font inter is not in the theme font (slidev-theme-pecotv-test-declared): "Beta"; diagram text is set in the theme font (slidev-theme-pecotv-test-declared) (fix: add fontFamily=Test Sans, Test Sans JP, sans-serif to style)
+warning: mxCell id=ja: first font inter is not in the theme font (slidev-theme-pecotv-test-declared): "構成"; diagram text is set in the theme font (slidev-theme-pecotv-test-declared) (fix: add fontFamily=Test Sans, Test Sans JP, sans-serif to style)
+warning: mxCell id=ja: font list for text containing Japanese has no Test Sans JP: "構成"; Japanese is drawn in a fallback font (fix: set fontFamily to Test Sans, Test Sans JP, sans-serif)
+warning: mxCell id=s16: font size 16px is not a theme size: "Beta"; only these 5 sizes are allowed: 18, 15, 14, 11, 10 px (heading 18, subheading 15, body 14, caption 11, label 10) (fix: add fontSize=<size> to style)

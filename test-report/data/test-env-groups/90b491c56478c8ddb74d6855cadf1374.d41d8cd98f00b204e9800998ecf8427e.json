@@ -1,0 +1,1 @@
+{"id":"90b491c56478c8ddb74d6855cadf1374.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/drawio-icons.test.ts#createIconResolver アイコンが存在しない場合は、undefined を返し、warn を呼び出す","name":"アイコンが存在しない場合は、undefined を返し、warn を呼び出す","status":"passed","testResultsByEnv":{"default":"2616748c254dce4766bdccda4c4bbc2a"}}

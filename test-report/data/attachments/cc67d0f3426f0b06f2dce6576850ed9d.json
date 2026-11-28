@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "removed: worktree wt1"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt1\",\"deletedBranch\":false,\"warnings\":[\"could not delete local branch wt1: error: cannot delete branch 'wt1' used by worktree at '/tmp/pecot-cli-snwLrf/workspaces/holder'\"]}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt1",
+    "deletedBranch": false,
+    "warnings": [
+      "could not delete local branch wt1: error: cannot delete branch 'wt1' used by worktree at '/tmp/pecot-cli-snwLrf/workspaces/holder'"
+    ]
+  }
+}

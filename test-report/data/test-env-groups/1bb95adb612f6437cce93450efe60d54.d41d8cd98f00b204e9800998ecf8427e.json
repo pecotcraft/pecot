@@ -1,0 +1,1 @@
+{"id":"1bb95adb612f6437cce93450efe60d54.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync ボードの取得で GitHub API がエラーを返すと、点数の行を出し、終了コード 1 で終わる","name":"ボードの取得で GitHub API がエラーを返すと、点数の行を出し、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"730673a28c98d7fb02dff498b13195cb"}}

@@ -1,0 +1,1 @@
+{"id":"7a5613d8daaa19849b9dd2ffffdab72d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish Epic か sub-issue を持つ Issue があると、skipped の行を出す","name":"Epic か sub-issue を持つ Issue があると、skipped の行を出す","status":"passed","testResultsByEnv":{"default":"598c51dcd432cfdb4c3348b90c57a0ef"}}

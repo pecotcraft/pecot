@@ -1,0 +1,1 @@
+{"id":"19989c29a5f9d70bd565c9683ae08277.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/attach.test.ts#attach Allure の reporter が動くレーンの中 readOutput に slides.md を渡すと、読んだ中身を返し、型 text/markdown で残す","name":"readOutput に slides.md を渡すと、読んだ中身を返し、型 text/markdown で残す","status":"passed","testResultsByEnv":{"default":"a1b8077ea83c3319217d7edeb0006593"}}

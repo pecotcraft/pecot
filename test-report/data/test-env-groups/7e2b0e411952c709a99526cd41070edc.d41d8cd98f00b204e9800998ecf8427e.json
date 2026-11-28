@@ -1,0 +1,1 @@
+{"id":"7e2b0e411952c709a99526cd41070edc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#runEvidenceCreate 文面に違反がある場合は、text-violation ですべての違反を含め、writeWorkbook を呼び出さない","name":"文面に違反がある場合は、text-violation ですべての違反を含め、writeWorkbook を呼び出さない","status":"passed","testResultsByEnv":{"default":"80562de1ca7f03d237b2adca7c6033d0"}}

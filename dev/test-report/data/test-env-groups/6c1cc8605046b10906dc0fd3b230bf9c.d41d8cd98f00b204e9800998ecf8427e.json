@@ -1,0 +1,1 @@
+{"id":"6c1cc8605046b10906dc0fd3b230bf9c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#ensureChromiumHostDependencies Chromium を起動できた場合は、何も導入せずに ok を返す","name":"Chromium を起動できた場合は、何も導入せずに ok を返す","status":"passed","testResultsByEnv":{"default":"1f5756b47932bd58e0fe60771cc1f7e3"}}

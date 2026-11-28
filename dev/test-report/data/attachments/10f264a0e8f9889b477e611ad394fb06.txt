@@ -1,0 +1,2 @@
+error: the board has no option Todo for Status
+  call project_check with method: "fields", owner: "acme", project: 1 and apply the changes it asks for with the project-fields operation of github-ops, then project_activate with project: "1", owner: "acme" to read the board into the project config

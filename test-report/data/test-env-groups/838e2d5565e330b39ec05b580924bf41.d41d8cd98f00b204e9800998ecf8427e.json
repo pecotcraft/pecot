@@ -1,0 +1,1 @@
+{"id":"838e2d5565e330b39ec05b580924bf41.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_blank_lines_are_those_js_trim_empties","name":"空行の判定は、JavaScript の `trim()` と同じにする","status":"passed","testResultsByEnv":{"default":"b681a3c48732bb31c18385b470952353"}}

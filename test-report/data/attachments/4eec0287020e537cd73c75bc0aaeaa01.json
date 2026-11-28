@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":2,\"maxSeverity\":\"medium\",\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"warnings\":[\"2 open Dependabot alerts (highest severity: medium). The release is not blocked.\\n  #1 (minimatch, medium)\\n  #3 (glob, medium)\\n  → https://ghes.example.com/acme/demo/security/dependabot\"]}"
+    }
+  ],
+  "structuredContent": {
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 2,
+      "maxSeverity": "medium",
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "warnings": [
+      "2 open Dependabot alerts (highest severity: medium). The release is not blocked.\n  #1 (minimatch, medium)\n  #3 (glob, medium)\n  → https://ghes.example.com/acme/demo/security/dependabot"
+    ]
+  }
+}

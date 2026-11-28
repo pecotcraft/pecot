@@ -1,0 +1,43 @@
+{
+  "name": "@pecot/visual-mcp",
+  "version": "0.0.0-test1812",
+  "type": "module",
+  "description": "pecotv MCP server (standalone distribution)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pecotcraft/pecot.git",
+    "directory": "plugins/pecot-visual"
+  },
+  "bin": {
+    "pecot-visual-mcp": "cli/dist/main.js"
+  },
+  "engines": {
+    "node": "^24.22.1 || >=26.12.1"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.4.0",
+    "@xmldom/xmldom": "^0.9.12",
+    "mime-types": "^2.1.35",
+    "playwright": "^1.65.0",
+    "xpath": "^0.1.0",
+    "yaml": "2.9.1",
+    "yauzl": "^3.4.0",
+    "yazl": "^3.3.1",
+    "zod": "^4.6.7",
+    "eslint": "^10.15.0",
+    "@eslint/markdown": "^8.0.3",
+    "js-yaml": "^4.3.2",
+    "synckit": "^0.12.3",
+    "ajv": "^8.20.0",
+    "@cffnpwr/textlint-plugin-comments": "1.0.0",
+    "@textlint-ja/textlint-rule-preset-ai-writing": "^1.7.2",
+    "@textlint/kernel": "^15.8.0",
+    "@textlint/module-interop": "^15.8.0",
+    "@textlint/textlint-plugin-markdown": "^15.8.0",
+    "textlint": "^15.8.0",
+    "textlint-rule-preset-ai-words-ja": "1.2.1",
+    "textlint-rule-preset-ja-technical-writing": "^12.1.0",
+    "web-tree-sitter": "0.27.1"
+  }
+}

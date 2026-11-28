@@ -1,0 +1,1 @@
+{"id":"28b4775f952aab0efaae005b1ab8e8ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#node と bin だけで動く scripts は、違反として返さない","name":"node と bin だけで動く scripts は、違反として返さない","status":"passed","testResultsByEnv":{"default":"e93e9b7a7250095e96b70e042d8ebda2"}}

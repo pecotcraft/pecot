@@ -1,0 +1,1 @@
+{"id":"fdc888b0fe22dc16a6680986ed10590f.bb355e5fbceb113cd219ec1b0d6fd08a","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_only_the_lanes_the_change_reaches","name":"plugins/pecot-tools/cli/src/version.ts を変更すると、その変更が届くテストのレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"4ebddeb2ae94d50303664f166df21760"}}

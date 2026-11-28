@@ -1,0 +1,1 @@
+{"id":"8411417f0bf84a921b53619e95cd9b81.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#runSlideLint 集計 シンボリックリンクのディレクトリを見つけた場合は、結果に載せるが、outcome は変えない","name":"シンボリックリンクのディレクトリを見つけた場合は、結果に載せるが、outcome は変えない","status":"passed","testResultsByEnv":{"default":"3802ce7702dd0921f66499e8d7106afc"}}

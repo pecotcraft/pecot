@@ -1,0 +1,1 @@
+{"id":"9f8c0bf2686ee4230e25911b1017966d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateSections（必須セクション検証: 見出しレベル・em-dash サマリ） 節の名前の途中までしか一致しない見出しは、不足として扱う（em-dash の区切りが必須）","name":"節の名前の途中までしか一致しない見出しは、不足として扱う（em-dash の区切りが必須）","status":"passed","testResultsByEnv":{"default":"67a9d8d9c36b54371831be345dde4241"}}

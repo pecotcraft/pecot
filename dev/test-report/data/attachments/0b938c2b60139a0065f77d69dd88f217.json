@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "params.sha: sha must be the head of release branch release on origin"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"params.sha\",\"code\":\"sha-mismatch\",\"message\":\"sha must be the head of release branch release on origin\",\"candidates\":[\"8f3ade6f1b84f3d9d3e7288d854b2ea512349291\"]}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "params.sha",
+        "code": "sha-mismatch",
+        "message": "sha must be the head of release branch release on origin",
+        "candidates": [
+          "8f3ade6f1b84f3d9d3e7288d854b2ea512349291"
+        ]
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  }
+}

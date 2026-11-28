@@ -1,0 +1,1 @@
+{"id":"e1eda5b8860a587b0854c2a281b92251.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/no-cross-layer-import.test.ts#no-cross-layer-import invalid L1 から L1 を import すると、報告する","name":"L1 から L1 を import すると、報告する","status":"passed","testResultsByEnv":{"default":"50c79a4a3cf29b868383fde6d0502868"}}

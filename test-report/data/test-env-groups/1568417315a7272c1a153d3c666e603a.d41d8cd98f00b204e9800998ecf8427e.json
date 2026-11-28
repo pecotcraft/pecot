@@ -1,0 +1,1 @@
+{"id":"1568417315a7272c1a153d3c666e603a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#createIssue labels が undefined の場合は、本文に labels を含めない","name":"labels が undefined の場合は、本文に labels を含めない","status":"passed","testResultsByEnv":{"default":"6193186703f068a8af8ee17e02dbec70"}}

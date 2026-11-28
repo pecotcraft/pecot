@@ -1,0 +1,1 @@
+{"id":"f93f482e7521abaebd63014fed0998f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/review-finish.test.ts#review finish pr に owner/repo/N を渡すと、そのリポの PR に書く","name":"pr に owner/repo/N を渡すと、そのリポの PR に書く","status":"passed","testResultsByEnv":{"default":"56a7371b9ce6253aec8c8e0c2f751898"}}

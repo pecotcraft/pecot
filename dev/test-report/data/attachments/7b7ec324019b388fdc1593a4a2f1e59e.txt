@@ -1,0 +1,12 @@
+<anonymous_script>:1
+{
+
+SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+    at JSON.parse (<anonymous>)
+    at readVariables (file:///workspaces/base/pecot/.githooks/scripts/test_report/allurerc.mjs:9:22)
+    at file:///workspaces/base/pecot/.githooks/scripts/test_report/allurerc.mjs:21:19
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async file:///workspaces/base/pecot/node_modules/allure/[eval1]:1:26
+
+Node.js v24.22.1

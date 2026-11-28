@@ -1,0 +1,1 @@
+{"id":"599f8929d8ea68f2b1a0844f7fda43bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#countCommitsAhead 比較の応答で「ahead_by が文字列」の場合は、GitHubAPIError を発生させる","name":"比較の応答で「ahead_by が文字列」の場合は、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"875f1039bb3442d3d98e93265420265f"}}

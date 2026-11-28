@@ -1,0 +1,1 @@
+{"id":"0d12e7b7048b757e88b071cd9d763124.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start ボードの読み書きの失敗 書いた人の権限を読めないと、warning の行を出し、その人のコメントを数だけにする","name":"書いた人の権限を読めないと、warning の行を出し、その人のコメントを数だけにする","status":"passed","testResultsByEnv":{"default":"114addd6b0331abeea32ba54f785757f"}}

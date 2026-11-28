@@ -1,0 +1,1 @@
+{"id":"c380a04f97cfdc3be15f0d0496475c61.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_checkouts_use_github_ref_with_full_history","name":"checkout は github の参照を使い、history-get のほかは全履歴を取得する","status":"passed","testResultsByEnv":{"default":"4faa0537d4b62074b783daeb61b4fa2e"}}

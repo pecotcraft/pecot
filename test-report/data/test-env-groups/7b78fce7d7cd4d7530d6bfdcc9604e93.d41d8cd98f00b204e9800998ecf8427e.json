@@ -1,0 +1,1 @@
+{"id":"7b78fce7d7cd4d7530d6bfdcc9604e93.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/release.test.ts#requireReleaseTargetRepository 採用済みのリポジトリが存在しない場合に repo を渡すと、remote より repo を優先する","name":"採用済みのリポジトリが存在しない場合に repo を渡すと、remote より repo を優先する","status":"passed","testResultsByEnv":{"default":"3acaa16a31552ac9f79b3722b953a2a5"}}

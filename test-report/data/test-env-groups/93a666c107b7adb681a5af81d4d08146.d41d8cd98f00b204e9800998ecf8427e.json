@@ -1,0 +1,1 @@
+{"id":"93a666c107b7adb681a5af81d4d08146.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/load.test.ts#loadSources glob が ../../ で plugin の外を指すと、リポジトリ内のライブラリのファイルも読み込む","name":"glob が ../../ で plugin の外を指すと、リポジトリ内のライブラリのファイルも読み込む","status":"passed","testResultsByEnv":{"default":"83f9460ce4c770981bacae3a5034346f"}}

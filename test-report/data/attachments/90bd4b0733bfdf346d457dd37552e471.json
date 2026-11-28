@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"skipped\":[],\"warnings\":[\"could not check Dependabot alerts. The release is not blocked.\\n  reason: acme/demo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "skipped": [],
+    "warnings": [
+      "could not check Dependabot alerts. The release is not blocked.\n  reason: acme/demo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)"
+    ]
+  }
+}

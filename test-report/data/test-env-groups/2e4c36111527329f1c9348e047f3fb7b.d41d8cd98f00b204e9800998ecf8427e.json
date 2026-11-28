@@ -1,0 +1,1 @@
+{"id":"2e4c36111527329f1c9348e047f3fb7b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_scan_counts_shell_reads_before_the_first_assignment","name":"シェルでは、最初の代入より前の読み取りを、外の値の読み取りとして数える","status":"passed","testResultsByEnv":{"default":"29c687a0c7c2548c512d4c66b58f6ff6"}}

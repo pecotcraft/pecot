@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "title: keep the order of the title: (none)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"title\",\"code\":\"title-order\",\"message\":\"keep the order of the title: (none)\",\"candidates\":[\"[Task] 一覧に状態の列を出す\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "title",
+        "code": "title-order",
+        "message": "keep the order of the title: (none)",
+        "candidates": [
+          "[Task] 一覧に状態の列を出す"
+        ]
+      }
+    ]
+  }
+}

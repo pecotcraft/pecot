@@ -1,0 +1,1 @@
+{"id":"c30bdd7db73cd5840f1b5decde443ec0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#初期化の URL PECOT_GITHUB_API_URL の指定で、REST の base と GraphQL の URL を差し替える","name":"PECOT_GITHUB_API_URL の指定で、REST の base と GraphQL の URL を差し替える","status":"passed","testResultsByEnv":{"default":"af2857f65c38dcdb8e92715d34626af8"}}

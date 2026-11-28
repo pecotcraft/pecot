@@ -1,0 +1,1 @@
+{"id":"4ab075f523b25378867d79991aace73f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/mcp/tools-list.test.ts#tools/list どのツールの入力にも dry_run が存在せず、どの outputSchema にも dryRun が存在しない","name":"どのツールの入力にも dry_run が存在せず、どの outputSchema にも dryRun が存在しない","status":"passed","testResultsByEnv":{"default":"f6f7a1d9c9437ef77f629485f964c7a2"}}

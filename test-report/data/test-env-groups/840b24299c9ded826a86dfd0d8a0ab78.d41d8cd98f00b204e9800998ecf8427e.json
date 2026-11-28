@@ -1,0 +1,1 @@
+{"id":"840b24299c9ded826a86dfd0d8a0ab78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show repo を渡すと、ボードの項目をそのリポジトリに絞る","name":"repo を渡すと、ボードの項目をそのリポジトリに絞る","status":"passed","testResultsByEnv":{"default":"406dd79cf326591e72cc9f16c0419970"}}

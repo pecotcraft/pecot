@@ -1,0 +1,45 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "2 item(s) of workflow auto are missing or outdated"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-setting-missing\",\"detail\":\"2 item(s) of workflow auto are missing or outdated\",\"repository\":\"acme/demo\",\"items\":[{\"name\":\".github/workflows/pecot-auto.yml\",\"state\":\"ok\"},{\"name\":\"workflow template auto\",\"state\":\"ok\"},{\"name\":\".github/workflows/pecot-auto.yml calls the pecot actions, not npx @pecot/workflow-mcp\",\"state\":\"ok\"},{\"name\":\"variable PECOT_AGENT_APP_CLIENT_ID\",\"state\":\"missing\"},{\"name\":\"secret PECOT_AGENT_APP_PRIVATE_KEY\",\"state\":\"missing\"},{\"name\":\"secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*\",\"state\":\"ok\"}],\"ready\":false}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-setting-missing",
+    "detail": "2 item(s) of workflow auto are missing or outdated",
+    "repository": "acme/demo",
+    "items": [
+      {
+        "name": ".github/workflows/pecot-auto.yml",
+        "state": "ok"
+      },
+      {
+        "name": "workflow template auto",
+        "state": "ok"
+      },
+      {
+        "name": ".github/workflows/pecot-auto.yml calls the pecot actions, not npx @pecot/workflow-mcp",
+        "state": "ok"
+      },
+      {
+        "name": "variable PECOT_AGENT_APP_CLIENT_ID",
+        "state": "missing"
+      },
+      {
+        "name": "secret PECOT_AGENT_APP_PRIVATE_KEY",
+        "state": "missing"
+      },
+      {
+        "name": "secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*",
+        "state": "ok"
+      }
+    ],
+    "ready": false
+  },
+  "isError": true
+}

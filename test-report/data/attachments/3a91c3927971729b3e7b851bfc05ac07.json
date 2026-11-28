@@ -1,0 +1,11 @@
+[
+  "githooks:test-checks",
+  "pecot-workflow:build-cli",
+  "pecot-workflow:install",
+  "pecot-workflow:test-cli",
+  "pecot:install",
+  "text-rules:build",
+  "text-rules:install",
+  "workflow-core:build",
+  "workflow-core:install"
+]

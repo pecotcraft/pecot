@@ -1,0 +1,1 @@
+{"id":"e1feb6d601439a866958f721d6a442c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-check.test.ts#board_check updated_field に id と name のどちらも無い形 を渡すと、欄の指定を求める problem を返す","name":"updated_field に id と name のどちらも無い形 を渡すと、欄の指定を求める problem を返す","status":"passed","testResultsByEnv":{"default":"afac2e21e9f82101eaba99fd8a876b5b"}}

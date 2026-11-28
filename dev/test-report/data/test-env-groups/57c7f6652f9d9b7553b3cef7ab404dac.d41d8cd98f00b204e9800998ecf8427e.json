@@ -1,0 +1,1 @@
+{"id":"57c7f6652f9d9b7553b3cef7ab404dac.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/pecotv-dir-init.bats#初回に実行すると、.pecotv 一式を作り、全部を除外する .gitignore を置く","name":"初回に実行すると、.pecotv 一式を作り、全部を除外する .gitignore を置く","status":"passed","testResultsByEnv":{"default":"5e75827ce8213ec5da54c7cff4b368e9"}}

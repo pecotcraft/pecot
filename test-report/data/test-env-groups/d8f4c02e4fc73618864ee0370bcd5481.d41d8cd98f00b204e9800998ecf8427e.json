@@ -1,0 +1,1 @@
+{"id":"d8f4c02e4fc73618864ee0370bcd5481.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#runMcpServe 標準入力が終端に達したときは、処理中の tools/call の signal を中断する","name":"標準入力が終端に達したときは、処理中の tools/call の signal を中断する","status":"passed","testResultsByEnv":{"default":"d6f2b4223154154e4796c2a39e7c5a53"}}

@@ -1,0 +1,1 @@
+{"id":"284545296a49fc965df99ec81977aa29.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.bats#共通の 4 引数を解釈し、共通でない引数は呼び出し側に回す","name":"共通の 4 引数を解釈し、共通でない引数は呼び出し側に回す","status":"passed","testResultsByEnv":{"default":"f0519b39df0de8be2157b152cfe2525c"}}

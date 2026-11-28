@@ -1,0 +1,1 @@
+{"id":"79da6e8e665a6721cdef1c15f91dab7e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#runSlideSync (移行前の talk-dir に --theme を付ける) 取得の失敗は原因の文言のまま返し、削除と書き込みを行わない","name":"取得の失敗は原因の文言のまま返し、削除と書き込みを行わない","status":"passed","testResultsByEnv":{"default":"29a8ddf40e8c9278ba03f83c8ac2c3d8"}}

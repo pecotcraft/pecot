@@ -1,0 +1,1 @@
+{"id":"c5ab4b0adb68da69257ef8610c73d36c.b34bda66aee922e75b7fd7c7ae7730a3","fullName":".githooks.tests.test_nx_affected_mapping#test_release_lane_is_cached_and_not_run_by_unrelated_changes","name":"plugins/pecot-visual/hooks/hooks.json を変更しても、pecot-visual:test-release はキャッシュを再利用する","status":"passed","testResultsByEnv":{"default":"2d9a6c6e9c47ef8b7723654eb6e4b97c"}}

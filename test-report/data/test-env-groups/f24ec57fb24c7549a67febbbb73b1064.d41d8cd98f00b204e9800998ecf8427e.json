@@ -1,0 +1,1 @@
+{"id":"f24ec57fb24c7549a67febbbb73b1064.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 注記図形の導出 x と w の合計が 1 の box は、幅と位置を別々に丸めず、右端を画像の右端に一致させる","name":"x と w の合計が 1 の box は、幅と位置を別々に丸めず、右端を画像の右端に一致させる","status":"passed","testResultsByEnv":{"default":"4d29591de879bdc45d50bb0240e149ce"}}

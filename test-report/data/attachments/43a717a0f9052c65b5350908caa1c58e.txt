@@ -1,0 +1,4 @@
+count: open dependabot PRs: 2
+count: PRs awaiting a decision: 2
+count: PRs awaiting a decision without check results: 0
+added: PR #6 to Tracker #9 (checks failed, conflict)

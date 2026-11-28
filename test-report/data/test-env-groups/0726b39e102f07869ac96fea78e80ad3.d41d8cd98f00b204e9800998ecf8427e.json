@@ -1,0 +1,1 @@
+{"id":"0726b39e102f07869ac96fea78e80ad3.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#永続層の未実施で中止したとき監査記録を残さない","name":"永続層の未実施で中止したとき監査記録を残さない","status":"passed","testResultsByEnv":{"default":"c719f6c64b3a651ab5245cd5b4b8b5ed"}}

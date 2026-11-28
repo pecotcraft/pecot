@@ -1,0 +1,1 @@
+{"id":"30af85e3a602323779d24ec0a683538c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#listOpenDependabotAlerts 403 が返ると、ステータスコードと本文を持つ GitHubAPIError を発生させる","name":"403 が返ると、ステータスコードと本文を持つ GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"0b7660bdc2c62a786974d187d8b8a21d"}}

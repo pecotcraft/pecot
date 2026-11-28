@@ -1,0 +1,1 @@
+{"id":"4a6c766ebed583fadb9acbd52ba49257.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphqlTolerating errors の要素が辞書でない の errors の場合は、例外が発生する","name":"errors の要素が辞書でない の errors の場合は、例外が発生する","status":"passed","testResultsByEnv":{"default":"459427485f50d4078dc0f00d9b595148"}}

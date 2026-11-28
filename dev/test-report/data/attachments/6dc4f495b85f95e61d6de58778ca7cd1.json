@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: worktree wt1 at /tmp/pecot-parity-YOPf8O/wt1/demo (branch wt1 from main)"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt1\",\"path\":\"/tmp/pecot-parity-YOPf8O/wt1/demo\",\"branch\":\"wt1\",\"base\":\"main\",\"setupFailed\":false}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt1",
+    "path": "/tmp/pecot-parity-YOPf8O/wt1/demo",
+    "branch": "wt1",
+    "base": "main",
+    "setupFailed": false
+  }
+}

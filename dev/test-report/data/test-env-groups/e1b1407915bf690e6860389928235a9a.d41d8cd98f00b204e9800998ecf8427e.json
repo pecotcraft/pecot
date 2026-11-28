@@ -1,0 +1,1 @@
+{"id":"e1b1407915bf690e6860389928235a9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#columnNames 欄が読めていれば欄の名前を、無ければ既定の名前を返す","name":"欄が読めていれば欄の名前を、無ければ既定の名前を返す","status":"passed","testResultsByEnv":{"default":"ff8a68adec3775da34dbe4f91dcb48bd"}}

@@ -1,0 +1,1 @@
+{"id":"6c5d8edc62a6ed909081530ca232382b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/github-ops-workflow-template.test.ts#github-ops のワークフローの雛形 checkout は ref を指定せず、資格情報を残さない","name":"checkout は ref を指定せず、資格情報を残さない","status":"passed","testResultsByEnv":{"default":"e5be9fea096eb0b048ca2458fe8d65ca"}}

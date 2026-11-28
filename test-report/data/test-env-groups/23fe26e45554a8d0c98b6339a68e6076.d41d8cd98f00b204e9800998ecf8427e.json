@@ -1,0 +1,1 @@
+{"id":"23fe26e45554a8d0c98b6339a68e6076.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#runDrawioExport オフラインや Chromium の不在で export に失敗すると、`export-failed` で失敗する","name":"オフラインや Chromium の不在で export に失敗すると、`export-failed` で失敗する","status":"passed","testResultsByEnv":{"default":"e10a658d8b96be217ac6954253aeebdb"}}

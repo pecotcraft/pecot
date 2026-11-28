@@ -1,0 +1,1 @@
+{"id":"018fb5759bdd8fbbda8ee3870c6387b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#installLockPath playwright パッケージの root 直下にある cli.js を指す","name":"playwright パッケージの root 直下にある cli.js を指す","status":"passed","testResultsByEnv":{"default":"1b8783a976d76181460004fac2625cd5"}}

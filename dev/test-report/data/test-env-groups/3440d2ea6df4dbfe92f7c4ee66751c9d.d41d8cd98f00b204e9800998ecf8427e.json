@@ -1,0 +1,1 @@
+{"id":"3440d2ea6df4dbfe92f7c4ee66751c9d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#expectedScope .nx/nx-release のファイルは version-plans として扱わず、プロジェクトの scope を返す","name":".nx/nx-release のファイルは version-plans として扱わず、プロジェクトの scope を返す","status":"passed","testResultsByEnv":{"default":"577642ba8244445c483a761b82a2d6c5"}}

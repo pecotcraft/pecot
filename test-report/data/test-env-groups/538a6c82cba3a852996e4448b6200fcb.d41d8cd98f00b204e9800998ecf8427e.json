@@ -1,0 +1,1 @@
+{"id":"538a6c82cba3a852996e4448b6200fcb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main --commit-msg scissors の行が存在しなくても、# の行を空行として扱い、元のファイルの行番号を保つ","name":"scissors の行が存在しなくても、# の行を空行として扱い、元のファイルの行番号を保つ","status":"passed","testResultsByEnv":{"default":"ea9148f00bae4b2bce232efcb1e30b58"}}

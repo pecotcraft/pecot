@@ -1,0 +1,1 @@
+{"id":"a3273209cdffc7cea84626c9d15ef3da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/pr-waiting.test.ts#moveIssuesWaitingFor ボードの読み取りに失敗したなら、待たれている Issue を並べた warning を出して続ける","name":"ボードの読み取りに失敗したなら、待たれている Issue を並べた warning を出して続ける","status":"passed","testResultsByEnv":{"default":"fead813fd88d926999bdf89dd6b1614e"}}

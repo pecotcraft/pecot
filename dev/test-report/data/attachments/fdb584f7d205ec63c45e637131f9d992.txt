@@ -1,0 +1,2 @@
+created: auto result comment (pr-created) on Issue acme/demo/7
+removed: label my-auto from Issue acme/demo/7

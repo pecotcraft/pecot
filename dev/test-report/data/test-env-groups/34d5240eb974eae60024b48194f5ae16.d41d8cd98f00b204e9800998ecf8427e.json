@@ -1,0 +1,1 @@
+{"id":"34d5240eb974eae60024b48194f5ae16.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor workflow-doctor の結果の result だけを渡しても、secret と変数の名前を読む","name":"workflow-doctor の結果の result だけを渡しても、secret と変数の名前を読む","status":"passed","testResultsByEnv":{"default":"30362c74f82ea2935dc1a248a3437ba0"}}

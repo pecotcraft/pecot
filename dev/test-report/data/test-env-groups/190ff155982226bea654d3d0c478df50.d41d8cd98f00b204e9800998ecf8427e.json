@@ -1,0 +1,1 @@
+{"id":"190ff155982226bea654d3d0c478df50.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-judgment.test.ts#judgeBoard 依存関係に対応していない GHES の場合は、undefined を返す","name":"依存関係に対応していない GHES の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"0c8ee14bcb8a6c075eb68aa62a65a0fb"}}

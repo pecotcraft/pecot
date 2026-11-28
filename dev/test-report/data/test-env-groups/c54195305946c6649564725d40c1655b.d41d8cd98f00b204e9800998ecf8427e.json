@@ -1,0 +1,1 @@
+{"id":"c54195305946c6649564725d40c1655b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/e2e/mcp-stdio.test.ts#pecot-tools-mcp (stdio) SSO ログインの待機中でも、標準入力が終端に達するとサーバが自力で終了し、awscli のプロセスを残さない","name":"SSO ログインの待機中でも、標準入力が終端に達するとサーバが自力で終了し、awscli のプロセスを残さない","status":"passed","testResultsByEnv":{"default":"5638c3fcab08749f1cba95a8e651c001"}}

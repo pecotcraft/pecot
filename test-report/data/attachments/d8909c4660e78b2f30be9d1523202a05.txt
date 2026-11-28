@@ -1,0 +1,5 @@
+moved: config file /tmp/pecot-repo-3kjmsR/.pecot/config/projects/ghes.example.com_acme_board_acme.json to /tmp/pecot-repo-3kjmsR/.pecot/config/projects/ghes.example.com_acme_1.json
+warning: the project config is now named ghes.example.com_acme_1
+  use this name for the project input and the PECOT_REVIEW_PROJECT variable
+updated: config file /tmp/pecot-repo-3kjmsR/.pecot/config/projects/ghes.example.com_acme_1.json
+set: active project to ghes.example.com_acme_1

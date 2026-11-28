@@ -1,0 +1,1 @@
+{"id":"e12496e9157de7ca4c57f54252f8f550.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#振る舞いの項目のつなぎ collectVerifiedIds verifies の引数の ID を集め、コメントの中の ID を数えない","name":"verifies の引数の ID を集め、コメントの中の ID を数えない","status":"passed","testResultsByEnv":{"default":"ef9b043ff29672b5a7d8ba90e10f7ba4"}}

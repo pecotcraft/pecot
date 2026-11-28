@@ -1,0 +1,1 @@
+{"id":"9f3acd7a4b467a21f18e727fa65e6422.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#main の --check 実物の generated.json は、登録済みのツールと一致して 0 を返す","name":"実物の generated.json は、登録済みのツールと一致して 0 を返す","status":"passed","testResultsByEnv":{"default":"02ab18f3e3e5703f592235a8181f470d"}}

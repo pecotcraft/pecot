@@ -1,0 +1,1 @@
+{"id":"d32778adf7e152945555b6653000ec73.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「要素が足りない版」の場合は、エラーを返す","name":"テーマの指定が「要素が足りない版」の場合は、エラーを返す","status":"passed","testResultsByEnv":{"default":"3412db8289f777efb26e78ce15b282a1"}}

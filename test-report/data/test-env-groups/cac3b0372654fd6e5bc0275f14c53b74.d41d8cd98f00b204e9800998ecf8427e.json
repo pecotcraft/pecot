@@ -1,0 +1,1 @@
+{"id":"cac3b0372654fd6e5bc0275f14c53b74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#createResolvedRepository 解決元が current-git の場合は、remoteName を持つ","name":"解決元が current-git の場合は、remoteName を持つ","status":"passed","testResultsByEnv":{"default":"e93764cb2d5ff01eeee9d4697079c88a"}}

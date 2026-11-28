@@ -1,0 +1,1 @@
+{"id":"2bdf79afc64c3ab6a4749cee98a6b2bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint git の外のファイルは、cwd の .textlintignore を読む","name":"git の外のファイルは、cwd の .textlintignore を読む","status":"passed","testResultsByEnv":{"default":"3e924aeb28d4e5ca9666f3c5e075085e"}}

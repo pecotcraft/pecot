@@ -1,0 +1,126 @@
+# pecot-workflow-template: board-sync 2
+#
+# Place this file at .github/workflows/pecot-board-sync.yml in your repository.
+# `workflow_install` (name: board-sync) places it and pins the pecot actions to a commit SHA.
+#
+# This workflow runs the pecot board-sync action after PRs and issues change.
+# The action fixes the Status column and label of the pecot project board.
+# It reads the whole board on every run, so the trigger only decides when it runs.
+#
+# When a PR from this repository is merged, the finish job runs the pecot session-finish action first.
+# It closes the issues of the PR and moves the issues that wait for them.
+# It does so even when no local session does it.
+# It does not delete the head branch. Turn on "Automatically delete head branches" in Settings > General.
+# It runs only for a head branch whose name ends in /<number>, as pecot task branches do.
+# So the head branch of a release PR, such as develop, is kept.
+# The finish job uses the GITHUB_TOKEN of the run, with Issues: write.
+# The App and the token below need no more permissions for it.
+#
+# Set one of the two token setups in Settings > Secrets and variables > Actions.
+# The job is skipped until one of them exists.
+#   GitHub App.
+#     Use it when the board and this repository have the same organization as owner.
+#     The token covers only the installation on that owner (owner: github.repository_owner).
+#     Set variable PECOT_BOARD_SYNC_APP_CLIENT_ID.
+#     Set secret PECOT_BOARD_SYNC_APP_PRIVATE_KEY.
+#   Personal access token.
+#     Use it for a personal account board, or when the board owner differs from the repository.
+#     Set variable PECOT_BOARD_SYNC_USE_PAT to true.
+#     Set secret PECOT_BOARD_SYNC_TOKEN.
+#
+# The pecot actions are pinned to a commit SHA, with the release tag in the comment after it.
+# Dependabot can update them when .github/dependabot.yml has the github-actions ecosystem.
+#
+# pull_request_target runs the workflow from the default branch.
+# Secrets are passed to PRs from forks, so this workflow never checks out code from a PR.
+name: pecot board sync
+
+on:
+  pull_request_target:
+    types: [opened, reopened, closed, ready_for_review, converted_to_draft]
+  issues:
+    types: [closed, reopened]
+  workflow_dispatch:
+  # Optional periodic run. Choose the interval and uncomment.
+  # Actions minutes are billed for private repositories.
+  # schedule:
+  #   - cron: "0 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  # Outside the concurrency group, which keeps only one pending run and would cancel this job.
+  finish:
+    # Skipped without a token setup too, since the project settings may not be there yet.
+    if: >-
+      ${{
+        (vars.PECOT_BOARD_SYNC_APP_CLIENT_ID != '' || vars.PECOT_BOARD_SYNC_USE_PAT == 'true') &&
+        github.event_name == 'pull_request_target' &&
+        github.event.action == 'closed' &&
+        github.event.pull_request.merged &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      # No ref: the default branch is checked out, which holds the project settings.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the head branch
+        id: branch
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          if [[ "$HEAD_REF" =~ /[0-9]+$ ]]; then echo "ok=true" >> "$GITHUB_OUTPUT"; fi
+
+      # The board cannot be read with this token, so moving the cards only warns. The sync job moves them.
+      - name: Finish the merged PR
+        if: ${{ steps.branch.outputs.ok == 'true' }}
+        uses: pecotcraft/pecot/actions/session-finish@c0ffee0000000000000000000000000000000000 # pecot-actions/v1.1.0
+        with:
+          token: ${{ github.token }}
+          pr: ${{ github.event.pull_request.number }}
+
+  sync:
+    needs: finish
+    # A job-level if cannot read secrets, so variables tell whether a token is set up.
+    # Runs started by Dependabot are skipped because secrets are not always passed to them.
+    # The actor is whoever started the run, so a human merging a Dependabot PR still runs.
+    if: ${{ !cancelled() && (vars.PECOT_BOARD_SYNC_APP_CLIENT_ID != '' || vars.PECOT_BOARD_SYNC_USE_PAT == 'true') && github.actor != 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: pecot-board-sync
+      cancel-in-progress: false
+    steps:
+      # No ref: the default branch is checked out, which holds the project settings.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Generate GitHub App token
+        id: app-token
+        if: ${{ vars.PECOT_BOARD_SYNC_APP_CLIENT_ID != '' }}
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.PECOT_BOARD_SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_BOARD_SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-organization-projects: write
+          permission-issues: read
+          permission-pull-requests: read
+          permission-contents: read
+
+      - name: Sync the board
+        uses: pecotcraft/pecot/actions/board-sync@c0ffee0000000000000000000000000000000000 # pecot-actions/v1.1.0
+        with:
+          token: ${{ steps.app-token.outputs.token || secrets.PECOT_BOARD_SYNC_TOKEN }}

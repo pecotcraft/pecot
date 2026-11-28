@@ -1,0 +1,1 @@
+{"id":"b7188b1d47d996b26285e178c5cd1499.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getAsyncMergeResult 404（24 時間を過ぎて結果が消えた）が返ると、undefined を返す","name":"404（24 時間を過ぎて結果が消えた）が返ると、undefined を返す","status":"passed","testResultsByEnv":{"default":"7c1ec5d72cbde4d81cdbef906ff4acd4"}}

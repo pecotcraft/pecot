@@ -1,0 +1,1 @@
+{"id":"0a55929858dfe2fa7b260bdcf7baa2b0.955930b131afc90360ad7da0fa05ec22","fullName":".githooks.tests.test_nx_affected_mapping#test_outside_project_file_affects_nothing","name":"pnpm-lock.yaml を変更しても、どの project も affected にならない","status":"passed","testResultsByEnv":{"default":"fd72a61fe19885f7ff51f42ca571e39b"}}

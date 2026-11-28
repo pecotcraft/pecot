@@ -1,0 +1,1 @@
+{"id":"0ed913e4c845a8860434a32061e34e8f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の状態 猶予時間の中の auto-merge なしは、待っている PR に含めない","name":"猶予時間の中の auto-merge なしは、待っている PR に含めない","status":"passed","testResultsByEnv":{"default":"f20255fa3d4b6df0e1d85179df484e64"}}

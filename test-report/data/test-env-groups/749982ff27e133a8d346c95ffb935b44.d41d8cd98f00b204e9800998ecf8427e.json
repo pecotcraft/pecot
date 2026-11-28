@@ -1,0 +1,1 @@
+{"id":"749982ff27e133a8d346c95ffb935b44.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish 種別の読み取りと close が 404 の Issue は、warning を出して飛ばす","name":"種別の読み取りと close が 404 の Issue は、warning を出して飛ばす","status":"passed","testResultsByEnv":{"default":"c33945b86750f28ff3b13e2c90c90169"}}

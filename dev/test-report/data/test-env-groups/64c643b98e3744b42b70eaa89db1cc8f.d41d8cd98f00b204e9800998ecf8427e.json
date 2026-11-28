@@ -1,0 +1,1 @@
+{"id":"64c643b98e3744b42b70eaa89db1cc8f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_stage_dir_scripts_are_referenced_by_entries","name":"stage 名のディレクトリ直下の *.sh は、すべてどれかの entry から参照される","status":"passed","testResultsByEnv":{"default":"23eaaffb004ecf3464232809c170286b"}}

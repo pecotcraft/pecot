@@ -1,0 +1,1 @@
+{"id":"e8aed24fac34b7d61d07c2419ca53d8b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#jsonStrings エスケープされた引用符 のとき、引用符を含まない本文だけを切り出す","name":"エスケープされた引用符 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"67be330f634a3632eb27d62f10adec57"}}

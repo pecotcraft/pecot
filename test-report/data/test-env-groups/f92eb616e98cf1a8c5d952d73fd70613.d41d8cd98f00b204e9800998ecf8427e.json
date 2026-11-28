@@ -1,0 +1,1 @@
+{"id":"f92eb616e98cf1a8c5d952d73fd70613.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#mergePullRequest マージ方法 undefined は merge_method=squash で PUT する","name":"マージ方法 undefined は merge_method=squash で PUT する","status":"passed","testResultsByEnv":{"default":"4b6d8e0158c0f727ae20457e2555c0af"}}

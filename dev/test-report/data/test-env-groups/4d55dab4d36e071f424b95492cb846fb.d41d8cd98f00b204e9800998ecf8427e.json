@@ -1,0 +1,1 @@
+{"id":"4d55dab4d36e071f424b95492cb846fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「git+https とタグ」の形の場合は、種類と url またはパスに分解する","name":"テーマの指定が「git+https とタグ」の形の場合は、種類と url またはパスに分解する","status":"passed","testResultsByEnv":{"default":"d57646a2b3fd9737fda60ca406bd7e2e"}}

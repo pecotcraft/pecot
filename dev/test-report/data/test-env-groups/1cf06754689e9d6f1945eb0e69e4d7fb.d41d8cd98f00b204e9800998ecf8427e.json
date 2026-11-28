@@ -1,0 +1,1 @@
+{"id":"1cf06754689e9d6f1945eb0e69e4d7fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#captureCommandOutput finish は捕捉した出力を最上位の項目へ移し、stdout と stderr を足さない","name":"finish は捕捉した出力を最上位の項目へ移し、stdout と stderr を足さない","status":"passed","testResultsByEnv":{"default":"bbe71b1bdac3ad85be7bf4fa2b586adf"}}

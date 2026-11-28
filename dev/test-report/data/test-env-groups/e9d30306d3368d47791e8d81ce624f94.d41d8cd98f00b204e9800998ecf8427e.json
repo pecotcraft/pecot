@@ -1,0 +1,1 @@
+{"id":"e9d30306d3368d47791e8d81ce624f94.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry.stopAndWait 止めたサーバのプロセスが終わるまで待ってから戻る","name":"止めたサーバのプロセスが終わるまで待ってから戻る","status":"passed","testResultsByEnv":{"default":"23b4dc160cdd4e5b7ec4588c92a651b9"}}

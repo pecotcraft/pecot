@@ -1,0 +1,1 @@
+{"id":"3e48bc5bdef77a62b67fbcf9eabfe45f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#.pecot/.gitignore の生成スクリプトの探索 bash が存在しない場合は、OsError を送出する","name":"bash が存在しない場合は、OsError を送出する","status":"passed","testResultsByEnv":{"default":"d3e18da767b544295f9f2cb77f23ae8d"}}

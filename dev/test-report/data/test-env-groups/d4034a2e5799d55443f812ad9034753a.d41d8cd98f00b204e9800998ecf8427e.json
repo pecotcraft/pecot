@@ -1,0 +1,1 @@
+{"id":"d4034a2e5799d55443f812ad9034753a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#withSpawnOutput 失敗のときは、子プロセスの出力を log に入れる","name":"失敗のときは、子プロセスの出力を log に入れる","status":"passed","testResultsByEnv":{"default":"4415a024292fdd2a43ddcf89073ac1ee"}}

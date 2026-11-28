@@ -1,0 +1,1 @@
+{"id":"d342f033780556a559b22fe8a3489ed0.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_report_cell_keeps_a_trailing_underscore_in_the_url","name":"URL が `_` で終わっていても、`report_cell` はリンクとして展開する","status":"passed","testResultsByEnv":{"default":"03210cc9b5bd6f2d0fa36ddc194a6263"}}

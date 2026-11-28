@@ -1,0 +1,1 @@
+{"id":"1db4e17b2c45c2816b70218bfcdb5bf3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_git_reader_returns_none_without_the_path","name":"git のリーダーは、指定のパスが存在しない commit に対して、None を返す","status":"passed","testResultsByEnv":{"default":"25c520fe6fa3c37bc71c29163e3a2b62"}}

@@ -1,0 +1,2 @@
+params.body: body must be the release notes of 0.2.0 (see candidates)
+params.name: the release name must be v0.2.0

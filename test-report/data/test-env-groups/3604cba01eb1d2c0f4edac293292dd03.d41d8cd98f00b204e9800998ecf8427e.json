@@ -1,0 +1,1 @@
+{"id":"3604cba01eb1d2c0f4edac293292dd03.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 打つと、Dependabot・code scanning・secret scanning の open の alert を調べる","name":"打つと、Dependabot・code scanning・secret scanning の open の alert を調べる","status":"passed","testResultsByEnv":{"default":"615445ab5f189b0ca77f0882ab198b6c"}}

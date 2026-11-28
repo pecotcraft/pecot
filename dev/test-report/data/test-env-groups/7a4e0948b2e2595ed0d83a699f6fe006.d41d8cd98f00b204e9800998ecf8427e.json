@@ -1,0 +1,1 @@
+{"id":"7a4e0948b2e2595ed0d83a699f6fe006.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_land_merges_advanced_main","name":"main が進んでいるとき、`release-land.sh` は main をマージして反映する","status":"passed","testResultsByEnv":{"default":"1d0d9eb0fd929262d56297fd9092e68f"}}

@@ -1,0 +1,1 @@
+{"id":"81b2969a6ef46661c9a1720247aeca63.71d87bddf0557f0753ff6c581ee224f5","fullName":".githooks.tests.test_pages_release#test_units_fail_for_wrong_release_group","name":"nx.json のグループが no-prefix の場合、単位の決定で理由を示す例外が発生する","status":"passed","testResultsByEnv":{"default":"b6a0bd9ec804bbd09cb47ab27739d6f4"}}

@@ -1,0 +1,1 @@
+{"id":"70000c87981087eaf6cf9b76b22dff01.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#number の lax な変換（Python の実出力どおり） number に \"1_000\" を渡した場合は、整数 1000 として読み取る","name":"number に \"1_000\" を渡した場合は、整数 1000 として読み取る","status":"passed","testResultsByEnv":{"default":"6084075a68f3a606fe76fa0373def88e"}}

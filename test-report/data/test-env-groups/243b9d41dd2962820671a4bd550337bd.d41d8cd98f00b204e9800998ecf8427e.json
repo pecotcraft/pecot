@@ -1,0 +1,1 @@
+{"id":"243b9d41dd2962820671a4bd550337bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#runMcpServe 実行中に stdin が閉じたら、待っている呼び出しはコマンドの本体を実行しない","name":"実行中に stdin が閉じたら、待っている呼び出しはコマンドの本体を実行しない","status":"passed","testResultsByEnv":{"default":"32be6b624991b66984f8fcfdd2836161"}}

@@ -1,0 +1,1 @@
+{"id":"c0dedec1d49094f3ce6225fb116111bb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#parseScenario 形式に誤りがあると、例外が発生する: id がファイル名と違う","name":"形式に誤りがあると、例外が発生する: id がファイル名と違う","status":"passed","testResultsByEnv":{"default":"a6987ec7b818f52c23e6e135fa450c3b"}}

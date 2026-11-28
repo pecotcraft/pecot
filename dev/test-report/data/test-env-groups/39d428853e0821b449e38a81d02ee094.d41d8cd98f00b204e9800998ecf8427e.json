@@ -1,0 +1,1 @@
+{"id":"39d428853e0821b449e38a81d02ee094.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/visibility-helpers.test.ts#waitForDataWaitfor 表示中のスライドの待機対象が描画済みの場合は、完了した件数をログに記録する","name":"表示中のスライドの待機対象が描画済みの場合は、完了した件数をログに記録する","status":"passed","testResultsByEnv":{"default":"d55d11bedd36575a2c937aec2ebf204e"}}

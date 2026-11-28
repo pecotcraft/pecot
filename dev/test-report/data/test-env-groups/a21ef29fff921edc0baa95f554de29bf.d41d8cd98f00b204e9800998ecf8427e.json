@@ -1,0 +1,1 @@
+{"id":"a21ef29fff921edc0baa95f554de29bf.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_read_output_rejects_missing_file","name":"read_output に読めないファイルを渡すと、その @test を失敗にする","status":"passed","testResultsByEnv":{"default":"0ced669908933d39491fb999092c877e"}}

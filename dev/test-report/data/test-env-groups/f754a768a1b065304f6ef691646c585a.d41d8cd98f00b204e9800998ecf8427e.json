@@ -1,0 +1,1 @@
+{"id":"f754a768a1b065304f6ef691646c585a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) ツール aws_ec2_describe_instances は、配列の要素のオブジェクトに宣言外のキーを許可しない","name":"ツール aws_ec2_describe_instances は、配列の要素のオブジェクトに宣言外のキーを許可しない","status":"passed","testResultsByEnv":{"default":"593ff7f5e4bcc558c056a38bf4aa9cbe"}}

@@ -1,0 +1,28 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "template: pecot-template://comment/unknown is not a bundled comment template; use one of the candidates, or the path or URL of a replaced template"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"template\",\"code\":\"unknown-template\",\"message\":\"pecot-template://comment/unknown is not a bundled comment template; use one of the candidates, or the path or URL of a replaced template\",\"candidates\":[\"pecot-template://comment/plan\",\"pecot-template://comment/merge-diff\",\"pecot-template://comment/review-findings\",\"pecot-template://comment/review-resolution\",\"pecot-template://comment/precede-notify\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "template",
+        "code": "unknown-template",
+        "message": "pecot-template://comment/unknown is not a bundled comment template; use one of the candidates, or the path or URL of a replaced template",
+        "candidates": [
+          "pecot-template://comment/plan",
+          "pecot-template://comment/merge-diff",
+          "pecot-template://comment/review-findings",
+          "pecot-template://comment/review-resolution",
+          "pecot-template://comment/precede-notify"
+        ]
+      }
+    ]
+  }
+}

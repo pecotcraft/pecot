@@ -1,0 +1,1 @@
+{"id":"3d47eb45c50093d3d5402c327bdd58c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show MCP の data 子 PR があれば、stackedAbove に PR の番号とブランチを返す","name":"子 PR があれば、stackedAbove に PR の番号とブランチを返す","status":"passed","testResultsByEnv":{"default":"a58ba16de2709a13c69e6bdafd33b0fd"}}

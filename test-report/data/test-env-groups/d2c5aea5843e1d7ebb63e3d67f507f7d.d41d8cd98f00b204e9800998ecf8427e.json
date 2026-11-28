@@ -1,0 +1,1 @@
+{"id":"d2c5aea5843e1d7ebb63e3d67f507f7d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 action に、書き込み権限の無い人を通す入力・追跡のモード・API キーを渡さない","name":"action に、書き込み権限の無い人を通す入力・追跡のモード・API キーを渡さない","status":"passed","testResultsByEnv":{"default":"fa891a3039b73ee67fed4ef185593365"}}

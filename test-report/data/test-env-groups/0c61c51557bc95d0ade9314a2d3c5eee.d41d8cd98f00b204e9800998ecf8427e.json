@@ -1,0 +1,1 @@
+{"id":"0c61c51557bc95d0ade9314a2d3c5eee.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_02_pass_feature_adds_own_plan","name":"変更した group の version plan を同梱すると、成功する","status":"passed","testResultsByEnv":{"default":"5fd94f5d42f4a3843df2a136d6640b0d"}}

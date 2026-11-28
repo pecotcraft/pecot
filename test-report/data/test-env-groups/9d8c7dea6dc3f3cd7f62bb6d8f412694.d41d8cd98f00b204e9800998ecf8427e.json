@@ -1,0 +1,1 @@
+{"id":"9d8c7dea6dc3f3cd7f62bb6d8f412694.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-extract.test.ts#extract.ts --api-version を渡すと、その版の OpenAPI を取得し、写しの版に書き込む","name":"--api-version を渡すと、その版の OpenAPI を取得し、写しの版に書き込む","status":"passed","testResultsByEnv":{"default":"17848797d3a4368f5791302965d8ebea"}}

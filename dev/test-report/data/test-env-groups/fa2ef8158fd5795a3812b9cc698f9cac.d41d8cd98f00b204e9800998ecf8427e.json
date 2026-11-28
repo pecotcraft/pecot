@@ -1,0 +1,1 @@
+{"id":"fa2ef8158fd5795a3812b9cc698f9cac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#linkNodeModules (依存ルートの項目) talkDirectory が symlink 経由のパスの場合も、物理パスを基準に相対パスを作成する","name":"talkDirectory が symlink 経由のパスの場合も、物理パスを基準に相対パスを作成する","status":"passed","testResultsByEnv":{"default":"647248b536ef78ecd19f20ed893a3c95"}}

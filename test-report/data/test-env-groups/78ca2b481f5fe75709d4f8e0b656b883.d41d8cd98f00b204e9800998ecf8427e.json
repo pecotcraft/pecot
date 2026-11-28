@@ -1,0 +1,1 @@
+{"id":"78ca2b481f5fe75709d4f8e0b656b883.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-finish.test.ts#auto finish result の無い start-outcome 無し を渡すと、何も読まずに終了コード 1 で終わる","name":"result の無い start-outcome 無し を渡すと、何も読まずに終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"1fb35523680baa711a111a0d4f2741ec"}}

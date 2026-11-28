@@ -1,0 +1,1 @@
+{"id":"4fd0d1b6a9260ed890ceeb1a12ccc4a5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page の失敗ルート 一覧にない layout ( plain ) を指定すると、ファイルを読まずに unknown-layout のエラーを返す","name":"一覧にない layout ( plain ) を指定すると、ファイルを読まずに unknown-layout のエラーを返す","status":"passed","testResultsByEnv":{"default":"5a8d3b6f03984506e6ed890bf5f4a7e9"}}

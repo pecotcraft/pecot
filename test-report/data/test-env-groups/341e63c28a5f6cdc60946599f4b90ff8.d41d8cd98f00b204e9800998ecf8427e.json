@@ -1,0 +1,1 @@
+{"id":"341e63c28a5f6cdc60946599f4b90ff8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_sync_playwright_deps#test_lock_ignores_other_playwright_packages","name":"lock に playwright-core などの行が存在しても、版として数えない","status":"passed","testResultsByEnv":{"default":"8110a84d417153442d7e131e9e244b18"}}

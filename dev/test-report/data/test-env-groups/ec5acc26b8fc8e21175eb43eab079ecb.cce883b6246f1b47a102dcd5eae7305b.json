@@ -1,0 +1,1 @@
+{"id":"ec5acc26b8fc8e21175eb43eab079ecb.cce883b6246f1b47a102dcd5eae7305b","fullName":".githooks.tests.test_pages_release#test_build_stops_on_host_or_install_or_site_failure","name":"リリース版の build は、interface-spec:docs のコマンドが失敗すると、そこで止まって終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"7271e9ff904c12fe887e83c54d7c10a5"}}

@@ -1,0 +1,25 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "type: pecot writes only blocked_by: give the waiting Issue as owner/repo/issue_number, the prerequisite as related_*, and type blocked_by"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"type\",\"code\":\"direction\",\"message\":\"pecot writes only blocked_by: give the waiting Issue as owner/repo/issue_number, the prerequisite as related_*, and type blocked_by\",\"candidates\":[\"blocked_by\"]}],\"expected_status\":\"Blocked\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "type",
+        "code": "direction",
+        "message": "pecot writes only blocked_by: give the waiting Issue as owner/repo/issue_number, the prerequisite as related_*, and type blocked_by",
+        "candidates": [
+          "blocked_by"
+        ]
+      }
+    ],
+    "expected_status": "Blocked"
+  }
+}

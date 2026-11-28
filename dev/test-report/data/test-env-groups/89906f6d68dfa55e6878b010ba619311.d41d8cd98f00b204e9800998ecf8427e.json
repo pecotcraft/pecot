@@ -1,0 +1,1 @@
+{"id":"89906f6d68dfa55e6878b010ba619311.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 前提 既存の開いた Issue を前提に持つと、Blocked に置く案を problem の無い結果で返す","name":"既存の開いた Issue を前提に持つと、Blocked に置く案を problem の無い結果で返す","status":"passed","testResultsByEnv":{"default":"b61dadabe1b50a04c61959152c525193"}}

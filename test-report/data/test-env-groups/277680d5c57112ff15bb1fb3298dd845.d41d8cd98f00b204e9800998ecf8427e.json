@@ -1,0 +1,1 @@
+{"id":"277680d5c57112ff15bb1fb3298dd845.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck リリースするコミットが無いと、error を出して失敗にする","name":"リリースするコミットが無いと、error を出して失敗にする","status":"passed","testResultsByEnv":{"default":"abfe1f6a5ac2faab689e0279f4202de7"}}

@@ -1,0 +1,1 @@
+{"id":"443fa65344574843447ab1de15903e0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#concurrently に pnpm: の指定を渡す script があると、違反として返す","name":"concurrently に pnpm: の指定を渡す script があると、違反として返す","status":"passed","testResultsByEnv":{"default":"0a269bc22f1e52b02fc3dc168a0cc826"}}

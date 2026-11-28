@@ -1,0 +1,1 @@
+{"id":"7ff7565a6e066340c06f00e6c96cf482.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#IssueReference 番号に -1 を渡すと、検証エラーの例外が発生する","name":"番号に -1 を渡すと、検証エラーの例外が発生する","status":"passed","testResultsByEnv":{"default":"1dfba3f025f1150cc243c749499fa592"}}

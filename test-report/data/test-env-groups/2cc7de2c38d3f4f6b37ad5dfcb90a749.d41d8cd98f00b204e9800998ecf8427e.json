@@ -1,0 +1,1 @@
+{"id":"2cc7de2c38d3f4f6b37ad5dfcb90a749.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/issues.test.ts#sortFindings 検証エラーを、ファイル・行・id・フィールド・理由の順に、文字列の比較で並べる","name":"検証エラーを、ファイル・行・id・フィールド・理由の順に、文字列の比較で並べる","status":"passed","testResultsByEnv":{"default":"25fc328c6bb1171775aa91273cfb7442"}}

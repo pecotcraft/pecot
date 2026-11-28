@@ -1,0 +1,1 @@
+{"id":"1961d94b68fa63bc81946678540a5579.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move Status が有効な値でないとき、有効な値を並べた error を出し、終了コード 1 で終わる","name":"Status が有効な値でないとき、有効な値を並べた error を出し、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"f55e9eeb303110d3602f63995c32c1a6"}}

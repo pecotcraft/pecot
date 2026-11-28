@@ -1,0 +1,1 @@
+{"id":"b01d7b366c7396e053c644b78ba48e3f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#requestAsyncMerge 400（閉じている PR など）が返ると、GitHub の message を rejected として返す","name":"400（閉じている PR など）が返ると、GitHub の message を rejected として返す","status":"passed","testResultsByEnv":{"default":"8470e8070b032cd0ac06766bf9660d46"}}

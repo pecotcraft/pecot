@@ -1,0 +1,1 @@
+{"id":"c97dc99651abc95d6463390f4b558396.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/errors.test.ts#PipelineRuntimeError options を省略した場合は、cause が undefined になる","name":"options を省略した場合は、cause が undefined になる","status":"passed","testResultsByEnv":{"default":"aa037b338445d00bb6dcbb9c190504b5"}}

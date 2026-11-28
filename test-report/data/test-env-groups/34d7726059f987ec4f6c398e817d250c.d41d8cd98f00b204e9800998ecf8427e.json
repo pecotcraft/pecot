@@ -1,0 +1,1 @@
+{"id":"34d7726059f987ec4f6c398e817d250c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#extractReferencesIssueNumbers Refs を複数行に並べると、すべての番号を返す","name":"Refs を複数行に並べると、すべての番号を返す","status":"passed","testResultsByEnv":{"default":"d21393cf4a24332e32890ce2cfdb1071"}}

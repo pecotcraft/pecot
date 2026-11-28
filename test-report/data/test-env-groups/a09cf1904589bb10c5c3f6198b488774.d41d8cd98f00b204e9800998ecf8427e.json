@@ -1,0 +1,1 @@
+{"id":"a09cf1904589bb10c5c3f6198b488774.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: legacy) slide_convert スキーマ違反を拒否する: transition_duration_ms が 0","name":"スキーマ違反を拒否する: transition_duration_ms が 0","status":"passed","testResultsByEnv":{"default":"a637a64f7188f1d6d45cb72a7d91d227"}}

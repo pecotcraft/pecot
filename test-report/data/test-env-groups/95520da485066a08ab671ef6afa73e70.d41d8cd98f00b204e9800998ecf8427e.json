@@ -1,0 +1,1 @@
+{"id":"95520da485066a08ab671ef6afa73e70.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/drawio.test.ts#drawio_create theme theme 無しは既定値で書体だけを確かめる（52px は警告にしない）","name":"theme 無しは既定値で書体だけを確かめる（52px は警告にしない）","status":"passed","testResultsByEnv":{"default":"c7948e2012ea30693315cb745af91610"}}

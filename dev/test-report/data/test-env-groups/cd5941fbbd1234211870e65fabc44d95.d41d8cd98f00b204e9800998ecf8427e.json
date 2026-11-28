@@ -1,0 +1,1 @@
+{"id":"cd5941fbbd1234211870e65fabc44d95.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#typescriptStrings: 取り出す区間 javascript の JSX のテキストを文字列の区間として取り出し、違反を元のファイルの行と桁で返す","name":"javascript の JSX のテキストを文字列の区間として取り出し、違反を元のファイルの行と桁で返す","status":"passed","testResultsByEnv":{"default":"ca6cd7314bd732e2be084ff6434950ae"}}

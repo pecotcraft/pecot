@@ -1,0 +1,1 @@
+{"id":"0568b5ef93dc6d2cc8cdf1be6726271f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#cardsOf content が無いか repository が読めないカードは飛ばし、欄が無くても空の欄でカードにする","name":"content が無いか repository が読めないカードは飛ばし、欄が無くても空の欄でカードにする","status":"passed","testResultsByEnv":{"default":"2c17da8ac49380dd5155ff1c03cea54a"}}

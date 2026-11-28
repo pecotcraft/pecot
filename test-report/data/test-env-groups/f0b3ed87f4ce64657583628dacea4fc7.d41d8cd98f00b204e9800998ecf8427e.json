@@ -1,0 +1,1 @@
+{"id":"f0b3ed87f4ce64657583628dacea4fc7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/sso-output.test.ts#parseSsoLoginOutput 案内の見出しの行がないときは、URL の行があっても、undefined を返す","name":"案内の見出しの行がないときは、URL の行があっても、undefined を返す","status":"passed","testResultsByEnv":{"default":"67699e38828148648e3a099984c0742d"}}

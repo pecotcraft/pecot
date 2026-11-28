@@ -1,0 +1,1 @@
+s3api get-object --bucket b --key release/history.jsonl --query ETag --output text /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_get_history_reports_the_s3/runner-temp/test-report-history/history.jsonl

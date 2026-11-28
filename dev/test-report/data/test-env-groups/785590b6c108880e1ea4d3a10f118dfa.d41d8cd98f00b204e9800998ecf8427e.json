@@ -1,0 +1,1 @@
+{"id":"785590b6c108880e1ea4d3a10f118dfa.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_summary_sha_failure_is_not_reported_as_infrastructure","name":"sha の確認が失敗したとき、サマリーは基盤の失敗として報告しない","status":"passed","testResultsByEnv":{"default":"eee946ce3e22ec6bd5edd3d7cc6913b1"}}

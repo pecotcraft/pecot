@@ -1,0 +1,1 @@
+{"id":"ff2e5d96d9fd1e81850fe8649071247b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#exportNames 読むだけの動詞（list・show・get・check・doctor）にだけ read_only を付ける","name":"読むだけの動詞（list・show・get・check・doctor）にだけ read_only を付ける","status":"passed","testResultsByEnv":{"default":"5329335fb16447a4c9940e5bbab09ffc"}}

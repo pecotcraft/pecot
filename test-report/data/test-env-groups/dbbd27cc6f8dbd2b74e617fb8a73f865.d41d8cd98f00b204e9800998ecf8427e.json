@@ -1,0 +1,1 @@
+{"id":"dbbd27cc6f8dbd2b74e617fb8a73f865.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create message で次の形だと（git remote が無く repo も無い）、終了コード 1 で終わる","name":"message で次の形だと（git remote が無く repo も無い）、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"bd5e533631041482648ea0262ca7d175"}}

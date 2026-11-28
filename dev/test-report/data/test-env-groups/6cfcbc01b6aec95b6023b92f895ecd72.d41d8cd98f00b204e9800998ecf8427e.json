@@ -1,0 +1,1 @@
+{"id":"6cfcbc01b6aec95b6023b92f895ecd72.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check merge の値 リリース PR に squash を渡す と、merge を候補に merge-method の problem を返す","name":"リリース PR に squash を渡す と、merge を候補に merge-method の problem を返す","status":"passed","testResultsByEnv":{"default":"48ef3129a408be4b58b84efbd6028cf3"}}

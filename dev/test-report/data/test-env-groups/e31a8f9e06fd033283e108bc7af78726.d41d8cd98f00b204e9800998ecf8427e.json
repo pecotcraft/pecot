@@ -1,0 +1,1 @@
+{"id":"e31a8f9e06fd033283e108bc7af78726.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#typescriptStrings: 構文の誤りを含むコード String.raw に不正な unicode のエスケープがあっても、後ろの文字列の違反を返す","name":"String.raw に不正な unicode のエスケープがあっても、後ろの文字列の違反を返す","status":"passed","testResultsByEnv":{"default":"29bcee4e92cb5215c471b9dfe4ef2464"}}

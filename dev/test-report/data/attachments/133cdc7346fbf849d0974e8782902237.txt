@@ -1,0 +1,2 @@
+To delete a merged branch on the remote, leave it to the repository setting
+"Automatically delete head branches". Delete the local branch with git branch -D.

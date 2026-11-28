@@ -1,0 +1,1 @@
+{"id":"a020ce4b92ec4c0106b101acc627a097.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueSlim blockedBy.totalCount を、前提の件数 blockedByCount として返す","name":"blockedBy.totalCount を、前提の件数 blockedByCount として返す","status":"passed","testResultsByEnv":{"default":"17110533807cf76c6754756c3620ece9"}}

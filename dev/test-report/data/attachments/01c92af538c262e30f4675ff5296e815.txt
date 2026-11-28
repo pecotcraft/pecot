@@ -1,0 +1,1 @@
+{"event":"slide.convert.error","reason":"pptx-convert-timeout","detail":"pptx convert timed out: no progress for 600000ms (elapsed 612345ms, last progress: スライド #7 変換完了)","warnings":[],"errors":[]}

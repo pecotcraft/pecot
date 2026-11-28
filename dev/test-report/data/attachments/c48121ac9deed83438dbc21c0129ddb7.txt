@@ -1,0 +1,5 @@
+count: Issues to close: 1
+closed: Issue #12
+warning: could not move #13: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}
+  hint: if the board options were recreated, call project_activate with project: "github.com_acme_board_acme" to read their IDs again
+warning: #14 is stacked on #12; call pr_restack in the working directory of feat/demo/14

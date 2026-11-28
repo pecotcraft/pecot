@@ -1,0 +1,1 @@
+{"id":"f956e2869e3f2246ff52979a56e3e7b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 判定を読めない Issue があると、warning の行を出し、その Issue を動かさない","name":"判定を読めない Issue があると、warning の行を出し、その Issue を動かさない","status":"passed","testResultsByEnv":{"default":"05cb10abd03d8093397ccb1118b99f74"}}

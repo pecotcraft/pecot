@@ -1,0 +1,1 @@
+{"id":"6a9b5d1fc0de6e6d4119643dd016601f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check タグ・本文・名前 タグと違う名前 を渡すと、release-name の項目と期待する名前を返す","name":"タグと違う名前 を渡すと、release-name の項目と期待する名前を返す","status":"passed","testResultsByEnv":{"default":"e1c177e26ed609e467eae461b89aafdc"}}

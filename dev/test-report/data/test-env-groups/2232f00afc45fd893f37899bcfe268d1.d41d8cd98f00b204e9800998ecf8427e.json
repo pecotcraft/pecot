@@ -1,0 +1,1 @@
+{"id":"2232f00afc45fd893f37899bcfe268d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/restack.test.ts#describeGone PR が存在しなければ、マージされた PR がないことをメッセージに示す","name":"PR が存在しなければ、マージされた PR がないことをメッセージに示す","status":"passed","testResultsByEnv":{"default":"1f05154e9b29064c224e5a30fcda677a"}}

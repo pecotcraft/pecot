@@ -1,0 +1,1 @@
+{"id":"e7d5be18e4531fee8a3de28475f3b93b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository mcp_output MCP の面を持たない項目に mcp_output を書くと、削除を求める検証エラーにする","name":"MCP の面を持たない項目に mcp_output を書くと、削除を求める検証エラーにする","status":"passed","testResultsByEnv":{"default":"85b41810ebf1015b67dd431dbb70a06f"}}

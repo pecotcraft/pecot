@@ -1,0 +1,1 @@
+{"id":"90ded8909e93f5681d280b4b5588ac34.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_load_failure_is_broken","name":"bats がファイルを読み込めないと、題「読み込む」の broken の結果を書く","status":"passed","testResultsByEnv":{"default":"82045ed11741772ac98960d432e898d1"}}

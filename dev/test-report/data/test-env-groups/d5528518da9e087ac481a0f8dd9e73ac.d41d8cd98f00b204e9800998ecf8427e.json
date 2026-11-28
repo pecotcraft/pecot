@@ -1,0 +1,1 @@
+{"id":"d5528518da9e087ac481a0f8dd9e73ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#judgeSnapshot PR の追加取得に失敗した場合は、読み取り結果を添えて判定不能（unreadable）にする","name":"PR の追加取得に失敗した場合は、読み取り結果を添えて判定不能（unreadable）にする","status":"passed","testResultsByEnv":{"default":"3e4f261ea2aa51d393936119a64d8b09"}}

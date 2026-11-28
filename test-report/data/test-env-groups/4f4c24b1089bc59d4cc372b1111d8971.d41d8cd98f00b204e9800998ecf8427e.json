@@ -1,0 +1,1 @@
+{"id":"4f4c24b1089bc59d4cc372b1111d8971.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add リンクのパスを git が追跡していると、そのリンクを作らず、warnings に 1 つ入れる","name":"リンクのパスを git が追跡していると、そのリンクを作らず、warnings に 1 つ入れる","status":"passed","testResultsByEnv":{"default":"60df63d29be088f1a13e88917c90f92e"}}

@@ -1,0 +1,1 @@
+{"id":"8ab0065f2da8c76f7995e1758b34497e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/_helpers/fake-github/server.test.ts#REST 応答の本文とヘッダの {{GITHUB_API}} を、サーバ自身の URL に置き換える。text は本文より優先する","name":"応答の本文とヘッダの {{GITHUB_API}} を、サーバ自身の URL に置き換える。text は本文より優先する","status":"passed","testResultsByEnv":{"default":"edb2f119a39dbc2c9adaedbf4db407ea"}}

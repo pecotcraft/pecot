@@ -1,0 +1,1 @@
+{"id":"f4f1521cd98f871f90e6112d2fc61798.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — createdDate createdDate が 2028-02-29 の場合は、受理する","name":"createdDate が 2028-02-29 の場合は、受理する","status":"passed","testResultsByEnv":{"default":"9462797d0583112624484cd510c0158a"}}

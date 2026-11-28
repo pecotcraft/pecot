@@ -1,0 +1,1 @@
+{"id":"0d4ef77e228eafed578d76bdb36ee09b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ release-check-4xx を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ release-check-4xx を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"4b70383541a044c1985805f3f5e57266"}}

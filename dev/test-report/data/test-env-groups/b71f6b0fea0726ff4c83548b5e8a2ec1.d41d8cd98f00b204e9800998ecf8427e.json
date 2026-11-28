@@ -1,0 +1,1 @@
+{"id":"b71f6b0fea0726ff4c83548b5e8a2ec1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/os-error.test.ts#toOsError システムエラーを、Python の OSError と同じ文の OsError に変換し、元の例外を cause に保持する","name":"システムエラーを、Python の OSError と同じ文の OsError に変換し、元の例外を cause に保持する","status":"passed","testResultsByEnv":{"default":"585350073118e1b869a464918e99bbfd"}}

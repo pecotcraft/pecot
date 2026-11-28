@@ -1,0 +1,1 @@
+{"id":"655252f767b5774e9c954d8488f5d595.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/generated-files.test.ts#viteConfigSource テーマ名を指定した場合は、dedupe へ読み込み時に求めた peer を渡す","name":"テーマ名を指定した場合は、dedupe へ読み込み時に求めた peer を渡す","status":"passed","testResultsByEnv":{"default":"671d7133624c089727c5fb0721d38898"}}

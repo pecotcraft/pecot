@@ -1,0 +1,1 @@
+{"id":"408c093b3ce7132177c419bd11320c0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#本体の runtime manifest との整合 manifest は、コードが追加する @slidev/parser と patch-package を宣言しない","name":"manifest は、コードが追加する @slidev/parser と patch-package を宣言しない","status":"passed","testResultsByEnv":{"default":"397fcd5d4a0b947948f18904fec87f66"}}

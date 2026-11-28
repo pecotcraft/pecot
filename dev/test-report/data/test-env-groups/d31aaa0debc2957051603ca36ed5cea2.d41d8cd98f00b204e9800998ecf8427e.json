@@ -1,0 +1,1 @@
+{"id":"d31aaa0debc2957051603ca36ed5cea2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide convert の出力同一性 (T011-a) 差分変換の出力は、同じ内容を全変換した出力と、XPath の抽出値の水準で一致する","name":"差分変換の出力は、同じ内容を全変換した出力と、XPath の抽出値の水準で一致する","status":"passed","testResultsByEnv":{"default":"72b8130809ab2b20ace90dc4461ffb9e"}}

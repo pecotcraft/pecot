@@ -1,0 +1,1 @@
+{"id":"f0e58175965f3ac6a01e7d034361f669.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#pythonStrip \"\\u001cx\\u001f\" を渡すと、Python の str.strip() と同じ結果を返す","name":"\"\\u001cx\\u001f\" を渡すと、Python の str.strip() と同じ結果を返す","status":"passed","testResultsByEnv":{"default":"9dd0cb5d35f20bb672d362ce83ecd083"}}

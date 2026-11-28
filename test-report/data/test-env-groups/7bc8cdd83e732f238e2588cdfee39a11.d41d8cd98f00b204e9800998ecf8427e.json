@@ -1,0 +1,1 @@
+{"id":"7bc8cdd83e732f238e2588cdfee39a11.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-decorative-bar-element.test.ts#no-decorative-bar-element (CSS のみ) invalid absolute で高さが 5px 以下だと、報告する","name":"absolute で高さが 5px 以下だと、報告する","status":"passed","testResultsByEnv":{"default":"a96de2d23a87ef9837a5de39aeedd693"}}

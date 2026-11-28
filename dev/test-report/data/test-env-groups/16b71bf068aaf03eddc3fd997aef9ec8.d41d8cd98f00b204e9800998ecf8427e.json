@@ -1,0 +1,1 @@
+{"id":"16b71bf068aaf03eddc3fd997aef9ec8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueKind スキーマエラーの文言が異なる場合（Unknown field issueType）も、Phase1 のクエリで読み直す","name":"スキーマエラーの文言が異なる場合（Unknown field issueType）も、Phase1 のクエリで読み直す","status":"passed","testResultsByEnv":{"default":"1bec6a01d4ddebde3ba3f376ce203b3f"}}

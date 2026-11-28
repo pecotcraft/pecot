@@ -1,0 +1,1 @@
+usage: dist-fingerprint.mjs <shrinkwrap-path>

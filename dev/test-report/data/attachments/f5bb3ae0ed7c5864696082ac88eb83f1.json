@@ -1,0 +1,30 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "params.tag: this repository is a monorepo; the tag must be <package>-v<version> with a registered package (got v0.2.0)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"params.tag\",\"code\":\"tag-name\",\"message\":\"this repository is a monorepo; the tag must be <package>-v<version> with a registered package (got v0.2.0)\",\"candidates\":[\"pkg-a-v0.2.0\"]}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"}}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "params.tag",
+        "code": "tag-name",
+        "message": "this repository is a monorepo; the tag must be <package>-v<version> with a registered package (got v0.2.0)",
+        "candidates": [
+          "pkg-a-v0.2.0"
+        ]
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  }
+}

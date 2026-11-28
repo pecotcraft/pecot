@@ -1,0 +1,1 @@
+==> スキップ: HEAD に pecot-tools-v0.0.0-test2682 が無いため pecot-tools のリリースではありません

@@ -1,0 +1,1 @@
+{"id":"44a67f60b8825c8f2b1fd9cb31aae4f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#runMcpServe 標準入力が終了した場合は、開発用サーバーを停止し、接続を閉じる","name":"標準入力が終了した場合は、開発用サーバーを停止し、接続を閉じる","status":"passed","testResultsByEnv":{"default":"9fc7611e9e5a1da609c38a24e52f1e70"}}

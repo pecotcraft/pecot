@@ -1,0 +1,1 @@
+{"id":"46193ef70f17a8227cf9b8b9f69ec671.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link all を付けてサブの worktree が無いと、sub-worktrees の count を 0 にして標準エラーに出す","name":"all を付けてサブの worktree が無いと、sub-worktrees の count を 0 にして標準エラーに出す","status":"passed","testResultsByEnv":{"default":"ff88204549553465c87b8e97ae454ffc"}}

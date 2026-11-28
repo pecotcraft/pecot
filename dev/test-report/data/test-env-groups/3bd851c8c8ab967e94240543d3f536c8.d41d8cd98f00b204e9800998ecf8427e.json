@@ -1,0 +1,1 @@
+{"id":"3bd851c8c8ab967e94240543d3f536c8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（git の例外） package.json が存在しないリポジトリを取得した場合は、install で失敗する","name":"package.json が存在しないリポジトリを取得した場合は、install で失敗する","status":"passed","testResultsByEnv":{"default":"ebc51584959e1844f05b8a01d537a523"}}

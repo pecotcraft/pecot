@@ -1,0 +1,1 @@
+ssh -i /k/id -o BatchMode=yes

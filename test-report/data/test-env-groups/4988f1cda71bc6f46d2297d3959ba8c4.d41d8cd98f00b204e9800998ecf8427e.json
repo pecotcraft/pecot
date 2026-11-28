@@ -1,0 +1,1 @@
+{"id":"4988f1cda71bc6f46d2297d3959ba8c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#対象を決めないツールで repo を省いて origin remote が無いと、最初の remote のリポジトリを対象にする","name":"対象を決めないツールで repo を省いて origin remote が無いと、最初の remote のリポジトリを対象にする","status":"passed","testResultsByEnv":{"default":"3ccbd7dc9161055e4fdb05b05e273411"}}

@@ -1,0 +1,1 @@
+{"id":"42f8c51c69c4f4e1c7e760e06302a131.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/transforms.test.ts#applyMutation remove の場合は、対象のノードを親から取り除く","name":"remove の場合は、対象のノードを親から取り除く","status":"passed","testResultsByEnv":{"default":"20ac6543c18e7e8392bc862712ec1d11"}}

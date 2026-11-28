@@ -1,0 +1,1 @@
+{"id":"9043e353bcfaa9c5bcce64c587730a3d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main 規則の読み込みに失敗すると、理由を標準エラーへ出力し、終了コード 2 を返す","name":"規則の読み込みに失敗すると、理由を標準エラーへ出力し、終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"4d32330f30485fc94d87d68fb0c8fcaf"}}

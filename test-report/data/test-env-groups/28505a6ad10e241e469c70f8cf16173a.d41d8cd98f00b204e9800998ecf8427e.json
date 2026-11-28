@@ -1,0 +1,1 @@
+{"id":"28505a6ad10e241e469c70f8cf16173a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_cloudwatch_get_metric_statistics profile の書式に合わない値を渡すと、拒否する","name":"profile の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"c3a7f773f9091c0d554a78b142f23dd2"}}

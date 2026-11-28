@@ -1,0 +1,7 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_read_output_attaches_file0/suite/sample.bats
+1..1
+# pecot-description: ファイルを読むテストです。
+# pecot-attachment: 6a134165-1009-423f-b92a-c205a3ac661a-attachment.md text/markdown a.md
+# pecot-attachment: 4725b77c-3121-4e6e-9f91-ff70f0f592a8-attachment.json application/json b.json
+# pecot-attachment: 09d4e123-c234-45b2-9004-393856af72a0-attachment.txt text/plain c.log
+ok 1 読む # in 224 ms

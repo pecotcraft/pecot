@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Session status"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"main\",\"repository\":\"acme/project-repo\",\"worktree\":{\"list\":\"/tmp/pecot-repo-P7giH7 942cc95 [main]\",\"directoryName\":\"pecot-repo-P7giH7\",\"isWorktree\":false},\"warnings\":[\"baseBranch is not decided: acme/project-repo is not in any project config\\n  available: (none)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "main",
+    "repository": "acme/project-repo",
+    "worktree": {
+      "list": "/tmp/pecot-repo-P7giH7 942cc95 [main]",
+      "directoryName": "pecot-repo-P7giH7",
+      "isWorktree": false
+    },
+    "warnings": [
+      "baseBranch is not decided: acme/project-repo is not in any project config\n  available: (none)"
+    ]
+  }
+}

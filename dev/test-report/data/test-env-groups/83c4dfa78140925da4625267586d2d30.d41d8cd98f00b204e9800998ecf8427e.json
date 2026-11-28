@@ -1,0 +1,1 @@
+{"id":"83c4dfa78140925da4625267586d2d30.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — 書式が出力まで届く drawing1.xml の cNvPr の id は一意で、注記の数だけ図形が出力される","name":"drawing1.xml の cNvPr の id は一意で、注記の数だけ図形が出力される","status":"passed","testResultsByEnv":{"default":"7413904524de19b3fddad2c5677a4f2a"}}

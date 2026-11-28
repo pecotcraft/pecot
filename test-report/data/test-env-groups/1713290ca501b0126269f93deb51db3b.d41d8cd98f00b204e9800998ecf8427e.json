@@ -1,0 +1,1 @@
+{"id":"1713290ca501b0126269f93deb51db3b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues 進行の欄が Backlog の場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","name":"進行の欄が Backlog の場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","status":"passed","testResultsByEnv":{"default":"7747d95d5748e8205fa44bdec079dea1"}}

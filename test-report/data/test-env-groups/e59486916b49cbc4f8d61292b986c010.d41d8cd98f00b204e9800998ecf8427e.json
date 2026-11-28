@@ -1,0 +1,1 @@
+{"id":"e59486916b49cbc4f8d61292b986c010.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check プロセスの cwd がリポジトリの外でも、そのリポジトリの .git/info/exclude を Git Exclude の節に出す","name":"プロセスの cwd がリポジトリの外でも、そのリポジトリの .git/info/exclude を Git Exclude の節に出す","status":"passed","testResultsByEnv":{"default":"4519a8381b5fd8db66f3eee2e50224de"}}

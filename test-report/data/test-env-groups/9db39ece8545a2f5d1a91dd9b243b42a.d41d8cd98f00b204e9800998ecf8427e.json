@@ -1,0 +1,1 @@
+{"id":"9db39ece8545a2f5d1a91dd9b243b42a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#epicTargetRepository 指定したリポジトリが aggregation_repo と異なる場合だけ、例外とする","name":"指定したリポジトリが aggregation_repo と異なる場合だけ、例外とする","status":"passed","testResultsByEnv":{"default":"96cc9c59240be9ad36e33dcd6b0b4957"}}

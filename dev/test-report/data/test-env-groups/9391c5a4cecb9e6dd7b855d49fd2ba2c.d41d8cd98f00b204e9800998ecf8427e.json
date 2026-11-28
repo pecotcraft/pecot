@@ -1,0 +1,1 @@
+{"id":"9391c5a4cecb9e6dd7b855d49fd2ba2c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_skip_push_prints_nothing_and_records_nothing","name":"ブランチ削除の push では、標準出力に何も表示せず、記録のファイルも作らない","status":"passed","testResultsByEnv":{"default":"8659a0da8bd7f13a45d1e28a50db427a"}}

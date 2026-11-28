@@ -1,0 +1,1 @@
+{"id":"eb0d9db9dcb682e932e1b94d8b804f0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#readWaitsForMerge リポ名が . の参照 がある場合は、malformed を返す","name":"リポ名が . の参照 がある場合は、malformed を返す","status":"passed","testResultsByEnv":{"default":"fc16725d937fe7ee809dadcf6daaedc3"}}

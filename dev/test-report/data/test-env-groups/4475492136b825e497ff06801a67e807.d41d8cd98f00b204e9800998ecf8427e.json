@@ -1,0 +1,1 @@
+{"id":"4475492136b825e497ff06801a67e807.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/github-ops/repository.test.ts#github ops release-create は、渡したタグ・commit・本文でリリースを作り、id とタグと URL を返す","name":"release-create は、渡したタグ・commit・本文でリリースを作り、id とタグと URL を返す","status":"passed","testResultsByEnv":{"default":"20cbeaad350072507e7a6ed080fa676c"}}

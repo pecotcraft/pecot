@@ -1,0 +1,1 @@
+{"id":"3ac4f4522033561327de6d6ed0730533.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-font-sizes.test.ts#validateSlideFontSizes value の HTML に規定外の font-size:15px があると、警告を 1 件返す","name":"value の HTML に規定外の font-size:15px があると、警告を 1 件返す","status":"passed","testResultsByEnv":{"default":"6820e96b4f4186e7ad62712f2f5040a3"}}

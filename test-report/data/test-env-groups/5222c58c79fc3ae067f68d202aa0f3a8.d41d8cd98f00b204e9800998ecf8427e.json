@@ -1,0 +1,1 @@
+{"id":"5222c58c79fc3ae067f68d202aa0f3a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#reportConfigMove 移動元が存在しない場合は何も表示せず、dry-run の場合は予定の行を表示する","name":"移動元が存在しない場合は何も表示せず、dry-run の場合は予定の行を表示する","status":"passed","testResultsByEnv":{"default":"1901f89cbe5234ddd9ea40bb2735ed0f"}}

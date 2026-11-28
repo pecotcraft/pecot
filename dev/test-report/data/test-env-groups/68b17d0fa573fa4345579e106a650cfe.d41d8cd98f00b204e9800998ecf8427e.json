@@ -1,0 +1,1 @@
+{"id":"68b17d0fa573fa4345579e106a650cfe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/result.test.ts#truncateCapturedText 上限を超えた場合は、末尾だけを残し、切り詰めたことを先頭で示す","name":"上限を超えた場合は、末尾だけを残し、切り詰めたことを先頭で示す","status":"passed","testResultsByEnv":{"default":"19f456d624cb4a28e4b48c90a1790b87"}}

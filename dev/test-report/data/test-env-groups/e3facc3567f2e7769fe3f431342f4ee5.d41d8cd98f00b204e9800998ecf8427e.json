@@ -1,0 +1,1 @@
+{"id":"e3facc3567f2e7769fe3f431342f4ee5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/evidence-create.test.ts#evidence_create — 失敗系 検証エラーは detail に全件を列挙し xlsx を作らない","name":"検証エラーは detail に全件を列挙し xlsx を作らない","status":"passed","testResultsByEnv":{"default":"0dc52c8c3b65fbbeda9b4cce38a51631"}}

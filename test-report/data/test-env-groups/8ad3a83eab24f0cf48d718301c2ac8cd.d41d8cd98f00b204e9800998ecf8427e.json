@@ -1,0 +1,1 @@
+{"id":"8ad3a83eab24f0cf48d718301c2ac8cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create ファイルで作るとき末尾の番号の Issue が Epic だと、warning の行を標準エラーに出す","name":"ファイルで作るとき末尾の番号の Issue が Epic だと、warning の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"c55289996afd8e5365b9469d79a32b67"}}

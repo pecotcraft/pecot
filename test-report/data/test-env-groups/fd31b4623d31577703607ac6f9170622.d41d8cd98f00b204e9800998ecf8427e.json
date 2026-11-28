@@ -1,0 +1,1 @@
+{"id":"fd31b4623d31577703607ac6f9170622.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-install.test.ts#workflow_install auto で check を付けて呼び、版が同梱の雛形と同じなら、upToDate を true にして成功を返す","name":"auto で check を付けて呼び、版が同梱の雛形と同じなら、upToDate を true にして成功を返す","status":"passed","testResultsByEnv":{"default":"73ce36f690026af09e939816122493e0"}}

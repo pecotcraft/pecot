@@ -1,0 +1,1 @@
+{"id":"d231a169654556a140b7463973ac9ea2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/process-run.test.ts#runProcess 取り消し済みの signal を指定すると、起動せずに CancelledError を発生させる","name":"取り消し済みの signal を指定すると、起動せずに CancelledError を発生させる","status":"passed","testResultsByEnv":{"default":"abd8230cc5f924b7b7823081f50fd539"}}

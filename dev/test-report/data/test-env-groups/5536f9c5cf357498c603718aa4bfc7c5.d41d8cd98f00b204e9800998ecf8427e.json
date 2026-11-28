@@ -1,0 +1,1 @@
+{"id":"5536f9c5cf357498c603718aa4bfc7c5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#stateFileDirectory プラグインルートの node_modules が実在すればそこを返す","name":"プラグインルートの node_modules が実在すればそこを返す","status":"passed","testResultsByEnv":{"default":"a324f9a03587e8168a87d182a246bc30"}}

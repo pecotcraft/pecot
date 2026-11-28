@@ -1,0 +1,1 @@
+{"id":"a9350efded0810e97b43cf6aac3d5aad.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_summary_production_shows_landed_line_without_git_errors","name":"本番のとき、ジョブのサマリーは landed の行を表示し、git のエラーは除外する","status":"passed","testResultsByEnv":{"default":"d2f6d95c794e77c82f117dc44dd75bc5"}}

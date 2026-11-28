@@ -1,0 +1,1 @@
+{"id":"99d9e487b1654dffc5ca8ff282566d76.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_latest_tags_take_numeric_max_without_prerelease","name":"最新のタグは、プレリリースを除き、版を数値として比べた最大のものを選ぶ","status":"passed","testResultsByEnv":{"default":"58450ae8639be6201f2c132ed8e08992"}}

@@ -1,0 +1,1 @@
+{"id":"a464738b8cf570aa30fa020b2fd219f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#markerBranch 開いた PR も末尾が Issue の番号のブランチも存在しない場合は、- を返す","name":"開いた PR も末尾が Issue の番号のブランチも存在しない場合は、- を返す","status":"passed","testResultsByEnv":{"default":"87978f3a9bdc1e2103effbafe99d5796"}}

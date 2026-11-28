@@ -1,0 +1,1 @@
+{"id":"77a5672d2cad1e08a8c4752cac7aac5a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest manifest が「envHash 型不一致」の場合は、undefined を返す","name":"manifest が「envHash 型不一致」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"e2a43900d0e975a142d3f68ba2234637"}}

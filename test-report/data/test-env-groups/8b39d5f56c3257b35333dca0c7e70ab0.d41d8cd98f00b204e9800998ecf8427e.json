@@ -1,0 +1,1 @@
+{"id":"8b39d5f56c3257b35333dca0c7e70ab0.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_resolve_fails_without_skeleton","name":"すべてのタグの commit を祖先に持つ commit が存在しないと、例外が発生する","status":"passed","testResultsByEnv":{"default":"ed48be04a7733b853267dafcb7eada3f"}}

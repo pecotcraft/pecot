@@ -1,0 +1,1 @@
+{"id":"20fcd4cce6f494a233ecfce5ffe8a9a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#stackChains スタック先が既存の Issue なら、その Issue から始まる並びを返す","name":"スタック先が既存の Issue なら、その Issue から始まる並びを返す","status":"passed","testResultsByEnv":{"default":"fba60a931a8e5865605df12c28708415"}}

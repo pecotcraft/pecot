@@ -1,0 +1,4 @@
+warning: theme /tmp/pecotv-slide-create-7RxSfm/bare-theme has no pecot-theme.json declaration; continuing with the defaults
+warning: cannot read the layout categories (/tmp/pecotv-slide-create-7RxSfm/bare-theme/references/_common.yaml: file not found); continuing without categories (fix: check layout_categories in references/_common.yaml of the theme)
+warning: the theme reference has no examples, so the initial page has only layout: one; add examples to references/ in the theme to create initial pages with a skeleton
+warning: pptx.linkColor is omitted, so links are not converted in the PPTX (no hyperlinks are added); to convert links, set pptx.linkColor in pecot-theme.json to 6 hex digits

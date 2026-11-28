@@ -1,0 +1,4 @@
+-C	/tmp/pecot-hooks-u5uZoz/proj	rev-parse	--show-toplevel	
+-C	/tmp/pecot-hooks-u5uZoz/proj	rev-parse	--is-inside-work-tree	
+-C	/tmp/pecot-hooks-u5uZoz/proj	rev-parse	--is-inside-work-tree	
+-C	/tmp/pecot-hooks-u5uZoz/proj	symbolic-ref	--short	HEAD	

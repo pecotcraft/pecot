@@ -1,0 +1,1 @@
+{"id":"ebeb08b20fba477edea11bd83b6144f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/direct-hint-lint.test.ts#案内の文字列を止める lint グループ board のコマンドの案内を書くと、lint が 1 件報告する","name":"グループ board のコマンドの案内を書くと、lint が 1 件報告する","status":"passed","testResultsByEnv":{"default":"06bc3f152b355b5cdec8d64469509c00"}}

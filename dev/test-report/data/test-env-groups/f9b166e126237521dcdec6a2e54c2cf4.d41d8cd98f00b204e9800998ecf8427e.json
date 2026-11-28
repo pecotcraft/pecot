@@ -1,0 +1,1 @@
+{"id":"f9b166e126237521dcdec6a2e54c2cf4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_history_is_passed_by_env_as_an_absolute_path","name":"`--history` で指定した履歴は、環境変数に絶対パスで渡す","status":"passed","testResultsByEnv":{"default":"7ae14c654784c24e484d9afa63558f98"}}

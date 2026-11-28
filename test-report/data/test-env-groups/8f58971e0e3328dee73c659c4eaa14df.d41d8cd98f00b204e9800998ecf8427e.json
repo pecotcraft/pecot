@@ -1,0 +1,1 @@
+{"id":"8f58971e0e3328dee73c659c4eaa14df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show Stack の節 作業中の Issue が無ければ、.pecot-base があっても Stack の節を出さない","name":"作業中の Issue が無ければ、.pecot-base があっても Stack の節を出さない","status":"passed","testResultsByEnv":{"default":"74ce49d914bb6d6f23349e4df70fe7ac"}}

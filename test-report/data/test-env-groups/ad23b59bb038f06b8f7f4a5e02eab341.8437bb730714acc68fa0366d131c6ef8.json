@@ -1,0 +1,1 @@
+{"id":"ad23b59bb038f06b8f7f4a5e02eab341.8437bb730714acc68fa0366d131c6ef8","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_skips_other_files","name":".yamllint を変更しても、check-text は起動しない","status":"passed","testResultsByEnv":{"default":"4ac8c78df40d656b343442f8938631d5"}}

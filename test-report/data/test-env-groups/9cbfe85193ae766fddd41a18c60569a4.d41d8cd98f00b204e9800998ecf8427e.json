@@ -1,0 +1,1 @@
+{"id":"9cbfe85193ae766fddd41a18c60569a4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#partitionStepsBySlide グループ数はスライド数を超えず、1 未満を指定した場合は 1 として扱う","name":"グループ数はスライド数を超えず、1 未満を指定した場合は 1 として扱う","status":"passed","testResultsByEnv":{"default":"de247be91d21b511d7a0cc7ce0846871"}}

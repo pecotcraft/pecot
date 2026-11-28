@@ -1,0 +1,1 @@
+{"id":"e60340e269ab254705428e53cb5e2094.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge PR をマージすると、merged の行を標準エラーに出す","name":"PR をマージすると、merged の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"ea2a9a8c1761b2653cb3738ac0b15ea5"}}

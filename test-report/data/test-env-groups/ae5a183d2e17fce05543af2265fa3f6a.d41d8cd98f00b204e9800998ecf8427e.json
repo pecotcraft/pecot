@@ -1,0 +1,1 @@
+{"id":"ae5a183d2e17fce05543af2265fa3f6a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: chromium exit 0 でも実体が置かれていなければ失敗として扱う","name":"exit 0 でも実体が置かれていなければ失敗として扱う","status":"passed","testResultsByEnv":{"default":"f0893c8b53c2d29e7aac7c3e75c2fecc"}}

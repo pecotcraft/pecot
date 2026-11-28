@@ -1,0 +1,1 @@
+{"id":"eb6fad5f7d5f5da6e1a1faa5262ac270.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_release_rewrite_keeps_dev_and_pr","name":"リリース版を書き換えても、開発版と PR 版は残し、古いファイルは消す","status":"passed","testResultsByEnv":{"default":"0f3f529a72c03ddf5a5cf37739fdc818"}}

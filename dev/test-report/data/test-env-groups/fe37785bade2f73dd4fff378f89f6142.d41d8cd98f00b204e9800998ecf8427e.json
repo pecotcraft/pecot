@@ -1,0 +1,1 @@
+{"id":"fe37785bade2f73dd4fff378f89f6142.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#createIssue 追加項目の一部だけを指定した場合は、指定していない項目を本文に含めない","name":"追加項目の一部だけを指定した場合は、指定していない項目を本文に含めない","status":"passed","testResultsByEnv":{"default":"5d4ddd049d9a3595d262e460b6452b06"}}

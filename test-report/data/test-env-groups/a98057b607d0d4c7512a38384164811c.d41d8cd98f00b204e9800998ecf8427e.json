@@ -1,0 +1,1 @@
+{"id":"a98057b607d0d4c7512a38384164811c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_runs_for_other_head_are_not_returned","name":"PR の head と異なる head_sha の run は、結果に含まれず、成功した run なしの理由を出力する","status":"passed","testResultsByEnv":{"default":"9d017acc866fb6a08fc8eed90423b527"}}

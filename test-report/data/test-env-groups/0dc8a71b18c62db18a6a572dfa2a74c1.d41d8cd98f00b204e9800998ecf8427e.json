@@ -1,0 +1,1 @@
+{"id":"0dc8a71b18c62db18a6a572dfa2a74c1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page のテーマの失敗 参照 yaml を持たないテーマ（layouts/*.vue だけ）は skeleton-unavailable で失敗する","name":"参照 yaml を持たないテーマ（layouts/*.vue だけ）は skeleton-unavailable で失敗する","status":"passed","testResultsByEnv":{"default":"41d47ac17cf46e2eb936207372f9e65e"}}

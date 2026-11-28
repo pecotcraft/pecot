@@ -1,0 +1,1 @@
+{"id":"e1394249352a3baa2875f1ef4d8263da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#stripFrontmatter（frontmatter 除去ヘルパ） フロントマターが存在しない場合は、元の本文を返す","name":"フロントマターが存在しない場合は、元の本文を返す","status":"passed","testResultsByEnv":{"default":"80b914ca7e41758728eebd53601aed80"}}

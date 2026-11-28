@@ -1,0 +1,1 @@
+{"id":"fa317721b73a1983cac3056ea2cb4880.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-add.test.ts#board_add status に値を渡すと、足した項目の Status をその値にする","name":"status に値を渡すと、足した項目の Status をその値にする","status":"passed","testResultsByEnv":{"default":"d1cdd9874f244d065c2795664654da93"}}

@@ -1,0 +1,1 @@
+{"id":"8b1c0893f72416a736eaf03a9f1c4b6b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slides-title.test.ts#parseSlidesTitle title のキーが存在しない場合は、undefined を返す","name":"title のキーが存在しない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"0e430b75934f40c65560fac201f450bb"}}

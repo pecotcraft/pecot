@@ -1,0 +1,1 @@
+{"id":"2e67af03639860622705a7d37993b69c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish 閉じた Issue があると、dry-run でも close の予定に入れず、unchanged の予定の行を出す","name":"閉じた Issue があると、dry-run でも close の予定に入れず、unchanged の予定の行を出す","status":"passed","testResultsByEnv":{"default":"f205405de6005137735f89b1ce6aa015"}}

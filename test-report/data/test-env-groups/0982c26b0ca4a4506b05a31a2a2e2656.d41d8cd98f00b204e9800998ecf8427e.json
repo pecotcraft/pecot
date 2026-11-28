@@ -1,0 +1,1 @@
+{"id":"0982c26b0ca4a4506b05a31a2a2e2656.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#フラグ名の文字列を止める lint src/commands-shared/board-view.ts のパス テンプレートの中の三項演算子のテンプレート にフラグ名を書くと、lint の違反になる","name":"テンプレートの中の三項演算子のテンプレート にフラグ名を書くと、lint の違反になる","status":"passed","testResultsByEnv":{"default":"b09e4d639c8b6a152e6fa7b1da97a6b0"}}

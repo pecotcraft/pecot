@@ -1,0 +1,1 @@
+{"id":"f45ffb5dad90b063fa968ad23b558909.f1a2edce78fac71b47804b32bf46e6bc","fullName":".githooks.tests.test_nx_task_cache#test_plugin_env_change_reruns_only_that_plugins_lanes","name":"プラグイン別の環境変数 PECOT_HOOKS_CONFIG_PATH を変更すると、そのプラグインのレーンだけが再実行される","status":"passed","testResultsByEnv":{"default":"57b2d7031d80cff9352ab104f05680c3"}}

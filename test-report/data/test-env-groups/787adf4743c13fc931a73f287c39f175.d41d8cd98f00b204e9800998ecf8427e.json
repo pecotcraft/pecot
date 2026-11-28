@@ -1,0 +1,1 @@
+{"id":"787adf4743c13fc931a73f287c39f175.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/patch-apply.test.ts#applyPatches root が存在しない場合も、root のパスを示して失敗する","name":"root が存在しない場合も、root のパスを示して失敗する","status":"passed","testResultsByEnv":{"default":"0f9924b9dc0383e2b3256809d9d6cbcf"}}

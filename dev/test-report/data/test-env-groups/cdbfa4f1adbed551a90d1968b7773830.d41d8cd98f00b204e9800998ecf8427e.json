@@ -1,0 +1,1 @@
+{"id":"cdbfa4f1adbed551a90d1968b7773830.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueKind issueType に対応しない GHES では、スキーマエラーの後に Phase1 のクエリで読み直す","name":"issueType に対応しない GHES では、スキーマエラーの後に Phase1 のクエリで読み直す","status":"passed","testResultsByEnv":{"default":"d0ae56cc2ad80569476840f32670346e"}}

@@ -1,0 +1,1 @@
+{"id":"c00de3f0e87beecb58583e4c144d6a27.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release .githooks/scripts/tests/attach-mcp-tgz.test.sh#origin が scp 形式（.git 無し） でも -R が owner/name になる","name":"origin が scp 形式（.git 無し） でも -R が owner/name になる","status":"passed","testResultsByEnv":{"default":"a1b50e4fe2d77da1883104915e3467dd"}}

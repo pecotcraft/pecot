@@ -1,0 +1,8 @@
+WARNING: html_static_path entry '_static' does not exist
+WARNING: html_static_path entry '../../../.github/assets' does not exist
+WARNING: favicon file '../../../.github/assets/pecot-icon-light.svg' does not exist
+/tmp/pytest-of-vscode/pytest-0/test_pr_notice_links_pr_and_re0/src/index.rst:4: WARNING: SM-BAD: authored.yaml に項目が無いため、飛ばしました
+/tmp/pytest-of-vscode/pytest-0/test_pr_notice_links_pr_and_re0/src/index.rst:4: WARNING: SM-HALF-01: 欄 'statement' が欠けているため、飛ばしました
+/workspaces/base/pecot/libs/interface-spec/<generated text>:28: WARNING: undefined label: 'iface-common-output-sample' [ref.ref]
+WARNING: Path to logo ../../../.github/assets/pecot-icon-dark.svg does not exist.
+WARNING: Path to logo ../../../.github/assets/pecot-icon-light.svg does not exist.

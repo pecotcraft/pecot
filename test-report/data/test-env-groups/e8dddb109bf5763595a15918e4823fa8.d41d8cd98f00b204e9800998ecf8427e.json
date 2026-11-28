@@ -1,0 +1,1 @@
+{"id":"e8dddb109bf5763595a15918e4823fa8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/text-violation.test.ts#SC-002 止める場所ごとの規則名の一致 pecot-text-lint（bin）の --commit-msg のとき、ほかの止める場所と同じ 3 つの規則名を返す","name":"pecot-text-lint（bin）の --commit-msg のとき、ほかの止める場所と同じ 3 つの規則名を返す","status":"passed","testResultsByEnv":{"default":"a764d097dd224f0b2ca9e0fec00b3512"}}

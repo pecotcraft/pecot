@@ -1,0 +1,1 @@
+{"id":"37a566ad8ac69fca52ee8edade3acb5d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/references.test.ts#resolveLayoutReferences 宣言が存在しないテーマでも、talk-dir の宣言で一覧の項目を上書きできる","name":"宣言が存在しないテーマでも、talk-dir の宣言で一覧の項目を上書きできる","status":"passed","testResultsByEnv":{"default":"4193f7ba161413f9ddc20df588090305"}}

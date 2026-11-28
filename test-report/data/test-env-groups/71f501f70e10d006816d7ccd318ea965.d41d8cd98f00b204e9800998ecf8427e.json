@@ -1,0 +1,1 @@
+{"id":"71f501f70e10d006816d7ccd318ea965.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateSections（必須セクション検証: 見出しレベル・em-dash サマリ） テンプレートが em-dash の要約を宣言していれば、半角のハイフンは不足として扱う","name":"テンプレートが em-dash の要約を宣言していれば、半角のハイフンは不足として扱う","status":"passed","testResultsByEnv":{"default":"ce31634a4161b0b7b30ed074dd40cc43"}}

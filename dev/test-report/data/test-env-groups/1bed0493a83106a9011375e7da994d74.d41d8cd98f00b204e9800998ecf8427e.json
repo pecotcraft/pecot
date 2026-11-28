@@ -1,0 +1,1 @@
+{"id":"1bed0493a83106a9011375e7da994d74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack abort を付けると、スタックし直す前の位置に戻し、途中の記録を消す","name":"abort を付けると、スタックし直す前の位置に戻し、途中の記録を消す","status":"passed","testResultsByEnv":{"default":"91085092bc19b300dbef50eed7486d09"}}

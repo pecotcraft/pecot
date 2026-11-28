@@ -1,0 +1,1 @@
+{"id":"cc29de2ff20e67bfe784ee4089fb3468.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/process-run.test.ts#runProcess SIGTERM を受けて後始末をする子プロセスは、後始末を終えてから停止する","name":"SIGTERM を受けて後始末をする子プロセスは、後始末を終えてから停止する","status":"passed","testResultsByEnv":{"default":"88e24fa5f3f2e44a9527d2667a3e20e0"}}

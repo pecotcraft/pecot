@@ -1,0 +1,1 @@
+{"id":"e6e96b54870c1c3c9cb0f3991053a45f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#runSlideLint 集計 eslint の結果に件数の項目がなければ、0 件で違反なしとして扱う","name":"eslint の結果に件数の項目がなければ、0 件で違反なしとして扱う","status":"passed","testResultsByEnv":{"default":"82c7f4d8444601cc31afc5dc5abeaec9"}}

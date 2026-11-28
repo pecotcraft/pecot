@@ -1,0 +1,14 @@
+
+ NX   Running target lint-src for project lane-lint:
+
+- lane-lint
+
+
+
+> nx run lane-lint:lint-src
+
+
+
+  Run duration:      62ms
+  Critical path:     21ms (1 task)
+  Recoverable time:  <1ms

@@ -1,0 +1,1 @@
+{"id":"471523402124a69c233f52410e5a76a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の style とその他 ブロックの外にあるタグではない < と終了タグを読み飛ばし、後ろの script を読む","name":"ブロックの外にあるタグではない < と終了タグを読み飛ばし、後ろの script を読む","status":"passed","testResultsByEnv":{"default":"66a5ce191ebfc174fd820e60f786cc66"}}

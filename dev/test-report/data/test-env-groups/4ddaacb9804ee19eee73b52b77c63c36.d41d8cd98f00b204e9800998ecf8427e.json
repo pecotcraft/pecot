@@ -1,0 +1,1 @@
+{"id":"4ddaacb9804ee19eee73b52b77c63c36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#addIssueToBoard ボードへの追加に失敗した場合は、GitHubAPIError が発生する","name":"ボードへの追加に失敗した場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"2c90c722dd8d974f46ac8d6ffa384bae"}}

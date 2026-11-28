@@ -1,0 +1,1 @@
+{"id":"1348b1ebf422c1b6ddce063b1d5f87a1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish 実行すると、close する Issue の件数を count の行で出す","name":"実行すると、close する Issue の件数を count の行で出す","status":"passed","testResultsByEnv":{"default":"4049c0e2bac89f65c5b66fb13180f113"}}

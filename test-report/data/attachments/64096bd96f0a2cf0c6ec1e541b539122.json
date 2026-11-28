@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid input: unknown key 'allow_cross_repo'"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid input: unknown key 'allow_cross_repo'\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: unknown key 'allow_cross_repo'"
+  },
+  "isError": true
+}

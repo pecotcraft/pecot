@@ -1,0 +1,1 @@
+{"id":"0bd262d7ae1c7f173e568d2f8ee146c3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_real_09_block_scripts_outside_ci","name":"実際の nx で、scripts/ci の glob が及ばないスクリプトの変更は、失敗する","status":"passed","testResultsByEnv":{"default":"8dacc9fee35324e7315015485070ba0c"}}

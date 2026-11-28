@@ -1,0 +1,1 @@
+{"id":"ea726592d71b06f3fcbedc4a20640778.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#serializeProjectConfig キーの順序はモデルの定義順にし、入力の順序には依存しない","name":"キーの順序はモデルの定義順にし、入力の順序には依存しない","status":"passed","testResultsByEnv":{"default":"c53bc0ad1995537bc84850447ec8714b"}}

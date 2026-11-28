@@ -1,0 +1,5 @@
+deleted: 1 archived items
+warning: failed to delete 1 archived items
+count: GraphQL points used: 30
+count: GraphQL points remaining: 4870
+error: could not delete 1 archived item from the board

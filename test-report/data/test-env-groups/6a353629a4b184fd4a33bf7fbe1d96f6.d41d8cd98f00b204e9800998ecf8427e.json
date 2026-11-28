@@ -1,0 +1,1 @@
+{"id":"6a353629a4b184fd4a33bf7fbe1d96f6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#3 番目は gh workflow run（tag・--ref・-R 付き）","name":"3 番目は gh workflow run（tag・--ref・-R 付き）","status":"passed","testResultsByEnv":{"default":"be506b5882303dbf33de279617bd9ddd"}}

@@ -1,0 +1,1 @@
+{"id":"816348faed9d949b488aa14ce0a2cb47.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#transformItems リポジトリの owner か名前が欠けている場合は、repository を空文字にする","name":"リポジトリの owner か名前が欠けている場合は、repository を空文字にする","status":"passed","testResultsByEnv":{"default":"b0c9d822f17f3c29b3564fc930a8c62a"}}

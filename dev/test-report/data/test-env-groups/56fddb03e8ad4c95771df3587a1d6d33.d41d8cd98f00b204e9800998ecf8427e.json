@@ -1,0 +1,1 @@
+{"id":"56fddb03e8ad4c95771df3587a1d6d33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_remove 空のセットのディレクトリを削除できないと、warnings に 1 つ入れる","name":"空のセットのディレクトリを削除できないと、warnings に 1 つ入れる","status":"passed","testResultsByEnv":{"default":"97e2a1e7e14fa6f896a77fbd66e43089"}}

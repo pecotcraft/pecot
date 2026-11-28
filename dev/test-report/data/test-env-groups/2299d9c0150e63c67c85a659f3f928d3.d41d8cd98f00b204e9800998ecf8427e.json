@@ -1,0 +1,1 @@
+{"id":"2299d9c0150e63c67c85a659f3f928d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#prerender replace (CUJ 1-5) prerender のファイルが存在しない場合は、何も差し替えず、画像の大きさが変わらない（CUJ 2）","name":"prerender のファイルが存在しない場合は、何も差し替えず、画像の大きさが変わらない（CUJ 2）","status":"passed","testResultsByEnv":{"default":"bd5125f35ac12546782e52562662c6c6"}}

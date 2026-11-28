@@ -1,0 +1,1 @@
+{"id":"baf382c9025db4a9cf008a98e3bf42a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add MCP の data setup のコマンドが失敗すると、setupFailed を true にして、warning を返す","name":"setup のコマンドが失敗すると、setupFailed を true にして、warning を返す","status":"passed","testResultsByEnv":{"default":"ad1b26475c6d8dfec2271ba9daeab817"}}

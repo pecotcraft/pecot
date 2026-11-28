@@ -1,0 +1,1 @@
+{"id":"3febc4a265910db79bd84f477091487f.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#中核パッケージは runtime manifest の @slidev/cli の版で固定する","name":"中核パッケージは runtime manifest の @slidev/cli の版で固定する","status":"passed","testResultsByEnv":{"default":"5ba560a1da45dcdf8797310d69ccdb3b"}}

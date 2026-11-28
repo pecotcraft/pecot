@@ -1,0 +1,1 @@
+{"id":"db0df77bf365ff92c8d02db6503f6c74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/eslint-runner.test.ts#resolveEslintBin assets の package.json が不正な JSON でも、SlideLintRuntimeError が発生する","name":"assets の package.json が不正な JSON でも、SlideLintRuntimeError が発生する","status":"passed","testResultsByEnv":{"default":"af1e177c43cf7013949c8f96dd2d5b1b"}}

@@ -1,0 +1,4 @@
+ずれは 1 件
+ruleset main / merge_queue
+  このリポ: {"merge_method":"SQUASH","max_entries_to_build":1,"grouping_strategy":"ALLGREEN"}
+  検証用: なし

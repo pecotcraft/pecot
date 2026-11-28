@@ -1,0 +1,1 @@
+{"id":"14788d55d49821bfb3d3caf89ca08f1d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_remove force を付けて呼ぶと、変更のある worktree も削除する","name":"force を付けて呼ぶと、変更のある worktree も削除する","status":"passed","testResultsByEnv":{"default":"132b036af9565a393bb1d7b232ce52e0"}}

@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.project_items: read the cards with projects_list (method list_project_items) to judge the column"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.project_items\",\"code\":\"read-required\",\"message\":\"read the cards with projects_list (method list_project_items) to judge the column\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.project_items",
+        "code": "read-required",
+        "message": "read the cards with projects_list (method list_project_items) to judge the column"
+      }
+    ]
+  }
+}

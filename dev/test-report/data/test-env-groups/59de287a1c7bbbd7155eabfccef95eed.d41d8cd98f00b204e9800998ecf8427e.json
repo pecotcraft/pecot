@@ -1,0 +1,1 @@
+{"id":"59de287a1c7bbbd7155eabfccef95eed.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_push_skips_textlintignore","name":".textlintignore で除外したファイルの違反は通し、除外していないファイルの違反は止める","status":"passed","testResultsByEnv":{"default":"ce8b29a9eacff725399a53a54e43ded8"}}

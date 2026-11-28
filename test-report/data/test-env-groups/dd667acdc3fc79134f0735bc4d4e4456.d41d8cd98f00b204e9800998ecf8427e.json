@@ -1,0 +1,1 @@
+{"id":"dd667acdc3fc79134f0735bc4d4e4456.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_passes_origin_base_to_plans","name":"dependabot-commit.yml は、origin の base ブランチを plan の作成に渡す","status":"passed","testResultsByEnv":{"default":"0963ff6447b4669c89efb38c2bf9f412"}}

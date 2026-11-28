@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="0;url=https://app.diagrams.net/#RRY5RDoMgEERPM59NyG7CAcByhv7SiJZklVSw1dsbxKZfm52dtzNgu6RUwHewnTYbREAq9uAORBuIQCqXXUJThjQX56coO7jLfs63HJY4gE2zfryslxWkpYBNRUDqG+L4KudJv9caaZ5J+v8G0mOdjx8Ico1t+vnStaYgd9U+AA==">
+<title>draw.io diagram</title>
+</head>
+<body>
+<p>Opening the diagram in draw.io. If it does not open automatically, click the link below.</p>
+<p><a id="target" href="https://app.diagrams.net/#RRY5RDoMgEERPM59NyG7CAcByhv7SiJZklVSw1dsbxKZfm52dtzNgu6RUwHewnTYbREAq9uAORBuIQCqXXUJThjQX56coO7jLfs63HJY4gE2zfryslxWkpYBNRUDqG+L4KudJv9caaZ5J+v8G0mOdjx8Ico1t+vnStaYgd9U+AA==">Open the diagram in draw.io</a></p>
+<script>location.replace(document.getElementById('target').href)</script>
+</body>
+</html>

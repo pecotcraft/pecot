@@ -1,0 +1,1 @@
+{"id":"917cc5bbd836041cc4c2fcfe52e70150.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_direct_commit#test_wtn_normal_commit_blocked","name":"wtN ブランチ（wt1 など）への通常のコミットは拒否する","status":"passed","testResultsByEnv":{"default":"2804827cb246ae05f680bca070f7dd24"}}

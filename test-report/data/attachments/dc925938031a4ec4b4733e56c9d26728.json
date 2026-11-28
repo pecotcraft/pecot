@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"content-invalid\",\"detail\":\"PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "content-invalid",
+    "detail": "PR title scope must be p-w (given: pecot; computed from the tags of the changed nx projects)"
+  },
+  "isError": true
+}

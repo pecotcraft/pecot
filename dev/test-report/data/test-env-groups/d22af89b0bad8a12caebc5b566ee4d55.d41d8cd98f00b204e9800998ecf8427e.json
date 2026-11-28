@@ -1,0 +1,1 @@
+{"id":"d22af89b0bad8a12caebc5b566ee4d55.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/tests/version.test.ts#pluginRoot CLAUDE_PLUGIN_ROOT が別のディレクトリでも、ソースからの相対位置のプラグインのルートを返す","name":"CLAUDE_PLUGIN_ROOT が別のディレクトリでも、ソースからの相対位置のプラグインのルートを返す","status":"passed","testResultsByEnv":{"default":"af650734957fa69b14547bf902eb839f"}}

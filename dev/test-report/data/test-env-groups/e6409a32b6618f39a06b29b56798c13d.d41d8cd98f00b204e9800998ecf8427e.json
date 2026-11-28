@@ -1,0 +1,1 @@
+{"id":"e6409a32b6618f39a06b29b56798c13d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の blocked_by 次の blocked_by を渡すと、検証の誤りにする: issue が文字列でない","name":"次の blocked_by を渡すと、検証の誤りにする: issue が文字列でない","status":"passed","testResultsByEnv":{"default":"6dd9a8757fdc102e4257a5a3b44b8c60"}}

@@ -1,0 +1,1 @@
+{"id":"f910e90510fd4fc2eda2c45f249682f3.ecb39254707a98524c61e2dd9b2842ec","fullName":".githooks.tests.test_pages_release#test_cli_report_rejects_wrong_arguments","name":"CLI は、引数が ['--report', 'dev'] だと、終了コード 2 で終わり、invalid choice: 'dev' を出力する","status":"passed","testResultsByEnv":{"default":"4314fdd450d3dd4335554ed3292f5e06"}}

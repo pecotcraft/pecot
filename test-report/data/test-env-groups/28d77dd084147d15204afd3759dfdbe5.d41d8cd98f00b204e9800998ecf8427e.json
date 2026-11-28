@@ -1,0 +1,1 @@
+{"id":"28d77dd084147d15204afd3759dfdbe5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#例外クラス ChangelogFileNotFoundError は PecotError を継承せず、標準の Error を継承している","name":"ChangelogFileNotFoundError は PecotError を継承せず、標準の Error を継承している","status":"passed","testResultsByEnv":{"default":"e7f505e9d88823dd68cee9d55a345898"}}

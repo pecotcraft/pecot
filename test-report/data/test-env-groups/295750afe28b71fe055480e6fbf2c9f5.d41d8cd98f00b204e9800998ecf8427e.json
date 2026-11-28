@@ -1,0 +1,1 @@
+{"id":"295750afe28b71fe055480e6fbf2c9f5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#convertStepsSinglePass 準備の時点で対象を検出できなくても、コンテナに対象があれば、高解像度ページを後から開いて撮影する","name":"準備の時点で対象を検出できなくても、コンテナに対象があれば、高解像度ページを後から開いて撮影する","status":"passed","testResultsByEnv":{"default":"f2cd3cc8e1fb8a09a575432cd9178433"}}

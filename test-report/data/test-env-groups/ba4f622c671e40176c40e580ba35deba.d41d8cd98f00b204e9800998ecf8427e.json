@@ -1,0 +1,1 @@
+{"id":"ba4f622c671e40176c40e580ba35deba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildSheetXml extraHeaders は、宣言した順に、3 行目と 4 行目の B 列にラベル、C 列に値として配置する","name":"extraHeaders は、宣言した順に、3 行目と 4 行目の B 列にラベル、C 列に値として配置する","status":"passed","testResultsByEnv":{"default":"d1ab68f4f649c982506581192f4dc586"}}

@@ -1,0 +1,1 @@
+/tmp/pecot-hooks-OVyUR5/entry/entry.sh: line 2: /tmp/pecot-hooks-OVyUR5/scripts/nonexistent.sh: No such file or directory

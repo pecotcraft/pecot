@@ -1,0 +1,1 @@
+{"id":"a94123f81d0a94ce6a86e96f7d28a100.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_affected_mapping#test_workspace_overrides_commit_affects_every_project_via_base_head","name":"pnpm-workspace.yaml の overrides を変えた commit は、base と head の指定で、すべての project を affected にする","status":"passed","testResultsByEnv":{"default":"ffb1056d6ab3687b699a14bbf4e4eae0"}}

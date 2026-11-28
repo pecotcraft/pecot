@@ -1,0 +1,1 @@
+{"id":"3588039ce0b8b9f5d0d0a6a3de37beb8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#nxProjects scope の tag が使えない場合（値が空の scope: だけ）は、プロジェクト名を scope にする","name":"scope の tag が使えない場合（値が空の scope: だけ）は、プロジェクト名を scope にする","status":"passed","testResultsByEnv":{"default":"a4648138668d32c4e61a5005c1a00f5d"}}

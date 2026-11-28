@@ -1,0 +1,1 @@
+{"id":"471f7b935306de9004cbabfc76cd323a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_summary_goes_to_stdout_when_unset","name":"`PECOT_CI_SUMMARY` を指定しない場合は、Summary を標準出力に表示する","status":"passed","testResultsByEnv":{"default":"5005f93d73d3e1698688e3578366c507"}}

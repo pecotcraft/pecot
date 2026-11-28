@@ -1,0 +1,1 @@
+{"id":"f2f7d738b494b1be635de4e2758e81d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/pr-waiting.test.ts#moveWaitingIssues 作った PR の番号が無ければ、判定を読み直さずに動かす","name":"作った PR の番号が無ければ、判定を読み直さずに動かす","status":"passed","testResultsByEnv":{"default":"4d7c54e13cad25196e2b30f4d71aebfb"}}

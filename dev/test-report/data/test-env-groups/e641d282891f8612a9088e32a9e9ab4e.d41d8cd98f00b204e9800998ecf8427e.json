@@ -1,0 +1,1 @@
+{"id":"e641d282891f8612a9088e32a9e9ab4e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#成功して結果の行を出すと、片付けの行を除いた最初の行を content の最初の text にする","name":"成功して結果の行を出すと、片付けの行を除いた最初の行を content の最初の text にする","status":"passed","testResultsByEnv":{"default":"cdc2246e2e242ec2e600af3d0c3401a1"}}

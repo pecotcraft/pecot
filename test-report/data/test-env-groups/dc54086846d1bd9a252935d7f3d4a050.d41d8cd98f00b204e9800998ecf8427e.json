@@ -1,0 +1,1 @@
+{"id":"dc54086846d1bd9a252935d7f3d4a050.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/errors.test.ts#独自例外は PecotError を継承する 値の不正を表す InvalidValueError は、PecotError を継承しない","name":"値の不正を表す InvalidValueError は、PecotError を継承しない","status":"passed","testResultsByEnv":{"default":"b966c96cec4c0aea7a8dc88e4d6a6251"}}

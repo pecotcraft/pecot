@@ -1,0 +1,1 @@
+{"id":"d14fd2ac602589b3a12e838527121c9f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185） 閉じ括弧の前の文末は、末尾の括弧を除いて判定する: （全件通過した。）","name":"閉じ括弧の前の文末は、末尾の括弧を除いて判定する: （全件通過した。）","status":"passed","testResultsByEnv":{"default":"4ea9e612693dab74376122a481fa0336"}}

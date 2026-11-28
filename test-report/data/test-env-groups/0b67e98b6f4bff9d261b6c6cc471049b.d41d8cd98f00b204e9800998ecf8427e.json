@@ -1,0 +1,1 @@
+{"id":"0b67e98b6f4bff9d261b6c6cc471049b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（git） patch を適用したテーマの置き場は、元のディレクトリや pnpm の store と hard link を共有しない","name":"patch を適用したテーマの置き場は、元のディレクトリや pnpm の store と hard link を共有しない","status":"passed","testResultsByEnv":{"default":"4c0abac4596326647074c217bc0cbc44"}}

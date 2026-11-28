@@ -1,0 +1,1 @@
+{"id":"cc35b1cb33dcfb6d20ee1cd27e27c35d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#exportEntries mcp.annotations の readOnlyHint は、動詞が読むだけの印を持つときだけ true になる","name":"mcp.annotations の readOnlyHint は、動詞が読むだけの印を持つときだけ true になる","status":"passed","testResultsByEnv":{"default":"cdf83b5839cfc8f4c7cb33e2d60381dc"}}

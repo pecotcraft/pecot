@@ -1,0 +1,1 @@
+{"id":"2c031ae1f18e00b53c763517f2df78b6.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_publish_base_without_value_exits_2","name":"publish --base に値を渡さないと、終了コード 2 で終わり、build しない","status":"passed","testResultsByEnv":{"default":"21c5db1d2fe0322dc840c8ee1e972fd3"}}

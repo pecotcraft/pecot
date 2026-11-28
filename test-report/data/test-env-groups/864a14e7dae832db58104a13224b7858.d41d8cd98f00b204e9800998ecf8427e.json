@@ -1,0 +1,1 @@
+{"id":"864a14e7dae832db58104a13224b7858.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Markdown のブロックの規則 共通の字下げを除いて読み、字下げが 4 以上の行はコードブロックとして外す","name":"共通の字下げを除いて読み、字下げが 4 以上の行はコードブロックとして外す","status":"passed","testResultsByEnv":{"default":"5d73272075b6cba2210616ceda62c524"}}

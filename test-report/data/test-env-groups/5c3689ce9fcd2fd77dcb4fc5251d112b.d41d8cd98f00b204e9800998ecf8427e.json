@@ -1,0 +1,1 @@
+{"id":"5c3689ce9fcd2fd77dcb4fc5251d112b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide letter-spacing を持つテキストと http のリンクを収集し、PPTX ファイルを書き出す","name":"letter-spacing を持つテキストと http のリンクを収集し、PPTX ファイルを書き出す","status":"passed","testResultsByEnv":{"default":"b47f5d5419b9d0839ec2f764d09e7d87"}}

@@ -1,0 +1,5 @@
+
+ NX   JSON output created in /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_lint_gate_selects_only_th2
+
+/tmp/pytest-of-vscode/pytest-0/popen-gw1/test_lint_gate_selects_only_th2/affected-tasks.json
+

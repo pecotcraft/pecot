@@ -1,0 +1,1 @@
+{"id":"c5ab4b0adb68da69257ef8610c73d36c.4ea4dc76d9539d00e7a484ab62db9559","fullName":".githooks.tests.test_nx_affected_mapping#test_release_lane_is_cached_and_not_run_by_unrelated_changes","name":"plugins/pecot-tools/cli/src/main.ts を変更しても、pecot-tools:test-release はキャッシュを再利用する","status":"passed","testResultsByEnv":{"default":"956ffb5b9926ba2acd6f59bdde6e65ab"}}

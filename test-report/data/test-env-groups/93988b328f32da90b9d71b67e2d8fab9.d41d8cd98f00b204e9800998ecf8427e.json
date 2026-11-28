@@ -1,0 +1,1 @@
+{"id":"93988b328f32da90b9d71b67e2d8fab9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 記録が無い作業ディレクトリ スタックし直しが衝突すると、途中の記録にスタックし直す前の記録の位置を書き、continue で終える","name":"スタックし直しが衝突すると、途中の記録にスタックし直す前の記録の位置を書き、continue で終える","status":"passed","testResultsByEnv":{"default":"2311d81d0c8ed0941aa5a0bb664e6939"}}

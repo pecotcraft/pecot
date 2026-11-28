@@ -1,0 +1,1 @@
+{"id":"a933ab785221c19035d5ead3fca83dab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-check.test.ts#branch_check スタックできる前提の Issue を前提のブランチから作ると、stacked_on に前提を入れる","name":"スタックできる前提の Issue を前提のブランチから作ると、stacked_on に前提を入れる","status":"passed","testResultsByEnv":{"default":"8352460161a5d517773b4b0dd37fa54c"}}

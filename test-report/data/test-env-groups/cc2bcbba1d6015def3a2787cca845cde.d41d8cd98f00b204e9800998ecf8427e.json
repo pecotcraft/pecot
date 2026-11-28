@@ -1,0 +1,1 @@
+{"id":"cc2bcbba1d6015def3a2787cca845cde.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest manifest が「entries 型不一致」の場合は、undefined を返す","name":"manifest が「entries 型不一致」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"f54471bc58d6120c81f358857c5f34eb"}}

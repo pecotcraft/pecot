@@ -1,0 +1,1 @@
+{"id":"8fd491280de4351c262ff3fce60b32df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getStackOfPullRequest その PR を含むスタックが存在しない場合は、undefined を返す","name":"その PR を含むスタックが存在しない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"9702e001dd3de82028e6aeac288fdd52"}}

@@ -1,0 +1,1 @@
+{"id":"d10fe7d6f1d87473d3d32b2d8ff40ff9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_land_retries_when_main_advances_just_before_push","name":"push の直前に main が進んでも、`release-land.sh` は再試行して反映する","status":"passed","testResultsByEnv":{"default":"e29095fd4a8bc001734dad0eed30bfcc"}}

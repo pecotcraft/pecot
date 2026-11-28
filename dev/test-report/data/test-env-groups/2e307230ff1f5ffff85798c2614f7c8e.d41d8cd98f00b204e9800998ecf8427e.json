@@ -1,0 +1,1 @@
+{"id":"2e307230ff1f5ffff85798c2614f7c8e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/failure.test.ts#classifyFailure 認証の期限切れと権限の不足が同時にあるときは、auth-expired を優先して判定する","name":"認証の期限切れと権限の不足が同時にあるときは、auth-expired を優先して判定する","status":"passed","testResultsByEnv":{"default":"dc5a66e133142dcbe2e7ec1caca71588"}}

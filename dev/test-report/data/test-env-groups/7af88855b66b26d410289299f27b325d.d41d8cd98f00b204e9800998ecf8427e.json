@@ -1,0 +1,1 @@
+{"id":"7af88855b66b26d410289299f27b325d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/bash-guard-responses.test.ts#pre-tool-use-bash.sh の応答形式 Copilot CLI の入力でコマンドが pecot issue show 1 のとき、何も返さない","name":"Copilot CLI の入力でコマンドが pecot issue show 1 のとき、何も返さない","status":"passed","testResultsByEnv":{"default":"2180118ed17c70b99e3da41db189dc29"}}

@@ -1,0 +1,1 @@
+{"id":"38679325bd157b1e3cff9671ae009061.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/pecotv-run-output.test.ts#stdoutTail 最後の 1 行だけで上限を超える場合は、行の先頭を残して切り詰め、次の行に省略した文字数を表示する","name":"最後の 1 行だけで上限を超える場合は、行の先頭を残して切り詰め、次の行に省略した文字数を表示する","status":"passed","testResultsByEnv":{"default":"4c9c36644d6d7802020fec4519082b0c"}}

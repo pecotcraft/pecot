@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-ATHENA-GET-QUERY-EXECUTION
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+Get Athena query status
+==============================================
+
+.. iface-defs:: pecot-tools PT-AWS-ATHENA-GET-QUERY-EXECUTION

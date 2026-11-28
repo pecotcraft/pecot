@@ -1,0 +1,2 @@
+note: /tmp/pecotv-drawio-theme-pkF7v5/talk-legacy does not reference a theme; checking with the plugin default fonts. to migrate to a theme reference, call slide_sync with theme: <theme-spec>
+note: /tmp/pecotv-drawio-theme-pkF7v5/talk-legacy does not reference a theme; checking with the plugin default fonts. to migrate to a theme reference, call slide_sync with theme: <theme-spec>

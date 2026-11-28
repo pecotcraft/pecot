@@ -1,0 +1,1 @@
+{"id":"fd576c40d3997b79e655870b95a0d0a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/bash-guard-responses.test.ts#pre-tool-use-bash.sh の応答形式 Copilot CLI の入力でコマンドが gh pr merge 999999 のとき、何も返さない","name":"Copilot CLI の入力でコマンドが gh pr merge 999999 のとき、何も返さない","status":"passed","testResultsByEnv":{"default":"e57e70188c134402e43077b62695fe33"}}

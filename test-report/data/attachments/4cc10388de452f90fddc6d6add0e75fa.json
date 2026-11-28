@@ -1,0 +1,13 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "hello"
+    },
+    {
+      "type": "text",
+      "text": "{}"
+    }
+  ],
+  "structuredContent": {}
+}

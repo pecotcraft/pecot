@@ -1,0 +1,1 @@
+{"id":"632993360db7d2b7a4111faebfebc344.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh 保護ブランチで git commit するとき、止める","name":"保護ブランチで git commit するとき、止める","status":"passed","testResultsByEnv":{"default":"a0ee8ba032bb80a7492c93c4ac5ebe66"}}

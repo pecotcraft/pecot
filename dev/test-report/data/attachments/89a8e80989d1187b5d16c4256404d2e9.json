@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "cannot determine the target repository: test"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"session-directory-unresolved\",\"detail\":\"cannot determine the target repository: test\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "session-directory-unresolved",
+    "detail": "cannot determine the target repository: test"
+  },
+  "isError": true
+}

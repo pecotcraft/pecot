@@ -1,0 +1,1 @@
+{"id":"8cd872453bee98ab932bcd7029e59241.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#countCommitsAhead 存在しないブランチで 404 が返ると、GitHubNotFoundError を発生させる","name":"存在しないブランチで 404 が返ると、GitHubNotFoundError を発生させる","status":"passed","testResultsByEnv":{"default":"bb1bb2b6d19ea231faf94c6555434e3d"}}

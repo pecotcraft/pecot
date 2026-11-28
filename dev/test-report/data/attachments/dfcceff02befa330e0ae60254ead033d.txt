@@ -1,0 +1,11 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_attach_file_uses_content_0/suite/sample.bats
+1..2
+# pecot-description: 型のあるファイルのテストです。
+# pecot-attachment: c8bad255-7432-4c62-880c-6a1e914926ac-attachment.png image/png x.png
+ok 1 型がある # in 166 ms
+# pecot-description: 型の無いファイルのテストです。
+not ok 2 型が無い # in 128 ms
+# (from function `attach_file' in file .githooks/scripts/test_report/bats/pecot-bats/load.bash, line 81,
+#  in test file suite/sample.bats, line 14)
+#   `attach_file "$BATS_TEST_TMPDIR/x.log"' failed
+# attach_file: 添付の型が決まっていない拡張子: .log

@@ -1,0 +1,1 @@
+{"id":"7db90c3b4f3f48443a3f01460acb7646.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_summary_without_lane_sections_for_non_test_part","name":"lint の Summary は、見出しに part を書き、レーン・失敗・skip の欄を表示しない","status":"passed","testResultsByEnv":{"default":"70447a5a0744370cdf650c82687c167a"}}

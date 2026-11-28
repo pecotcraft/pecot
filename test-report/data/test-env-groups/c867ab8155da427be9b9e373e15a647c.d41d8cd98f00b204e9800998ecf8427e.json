@@ -1,0 +1,1 @@
+{"id":"c867ab8155da427be9b9e373e15a647c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 引数なしで打つと、概要・登録リポジトリ・ボードの状態を Markdown で出す","name":"引数なしで打つと、概要・登録リポジトリ・ボードの状態を Markdown で出す","status":"passed","testResultsByEnv":{"default":"6df1e22720dd5c891533ac5a7e258fdf"}}

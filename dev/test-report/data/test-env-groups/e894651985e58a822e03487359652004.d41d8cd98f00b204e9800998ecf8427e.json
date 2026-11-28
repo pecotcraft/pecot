@@ -1,0 +1,1 @@
+{"id":"e894651985e58a822e03487359652004.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#allowlistedTool JSON を出力するツールに responseShape がないときは、定義を作らず例外を発生させる","name":"JSON を出力するツールに responseShape がないときは、定義を作らず例外を発生させる","status":"passed","testResultsByEnv":{"default":"9340957aeeb83a08c032a52072016531"}}

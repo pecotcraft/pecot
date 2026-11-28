@@ -1,0 +1,1 @@
+{"id":"2c56a120a27dd0e905fd4ecc2c2022c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#--repo は未対応の引数として exit 1 になる","name":"--repo は未対応の引数として exit 1 になる","status":"passed","testResultsByEnv":{"default":"2210ab7ad891f5c1afc582583c864025"}}

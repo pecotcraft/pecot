@@ -1,0 +1,424 @@
+{
+  "name": "board_show",
+  "title": "Show board dashboard",
+  "description": "Show the dashboard of the project board",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "json": {
+        "default": false,
+        "description": "Output as JSON",
+        "type": "boolean"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "project": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the project config"
+          },
+          "host": {
+            "type": "string",
+            "description": "GitHub host"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owner of the project"
+          },
+          "number": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Project number"
+          },
+          "aggregation_repo": {
+            "description": "Roadmap (aggregation) repository (null when not set)",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "host",
+          "owner",
+          "number",
+          "aggregation_repo"
+        ],
+        "additionalProperties": false,
+        "description": "Overview of the project"
+      },
+      "repositories": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "full_name": {
+              "type": "string",
+              "description": "Repository (owner/repo)"
+            },
+            "owner": {
+              "type": "string",
+              "description": "Owner of the repository"
+            },
+            "name": {
+              "type": "string",
+              "description": "Name of the repository"
+            },
+            "develop_branch": {
+              "description": "Develop branch (null when not set)",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "release_branch": {
+              "description": "Release branch (null when not set)",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "dependabot_alerts": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Reason the Dependabot alerts could not be fetched"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean",
+                      "description": "Whether Dependabot alerts are enabled"
+                    },
+                    "open_count": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Number of open alerts (0 when disabled)"
+                    },
+                    "max_severity": {
+                      "description": "Highest severity of the open alerts (null when there is none)",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "alerts_url": {
+                      "type": "string",
+                      "description": "URL of the alert list"
+                    }
+                  },
+                  "required": [
+                    "enabled",
+                    "open_count",
+                    "max_severity",
+                    "alerts_url"
+                  ],
+                  "additionalProperties": false
+                }
+              ],
+              "description": "Dependabot alert status, or the reason it could not be fetched"
+            },
+            "release_type": {
+              "type": "string",
+              "enum": [
+                "single",
+                "multi",
+                "nx"
+              ],
+              "description": "Release type in effect"
+            },
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Package name"
+                  },
+                  "changelog": {
+                    "type": "string",
+                    "description": "Path of the CHANGELOG of the package"
+                  }
+                },
+                "required": [
+                  "name",
+                  "changelog"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Packages of a monorepo (data only; empty when none)"
+            },
+            "changelog_file": {
+              "description": "CHANGELOG path set for a repository without packages (data only; omitted when not set)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "full_name",
+            "owner",
+            "name",
+            "develop_branch",
+            "release_branch",
+            "dependabot_alerts",
+            "release_type",
+            "packages"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Registered repositories, in registration order"
+      },
+      "board": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "description": "Project item ID"
+                },
+                "workflow": {
+                  "description": "Column (workflow field value) of the item",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "lane": {
+                  "description": "Value of the pecot-lane field (null when the item has none or the board has no pecot-lane field)",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "title": {
+                  "description": "Title of the Issue or PR"
+                },
+                "updatedAt": {
+                  "description": "Last update time of the item"
+                },
+                "content": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "description": "Issue or PR number"
+                    },
+                    "state": {
+                      "description": "State of the Issue or PR (OPEN etc.)"
+                    },
+                    "url": {
+                      "description": "URL of the Issue or PR"
+                    },
+                    "labels": {
+                      "description": "Label names",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "repository": {
+                      "description": "Repository (owner/repo)",
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "description": "Issue or PR on the card"
+                },
+                "readiness": {
+                  "description": "Readiness of a Ready or Blocked Issue (null for other items; omitted when the server does not support issue dependencies)",
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "startable",
+                            "stackable",
+                            "blocked",
+                            "unknown"
+                          ],
+                          "description": "Readiness judgment (unknown when the prerequisites could not be read)"
+                        },
+                        "stackOn": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "number": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991,
+                                  "description": "Issue number to stack on"
+                                },
+                                "repository": {
+                                  "type": "string",
+                                  "description": "Repository of that Issue (owner/repo)"
+                                },
+                                "branch": {
+                                  "type": "string",
+                                  "description": "Branch to stack on"
+                                }
+                              },
+                              "required": [
+                                "number",
+                                "repository",
+                                "branch"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Prerequisite to stack on (null unless stackable)"
+                        },
+                        "reason": {
+                          "description": "Code of the reason for blocked (null unless blocked)",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "text": {
+                          "type": "string",
+                          "description": "Readiness as shown in the Readiness column"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "stackOn",
+                        "reason",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "content"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Open items in Backlog, Pending, Blocked, Ready, Active and In Review"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false,
+        "description": "Board status"
+      },
+      "lanes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "Value of the pecot-lane field (null for the Issues without a value)",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "count": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Number of open Issues with this value"
+            },
+            "startable": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Number of those Issues in Ready whose readiness is startable"
+            }
+          },
+          "required": [
+            "name",
+            "count",
+            "startable"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Open Issues of the board items counted per pecot-lane value, in the order of the field options (values without Issues count 0; Issues without a value come last). Empty when the board has no pecot-lane field"
+      },
+      "mismatches": {
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991,
+        "description": "Number of Ready or Blocked Issues whose column or Status may not match the judgment (data only)"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "project",
+          "repositories",
+          "board",
+          "lanes",
+          "mismatches"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

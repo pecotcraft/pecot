@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "closed: Issue #12"
+    },
+    {
+      "type": "text",
+      "text": "{\"closedIssues\":[12],\"skippedIssues\":[],\"deletedBranches\":[{\"branch\":\"feat/demo/12\",\"location\":\"remote\"},{\"branch\":\"feat/demo/12\",\"location\":\"local\"}],\"readinessChanges\":[],\"restack\":[],\"currentBranch\":\"main\"}"
+    }
+  ],
+  "structuredContent": {
+    "closedIssues": [
+      12
+    ],
+    "skippedIssues": [],
+    "deletedBranches": [
+      {
+        "branch": "feat/demo/12",
+        "location": "remote"
+      },
+      {
+        "branch": "feat/demo/12",
+        "location": "local"
+      }
+    ],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "main"
+  }
+}

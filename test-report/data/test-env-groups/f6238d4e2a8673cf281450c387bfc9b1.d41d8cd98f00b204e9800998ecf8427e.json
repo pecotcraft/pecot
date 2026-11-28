@@ -1,0 +1,1 @@
+{"id":"f6238d4e2a8673cf281450c387bfc9b1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「プレリリース」の形の場合は、種類と url またはパスに分解する","name":"テーマの指定が「プレリリース」の形の場合は、種類と url またはパスに分解する","status":"passed","testResultsByEnv":{"default":"23509174083e3993c0dbc30ee56116fd"}}

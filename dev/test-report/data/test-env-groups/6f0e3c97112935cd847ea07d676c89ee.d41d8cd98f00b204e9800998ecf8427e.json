@@ -1,0 +1,1 @@
+{"id":"6f0e3c97112935cd847ea07d676c89ee.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_commits_are_joined_across_pages","name":"PR のコミットが複数のページに分かれていても、すべてを対象にして artifact を選ぶ","status":"passed","testResultsByEnv":{"default":"81fd778a3275ae259a560af1c7a96b88"}}

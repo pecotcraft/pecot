@@ -1,0 +1,1 @@
+{"id":"d0d8513f7854222a8947c60288bfec30.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#--dev を付けても、カナリアを検出できないと監査未実施として中止する","name":"--dev を付けても、カナリアを検出できないと監査未実施として中止する","status":"passed","testResultsByEnv":{"default":"3049886ba5560dec3b8819c32c72e817"}}

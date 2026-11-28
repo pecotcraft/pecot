@@ -1,0 +1,1 @@
+{"id":"3d0230764fc8ff4e17a77cc71c6f34b2.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_side_check_passes_sphinx_like_tree","name":"Sphinx が出力する形の側は、`./` 始まりのリンクや外部 URL を含んでいても、問題なしと判定する","status":"passed","testResultsByEnv":{"default":"9953aa31047eaedb60a2d93b85ecbc2f"}}

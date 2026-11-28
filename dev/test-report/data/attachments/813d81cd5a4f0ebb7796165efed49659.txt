@@ -1,0 +1,14 @@
+file:///workspaces/base/pecot/plugins/pecot-visual/scripts/release/catalog.mjs:42
+      throw new Error(`${name} の catalog: に対応する版が pnpm-workspace.yaml の catalog にありません`)
+            ^
+
+Error: vite の catalog: に対応する版が pnpm-workspace.yaml の catalog にありません
+    at resolveCatalog (file:///workspaces/base/pecot/plugins/pecot-visual/scripts/release/catalog.mjs:42:13)
+    at resolveManifest (file:///workspaces/base/pecot/plugins/pecot-visual/scripts/release/catalog.mjs:54:23)
+    at buildRuntimeManifest (file:///workspaces/base/pecot/plugins/pecot-visual/scripts/release/runtime-manifest.mjs:40:27)
+    at file:///workspaces/base/pecot/plugins/pecot-visual/scripts/release/runtime-manifest.mjs:82:42
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.1

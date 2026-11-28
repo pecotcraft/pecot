@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "release_branch is not set for acme/demo\n  set it with: project_link with repo: \"acme/demo\", release_branch: <branch>"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-setting-missing\",\"detail\":\"release_branch is not set for acme/demo\\n  set it with: project_link with repo: \\\"acme/demo\\\", release_branch: <branch>\",\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"}}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-setting-missing",
+    "detail": "release_branch is not set for acme/demo\n  set it with: project_link with repo: \"acme/demo\", release_branch: <branch>",
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"48f525fd8a1f4a0ec7bd23a51d8ff4c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec git でも file でもない指定は、ThemeSpecError で拒否する","name":"git でも file でもない指定は、ThemeSpecError で拒否する","status":"passed","testResultsByEnv":{"default":"dd43e2185c3e2355452c55302c044c5b"}}

@@ -1,0 +1,1 @@
+{"id":"5be6967f77e949ba3ca6bd1c2eeef55d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/state.test.ts#workDirectoryName 参照の末尾にスラッシュが続く場合は、無視して番号を返す","name":"参照の末尾にスラッシュが続く場合は、無視して番号を返す","status":"passed","testResultsByEnv":{"default":"967afdb9f932b1c37f2f09c0460dbfa4"}}

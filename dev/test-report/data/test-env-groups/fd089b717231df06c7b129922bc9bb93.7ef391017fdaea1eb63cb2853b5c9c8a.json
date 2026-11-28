@@ -1,0 +1,1 @@
+{"id":"fd089b717231df06c7b129922bc9bb93.7ef391017fdaea1eb63cb2853b5c9c8a","fullName":".githooks.tests.test_report_lanes#test_broken_lanes_stop_with_one_line","name":"both-kinds の形式の report-lanes.json を渡すと、1 行のエラーで止まる","status":"passed","testResultsByEnv":{"default":"27573bfe0cbba98ff7bde8d14008268b"}}

@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "parent_issue_number: the parent is not changed with update; link it with sub_issue_write"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"parent_issue_number\",\"code\":\"unexpected\",\"message\":\"the parent is not changed with update; link it with sub_issue_write\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "parent_issue_number",
+        "code": "unexpected",
+        "message": "the parent is not changed with update; link it with sub_issue_write"
+      }
+    ]
+  }
+}

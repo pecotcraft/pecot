@@ -1,0 +1,1 @@
+{"id":"e624d1ee022b785fae716c355efaa03c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main --commit-msg 改行が CRLF のメッセージでも、違反の行番号が、元のファイルの行番号と一致する","name":"改行が CRLF のメッセージでも、違反の行番号が、元のファイルの行番号と一致する","status":"passed","testResultsByEnv":{"default":"3ce20c7cfe13021b3b5141b39aa255b2"}}

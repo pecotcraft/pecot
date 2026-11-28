@@ -1,0 +1,1 @@
+{"id":"4a4de675f1cf22c0880f0e04f7fdd3b0.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pnpm#test_npx_branch_passes_pinned_version_dir_and_args","name":"pnpm が PATH に存在しないと、npx に固定した版・作業ディレクトリ・引数を渡す","status":"passed","testResultsByEnv":{"default":"8a5c020413e85834e4ce328a694d98d3"}}

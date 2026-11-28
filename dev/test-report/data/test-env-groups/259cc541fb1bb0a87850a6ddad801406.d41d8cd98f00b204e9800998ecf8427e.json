@@ -1,0 +1,1 @@
+{"id":"259cc541fb1bb0a87850a6ddad801406.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#updateIssueBody 本文を渡した場合は、body だけを PATCH する","name":"本文を渡した場合は、body だけを PATCH する","status":"passed","testResultsByEnv":{"default":"feef20bc7b2835e2825de6c000491262"}}

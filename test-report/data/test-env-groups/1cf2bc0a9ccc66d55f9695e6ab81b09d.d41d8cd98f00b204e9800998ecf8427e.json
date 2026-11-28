@@ -1,0 +1,1 @@
+{"id":"1cf2bc0a9ccc66d55f9695e6ab81b09d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_link 未登録のリポジトリに不正な package の名前を渡すと、リンクせず終了コード 1 で終わる","name":"未登録のリポジトリに不正な package の名前を渡すと、リンクせず終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"9efe6517142357038ecc5a27642d6168"}}

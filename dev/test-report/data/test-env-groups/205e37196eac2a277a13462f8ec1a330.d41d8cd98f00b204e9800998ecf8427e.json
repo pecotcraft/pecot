@@ -1,0 +1,1 @@
+{"id":"205e37196eac2a277a13462f8ec1a330.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_s3_ls すべてのパラメータを指定した入力を受け付け、そのまま handler へ渡す","name":"すべてのパラメータを指定した入力を受け付け、そのまま handler へ渡す","status":"passed","testResultsByEnv":{"default":"c1be7e30db1d7cf6d81c51277fd5ee63"}}

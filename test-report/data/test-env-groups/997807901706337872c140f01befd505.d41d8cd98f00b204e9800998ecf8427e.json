@@ -1,0 +1,1 @@
+{"id":"997807901706337872c140f01befd505.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-font-sizes.test.ts#validateSlideFontSizes 宣言ごとの 5 段 (T051) テーマの宣言にある 5 段のサイズ（18px）を指定したときは、警告を返さない","name":"テーマの宣言にある 5 段のサイズ（18px）を指定したときは、警告を返さない","status":"passed","testResultsByEnv":{"default":"6309446b95beba696b2f0f1c13c566c4"}}

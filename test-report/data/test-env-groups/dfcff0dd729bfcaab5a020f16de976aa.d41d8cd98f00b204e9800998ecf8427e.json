@@ -1,0 +1,1 @@
+{"id":"dfcff0dd729bfcaab5a020f16de976aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-gitignore-ensure.test.ts#pecot-gitignore-ensure.sh 許可の一覧は、生成物を除外し、config の一部を除外しない","name":"許可の一覧は、生成物を除外し、config の一部を除外しない","status":"passed","testResultsByEnv":{"default":"d46aa1f966277cf5ab11e1bed70a0247"}}

@@ -1,0 +1,1 @@
+{"id":"12c6559b2c3f4609d8442ebb56eb7f3e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show スタックしていて 親ブランチが remote にある と、baseBranch を origin/feat/3 にする","name":"スタックしていて 親ブランチが remote にある と、baseBranch を origin/feat/3 にする","status":"passed","testResultsByEnv":{"default":"8229618e00ea2750d3479acc74929346"}}

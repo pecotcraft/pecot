@@ -1,0 +1,1 @@
+{"id":"78ae359e2d79620d41b5d1c58dc26b86.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/process.test.ts#spawnPromise タイムアウトを過ぎると、SIGTERM で終了させ、timedOut を true にする","name":"タイムアウトを過ぎると、SIGTERM で終了させ、timedOut を true にする","status":"passed","testResultsByEnv":{"default":"ca226a1029dd57629d2656dab44cee9d"}}

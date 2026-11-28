@@ -1,0 +1,1 @@
+{"id":"99b18ba73aa3fb7f8ec561ddf6a11d38.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#getItemIdByIssue Issue が存在しない場合は、アイテム ID として undefined を返す","name":"Issue が存在しない場合は、アイテム ID として undefined を返す","status":"passed","testResultsByEnv":{"default":"27968a2474b4ef733b08e7a2a02df21b"}}

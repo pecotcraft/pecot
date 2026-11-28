@@ -1,0 +1,1 @@
+{"id":"ed471452089702c36bf77b42ee3d52d9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/load.test.ts#loadSources glob が指定されていないと、ソースを 1 件も読み込まない","name":"glob が指定されていないと、ソースを 1 件も読み込まない","status":"passed","testResultsByEnv":{"default":"d2e41696b2ff8cac64b43763482bc3ff"}}

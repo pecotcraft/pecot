@@ -1,0 +1,1 @@
+{"id":"5c925738ffa5024944e8c0bade46ce94.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/patch-apply.test.ts#scanPatchDigests サブディレクトリの中のパッチも、相対パスの順に集める","name":"サブディレクトリの中のパッチも、相対パスの順に集める","status":"passed","testResultsByEnv":{"default":"1820244cf2c44bc3c68f9a465c511d35"}}

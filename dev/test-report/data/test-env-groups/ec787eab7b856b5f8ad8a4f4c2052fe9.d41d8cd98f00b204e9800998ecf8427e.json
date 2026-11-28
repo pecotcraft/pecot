@@ -1,0 +1,1 @@
+{"id":"ec787eab7b856b5f8ad8a4f4c2052fe9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#isRuntimeLayerInstalled: 永続層の版判定 印を指定しない場合は、依存を解決できるかだけで判定する","name":"印を指定しない場合は、依存を解決できるかだけで判定する","status":"passed","testResultsByEnv":{"default":"d4553a4ae79346cdd1f37ccdb938857e"}}

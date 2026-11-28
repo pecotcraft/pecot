@@ -1,0 +1,4 @@
+ずれは 1 件
+config-file
+  このリポ: <host>_<owner>_<number>.json
+  検証用: renamed.json

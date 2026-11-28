@@ -1,0 +1,1 @@
+{"id":"47a15db6df3eb598c0a915cc8bcb2a0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine 先頭に BOM（U+FEFF）がある入力も parse できる","name":"先頭に BOM（U+FEFF）がある入力も parse できる","status":"passed","testResultsByEnv":{"default":"e712d799fd58aa02864b93f821522de3"}}

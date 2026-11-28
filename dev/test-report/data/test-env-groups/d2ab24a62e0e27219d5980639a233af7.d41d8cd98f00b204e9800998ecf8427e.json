@@ -1,0 +1,1 @@
+{"id":"d2ab24a62e0e27219d5980639a233af7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/mcp-cancel.test.ts#pr_restack が fetch を待つ間、ping に答え、取り消すとリモートの接続を止める","name":"pr_restack が fetch を待つ間、ping に答え、取り消すとリモートの接続を止める","status":"passed","testResultsByEnv":{"default":"4c4fdf6ac95bdcc2e7a432d6f57aaf21"}}

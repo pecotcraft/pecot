@@ -1,0 +1,1 @@
+{"id":"5c4d28e63e27507ac18551eb4bd1b4ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check タグとリリースの重なり reads.release が無い と、reads.release に read-required の項目を返す","name":"reads.release が無い と、reads.release に read-required の項目を返す","status":"passed","testResultsByEnv":{"default":"df57dc7dfa2fff35c794a0d47823ea45"}}

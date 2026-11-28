@@ -1,0 +1,1 @@
+{"id":"078cb4d1b588c1eba5190fa35aa0d5e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 作業の跡が存在しない Issue で、列 Ready と判定 blocked の組み合わせは、Blocked に動かす","name":"作業の跡が存在しない Issue で、列 Ready と判定 blocked の組み合わせは、Blocked に動かす","status":"passed","testResultsByEnv":{"default":"369bebf95874037be71514dd5b2453ed"}}

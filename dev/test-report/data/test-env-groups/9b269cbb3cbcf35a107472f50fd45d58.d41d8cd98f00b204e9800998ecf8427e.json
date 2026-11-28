@@ -1,0 +1,1 @@
+{"id":"9b269cbb3cbcf35a107472f50fd45d58.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_dev_sources#test_fetch_copies_results_and_writes_source","name":"fetch は、取り出し元ごとに 1 回ずつ artifact を取り、レーンの結果と source.json をルートに置く","status":"passed","testResultsByEnv":{"default":"9b10e12efcb67625ca68abed1b359a2f"}}

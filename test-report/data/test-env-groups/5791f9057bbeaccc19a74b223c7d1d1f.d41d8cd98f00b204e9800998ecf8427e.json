@@ -1,0 +1,1 @@
+{"id":"5791f9057bbeaccc19a74b223c7d1d1f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-delete.test.ts#branch_delete MCP の data 対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す","name":"対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す","status":"passed","testResultsByEnv":{"default":"44a47b08c4a43476b2d74f872373fa8f"}}

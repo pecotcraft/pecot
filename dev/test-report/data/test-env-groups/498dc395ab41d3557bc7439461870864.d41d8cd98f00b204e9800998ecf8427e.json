@@ -1,0 +1,1 @@
+{"id":"498dc395ab41d3557bc7439461870864.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_affected_mapping#test_lint_defs_inputs_cover_the_sources_and_tests_of_every_plugin","name":"lint-defs の inputs は、各プラグインの sources と tests の glob をすべて含む","status":"passed","testResultsByEnv":{"default":"db1216af98cd02e166377c9c3f3c0960"}}

@@ -1,0 +1,1 @@
+{"id":"db79e9ef4eb88fb0a1619197a98a7f8f.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#release group が空要素を含む出力 で exit 0 にならない","name":"release group が空要素を含む出力 で exit 0 にならない","status":"passed","testResultsByEnv":{"default":"46754567176dec6a660d55b670a35142"}}

@@ -1,0 +1,1 @@
+{"id":"f1882b6cc352c27d2ce9d7ab5957135a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/stack-registration.test.ts#planStackRegistration 子が親と同じスタックで、親の直後にある 場合は、already を返す","name":"子が親と同じスタックで、親の直後にある 場合は、already を返す","status":"passed","testResultsByEnv":{"default":"c2a95d5c351e826fd4798a13125478df"}}

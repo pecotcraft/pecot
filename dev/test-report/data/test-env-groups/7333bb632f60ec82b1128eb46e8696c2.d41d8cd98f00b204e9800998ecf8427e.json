@@ -1,0 +1,1 @@
+{"id":"7333bb632f60ec82b1128eb46e8696c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot:.nx/nx-release/tests/dependabot-plans.test.mjs#dist が変わり actions に届く依存が無いときは、範囲の更新をすべて pecot-actions の plan に載せる","name":"dist が変わり actions に届く依存が無いときは、範囲の更新をすべて pecot-actions の plan に載せる","status":"passed","testResultsByEnv":{"default":"68ec8b471ba943a908ffde1dde439f03"}}

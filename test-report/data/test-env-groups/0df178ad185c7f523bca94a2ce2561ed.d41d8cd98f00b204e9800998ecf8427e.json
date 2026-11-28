@@ -1,0 +1,1 @@
+{"id":"0df178ad185c7f523bca94a2ce2561ed.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_served#test_fetch_returns_body_and_headers","name":"fetch は、200 の応答の中身と、x-cache・x-github-request-id を返す","status":"passed","testResultsByEnv":{"default":"bc025fc8e0985a1f6d532d4ad0bdaadc"}}

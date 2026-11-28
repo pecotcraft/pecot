@@ -1,0 +1,1 @@
+{"id":"c5556cfe74741435a96b66e2e9397854.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/server.test.ts#createMcpServer の progress ハートビート progressToken を付けた呼び出しには、待機中と実行中の通知を送る","name":"progressToken を付けた呼び出しには、待機中と実行中の通知を送る","status":"passed","testResultsByEnv":{"default":"aff428df450ce480a6aaf88fa439100e"}}

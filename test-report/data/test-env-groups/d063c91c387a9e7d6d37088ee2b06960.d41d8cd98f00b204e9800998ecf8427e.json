@@ -1,0 +1,1 @@
+{"id":"d063c91c387a9e7d6d37088ee2b06960.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-finish.test.ts#auto finish 結果が out-of-scope なら、Status を書かない","name":"結果が out-of-scope なら、Status を書かない","status":"passed","testResultsByEnv":{"default":"01c3f31a0b1d7bc35359f64373f9b890"}}

@@ -1,0 +1,1 @@
+{"id":"3977d9e543d1dd4a6b18c0b4671513ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#listPullRequestsByBase 先頭の 20 件に収まらない場合は、hasNextPage を true にする","name":"先頭の 20 件に収まらない場合は、hasNextPage を true にする","status":"passed","testResultsByEnv":{"default":"65bae5030c50089339568be76e1896e3"}}

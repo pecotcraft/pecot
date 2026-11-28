@@ -1,0 +1,1 @@
+{"id":"7510488c58bcdf399148aaa0930ff546.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#createSymlinks リンク先が存在しない場合は、skipped とし、理由を診断メッセージにも出力する","name":"リンク先が存在しない場合は、skipped とし、理由を診断メッセージにも出力する","status":"passed","testResultsByEnv":{"default":"ebe5ddcbdf095765dccb9f52f66acd22"}}

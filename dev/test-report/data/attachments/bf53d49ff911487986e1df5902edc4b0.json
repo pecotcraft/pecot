@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "owner: the board of acme/demo is owned by acme"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"owner\",\"code\":\"value\",\"message\":\"the board of acme/demo is owned by acme\",\"candidates\":[\"acme\"]},{\"field\":\"project_number\",\"code\":\"value\",\"message\":\"the board of acme/demo is project 1\",\"candidates\":[\"1\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "owner",
+        "code": "value",
+        "message": "the board of acme/demo is owned by acme",
+        "candidates": [
+          "acme"
+        ]
+      },
+      {
+        "field": "project_number",
+        "code": "value",
+        "message": "the board of acme/demo is project 1",
+        "candidates": [
+          "1"
+        ]
+      }
+    ]
+  }
+}

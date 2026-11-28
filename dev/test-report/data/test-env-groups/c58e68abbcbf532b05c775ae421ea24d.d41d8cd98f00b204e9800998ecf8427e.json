@@ -1,0 +1,1 @@
+{"id":"c58e68abbcbf532b05c775ae421ea24d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#runSlideLint の eslint 実行失敗の分岐 eslint を起動できなかった場合は、理由が eslint-not-launched の例外を発生させる","name":"eslint を起動できなかった場合は、理由が eslint-not-launched の例外を発生させる","status":"passed","testResultsByEnv":{"default":"fec954d90be13981ccc88d052b24c1d1"}}

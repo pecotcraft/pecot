@@ -1,0 +1,1 @@
+{"id":"9e929acc78621752be29c2932e482e13.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql 時間切れは、signal を渡していても取り消しでなく timed out の失敗にする","name":"時間切れは、signal を渡していても取り消しでなく timed out の失敗にする","status":"passed","testResultsByEnv":{"default":"9418b98f8a22a2f15b67317928b1521f"}}

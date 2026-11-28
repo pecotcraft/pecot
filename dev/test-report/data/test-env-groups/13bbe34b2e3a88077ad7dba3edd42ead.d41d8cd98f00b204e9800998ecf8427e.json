@@ -1,0 +1,1 @@
+{"id":"13bbe34b2e3a88077ad7dba3edd42ead.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: 文字列の本文のエスケープ エスケープしたタブも字下げの幅 4 として数え、字下げが 4 以上のコードを取り除く","name":"エスケープしたタブも字下げの幅 4 として数え、字下げが 4 以上のコードを取り除く","status":"passed","testResultsByEnv":{"default":"2ba3511baf17d81e59c6ff7f5297a602"}}

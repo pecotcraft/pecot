@@ -1,0 +1,1 @@
+{"id":"83f4c6cf22f43cd598116c9796560325.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#全 24 ツールの正常系 aws_s3_ls が既定 fixture で成功し、引数と structuredContent が契約どおりになる","name":"aws_s3_ls が既定 fixture で成功し、引数と structuredContent が契約どおりになる","status":"passed","testResultsByEnv":{"default":"c46652d51dec0d800b19e02bd19ebb2a"}}

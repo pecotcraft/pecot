@@ -1,0 +1,1 @@
+{"id":"0d80ae772192b0bb8e520795729a2fbc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/setup.test.ts#createSandbox files はコミットせず作業ツリーに配置し、symlink も配置できる。data はデータ用のディレクトリに配置する","name":"files はコミットせず作業ツリーに配置し、symlink も配置できる。data はデータ用のディレクトリに配置する","status":"passed","testResultsByEnv":{"default":"53a666d151c67dcb439e11e070f8f33d"}}

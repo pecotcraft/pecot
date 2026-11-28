@@ -1,0 +1,1 @@
+{"id":"18c5f6735f4ba388a08707187299a1b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender-capture-flow.test.ts#captureAndReplaceElements clipPadding を指定した場合は、余白を含めた範囲を指定して撮影する","name":"clipPadding を指定した場合は、余白を含めた範囲を指定して撮影する","status":"passed","testResultsByEnv":{"default":"7db30804b72a65be40f836455b9ec905"}}

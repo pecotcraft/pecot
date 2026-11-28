@@ -1,0 +1,8 @@
+created: project #1 https://ghes.example.com/users/acme/projects/1
+created: field pecot-status (ID: PVTSSF_w)
+skipped: field pecot-lane (no lanes given)
+warning: field pecot-lane was not created because no lanes were given
+  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes
+added: option Needs Attention to field Status
+created: config file /tmp/pecot-repo-MsL127/.pecot/config/projects/ghes.example.com_acme_1.json
+set: active project to ghes.example.com_acme_1

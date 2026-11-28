@@ -1,0 +1,1 @@
+{"id":"2c5521be4eef573ac654abc8a726ebdd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 空白だけの欄は、空の欄として検証エラーにする","name":"空白だけの欄は、空の欄として検証エラーにする","status":"passed","testResultsByEnv":{"default":"ae228f231382f507cf958a76e78d8391"}}

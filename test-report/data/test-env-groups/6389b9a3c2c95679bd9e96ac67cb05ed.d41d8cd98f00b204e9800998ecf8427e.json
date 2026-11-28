@@ -1,0 +1,1 @@
+{"id":"6389b9a3c2c95679bd9e96ac67cb05ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start ブランチを作ると、created の行を標準エラーに出す","name":"ブランチを作ると、created の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"cdf52f95c1a29daa316a1a357c2d32bc"}}

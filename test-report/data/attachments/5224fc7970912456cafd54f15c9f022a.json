@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "version: 0.2.0"
+    },
+    {
+      "type": "text",
+      "text": "{\"version\":\"0.2.0\",\"tag\":\"v0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\",\"commitCount\":1,\"skipped\":[],\"warnings\":[\"could not check Dependabot alerts. The release is not blocked.\\n  reason: acme/demo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "version": "0.2.0",
+    "tag": "v0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B",
+    "commitCount": 1,
+    "skipped": [],
+    "warnings": [
+      "could not check Dependabot alerts. The release is not blocked.\n  reason: acme/demo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)"
+    ]
+  }
+}

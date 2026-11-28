@@ -1,0 +1,1 @@
+{"id":"d27de8e99534d7f25c51862e21fe611a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyJapaneseFontFix a:rPr が存在しない run の場合は、補正しない (書体の補正)","name":"a:rPr が存在しない run の場合は、補正しない (書体の補正)","status":"passed","testResultsByEnv":{"default":"f3fd2558eae5da5cc8afa2056a83b724"}}

@@ -1,0 +1,1 @@
+{"id":"24ae04ed86eacc538eb164361d4f9606.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#開発ツリーの workspace root packages に glob を指定した場合も、対象のルートに一致すれば、その workspace を使う","name":"packages に glob を指定した場合も、対象のルートに一致すれば、その workspace を使う","status":"passed","testResultsByEnv":{"default":"c98081e522c28badcaeef1bb02f456fa"}}

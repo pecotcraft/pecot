@@ -1,0 +1,1 @@
+{"id":"6c30d7cd6d0d5a0c67b914cb107341d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh wt の後ろに数字が無いブランチで commit するとき、何も出力せず通す","name":"wt の後ろに数字が無いブランチで commit するとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"d1a4b4169fbac2ea36a8b88fb50c5877"}}

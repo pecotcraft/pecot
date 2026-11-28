@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project root not found: run inside a git repository or set the CLAUDE_PROJECT_DIR environment variable"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"project-root-not-found\",\"detail\":\"project root not found: run inside a git repository or set the CLAUDE_PROJECT_DIR environment variable\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "project-root-not-found",
+    "detail": "project root not found: run inside a git repository or set the CLAUDE_PROJECT_DIR environment variable"
+  },
+  "isError": true
+}

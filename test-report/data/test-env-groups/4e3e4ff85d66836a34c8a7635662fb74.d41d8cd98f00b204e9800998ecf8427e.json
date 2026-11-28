@@ -1,0 +1,1 @@
+{"id":"4e3e4ff85d66836a34c8a7635662fb74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#getLatestVersion 見出し記号とバージョンの間に、空白が 1 つ以上ある場合だけ、バージョンとして読み取る","name":"見出し記号とバージョンの間に、空白が 1 つ以上ある場合だけ、バージョンとして読み取る","status":"passed","testResultsByEnv":{"default":"d471328e65726e5562f8d44cb508f92e"}}

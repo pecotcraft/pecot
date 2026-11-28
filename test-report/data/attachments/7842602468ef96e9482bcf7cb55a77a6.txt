@@ -1,0 +1,40 @@
+=== Git Remote ===
+git@ghes.example.com:acme/demo.git
+
+=== Current Branch ===
+linked-work
+
+=== Push Status ===
+origin/linked-work does not exist (not pushed)
+
+=== Base Branch ===
+origin/main
+
+=== Git Status ===
+On branch linked-work
+nothing to commit, working tree clean
+
+
+=== .gitignore ===
+.pecot/
+
+
+=== Git Exclude ===
+# parity fixed exclude
+
+
+=== Commits (vs origin/main) ===
+(no commits)
+
+=== Diff Summary (vs origin/main) ===
+(no diff)
+
+=== Worktree Info ===
+/tmp/pecot-parity-XiDlVR/base/demo dd06359 [feat/demo/12]
+/tmp/pecot-parity-XiDlVR/linked    dd06359 [linked-work]
+
+Current directory name: linked
+Is worktree environment: true
+
+=== Stash List ===
+(no stash)

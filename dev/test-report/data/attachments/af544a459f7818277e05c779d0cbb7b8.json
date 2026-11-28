@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.pull_request is not the PR acme/demo/21: pass the result of pull_request_read (method get) for it"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"reads.pull_request is not the PR acme/demo/21: pass the result of pull_request_read (method get) for it\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "reads.pull_request is not the PR acme/demo/21: pass the result of pull_request_read (method get) for it"
+  },
+  "isError": true
+}

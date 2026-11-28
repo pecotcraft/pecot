@@ -1,0 +1,1 @@
+{"id":"335063be351ff180cd1e69b01773700a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start 着手の判定 スタック先と違う base を付けると、ブランチを作らず終了コード 2 で終わる","name":"スタック先と違う base を付けると、ブランチを作らず終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"a920be17f2d9d4d30c750a6762eedc4a"}}

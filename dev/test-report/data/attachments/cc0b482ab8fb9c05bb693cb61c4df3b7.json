@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the result of projects_list in reads.fields has no node_id for field pecot-status"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-mcp-shape\",\"detail\":\"the result of projects_list in reads.fields has no node_id for field pecot-status\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-mcp-shape",
+    "detail": "the result of projects_list in reads.fields has no node_id for field pecot-status"
+  },
+  "isError": true
+}

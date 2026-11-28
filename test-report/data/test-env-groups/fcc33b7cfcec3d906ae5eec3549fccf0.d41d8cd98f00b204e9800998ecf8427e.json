@@ -1,0 +1,1 @@
+{"id":"fcc33b7cfcec3d906ae5eec3549fccf0.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_history_put_runs_only_after_a_readable_history","name":"history-put の job は、リリース版で、レポートができ、履歴が無いか受け取れたときだけ動く","status":"passed","testResultsByEnv":{"default":"6afcd510c0103b6d925ad38dcbab56c7"}}

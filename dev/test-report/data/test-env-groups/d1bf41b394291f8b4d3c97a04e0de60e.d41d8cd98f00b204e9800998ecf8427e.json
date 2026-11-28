@@ -1,0 +1,1 @@
+{"id":"d1bf41b394291f8b4d3c97a04e0de60e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings バックスラッシュと CRLF の続き行 のとき、引用符を含まない本文だけを切り出す","name":"バックスラッシュと CRLF の続き行 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"d2c811b2ff6b7ca0a52d1c5be9d6ff00"}}

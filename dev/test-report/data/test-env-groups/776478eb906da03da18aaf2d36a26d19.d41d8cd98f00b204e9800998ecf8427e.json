@@ -1,0 +1,1 @@
+{"id":"776478eb906da03da18aaf2d36a26d19.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-judgment.test.ts#applyJudgedMoves ボードへの書き込みに失敗した場合は、失敗した Issue の数を返す","name":"ボードへの書き込みに失敗した場合は、失敗した Issue の数を返す","status":"passed","testResultsByEnv":{"default":"c30eec0d51f03465cb8a11cea2541c77"}}

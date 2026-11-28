@@ -1,0 +1,1 @@
+{"id":"c2c026b7ed4cb66e825d694b7ea1e569.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/drawio.test.ts#drawio_create 相対パスは実処理を呼ばずに invalid-path で返す","name":"相対パスは実処理を呼ばずに invalid-path で返す","status":"passed","testResultsByEnv":{"default":"8de2c1741409fc5be2686d5063a86011"}}

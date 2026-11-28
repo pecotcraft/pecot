@@ -1,0 +1,1 @@
+{"id":"3ebca27408030443d67f593e33bea53c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-install.test.ts#workflow_install auto を書き出すと、このリポの設定の名前と CI のワークフローの名前が、書き出したファイルに残らない","name":"auto を書き出すと、このリポの設定の名前と CI のワークフローの名前が、書き出したファイルに残らない","status":"passed","testResultsByEnv":{"default":"3bf4e72cc1c47f9a9e1ed85f7032cee2"}}

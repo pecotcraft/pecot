@@ -1,0 +1,1 @@
+{"id":"52290bc2939367ef642dfb409be73790.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-absolute-last.test.ts#require-absolute-last valid slot は位置を判定できないので、前にあっても報告しない","name":"slot は位置を判定できないので、前にあっても報告しない","status":"passed","testResultsByEnv":{"default":"2526f1c57994a3255d2cbdb5956a8881"}}

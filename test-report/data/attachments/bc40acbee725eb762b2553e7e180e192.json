@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.blocked_by[1].issue: oops is not owner/repo/N"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.blocked_by[1].issue\",\"code\":\"value\",\"message\":\"oops is not owner/repo/N\"}],\"expected_status\":\"Blocked\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.blocked_by[1].issue",
+        "code": "value",
+        "message": "oops is not owner/repo/N"
+      }
+    ],
+    "expected_status": "Blocked"
+  }
+}

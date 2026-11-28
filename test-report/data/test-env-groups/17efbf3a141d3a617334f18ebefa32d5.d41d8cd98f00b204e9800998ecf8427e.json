@@ -1,0 +1,1 @@
+{"id":"17efbf3a141d3a617334f18ebefa32d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/drawio-icons.test.ts#createIconResolver 同梱カタログの線画アイコンは、色を指定すると線の色が変わり、currentColor が残らない","name":"同梱カタログの線画アイコンは、色を指定すると線の色が変わり、currentColor が残らない","status":"passed","testResultsByEnv":{"default":"b7607dc887d52aa3fa1ca1e1e31962f9"}}

@@ -1,0 +1,1 @@
+{"id":"e9043e69ead20e26f7966bd44faea1ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/names.test.ts#実物の定義書の names pecot-tools の定義書へ、語彙に合わない名前 aws_iam_list_roles の項目を追加すると、検証エラーにする","name":"pecot-tools の定義書へ、語彙に合わない名前 aws_iam_list_roles の項目を追加すると、検証エラーにする","status":"passed","testResultsByEnv":{"default":"4c44614b5d21bea3727ad0e7a51a741d"}}

@@ -1,0 +1,1 @@
+{"id":"9081cf04054046fe48a46db3385ae7f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getAllSubIssues 続きがある場合は、endCursor を after に渡して最後のページまで読む","name":"続きがある場合は、endCursor を after に渡して最後のページまで読む","status":"passed","testResultsByEnv":{"default":"001d1097e3b1e8647441db5ad5c59cf4"}}

@@ -1,0 +1,1 @@
+{"id":"9dfe2b72a9aa3f2031868fdd12474be4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/tracker-body.test.ts#cell セルを作成すると、前後の空白と改行を落とし、途中の改行を 1 つの空白にする","name":"セルを作成すると、前後の空白と改行を落とし、途中の改行を 1 つの空白にする","status":"passed","testResultsByEnv":{"default":"0a712dfa00ab7961507063e18b8738dc"}}

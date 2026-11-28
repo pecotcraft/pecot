@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "failed to remove the worktree: fatal: '/tmp/pecot-parity-56BjpY/wt1/demo' contains modified or untracked files, use --force to delete it\n  hint: to remove it with its changes, pass force: true"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"failed to remove the worktree: fatal: '/tmp/pecot-parity-56BjpY/wt1/demo' contains modified or untracked files, use --force to delete it\\n  hint: to remove it with its changes, pass force: true\",\"log\":\"fatal: '/tmp/pecot-parity-56BjpY/wt1/demo' contains modified or untracked files, use --force to delete it\\n\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "failed to remove the worktree: fatal: '/tmp/pecot-parity-56BjpY/wt1/demo' contains modified or untracked files, use --force to delete it\n  hint: to remove it with its changes, pass force: true",
+    "log": "fatal: '/tmp/pecot-parity-56BjpY/wt1/demo' contains modified or untracked files, use --force to delete it\n"
+  },
+  "isError": true
+}

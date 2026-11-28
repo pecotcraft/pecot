@@ -1,0 +1,1 @@
+{"id":"376e9b06402aaed815d93ad72e25ce18.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#runAwscli abort 済みの signal を渡して実行すると、すぐに SIGTERM を送る","name":"abort 済みの signal を渡して実行すると、すぐに SIGTERM を送る","status":"passed","testResultsByEnv":{"default":"18127dbfcf7c95838b1ba87b1d3ca193"}}

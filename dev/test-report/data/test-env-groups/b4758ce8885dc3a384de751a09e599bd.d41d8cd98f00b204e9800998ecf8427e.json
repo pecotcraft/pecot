@@ -1,0 +1,1 @@
+{"id":"b4758ce8885dc3a384de751a09e599bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#resolveApiUrlOverride \"http://LocalHost:00080\" を受け付け、末尾の / を取り除いて返す","name":"\"http://LocalHost:00080\" を受け付け、末尾の / を取り除いて返す","status":"passed","testResultsByEnv":{"default":"a0661787c83c35f46a3911754f6bca08"}}

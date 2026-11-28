@@ -1,0 +1,1 @@
+{"id":"c7417a9423f61df57d788e8677a264d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/server.test.ts#createMcpServer の progress ハートビート キャンセルした後は、progress の通知を送らない [legacy]","name":"キャンセルした後は、progress の通知を送らない [legacy]","status":"passed","testResultsByEnv":{"default":"bda516af0a8ac81901736150f247a6f7"}}

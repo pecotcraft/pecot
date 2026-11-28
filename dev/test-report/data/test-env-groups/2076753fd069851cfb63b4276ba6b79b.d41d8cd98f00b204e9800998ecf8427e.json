@@ -1,0 +1,1 @@
+{"id":"2076753fd069851cfb63b4276ba6b79b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init.test.ts#pecot-dir-init.sh 旧内容の .gitignore を実 git リポに置いても、untracked が残らない","name":"旧内容の .gitignore を実 git リポに置いても、untracked が残らない","status":"passed","testResultsByEnv":{"default":"03a792f8116ef620d52957189b7cff64"}}

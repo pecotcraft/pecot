@@ -1,0 +1,4 @@
+ずれは 1 件
+config-options / workflow
+  このリポ: ["active","archived","backlog","blocked","in_review","pending","ready"]
+  検証用: ["active","archived","backlog","blocked","done","in_review","pending","ready"]

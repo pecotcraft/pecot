@@ -1,0 +1,1 @@
+{"id":"6bbab7d7a2f63b516e14ea2a5bdcc934.84b53799f5ec3abbb3e70a1ba9bc45e4","fullName":".githooks.tests.test_report_dev_sources#test_resolve_runs_pull_request_lanes_on_main_when_the_pr_run_is_off","name":"PR の run が確かめ（pr-head-repo）に外れると、その結果を使わず main で流す","status":"passed","testResultsByEnv":{"default":"d7b0cc299bceef8ddeb994d2127b4edc"}}

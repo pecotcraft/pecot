@@ -1,0 +1,19 @@
+{
+  "project": "interface-spec",
+  "target": "test-unit",
+  "runtime": [
+    "dpkg-query -W -f='${Package}=${Version}\\n'",
+    "git hash-object pnpm-lock.yaml",
+    "node --version"
+  ],
+  "environment": [
+    "HOME",
+    "NODE_OPTIONS",
+    "NODE_V8_COVERAGE",
+    "NX_CLOUD_ENCRYPTION_KEY",
+    "PECOT_REPORT_SITE_URL"
+  ],
+  "external": [
+    "AllExternalDependencies"
+  ]
+}

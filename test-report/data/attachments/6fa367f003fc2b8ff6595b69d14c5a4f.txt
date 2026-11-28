@@ -1,0 +1,3 @@
+error: .pecot-base records feat/demo/11 at 0245cd9, which is not in the history of feat/demo/12
+  feat/demo/12 is already restacked; rewrite the record with: pr_restack
+  call pr_create on the branch the record was written for, or pass head: "feat/demo/12" to create the PR without the record

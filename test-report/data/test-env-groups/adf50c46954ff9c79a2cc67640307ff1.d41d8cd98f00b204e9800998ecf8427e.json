@@ -1,0 +1,1 @@
+{"id":"adf50c46954ff9c79a2cc67640307ff1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml — 注記図形 callout の文章の前後の空白は、xml:space=\"preserve\" で保持する","name":"callout の文章の前後の空白は、xml:space=\"preserve\" で保持する","status":"passed","testResultsByEnv":{"default":"12556a174cee2e2beb1a26a7037a3358"}}

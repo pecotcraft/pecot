@@ -1,0 +1,1 @@
+{"id":"9422194d66620b3ef6a4f88acc44db7b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#assumePullRequestState merged と仮定すると、閉じる前の前提を済んだ前提にする","name":"merged と仮定すると、閉じる前の前提を済んだ前提にする","status":"passed","testResultsByEnv":{"default":"897840c6ac65c1be9f92713f97eb6be6"}}

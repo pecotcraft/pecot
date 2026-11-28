@@ -1,0 +1,1 @@
+{"id":"dc5d235d1e1ac8226fe03834821e52e9.7132a9f2913031e4e89ca2bdb3705151","fullName":".githooks.tests.test_pre_commit_config_wiring#test_plugin_validate_runs_when_definitions_change","name":"plugins/pecot-tools/.mcp.json を変更すると、plugin-validate が起動する","status":"passed","testResultsByEnv":{"default":"0c0f10b021c71bd2ffc0022ccd9fc8b0"}}

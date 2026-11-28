@@ -1,0 +1,8 @@
+:iface-id: PW-ISSUE-UNBLOCK
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Remove Issue blocker
+========================================
+
+.. iface-defs:: pecot-workflow PW-ISSUE-UNBLOCK

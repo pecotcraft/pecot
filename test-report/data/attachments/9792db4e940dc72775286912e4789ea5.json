@@ -1,0 +1,15 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "none"
+    },
+    {
+      "type": "text",
+      "text": "{\"key\":\"aggregation_repo\"}"
+    }
+  ],
+  "structuredContent": {
+    "key": "aggregation_repo"
+  }
+}

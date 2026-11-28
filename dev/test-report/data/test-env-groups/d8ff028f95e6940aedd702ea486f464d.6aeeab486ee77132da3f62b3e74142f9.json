@@ -1,0 +1,1 @@
+{"id":"d8ff028f95e6940aedd702ea486f464d.6aeeab486ee77132da3f62b3e74142f9","fullName":".githooks.tests.test_handoff_workflow_copy#test_every_action_is_pinned_to_a_full_sha","name":".github/workflows/pecot-handoff.yml の action は、すべて 40 桁の SHA で固定する","status":"passed","testResultsByEnv":{"default":"37b42c6c1e57e261b52504d1fc6775f6"}}

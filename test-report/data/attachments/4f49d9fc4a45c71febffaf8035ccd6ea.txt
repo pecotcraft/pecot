@@ -1,0 +1,2 @@
+ERROR: --lane は --part=tests と組み合わせて指定します: a:test-b
+使い方: run-pr-checks.sh [--part=<lint|tests>] [--lane=<project>:<target>] <base> <head>

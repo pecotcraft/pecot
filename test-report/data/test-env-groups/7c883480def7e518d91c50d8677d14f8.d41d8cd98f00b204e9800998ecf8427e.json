@@ -1,0 +1,1 @@
+{"id":"7c883480def7e518d91c50d8677d14f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-triple-hyphen-in-frontmatter.test.ts#frontmatter が無い（1 行目が --- でない）と、検出しない","name":"frontmatter が無い（1 行目が --- でない）と、検出しない","status":"passed","testResultsByEnv":{"default":"e7b8687dff61b7bbfcac7185e797b48e"}}

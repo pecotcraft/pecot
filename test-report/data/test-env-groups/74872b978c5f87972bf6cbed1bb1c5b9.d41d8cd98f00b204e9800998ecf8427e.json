@@ -1,0 +1,1 @@
+{"id":"74872b978c5f87972bf6cbed1bb1c5b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/hooks-config-sample-sync.test.ts#hooks の設定キー すべての pecot_hook_enabled の呼び出しが、既定の値を明示している","name":"すべての pecot_hook_enabled の呼び出しが、既定の値を明示している","status":"passed","testResultsByEnv":{"default":"2de5cefaddad61e14f9373d4b601e941"}}

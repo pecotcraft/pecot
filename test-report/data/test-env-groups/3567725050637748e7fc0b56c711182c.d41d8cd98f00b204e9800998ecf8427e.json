@@ -1,0 +1,1 @@
+{"id":"3567725050637748e7fc0b56c711182c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender-capture-flow.test.ts#captureAndReplaceElements 撮影で例外が発生した場合も、非表示にした .marker-overlay を元に戻す","name":"撮影で例外が発生した場合も、非表示にした .marker-overlay を元に戻す","status":"passed","testResultsByEnv":{"default":"beb59b32e019222c52c2026bfe660952"}}

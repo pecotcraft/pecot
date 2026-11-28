@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "preflight found warnings; fix them before creating a PR"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"preflight found warnings; fix them before creating a PR\",\"warnings\":[\"Push Status: diverged: local is 1 commits ahead, origin/feat/demo/12 is 2 ahead (fix: pr_restack)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "preflight found warnings; fix them before creating a PR",
+    "warnings": [
+      "Push Status: diverged: local is 1 commits ahead, origin/feat/demo/12 is 2 ahead (fix: pr_restack)"
+    ]
+  },
+  "isError": true
+}

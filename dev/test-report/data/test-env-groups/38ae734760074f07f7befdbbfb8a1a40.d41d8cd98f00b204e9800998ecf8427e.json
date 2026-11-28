@@ -1,0 +1,1 @@
+{"id":"38ae734760074f07f7befdbbfb8a1a40.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/entry.test.ts#サーバの起動ファイル package.json の bin は pecot-visual-mcp だけで dist/main.js を指す","name":"package.json の bin は pecot-visual-mcp だけで dist/main.js を指す","status":"passed","testResultsByEnv":{"default":"21c66d5a12e9960ef318c263515c62bd"}}

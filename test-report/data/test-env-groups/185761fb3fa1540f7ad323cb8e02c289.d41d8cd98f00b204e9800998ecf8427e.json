@@ -1,0 +1,1 @@
+{"id":"185761fb3fa1540f7ad323cb8e02c289.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/runtime-manifest.test.sh#合成 root の .mjs で @slidev/types が @slidev/cli の版へ固定される","name":"合成 root の .mjs で @slidev/types が @slidev/cli の版へ固定される","status":"passed","testResultsByEnv":{"default":"6fdef25aa6b2b5c3c70df6c0432bdeda"}}

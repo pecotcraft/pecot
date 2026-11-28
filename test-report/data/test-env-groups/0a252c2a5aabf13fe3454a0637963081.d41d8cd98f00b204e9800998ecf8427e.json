@@ -1,0 +1,1 @@
+{"id":"0a252c2a5aabf13fe3454a0637963081.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 定型の外 コマンドが複数行のとき、許可せず何も出力しない","name":"コマンドが複数行のとき、許可せず何も出力しない","status":"passed","testResultsByEnv":{"default":"eed27a63ddd20518d23615c25ec221b2"}}

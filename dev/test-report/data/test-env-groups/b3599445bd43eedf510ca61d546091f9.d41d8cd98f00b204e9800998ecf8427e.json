@@ -1,0 +1,1 @@
+{"id":"b3599445bd43eedf510ca61d546091f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#pushFixHintOf 親ブランチが消えた の場合は、pr_restack with check: true を案内する","name":"親ブランチが消えた の場合は、pr_restack with check: true を案内する","status":"passed","testResultsByEnv":{"default":"01d57b61bf400717ead4fe8ed02a3200"}}

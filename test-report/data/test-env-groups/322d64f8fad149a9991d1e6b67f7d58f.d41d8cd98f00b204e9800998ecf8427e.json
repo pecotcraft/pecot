@@ -1,0 +1,1 @@
+{"id":"322d64f8fad149a9991d1e6b67f7d58f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#readWaitsForMerge owner だけの参照 がある場合は、malformed を返す","name":"owner だけの参照 がある場合は、malformed を返す","status":"passed","testResultsByEnv":{"default":"ccaec782d0dd8d2f2a6ef1a0a1420357"}}

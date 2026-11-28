@@ -1,0 +1,1 @@
+{"id":"85b0a2a6a92ff55ffa425ba611d331d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: Python 改行が CRLF のファイルでは、行末の CR を文に含めず、2 行目の桁を正しく数える","name":"改行が CRLF のファイルでは、行末の CR を文に含めず、2 行目の桁を正しく数える","status":"passed","testResultsByEnv":{"default":"77446425a53eba20f571415e2fef709b"}}

@@ -1,0 +1,1 @@
+{"id":"af7a119821fe8c0548e414075108205c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_tag_prints_ref_and_ignores_files_outside_the_image","name":"tag は、イメージの参照を出力し、イメージに入らないファイルの変更では変わらない","status":"passed","testResultsByEnv":{"default":"a97860d4c1c93e5003ad580ef56d9639"}}

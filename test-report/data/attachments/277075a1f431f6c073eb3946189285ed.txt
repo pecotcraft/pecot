@@ -1,0 +1,8 @@
+checks: success
+lanes: success
+lint: run
+checks (lint): success
+tests (p:test-cli): success
+tests (q:test-hooks): success
+一覧に無い tests の job が success ではありません。
+tests (z:test-extra): failure

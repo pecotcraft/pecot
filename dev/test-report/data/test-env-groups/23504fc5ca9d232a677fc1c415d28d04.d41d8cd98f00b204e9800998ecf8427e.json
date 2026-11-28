@@ -1,0 +1,1 @@
+{"id":"23504fc5ca9d232a677fc1c415d28d04.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.bats#dry-run は、gh を呼ばずに、実行予定の gh コマンドと tgz の名前・中身を表示する","name":"dry-run は、gh を呼ばずに、実行予定の gh コマンドと tgz の名前・中身を表示する","status":"passed","testResultsByEnv":{"default":"07d624fceddbca1c0d0e44e98b7e8406"}}

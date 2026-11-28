@@ -1,0 +1,8 @@
+==> npm pack
+==> tgz: example-attach-test-1.2.3.tgz
+==> tgz の中身（1 ファイル）
+    package.json
+==> gh release view example-v1.2.3 -R acme-labs/example-repo
+==> gh release upload example-v1.2.3 example-attach-test-1.2.3.tgz --clobber -R acme-labs/example-repo
+==> gh workflow run publish-npm.yml -f tag=example-v1.2.3 --ref example-v1.2.3 -R acme-labs/example-repo
+==> @example/attach-test v1.2.3 を Release に添え、publish-npm.yml を起動しました (acme-labs/example-repo)

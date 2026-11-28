@@ -1,0 +1,1 @@
+{"id":"5e03c1fd46b2936a245d18cc41c1459b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_push_reports_violation_in_range","name":"push の範囲に違反を含むファイルがあると、ファイルと行を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"1e26efe2ef2489e9fc69c9307a0d0f9f"}}

@@ -1,0 +1,1 @@
+{"id":"278e4d970c5ee2bc0425c2d34ba2499e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#stripLeadingHtmlComment（冒頭ガイドコメント除去 #958 F-02） 改行が CRLF のコメントも、1 ブロックとして除去する","name":"改行が CRLF のコメントも、1 ブロックとして除去する","status":"passed","testResultsByEnv":{"default":"5ee901a3d6756948815a6eab9805420d"}}

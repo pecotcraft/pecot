@@ -1,0 +1,2 @@
+ok=true
+body-file=/tmp/pecot-auto-template-21rsc4/pecot-auto-setup.md

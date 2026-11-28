@@ -1,0 +1,1 @@
+{"id":"697739936760536b6ea77c5c9b0108f6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#ensureWorkDirectory プロジェクトルートが不明な場合でも、例外が発生せず undefined を返す","name":"プロジェクトルートが不明な場合でも、例外が発生せず undefined を返す","status":"passed","testResultsByEnv":{"default":"77e666dfbedfb76c0b54e1c1e08012e3"}}

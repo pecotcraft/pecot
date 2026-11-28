@@ -1,0 +1,1 @@
+{"id":"10a145ffee7ca212a00077200364c31c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-gate.test.ts#auto gate issues のイベント 進めるかと種類・Issue・ブランチを、outputs に出す","name":"進めるかと種類・Issue・ブランチを、outputs に出す","status":"passed","testResultsByEnv":{"default":"b2a5c7b9a89ef269bda4c7042b947678"}}

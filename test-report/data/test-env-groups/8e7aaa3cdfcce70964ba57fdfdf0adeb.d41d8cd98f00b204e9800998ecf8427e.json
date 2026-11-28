@@ -1,0 +1,1 @@
+{"id":"8e7aaa3cdfcce70964ba57fdfdf0adeb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init pecot-lane と Lanes のビュー pecot-lane が渡した値を全て持つと、書き込まず、change を unchanged にする","name":"pecot-lane が渡した値を全て持つと、書き込まず、change を unchanged にする","status":"passed","testResultsByEnv":{"default":"23be86ce01a48b690e492ad9c7230189"}}

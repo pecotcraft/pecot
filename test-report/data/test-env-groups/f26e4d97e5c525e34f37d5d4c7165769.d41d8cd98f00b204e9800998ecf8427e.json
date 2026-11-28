@@ -1,0 +1,1 @@
+{"id":"f26e4d97e5c525e34f37d5d4c7165769.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 開き括弧の直後の # はコメント のとき、引用符を含まない本文だけを切り出す","name":"開き括弧の直後の # はコメント のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"ce44378312a7b03ca887530bfa8c451c"}}

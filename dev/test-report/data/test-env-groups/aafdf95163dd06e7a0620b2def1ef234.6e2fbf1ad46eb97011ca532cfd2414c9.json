@@ -1,0 +1,1 @@
+{"id":"aafdf95163dd06e7a0620b2def1ef234.6e2fbf1ad46eb97011ca532cfd2414c9","fullName":".githooks.tests.test_report_dev_sources#test_cli_rejects_wrong_arguments","name":"CLI は、引数が 上限が 0 だと、終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"0e86f00596313b0c885873aa05b951be"}}

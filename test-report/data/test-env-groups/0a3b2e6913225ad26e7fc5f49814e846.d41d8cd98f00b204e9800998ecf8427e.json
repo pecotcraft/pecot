@@ -1,0 +1,1 @@
+{"id":"0a3b2e6913225ad26e7fc5f49814e846.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#forceLightColorScheme SVG のルート要素が存在しない場合は、例外が発生する","name":"SVG のルート要素が存在しない場合は、例外が発生する","status":"passed","testResultsByEnv":{"default":"90b96d7baf155cb35afadec155ab0ff8"}}

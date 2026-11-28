@@ -1,0 +1,1 @@
+{"event":"slide.convert.error","reason":"pptx-convert-failed","detail":"pptx convert failed: aborted","warnings":[],"errors":[{"level":"element","slideNumber":1,"selector":".chart","message":"pr-fail"},{"level":"slide","slideNumber":2,"message":"worker-failed"}]}

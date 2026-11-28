@@ -1,0 +1,1 @@
+{"id":"08b2247d9313b33811b61518f9b8e99c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_push_passes_without_text_targets","name":"push の範囲の変更が確認の対象外のファイルだけなら、違反があっても成功で終わる","status":"passed","testResultsByEnv":{"default":"c1090bb1df333ea2921be1bd2d80f1ce"}}

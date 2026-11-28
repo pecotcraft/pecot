@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_rds_describe_db_instances succeeded"
+    },
+    {
+      "type": "text",
+      "text": "{\"NextToken\":\"eyJuZXh0IjogMX0=\",\"nextToken\":\"eyJuZXh0IjogMX0=\"}"
+    }
+  ],
+  "structuredContent": {
+    "NextToken": "eyJuZXh0IjogMX0=",
+    "nextToken": "eyJuZXh0IjogMX0="
+  }
+}

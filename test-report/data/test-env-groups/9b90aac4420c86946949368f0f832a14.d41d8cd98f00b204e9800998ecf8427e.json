@@ -1,0 +1,1 @@
+{"id":"9b90aac4420c86946949368f0f832a14.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#更新（コピーを作る） parsePackage は、名前の形が不正な場合は、表題が Package の ValidationFailure を投げる","name":"parsePackage は、名前の形が不正な場合は、表題が Package の ValidationFailure を投げる","status":"passed","testResultsByEnv":{"default":"3a108eb6b01df00c9adcf70fe5c3fc27"}}

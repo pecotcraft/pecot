@@ -1,0 +1,1 @@
+{"id":"f3be670aaa93206f11a45e2a06599fac.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#サブシェルの中で npm を起動する script があると、違反として返す","name":"サブシェルの中で npm を起動する script があると、違反として返す","status":"passed","testResultsByEnv":{"default":"45fd84f462ba40fad13ab7ec68160598"}}

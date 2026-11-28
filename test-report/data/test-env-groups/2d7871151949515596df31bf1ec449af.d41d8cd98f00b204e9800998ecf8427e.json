@@ -1,0 +1,1 @@
+{"id":"2d7871151949515596df31bf1ec449af.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#deleteBranch 保護されたブランチを削除して 403 が返ると、access denied の GitHubAPIError を発生させる","name":"保護されたブランチを削除して 403 が返ると、access denied の GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"951b3c55f2fbfe8bf89da2adef552e36"}}

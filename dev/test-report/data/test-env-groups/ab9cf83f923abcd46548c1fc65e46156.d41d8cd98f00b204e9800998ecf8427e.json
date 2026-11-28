@@ -1,0 +1,1 @@
+{"id":"ab9cf83f923abcd46548c1fc65e46156.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/links.test.ts#linkRepository 定義書に存在しない ID を、ファイルと行を付けて報告し、別の plugin の ID も存在しない扱いにする","name":"定義書に存在しない ID を、ファイルと行を付けて報告し、別の plugin の ID も存在しない扱いにする","status":"passed","testResultsByEnv":{"default":"236345a69b0c53be44676864954628c5"}}

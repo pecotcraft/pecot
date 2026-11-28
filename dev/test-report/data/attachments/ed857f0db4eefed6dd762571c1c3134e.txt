@@ -1,0 +1,2 @@
+==> npm-shrinkwrap.json を生成
+==> npm レジストリへ依存を解決中

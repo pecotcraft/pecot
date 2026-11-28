@@ -1,0 +1,1 @@
+{"id":"3924736646744baf1954caa3ff678838.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order parent_epic に owner/repo/N の形式を指定でき、文字列のまま保持する","name":"parent_epic に owner/repo/N の形式を指定でき、文字列のまま保持する","status":"passed","testResultsByEnv":{"default":"04e25a7416ebb04c8e21d3689a7f93f3"}}

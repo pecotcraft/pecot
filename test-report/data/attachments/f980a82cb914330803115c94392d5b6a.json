@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "frontmatter not found (does not start with ---)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"content-invalid\",\"detail\":\"frontmatter not found (does not start with ---)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "content-invalid",
+    "detail": "frontmatter not found (does not start with ---)"
+  },
+  "isError": true
+}

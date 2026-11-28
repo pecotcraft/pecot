@@ -1,0 +1,1 @@
+{"id":"c1db270e1ad9b5ddd5efa5d26d29f43e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/pr-waiting.test.ts#moveIssuesWaitingFor 閉じた待つ Issue とボードに載っていない待つ Issue は、判定を読まずに飛ばす","name":"閉じた待つ Issue とボードに載っていない待つ Issue は、判定を読まずに飛ばす","status":"passed","testResultsByEnv":{"default":"9d952f28952458c37d332157353c3b4e"}}

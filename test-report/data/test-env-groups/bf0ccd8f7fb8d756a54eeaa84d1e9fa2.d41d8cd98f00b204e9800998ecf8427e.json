@@ -1,0 +1,1 @@
+{"id":"bf0ccd8f7fb8d756a54eeaa84d1e9fa2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#fallbackSizeMatch すべての候補が大きさの差を超える場合は、undefined を返す","name":"すべての候補が大きさの差を超える場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"e9e515e6fe7c599aea4f1387c5ba6fd8"}}

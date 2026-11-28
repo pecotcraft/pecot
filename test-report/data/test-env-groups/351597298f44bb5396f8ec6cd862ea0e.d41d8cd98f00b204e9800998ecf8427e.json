@@ -1,0 +1,1 @@
+{"id":"351597298f44bb5396f8ec6cd862ea0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 作業の跡があり、列 In Review と判定 blocked の組み合わせは、食い違いを返す","name":"作業の跡があり、列 In Review と判定 blocked の組み合わせは、食い違いを返す","status":"passed","testResultsByEnv":{"default":"ccc9a2a66ae9ab1f72a61eb1e7b1f254"}}

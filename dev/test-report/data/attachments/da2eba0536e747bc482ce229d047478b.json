@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "PR #21 is not merged yet (state: open); merge it on GitHub first"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"pr-state\",\"detail\":\"PR #21 is not merged yet (state: open); merge it on GitHub first\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "pr-state",
+    "detail": "PR #21 is not merged yet (state: open); merge it on GitHub first"
+  },
+  "isError": true
+}

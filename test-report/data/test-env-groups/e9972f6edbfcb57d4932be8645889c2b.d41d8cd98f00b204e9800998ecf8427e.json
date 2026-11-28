@@ -1,0 +1,1 @@
+{"id":"e9972f6edbfcb57d4932be8645889c2b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 親ブランチが動いていないと、何も変えずに unchanged の行を出す","name":"親ブランチが動いていないと、何も変えずに unchanged の行を出す","status":"passed","testResultsByEnv":{"default":"d55ec2bb6150d65268748fe48edbafd4"}}

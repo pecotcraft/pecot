@@ -1,0 +1,1 @@
+{"id":"feaa4a1f74cfb2a55dfe8640fb0ca7af.1a2fa7ddb2da12f35b8e69a4c4f285a1","fullName":".githooks.tests.test_pages_provenance#test_pull_request_run_without_its_pr_artifact_is_dropped","name":"pull_request の run は、その PR の artifact が ['pages-junit-pecot-tools-test-cli'] だと破棄する","status":"passed","testResultsByEnv":{"default":"f428f92e52b3cd5c391ef486601b9a37"}}

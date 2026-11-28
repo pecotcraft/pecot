@@ -1,0 +1,2 @@
+UNAVAILABLE
+例外リストの GHSA-aaaa-aaaa-aaaa は other-pkg に登録されていますが、監査結果では leaf の advisory です（例外の陳腐化）

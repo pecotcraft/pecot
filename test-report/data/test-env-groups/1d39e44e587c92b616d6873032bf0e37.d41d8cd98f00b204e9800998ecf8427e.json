@@ -1,0 +1,1 @@
+{"id":"1d39e44e587c92b616d6873032bf0e37.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data MCP の呼び出し message で repo を省くと、設定のリポジトリが 1 つならそのリポジトリに PR を作る","name":"message で repo を省くと、設定のリポジトリが 1 つならそのリポジトリに PR を作る","status":"passed","testResultsByEnv":{"default":"aadd518aa1919cca69a92a0376ed3418"}}

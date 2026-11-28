@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "cannot get the worktree list: fatal: not a git repository (or any of the parent directories): .git"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"cannot get the worktree list: fatal: not a git repository (or any of the parent directories): .git\",\"log\":\"fatal: not a git repository (or any of the parent directories): .git\\n\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "cannot get the worktree list: fatal: not a git repository (or any of the parent directories): .git",
+    "log": "fatal: not a git repository (or any of the parent directories): .git\n"
+  },
+  "isError": true
+}

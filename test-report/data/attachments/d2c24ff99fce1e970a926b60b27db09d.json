@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "no active project\n  call project_activate with project: <PROJECT>"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"no-active-project\",\"detail\":\"no active project\\n  call project_activate with project: <PROJECT>\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "no-active-project",
+    "detail": "no active project\n  call project_activate with project: <PROJECT>"
+  },
+  "isError": true
+}

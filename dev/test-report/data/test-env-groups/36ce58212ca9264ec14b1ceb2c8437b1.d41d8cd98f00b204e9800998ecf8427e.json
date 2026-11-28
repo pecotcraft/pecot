@@ -1,0 +1,1 @@
+{"id":"36ce58212ca9264ec14b1ceb2c8437b1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data 衝突すると、衝突したファイルを conflicts に入れて git-conflict を返す","name":"衝突すると、衝突したファイルを conflicts に入れて git-conflict を返す","status":"passed","testResultsByEnv":{"default":"c0c8ba94b755b9dd1769992535b468d1"}}

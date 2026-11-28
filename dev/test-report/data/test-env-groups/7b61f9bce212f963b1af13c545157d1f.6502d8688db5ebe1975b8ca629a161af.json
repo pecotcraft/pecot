@@ -1,0 +1,1 @@
+{"id":"7b61f9bce212f963b1af13c545157d1f.6502d8688db5ebe1975b8ca629a161af","fullName":".githooks.tests.test_report_workflow#test_prepare_history_keeps_the_download_or_starts_empty","name":"unreadable のとき、リリース版の履歴を用意し、無ければ空にして、受け取れなかったときだけ警告する","status":"passed","testResultsByEnv":{"default":"40cb6f471408d81bd9800c5c4fd0b343"}}

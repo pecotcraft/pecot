@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not read the active config: invalid config file: /tmp/pecot-cli-0hD5fo/.pecot/config/projects/github.com_acme_1.json: Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"config-invalid\",\"detail\":\"could not read the active config: invalid config file: /tmp/pecot-cli-0hD5fo/.pecot/config/projects/github.com_acme_1.json: Expected property name or '}' in JSON at position 1 (line 1 column 2)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "config-invalid",
+    "detail": "could not read the active config: invalid config file: /tmp/pecot-cli-0hD5fo/.pecot/config/projects/github.com_acme_1.json: Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+  },
+  "isError": true
+}

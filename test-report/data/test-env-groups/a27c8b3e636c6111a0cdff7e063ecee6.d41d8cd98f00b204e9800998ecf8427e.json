@@ -1,0 +1,1 @@
+{"id":"a27c8b3e636c6111a0cdff7e063ecee6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#案内の文字列を止める lint src/commands-shared/board-view.ts のパス テンプレートの固定部分 に pecot のコマンドの案内を書くと、lint の違反になる","name":"テンプレートの固定部分 に pecot のコマンドの案内を書くと、lint の違反になる","status":"passed","testResultsByEnv":{"default":"05cebe6f3f79240ba62a12f252c87301"}}

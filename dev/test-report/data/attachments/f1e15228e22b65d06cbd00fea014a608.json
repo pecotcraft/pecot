@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "this repository has packages set\n  call with clear_packages: true before switching to changelog_file"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"this repository has packages set\\n  call with clear_packages: true before switching to changelog_file\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "this repository has packages set\n  call with clear_packages: true before switching to changelog_file"
+  },
+  "isError": true
+}

@@ -1,0 +1,6 @@
+retry: main advanced during push (attempt 1/5)
+retry: main advanced during push (attempt 2/5)
+retry: main advanced during push (attempt 3/5)
+retry: main advanced during push (attempt 4/5)
+retry: main advanced during push (attempt 5/5)
+error: main kept advancing; gave up after 5 attempts (branch: release/run-1-1)

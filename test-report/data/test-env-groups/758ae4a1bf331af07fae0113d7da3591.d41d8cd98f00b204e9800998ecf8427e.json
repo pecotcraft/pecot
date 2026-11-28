@@ -1,0 +1,1 @@
+{"id":"758ae4a1bf331af07fae0113d7da3591.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/source-hash.test.ts#source-hash ソースのファイルが増えると、ハッシュが変わる","name":"ソースのファイルが増えると、ハッシュが変わる","status":"passed","testResultsByEnv":{"default":"6755f2fb4012b3cf1b7ad3952d59b7ac"}}

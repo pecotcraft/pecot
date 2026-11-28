@@ -1,0 +1,1 @@
+{"id":"a2bbe5eae108556402e4a770aff9ddea.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_bundled_library_is_scanned_against_its_plugin_env","name":"プラグインに同梱するライブラリは、そのプラグインの env で宣言済みとみなす","status":"passed","testResultsByEnv":{"default":"7e09d61f8863613375a74d81a39b2e13"}}

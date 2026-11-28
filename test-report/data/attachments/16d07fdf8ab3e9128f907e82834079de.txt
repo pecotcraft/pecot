@@ -1,0 +1,6 @@
+count: open dependabot PRs: 3
+count: PRs awaiting a decision: 2
+count: PRs awaiting a decision without check results: 1
+dry-run: would create Tracker "[Tracker] dependabot PR — 2026-11-09"
+dry-run: would add PR #2 to new Tracker (major)
+dry-run: would add PR #3 to new Tracker (major)

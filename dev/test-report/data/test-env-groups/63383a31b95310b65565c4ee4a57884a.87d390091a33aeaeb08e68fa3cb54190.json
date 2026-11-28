@@ -1,0 +1,1 @@
+{"id":"63383a31b95310b65565c4ee4a57884a.87d390091a33aeaeb08e68fa3cb54190","fullName":".githooks.tests.test_gitlint_japanese_rule#test_near_miss_title_fails","name":"タイトルが「build(repo)!: bump foo from 1 to 2」のように、Dependabot の形に近いだけだと、日本語の規則に違反する","status":"passed","testResultsByEnv":{"default":"11ce687ef838b29f0880aff8c8e44ed1"}}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid input: lanes: Too small: expected array to have >=1 items"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid input: lanes: Too small: expected array to have >=1 items\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: lanes: Too small: expected array to have >=1 items"
+  },
+  "isError": true
+}

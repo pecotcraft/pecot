@@ -1,0 +1,1 @@
+{"id":"ec499b49f21d16bd8af5394144e8a625.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_17c_pass_txt_with_glob_added","name":"ルートの glob に *.txt を足すと、.txt だけの変更は成功する","status":"passed","testResultsByEnv":{"default":"f33d6effbe0c321f4e974116edf0da4c"}}

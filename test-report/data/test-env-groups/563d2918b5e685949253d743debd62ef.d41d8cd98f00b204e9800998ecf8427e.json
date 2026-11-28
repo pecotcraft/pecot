@@ -1,0 +1,1 @@
+{"id":"563d2918b5e685949253d743debd62ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts XML として正しくない文字列を渡した場合は、判定を省略して警告を返さない","name":"XML として正しくない文字列を渡した場合は、判定を省略して警告を返さない","status":"passed","testResultsByEnv":{"default":"48b2dbfd7383432f16d92364e5c36e2e"}}

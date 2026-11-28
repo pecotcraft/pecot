@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "acme/demo has no packages configured\n  package can only be used in a monorepo"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"acme/demo has no packages configured\\n  package can only be used in a monorepo\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "acme/demo has no packages configured\n  package can only be used in a monorepo"
+  },
+  "isError": true
+}

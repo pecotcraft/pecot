@@ -1,0 +1,1 @@
+{"id":"7ac3ff2f2c944d59317c8ba6da113d74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init Status のフィールドが存在しないボードでは、何も足さずに skipped の行を出す","name":"Status のフィールドが存在しないボードでは、何も足さずに skipped の行を出す","status":"passed","testResultsByEnv":{"default":"a68cfbea9a565a9ab86825a555c2a6f1"}}

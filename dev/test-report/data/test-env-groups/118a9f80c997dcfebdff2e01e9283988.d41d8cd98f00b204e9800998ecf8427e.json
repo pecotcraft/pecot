@@ -1,0 +1,1 @@
+{"id":"118a9f80c997dcfebdff2e01e9283988.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main --commit-msg # で始まる行だけのメッセージは、何も出力せず、終了コード 0 を返す","name":"# で始まる行だけのメッセージは、何も出力せず、終了コード 0 を返す","status":"passed","testResultsByEnv":{"default":"f5c12508a50888c2a795dafbbd4f6af8"}}

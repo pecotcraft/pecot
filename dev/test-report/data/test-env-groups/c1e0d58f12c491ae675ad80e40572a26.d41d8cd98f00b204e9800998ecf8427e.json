@@ -1,0 +1,1 @@
+{"id":"c1e0d58f12c491ae675ad80e40572a26.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/fs-sync.test.ts#talkDirectoryExists パスが存在してもファイルの場合は、isDirectory を false にする","name":"パスが存在してもファイルの場合は、isDirectory を false にする","status":"passed","testResultsByEnv":{"default":"a0cde53cb8f580fed008370a5b17b242"}}

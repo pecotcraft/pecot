@@ -1,0 +1,1 @@
+{"id":"c25bcc09d9aff02e6058aecb2e7320b3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/paths.test.ts#projectRoot（cwd が無くなっているとき） 指定した cwd が存在しない場合は、ProjectRootNotFoundError を発生させる","name":"指定した cwd が存在しない場合は、ProjectRootNotFoundError を発生させる","status":"passed","testResultsByEnv":{"default":"915b57eed24f331e6bbe10d71ce791f1"}}

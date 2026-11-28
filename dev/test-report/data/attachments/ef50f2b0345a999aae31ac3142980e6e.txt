@@ -1,0 +1,10 @@
+配布ツリー: 1 パッケージ / critical 0 / high 1 / moderate 0 / low 0 / info 0 / 例外 0 件 / 指紋 e5956d8d41c9a01ea4ba03e63a6b408ebf899b62341da7379bd2e9f67a78677d
+永続層: 3 パッケージ / critical 0 / high 1 / moderate 0 / low 0 / info 0 / 例外 0 件 / 指紋 c6605cd0d7a81b7ee32c9425c76ffe74da84f4e914f7dcda802c92a578db065f
+registry http://127.0.0.1:40199
+ERROR: 配布ツリー: high 以上の脆弱なパッケージ 1 件
+  lodash (high)
+    - Prototype Pollution in lodash https://github.com/advisories/GHSA-p6mc-m468-83gw
+ERROR: 永続層: high 以上の脆弱なパッケージ 1 件
+  image-size (high)
+    - image-size: ICNS parser allows denial of service through an infinite loop https://github.com/advisories/GHSA-w3rx-r6r6-pgpr
+    - image-size: JXL and HEIF parsers allow denial of service through infinite loops https://github.com/advisories/GHSA-5p2g-fcmc-qvqq

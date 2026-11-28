@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: the ## Waits for merge section is malformed: no ': ' separator: - #5 — スキーマが先に要る; write one line per prerequisite as \"- #N: <reason>\""
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"waits-for-merge\",\"message\":\"the ## Waits for merge section is malformed: no ': ' separator: - #5 — スキーマが先に要る; write one line per prerequisite as \\\"- #N: <reason>\\\"\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "waits-for-merge",
+        "message": "the ## Waits for merge section is malformed: no ': ' separator: - #5 — スキーマが先に要る; write one line per prerequisite as \"- #N: <reason>\""
+      }
+    ]
+  }
+}

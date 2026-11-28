@@ -1,0 +1,1 @@
+{"id":"ee3eab21951d8e1d79f6c80913dcc6a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check create・update の値 差し替えたテンプレートのパス では、本文にテンプレートの見出しの決まりを当てない","name":"差し替えたテンプレートのパス では、本文にテンプレートの見出しの決まりを当てない","status":"passed","testResultsByEnv":{"default":"263e02c334d2a94a71423ff6102bf67c"}}

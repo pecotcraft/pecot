@@ -1,0 +1,1 @@
+{"id":"1f2fe9384f1717cc334e5c44ab31fb22.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx 変換が終わった後の集計ログに、スライドの失敗と要素のエラーの内訳を出力する","name":"変換が終わった後の集計ログに、スライドの失敗と要素のエラーの内訳を出力する","status":"passed","testResultsByEnv":{"default":"c154fda4c85ebf87f72625baa984eec1"}}

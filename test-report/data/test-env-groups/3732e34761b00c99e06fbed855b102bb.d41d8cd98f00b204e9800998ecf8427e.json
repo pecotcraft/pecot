@@ -1,0 +1,1 @@
+{"id":"3732e34761b00c99e06fbed855b102bb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-decorative-bar-element.test.ts#no-decorative-bar-element valid 祖先の :style が変数だと、角丸と見なさず報告しない","name":"祖先の :style が変数だと、角丸と見なさず報告しない","status":"passed","testResultsByEnv":{"default":"5103ffe24e3977cef980fa7d7b6c0346"}}

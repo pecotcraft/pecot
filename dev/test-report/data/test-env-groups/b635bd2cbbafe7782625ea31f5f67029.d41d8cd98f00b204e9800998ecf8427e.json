@@ -1,0 +1,1 @@
+{"id":"b635bd2cbbafe7782625ea31f5f67029.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#listed names 環境変数の名前 \"PECOT_GITHUB_*_TOKEN\" を検証すると、true を返す","name":"環境変数の名前 \"PECOT_GITHUB_*_TOKEN\" を検証すると、true を返す","status":"passed","testResultsByEnv":{"default":"5a0dea6b9e55c6686772ec4ca04ba1d7"}}

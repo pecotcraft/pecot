@@ -1,0 +1,1 @@
+{"id":"3fbd44a7bb7f55f3eed55ca292ff8c6e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-create.test.ts#slide create の失敗 (FR-013) 取得に失敗した場合も、--force で指定した既存の生成先を削除しない","name":"取得に失敗した場合も、--force で指定した既存の生成先を削除しない","status":"passed","testResultsByEnv":{"default":"6f7c488227a422a1abf1a00eddff0d34"}}

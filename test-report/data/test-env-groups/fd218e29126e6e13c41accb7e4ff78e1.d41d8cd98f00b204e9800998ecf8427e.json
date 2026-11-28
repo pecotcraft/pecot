@@ -1,0 +1,1 @@
+{"id":"fd218e29126e6e13c41accb7e4ff78e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slide-url.test.ts#parseSlideUrl パスが数値でない URL は、スライド番号 1 として解析する","name":"パスが数値でない URL は、スライド番号 1 として解析する","status":"passed","testResultsByEnv":{"default":"e36e156545079a0457bbb7779b673173"}}

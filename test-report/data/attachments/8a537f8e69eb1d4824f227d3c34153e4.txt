@@ -1,0 +1,39 @@
+=== Git Remote ===
+git@ghes.example.com:acme/demo.git
+
+=== Current Branch ===
+feat/demo/12
+
+=== Push Status ===
+in sync with origin/feat/demo/12
+
+=== Base Branch ===
+origin/main
+
+=== Git Status ===
+On branch feat/demo/12
+nothing to commit, working tree clean
+
+
+=== .gitignore ===
+.pecot/
+
+
+=== Git Exclude ===
+# parity fixed exclude
+
+
+=== Commits (vs origin/main) ===
+(no commits)
+
+=== Diff Summary (vs origin/main) ===
+(no diff)
+
+=== Worktree Info ===
+/tmp/pecot-parity-m60bkR/tmp/pecot-parity-YD75JQ/base/demo dd06359 [feat/demo/12]
+
+Current directory name: demo
+Is worktree environment: false
+
+=== Stash List ===
+(no stash)

@@ -1,0 +1,1 @@
+{"id":"5b48c3d1a428bf6f43d9ec267bd0ac3e.cadbf2d1eef34bc60c5c576484bb6867","fullName":".githooks.tests.test_sandbox_ops_workflow#test_job_runs_only_for_its_operation","name":"diff の job は、operation が diff で App の変数があるときだけ動く","status":"passed","testResultsByEnv":{"default":"e93a5fc8f933874e98187f03a637920b"}}

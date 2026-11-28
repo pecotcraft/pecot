@@ -1,0 +1,1 @@
+{"id":"b77204a1304c1e706a0d7a7f7fbceef4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#stripCommitComments コミットメッセージを整えるとき、type(scope): の無い件名はそのまま","name":"コミットメッセージを整えるとき、type(scope): の無い件名はそのまま","status":"passed","testResultsByEnv":{"default":"5414bb55acf7f6f6478892a9f77d2e21"}}

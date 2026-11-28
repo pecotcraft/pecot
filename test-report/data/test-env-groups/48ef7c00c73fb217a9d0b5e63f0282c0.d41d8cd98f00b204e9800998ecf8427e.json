@@ -1,0 +1,1 @@
+{"id":"48ef7c00c73fb217a9d0b5e63f0282c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の style とその他 style の /* */ コメントに違反があると、その位置を指摘として返す","name":"style の /* */ コメントに違反があると、その位置を指摘として返す","status":"passed","testResultsByEnv":{"default":"5bdcc7f3789221443b9b30a2de8ead1c"}}

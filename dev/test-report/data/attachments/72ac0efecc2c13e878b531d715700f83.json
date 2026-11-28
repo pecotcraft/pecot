@@ -1,0 +1,14 @@
+{
+  "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "pr": 123,
+  "pr_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "pr_run": 456,
+  "merge_group": [
+    "githooks:test-ci",
+    "p:test-cli"
+  ],
+  "pull_request": [
+    "p:test-unit",
+    "q:test-hooks"
+  ]
+}

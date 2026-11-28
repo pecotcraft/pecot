@@ -1,0 +1,4 @@
+   Building sh==1.14.3
+      Built sh==1.14.3
+Installed 7 packages in 133ms
+warning: An executable named `gitlint` is not provided by package `gitlint` but is available via the dependency `gitlint-core`. Consider using `uvx --from gitlint-core gitlint` instead.

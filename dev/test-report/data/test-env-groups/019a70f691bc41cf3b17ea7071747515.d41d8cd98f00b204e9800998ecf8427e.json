@@ -1,0 +1,1 @@
+{"id":"019a70f691bc41cf3b17ea7071747515.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#getProjectFields user が null の場合は、organization のプロジェクトとフィールドを返す","name":"user が null の場合は、organization のプロジェクトとフィールドを返す","status":"passed","testResultsByEnv":{"default":"0f4b64d2e0a192ba2177a8b5155e2a51"}}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "log_stream_names must not start with '-': --debug"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"log_stream_names must not start with '-': --debug\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "log_stream_names must not start with '-': --debug"
+  },
+  "isError": true
+}

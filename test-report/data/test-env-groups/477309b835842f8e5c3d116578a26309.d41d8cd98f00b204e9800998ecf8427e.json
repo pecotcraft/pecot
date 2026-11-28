@@ -1,0 +1,1 @@
+{"id":"477309b835842f8e5c3d116578a26309.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/npm-cache-opt-in.test.sh#publish opt-in: 終了時に永続キャッシュを消さない","name":"publish opt-in: 終了時に永続キャッシュを消さない","status":"passed","testResultsByEnv":{"default":"2edf14be0f1fb0e46d93fcba30b2facc"}}

@@ -1,0 +1,1 @@
+{"id":"616565dbf0be915490a01fed003b1d5c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh ブランチが番号でなければ、.pecot-active があっても出さない","name":"ブランチが番号でなければ、.pecot-active があっても出さない","status":"passed","testResultsByEnv":{"default":"203f2e221704aebb6f0c5714fd61d793"}}

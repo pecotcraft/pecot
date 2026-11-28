@@ -1,0 +1,1 @@
+{"id":"a970387cd61fafcdf3285a24bdd9c7f3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_step_gate#test_counts_a_named_step_nested_under_a_matcher_step","name":"自動の step の下に名前の付いた step がある場合は、名前の付いた step として扱う","status":"passed","testResultsByEnv":{"default":"65a387b172b61bbe00ae4fcce2bbc8ec"}}

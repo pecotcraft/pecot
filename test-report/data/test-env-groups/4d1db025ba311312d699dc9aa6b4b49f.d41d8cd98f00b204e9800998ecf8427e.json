@@ -1,0 +1,1 @@
+{"id":"4d1db025ba311312d699dc9aa6b4b49f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#addToStack 422 が返ると、GitHubAPIError を発生させる","name":"422 が返ると、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"6089b50ec9ce4fdf1fee51563cee8592"}}

@@ -1,0 +1,1 @@
+{"id":"981beaa8a7590b97f8483f665ee3e367.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pr_run#test_pr_load_head_same_repo","name":"PR の head が同じリポジトリのとき、head の sha とリポジトリ名を読み込む","status":"passed","testResultsByEnv":{"default":"d3b4908a73f5ec860b914567304990bd"}}

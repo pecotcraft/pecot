@@ -1,0 +1,1 @@
+{"id":"b6d39e31fdeca1683d322691d4758ab1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#generateDrawioUrl mode に view と edit のどちらを指定しても、同じ URL を返す","name":"mode に view と edit のどちらを指定しても、同じ URL を返す","status":"passed","testResultsByEnv":{"default":"de4e624bbeca40b7d20ef39a016a8fac"}}

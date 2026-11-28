@@ -1,0 +1,4 @@
+count: GraphQL points used: 1
+count: GraphQL points remaining: 4899
+error: could not read project board: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:42439/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500

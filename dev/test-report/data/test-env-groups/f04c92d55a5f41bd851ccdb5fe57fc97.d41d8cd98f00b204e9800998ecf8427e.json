@@ -1,0 +1,1 @@
+{"id":"f04c92d55a5f41bd851ccdb5fe57fc97.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#saveConfig 値を持たない項目は、保存したファイルに含めない","name":"値を持たない項目は、保存したファイルに含めない","status":"passed","testResultsByEnv":{"default":"7b1aa44def6ac5ad64c0ed7242b6cd47"}}

@@ -1,0 +1,1 @@
+{"id":"680d5ff38f247b27783c3e07184c91b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#401 のときの gh auth token への切り替え GraphQL: 再試行の失敗（rate limit）も同じ規則で分類する","name":"GraphQL: 再試行の失敗（rate limit）も同じ規則で分類する","status":"passed","testResultsByEnv":{"default":"379899c68ea42e2b705212af97b645b1"}}

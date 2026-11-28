@@ -1,0 +1,1 @@
+{"id":"ae1ac25d57335cb31e5f95c125ef06b5.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.bats#LIB_DIR の代入が 2 件あるファイルでは、LIB_DIR で始まる参照を UNRESOLVED と判定する","name":"LIB_DIR の代入が 2 件あるファイルでは、LIB_DIR で始まる参照を UNRESOLVED と判定する","status":"passed","testResultsByEnv":{"default":"3765365309000968b5d55159ad5211b6"}}

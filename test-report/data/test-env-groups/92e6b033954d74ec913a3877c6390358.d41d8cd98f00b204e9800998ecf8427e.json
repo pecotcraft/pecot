@@ -1,0 +1,1 @@
+{"id":"92e6b033954d74ec913a3877c6390358.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: legacy) slide_page 成功の結果は、outputSchema の検証を通り、クライアントへ届く","name":"成功の結果は、outputSchema の検証を通り、クライアントへ届く","status":"passed","testResultsByEnv":{"default":"392f84f5eb4fc7e21b262e06acf8719b"}}

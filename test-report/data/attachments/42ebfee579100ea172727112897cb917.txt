@@ -1,0 +1,4 @@
+PASS: 通る
+FAIL: 落ちる — 理由
+
+PASS: 1 / FAIL: 1 / SKIP: 0

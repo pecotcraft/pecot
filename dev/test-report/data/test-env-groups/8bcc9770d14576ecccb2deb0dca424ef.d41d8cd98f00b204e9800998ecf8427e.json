@@ -1,0 +1,1 @@
+{"id":"8bcc9770d14576ecccb2deb0dca424ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link MCP の data all を付けてサブの worktree が無いと、links を空の配列にして成功を返す","name":"all を付けてサブの worktree が無いと、links を空の配列にして成功を返す","status":"passed","testResultsByEnv":{"default":"27dd2dfa7291c3dd5985a6d83549dc31"}}

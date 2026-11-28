@@ -1,0 +1,1 @@
+{"id":"95a4bb2cecf08b71082993dbea905af5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 語の無い << は heredoc にしない のとき、引用符を含まない本文だけを切り出す","name":"語の無い << は heredoc にしない のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"8674c355d93d300c94cd9d0484f57633"}}

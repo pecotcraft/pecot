@@ -1,0 +1,1 @@
+{"id":"0e3d6f95031f69fd6bf3d8bfe205c1a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-setup.test.ts#runSetupCommand コマンドが失敗した場合でも、例外は発生せず、終了コードと標準エラー出力を結果に含める","name":"コマンドが失敗した場合でも、例外は発生せず、終了コードと標準エラー出力を結果に含める","status":"passed","testResultsByEnv":{"default":"e1c329a5fab3eef5eef235a58c4c419f"}}

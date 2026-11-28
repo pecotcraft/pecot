@@ -1,0 +1,1 @@
+{"id":"001596729f5e59b3684a4c0840d1bf1d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check create・update の値 リリース PR の値を渡すと、base を release_branch に照らし、Issue と画像の決まりを当てない","name":"リリース PR の値を渡すと、base を release_branch に照らし、Issue と画像の決まりを当てない","status":"passed","testResultsByEnv":{"default":"7617ef06bd72dbc50fce9b4f6ba8c21a"}}

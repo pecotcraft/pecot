@@ -1,0 +1,1 @@
+{"id":"b7e0aaac269bd5f3353519629d131b9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#slide_sync の theme 指定 (移行前の talk-dir) 移行すると、data に消した名前・テーマ・移行の情報を載せる","name":"移行すると、data に消した名前・テーマ・移行の情報を載せる","status":"passed","testResultsByEnv":{"default":"a0bb5ab2d20e7261b07014c001aa04f1"}}

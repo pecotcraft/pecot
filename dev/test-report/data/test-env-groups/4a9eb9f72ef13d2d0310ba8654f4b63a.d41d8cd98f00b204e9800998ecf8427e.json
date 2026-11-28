@@ -1,0 +1,1 @@
+{"id":"4a9eb9f72ef13d2d0310ba8654f4b63a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_release_does_not_look_at_stored_dev_sha","name":"リリース版は、保存済みの開発版の commit を参照しない","status":"passed","testResultsByEnv":{"default":"3341a611a3ee15cddfc98408c6aa6cfb"}}

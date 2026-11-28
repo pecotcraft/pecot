@@ -1,0 +1,1 @@
+{"id":"f8d5e33095432202b08fe8be37fd083d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/eslint-runner.test.ts#resolveEslintBin assets に package.json が存在しなければ、SlideLintRuntimeError が発生する","name":"assets に package.json が存在しなければ、SlideLintRuntimeError が発生する","status":"passed","testResultsByEnv":{"default":"5ee0a140c07774c9bbf0ab34d42fcdad"}}

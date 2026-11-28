@@ -1,0 +1,1 @@
+{"id":"b89105097b430c3f100fa77c0d8063d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint git のリポジトリの中のファイルに文章の違反があると、pecot-text-lint の違反を知らせる","name":"git のリポジトリの中のファイルに文章の違反があると、pecot-text-lint の違反を知らせる","status":"passed","testResultsByEnv":{"default":"bc25530344dc0dc617d12d61674c11bd"}}

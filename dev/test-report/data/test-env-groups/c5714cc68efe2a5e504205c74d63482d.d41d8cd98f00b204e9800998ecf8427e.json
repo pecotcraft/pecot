@@ -1,0 +1,1 @@
+{"id":"c5714cc68efe2a5e504205c74d63482d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 作業の跡が存在しない Issue で、列 Ready と判定 stackable の組み合わせは、動かさない","name":"作業の跡が存在しない Issue で、列 Ready と判定 stackable の組み合わせは、動かさない","status":"passed","testResultsByEnv":{"default":"c0ff40e02554c0b4324f3a8a0fde3983"}}

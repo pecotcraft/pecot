@@ -1,0 +1,1 @@
+{"id":"9940d61c42b5bbcdf30d97040b9c6fe2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/git-url.test.ts#parseRemoteUrl \"ftp://host/o/r.git\" を渡すと、host・owner・repository に分けて返す","name":"\"ftp://host/o/r.git\" を渡すと、host・owner・repository に分けて返す","status":"passed","testResultsByEnv":{"default":"b66a3c40535021ee0131a56a56b2e119"}}

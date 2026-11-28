@@ -1,0 +1,1 @@
+{"id":"6c57a976e6faf4438d7e575452d6e50f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_summary_stays_under_one_mebibyte","name":"ログが非常に大きくても、サマリーは 1 MiB 未満に収める","status":"passed","testResultsByEnv":{"default":"14f7234d04e98974cf55d5e1d71a461e"}}

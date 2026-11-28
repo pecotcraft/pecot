@@ -1,0 +1,10 @@
+error: git-no-verify-check: skipping git hooks is not allowed.
+
+  This project does not allow skipping CI or quality checks (pre-commit, pre-push, gitlint, etc.).
+  Every way of skipping hooks is blocked: --no-verify, -n on git commit, git -c core.hooksPath=...,
+  setting or unsetting core.hooksPath with git config, and SKIP=... or HUSKY=0 before git.
+
+  When a hook reports an error:
+    1. Read the error message and identify what is violated
+    2. Fix the root cause of the violation
+    3. Re-run normally (without any skip option) after the fix

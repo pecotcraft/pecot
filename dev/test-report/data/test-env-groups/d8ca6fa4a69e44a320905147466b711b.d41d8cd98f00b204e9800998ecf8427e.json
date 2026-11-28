@@ -1,0 +1,1 @@
+{"id":"d8ca6fa4a69e44a320905147466b711b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — PNG PNG は、IHDR チャンクから、ビッグエンディアンの 32 ビット整数で幅と高さを読み取る","name":"PNG は、IHDR チャンクから、ビッグエンディアンの 32 ビット整数で幅と高さを読み取る","status":"passed","testResultsByEnv":{"default":"1fc0bf2fbd511697a742c0539ab5e00d"}}

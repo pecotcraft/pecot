@@ -1,0 +1,1 @@
+{"id":"c44e2cf4e81107c534afa11ad1798af4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/gitignore-spec.test.ts#patternToRegex 範囲が逆の括弧式 [z-a] を渡すと、SyntaxError を送出する","name":"範囲が逆の括弧式 [z-a] を渡すと、SyntaxError を送出する","status":"passed","testResultsByEnv":{"default":"89a0cd246e0726700a791e8b5e71b2ae"}}

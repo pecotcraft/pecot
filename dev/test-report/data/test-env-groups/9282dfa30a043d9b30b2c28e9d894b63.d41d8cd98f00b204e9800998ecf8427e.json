@@ -1,0 +1,1 @@
+{"id":"9282dfa30a043d9b30b2c28e9d894b63.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations callout callout の anchor の座標が範囲外の場合は、拒否する","name":"callout の anchor の座標が範囲外の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"5c3921b6732aab742b79bf41c89e9314"}}

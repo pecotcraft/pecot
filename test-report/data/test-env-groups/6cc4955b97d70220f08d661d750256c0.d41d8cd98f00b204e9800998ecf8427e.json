@@ -1,0 +1,1 @@
+{"id":"6cc4955b97d70220f08d661d750256c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/api-error-detail.test.ts#describeApiError errors[].message も追加し、前後の空白を取り除く","name":"errors[].message も追加し、前後の空白を取り除く","status":"passed","testResultsByEnv":{"default":"0f7807062278c2ac45ec7f99a5dce0b9"}}

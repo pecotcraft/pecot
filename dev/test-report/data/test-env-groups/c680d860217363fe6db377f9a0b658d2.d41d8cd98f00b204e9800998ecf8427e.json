@@ -1,0 +1,1 @@
+{"id":"c680d860217363fe6db377f9a0b658d2.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_affected_test_failure_propagates","name":"affected のテストが失敗すると、終了コード 1 で終了して push を止める","status":"passed","testResultsByEnv":{"default":"c49edb4bc6234434415c259e2a5e533f"}}

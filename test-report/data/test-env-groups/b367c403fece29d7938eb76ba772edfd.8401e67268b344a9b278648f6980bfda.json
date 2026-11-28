@@ -1,0 +1,1 @@
+{"id":"b367c403fece29d7938eb76ba772edfd.8401e67268b344a9b278648f6980bfda","fullName":".githooks.tests.test_tsc_mjs_consistency#test_tsc_mjs_は_pecot_visual_cli_と逐語一致する","name":"plugins/pecot-tools/cli/scripts/tsc.mjs の tsc.mjs は、pecot-visual/cli の tsc.mjs と逐語で一致する","status":"passed","testResultsByEnv":{"default":"cb83c128a1cb4454a33f6e3698d8ae55"}}

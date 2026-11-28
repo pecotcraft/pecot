@@ -1,0 +1,1 @@
+{"id":"155db5b8d8d28fc811ba742b5f2fa5fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx の差分キャッシュ manifest が不正な場合は、すべてのステップを miss として変換し、警告を記録する","name":"manifest が不正な場合は、すべてのステップを miss として変換し、警告を記録する","status":"passed","testResultsByEnv":{"default":"5eda3a56223424e4b9639a59f84c045d"}}

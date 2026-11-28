@@ -1,0 +1,1 @@
+{"id":"4ede623218cdfd3743a404e310dfa9db.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry spawn そのものが失敗したら理由付きで返す","name":"spawn そのものが失敗したら理由付きで返す","status":"passed","testResultsByEnv":{"default":"0b03fb5c88a4bda601e4930b65dcb64a"}}

@@ -1,0 +1,1 @@
+{"id":"429ac1b1128b2cb3d6fe0419d15c63a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync Tracker を閉じると、closed の行を標準エラーに出す","name":"Tracker を閉じると、closed の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"5a130c317966036cffb7697ca2d836e6"}}

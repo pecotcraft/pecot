@@ -1,0 +1,1 @@
+{"id":"1e14a02a8369304f98f6f0aa14946fb3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#decidePullRequestBase 親 PR がマージ済みで 開発ブランチ を渡した場合は、開発ブランチを base にして、スタックに登録しない","name":"親 PR がマージ済みで 開発ブランチ を渡した場合は、開発ブランチを base にして、スタックに登録しない","status":"passed","testResultsByEnv":{"default":"755876cb550ddd190d229a153ff8a285"}}

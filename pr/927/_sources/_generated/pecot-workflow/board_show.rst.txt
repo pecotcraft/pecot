@@ -1,0 +1,8 @@
+:iface-id: PW-BOARD-SHOW
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Show board dashboard
+========================================
+
+.. iface-defs:: pecot-workflow PW-BOARD-SHOW

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "main is a protected branch\n  protected: develop-aist, main, release-v1"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"guard-blocked\",\"detail\":\"main is a protected branch\\n  protected: develop-aist, main, release-v1\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "guard-blocked",
+    "detail": "main is a protected branch\n  protected: develop-aist, main, release-v1"
+  },
+  "isError": true
+}

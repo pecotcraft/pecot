@@ -1,0 +1,1 @@
+{"id":"a5f0da26048340418a462397108ef62a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys コードフェンス内の --- はスライドの区切りにならず、編集はそのスライドの slideHash だけを変える","name":"コードフェンス内の --- はスライドの区切りにならず、編集はそのスライドの slideHash だけを変える","status":"passed","testResultsByEnv":{"default":"1837b9e11bd0af14756d5eeed46f89c5"}}

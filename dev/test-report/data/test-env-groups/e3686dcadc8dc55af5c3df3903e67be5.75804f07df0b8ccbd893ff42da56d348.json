@@ -1,0 +1,1 @@
+{"id":"e3686dcadc8dc55af5c3df3903e67be5.75804f07df0b8ccbd893ff42da56d348","fullName":".githooks.tests.test_nx_affected_mapping#test_nx_release_lane_follows_its_inputs","name":"plugins/pecot-tools/.claude-plugin/plugin.json を変更すると、nx-release:test-unit レーンが再実行される","status":"passed","testResultsByEnv":{"default":"7b1dd12546ca1d22e9f350fa552b4e30"}}

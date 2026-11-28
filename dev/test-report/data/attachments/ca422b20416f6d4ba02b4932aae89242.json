@@ -1,0 +1,51 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "changes[0]: field Status already exists on the board; use set-options to change its options"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"changes[0]\",\"code\":\"already-exists\",\"message\":\"field Status already exists on the board; use set-options to change its options\"},{\"field\":\"changes[1]\",\"code\":\"not-found\",\"message\":\"field Missing is not on the board (after the earlier changes)\"},{\"field\":\"changes[2]\",\"code\":\"field-type\",\"message\":\"field Title is not a single select field (TEXT)\"},{\"field\":\"changes[3]\",\"code\":\"option-removed\",\"message\":\"set-options replaces the options of Status, so In Progress, Done, Needs Attention and their values on the cards would be deleted; list the existing options too, in their order\",\"candidates\":[\"Todo\",\"In Progress\",\"Done\",\"Needs Attention\"]},{\"field\":\"Status\",\"code\":\"missing-option\",\"message\":\"Status lacks the option Needs Attention (color RED, description \\\"Waiting for a human decision or action.\\\") at the end; add a set-options change that lists the existing options in their order with it\",\"candidates\":[\"Needs Attention\"]}],\"deletable\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "changes[0]",
+        "code": "already-exists",
+        "message": "field Status already exists on the board; use set-options to change its options"
+      },
+      {
+        "field": "changes[1]",
+        "code": "not-found",
+        "message": "field Missing is not on the board (after the earlier changes)"
+      },
+      {
+        "field": "changes[2]",
+        "code": "field-type",
+        "message": "field Title is not a single select field (TEXT)"
+      },
+      {
+        "field": "changes[3]",
+        "code": "option-removed",
+        "message": "set-options replaces the options of Status, so In Progress, Done, Needs Attention and their values on the cards would be deleted; list the existing options too, in their order",
+        "candidates": [
+          "Todo",
+          "In Progress",
+          "Done",
+          "Needs Attention"
+        ]
+      },
+      {
+        "field": "Status",
+        "code": "missing-option",
+        "message": "Status lacks the option Needs Attention (color RED, description \"Waiting for a human decision or action.\") at the end; add a set-options change that lists the existing options in their order with it",
+        "candidates": [
+          "Needs Attention"
+        ]
+      }
+    ],
+    "deletable": []
+  }
+}

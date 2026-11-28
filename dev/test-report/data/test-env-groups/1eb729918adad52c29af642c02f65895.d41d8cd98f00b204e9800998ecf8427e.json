@@ -1,0 +1,1 @@
+{"id":"1eb729918adad52c29af642c02f65895.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/session-start.bats#hooks-config で node の案内を無効にすると、古い node でも何も出さない","name":"hooks-config で node の案内を無効にすると、古い node でも何も出さない","status":"passed","testResultsByEnv":{"default":"e42ea7cef6ff8595e079d761f6311b2d"}}

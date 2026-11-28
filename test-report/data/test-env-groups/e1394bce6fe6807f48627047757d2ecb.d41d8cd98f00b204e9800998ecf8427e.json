@@ -1,0 +1,1 @@
+{"id":"e1394bce6fe6807f48627047757d2ecb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/paths.test.ts#projectRoot CLAUDE_PROJECT_DIR の末尾のスラッシュ・重複したスラッシュ・. を、正規化して返す","name":"CLAUDE_PROJECT_DIR の末尾のスラッシュ・重複したスラッシュ・. を、正規化して返す","status":"passed","testResultsByEnv":{"default":"5a707469d1df1e15a9cf1634e41ea003"}}

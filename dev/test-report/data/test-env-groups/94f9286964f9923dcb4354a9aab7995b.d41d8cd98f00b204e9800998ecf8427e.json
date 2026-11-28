@@ -1,0 +1,1 @@
+{"id":"94f9286964f9923dcb4354a9aab7995b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#getRepositorySettings delete_branch_on_merge が boolean でない場合は、undefined にする","name":"delete_branch_on_merge が boolean でない場合は、undefined にする","status":"passed","testResultsByEnv":{"default":"3a9adf341c4af0a52c0397d848ffe3b7"}}

@@ -1,0 +1,1 @@
+{"id":"0eb28be4391104a13085e8d3e2514700.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getStackOfPullRequest 対象の PR を含むスタックの番号が数値でない場合は、GitHubAPIError を発生させる","name":"対象の PR を含むスタックの番号が数値でない場合は、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"5c371ab7ca697f2adaeabb897cf8dbdf"}}

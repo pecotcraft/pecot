@@ -1,0 +1,1 @@
+{"id":"2fefdcc2b0920a737e251414a476a5f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#runAwscli 時間切れになると、awscli のプロセスに SIGTERM を送り、プロセスを残さない","name":"時間切れになると、awscli のプロセスに SIGTERM を送り、プロセスを残さない","status":"passed","testResultsByEnv":{"default":"33e019c1149a1829dd3743dd053ac778"}}

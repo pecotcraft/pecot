@@ -1,0 +1,1 @@
+{"id":"5c5ec44e456419d26c5db17a102223ae.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_summary_without_part_has_plain_heading_and_lane_sections","name":"`--part` を省略すると、見出しに part を含めず、すべての欄を表示する","status":"passed","testResultsByEnv":{"default":"90419c770265bd883cfd0ad38d5ae3c3"}}

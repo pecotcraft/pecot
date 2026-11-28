@@ -1,0 +1,1 @@
+{"id":"1fd7b1085463b58a064af399244a52a5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/github-ops/branch-and-stack.test.ts#github ops link-branch で GitHub がブランチの作成を断ると、ok: false と GitHub の文を返す","name":"link-branch で GitHub がブランチの作成を断ると、ok: false と GitHub の文を返す","status":"passed","testResultsByEnv":{"default":"2cb1ba26c8254534dcb00a00c06f1cd2"}}

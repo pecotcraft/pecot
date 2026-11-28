@@ -1,0 +1,3 @@
+To /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_nx_style_push_moves_only_0/origin.git
+ * [new branch]      release/run-1-1 -> release/run-1-1
+ * [new tag]         v1.0.0 -> v1.0.0

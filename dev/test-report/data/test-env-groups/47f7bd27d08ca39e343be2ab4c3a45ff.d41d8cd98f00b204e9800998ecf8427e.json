@@ -1,0 +1,1 @@
+{"id":"47f7bd27d08ca39e343be2ab4c3a45ff.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_server_receives_used_file_path","name":"サーバには、`--used-file` として CI の作業用ディレクトリの `nx-used.txt` を渡す","status":"passed","testResultsByEnv":{"default":"9d4df4db45e85ce7a0151c04f3f638c5"}}

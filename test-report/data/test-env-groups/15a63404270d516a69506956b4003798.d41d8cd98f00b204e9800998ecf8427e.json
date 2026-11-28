@@ -1,0 +1,1 @@
+{"id":"15a63404270d516a69506956b4003798.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/annotations.test.ts#effects against mcp.annotations effects が write だけなら、destructiveHint が false でも検証を通す","name":"effects が write だけなら、destructiveHint が false でも検証を通す","status":"passed","testResultsByEnv":{"default":"d97cd1a948cdeeaf449ad396ce3f06e3"}}

@@ -1,0 +1,1 @@
+{"id":"2be816366dc78fcbc8c4a0238b823585.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_fails_after_push_when_dist_was_not_built","name":"dependabot-commit.yml は、dist の作り直しに失敗しても push し、最後に失敗で終わる","status":"passed","testResultsByEnv":{"default":"19e53a8143487371ab8cda617be1dbc6"}}

@@ -1,0 +1,1 @@
+{"id":"325f53c5d635929bb8566da5e84d941c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#doesContainJapanese 漢字 + 英数字混在（入力 \"Tokyo東京 2026\"）のとき、true を返す","name":"漢字 + 英数字混在（入力 \"Tokyo東京 2026\"）のとき、true を返す","status":"passed","testResultsByEnv":{"default":"27faa4cd7bbf6447ad53c5d394440955"}}

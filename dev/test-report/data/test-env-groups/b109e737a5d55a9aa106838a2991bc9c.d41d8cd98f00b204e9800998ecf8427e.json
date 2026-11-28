@@ -1,0 +1,1 @@
+{"id":"b109e737a5d55a9aa106838a2991bc9c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_schedule_input_source_matches_handler","name":"スケジュールの入力の source は、ハンドラの SCHEDULER_SOURCE と一致する","status":"passed","testResultsByEnv":{"default":"2378287c93f5a895d8f99021595948de"}}

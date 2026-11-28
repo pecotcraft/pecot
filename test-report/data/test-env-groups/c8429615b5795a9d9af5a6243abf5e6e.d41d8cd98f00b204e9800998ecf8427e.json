@@ -1,0 +1,1 @@
+{"id":"c8429615b5795a9d9af5a6243abf5e6e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-decorative-bar-element.test.ts#no-decorative-bar-element valid position の指定が無ければ、width が小さくても報告しない","name":"position の指定が無ければ、width が小さくても報告しない","status":"passed","testResultsByEnv":{"default":"942f6f2801e3abfaf0301462ef9c5f2d"}}

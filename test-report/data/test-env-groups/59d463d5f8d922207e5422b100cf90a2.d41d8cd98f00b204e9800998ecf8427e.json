@@ -1,0 +1,1 @@
+{"id":"59d463d5f8d922207e5422b100cf90a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create もし package が設定に登録していないパッケージ名なら、終了コード 1 で終わる","name":"もし package が設定に登録していないパッケージ名なら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"43f62f0d9b908262d07f065a5b3cf227"}}

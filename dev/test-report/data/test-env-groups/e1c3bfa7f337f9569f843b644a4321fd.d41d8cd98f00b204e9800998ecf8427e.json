@@ -1,0 +1,1 @@
+{"id":"e1c3bfa7f337f9569f843b644a4321fd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#developmentBranchOf 設定があればリポの develop_branch を、設定が無ければ undefined を返す","name":"設定があればリポの develop_branch を、設定が無ければ undefined を返す","status":"passed","testResultsByEnv":{"default":"efa7942302fc3c2e4bcabd44a7a01404"}}

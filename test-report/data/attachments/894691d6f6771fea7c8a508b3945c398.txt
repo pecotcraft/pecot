@@ -1,0 +1,1 @@
+error: disallowed syntax: checkbox syntax (- [ ] / 1. [ ]) is not allowed

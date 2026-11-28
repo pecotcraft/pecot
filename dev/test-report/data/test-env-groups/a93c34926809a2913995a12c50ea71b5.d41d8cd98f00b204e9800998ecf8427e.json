@@ -1,0 +1,1 @@
+{"id":"a93c34926809a2913995a12c50ea71b5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_deleted_fork_repo_is_treated_as_fork","name":"fork のリポジトリが削除された PR も、fork の PR として扱う","status":"passed","testResultsByEnv":{"default":"7127090740116409d0d3b51ec24a52f3"}}

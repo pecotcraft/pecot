@@ -1,0 +1,1 @@
+{"id":"9ce55c1aa226548fa761ca6c8c1c967c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: チェックボックス記法（#962） `- [x](url)` のようなリンク項目は誤検知しない","name":"`- [x](url)` のようなリンク項目は誤検知しない","status":"passed","testResultsByEnv":{"default":"1c92c313e27f22c52c926124940112f9"}}

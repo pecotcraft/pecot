@@ -1,0 +1,1 @@
+{"id":"ad4b092405a0a8a67089c485020c8651.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/hint-catalog.test.ts#ACTION_HINT_COMMANDS auto-finish の形の inputs が、action.yml の token 以外の inputs と同じになる","name":"auto-finish の形の inputs が、action.yml の token 以外の inputs と同じになる","status":"passed","testResultsByEnv":{"default":"7552b7587c41fa61721bab52f916b008"}}

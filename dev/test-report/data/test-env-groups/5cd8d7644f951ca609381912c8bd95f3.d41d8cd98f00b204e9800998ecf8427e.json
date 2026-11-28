@@ -1,0 +1,1 @@
+{"id":"5cd8d7644f951ca609381912c8bd95f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/pecotv-run-output.test.ts#stdoutTail 標準出力の長さがちょうど上限と同じ場合も、省略の印を付けない","name":"標準出力の長さがちょうど上限と同じ場合も、省略の印を付けない","status":"passed","testResultsByEnv":{"default":"22c744cb929382bf0e7887d8476b5aa6"}}

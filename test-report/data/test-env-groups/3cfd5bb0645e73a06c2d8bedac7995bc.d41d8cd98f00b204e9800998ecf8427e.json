@@ -1,0 +1,1 @@
+{"id":"3cfd5bb0645e73a06c2d8bedac7995bc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_report_fetches_latest_results_for_dev","name":"開発版では、拾ったレーンの結果を ci と前の開発版の run の artifact から取り出す","status":"passed","testResultsByEnv":{"default":"383cbc161db69fb451c5b46c5d022b5d"}}

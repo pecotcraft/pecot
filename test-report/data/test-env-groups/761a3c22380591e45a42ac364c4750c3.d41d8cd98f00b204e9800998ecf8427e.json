@@ -1,0 +1,1 @@
+{"id":"761a3c22380591e45a42ac364c4750c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — 非対応形式 空のデータの場合の、未対応の形式のメッセージは、(empty) を含む","name":"空のデータの場合の、未対応の形式のメッセージは、(empty) を含む","status":"passed","testResultsByEnv":{"default":"000b536c2586f1072f36ad0cfad9b3f9"}}

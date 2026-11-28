@@ -1,0 +1,1 @@
+error: merge was rejected: GitHub gave no reason

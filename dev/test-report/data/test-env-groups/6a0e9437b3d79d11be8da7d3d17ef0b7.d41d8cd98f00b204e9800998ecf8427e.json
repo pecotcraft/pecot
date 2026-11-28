@@ -1,0 +1,1 @@
+{"id":"6a0e9437b3d79d11be8da7d3d17ef0b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#closeIssue closeIssue は、state=closed と state_reason=completed を PATCH する","name":"closeIssue は、state=closed と state_reason=completed を PATCH する","status":"passed","testResultsByEnv":{"default":"fdfcdd41c9f1ddeb12ec1470687785e4"}}

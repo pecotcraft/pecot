@@ -1,0 +1,1 @@
+{"id":"ba8e789a977c1e34fb0119fc214eb133.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_pages_are_written_only_for_plugins_with_generated_json","name":"ページは、生成した JSON があるプラグインについてだけ書き出す","status":"passed","testResultsByEnv":{"default":"9cf265b65e0e30dae5cf0f2f4bd99527"}}

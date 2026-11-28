@@ -1,0 +1,1 @@
+{"id":"6dcdeb5d2804ca88e155ebb3ebf0bb3f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#collectIo の項目・warnings・errors・log result の項目を浅く重ねて集め、warning の文を前置きなしで、続きの行の字下げを残して集める","name":"result の項目を浅く重ねて集め、warning の文を前置きなしで、続きの行の字下げを残して集める","status":"passed","testResultsByEnv":{"default":"75dfb002a45e56182b95ab57926ddf6a"}}

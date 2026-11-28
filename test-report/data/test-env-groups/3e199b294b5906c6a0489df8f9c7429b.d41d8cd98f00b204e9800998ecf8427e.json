@@ -1,0 +1,1 @@
+{"id":"3e199b294b5906c6a0489df8f9c7429b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_task_cache#test_affected_uses_task_level_selection","name":"affected の設定は、legacy を置かず、タスク単位の選択を使う","status":"passed","testResultsByEnv":{"default":"fcdb152883a80ddb12cc9ac0bff82cb3"}}

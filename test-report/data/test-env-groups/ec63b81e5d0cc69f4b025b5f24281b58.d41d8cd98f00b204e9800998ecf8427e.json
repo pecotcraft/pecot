@@ -1,0 +1,1 @@
+{"id":"ec63b81e5d0cc69f4b025b5f24281b58.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) slide_convert は失敗した場合に、ok や stdout などの項目を含めず、kind と detail だけを返す","name":"slide_convert は失敗した場合に、ok や stdout などの項目を含めず、kind と detail だけを返す","status":"passed","testResultsByEnv":{"default":"2a9e778c0aff864c67991a919d4f73ac"}}

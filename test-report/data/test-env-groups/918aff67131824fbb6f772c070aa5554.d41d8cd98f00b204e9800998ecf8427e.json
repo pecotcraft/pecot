@@ -1,0 +1,1 @@
+{"id":"918aff67131824fbb6f772c070aa5554.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/actions-setting-names.test.ts#readSettingNames 持ち主が User なら、リポの secret と variable の名前だけを読む","name":"持ち主が User なら、リポの secret と variable の名前だけを読む","status":"passed","testResultsByEnv":{"default":"238f8abf182fd0634e73d896670cdd8e"}}

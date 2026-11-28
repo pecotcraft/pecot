@@ -1,0 +1,1 @@
+{"id":"336c3205252d70628f38863c16df0f27.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#expectedScope 差分が 1 つのプロジェクトだけに属する場合は、その scope だけを返す","name":"差分が 1 つのプロジェクトだけに属する場合は、その scope だけを返す","status":"passed","testResultsByEnv":{"default":"fe0fa054f686bb39c54d60545cbb3ac8"}}

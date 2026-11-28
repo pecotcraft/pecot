@@ -1,0 +1,1 @@
+{"id":"cfd7805955035a4c4587522352fc52e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference owner/repo/N の形の参照では、基準リポジトリを指定しても無視する","name":"owner/repo/N の形の参照では、基準リポジトリを指定しても無視する","status":"passed","testResultsByEnv":{"default":"d8a86009c879bfba7d4dc69991e92a97"}}

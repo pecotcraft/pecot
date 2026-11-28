@@ -1,0 +1,14 @@
+[
+  "githooks:test-checks",
+  "githooks:test-nx-affected",
+  "githooks:test-nx-cache",
+  "nx-release:test-unit",
+  "pecot-tools:test-release",
+  "pecot-visual:test-cli",
+  "pecot-visual:test-compare",
+  "pecot-visual:test-hooks",
+  "pecot-visual:test-release",
+  "pecot-visual:test-skills",
+  "pecot-visual:test-slidev",
+  "pecot-workflow:test-release"
+]

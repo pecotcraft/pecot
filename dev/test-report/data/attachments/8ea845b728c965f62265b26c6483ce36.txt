@@ -1,0 +1,7 @@
+==> npm pack
+==> tgz: example-attach-test-1.2.3.tgz
+==> tgz の中身（1 ファイル）
+    package.json
+==> gh release view example-v1.2.3 -R acme-labs/example-repo
+ERROR: Release example-v1.2.3 を確認できません: gh: HTTP 401 stub failure
+       Release が無いときは、Release を作ってから pnpm exec nx release publish を再実行してください。

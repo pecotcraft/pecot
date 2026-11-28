@@ -1,0 +1,1 @@
+{"id":"1b5cfdded7a08488f6779b35bd08dd0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/pecotv-dir-init-detection.bats#プロンプトが /pecot-w: なら、pecotv 側では .pecotv/ を作らない","name":"プロンプトが /pecot-w: なら、pecotv 側では .pecotv/ を作らない","status":"passed","testResultsByEnv":{"default":"5830abbcbf100c264b8cb0bfe7d85c57"}}

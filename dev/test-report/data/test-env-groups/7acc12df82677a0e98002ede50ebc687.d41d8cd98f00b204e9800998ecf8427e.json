@@ -1,0 +1,1 @@
+{"id":"7acc12df82677a0e98002ede50ebc687.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-decorative-bar-element.test.ts#no-decorative-bar-element valid 親に overflow: hidden が無いと、報告しない","name":"親に overflow: hidden が無いと、報告しない","status":"passed","testResultsByEnv":{"default":"50c5ab4ed5c8c703adda57ef25f7896b"}}

@@ -1,0 +1,1 @@
+{"id":"10ce9238976643a64944c73e28c1b52a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/attributes.test.ts#readAttributeValues Issue fields の値を、source が issue_field の値として返す","name":"Issue fields の値を、source が issue_field の値として返す","status":"passed","testResultsByEnv":{"default":"a02bb799a6b006cccbdc5490aa5db82e"}}

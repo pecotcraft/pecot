@@ -1,0 +1,1 @@
+{"id":"c21e4fbdecd15f25a92feb7b51fb7048.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/load.test.ts#loadJson and loadYaml ファイルが存在しないと、missing の状態を返す","name":"ファイルが存在しないと、missing の状態を返す","status":"passed","testResultsByEnv":{"default":"13ffe7c0d884d8d3cb53f62febdafd1c"}}

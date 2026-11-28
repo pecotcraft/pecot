@@ -1,0 +1,1 @@
+{"id":"1600de69476fa54d1cf453cf27e0edf5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#runResultOf 同じ run と同じ試行の目印を持つ bot のコメントがある場合は、その結果を返す","name":"同じ run と同じ試行の目印を持つ bot のコメントがある場合は、その結果を返す","status":"passed","testResultsByEnv":{"default":"4e746476de0ae322219bbb83240a0462"}}

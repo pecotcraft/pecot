@@ -1,0 +1,1 @@
+{"id":"104193be8a5d010fac2416cfe2f6aed5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template スロットの分割代入と v-for を持つ要素の本文 に違反があると、元のファイルの行と桁で指摘を返す","name":"スロットの分割代入と v-for を持つ要素の本文 に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"72b052310260f2faf06dc4d8c1061a19"}}

@@ -1,0 +1,1 @@
+{"id":"a0f7b95bd410156b81305cc3ef9b3346.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/error-utils.test.ts#sanitizeErrorMessage call log から後ろを取り除き、API 名とタイムアウト値を含む 1 行目だけを残す","name":"call log から後ろを取り除き、API 名とタイムアウト値を含む 1 行目だけを残す","status":"passed","testResultsByEnv":{"default":"7764447a034260d8b4176af0b41b9e42"}}

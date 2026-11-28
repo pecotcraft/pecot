@@ -1,0 +1,1 @@
+{"id":"94f5060d35c33b59591eebd8ee2a12cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#素の URL の Link ノード HTML タグの属性の中 は、Link として扱わない","name":"HTML タグの属性の中 は、Link として扱わない","status":"passed","testResultsByEnv":{"default":"945d85e8b73a6af04d07a17e330f2012"}}

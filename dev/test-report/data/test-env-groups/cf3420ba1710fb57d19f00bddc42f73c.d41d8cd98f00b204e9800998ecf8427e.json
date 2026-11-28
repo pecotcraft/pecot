@@ -1,0 +1,1 @@
+{"id":"cf3420ba1710fb57d19f00bddc42f73c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#formatBoardOutput の Readiness の列 Blocked の節にも列を付け、判定の表に存在しない Issue のセルは - にする","name":"Blocked の節にも列を付け、判定の表に存在しない Issue のセルは - にする","status":"passed","testResultsByEnv":{"default":"91827074edcc14230b550134e8f796b9"}}

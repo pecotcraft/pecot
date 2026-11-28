@@ -1,0 +1,1 @@
+{"id":"afe696e147fdd1fb11f3ec3b84d59f69.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#issueFieldRestId 負の数 の文字列を渡した場合は、undefined を返す","name":"負の数 の文字列を渡した場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"a3f61b1d6febff6eb125e9bf1b2ff339"}}

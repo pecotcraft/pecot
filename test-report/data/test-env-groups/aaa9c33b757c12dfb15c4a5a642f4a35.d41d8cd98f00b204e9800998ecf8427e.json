@@ -1,0 +1,1 @@
+{"id":"aaa9c33b757c12dfb15c4a5a642f4a35.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/rule-tester.test.ts#max-chars valid 制約の範囲に収まる値なら、報告しない","name":"制約の範囲に収まる値なら、報告しない","status":"passed","testResultsByEnv":{"default":"c8d3d7e94e307cdaf6fcc7310bbe5d99"}}

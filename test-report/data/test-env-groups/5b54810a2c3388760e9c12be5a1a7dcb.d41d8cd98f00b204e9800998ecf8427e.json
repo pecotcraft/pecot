@@ -1,0 +1,1 @@
+{"id":"5b54810a2c3388760e9c12be5a1a7dcb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show MCP の data origin も他の remote も無いと、repository と activeIssue を入れずに続ける","name":"origin も他の remote も無いと、repository と activeIssue を入れずに続ける","status":"passed","testResultsByEnv":{"default":"92a4ee0f0576884d04f2439cab0ff061"}}

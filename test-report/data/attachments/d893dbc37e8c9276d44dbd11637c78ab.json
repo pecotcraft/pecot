@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "must be an absolute path: input_path=no-such-dir-980/probe"
+    },
+    {
+      "type": "text",
+      "text": "{\"invalidPaths\":[\"input_path=no-such-dir-980/probe\"],\"kind\":\"invalid-path\",\"detail\":\"must be an absolute path: input_path=no-such-dir-980/probe\"}"
+    }
+  ],
+  "structuredContent": {
+    "invalidPaths": [
+      "input_path=no-such-dir-980/probe"
+    ],
+    "kind": "invalid-path",
+    "detail": "must be an absolute path: input_path=no-such-dir-980/probe"
+  },
+  "isError": true
+}

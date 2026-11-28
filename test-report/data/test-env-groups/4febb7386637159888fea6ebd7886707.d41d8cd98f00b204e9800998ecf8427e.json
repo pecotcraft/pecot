@@ -1,0 +1,1 @@
+{"id":"4febb7386637159888fea6ebd7886707.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getStackOfPullRequest 応答が配列でない場合は、GitHubAPIError を発生させる","name":"応答が配列でない場合は、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"df4ddbb80fdf9e2bcfdcd78f6ce45cb9"}}

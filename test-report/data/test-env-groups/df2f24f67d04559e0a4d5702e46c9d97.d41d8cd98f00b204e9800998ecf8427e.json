@@ -1,0 +1,1 @@
+{"id":"df2f24f67d04559e0a4d5702e46c9d97.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形の Check の中身 ラベルを付けた人の権限が triage なら、本文と outputs を書かずに成功で終わる","name":"ラベルを付けた人の権限が triage なら、本文と outputs を書かずに成功で終わる","status":"passed","testResultsByEnv":{"default":"1bf6a753a0bc750d6c2e52766380e348"}}

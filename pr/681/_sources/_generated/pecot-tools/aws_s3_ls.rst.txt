@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-S3-LS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+List S3 contents
+================================
+
+.. iface-defs:: pecot-tools PT-AWS-S3-LS

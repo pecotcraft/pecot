@@ -1,0 +1,1 @@
+{"id":"db7b7c6c79d616e64b722533022c6327.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge もし PR が既にマージ済みなら、終了コード 1 で終わる","name":"もし PR が既にマージ済みなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"f5dc9b05e15ec18f4b5e3a74a2683491"}}

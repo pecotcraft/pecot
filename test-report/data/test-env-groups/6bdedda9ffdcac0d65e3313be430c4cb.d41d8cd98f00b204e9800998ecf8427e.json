@@ -1,0 +1,1 @@
+{"id":"6bdedda9ffdcac0d65e3313be430c4cb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#removeWaitsForMerge 改行が \\r\\n の本文でも、節の外を変更しない","name":"改行が \\r\\n の本文でも、節の外を変更しない","status":"passed","testResultsByEnv":{"default":"1adeb29af32113a0cde3c6e6e04891c7"}}

@@ -1,0 +1,5 @@
+count: open dependabot PRs: 0
+count: PRs awaiting a decision: 0
+count: PRs awaiting a decision without check results: 0
+dry-run: would remove PR #1 from Tracker #9
+dry-run: would close Tracker #9

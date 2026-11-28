@@ -1,0 +1,1 @@
+{"id":"f0ae5f6e47327476348ce9218a953068.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ session-show-ok-python-state を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ session-show-ok-python-state を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"018ab39af52326fa7db1487a8939a46d"}}

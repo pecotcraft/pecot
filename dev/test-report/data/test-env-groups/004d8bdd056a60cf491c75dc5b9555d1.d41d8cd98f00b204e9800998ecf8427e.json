@@ -1,0 +1,1 @@
+{"id":"004d8bdd056a60cf491c75dc5b9555d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#writeBaseRecord / readBaseRecord 記録の形式が不正な場合は、malformed として読み込む","name":"記録の形式が不正な場合は、malformed として読み込む","status":"passed","testResultsByEnv":{"default":"dfe69d1d94a43ee523bc5e517e90cf7a"}}

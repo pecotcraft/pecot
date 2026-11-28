@@ -1,0 +1,1 @@
+{"id":"00f8b6ba87138492958a6e127b9fb25c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-decorative-bar-element.test.ts#no-decorative-bar-element invalid 高さだけが 5px 以下のバーでも、角丸の祖先の中にあると報告する","name":"高さだけが 5px 以下のバーでも、角丸の祖先の中にあると報告する","status":"passed","testResultsByEnv":{"default":"3e314dfaa66aab54d9c040700a9669b4"}}

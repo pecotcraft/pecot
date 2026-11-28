@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_lambda_get_function_configuration failed (auth-expired). Authentication has expired. Run aws_sso_login to sign in again"
+    },
+    {
+      "type": "text",
+      "text": "{\"log\":\"\\naws: [ERROR]: An error occurred (InvalidClientTokenId) when calling the GetCallerIdentity operation: The security token included in the request is invalid.\\n\",\"kind\":\"auth-expired\",\"detail\":\"aws_lambda_get_function_configuration failed (auth-expired). Authentication has expired. Run aws_sso_login to sign in again\"}"
+    }
+  ],
+  "structuredContent": {
+    "log": "\naws: [ERROR]: An error occurred (InvalidClientTokenId) when calling the GetCallerIdentity operation: The security token included in the request is invalid.\n",
+    "kind": "auth-expired",
+    "detail": "aws_lambda_get_function_configuration failed (auth-expired). Authentication has expired. Run aws_sso_login to sign in again"
+  },
+  "isError": true
+}

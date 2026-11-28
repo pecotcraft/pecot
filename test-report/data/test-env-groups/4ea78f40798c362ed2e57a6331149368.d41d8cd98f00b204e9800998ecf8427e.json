@@ -1,0 +1,1 @@
+{"id":"4ea78f40798c362ed2e57a6331149368.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate MCP の data 渡した設定ファイルを読めないと、kind が config-invalid の失敗を返す","name":"渡した設定ファイルを読めないと、kind が config-invalid の失敗を返す","status":"passed","testResultsByEnv":{"default":"ff470e106741e486e86a8db4371a4595"}}

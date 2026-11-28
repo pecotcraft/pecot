@@ -1,0 +1,1 @@
+{"id":"e16d95d7ed44d65ac4c724067a0e5384.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#gh-command-check.sh コマンドが gh pr merge 789 のとき、何も出力せず通す","name":"コマンドが gh pr merge 789 のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"81df3e9398dcefa3d67650cb64e1baca"}}

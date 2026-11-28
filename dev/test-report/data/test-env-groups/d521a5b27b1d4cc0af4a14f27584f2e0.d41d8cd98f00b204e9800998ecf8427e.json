@@ -1,0 +1,1 @@
+{"id":"d521a5b27b1d4cc0af4a14f27584f2e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start ブランチが無いとき 開発ブランチが設定に無ければ、ブランチを作らずに project_link を案内して止まる","name":"開発ブランチが設定に無ければ、ブランチを作らずに project_link を案内して止まる","status":"passed","testResultsByEnv":{"default":"2a31b992e69f257b4b65b75d83c4d75b"}}

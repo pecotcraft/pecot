@@ -1,0 +1,1 @@
+{"id":"1abfeeb6ab4990145a09c40c924f4db6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: テンプレート文字列の ${} 複数行にまたがる埋め込み式は、行を分けず、1 つの Code にする","name":"複数行にまたがる埋め込み式は、行を分けず、1 つの Code にする","status":"passed","testResultsByEnv":{"default":"05acdc8d546dd506be82833ef8db0d33"}}

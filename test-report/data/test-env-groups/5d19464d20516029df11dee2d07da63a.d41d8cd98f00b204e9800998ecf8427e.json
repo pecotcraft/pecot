@@ -1,0 +1,1 @@
+{"id":"5d19464d20516029df11dee2d07da63a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_release_group_changelog#test_missing_trailing_newline_fails","name":"CHANGELOG の末尾に改行が存在しないと、失敗で終わる","status":"passed","testResultsByEnv":{"default":"2f06825dfecc2aab025196074984cd87"}}

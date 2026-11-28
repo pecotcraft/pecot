@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "repo: acme/extra/demo is not a repository name"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"repo\",\"code\":\"value\",\"message\":\"acme/extra/demo is not a repository name\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "repo",
+        "code": "value",
+        "message": "acme/extra/demo is not a repository name"
+      }
+    ]
+  }
+}

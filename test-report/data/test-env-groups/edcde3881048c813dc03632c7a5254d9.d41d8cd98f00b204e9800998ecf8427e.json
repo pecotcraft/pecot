@@ -1,0 +1,1 @@
+{"id":"edcde3881048c813dc03632c7a5254d9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: Chromium の OS ライブラリ 起動の失敗が OS ライブラリ以外なら担当外として通し、理由を message と失敗の記録に残す","name":"起動の失敗が OS ライブラリ以外なら担当外として通し、理由を message と失敗の記録に残す","status":"passed","testResultsByEnv":{"default":"c2b62e3f878e5f32c6e96997170e2f00"}}

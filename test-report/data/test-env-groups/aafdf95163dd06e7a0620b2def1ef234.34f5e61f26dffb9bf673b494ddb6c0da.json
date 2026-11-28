@@ -1,0 +1,1 @@
+{"id":"aafdf95163dd06e7a0620b2def1ef234.34f5e61f26dffb9bf673b494ddb6c0da","fullName":".githooks.tests.test_report_dev_sources#test_cli_rejects_wrong_arguments","name":"CLI は、引数が repo の形が違う だと、終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"e08d9aa080128bf5131f2c2e672a09f5"}}

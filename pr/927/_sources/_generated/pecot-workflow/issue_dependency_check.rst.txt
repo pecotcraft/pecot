@@ -1,0 +1,8 @@
+:iface-id: PW-ISSUE-DEPENDENCY-CHECK
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Check Issue dependency
+============================================
+
+.. iface-defs:: pecot-workflow PW-ISSUE-DEPENDENCY-CHECK

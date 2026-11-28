@@ -1,0 +1,18 @@
+
+==========================================
+❌ エラー: main ブランチへの直接コミットは禁止されています
+==========================================
+
+📋 正しい手順:
+
+  main への変更は feature branch からのPRのみ許可されています
+
+  1. feature branchを作成:
+     git checkout -b feat/your-feature-name
+
+  2. feature branchでコミット・PRを作成
+
+※ chore(release): から始まる commit（Nx Release）は例外的に許可されます。
+
+==========================================
+

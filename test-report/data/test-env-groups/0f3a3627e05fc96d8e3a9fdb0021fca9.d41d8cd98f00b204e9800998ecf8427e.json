@@ -1,0 +1,1 @@
+{"id":"0f3a3627e05fc96d8e3a9fdb0021fca9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/textlint-body-rule.test.ts#同じ行のコメントより後ろの本文に違反があると、元の桁で報告する","name":"同じ行のコメントより後ろの本文に違反があると、元の桁で報告する","status":"passed","testResultsByEnv":{"default":"38583346bb0df899eff516175cf26c90"}}

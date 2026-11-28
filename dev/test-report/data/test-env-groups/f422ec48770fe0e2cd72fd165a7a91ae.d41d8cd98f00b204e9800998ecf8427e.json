@@ -1,0 +1,1 @@
+{"id":"f422ec48770fe0e2cd72fd165a7a91ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — 書式が出力まで届く 帯の装飾専用のセルが、期待する行に期待する書式で出力される","name":"帯の装飾専用のセルが、期待する行に期待する書式で出力される","status":"passed","testResultsByEnv":{"default":"2b2d15303f5b64291e0a2f85d76d43dc"}}

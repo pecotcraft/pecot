@@ -1,0 +1,1 @@
+{"id":"94a8d1610dd9755edc0be0fbc83f0ebf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#updateIssueAttributes 組み込み属性の書き込みを、1 回の PATCH の本文にまとめて送信し、応答の Issue を返す","name":"組み込み属性の書き込みを、1 回の PATCH の本文にまとめて送信し、応答の Issue を返す","status":"passed","testResultsByEnv":{"default":"c7b7acb4fe5f8f7c4d6a37055907b3c9"}}

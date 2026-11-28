@@ -1,0 +1,1 @@
+{"id":"8c417e62ad75376d9284ff119744b7ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main Error ではない値で失敗しても、その理由を文字列にして標準エラーへ出力し、終了コード 2 を返す","name":"Error ではない値で失敗しても、その理由を文字列にして標準エラーへ出力し、終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"5747790c7270a84d456bbf2ddb9c886f"}}

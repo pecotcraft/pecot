@@ -1,0 +1,4 @@
+2026-11-28T10:57:18+0000	task	lane-two:install	3.0	status=success
+2026-11-28T10:57:18+0000	task	lane-one:test-unit	1.5	status=success
+2026-11-28T10:57:18+0000	task	lane-two:test-unit	2.5	status=success
+2026-11-28T10:57:18+0000	nx	run-many	0.0	parallel=4 lanes=2 longest=lane-two:test-unit rec=0.1

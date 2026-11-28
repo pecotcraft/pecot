@@ -1,0 +1,1 @@
+{"id":"28f7907c92a2fbd4cd0f2409804c857c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/slides-md.test.ts#setSlidesTheme 改行が CRLF の場合は、追加する行も含めて CRLF を維持する","name":"改行が CRLF の場合は、追加する行も含めて CRLF を維持する","status":"passed","testResultsByEnv":{"default":"19ee0b31a3e95cf01e62dbb31e7519b0"}}

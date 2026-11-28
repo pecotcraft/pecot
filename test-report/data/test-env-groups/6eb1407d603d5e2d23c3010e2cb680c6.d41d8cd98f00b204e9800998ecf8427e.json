@@ -1,0 +1,1 @@
+{"id":"6eb1407d603d5e2d23c3010e2cb680c6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 先頭行の shebang はコメント のとき、引用符を含まない本文だけを切り出す","name":"先頭行の shebang はコメント のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"df14b3728bd71c415d3ba825d8bd2a45"}}

@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"links\":[{\"path\":\"/tmp/pecot-cli-xLEzSe/workspaces/wt1/demo/CLAUDE.local.md\",\"destination\":\"/tmp/pecot-cli-xLEzSe/workspaces/base/demo/CLAUDE.local.md\",\"change\":\"create\"},{\"path\":\"/tmp/pecot-cli-xLEzSe/workspaces/wt2/demo/CLAUDE.local.md\",\"destination\":\"/tmp/pecot-cli-xLEzSe/workspaces/base/demo/CLAUDE.local.md\",\"change\":\"create\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "links": [
+      {
+        "path": "/tmp/pecot-cli-xLEzSe/workspaces/wt1/demo/CLAUDE.local.md",
+        "destination": "/tmp/pecot-cli-xLEzSe/workspaces/base/demo/CLAUDE.local.md",
+        "change": "create"
+      },
+      {
+        "path": "/tmp/pecot-cli-xLEzSe/workspaces/wt2/demo/CLAUDE.local.md",
+        "destination": "/tmp/pecot-cli-xLEzSe/workspaces/base/demo/CLAUDE.local.md",
+        "change": "create"
+      }
+    ]
+  }
+}

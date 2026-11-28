@@ -1,0 +1,1 @@
+{"id":"bdb621a27cdcb5e16ff6f50f14365557.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 起票先と用法 起票先を渡さないと、owner と repo の problem にする","name":"起票先を渡さないと、owner と repo の problem にする","status":"passed","testResultsByEnv":{"default":"6c44476a58d0e35a2d7553d0343791f9"}}

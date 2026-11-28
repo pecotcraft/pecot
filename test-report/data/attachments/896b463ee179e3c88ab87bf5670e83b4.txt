@@ -1,0 +1,5 @@
+warning: using repo acme/demo (could not read the repository from the URL of the Git remote origin)
+count: open Dependabot alerts: 0
+count: open code scanning alerts: 0
+count: open secret scanning alerts: 0
+count: commits to release (origin/develop -> origin/release): 1

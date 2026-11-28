@@ -1,0 +1,1 @@
+{"id":"78431645928fc1c346e2c1b19a03fed0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start ブランチが無いとき ブランチを作る書き込みが失敗すると、その理由で止まり、文脈のファイルを書かない","name":"ブランチを作る書き込みが失敗すると、その理由で止まり、文脈のファイルを書かない","status":"passed","testResultsByEnv":{"default":"b47ee29c15ce125b75a4b35b7b8596d8"}}

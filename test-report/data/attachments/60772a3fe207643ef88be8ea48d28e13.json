@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_logs_describe_log_streams: order_by: Invalid option: expected one of \"LogStreamName\"|\"LastEventTime\""
+    }
+  ],
+  "isError": true
+}

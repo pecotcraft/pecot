@@ -1,0 +1,1 @@
+{"id":"76e7a4aa74f348c080d868f815c55824.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_agent_decrypt_deny_exempts_only_lambda","name":"kms:Decrypt の拒否は、Lambda 経由の復号だけを例外にする","status":"passed","testResultsByEnv":{"default":"d53862aa1989e80b2636026212902520"}}

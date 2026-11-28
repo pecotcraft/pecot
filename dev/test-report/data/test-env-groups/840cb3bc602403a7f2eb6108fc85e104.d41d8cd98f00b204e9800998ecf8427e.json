@@ -1,0 +1,1 @@
+{"id":"840cb3bc602403a7f2eb6108fc85e104.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_served#test_times_out_while_settling","name":"期限の直前に合い始めても、settle の秒数が続かなければ偽を返す","status":"passed","testResultsByEnv":{"default":"0b0101d88736bcec14779c9006f4bd40"}}

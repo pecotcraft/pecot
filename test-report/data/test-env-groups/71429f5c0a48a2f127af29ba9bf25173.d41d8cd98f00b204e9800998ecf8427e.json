@@ -1,0 +1,1 @@
+{"id":"71429f5c0a48a2f127af29ba9bf25173.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#linkNodeModules (依存ルートの項目) 依存ルートに .bin 以外のドットで始まる項目が存在する場合は、それらを張らない","name":"依存ルートに .bin 以外のドットで始まる項目が存在する場合は、それらを張らない","status":"passed","testResultsByEnv":{"default":"60645726f897e2defdc6d506bafd1799"}}

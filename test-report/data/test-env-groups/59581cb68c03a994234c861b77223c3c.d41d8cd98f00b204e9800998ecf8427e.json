@@ -1,0 +1,1 @@
+{"id":"59581cb68c03a994234c861b77223c3c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-view.test.ts#board show の表示 判定を取得できる場合は、項目に判定を付け、着手できる Ready の Issue を Lane ごとに集計する","name":"判定を取得できる場合は、項目に判定を付け、着手できる Ready の Issue を Lane ごとに集計する","status":"passed","testResultsByEnv":{"default":"b9491de7b9217c8285bbaef7869816a3"}}

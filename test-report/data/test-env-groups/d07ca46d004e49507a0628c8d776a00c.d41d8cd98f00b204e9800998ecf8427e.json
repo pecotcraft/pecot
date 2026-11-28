@@ -1,0 +1,1 @@
+{"id":"d07ca46d004e49507a0628c8d776a00c.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/parallel-lib.test.sh#正常終了: INT / TERM の trap を外し、呼び出し元の EXIT trap は残る","name":"正常終了: INT / TERM の trap を外し、呼び出し元の EXIT trap は残る","status":"passed","testResultsByEnv":{"default":"1a227f9857dd91e1cfc8915fe7287e5c"}}

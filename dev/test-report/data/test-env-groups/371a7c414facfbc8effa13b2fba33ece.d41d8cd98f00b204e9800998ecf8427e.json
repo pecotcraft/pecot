@@ -1,0 +1,1 @@
+{"id":"371a7c414facfbc8effa13b2fba33ece.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_environment_reads_comments_separators_and_continuations","name":"コメント・区切りの種類・行の継続・エスケープを、Allure の読み方と同じに読む","status":"passed","testResultsByEnv":{"default":"461efa36d40707e8a251e438979db368"}}

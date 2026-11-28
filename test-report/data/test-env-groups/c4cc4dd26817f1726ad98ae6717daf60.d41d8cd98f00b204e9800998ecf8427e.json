@@ -1,0 +1,1 @@
+{"id":"c4cc4dd26817f1726ad98ae6717daf60.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#builtinValuesOfIssue 担当者・ラベル・マイルストーン・Issue type を持つ Issue から、それぞれの名前と番号を取り出す","name":"担当者・ラベル・マイルストーン・Issue type を持つ Issue から、それぞれの名前と番号を取り出す","status":"passed","testResultsByEnv":{"default":"dd726e8e26af374d1164a0adb154c1ef"}}

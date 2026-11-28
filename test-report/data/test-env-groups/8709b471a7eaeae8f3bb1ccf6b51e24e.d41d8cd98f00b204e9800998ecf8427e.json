@@ -1,0 +1,1 @@
+{"id":"8709b471a7eaeae8f3bb1ccf6b51e24e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#parseScenario 形式に誤りがあると、例外が発生する: status が整数でない","name":"形式に誤りがあると、例外が発生する: status が整数でない","status":"passed","testResultsByEnv":{"default":"d468d3633b477b116a55a9cc935ea179"}}

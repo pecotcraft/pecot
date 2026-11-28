@@ -1,0 +1,1 @@
+{"id":"0e241f2e47fa61ccb368e24234968590.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/lanes.test.ts#summarizeLanes 選択肢の順に並べ、レーンごとの Issue の件数と着手できる件数を集計する","name":"選択肢の順に並べ、レーンごとの Issue の件数と着手できる件数を集計する","status":"passed","testResultsByEnv":{"default":"1ccfd4764660916d6f6f3206d0bb9a80"}}

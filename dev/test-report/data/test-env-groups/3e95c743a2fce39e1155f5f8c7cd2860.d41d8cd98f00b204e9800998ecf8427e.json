@@ -1,0 +1,1 @@
+{"id":"3e95c743a2fce39e1155f5f8c7cd2860.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template テキスト に違反があると、元のファイルの行と桁で指摘を返す","name":"テキスト に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"9457c977a20e05139305f61eb192fd5f"}}

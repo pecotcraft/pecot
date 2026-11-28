@@ -1,0 +1,1 @@
+{"id":"86e31f786d51306dbf1fea600377c024.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-numeric-asset-prefix.test.ts#数字始まりの参照があると、frontmatter の該当行を指摘位置にする","name":"数字始まりの参照があると、frontmatter の該当行を指摘位置にする","status":"passed","testResultsByEnv":{"default":"342fb6f5fc93eb8745dc260c7fe5af46"}}

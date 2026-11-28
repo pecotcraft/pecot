@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: a body without template ends with this line: <!-- issue_check の自由形式で起票（テンプレートの検証なし）。起票ルール: skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"freeform-footer\",\"message\":\"a body without template ends with this line: <!-- issue_check の自由形式で起票（テンプレートの検証なし）。起票ルール: skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->\",\"candidates\":[\"一覧に状態を出す\\n\\n詳しくは後で書く。\\n\\n<!-- issue_check の自由形式で起票（テンプレートの検証なし）。起票ルール: skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "freeform-footer",
+        "message": "a body without template ends with this line: <!-- issue_check の自由形式で起票（テンプレートの検証なし）。起票ルール: skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->",
+        "candidates": [
+          "一覧に状態を出す\n\n詳しくは後で書く。\n\n<!-- issue_check の自由形式で起票（テンプレートの検証なし）。起票ルール: skills/w-help/references/issue-flow-rules.md#起票時の既定-status -->"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

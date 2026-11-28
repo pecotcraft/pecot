@@ -1,0 +1,1 @@
+{"id":"e59a4c1dc877ca9a4ed23c775f15eb82.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create message に title を渡さないと、終了コード 1 で終わる","name":"message に title を渡さないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"262a9792ff1ffe2c965ff7631dcaca72"}}

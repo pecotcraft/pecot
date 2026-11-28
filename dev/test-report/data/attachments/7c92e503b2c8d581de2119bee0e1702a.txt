@@ -1,0 +1,4 @@
+ずれは 1 件
+workflows / codeql.yml
+  このリポ: あり
+  検証用: なし

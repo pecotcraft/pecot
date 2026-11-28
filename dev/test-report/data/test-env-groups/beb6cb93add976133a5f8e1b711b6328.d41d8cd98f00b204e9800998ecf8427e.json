@@ -1,0 +1,1 @@
+{"id":"beb6cb93add976133a5f8e1b711b6328.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_sso_login profile の書式に合わない値を渡すと、拒否する","name":"profile の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"9fb6ae1fa9a3e106ec4c67b36f901b3b"}}

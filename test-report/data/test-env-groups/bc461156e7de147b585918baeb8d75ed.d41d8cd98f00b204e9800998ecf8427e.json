@@ -1,0 +1,1 @@
+{"id":"bc461156e7de147b585918baeb8d75ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql data が null で errors が無い のとき、GitHubAPIError が発生する","name":"data が null で errors が無い のとき、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"0ab90f741defcb2cdfc0eb3474fff2da"}}

@@ -1,0 +1,1 @@
+{"id":"a2b47d19bd5cf4c7933c52831f9f8933.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_git_is_ancestor_follows_head","name":"`git_is_ancestor` は、HEAD の祖先のコミットだけを祖先とする","status":"passed","testResultsByEnv":{"default":"7a29502d099b9cb11224c93b0ec8e6f6"}}

@@ -1,0 +1,2 @@
+FAILED: 1 本のテストが失敗しました:
+  /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_broken_result_has_layer0/plugins/p/tests/sample.test.sh (exit 3)

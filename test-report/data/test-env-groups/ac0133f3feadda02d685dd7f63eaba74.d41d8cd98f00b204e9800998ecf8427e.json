@@ -1,0 +1,1 @@
+{"id":"ac0133f3feadda02d685dd7f63eaba74.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_stages_run_in_order_with_range","name":"3 つの stage を pre-commit・pre-push・manual の順に、base と head の範囲を指定して呼ぶ","status":"passed","testResultsByEnv":{"default":"cbc3c555a772c493e21ff502c47d127e"}}

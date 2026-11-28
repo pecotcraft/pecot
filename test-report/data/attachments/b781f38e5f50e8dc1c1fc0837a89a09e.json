@@ -1,0 +1,36 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "first: key: key first is given to more than one Issue"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"issue\":\"first\",\"field\":\"key\",\"code\":\"duplicate-key\",\"message\":\"key first is given to more than one Issue\"}],\"plan\":[{\"key\":\"first\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"},{\"key\":\"first\",\"order\":3,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "issue": "first",
+        "field": "key",
+        "code": "duplicate-key",
+        "message": "key first is given to more than one Issue"
+      }
+    ],
+    "plan": [
+      {
+        "key": "first",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      },
+      {
+        "key": "first",
+        "order": 3,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

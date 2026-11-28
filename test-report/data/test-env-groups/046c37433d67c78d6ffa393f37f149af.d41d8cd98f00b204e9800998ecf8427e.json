@@ -1,0 +1,1 @@
+{"id":"046c37433d67c78d6ffa393f37f149af.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_non_pull_request_run_is_rejected","name":"イベントが pull_request ではない run は、選ばない","status":"passed","testResultsByEnv":{"default":"baf80453f5dcbf10d683ee613f40d45e"}}

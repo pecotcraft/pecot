@@ -1,0 +1,1 @@
+{"id":"c144931fe8bd44ceffbface9219a84ae.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_publish_skips_runs_older_than_next","name":"開発版の publish は、next より古い run を skip する","status":"passed","testResultsByEnv":{"default":"fe2fda4fe9e237e12b699a5b14f146d3"}}

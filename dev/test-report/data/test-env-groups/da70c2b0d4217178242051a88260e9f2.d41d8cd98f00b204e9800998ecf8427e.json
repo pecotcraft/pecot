@@ -1,0 +1,1 @@
+{"id":"da70c2b0d4217178242051a88260e9f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#ensureChromiumHostDependencies sudo を使えない場合は、導入せず、不足しているライブラリと導入のコマンドを案内する","name":"sudo を使えない場合は、導入せず、不足しているライブラリと導入のコマンドを案内する","status":"passed","testResultsByEnv":{"default":"edceded46282e9bb7bc96ab43b97063e"}}

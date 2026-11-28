@@ -1,0 +1,35 @@
+[01mRunning Sphinx v9.2.0[39;49;00m
+[01mloading translations [ja]... [39;49;00mdone
+[01mmaking output directory... [39;49;00mdone
+[01mbuilding [mo]: [39;49;00mtargets for 0 po files that are out of date
+[01mwriting output... [39;49;00m
+[01mbuilding [html]: [39;49;00mtargets for 1 source files that are out of date
+[01mupdating environment: [39;49;00m[new config] 1 added, 0 changed, 0 removed
+[2K[01mreading sources... [39;49;00m[100%] [35mindex[39;49;00m
+Copying static files for sphinx-data-viewer support
+Copying static files for sphinx-needs
+Copying static style files for sphinx-needs
+[01mlooking for now-outdated files... [39;49;00mnone found
+[01mpickling environment... [39;49;00mdone
+[01mchecking consistency... [39;49;00mdone
+Schema validation completed with 0 warning(s) in 0.001 seconds. Validated 13463 needs/s.
+[01mpreparing documents... [39;49;00mdone
+[01mcopying assets... [39;49;00m
+[01mcopying static files... [39;49;00m
+Writing evaluated template result to /tmp/pytest-of-vscode/pytest-0/test_body_follows_page_section0/out/_static/documentation_options.js
+Writing evaluated template result to /tmp/pytest-of-vscode/pytest-0/test_body_follows_page_section0/out/_static/basic.css
+Writing evaluated template result to /tmp/pytest-of-vscode/pytest-0/test_body_follows_page_section0/out/_static/language_data.js
+[01mcopying static files: [39;49;00mdone
+[01mcopying extra files... [39;49;00m
+[01mcopying extra files: [39;49;00mdone
+[01mcopying assets: [39;49;00mdone
+[2K[01mwriting output... [39;49;00m[100%] [32mindex[39;49;00m
+[01mgenerating indices... [39;49;00mgenindex done
+[01mwriting additional pages... [39;49;00msearch done
+[01mdumping search index in Japanese (code: ja)... [39;49;00mdone
+[01mdumping object inventory... [39;49;00mdone
+Needs successfully exported
+[2K[01mpostprocess html... [39;49;00m[100%] [33m/tmp/pytest-of-vscode/pytest-0/test_body_follows_page_section0/out/index.html[39;49;00m
+[01mbuild succeeded, 8 warnings.[39;49;00m
+
+The HTML pages are in ../../../../../tmp/pytest-of-vscode/pytest-0/test_body_follows_page_section0/out.

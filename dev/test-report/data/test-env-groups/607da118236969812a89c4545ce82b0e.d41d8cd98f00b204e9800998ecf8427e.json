@@ -1,0 +1,1 @@
+{"id":"607da118236969812a89c4545ce82b0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-view.test.ts#warnOldFieldName 移行の警告は、旧いフィールド名で不要なフィールドも存在すれば両方を知らせる","name":"移行の警告は、旧いフィールド名で不要なフィールドも存在すれば両方を知らせる","status":"passed","testResultsByEnv":{"default":"2e1963f5aaf4889aa8ba1274bbd8d2ed"}}

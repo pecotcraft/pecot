@@ -1,0 +1,1 @@
+{"id":"74a7b1e807a5b071065a2c77bdb3e406.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_devcontainer_playwright_version#test_playwright_deps_version_matches_lock","name":"devcontainer の playwright-deps の版は、pnpm-lock.yaml の playwright の版と一致する","status":"passed","testResultsByEnv":{"default":"abefe43552ccff7c6d0656211f8387d8"}}

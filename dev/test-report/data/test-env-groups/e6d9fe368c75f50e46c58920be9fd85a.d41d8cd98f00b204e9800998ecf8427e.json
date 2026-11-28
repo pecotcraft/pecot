@@ -1,0 +1,1 @@
+{"id":"e6d9fe368c75f50e46c58920be9fd85a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_scan_ignores_variables_the_file_assigns_itself","name":"走査は、ファイル自身が代入した変数を数えない","status":"passed","testResultsByEnv":{"default":"78e76e3c5fde40651522413e8db8ff80"}}

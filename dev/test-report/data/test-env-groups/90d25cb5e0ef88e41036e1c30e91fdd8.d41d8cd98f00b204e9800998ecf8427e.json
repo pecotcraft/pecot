@@ -1,0 +1,1 @@
+{"id":"90d25cb5e0ef88e41036e1c30e91fdd8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#issueTypeNamesOf 名前の無い type と、使えない type は外す","name":"名前の無い type と、使えない type は外す","status":"passed","testResultsByEnv":{"default":"c67d45e6d33d0cfbd9924511ebf41f4a"}}

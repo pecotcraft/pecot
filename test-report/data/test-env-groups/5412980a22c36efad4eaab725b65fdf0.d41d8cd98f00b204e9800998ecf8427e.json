@@ -1,0 +1,1 @@
+{"id":"5412980a22c36efad4eaab725b65fdf0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/evidence-xlsx-soffice.test.ts#生成 xlsx の soffice 変換 2 枚の画像の注記が、端に置いたものも含め、仕様の相対座標が指す位置に縮まず描かれる","name":"2 枚の画像の注記が、端に置いたものも含め、仕様の相対座標が指す位置に縮まず描かれる","status":"passed","testResultsByEnv":{"default":"b94d46c321465cb855a63376a8d4f78a"}}

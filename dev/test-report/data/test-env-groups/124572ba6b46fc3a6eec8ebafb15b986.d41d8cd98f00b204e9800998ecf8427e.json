@@ -1,0 +1,1 @@
+{"id":"124572ba6b46fc3a6eec8ebafb15b986.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release .githooks/scripts/tests/mcp-publish-common.bats#defaults が dry-run なし・build ありの初期値を置き、NX_DRY_RUN で dry-run が決まる","name":"defaults が dry-run なし・build ありの初期値を置き、NX_DRY_RUN で dry-run が決まる","status":"passed","testResultsByEnv":{"default":"743d8c4d6c4a6ba87adbaee1eab86c02"}}

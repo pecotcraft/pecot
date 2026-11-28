@@ -1,0 +1,1 @@
+{"id":"22f7ef01207cb2795100c3ad68fbb296.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_commit_text_without_argument_guides","name":"引数を渡さずに check-commit-text.sh を実行すると、パスを渡す案内を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"d13275e7ef1067e645936a70d3d94ac8"}}

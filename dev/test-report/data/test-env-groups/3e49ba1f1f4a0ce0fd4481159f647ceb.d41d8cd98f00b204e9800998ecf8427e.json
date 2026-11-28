@@ -1,0 +1,1 @@
+{"id":"3e49ba1f1f4a0ce0fd4481159f647ceb.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/dev-install-lib.bats#plugin root が無いと、install を動かさずに失敗を返す","name":"plugin root が無いと、install を動かさずに失敗を返す","status":"passed","testResultsByEnv":{"default":"3abefb0046c4a514862d6748a2dafe20"}}

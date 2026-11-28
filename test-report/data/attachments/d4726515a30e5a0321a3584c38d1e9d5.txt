@@ -1,0 +1,1 @@
+{"event":"slide.convert.error","reason":"pptx-convert-failed","detail":"pptx convert failed: [slide] slide=1 dom-to-pptx inject failed","warnings":[],"errors":[{"level":"slide","slideNumber":1,"message":"dom-to-pptx inject failed"}]}

@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "set: active project to ghes.example.com_acme_1"
+    },
+    {
+      "type": "text",
+      "text": "{\"project\":\"ghes.example.com_acme_1\",\"configPath\":\"/tmp/pecot-repo-57hdyW/.pecot/config/projects/ghes.example.com_acme_1.json\",\"change\":\"unchanged\",\"config_moved\":null}"
+    }
+  ],
+  "structuredContent": {
+    "project": "ghes.example.com_acme_1",
+    "configPath": "/tmp/pecot-repo-57hdyW/.pecot/config/projects/ghes.example.com_acme_1.json",
+    "change": "unchanged",
+    "config_moved": null
+  }
+}

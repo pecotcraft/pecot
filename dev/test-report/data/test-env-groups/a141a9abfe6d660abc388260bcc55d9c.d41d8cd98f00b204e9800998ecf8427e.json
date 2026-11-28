@@ -1,0 +1,1 @@
+{"id":"a141a9abfe6d660abc388260bcc55d9c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#serializeProjectConfig 2 スペースのインデントと末尾の改行で保存し、存在しない項目は出力しない","name":"2 スペースのインデントと末尾の改行で保存し、存在しない項目は出力しない","status":"passed","testResultsByEnv":{"default":"e1f53a8a3e4e348a17f3b8bd2392691b"}}

@@ -1,0 +1,1 @@
+{"id":"728583104203cf80aeafb5797b94e388.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/process.test.ts#spawnPromise 環境変数を指定すると、コマンドへ渡す","name":"環境変数を指定すると、コマンドへ渡す","status":"passed","testResultsByEnv":{"default":"3c50f9b225153a8e74de7aa74a86459b"}}

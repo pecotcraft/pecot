@@ -1,0 +1,1 @@
+{"id":"ecfa544ba00cba7969a2111ec72829f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/issues.test.ts#issuesToFindings 配列の要素が存在しないと、添字を含む field is missing として報告する","name":"配列の要素が存在しないと、添字を含む field is missing として報告する","status":"passed","testResultsByEnv":{"default":"d824f779f51e13cbf12498f3c3da9ac5"}}

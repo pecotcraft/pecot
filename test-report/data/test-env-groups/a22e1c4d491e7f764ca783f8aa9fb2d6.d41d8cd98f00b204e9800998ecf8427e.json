@@ -1,0 +1,1 @@
+{"id":"a22e1c4d491e7f764ca783f8aa9fb2d6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations callout callout の text が空文字の場合は、拒否する","name":"callout の text が空文字の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"ce06ad09840b5537b8ef108bc8b3d1f9"}}

@@ -1,0 +1,1 @@
+{"id":"795a01f51231caa8f5443c099c476b64.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-copy.test.ts#copyFiles 入れ子のディレクトリで発生したエラーも、1 つの一覧にまとめる","name":"入れ子のディレクトリで発生したエラーも、1 つの一覧にまとめる","status":"passed","testResultsByEnv":{"default":"3296495653c47876ee39e0bd87f3676f"}}

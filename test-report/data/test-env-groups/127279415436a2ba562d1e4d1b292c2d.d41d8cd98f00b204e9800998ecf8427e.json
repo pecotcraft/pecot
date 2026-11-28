@@ -1,0 +1,1 @@
+{"id":"127279415436a2ba562d1e4d1b292c2d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot:.nx/nx-release/tests/dependabot-plans.test.mjs#--base で範囲を決める。base が HEAD なら commit が無く、plan を作らない","name":"--base で範囲を決める。base が HEAD なら commit が無く、plan を作らない","status":"passed","testResultsByEnv":{"default":"265ad359812cb384bfc53acedba3b9e8"}}

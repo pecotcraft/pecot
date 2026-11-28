@@ -1,0 +1,1 @@
+{"id":"30d4d730cf406cc3e9a93bd79b926a7b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#listed names 環境変数の名前 \"has space\" を検証すると、false を返す","name":"環境変数の名前 \"has space\" を検証すると、false を返す","status":"passed","testResultsByEnv":{"default":"47b42b0b9f9b247b7d68b76a0f433818"}}

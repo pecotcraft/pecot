@@ -1,0 +1,1 @@
+{"id":"e9dac629226618d3b86b940f72c55a41.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/store-layout.test.ts#classifyGitFailure git の失敗の出力が「空」の場合は、原因の種類に分類する","name":"git の失敗の出力が「空」の場合は、原因の種類に分類する","status":"passed","testResultsByEnv":{"default":"597eb76bd778587c8f9ad44307ebc96f"}}

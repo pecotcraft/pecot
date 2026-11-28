@@ -1,0 +1,1 @@
+ERROR: --out-dir がディレクトリではありません: /tmp/bats-run-Ha4GM6/test/9/a-file

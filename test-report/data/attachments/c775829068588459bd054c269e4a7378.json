@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_scheduler_list_schedules succeeded"
+    },
+    {
+      "type": "text",
+      "text": "{\"Schedules\":[],\"NextToken\":\"eyJuZXh0IjogMX0=\",\"nextToken\":\"eyJuZXh0IjogMX0=\"}"
+    }
+  ],
+  "structuredContent": {
+    "Schedules": [],
+    "NextToken": "eyJuZXh0IjogMX0=",
+    "nextToken": "eyJuZXh0IjogMX0="
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"241345a28ec16deb017c633596003040.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#ホスト設定 ルートの .env の変数名は、github.com の GITHUB_COM_TOKEN だけを持つ","name":"ルートの .env の変数名は、github.com の GITHUB_COM_TOKEN だけを持つ","status":"passed","testResultsByEnv":{"default":"32f007379d7ed91f21d485570fcd99af"}}

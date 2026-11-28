@@ -1,0 +1,1 @@
+{"id":"048fe659802dcf20a395904d303dcda1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#runGit stripGitEnvironment を指定すると、GIT_ で始まる環境変数を除き、ほかの変数は残す","name":"stripGitEnvironment を指定すると、GIT_ で始まる環境変数を除き、ほかの変数は残す","status":"passed","testResultsByEnv":{"default":"87ad7fab245347d6622eca726e350b73"}}

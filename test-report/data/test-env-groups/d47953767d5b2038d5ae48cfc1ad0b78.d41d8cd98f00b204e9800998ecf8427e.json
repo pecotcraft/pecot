@@ -1,0 +1,1 @@
+{"id":"d47953767d5b2038d5ae48cfc1ad0b78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#isAssignable ログイン名に / を含む場合は、パスの 1 区間として符号化する","name":"ログイン名に / を含む場合は、パスの 1 区間として符号化する","status":"passed","testResultsByEnv":{"default":"b88adab0d3523414409659f782bb3117"}}

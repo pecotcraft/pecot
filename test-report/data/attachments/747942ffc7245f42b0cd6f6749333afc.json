@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "PR body has no Issue reference `#N` (use `no_issue_ref: true` for a PR not tied to an Issue)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"content-invalid\",\"detail\":\"PR body has no Issue reference `#N` (use `no_issue_ref: true` for a PR not tied to an Issue)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "content-invalid",
+    "detail": "PR body has no Issue reference `#N` (use `no_issue_ref: true` for a PR not tied to an Issue)"
+  },
+  "isError": true
+}

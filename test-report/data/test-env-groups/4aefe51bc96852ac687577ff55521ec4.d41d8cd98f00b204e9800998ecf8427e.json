@@ -1,0 +1,1 @@
+{"id":"4aefe51bc96852ac687577ff55521ec4.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.test.sh#セルフテスト: ${BASH_SOURCE[0]} 形の SCRIPT_DIR 代入でも解決される","name":"セルフテスト: ${BASH_SOURCE[0]} 形の SCRIPT_DIR 代入でも解決される","status":"passed","testResultsByEnv":{"default":"d61f0c9634e9351a35b56aedf2ec4294"}}

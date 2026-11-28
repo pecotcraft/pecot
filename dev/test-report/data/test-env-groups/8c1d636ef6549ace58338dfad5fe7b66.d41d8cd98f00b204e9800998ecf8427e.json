@@ -1,0 +1,1 @@
+{"id":"8c1d636ef6549ace58338dfad5fe7b66.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#開発ツリーの workspace root 対象のルートを含まない上位の workspace は使わず、undefined を返す","name":"対象のルートを含まない上位の workspace は使わず、undefined を返す","status":"passed","testResultsByEnv":{"default":"df53bec33880d5b2fc0a50e3aa4a29cf"}}

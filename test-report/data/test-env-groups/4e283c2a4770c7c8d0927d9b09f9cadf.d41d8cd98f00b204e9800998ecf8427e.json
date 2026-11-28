@@ -1,0 +1,1 @@
+{"id":"4e283c2a4770c7c8d0927d9b09f9cadf.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_ci_result#test_all_success","name":"すべてのジョブが成功すると、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"97a41b76b46353d03f4448ee4994220a"}}

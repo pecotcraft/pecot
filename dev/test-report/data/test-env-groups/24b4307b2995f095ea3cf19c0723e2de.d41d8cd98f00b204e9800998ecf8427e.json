@@ -1,0 +1,1 @@
+{"id":"24b4307b2995f095ea3cf19c0723e2de.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/caret-range.test.ts#caretRangeViolation: 0.x 0.0.4 は、patch が互換の単位なので、^0.0.3 の範囲の外と判定する","name":"0.0.4 は、patch が互換の単位なので、^0.0.3 の範囲の外と判定する","status":"passed","testResultsByEnv":{"default":"45b39c808f7c052952fd8d5fdd1cfdf5"}}

@@ -1,0 +1,4 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_outside_lane_writes_nothi0/suite/sample.bats
+1..2
+ok 1 説明つき
+ok 2 説明なし

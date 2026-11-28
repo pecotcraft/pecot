@@ -1,0 +1,1 @@
+{"id":"dd92bee7a746043cca0ae769efa5895a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_get MCP の data key を省いてアクティブなプロジェクトが存在しないと、kind が no-active-project の失敗を返す","name":"key を省いてアクティブなプロジェクトが存在しないと、kind が no-active-project の失敗を返す","status":"passed","testResultsByEnv":{"default":"0490a42a2cba70a5473875fe4df22172"}}

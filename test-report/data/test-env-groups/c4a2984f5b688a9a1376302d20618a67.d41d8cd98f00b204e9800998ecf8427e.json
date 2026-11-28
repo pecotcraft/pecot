@@ -1,0 +1,1 @@
+{"id":"c4a2984f5b688a9a1376302d20618a67.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「clickStep 型不一致」の場合は、undefined を返す","name":"エントリが「clickStep 型不一致」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"cf74ad42fe9d0a4f6153f6a556687bb0"}}

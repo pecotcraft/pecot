@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not confirm the merge of PR #11: it is neither merged nor in the merge queue"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"pr-state\",\"detail\":\"could not confirm the merge of PR #11: it is neither merged nor in the merge queue\",\"pullRequest\":\"acme/demo/11\",\"base\":\"main\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "pr-state",
+    "detail": "could not confirm the merge of PR #11: it is neither merged nor in the merge queue",
+    "pullRequest": "acme/demo/11",
+    "base": "main"
+  },
+  "isError": true
+}

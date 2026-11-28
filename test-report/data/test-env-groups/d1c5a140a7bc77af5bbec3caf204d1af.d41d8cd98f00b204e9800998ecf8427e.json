@@ -1,0 +1,1 @@
+{"id":"d1c5a140a7bc77af5bbec3caf204d1af.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/verifies.test.ts#verifies Allure の reporter が動くレーンの中 ID を渡すと、annotate に、ID と種類 verifies を渡す","name":"ID を渡すと、annotate に、ID と種類 verifies を渡す","status":"passed","testResultsByEnv":{"default":"1591b3dc1c9243d246911b2e7b3b17aa"}}

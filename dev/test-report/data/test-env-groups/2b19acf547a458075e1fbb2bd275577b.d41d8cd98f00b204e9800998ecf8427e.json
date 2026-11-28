@@ -1,0 +1,1 @@
+{"id":"2b19acf547a458075e1fbb2bd275577b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck Nx のリポで version を渡すと、error を出して失敗にする","name":"Nx のリポで version を渡すと、error を出して失敗にする","status":"passed","testResultsByEnv":{"default":"68d704d40e491f6bc1f228c42eb41b55"}}

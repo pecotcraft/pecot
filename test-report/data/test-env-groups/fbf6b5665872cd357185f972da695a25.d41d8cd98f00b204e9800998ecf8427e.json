@@ -1,0 +1,1 @@
+{"id":"fbf6b5665872cd357185f972da695a25.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-onboarding の兄弟リポの検出 別名の origin では、host が別名になり、一致する設定ファイルが存在しなくなる","name":"別名の origin では、host が別名になり、一致する設定ファイルが存在しなくなる","status":"passed","testResultsByEnv":{"default":"fd28d1cd18b0e32774fdd962ee8eca47"}}

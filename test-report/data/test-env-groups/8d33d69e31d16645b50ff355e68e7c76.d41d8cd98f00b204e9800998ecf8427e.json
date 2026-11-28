@@ -1,0 +1,1 @@
+{"id":"8d33d69e31d16645b50ff355e68e7c76.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_ec2_describe_instances instance_ids が空 の入力を、スキーマの検証で拒否する","name":"instance_ids が空 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"4db238955fb2854b961ac444d5190f67"}}

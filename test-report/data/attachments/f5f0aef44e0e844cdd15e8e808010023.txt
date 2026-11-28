@@ -1,0 +1,5 @@
+To /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_run_cmd_ls_remote_failure0/origin.git
+ * [new branch]      release/run-1-1 -> release/run-1-1
+ * [new tag]         v1.0.0 -> v1.0.0
+error: git ls-remote failed with exit code 128 (branch: release/run-1-1)
+  fatal: authentication failed

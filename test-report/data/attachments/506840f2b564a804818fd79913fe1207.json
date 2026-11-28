@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid status: foo\n  valid values: backlog/pending/blocked/ready/active/in_review/archived"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid status: foo\\n  valid values: backlog/pending/blocked/ready/active/in_review/archived\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid status: foo\n  valid values: backlog/pending/blocked/ready/active/in_review/archived"
+  },
+  "isError": true
+}

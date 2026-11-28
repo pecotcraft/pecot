@@ -1,0 +1,1 @@
+{"id":"76b905caca599629639b9cb4b7094775.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/github-ops/branch-and-stack.test.ts#github ops link-branch に base を渡すと、既定のブランチを読まずに base の先頭から作る","name":"link-branch に base を渡すと、既定のブランチを読まずに base の先頭から作る","status":"passed","testResultsByEnv":{"default":"c6813e2065428159c3f71c02eeea7d0e"}}

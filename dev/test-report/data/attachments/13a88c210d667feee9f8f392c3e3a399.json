@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "failed"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"x\",\"kind\":\"unknown\",\"detail\":\"failed\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "x",
+    "kind": "unknown",
+    "detail": "failed"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"397b1438160dacbee88a56ee55eaf77f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildSheetXml 要素の順序、シートの体裁、列の幅、行の高さ、インライン文字列を、具体的な値どおりに出力する","name":"要素の順序、シートの体裁、列の幅、行の高さ、インライン文字列を、具体的な値どおりに出力する","status":"passed","testResultsByEnv":{"default":"b3af96fe139b836befc8df62595682cb"}}

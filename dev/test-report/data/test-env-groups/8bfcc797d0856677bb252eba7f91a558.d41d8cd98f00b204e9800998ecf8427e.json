@@ -1,0 +1,1 @@
+{"id":"8bfcc797d0856677bb252eba7f91a558.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry slides ディレクトリに pptx が存在しない場合は、保存しない","name":"slides ディレクトリに pptx が存在しない場合は、保存しない","status":"passed","testResultsByEnv":{"default":"7a00fd8ef37e56affe7a0bd0e3e3c7b8"}}

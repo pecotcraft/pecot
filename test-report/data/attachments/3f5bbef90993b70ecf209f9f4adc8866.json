@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated: feat/demo/12 restacked on main"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/demo/12\",\"base\":\"main\",\"outcome\":\"restacked\",\"pushed\":true,\"warnings\":[\"cannot relink PR #21 to its closing Issues: GitHub API error: 500\\n  to link them, save the body of PR #21 again on GitHub without changes\"]}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/demo/12",
+    "base": "main",
+    "outcome": "restacked",
+    "pushed": true,
+    "warnings": [
+      "cannot relink PR #21 to its closing Issues: GitHub API error: 500\n  to link them, save the body of PR #21 again on GitHub without changes"
+    ]
+  }
+}

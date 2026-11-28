@@ -1,0 +1,1 @@
+{"id":"7b9a02f6e1cfc70fd5258de49c2a2ce4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ project-init-ok-skip を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ project-init-ok-skip を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"b62b13ce5f37152c99ee7d8a3b4a4c39"}}

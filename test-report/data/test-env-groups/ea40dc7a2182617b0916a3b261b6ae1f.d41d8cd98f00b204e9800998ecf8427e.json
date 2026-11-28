@@ -1,0 +1,1 @@
+{"id":"ea40dc7a2182617b0916a3b261b6ae1f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/eslint-runner.test.ts#resolveEslintBin assets が要求するものと同じメジャーなら、assets の外にある eslint でも使う","name":"assets が要求するものと同じメジャーなら、assets の外にある eslint でも使う","status":"passed","testResultsByEnv":{"default":"f527c402e6286e1690ac919685119f93"}}

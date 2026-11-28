@@ -1,0 +1,1 @@
+{"id":"0d24b326e53eb8fd033b7fd3ea9df6af.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/entry.test.ts#サーバの起動ファイル CLI の起動ファイルを持たず、commander に依存しない","name":"CLI の起動ファイルを持たず、commander に依存しない","status":"passed","testResultsByEnv":{"default":"50f586624359634eea7df33c683b311d"}}

@@ -1,0 +1,1 @@
+{"id":"bb1973858f63da80b3db76cfd4818818.11de4ad18b177a298aa776f4ac0b9fec","fullName":".githooks.tests.test_pr_run#test_pr_run_is_for_pr","name":"workflow run の内容が {'event': 'pull_request'} のとき、PR 7 のものかの判定は終了コード 1 になる","status":"passed","testResultsByEnv":{"default":"170d5f24d09ff58b51555324ce16d193"}}

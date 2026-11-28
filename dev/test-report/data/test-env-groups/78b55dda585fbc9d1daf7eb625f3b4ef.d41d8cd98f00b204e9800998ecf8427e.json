@@ -1,0 +1,1 @@
+{"id":"78b55dda585fbc9d1daf7eb625f3b4ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference 基準リポジトリを指定せずに短縮形 N を渡すと、フル形式だけを案内する例外が発生する","name":"基準リポジトリを指定せずに短縮形 N を渡すと、フル形式だけを案内する例外が発生する","status":"passed","testResultsByEnv":{"default":"0f71ebbdc0f6f6e25d19e7bc3ff0c2be"}}

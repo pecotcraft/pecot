@@ -1,0 +1,1 @@
+{"id":"7a7da8d8e72adb802cf8a2c26e581596.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#validatePullRequestContent base が develop でない場合はエラーとし、develop が未設定の場合は検証しない","name":"base が develop でない場合はエラーとし、develop が未設定の場合は検証しない","status":"passed","testResultsByEnv":{"default":"a06cbd2ff2488d4934dc7cc21deca317"}}

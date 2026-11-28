@@ -1,0 +1,58 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Project info"
+    },
+    {
+      "type": "text",
+      "text": "{\"project\":{\"name\":\"ghes.example.com_acme_1\",\"host\":\"ghes.example.com\",\"owner\":\"acme\",\"number\":1,\"aggregation_repo\":null},\"repositories\":[{\"full_name\":\"acme/demo\",\"owner\":\"acme\",\"name\":\"demo\",\"develop_branch\":\"main\",\"release_branch\":null,\"dependabot_alerts\":{\"enabled\":true,\"open_count\":2,\"max_severity\":\"high\",\"alerts_url\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"release_type\":\"single\",\"packages\":[]},{\"full_name\":\"acme/other\",\"owner\":\"acme\",\"name\":\"other\",\"develop_branch\":null,\"release_branch\":null,\"dependabot_alerts\":{\"enabled\":false,\"open_count\":0,\"max_severity\":null,\"alerts_url\":\"https://ghes.example.com/acme/other/security/dependabot\"},\"release_type\":\"single\",\"packages\":[]}],\"board\":{\"items\":[]},\"lanes\":[],\"mismatches\":0}"
+    }
+  ],
+  "structuredContent": {
+    "project": {
+      "name": "ghes.example.com_acme_1",
+      "host": "ghes.example.com",
+      "owner": "acme",
+      "number": 1,
+      "aggregation_repo": null
+    },
+    "repositories": [
+      {
+        "full_name": "acme/demo",
+        "owner": "acme",
+        "name": "demo",
+        "develop_branch": "main",
+        "release_branch": null,
+        "dependabot_alerts": {
+          "enabled": true,
+          "open_count": 2,
+          "max_severity": "high",
+          "alerts_url": "https://ghes.example.com/acme/demo/security/dependabot"
+        },
+        "release_type": "single",
+        "packages": []
+      },
+      {
+        "full_name": "acme/other",
+        "owner": "acme",
+        "name": "other",
+        "develop_branch": null,
+        "release_branch": null,
+        "dependabot_alerts": {
+          "enabled": false,
+          "open_count": 0,
+          "max_severity": null,
+          "alerts_url": "https://ghes.example.com/acme/other/security/dependabot"
+        },
+        "release_type": "single",
+        "packages": []
+      }
+    ],
+    "board": {
+      "items": []
+    },
+    "lanes": [],
+    "mismatches": 0
+  }
+}

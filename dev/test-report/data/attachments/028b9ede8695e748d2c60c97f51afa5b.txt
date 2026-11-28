@@ -1,0 +1,1 @@
+cp: not writing through dangling symlink '/tmp/bats-run-BBiN6g/test/7/proj/.pecotv/CHANGELOG.md'

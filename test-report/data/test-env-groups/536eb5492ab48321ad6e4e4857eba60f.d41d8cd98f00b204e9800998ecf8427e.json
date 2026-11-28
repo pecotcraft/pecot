@@ -1,0 +1,1 @@
+{"id":"536eb5492ab48321ad6e4e4857eba60f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish close が別の要求に先を越されたなら、unchanged の行を出す","name":"close が別の要求に先を越されたなら、unchanged の行を出す","status":"passed","testResultsByEnv":{"default":"53f130d0e587e5cd40ee2f5fddd52728"}}

@@ -1,0 +1,1 @@
+{"id":"64871641939deb8ae39fc87e9244d9e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildContentTypesXml 画像の形式が png だけの場合は、png の Default だけを宣言する","name":"画像の形式が png だけの場合は、png の Default だけを宣言する","status":"passed","testResultsByEnv":{"default":"de6ec61c56f4774c304fccfaeabbd3c6"}}

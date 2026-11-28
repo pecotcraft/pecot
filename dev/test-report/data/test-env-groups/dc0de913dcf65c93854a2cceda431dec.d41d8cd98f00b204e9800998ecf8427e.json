@@ -1,0 +1,1 @@
+{"id":"dc0de913dcf65c93854a2cceda431dec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-describe-title.test.ts#describeTitleConfig 定義書が JSON でないと、パスを添えて throw する","name":"定義書が JSON でないと、パスを添えて throw する","status":"passed","testResultsByEnv":{"default":"b3355a8aa2cab0a55c3edef9cb02b6a2"}}

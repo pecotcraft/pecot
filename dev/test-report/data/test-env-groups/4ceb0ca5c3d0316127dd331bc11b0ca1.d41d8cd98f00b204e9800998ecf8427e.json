@@ -1,0 +1,1 @@
+{"id":"4ceb0ca5c3d0316127dd331bc11b0ca1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url.test.ts#runDrawioUrl `icon` が見つからない場合は、標準エラー出力へ警告を出し、`warningCount` に数える","name":"`icon` が見つからない場合は、標準エラー出力へ警告を出し、`warningCount` に数える","status":"passed","testResultsByEnv":{"default":"6215954a9fc1554ac69d35dfc66f9c70"}}

@@ -1,0 +1,1 @@
+{"id":"3cac969d3157a9c4a7b83af5c87a27ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） シンボリックリンクとして登録済みのファイルは、未追跡ファイルのコピーから除く","name":"シンボリックリンクとして登録済みのファイルは、未追跡ファイルのコピーから除く","status":"passed","testResultsByEnv":{"default":"495e4f2f8cf594e1cb4a7d04c9c6619e"}}

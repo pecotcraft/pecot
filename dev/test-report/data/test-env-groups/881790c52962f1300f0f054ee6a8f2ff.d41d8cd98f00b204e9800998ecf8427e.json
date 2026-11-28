@@ -1,0 +1,1 @@
+{"id":"881790c52962f1300f0f054ee6a8f2ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#ツールが捕まえなかった独自の例外が起きると、その文を失敗の detail に入れる","name":"ツールが捕まえなかった独自の例外が起きると、その文を失敗の detail に入れる","status":"passed","testResultsByEnv":{"default":"3947ca8715f079d6363e29d056b8ac22"}}

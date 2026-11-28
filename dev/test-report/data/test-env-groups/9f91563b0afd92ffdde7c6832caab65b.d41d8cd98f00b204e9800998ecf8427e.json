@@ -1,0 +1,1 @@
+{"id":"9f91563b0afd92ffdde7c6832caab65b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery バックスラッシュは、リテラルを閉じるエスケープとして扱わない","name":"バックスラッシュは、リテラルを閉じるエスケープとして扱わない","status":"passed","testResultsByEnv":{"default":"dab1e26280c94585b40f5e4963c33170"}}

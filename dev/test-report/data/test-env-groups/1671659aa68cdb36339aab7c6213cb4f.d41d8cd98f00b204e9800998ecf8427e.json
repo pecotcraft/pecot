@@ -1,0 +1,1 @@
+{"id":"1671659aa68cdb36339aab7c6213cb4f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#toIssueFacts 読み取った Issue と PR の状態から、済んだ・PR 中・着手済みの判定に使う値を作成する","name":"読み取った Issue と PR の状態から、済んだ・PR 中・着手済みの判定に使う値を作成する","status":"passed","testResultsByEnv":{"default":"d349fa94903ec309fbed8cca3d25c2a7"}}

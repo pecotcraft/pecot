@@ -1,0 +1,1 @@
+{"id":"7611b4893b2ca540dfb38ed09f6fd812.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 列が Backlog の場合は、どの判定でも動かさない","name":"列が Backlog の場合は、どの判定でも動かさない","status":"passed","testResultsByEnv":{"default":"e317b1da902e53a18d15a398ba248526"}}

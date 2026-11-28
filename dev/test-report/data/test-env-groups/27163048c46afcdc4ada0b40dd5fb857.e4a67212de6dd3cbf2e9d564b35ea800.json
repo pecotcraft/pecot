@@ -1,0 +1,1 @@
+{"id":"27163048c46afcdc4ada0b40dd5fb857.e4a67212de6dd3cbf2e9d564b35ea800","fullName":".githooks.tests.test_report_workflow#test_report_generates_with_history_only_for_release","name":"側が dev のとき、レポートは材料を指定し、履歴はリリース版だけ指定して生成する","status":"passed","testResultsByEnv":{"default":"9e0e3f671bc64c0f35542d9ec97eb2f5"}}

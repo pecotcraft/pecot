@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: text lint not run: /tmp/pecotv-test-file-tools-AtaQ6E/stub-exit/note.md\\n  pecot-text-lint failed (exit 1):\\n  The writing rules were not applied to this file, so no violations were detected.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: text lint not run: /tmp/pecotv-test-file-tools-AtaQ6E/stub-exit/note.md\n  pecot-text-lint failed (exit 1):\n  The writing rules were not applied to this file, so no violations were detected."
+    }
+  }
+}

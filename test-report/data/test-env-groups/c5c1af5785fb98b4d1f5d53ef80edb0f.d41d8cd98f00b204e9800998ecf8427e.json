@@ -1,0 +1,1 @@
+{"id":"c5c1af5785fb98b4d1f5d53ef80edb0f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#autoResultOf 目印が本文の先頭に存在しない場合は、undefined を返す","name":"目印が本文の先頭に存在しない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"c36883e5bbf4f3adebe0b8aba5c7d15f"}}

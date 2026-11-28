@@ -1,0 +1,1 @@
+{"id":"ef847073925d9215d3d9fe8482c1e5d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/tracker-shared.test.ts#apiErrorDetail API のエラーと通信のエラーなら文を、ほかの例外なら undefined を返す","name":"API のエラーと通信のエラーなら文を、ほかの例外なら undefined を返す","status":"passed","testResultsByEnv":{"default":"68d82712f3c75abe55c6a713b75bdfc1"}}

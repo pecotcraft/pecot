@@ -1,0 +1,1 @@
+{"id":"9871fbb27db2e4af9f3ed8741237cbb5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#resolveIconsForExport ラベルの文章に書かれた icon:// は、未解決の参照として扱わず、書き出しを止めない","name":"ラベルの文章に書かれた icon:// は、未解決の参照として扱わず、書き出しを止めない","status":"passed","testResultsByEnv":{"default":"de0cd7ff21d8910aff391db6cf67b653"}}

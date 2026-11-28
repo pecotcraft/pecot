@@ -1,0 +1,1 @@
+{"id":"2714e319c7752ef129cc831d4417c8a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli 存在しない profile を指定した呼び出しは、終了コード 255 で終了し、auth-missing と判定する","name":"存在しない profile を指定した呼び出しは、終了コード 255 で終了し、auth-missing と判定する","status":"passed","testResultsByEnv":{"default":"2692318f848a5f89be561991465b831b"}}

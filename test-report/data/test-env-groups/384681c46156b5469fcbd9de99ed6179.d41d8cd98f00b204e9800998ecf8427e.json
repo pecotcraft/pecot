@@ -1,0 +1,1 @@
+{"id":"384681c46156b5469fcbd9de99ed6179.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/payload.test.ts#truthyNodes nodes のうち真偽値が偽の要素（None・空の辞書）を落とす","name":"nodes のうち真偽値が偽の要素（None・空の辞書）を落とす","status":"passed","testResultsByEnv":{"default":"a642714fb2b02df6348810a3b436729f"}}

@@ -1,0 +1,1 @@
+{"id":"7d157a4659b2a4d9079f5d7bc58e462f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-create.test.ts#pages/ の再生成 (slide_create の force 経由) --force で再生成すると、pages には初期ページだけが残り、テーマの参照は書き出さない","name":"--force で再生成すると、pages には初期ページだけが残り、テーマの参照は書き出さない","status":"passed","testResultsByEnv":{"default":"632223d9dac1a88b0ab5469694664ffa"}}

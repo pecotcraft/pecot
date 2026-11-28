@@ -1,0 +1,1 @@
+{"id":"232e2a02db31ec885bd4e6d1fa549adc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide convert の出力同一性 (T011-a) 比較ヘルパは、内容が異なる 2 つの出力を、不一致として報告する（負の対照）","name":"比較ヘルパは、内容が異なる 2 つの出力を、不一致として報告する（負の対照）","status":"passed","testResultsByEnv":{"default":"5cbe38a41f719057a08a33064e564cd8"}}

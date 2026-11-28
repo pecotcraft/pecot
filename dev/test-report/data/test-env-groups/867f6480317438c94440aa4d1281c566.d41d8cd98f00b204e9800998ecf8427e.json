@@ -1,0 +1,1 @@
+{"id":"867f6480317438c94440aa4d1281c566.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) ツール aws_ecr_describe_images は、配列の要素のオブジェクトに宣言外のキーを許可しない","name":"ツール aws_ecr_describe_images は、配列の要素のオブジェクトに宣言外のキーを許可しない","status":"passed","testResultsByEnv":{"default":"58bbdf8a7c9cc1c01c421c1925587fde"}}

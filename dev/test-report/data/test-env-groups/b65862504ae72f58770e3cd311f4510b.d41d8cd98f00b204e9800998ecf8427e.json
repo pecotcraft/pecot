@@ -1,0 +1,1 @@
+{"id":"b65862504ae72f58770e3cd311f4510b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_misplaced_pecot#test_node_modules_pecot_passes","name":"node_modules の配下の .pecot は、対象にしない","status":"passed","testResultsByEnv":{"default":"12dac45dcfe424b5990eb575901e45d4"}}

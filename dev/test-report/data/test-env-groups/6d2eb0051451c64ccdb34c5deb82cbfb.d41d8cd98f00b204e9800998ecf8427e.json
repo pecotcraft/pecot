@@ -1,0 +1,1 @@
+{"id":"6d2eb0051451c64ccdb34c5deb82cbfb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/result.test.ts#createOutputCapture 上限と同じ大きさまでは、切り詰めずにすべてを返す","name":"上限と同じ大きさまでは、切り詰めずにすべてを返す","status":"passed","testResultsByEnv":{"default":"1a4cdbcf4cf109fba1ccf14f95484774"}}

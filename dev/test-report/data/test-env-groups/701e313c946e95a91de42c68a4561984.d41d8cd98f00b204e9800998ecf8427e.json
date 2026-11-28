@@ -1,0 +1,1 @@
+{"id":"701e313c946e95a91de42c68a4561984.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-check.test.ts#board_check ボードに無いカードを渡すと、add_project_item を案内する not-found の problem を返す","name":"ボードに無いカードを渡すと、add_project_item を案内する not-found の problem を返す","status":"passed","testResultsByEnv":{"default":"febad0803945415c0f48b9ed25e447f0"}}

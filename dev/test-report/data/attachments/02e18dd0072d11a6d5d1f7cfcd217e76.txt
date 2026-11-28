@@ -1,0 +1,1 @@
+added: acme/other to /tmp/pecot-repo-3Xyaz2/.pecot/config/projects/ghes.example.com_acme_1.json

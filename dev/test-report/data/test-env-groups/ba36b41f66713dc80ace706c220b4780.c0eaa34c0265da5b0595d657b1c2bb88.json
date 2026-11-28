@@ -1,0 +1,1 @@
+{"id":"ba36b41f66713dc80ace706c220b4780.c0eaa34c0265da5b0595d657b1c2bb88","fullName":".githooks.tests.test_nx_env_inputs#test_plugin_env_is_mentioned_in_that_plugin","name":"pecot-visual の env に載せた変数は、そのプラグインのファイルに名前が出てくる","status":"passed","testResultsByEnv":{"default":"06ca03ad05f577f0ec3762a36774205d"}}

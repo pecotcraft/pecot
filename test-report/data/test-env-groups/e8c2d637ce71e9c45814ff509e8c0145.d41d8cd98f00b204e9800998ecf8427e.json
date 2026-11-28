@@ -1,0 +1,1 @@
+{"id":"e8c2d637ce71e9c45814ff509e8c0145.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） base_branch が空の場合は、origin を追跡せず現在のコミットから作成する","name":"base_branch が空の場合は、origin を追跡せず現在のコミットから作成する","status":"passed","testResultsByEnv":{"default":"f61c4d2f738c2958644c34a52dc0dab1"}}

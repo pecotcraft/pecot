@@ -1,0 +1,1 @@
+{"id":"4cab5c5ddc227d792223ed1e6e7c558c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 絵文字（#1185） ショートコードでないコロンは通る: https://example.com/a:b（url）","name":"ショートコードでないコロンは通る: https://example.com/a:b（url）","status":"passed","testResultsByEnv":{"default":"f14bb3cca7533568fae735fbef1066d0"}}

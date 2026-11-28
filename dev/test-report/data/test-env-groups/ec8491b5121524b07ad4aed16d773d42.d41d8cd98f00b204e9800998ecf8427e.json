@@ -1,0 +1,1 @@
+{"id":"ec8491b5121524b07ad4aed16d773d42.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/caret-range.test.ts#caretRangeViolation: 入力と下限 0.20.2 は ^0.20.3 の範囲の外で、理由が「下限未満」になる","name":"0.20.2 は ^0.20.3 の範囲の外で、理由が「下限未満」になる","status":"passed","testResultsByEnv":{"default":"3ac3e0133a4c17da3bda76397284391a"}}

@@ -1,0 +1,1 @@
+{"id":"584cf6e1b9f6be71f916bd8ee0f4fddc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: チェックボックス記法（#962） * と + の箇条書きのチェックボックスも、書式のエラーにする","name":"* と + の箇条書きのチェックボックスも、書式のエラーにする","status":"passed","testResultsByEnv":{"default":"062923caa16780d01cc40a733eda68d3"}}

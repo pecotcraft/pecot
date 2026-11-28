@@ -1,0 +1,1 @@
+{"id":"eeae03982e3e1e282349361a2089ce84.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/deck-lint-rules.test.ts#DECK_LINT_RULE_IDS テーマの宣言で指定できる規則の一覧が、本体の lint プラグインの 15 個の規則と一致する","name":"テーマの宣言で指定できる規則の一覧が、本体の lint プラグインの 15 個の規則と一致する","status":"passed","testResultsByEnv":{"default":"9b3d26dea512d9a34d17809974000f33"}}

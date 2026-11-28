@@ -1,0 +1,1 @@
+{"id":"5f06dec870b81bf29a540b8a5499e678.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-no-verify-check.sh 有効にしてコマンドが git commit -mn のとき、何も出力せず通す","name":"有効にしてコマンドが git commit -mn のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"4d59af3e0ae824ceab612efb73c10959"}}

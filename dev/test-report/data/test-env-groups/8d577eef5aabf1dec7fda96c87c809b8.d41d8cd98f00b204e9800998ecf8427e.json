@@ -1,0 +1,1 @@
+{"id":"8d577eef5aabf1dec7fda96c87c809b8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_list_test_lanes#test_stack_skipped_lists_pr_lanes_outside_product_sorted","name":"積モードでは、PR の変更のレーンのうち積から外れたものを、名前の順で skipped に出力する","status":"passed","testResultsByEnv":{"default":"9cf93f444ff2032c1d6c62a62e77576a"}}

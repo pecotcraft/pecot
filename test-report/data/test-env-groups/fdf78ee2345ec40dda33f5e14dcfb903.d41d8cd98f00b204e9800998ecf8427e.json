@@ -1,0 +1,1 @@
+{"id":"fdf78ee2345ec40dda33f5e14dcfb903.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 hosts.json の env_var が示す環境変数にトークンが存在する場合は、それを使い、gh を呼び出さない","name":"hosts.json の env_var が示す環境変数にトークンが存在する場合は、それを使い、gh を呼び出さない","status":"passed","testResultsByEnv":{"default":"df7a6006a2a97761a4ffd4bf1c9d6654"}}

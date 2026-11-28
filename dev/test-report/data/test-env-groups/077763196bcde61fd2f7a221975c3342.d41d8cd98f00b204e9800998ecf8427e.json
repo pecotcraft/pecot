@@ -1,0 +1,1 @@
+{"id":"077763196bcde61fd2f7a221975c3342.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#結果の項目 想定外の例外で終わると、途中まで集めた項目を other の失敗に載せる","name":"想定外の例外で終わると、途中まで集めた項目を other の失敗に載せる","status":"passed","testResultsByEnv":{"default":"08139b4d87f4461c6fb14d32aba63ac9"}}

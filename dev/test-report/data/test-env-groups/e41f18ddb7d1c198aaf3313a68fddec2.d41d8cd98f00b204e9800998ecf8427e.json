@@ -1,0 +1,1 @@
+{"id":"e41f18ddb7d1c198aaf3313a68fddec2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 ensureToken を重ねて呼んでも、gh auth token は 1 回だけ読む","name":"ensureToken を重ねて呼んでも、gh auth token は 1 回だけ読む","status":"passed","testResultsByEnv":{"default":"3781410f35352ee9022465a49f6e4417"}}

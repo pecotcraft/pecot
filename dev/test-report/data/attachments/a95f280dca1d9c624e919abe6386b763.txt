@@ -1,0 +1,1 @@
+playwright-deps は 1.65.0 のまま

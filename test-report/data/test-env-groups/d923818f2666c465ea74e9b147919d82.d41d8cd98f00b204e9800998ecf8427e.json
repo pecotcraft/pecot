@@ -1,0 +1,1 @@
+{"id":"d923818f2666c465ea74e9b147919d82.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#buildPicMediaMap xfrm、off、ext のいずれかが不足している pic の場合は、対象から外す","name":"xfrm、off、ext のいずれかが不足している pic の場合は、対象から外す","status":"passed","testResultsByEnv":{"default":"7824c0495ae5bbf3efb9cd7776f44413"}}

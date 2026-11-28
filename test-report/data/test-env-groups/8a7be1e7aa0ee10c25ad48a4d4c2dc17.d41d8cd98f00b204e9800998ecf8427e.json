@@ -1,0 +1,1 @@
+{"id":"8a7be1e7aa0ee10c25ad48a4d4c2dc17.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: 文字列の本文のエスケープ \\r\\n\\r\\n で段落を分け、文の長さの指摘を出さない","name":"\\r\\n\\r\\n で段落を分け、文の長さの指摘を出さない","status":"passed","testResultsByEnv":{"default":"da6a7eec6f3beb9c3daa8be75b243425"}}

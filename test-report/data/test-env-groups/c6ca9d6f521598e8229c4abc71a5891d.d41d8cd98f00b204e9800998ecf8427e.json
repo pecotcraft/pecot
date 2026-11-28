@@ -1,0 +1,1 @@
+{"id":"c6ca9d6f521598e8229c4abc71a5891d.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_resources_table_uses_summary_or_description","name":"リソースの表は、`summary` があればそれを、なければ `description` を説明の列に使う","status":"passed","testResultsByEnv":{"default":"bb6c6b9f9d4ab13d12d74a3b63bb3b89"}}

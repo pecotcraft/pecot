@@ -1,0 +1,1 @@
+{"id":"2a19f6bf26661767b18957bda9c858ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/review-finish.test.ts#review finish job の cancelled で呼ぶと、limit のコメントを書く","name":"job の cancelled で呼ぶと、limit のコメントを書く","status":"passed","testResultsByEnv":{"default":"6f912a526158dad528c0904f5a5085ac"}}

@@ -1,0 +1,1 @@
+{"id":"9591a107e91b8d85ce397b16282c0d68.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#PLUGIN_DATA 指定なら既定の場所 $HOME/.local/share は作られない","name":"PLUGIN_DATA 指定なら既定の場所 $HOME/.local/share は作られない","status":"passed","testResultsByEnv":{"default":"9bcddb1b141f7548454d07f59e3ca360"}}

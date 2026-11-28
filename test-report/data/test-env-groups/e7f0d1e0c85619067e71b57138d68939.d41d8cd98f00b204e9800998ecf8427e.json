@@ -1,0 +1,1 @@
+{"id":"e7f0d1e0c85619067e71b57138d68939.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/input-schema.test.ts#normalizeInput properties の中 で未対応のキーを使うと、コマンドと引数の名前を付けたエラーを送出する","name":"properties の中 で未対応のキーを使うと、コマンドと引数の名前を付けたエラーを送出する","status":"passed","testResultsByEnv":{"default":"ad6e38e860f99b670ced7107129454f9"}}

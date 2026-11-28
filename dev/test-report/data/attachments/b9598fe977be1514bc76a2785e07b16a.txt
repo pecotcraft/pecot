@@ -1,0 +1,2 @@
+ERROR: 監査未実施のため中止: 永続層: 依存解決に失敗しました (npm install rc=1)
+stub npm install: 依存解決に失敗（テスト注入）

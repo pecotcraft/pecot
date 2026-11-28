@@ -1,0 +1,15 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "spy"
+    },
+    {
+      "type": "text",
+      "text": "{\"state\":\"pending\"}"
+    }
+  ],
+  "structuredContent": {
+    "state": "pending"
+  }
+}

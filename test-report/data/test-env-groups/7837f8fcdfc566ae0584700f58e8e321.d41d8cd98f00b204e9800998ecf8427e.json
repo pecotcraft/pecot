@@ -1,0 +1,1 @@
+{"id":"7837f8fcdfc566ae0584700f58e8e321.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getCurrentWorktreeName 記録が存在せず、親の名前が wtN と base のどちらでもなければ、undefined を返す","name":"記録が存在せず、親の名前が wtN と base のどちらでもなければ、undefined を返す","status":"passed","testResultsByEnv":{"default":"d31ff324265453fcc349caa2fd4f65ad"}}

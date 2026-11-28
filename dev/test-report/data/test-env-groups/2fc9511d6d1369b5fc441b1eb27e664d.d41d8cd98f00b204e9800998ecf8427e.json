@@ -1,0 +1,1 @@
+{"id":"2fc9511d6d1369b5fc441b1eb27e664d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/screenshot.test.ts#capturePng / exportViaEmbed 時間切れの診断 時間切れのエラーには、最後に受け取った embed のイベントと、各段階の経過を含める","name":"時間切れのエラーには、最後に受け取った embed のイベントと、各段階の経過を含める","status":"passed","testResultsByEnv":{"default":"7f349ad8b5b8a994730debfad651e578"}}

@@ -1,0 +1,1 @@
+{"id":"dfa16639fafc2041bdefe487dd115cc9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry stop は預かっているサーバを止め、動いていなければ止めなかったと返す","name":"stop は預かっているサーバを止め、動いていなければ止めなかったと返す","status":"passed","testResultsByEnv":{"default":"85e92938819fb7bd27f00b45ce240479"}}

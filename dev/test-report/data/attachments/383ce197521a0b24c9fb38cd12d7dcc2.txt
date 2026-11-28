@@ -1,0 +1,1 @@
+{"issue":"acme/demo/7","number":7,"kind":"resume","proceed":true,"reason":"","branch":"feat/fix-x/7","pr":11,"ci_attempts":0}

@@ -1,0 +1,2 @@
+warning: mxCell id=s14: font size 14px is not a theme size: "Alpha"; only these 5 sizes are allowed: 16, 13, 12, 10, 9 px (heading 16, subheading 13, body 12, caption 10, label 9) (fix: add fontSize=<size> to style)
+warning: mxCell id=ja: font size 14px is not a theme size: "構成"; only these 5 sizes are allowed: 16, 13, 12, 10, 9 px (heading 16, subheading 13, body 12, caption 10, label 9) (fix: add fontSize=<size> to style)

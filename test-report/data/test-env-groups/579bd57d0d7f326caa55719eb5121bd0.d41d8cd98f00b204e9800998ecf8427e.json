@@ -1,0 +1,1 @@
+{"id":"579bd57d0d7f326caa55719eb5121bd0.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats#書体 part を改名した pptx では、改名が生の片側だけに出て、書体 part は両側で同一になる","name":"書体 part を改名した pptx では、改名が生の片側だけに出て、書体 part は両側で同一になる","status":"passed","testResultsByEnv":{"default":"995f26f53617b3582b6459acafca1204"}}

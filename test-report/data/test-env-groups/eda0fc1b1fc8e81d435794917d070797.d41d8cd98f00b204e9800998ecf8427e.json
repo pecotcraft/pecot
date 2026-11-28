@@ -1,0 +1,1 @@
+{"id":"eda0fc1b1fc8e81d435794917d070797.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_11_pass_root_config_only","name":"ルートの設定だけを変更した場合は、どの project にも属さないため、成功する","status":"passed","testResultsByEnv":{"default":"f0abd2872271b68432945f2060771928"}}

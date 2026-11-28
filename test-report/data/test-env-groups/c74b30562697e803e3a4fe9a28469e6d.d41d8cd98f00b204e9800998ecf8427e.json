@@ -1,0 +1,1 @@
+{"id":"c74b30562697e803e3a4fe9a28469e6d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry meta がなく PNG だけの場合も、保存して復元できる","name":"meta がなく PNG だけの場合も、保存して復元できる","status":"passed","testResultsByEnv":{"default":"124a7a4f2c9a3540ec16046b0d6d6e28"}}

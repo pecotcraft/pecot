@@ -1,0 +1,1 @@
+{"id":"c88d883259fdf20f2bcbc6a12b4f196e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_release_group_changelog#test_no_release_groups_passes","name":"release.groups が存在しない nx.json は、確認の対象がなく成功で終わる","status":"passed","testResultsByEnv":{"default":"a682e1f063db564de297470b59a0be15"}}

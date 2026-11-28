@@ -1,0 +1,1 @@
+{"id":"fff34b80a9d358ad8d0441a4fe0d55a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#linkNodeModules (依存ルートの解決) plugin-root に node_modules が存在しない場合は、永続層の依存ルートへ張る","name":"plugin-root に node_modules が存在しない場合は、永続層の依存ルートへ張る","status":"passed","testResultsByEnv":{"default":"fb1d6ae29ec7984747fd602b9a5c3aa5"}}

@@ -1,0 +1,1 @@
+{"id":"1e11cdc86f123070ab2cbf86ffa6eb0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText fragment モードでは、行頭の \"- \" を Markdown のブロック記法として扱わない","name":"fragment モードでは、行頭の \"- \" を Markdown のブロック記法として扱わない","status":"passed","testResultsByEnv":{"default":"0e1bfeba2380a69999a8b4367d3f7476"}}

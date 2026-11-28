@@ -1,0 +1,1 @@
+{"id":"8870d5d66223fe2bb0a51e2a54bfbff5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 検証用に pecot-review.yml が無いと、検証用を「なし」としてずれに出す","name":"検証用に pecot-review.yml が無いと、検証用を「なし」としてずれに出す","status":"passed","testResultsByEnv":{"default":"ab79fd3f8cce11d754bc242537381d73"}}

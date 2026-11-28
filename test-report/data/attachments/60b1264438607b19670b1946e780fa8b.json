@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-visual",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "spy"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"spy\",\"theme\":{\"name\":\"spy\",\"spec\":\"spy\",\"declared\":true,\"directory\":\"/spy\",\"linked\":true},\"declaration\":{\"schema\":1,\"slide\":{\"width\":0,\"height\":0},\"fonts\":{\"body\":[],\"heading\":[]},\"fontSizes\":{\"heading\":0,\"headingSm\":0,\"body\":0,\"bodySm\":0,\"label\":0},\"pptx\":{},\"lint\":{\"rules\":{}},\"layouts\":{\"references\":\"spy\"},\"drawio\":{\"panels\":{},\"markerLayouts\":[]}},\"categories\":[],\"layouts\":[],\"lint\":{\"referencesDirectories\":[],\"panels\":{},\"markerLayouts\":[],\"rules\":{}}}"
+    }
+  ],
+  "structuredContent": {
+    "event": "spy",
+    "theme": {
+      "name": "spy",
+      "spec": "spy",
+      "declared": true,
+      "directory": "/spy",
+      "linked": true
+    },
+    "declaration": {
+      "schema": 1,
+      "slide": {
+        "width": 0,
+        "height": 0
+      },
+      "fonts": {
+        "body": [],
+        "heading": []
+      },
+      "fontSizes": {
+        "heading": 0,
+        "headingSm": 0,
+        "body": 0,
+        "bodySm": 0,
+        "label": 0
+      },
+      "pptx": {},
+      "lint": {
+        "rules": {}
+      },
+      "layouts": {
+        "references": "spy"
+      },
+      "drawio": {
+        "panels": {},
+        "markerLayouts": []
+      }
+    },
+    "categories": [],
+    "layouts": [],
+    "lint": {
+      "referencesDirectories": [],
+      "panels": {},
+      "markerLayouts": [],
+      "rules": {}
+    }
+  }
+}

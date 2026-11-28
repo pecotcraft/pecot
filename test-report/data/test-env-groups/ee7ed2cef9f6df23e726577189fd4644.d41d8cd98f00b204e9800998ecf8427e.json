@@ -1,0 +1,1 @@
+{"id":"ee7ed2cef9f6df23e726577189fd4644.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/fs-sync.test.ts#syncGeneratedFiles 実行権限のない start.mjs を書き直す場合も、実行権限を付ける","name":"実行権限のない start.mjs を書き直す場合も、実行権限を付ける","status":"passed","testResultsByEnv":{"default":"96048887faa39460f6d51130f6d3c25a"}}

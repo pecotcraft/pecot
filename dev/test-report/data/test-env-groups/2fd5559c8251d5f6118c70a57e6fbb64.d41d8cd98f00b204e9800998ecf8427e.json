@@ -1,0 +1,1 @@
+{"id":"2fd5559c8251d5f6118c70a57e6fbb64.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh git -C で commit するとき、HOOK_WORKING_DIR だけで保護ブランチを判定して止める","name":"git -C で commit するとき、HOOK_WORKING_DIR だけで保護ブランチを判定して止める","status":"passed","testResultsByEnv":{"default":"a717a33aa3ea03f94626d8da7144e5bb"}}

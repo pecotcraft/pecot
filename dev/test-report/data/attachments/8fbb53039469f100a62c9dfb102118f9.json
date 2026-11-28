@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "awscli not found. Install awscli v2 (2.22.0 or later) and add it to PATH"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"awscli-missing\",\"detail\":\"awscli not found. Install awscli v2 (2.22.0 or later) and add it to PATH\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "awscli-missing",
+    "detail": "awscli not found. Install awscli v2 (2.22.0 or later) and add it to PATH"
+  },
+  "isError": true
+}

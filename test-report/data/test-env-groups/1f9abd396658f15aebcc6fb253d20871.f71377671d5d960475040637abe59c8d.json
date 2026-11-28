@@ -1,0 +1,1 @@
+{"id":"1f9abd396658f15aebcc6fb253d20871.f71377671d5d960475040637abe59c8d","fullName":".githooks.tests.test_githooks_lanes#test_lane_declares_narrow_inputs","name":"test-nx-affected は、広い入力を使わず、必要な入力だけを宣言する","status":"passed","testResultsByEnv":{"default":"64fb46c002eeeaa41aa8dea0e6005fe5"}}

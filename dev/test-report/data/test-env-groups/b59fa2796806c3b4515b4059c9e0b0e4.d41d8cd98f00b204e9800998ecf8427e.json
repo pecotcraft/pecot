@@ -1,0 +1,1 @@
+{"id":"b59fa2796806c3b4515b4059c9e0b0e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/source-hash.test.ts#source-hash 対象のファイルやディレクトリが存在しなくても、空の一覧を返す","name":"対象のファイルやディレクトリが存在しなくても、空の一覧を返す","status":"passed","testResultsByEnv":{"default":"d4771af5a3ad20a8e3ed8c3aa542c517"}}

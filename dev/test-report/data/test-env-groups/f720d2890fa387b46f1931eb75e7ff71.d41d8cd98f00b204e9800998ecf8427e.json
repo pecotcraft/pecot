@@ -1,0 +1,1 @@
+{"id":"f720d2890fa387b46f1931eb75e7ff71.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#upsertWaitsForMerge 末尾が空行の本文には、空行を追加しない","name":"末尾が空行の本文には、空行を追加しない","status":"passed","testResultsByEnv":{"default":"8005e287d049fb38082930fdeaefbeb7"}}

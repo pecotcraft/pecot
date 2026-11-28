@@ -1,0 +1,1 @@
+warning: An executable named `gitlint` is not provided by package `gitlint` but is available via the dependency `gitlint-core`. Consider using `uvx --from gitlint-core gitlint` instead.

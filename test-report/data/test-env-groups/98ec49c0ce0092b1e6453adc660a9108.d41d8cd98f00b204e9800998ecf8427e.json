@@ -1,0 +1,1 @@
+{"id":"98ec49c0ce0092b1e6453adc660a9108.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) ツール aws_athena_get_query_results は、配列の要素のオブジェクトに宣言外のキーを許可しない","name":"ツール aws_athena_get_query_results は、配列の要素のオブジェクトに宣言外のキーを許可しない","status":"passed","testResultsByEnv":{"default":"4e61152d1cec3d14bd555d368f5a1dbb"}}

@@ -1,0 +1,1 @@
+{"id":"de29b056cbfe41e4939292f64778bca5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-no-verify-check.sh 設定が無いとき、--no-verify でも何も出力せず通す","name":"設定が無いとき、--no-verify でも何も出力せず通す","status":"passed","testResultsByEnv":{"default":"9df0993c91e6b9d5abd4b2ca12278f4f"}}

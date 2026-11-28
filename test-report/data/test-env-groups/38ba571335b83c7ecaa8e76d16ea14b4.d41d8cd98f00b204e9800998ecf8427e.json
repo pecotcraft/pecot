@@ -1,0 +1,1 @@
+{"id":"38ba571335b83c7ecaa8e76d16ea14b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#createIssue 担当者・マイルストーン番号・Issue type を指定した場合は、同じ POST の本文に含めて送信する","name":"担当者・マイルストーン番号・Issue type を指定した場合は、同じ POST の本文に含めて送信する","status":"passed","testResultsByEnv":{"default":"3d1aa99ecefe57280a7420372b616fcb"}}

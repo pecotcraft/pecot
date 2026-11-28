@@ -1,0 +1,1 @@
+{"id":"ff4f5a5538399beb4d1da0164487d86f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/screenshot.test.ts#capturePng / exportViaEmbed 宣言とは別の書体を渡すと、その書体だけを読み込み、Inter と Noto Sans JP は読み込まない","name":"宣言とは別の書体を渡すと、その書体だけを読み込み、Inter と Noto Sans JP は読み込まない","status":"passed","testResultsByEnv":{"default":"023854112f6c888921db067ff13ac5de"}}

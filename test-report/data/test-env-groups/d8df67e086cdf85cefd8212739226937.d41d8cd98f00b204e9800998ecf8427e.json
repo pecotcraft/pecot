@@ -1,0 +1,1 @@
+{"id":"d8df67e086cdf85cefd8212739226937.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh cwd が git の外のとき、CLAUDE_PROJECT_DIR にフォールバックする","name":"cwd が git の外のとき、CLAUDE_PROJECT_DIR にフォールバックする","status":"passed","testResultsByEnv":{"default":"ea5818d5b4127f62e139f9ecee3915e0"}}

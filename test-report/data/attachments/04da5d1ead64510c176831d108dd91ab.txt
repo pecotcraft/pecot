@@ -1,0 +1,1 @@
+https://pecotcraft.github.io/pecot/dev/test-report/index.html: 出そろった（期待した値 <!DOCTYPE html>）

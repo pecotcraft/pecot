@@ -1,0 +1,1 @@
+{"id":"899f1f911d17855cf7b9422c6f5563cc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/hooks-config-disable.test.ts#claude-bash-guards false のとき、gh pr create をブロックしない","name":"false のとき、gh pr create をブロックしない","status":"passed","testResultsByEnv":{"default":"24957410f27cf4e23a5aed42e07682fb"}}

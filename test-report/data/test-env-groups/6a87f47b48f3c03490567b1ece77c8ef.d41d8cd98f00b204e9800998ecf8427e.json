@@ -1,0 +1,1 @@
+{"id":"6a87f47b48f3c03490567b1ece77c8ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/store-layout.test.ts#parseThemeStamp スタンプの内容が「配列」の場合は、undefined を返す","name":"スタンプの内容が「配列」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"29f6ff220177bef35ed0c20e7d35756e"}}

@@ -1,0 +1,1 @@
+{"id":"ab1aae0878348b8a606385752fdec331.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 入力の検証で断るシナリオ board-add-usage は、偽サーバに要求を送らない","name":"入力の検証で断るシナリオ board-add-usage は、偽サーバに要求を送らない","status":"passed","testResultsByEnv":{"default":"74b7ab27a3f0cb38973c871fc07806a9"}}

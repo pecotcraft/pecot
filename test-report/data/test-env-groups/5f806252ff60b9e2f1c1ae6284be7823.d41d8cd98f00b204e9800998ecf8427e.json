@@ -1,0 +1,1 @@
+{"id":"5f806252ff60b9e2f1c1ae6284be7823.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/os-error.test.ts#isSystemCallError syscall を持つシステムエラーのとき true、それ以外は false を返す","name":"syscall を持つシステムエラーのとき true、それ以外は false を返す","status":"passed","testResultsByEnv":{"default":"851f76ebaf7dcd796bad350ec3b1e857"}}

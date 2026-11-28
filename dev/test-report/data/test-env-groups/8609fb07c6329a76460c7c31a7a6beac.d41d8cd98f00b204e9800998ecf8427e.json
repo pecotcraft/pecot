@@ -1,0 +1,1 @@
+{"id":"8609fb07c6329a76460c7c31a7a6beac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と列 Status の欄を書くと、自動処理が書く欄として problem にする","name":"Status の欄を書くと、自動処理が書く欄として problem にする","status":"passed","testResultsByEnv":{"default":"cd22584cb22a7076f3a664bef82b6979"}}

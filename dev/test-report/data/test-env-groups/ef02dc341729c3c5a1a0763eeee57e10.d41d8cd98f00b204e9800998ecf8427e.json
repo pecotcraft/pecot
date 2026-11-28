@@ -1,0 +1,1 @@
+{"id":"ef02dc341729c3c5a1a0763eeee57e10.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_sandbox_ops_workflow#test_sweep_concurrency","name":"sweep は、実行中の片付けを取り消さない","status":"passed","testResultsByEnv":{"default":"7766c2eb530f3ecca7defb794c7f61db"}}

@@ -1,0 +1,1 @@
+{"id":"07159e179fc8b8631c3836de81485095.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/setup.test.ts#createSandbox worktrees は実際の git worktree として作成され、git worktree list に表示される","name":"worktrees は実際の git worktree として作成され、git worktree list に表示される","status":"passed","testResultsByEnv":{"default":"177e519523a5f23eb2ec283b50b11f64"}}

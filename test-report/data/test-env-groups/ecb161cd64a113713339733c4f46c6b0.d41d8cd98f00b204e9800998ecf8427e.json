@@ -1,0 +1,1 @@
+{"id":"ecb161cd64a113713339733c4f46c6b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#isFullWidth カタカナを渡すと、全角と判定する","name":"カタカナを渡すと、全角と判定する","status":"passed","testResultsByEnv":{"default":"cfa4e66c0c083d1ef64663142b9bdaf3"}}

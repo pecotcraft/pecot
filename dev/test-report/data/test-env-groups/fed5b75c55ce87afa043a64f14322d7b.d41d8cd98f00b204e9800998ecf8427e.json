@@ -1,0 +1,1 @@
+{"id":"fed5b75c55ce87afa043a64f14322d7b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/merge-hook-outputs.test.ts#merge-hook-outputs.sh サブスクリプトが複数のとき、additionalContext を改行でつなぐ","name":"サブスクリプトが複数のとき、additionalContext を改行でつなぐ","status":"passed","testResultsByEnv":{"default":"71347a1453a72de588903ec61c94098a"}}

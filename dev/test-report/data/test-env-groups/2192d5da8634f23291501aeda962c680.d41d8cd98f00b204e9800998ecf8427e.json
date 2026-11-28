@@ -1,0 +1,1 @@
+{"id":"2192d5da8634f23291501aeda962c680.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（git） プラグイン本体と同名の依存が存在する場合は、peerDependencies への移動を促す警告を表示する","name":"プラグイン本体と同名の依存が存在する場合は、peerDependencies への移動を促す警告を表示する","status":"passed","testResultsByEnv":{"default":"82d47af94ac529486e03173f5a38725b"}}

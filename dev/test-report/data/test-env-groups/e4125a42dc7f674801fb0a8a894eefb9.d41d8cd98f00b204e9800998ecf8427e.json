@@ -1,0 +1,1 @@
+{"id":"e4125a42dc7f674801fb0a8a894eefb9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 水平線（#1185） インラインコードと HTML コメントの中の水平線は通る","name":"インラインコードと HTML コメントの中の水平線は通る","status":"passed","testResultsByEnv":{"default":"956e25d17521584fd4e131c28f7fa033"}}

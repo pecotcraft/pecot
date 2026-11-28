@@ -1,0 +1,1 @@
+{"id":"07f4cc6875ed3385cc863b16d717417f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-check.test.ts#board_check プロジェクトに無いリポジトリの Issue を渡すと、not-in-project の problem を返す","name":"プロジェクトに無いリポジトリの Issue を渡すと、not-in-project の problem を返す","status":"passed","testResultsByEnv":{"default":"39eca4a95a4461234f5848b88ff469fc"}}

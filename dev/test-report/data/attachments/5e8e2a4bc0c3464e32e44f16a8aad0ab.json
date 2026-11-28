@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "removed: worktree wt2"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt2\",\"deletedBranch\":true,\"warnings\":[\"using repo acme/demo (could not read the repository from the URL of the Git remote origin)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt2",
+    "deletedBranch": true,
+    "warnings": [
+      "using repo acme/demo (could not read the repository from the URL of the Git remote origin)"
+    ]
+  }
+}

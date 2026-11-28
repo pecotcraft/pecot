@@ -1,0 +1,1 @@
+{"id":"90222aa039d63bc20659570af5805f32.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/declaration.test.ts#readThemeDeclaration 宣言が存在しないテーマでは、宣言が存在しない旨の警告を 1 件表示し、既定値を返す","name":"宣言が存在しないテーマでは、宣言が存在しない旨の警告を 1 件表示し、既定値を返す","status":"passed","testResultsByEnv":{"default":"13047129639ed06f9fbaf799886cb9fa"}}

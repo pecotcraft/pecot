@@ -1,0 +1,1 @@
+{"id":"73b4a90049466c8588f856d46e653668.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#decideAutoEnsure job が failure で execution_file が ほかの result の場合は、failed にする","name":"job が failure で execution_file が ほかの result の場合は、failed にする","status":"passed","testResultsByEnv":{"default":"b3b260b8c8670e7c1ff207aa9ca88efc"}}

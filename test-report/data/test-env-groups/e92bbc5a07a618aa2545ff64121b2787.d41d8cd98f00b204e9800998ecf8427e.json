@@ -1,0 +1,1 @@
+{"id":"e92bbc5a07a618aa2545ff64121b2787.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/github-ops/branch-and-stack.test.ts#github ops stack-register で子が既に親の直後にあると、書き込まず unchanged を返す","name":"stack-register で子が既に親の直後にあると、書き込まず unchanged を返す","status":"passed","testResultsByEnv":{"default":"8a1f2d80c4e8863841ab3562958ea857"}}

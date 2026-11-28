@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-SSO-LOGIN
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+Start SSO login
+==============================
+
+.. iface-defs:: pecot-tools PT-AWS-SSO-LOGIN

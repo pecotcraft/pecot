@@ -1,0 +1,1 @@
+{"id":"6d5a3313529b5948373648955cf16701.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-delete.test.ts#branch_delete ブランチを削除すると、deleted の行を標準エラーに出す","name":"ブランチを削除すると、deleted の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"ba27fd254007e2636d7cd67dc0953859"}}

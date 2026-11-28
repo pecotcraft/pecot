@@ -1,0 +1,1 @@
+read-configuration の結果に workspaceFolder か workspaceMount が無い

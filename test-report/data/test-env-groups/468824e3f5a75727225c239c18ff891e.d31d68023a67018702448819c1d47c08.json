@@ -1,0 +1,1 @@
+{"id":"468824e3f5a75727225c239c18ff891e.d31d68023a67018702448819c1d47c08","fullName":".githooks.tests.test_pages_provenance#test_path_head_repository_and_conclusion_must_match","name":"pull_request の run は、path・head のリポジトリ・結論のいずれかが条件に合わないと、{'path': '.github/workflows/pages-deploy.yml'} の場合に破棄する","status":"passed","testResultsByEnv":{"default":"d543f467d4264ed26526ee4ff488b3aa"}}

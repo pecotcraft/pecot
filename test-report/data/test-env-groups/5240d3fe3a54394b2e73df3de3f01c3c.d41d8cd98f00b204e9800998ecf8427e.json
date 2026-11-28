@@ -1,0 +1,1 @@
+{"id":"5240d3fe3a54394b2e73df3de3f01c3c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/cli.test.ts#validate 引数 [\"validate\",\"--root\",\"a\",\"b\"] を渡すと、使い方を出力し、2 で終了する","name":"引数 [\"validate\",\"--root\",\"a\",\"b\"] を渡すと、使い方を出力し、2 で終了する","status":"passed","testResultsByEnv":{"default":"08fb3cff7a64faa789e7e57838c78130"}}

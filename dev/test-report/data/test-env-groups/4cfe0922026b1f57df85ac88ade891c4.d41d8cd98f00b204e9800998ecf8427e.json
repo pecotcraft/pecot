@@ -1,0 +1,1 @@
+{"id":"4cfe0922026b1f57df85ac88ade891c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#remoteOnlyChanges remote の子ブランチにだけ追加されたコミットは、一覧に含める","name":"remote の子ブランチにだけ追加されたコミットは、一覧に含める","status":"passed","testResultsByEnv":{"default":"34157f7b2591486c5de28e58c9a5aaf2"}}

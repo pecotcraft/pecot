@@ -1,0 +1,3 @@
+error: the repository is ambiguous
+  could not read the repository from the URL of the Git remote origin
+  give repo: <owner/repo>

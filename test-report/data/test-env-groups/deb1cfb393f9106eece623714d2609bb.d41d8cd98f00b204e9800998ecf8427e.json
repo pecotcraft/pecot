@@ -1,0 +1,1 @@
+{"id":"deb1cfb393f9106eece623714d2609bb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish 閉じた Issue があると、close を送らず、unchanged の行を出す","name":"閉じた Issue があると、close を送らず、unchanged の行を出す","status":"passed","testResultsByEnv":{"default":"55817616df1ac43360951c18c990ce6d"}}

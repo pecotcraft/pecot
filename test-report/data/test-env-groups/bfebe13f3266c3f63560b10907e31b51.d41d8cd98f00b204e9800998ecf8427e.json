@@ -1,0 +1,1 @@
+{"id":"bfebe13f3266c3f63560b10907e31b51.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 文字列リテラルの中の ; は、文の区切りとして扱わない","name":"文字列リテラルの中の ; は、文の区切りとして扱わない","status":"passed","testResultsByEnv":{"default":"9fd77e8d463ebef8f87a80e203ae7897"}}

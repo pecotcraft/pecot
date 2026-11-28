@@ -1,0 +1,1 @@
+{"id":"768930637a0996f8c509ab0ae23b230e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-add.test.ts#board_add 番号だけを渡して repo を付けると、そのリポジトリの Issue を足す","name":"番号だけを渡して repo を付けると、そのリポジトリの Issue を足す","status":"passed","testResultsByEnv":{"default":"72166e7218a15a2a1ef0a72f86594eab"}}

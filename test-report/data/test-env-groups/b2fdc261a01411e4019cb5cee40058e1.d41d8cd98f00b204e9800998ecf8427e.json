@@ -1,0 +1,1 @@
+{"id":"b2fdc261a01411e4019cb5cee40058e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql 変数を省略すると、空のオブジェクトを送信する","name":"変数を省略すると、空のオブジェクトを送信する","status":"passed","testResultsByEnv":{"default":"92c1b448ec98b65d4ad07958758bc53b"}}

@@ -1,0 +1,1 @@
+{"id":"ccdb39dbe388d920f1cc15dba39f199c.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/inspect-pptx.bats#3 本の入力で枚数が違うとき、枚ごとの表は欠けたセルを - で埋める","name":"3 本の入力で枚数が違うとき、枚ごとの表は欠けたセルを - で埋める","status":"passed","testResultsByEnv":{"default":"8491e20059a870d87aed4fdda8294f3a"}}

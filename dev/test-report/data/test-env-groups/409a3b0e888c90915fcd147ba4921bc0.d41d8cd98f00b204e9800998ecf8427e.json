@@ -1,0 +1,1 @@
+{"id":"409a3b0e888c90915fcd147ba4921bc0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 担当・マイルストーン・type milestone に 2 を渡すと、正の整数でないときだけ problem にする","name":"milestone に 2 を渡すと、正の整数でないときだけ problem にする","status":"passed","testResultsByEnv":{"default":"e7e2294cece6a7b5a0ec040809dfdfe7"}}

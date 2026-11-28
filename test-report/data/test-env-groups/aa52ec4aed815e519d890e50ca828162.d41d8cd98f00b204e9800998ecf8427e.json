@@ -1,0 +1,1 @@
+{"id":"aa52ec4aed815e519d890e50ca828162.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/attributes.test.ts#readAttributeValues 許可していない道筋のエラーは、GitHubAPIError として扱う","name":"許可していない道筋のエラーは、GitHubAPIError として扱う","status":"passed","testResultsByEnv":{"default":"3fce09a457094b5c8bbe40f3bfb965d2"}}

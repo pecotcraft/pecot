@@ -1,0 +1,1 @@
+{"id":"b8572e27bfc349c0a9de486981f9cc6f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の状態 force push をすると、24 時間の起点が force push の時刻に戻る","name":"force push をすると、24 時間の起点が force push の時刻に戻る","status":"passed","testResultsByEnv":{"default":"cc5a24e71806d45d18f5b46e454ea5e9"}}

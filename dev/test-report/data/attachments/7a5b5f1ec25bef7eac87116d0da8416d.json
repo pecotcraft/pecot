@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-tools",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "Output validation error: Invalid structured content for tool aws_s3_ls: data must have required property 'lines', data must have required property 'output', data must have required property 'truncated', data must have required property 'kind', data must have required property 'detail', data must match a schema in anyOf, data must NOT have additional properties"
+    }
+  ],
+  "isError": true
+}

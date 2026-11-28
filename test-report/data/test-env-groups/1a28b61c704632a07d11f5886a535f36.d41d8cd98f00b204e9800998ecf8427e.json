@@ -1,0 +1,1 @@
+{"id":"1a28b61c704632a07d11f5886a535f36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync 自動マージの対象で、待つ理由が無い PR は、理由 undefined で扱う","name":"自動マージの対象で、待つ理由が無い PR は、理由 undefined で扱う","status":"passed","testResultsByEnv":{"default":"4afca3eab0a3982e8e02399c35a9d7a7"}}

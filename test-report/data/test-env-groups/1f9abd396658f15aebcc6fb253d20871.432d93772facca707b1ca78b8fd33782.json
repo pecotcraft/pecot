@@ -1,0 +1,1 @@
+{"id":"1f9abd396658f15aebcc6fb253d20871.432d93772facca707b1ca78b8fd33782","fullName":".githooks.tests.test_githooks_lanes#test_lane_declares_narrow_inputs","name":"test-ci は、広い入力を使わず、必要な入力だけを宣言する","status":"passed","testResultsByEnv":{"default":"b31b7919d2a9f115fd77bc3642a9d864"}}

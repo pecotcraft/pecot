@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated: acme/demo in /tmp/pecot-repo-mXZQ3u/.pecot/config/projects/ghes.example.com_acme_1.json"
+    },
+    {
+      "type": "text",
+      "text": "{\"repository\":\"acme/demo\",\"projectNumber\":1,\"change\":\"update\",\"configPath\":\"/tmp/pecot-repo-mXZQ3u/.pecot/config/projects/ghes.example.com_acme_1.json\"}"
+    }
+  ],
+  "structuredContent": {
+    "repository": "acme/demo",
+    "projectNumber": 1,
+    "change": "update",
+    "configPath": "/tmp/pecot-repo-mXZQ3u/.pecot/config/projects/ghes.example.com_acme_1.json"
+  }
+}

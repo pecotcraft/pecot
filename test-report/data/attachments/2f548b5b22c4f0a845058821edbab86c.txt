@@ -1,0 +1,26 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________________________________ test_check __________________________________
+
+    def test_check() -> None:
+>       run_attached([*EMIT, "", "broken", "1"], capture_output=True, text=True, check=True)
+
+suite/test_sample.py:12: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+suite/attach.py:68: in run_attached
+    result.check_returncode()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = CompletedProcess(args=['bash', '/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_run_attached_check_attach0/suite/emit.sh', '', 'broken', '1'], returncode=1, stdout='', stderr='broken')
+
+    def check_returncode(self):
+        """Raise CalledProcessError if the exit code is non-zero."""
+        if self.returncode:
+>           raise CalledProcessError(self.returncode, self.args, self.stdout,
+                                     self.stderr)
+E           subprocess.CalledProcessError: Command '['bash', '/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_run_attached_check_attach0/suite/emit.sh', '', 'broken', '1']' returned non-zero exit status 1.
+
+/home/vscode/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/lib/python3.12/subprocess.py:502: CalledProcessError
+=========================== short test summary info ============================
+FAILED suite/test_sample.py::test_check - subprocess.CalledProcessError: Command '['bash', '/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_run_attached_check_attach0/suite/emit.sh', '', 'broken', '1']' returned non-zero exit status 1.
+1 failed in 0.07s

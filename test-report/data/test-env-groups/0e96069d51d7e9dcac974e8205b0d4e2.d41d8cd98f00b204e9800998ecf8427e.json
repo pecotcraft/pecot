@@ -1,0 +1,1 @@
+{"id":"0e96069d51d7e9dcac974e8205b0d4e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 入力の検証で断るシナリオ worktree-link-usage は、偽サーバに要求を送らない","name":"入力の検証で断るシナリオ worktree-link-usage は、偽サーバに要求を送らない","status":"passed","testResultsByEnv":{"default":"482f5cf6d1bf364f3248968777cf71e4"}}

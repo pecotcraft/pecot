@@ -1,0 +1,1 @@
+{"id":"1c6e450b70a5588e73359b201216728a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateFoldBalance（折りたたみ <details> の開閉の対応 #1330） 閉じていないコードフェンスは、validateBodyStyle に任せる","name":"閉じていないコードフェンスは、validateBodyStyle に任せる","status":"passed","testResultsByEnv":{"default":"7132d5ed8ab9bcc6c906e750de1847d3"}}

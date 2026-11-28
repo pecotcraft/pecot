@@ -1,0 +1,1 @@
+{"id":"ab50793f9fe4ed22cd44250da249b502.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/baseline.test.ts#baseline.json 行カバレッジは 0 超 100 以下で、hooks のテスト件数は正の整数","name":"行カバレッジは 0 超 100 以下で、hooks のテスト件数は正の整数","status":"passed","testResultsByEnv":{"default":"c575138f2a112dcaa30c0a765c2e9d6d"}}

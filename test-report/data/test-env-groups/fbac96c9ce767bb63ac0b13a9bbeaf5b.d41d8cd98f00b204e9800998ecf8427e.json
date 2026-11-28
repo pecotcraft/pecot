@@ -1,0 +1,1 @@
+{"id":"fbac96c9ce767bb63ac0b13a9bbeaf5b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#collaboratorLoginsOf collaborator の login を並べ、items が無ければ空の配列を返す","name":"collaborator の login を並べ、items が無ければ空の配列を返す","status":"passed","testResultsByEnv":{"default":"3b359086263f8a37e721091e2f66a4ae"}}

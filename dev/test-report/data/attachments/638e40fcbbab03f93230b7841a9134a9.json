@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pullNumber: reads.pull_request is PR #22, not acme/demo#21: read acme/demo#21 with pull_request_read (method get)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"pullNumber\",\"code\":\"not-found\",\"message\":\"reads.pull_request is PR #22, not acme/demo#21: read acme/demo#21 with pull_request_read (method get)\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "pullNumber",
+        "code": "not-found",
+        "message": "reads.pull_request is PR #22, not acme/demo#21: read acme/demo#21 with pull_request_read (method get)"
+      }
+    ]
+  }
+}

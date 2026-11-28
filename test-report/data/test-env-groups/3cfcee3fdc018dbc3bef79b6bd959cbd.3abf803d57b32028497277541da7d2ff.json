@@ -1,0 +1,1 @@
+{"id":"3cfcee3fdc018dbc3bef79b6bd959cbd.3abf803d57b32028497277541da7d2ff","fullName":".githooks.tests.test_pages_served#test_main_writes_output","name":"CLI は結果を GITHUB_OUTPUT に書き、--require のときだけ失敗で終わる","status":"passed","testResultsByEnv":{"default":"3c3c2b6d9a021587a227ca3043f0d873"}}

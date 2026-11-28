@@ -1,0 +1,8 @@
+:iface-id: PV-EVIDENCE-CREATE
+:iface-plugin: pecot-visual
+:iface-kind: MCP
+
+Create evidence workbook
+================================================
+
+.. iface-defs:: pecot-visual PV-EVIDENCE-CREATE

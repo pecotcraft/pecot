@@ -1,0 +1,1 @@
+{"id":"23f159a1050eff049da8736a0aec2340.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/failure.test.ts#classifyFailure awscli の起動に失敗して ENOENT になったときは、awscli-missing と判定する","name":"awscli の起動に失敗して ENOENT になったときは、awscli-missing と判定する","status":"passed","testResultsByEnv":{"default":"3a65d6de1bce15b0e1557dc5d6b96564"}}

@@ -1,0 +1,1 @@
+{"id":"b3ffbe1b9f638cf41ee33dbbee2e70a5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create 待っている Issue head の番号の リポジトリ が PR のリポに無いと、何も出さずに飛ばす","name":"head の番号の リポジトリ が PR のリポに無いと、何も出さずに飛ばす","status":"passed","testResultsByEnv":{"default":"055784dda2878e879d23a15f3a31bcc8"}}

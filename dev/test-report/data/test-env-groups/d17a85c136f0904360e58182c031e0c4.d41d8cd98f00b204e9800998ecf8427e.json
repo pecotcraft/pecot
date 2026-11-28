@@ -1,0 +1,1 @@
+{"id":"d17a85c136f0904360e58182c031e0c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 認証に失敗すると、エラーを表示して終了コード 2 で止まる","name":"認証に失敗すると、エラーを表示して終了コード 2 で止まる","status":"passed","testResultsByEnv":{"default":"f8b24fa0f9d2e02fdf74a70aab622cc5"}}

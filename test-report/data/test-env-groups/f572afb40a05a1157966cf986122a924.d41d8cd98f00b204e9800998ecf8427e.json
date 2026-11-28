@@ -1,0 +1,1 @@
+{"id":"f572afb40a05a1157966cf986122a924.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#getLatestVersion 最初の ## [X.Y.Z] の見出しのバージョンを返し、Unreleased は読み飛ばす","name":"最初の ## [X.Y.Z] の見出しのバージョンを返し、Unreleased は読み飛ばす","status":"passed","testResultsByEnv":{"default":"9c71de9b33a75229d30efc170542a9e5"}}

@@ -1,0 +1,1 @@
+{"id":"8c8cdc59f52f5dfd43ac4c27a7f89684.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#serializeProjectConfig 日本語は \\u エスケープせず、そのまま書き出す（ensure_ascii=False）","name":"日本語は \\u エスケープせず、そのまま書き出す（ensure_ascii=False）","status":"passed","testResultsByEnv":{"default":"151e25d52316af2cf77ba13869af6d8f"}}

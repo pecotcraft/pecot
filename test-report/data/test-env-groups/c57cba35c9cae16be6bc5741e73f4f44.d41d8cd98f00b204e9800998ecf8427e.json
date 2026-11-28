@@ -1,0 +1,1 @@
+{"id":"c57cba35c9cae16be6bc5741e73f4f44.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#ensureWorkDirectory owner/repo/N の形式の参照から、.pecot/work/N を作成して返す","name":"owner/repo/N の形式の参照から、.pecot/work/N を作成して返す","status":"passed","testResultsByEnv":{"default":"dc7bc4173a73d5f055007919953d5270"}}

@@ -1,0 +1,147 @@
+{
+  "name": "project_activate",
+  "title": "Activate project",
+  "description": "Write the project config of an initialized board from the official GitHub MCP reads in reads, and make it the active project. The registered repositories are kept from the existing config",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "project": {
+        "type": "string",
+        "description": "Board number or title, or config file path/file name"
+      },
+      "owner": {
+        "description": "Owner of the board (required unless project is a config file)",
+        "type": "string"
+      },
+      "owner_type": {
+        "description": "Whether the owner is a user or an organization, as passed to projects_get (required unless list_projects or the config gives it)",
+        "type": "string",
+        "enum": [
+          "user",
+          "org"
+        ]
+      },
+      "host": {
+        "description": "GitHub host (required unless project is a config file)",
+        "type": "string"
+      },
+      "reads": {
+        "description": "Results of the official GitHub MCP reads of the board",
+        "type": "object",
+        "properties": {
+          "project": {
+            "description": "Result of projects_get with method get_project for the board (when project is a number or a config file)"
+          },
+          "projects": {
+            "description": "Results of projects_list with method list_projects for the owner, every page (when project is a title)",
+            "type": "array",
+            "items": {}
+          },
+          "fields": {
+            "description": "Result of projects_list with method list_project_fields for the board"
+          },
+          "views": {
+            "description": "Result of projects_list with method list_project_views for the board; the board URL in the config opens its first view (omit it for a URL without a view)"
+          }
+        }
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "project"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "project": {
+        "description": "Name of the project config that was made active",
+        "type": "string"
+      },
+      "configPath": {
+        "type": "string",
+        "description": "Path of the project config file"
+      },
+      "change": {
+        "type": "string",
+        "enum": [
+          "create",
+          "update",
+          "unchanged"
+        ],
+        "description": "What happened to the config file"
+      },
+      "config_moved": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "File name of the old project config"
+              },
+              "to": {
+                "type": "string",
+                "description": "File name the project config was moved to"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "The old project config file that was moved to the new name (null when none)"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "configPath",
+          "change",
+          "config_moved"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": true
+  }
+}

@@ -1,0 +1,1 @@
+/tmp/bats-run-c8L97U/test/17/preset-ca.pem

@@ -1,0 +1,8 @@
+:iface-id: PW-PR-CHECK
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Check pull request
+====================================
+
+.. iface-defs:: pecot-workflow PW-PR-CHECK

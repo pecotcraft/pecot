@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: references validation not run: /tmp/pecotv-test-file-tools-AtaQ6E/talk/node_modules/slidev-theme-pecotv-test-declared/references/plain.yaml\\n  The validator timed out (over 30 seconds).\\n  No validation ran for this file, so violations have not been detected.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: references validation not run: /tmp/pecotv-test-file-tools-AtaQ6E/talk/node_modules/slidev-theme-pecotv-test-declared/references/plain.yaml\n  The validator timed out (over 30 seconds).\n  No validation ran for this file, so violations have not been detected."
+    }
+  }
+}

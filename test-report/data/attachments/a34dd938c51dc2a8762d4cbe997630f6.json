@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "cannot resolve Windows-style path: input_path=\\\\wsl.localhost\\e2e-other\\tmp\\pecotv-1094-e2e-giWBtA\\spec.json (cannot resolve a path on distro e2e-other: this server runs on distro e2e)"
+    },
+    {
+      "type": "text",
+      "text": "{\"invalidPaths\":[\"input_path=\\\\\\\\wsl.localhost\\\\e2e-other\\\\tmp\\\\pecotv-1094-e2e-giWBtA\\\\spec.json\"],\"convertedPaths\":{\"out_path\":{\"from\":\"C:\\\\pecotv-1094\\\\out.xlsx\",\"to\":\"/tmp/pecotv-1094-e2e-giWBtA/c/pecotv-1094/out.xlsx\"}},\"kind\":\"invalid-path\",\"detail\":\"cannot resolve Windows-style path: input_path=\\\\\\\\wsl.localhost\\\\e2e-other\\\\tmp\\\\pecotv-1094-e2e-giWBtA\\\\spec.json (cannot resolve a path on distro e2e-other: this server runs on distro e2e)\"}"
+    }
+  ],
+  "structuredContent": {
+    "invalidPaths": [
+      "input_path=\\\\wsl.localhost\\e2e-other\\tmp\\pecotv-1094-e2e-giWBtA\\spec.json"
+    ],
+    "convertedPaths": {
+      "out_path": {
+        "from": "C:\\pecotv-1094\\out.xlsx",
+        "to": "/tmp/pecotv-1094-e2e-giWBtA/c/pecotv-1094/out.xlsx"
+      }
+    },
+    "kind": "invalid-path",
+    "detail": "cannot resolve Windows-style path: input_path=\\\\wsl.localhost\\e2e-other\\tmp\\pecotv-1094-e2e-giWBtA\\spec.json (cannot resolve a path on distro e2e-other: this server runs on distro e2e)"
+  },
+  "isError": true
+}

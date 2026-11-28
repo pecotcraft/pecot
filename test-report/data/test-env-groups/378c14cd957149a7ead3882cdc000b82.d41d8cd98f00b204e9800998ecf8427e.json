@@ -1,0 +1,1 @@
+{"id":"378c14cd957149a7ead3882cdc000b82.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference repo で解決するツールで基準リポジトリが指定されていないと、入力 repo の指定も案内する例外が発生する","name":"repo で解決するツールで基準リポジトリが指定されていないと、入力 repo の指定も案内する例外が発生する","status":"passed","testResultsByEnv":{"default":"857c59646040ee1fa0fc0d53d9367eb6"}}

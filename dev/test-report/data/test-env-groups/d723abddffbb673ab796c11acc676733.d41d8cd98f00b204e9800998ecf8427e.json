@@ -1,0 +1,1 @@
+{"id":"d723abddffbb673ab796c11acc676733.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueSlim 親・サブ Issue・timelineItems が存在しない Issue は、空の子要素を持つ形で返す","name":"親・サブ Issue・timelineItems が存在しない Issue は、空の子要素を持つ形で返す","status":"passed","testResultsByEnv":{"default":"76143ac82e6844fa4a0faccedd36bf8c"}}

@@ -1,0 +1,1 @@
+{"id":"18ad07be9777ac4e8659dca53fdb76cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery クエリを拒否するときは、再試行の手掛かりになる message を返す","name":"クエリを拒否するときは、再試行の手掛かりになる message を返す","status":"passed","testResultsByEnv":{"default":"16b48be3c3557c1bb8f7eb19c963c684"}}

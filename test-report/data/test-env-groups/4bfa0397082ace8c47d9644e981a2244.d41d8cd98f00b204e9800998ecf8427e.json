@@ -1,0 +1,1 @@
+{"id":"4bfa0397082ace8c47d9644e981a2244.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/domain/tests/issue-surface.test.ts#extractIssueSurface OpenAPI の path が存在しない 場合は、REST の項目を出力しない","name":"OpenAPI の path が存在しない 場合は、REST の項目を出力しない","status":"passed","testResultsByEnv":{"default":"329e7a4f34efd34226ccaee2be58ae13"}}

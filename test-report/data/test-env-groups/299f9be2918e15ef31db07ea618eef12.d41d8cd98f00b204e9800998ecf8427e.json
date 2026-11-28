@@ -1,0 +1,1 @@
+{"id":"299f9be2918e15ef31db07ea618eef12.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#読み込む設定ファイルの中身が {\"host\":\"github.com\"} だと、その理由を示して失敗する","name":"読み込む設定ファイルの中身が {\"host\":\"github.com\"} だと、その理由を示して失敗する","status":"passed","testResultsByEnv":{"default":"7607d9be225ba89a3d5a5ac9552b09a6"}}

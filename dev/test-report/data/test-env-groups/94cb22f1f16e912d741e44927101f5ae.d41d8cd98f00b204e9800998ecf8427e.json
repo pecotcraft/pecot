@@ -1,0 +1,1 @@
+{"id":"94cb22f1f16e912d741e44927101f5ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#matchPrerenderToMedia 候補が複数あり、後ろの候補のほうが近い場合は、その候補に更新する","name":"候補が複数あり、後ろの候補のほうが近い場合は、その候補に更新する","status":"passed","testResultsByEnv":{"default":"7f4a55180448262a51c14c9b19817e89"}}

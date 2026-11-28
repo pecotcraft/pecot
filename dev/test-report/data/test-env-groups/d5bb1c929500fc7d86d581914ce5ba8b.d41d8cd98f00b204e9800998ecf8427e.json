@@ -1,0 +1,1 @@
+{"id":"d5bb1c929500fc7d86d581914ce5ba8b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/templates.test.ts#actions/templates pecot-github-ops.yml は npx で @pecot/workflow-mcp を取らない","name":"pecot-github-ops.yml は npx で @pecot/workflow-mcp を取らない","status":"passed","testResultsByEnv":{"default":"68e4cf919c835235b92c31fbd3f1ade2"}}

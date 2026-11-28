@@ -1,0 +1,1 @@
+{"id":"d9e82eb122a1b34890a04389273e9bc7.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#監査記録の指紋が一致すると、dry-run が突合を通り、同じ指紋の配布ツリーを構築する","name":"監査記録の指紋が一致すると、dry-run が突合を通り、同じ指紋の配布ツリーを構築する","status":"passed","testResultsByEnv":{"default":"23f53d1df8894970bcb5792768cb7856"}}

@@ -1,0 +1,3 @@
+count: Issues to close: 2
+warning: closing Issue #10 failed: GitHub API error: 500 Server Error
+closed: Issue #12

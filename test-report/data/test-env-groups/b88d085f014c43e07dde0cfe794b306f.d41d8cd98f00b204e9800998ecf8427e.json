@@ -1,0 +1,1 @@
+{"id":"b88d085f014c43e07dde0cfe794b306f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-gate.test.ts#auto gate workflow_run のイベント 末尾が Issue 番号でないブランチ の CI なら、何も読まず、proceed を偽にする","name":"末尾が Issue 番号でないブランチ の CI なら、何も読まず、proceed を偽にする","status":"passed","testResultsByEnv":{"default":"8dff08e3f6eca50ffa9f5dd1cd5bc154"}}

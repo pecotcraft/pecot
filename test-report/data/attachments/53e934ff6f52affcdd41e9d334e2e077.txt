@@ -1,0 +1,6 @@
+count: open dependabot PRs: 1
+count: PRs awaiting a decision: 1
+count: PRs awaiting a decision without check results: 0
+unchanged: Tracker #9
+error: Tracker: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:39771/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500

@@ -1,0 +1,1 @@
+{"id":"110770e49dc10b110e4d45617f0a8444.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#assertTalkDirectory 指定した dir が存在しない場合は、理由 dir-not-found の実行エラーを返す","name":"指定した dir が存在しない場合は、理由 dir-not-found の実行エラーを返す","status":"passed","testResultsByEnv":{"default":"be1ba4b10eda8a2c17ed45f59712b46c"}}

@@ -1,0 +1,1 @@
+{"id":"4abe4624221b50514a9ced3dd67095e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#doesContainJapanese ひらがな + 英数字混在（入力 \"Hello こんにちは\"）のとき、true を返す","name":"ひらがな + 英数字混在（入力 \"Hello こんにちは\"）のとき、true を返す","status":"passed","testResultsByEnv":{"default":"c3edfca9c3791864a0705c42e9e388bc"}}

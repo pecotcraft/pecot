@@ -1,0 +1,1 @@
+{"id":"d545f3ec5eaf75f8a7e72262aa75b14b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_latest_tags_do_not_take_tags_of_plugin_with_longer_name","name":"最新のタグは、名前が長い別の単位のタグを、同じ単位のものとして扱わない","status":"passed","testResultsByEnv":{"default":"74eadd62e5b02459f6033bb87eadf7ff"}}

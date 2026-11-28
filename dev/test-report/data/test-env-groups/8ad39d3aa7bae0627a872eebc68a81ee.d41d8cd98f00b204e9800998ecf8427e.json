@@ -1,0 +1,1 @@
+{"id":"8ad39d3aa7bae0627a872eebc68a81ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/github-ops/common.test.ts#github ops GitHub への接続が切れると、ok: false・github-api の行を出す","name":"GitHub への接続が切れると、ok: false・github-api の行を出す","status":"passed","testResultsByEnv":{"default":"b4f987ea92c7d14dc5ae90b94e2b2430"}}

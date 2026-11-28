@@ -1,0 +1,1 @@
+{"id":"06caab1d3dd2241e767697b20df03569.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#コマンドの実体 ビルドした bin を実行し、違反のあるファイルを渡すと、終了コード 1 と、違反ごとの 1 行を出力する","name":"ビルドした bin を実行し、違反のあるファイルを渡すと、終了コード 1 と、違反ごとの 1 行を出力する","status":"passed","testResultsByEnv":{"default":"754c7fbf797cd8b2b8cae96665c48f67"}}

@@ -1,0 +1,1 @@
+warning: mxCell id=cellA: value needs wrapping (contains Japanese text or line breaks) but style has no whiteSpace=wrap; value starts with: "日本語テキスト" (fix: add whiteSpace=wrap to style)

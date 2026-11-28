@@ -1,0 +1,1 @@
+{"id":"9026f1f11b9f2ff29b5a9b2dc7595acc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「hrefMap 欠落」の場合は、undefined を返す","name":"エントリが「hrefMap 欠落」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"8f7b86daf5c02e26b1ac7fd123311fea"}}

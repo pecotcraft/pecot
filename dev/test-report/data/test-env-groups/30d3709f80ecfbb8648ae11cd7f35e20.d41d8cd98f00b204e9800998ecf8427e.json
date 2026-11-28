@@ -1,0 +1,1 @@
+{"id":"30d3709f80ecfbb8648ae11cd7f35e20.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-create.test.ts#slide create の失敗 (FR-013) 取得に失敗した場合は、失敗の前に出た取得中の警告を標準エラーに出力する","name":"取得に失敗した場合は、失敗の前に出た取得中の警告を標準エラーに出力する","status":"passed","testResultsByEnv":{"default":"774012d8f2fc566b3575821248b6ffb9"}}

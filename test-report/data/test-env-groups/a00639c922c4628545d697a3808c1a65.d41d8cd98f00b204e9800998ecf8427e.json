@@ -1,0 +1,1 @@
+{"id":"a00639c922c4628545d697a3808c1a65.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_release_and_dev_jobs_are_split_by_trigger","name":"リリース版と開発版の job を、契機に応じて分けて実行する","status":"passed","testResultsByEnv":{"default":"06f648e374c159cd1450edcbb1e63c22"}}

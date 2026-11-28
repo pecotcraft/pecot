@@ -1,0 +1,1 @@
+{"id":"8f77dfe539fa8d04215c56559a6cb3fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/redact.test.ts#redactSecrets x-amz-security-token ヘッダは、値の部分だけを伏せ字にする","name":"x-amz-security-token ヘッダは、値の部分だけを伏せ字にする","status":"passed","testResultsByEnv":{"default":"e233e9729d3b28adaeac3ea5151caa64"}}

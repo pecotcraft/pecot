@@ -1,0 +1,1 @@
+{"id":"517899f6b99e8c26d13c6e75837fff71.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool 起動に失敗した子の出力が上限を超えても、早く出た warning を warnings に残す","name":"起動に失敗した子の出力が上限を超えても、早く出た warning を warnings に残す","status":"passed","testResultsByEnv":{"default":"f6cf699178ab17dc73fbcac1c94b3cb5"}}

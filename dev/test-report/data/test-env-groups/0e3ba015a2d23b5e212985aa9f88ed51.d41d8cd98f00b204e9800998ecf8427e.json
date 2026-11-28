@@ -1,0 +1,1 @@
+{"id":"0e3ba015a2d23b5e212985aa9f88ed51.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/rule-tester.test.ts#no-triple-hyphen-in-frontmatter valid frontmatter に余分な --- が無いと、報告しない","name":"frontmatter に余分な --- が無いと、報告しない","status":"passed","testResultsByEnv":{"default":"753136be9274361f3b3b2715fc431b80"}}

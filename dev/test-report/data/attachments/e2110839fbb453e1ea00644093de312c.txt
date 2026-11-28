@@ -1,0 +1,5 @@
+ERROR: pecotv-cli の dist が見つかりません: /tmp/bats-run-3zdoR9/test/18/no-such-dist
+  build 手順:
+    cd plugins/pecot-visual \
+      && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 pnpm --filter @pecot/pecotv-cli run build
+  別の場所の dist を使う場合は環境変数 PECOTV_CLI_DIST に絶対パスを指定する。

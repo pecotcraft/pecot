@@ -1,0 +1,1 @@
+{"id":"575a8e0b0bc429e910cc07ec4b0a1d84.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#ensureChromiumHostDependencies update と install の両方が失敗した場合は、両方の理由と導入のコマンドを添えて返す","name":"update と install の両方が失敗した場合は、両方の理由と導入のコマンドを添えて返す","status":"passed","testResultsByEnv":{"default":"7782afe5ce69a1df49feb5617e15e713"}}

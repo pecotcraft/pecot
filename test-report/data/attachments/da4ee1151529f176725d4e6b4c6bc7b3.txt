@@ -1,0 +1,1 @@
+error: title and base (base branch) are required with message

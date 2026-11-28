@@ -1,0 +1,9 @@
+==> npm pack
+==> tgz: example-attach-test-1.2.3.tgz
+==> tgz の中身（1 ファイル）
+    package.json
+==> dry-run のため gh は実行しません。次を実行します:
+    gh release view example-v1.2.3 -R acme-labs/example-repo
+    gh release upload example-v1.2.3 example-attach-test-1.2.3.tgz --clobber -R acme-labs/example-repo
+    gh workflow run publish-npm.yml -f tag=example-v1.2.3 --ref example-v1.2.3 -R acme-labs/example-repo
+    (注: 版は version の段階より前の値です。本実行では、nx が上げた版のタグになります)

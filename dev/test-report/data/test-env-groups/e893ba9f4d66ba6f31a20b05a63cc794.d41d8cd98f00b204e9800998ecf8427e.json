@@ -1,0 +1,1 @@
+{"id":"e893ba9f4d66ba6f31a20b05a63cc794.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations annotations が配列でない場合は、拒否する","name":"annotations が配列でない場合は、拒否する","status":"passed","testResultsByEnv":{"default":"c50e346c57875812ba49e8ee60c65406"}}

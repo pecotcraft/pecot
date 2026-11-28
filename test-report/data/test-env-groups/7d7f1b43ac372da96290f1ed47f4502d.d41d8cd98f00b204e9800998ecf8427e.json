@@ -1,0 +1,1 @@
+{"id":"7d7f1b43ac372da96290f1ed47f4502d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_sync 移行前の talk-dir に theme を渡さないと、何も変えずに theme-required のエラーを返す","name":"移行前の talk-dir に theme を渡さないと、何も変えずに theme-required のエラーを返す","status":"passed","testResultsByEnv":{"default":"a4a8989f8076311c647b8f66d745231b"}}

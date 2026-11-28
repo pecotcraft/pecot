@@ -1,0 +1,1 @@
+{"id":"c33953d447d1f114ac7e18bf64cc5104.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync 表から PR を外すと、removed の行を標準エラーに出す","name":"表から PR を外すと、removed の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"5239acebd33073c7c65224148fc62071"}}

@@ -1,0 +1,1 @@
+{"id":"e2f1e5cc3c57f762c7b283b5ecce2e0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#addSubIssue 応答に addSubIssue が存在しない場合は、GitHubAPIError が発生する","name":"応答に addSubIssue が存在しない場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"1ff54a6dc8af9cd747d7725afa5f9e98"}}

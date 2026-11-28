@@ -1,0 +1,1 @@
+{"id":"b9b5edd7c7259c6209049eb9bb3ce3a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] 結果の outputSchema 検証 出力スキーマに違反する structuredContent は、拒否する","name":"出力スキーマに違反する structuredContent は、拒否する","status":"passed","testResultsByEnv":{"default":"dbc64f87eee78cc63f186be3e477b2d3"}}

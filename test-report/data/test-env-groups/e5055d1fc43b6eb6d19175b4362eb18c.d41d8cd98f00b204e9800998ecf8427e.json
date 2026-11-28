@@ -1,0 +1,1 @@
+{"id":"e5055d1fc43b6eb6d19175b4362eb18c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#isLabelWrittenByAutomation コメントが存在しない場合は、false を返す","name":"コメントが存在しない場合は、false を返す","status":"passed","testResultsByEnv":{"default":"fe2eab93769a088b326317ea4cdfb370"}}

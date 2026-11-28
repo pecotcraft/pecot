@@ -1,0 +1,1 @@
+{"id":"7e0b3d1d31805d6f3ff7d243462e99c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#main の --check 書式が違っても中身が同じなら、差の行は出さずに stale の行だけで 1 を返す","name":"書式が違っても中身が同じなら、差の行は出さずに stale の行だけで 1 を返す","status":"passed","testResultsByEnv":{"default":"d036793331c0ec95883468676b79d6c2"}}

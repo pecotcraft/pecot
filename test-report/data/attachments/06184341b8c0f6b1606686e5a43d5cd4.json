@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_rds_describe_db_instances: profile: Invalid string: must match pattern /^[\\w.-]+$/"
+    }
+  ],
+  "isError": true
+}

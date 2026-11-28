@@ -1,0 +1,1 @@
+{"id":"ebd182f9ef63d88587779bcc00b60591.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_dev_sources#test_resolve_rejects_a_head_that_is_not_a_full_sha","name":"head が 40 桁の SHA でないと、材料を決めずに例外が発生する","status":"passed","testResultsByEnv":{"default":"31f2a9659277f072fb265f90171472cf"}}

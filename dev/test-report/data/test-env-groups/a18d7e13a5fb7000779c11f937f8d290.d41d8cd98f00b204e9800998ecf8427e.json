@@ -1,0 +1,1 @@
+{"id":"a18d7e13a5fb7000779c11f937f8d290.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-setup.test.ts#runSetupCommand シグナルで終了した場合の終了コードは、シグナル番号に負の符号を付けた値にする","name":"シグナルで終了した場合の終了コードは、シグナル番号に負の符号を付けた値にする","status":"passed","testResultsByEnv":{"default":"7c7bda3e812990a4c11c4f030ca04dad"}}

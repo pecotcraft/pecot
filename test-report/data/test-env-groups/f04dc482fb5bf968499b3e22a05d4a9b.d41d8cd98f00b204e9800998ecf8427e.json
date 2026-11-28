@@ -1,0 +1,1 @@
+{"id":"f04dc482fb5bf968499b3e22a05d4a9b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_publish_propagates_build_failure","name":"publish は、build が失敗すると、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"cb01eead66ef4ac49dc39dc4bec74e08"}}

@@ -1,0 +1,1 @@
+{"id":"634de82e0c215718078dc3a29f9b8bff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — skip 分類 先頭の署名だけに切り詰めた PNG は、除外理由 unreadable として除外する","name":"先頭の署名だけに切り詰めた PNG は、除外理由 unreadable として除外する","status":"passed","testResultsByEnv":{"default":"8388a0dbfe8e2b826f3e7f6c7b02a14d"}}

@@ -1,0 +1,1 @@
+{"id":"d79af1b6fde248077fa4374af20cdef2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 寸法によらない不変条件 1x1 の極小 の場合は、行が昇順で重複せず、各行のセルが列の昇順に並ぶ","name":"1x1 の極小 の場合は、行が昇順で重複せず、各行のセルが列の昇順に並ぶ","status":"passed","testResultsByEnv":{"default":"6cd91c216705d14b8b72b475e06235e7"}}

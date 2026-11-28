@@ -1,0 +1,1 @@
+{"id":"43fb447d8e9d7c788825115f9e491aca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#main の --write 登録が 0 件でも、空の項目で書く","name":"登録が 0 件でも、空の項目で書く","status":"passed","testResultsByEnv":{"default":"5ff951c682277ec7a7eb3a3fce683536"}}

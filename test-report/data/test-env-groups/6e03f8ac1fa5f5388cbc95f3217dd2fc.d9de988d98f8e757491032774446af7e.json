@@ -1,0 +1,1 @@
+{"id":"6e03f8ac1fa5f5388cbc95f3217dd2fc.d9de988d98f8e757491032774446af7e","fullName":".githooks.tests.test_nx_affected_mapping#test_lint_gate_selects_only_the_lanes_the_change_reaches","name":"plugins/pecot-tools/scripts/ci/pnpm-lib.sh を変更すると、その変更が届く lint のレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"a828b53bd8f748fed5458673f2b0ef3f"}}

@@ -1,0 +1,1 @@
+{"id":"cfc0da8a43fd05d423913ba540bf8da2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#subIssueTitlesOf 番号か題の無い子は飛ばし、状態は大文字にする","name":"番号か題の無い子は飛ばし、状態は大文字にする","status":"passed","testResultsByEnv":{"default":"917129db343655ae8b8b48f5468c588a"}}

@@ -1,0 +1,1 @@
+{"id":"a8efebcc2cbecd45cc9e2a0df4e91407.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「git+ssh」の形の場合は、種類と url またはパスに分解する","name":"テーマの指定が「git+ssh」の形の場合は、種類と url またはパスに分解する","status":"passed","testResultsByEnv":{"default":"59f6411278cefde177fb65066ec9b805"}}

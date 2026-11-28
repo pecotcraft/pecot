@@ -1,0 +1,1 @@
+{"id":"a02e7a18e851b3db03f69b9d56e2f31d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#warningsOf 接頭辞だけの warning の行は、空の文として取り除く","name":"接頭辞だけの warning の行は、空の文として取り除く","status":"passed","testResultsByEnv":{"default":"e3ab233b16c4d709a79c7588a1fb34a0"}}

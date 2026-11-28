@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "missing arguments\n  usage:\n  pr_create with file: <path>\n  pr_create with message: <body>, title: <title>, base: <base-branch>"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"missing arguments\\n  usage:\\n  pr_create with file: <path>\\n  pr_create with message: <body>, title: <title>, base: <base-branch>\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "missing arguments\n  usage:\n  pr_create with file: <path>\n  pr_create with message: <body>, title: <title>, base: <base-branch>"
+  },
+  "isError": true
+}

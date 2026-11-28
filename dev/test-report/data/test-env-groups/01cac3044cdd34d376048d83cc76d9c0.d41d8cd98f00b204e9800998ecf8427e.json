@@ -1,0 +1,1 @@
+{"id":"01cac3044cdd34d376048d83cc76d9c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateSections（必須セクション検証: 見出しレベル・em-dash サマリ） 最初の h2 が存在しなければ、その名前の見出しの不足として検出する","name":"最初の h2 が存在しなければ、その名前の見出しの不足として検出する","status":"passed","testResultsByEnv":{"default":"2cd22fbd55dab028d680f8d34ae02a3d"}}

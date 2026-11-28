@@ -1,0 +1,1 @@
+{"id":"c45334dd9dcbe799f99571e80bc4a2f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck monorepo で package を渡さないと、候補を並べた error を出して失敗にする","name":"monorepo で package を渡さないと、候補を並べた error を出して失敗にする","status":"passed","testResultsByEnv":{"default":"aa06cc40e1941ee8f338f98a7a4f0f00"}}

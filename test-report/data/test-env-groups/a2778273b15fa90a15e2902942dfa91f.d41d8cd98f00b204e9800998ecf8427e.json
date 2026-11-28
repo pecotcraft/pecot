@@ -1,0 +1,1 @@
+{"id":"a2778273b15fa90a15e2902942dfa91f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh push を止めるとき、メッセージに push と feature を含める","name":"push を止めるとき、メッセージに push と feature を含める","status":"passed","testResultsByEnv":{"default":"fc560043315acc4bfd8563bb76e59d11"}}

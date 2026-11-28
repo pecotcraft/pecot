@@ -1,0 +1,3 @@
+/tmp/pecotv-test-text-violation-2Lakel/parity.md:1:1 no-ai-hype-expressions 「ゲームチェンジャー」という表現は機械的な印象を与える可能性があります。具体的な変化を説明することを検討してください。
+/tmp/pecotv-test-text-violation-2Lakel/parity.md:1:23 ai-tech-writing-guideline 【簡潔性】冗長な助動詞表現が検出されました。「できます」または「します」への簡潔化を検討してください。
+/tmp/pecotv-test-text-violation-2Lakel/parity.md:1:23 ja-no-redundant-expression 【dict2】 "することができます"は冗長な表現です。"することが"を省き簡潔な表現にすると文章が明瞭になります。 解説: https://github.com/textlint-ja/textlint-rule-ja-no-redundant-expression#dict2

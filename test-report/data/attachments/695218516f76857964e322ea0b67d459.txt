@@ -1,0 +1,40 @@
+=== stage: manual (通常) ===
+=== stage: manual 終了 exit=0 ===
+## 検証の結果（tests）
+
+### 範囲
+
+- base: `4763a214690b083fa776e6f0568f62bef3493640`
+- head: `5d8f71d5be9d3c4d63426a4a2c67ad8ae668d493`（PR では head は merge commit）
+- モード: 通常
+
+| stage | 成否 |
+|---|---|
+| manual | 成功 |
+
+全体: 成功
+
+### レーン
+
+対象なし（成功）
+
+キャッシュ: 取り込みなし（artifact なし）
+
+- キャッシュの入力: 取り込み元の tree -、自分の tree 8f0d807782de480588a2c721089cadf31fe64f7a
+- キャッシュの入力: pnpm-lock.yaml の hash -
+- キャッシュの入力: apt のパッケージ一覧の hash a5686f749cbd
+
+### 失敗
+
+なし
+
+### skip
+
+なし
+
+### 環境
+
+- イメージ: -
+- node: v24.22.1
+- aws: aws-cli/2.39.4 Python/3.14.8 Linux/7.0.0-1020-azure exe/x86_64.ubuntu.26
+- actionlint: 1.7.12

@@ -1,0 +1,1 @@
+{"id":"43c23c77cd3ba50ba08572ea1ae685b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#screenIssues Issue の内容を取得しなければ判定できない場合は、undefined を返す","name":"Issue の内容を取得しなければ判定できない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"4932177e4192102a5a3d93ad3c0768dd"}}

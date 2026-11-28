@@ -1,0 +1,1 @@
+{"id":"85eeea190c3e566bd05cc4177c961bf0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/project-stop.test.ts#mapWithLimit 同時に動かす数を上限までに抑え、結果は入力の順で返す","name":"同時に動かす数を上限までに抑え、結果は入力の順で返す","status":"passed","testResultsByEnv":{"default":"8b9ea47e2004fab44dc273815957b45b"}}

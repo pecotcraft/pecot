@@ -1,0 +1,1 @@
+{"id":"d721c2b2e7ad01097c9670ee674d15bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide targetSelector を指定した場合は、最初の可視スライドではなく指定した要素を変換する","name":"targetSelector を指定した場合は、最初の可視スライドではなく指定した要素を変換する","status":"passed","testResultsByEnv":{"default":"8aa04ceac7e9194125f74180166df48e"}}

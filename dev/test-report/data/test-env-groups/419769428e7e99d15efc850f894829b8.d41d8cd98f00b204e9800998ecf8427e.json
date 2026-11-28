@@ -1,0 +1,1 @@
+{"id":"419769428e7e99d15efc850f894829b8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_ci_mode_affected_uses_static_without_bail","name":"`PECOT_NX_CI=1` の場合は、affected を `--output-style=static` で実行し、`--nxBail` を付けない","status":"passed","testResultsByEnv":{"default":"8c9cd21f44a53fada1dce105dac73a95"}}

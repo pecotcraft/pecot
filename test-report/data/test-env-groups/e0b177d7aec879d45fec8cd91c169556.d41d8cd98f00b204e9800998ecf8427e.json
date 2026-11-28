@@ -1,0 +1,1 @@
+{"id":"e0b177d7aec879d45fec8cd91c169556.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_base_unresolved_run_many_failure_propagates","name":"base を解決できない場合の run-many が失敗すると、終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"98e5903cd4ba3cfa26c9bdb846bd3a82"}}

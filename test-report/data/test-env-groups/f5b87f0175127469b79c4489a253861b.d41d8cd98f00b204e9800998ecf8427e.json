@@ -1,0 +1,1 @@
+{"id":"f5b87f0175127469b79c4489a253861b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check MCP の data git コマンドが失敗した と、kind が preflight-failed の失敗を返す","name":"git コマンドが失敗した と、kind が preflight-failed の失敗を返す","status":"passed","testResultsByEnv":{"default":"4d88524ab6967511d85a51f5b36de7cd"}}

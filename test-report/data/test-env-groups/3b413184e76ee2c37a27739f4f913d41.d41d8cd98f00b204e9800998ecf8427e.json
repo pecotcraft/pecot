@@ -1,0 +1,1 @@
+{"id":"3b413184e76ee2c37a27739f4f913d41.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 gate の step は、Checkout・トークンの発行・Decide の順に並ぶ","name":"gate の step は、Checkout・トークンの発行・Decide の順に並ぶ","status":"passed","testResultsByEnv":{"default":"d2a929b92830aa31b44ce085ba1fc3be"}}

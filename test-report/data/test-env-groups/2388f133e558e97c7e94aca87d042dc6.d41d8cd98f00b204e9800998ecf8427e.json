@@ -1,0 +1,1 @@
+{"id":"2388f133e558e97c7e94aca87d042dc6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-view.test.ts#pruneArchivedItems dry-run の場合は、削除せず、削除する予定の件数を表示する","name":"dry-run の場合は、削除せず、削除する予定の件数を表示する","status":"passed","testResultsByEnv":{"default":"ae2038244c95b5da83814754b979da78"}}

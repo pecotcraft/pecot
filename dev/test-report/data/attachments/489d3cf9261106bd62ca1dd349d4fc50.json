@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.issue_types: read the Issue types with list_issue_types to check type"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.issue_types\",\"code\":\"read-required\",\"message\":\"read the Issue types with list_issue_types to check type\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.issue_types",
+        "code": "read-required",
+        "message": "read the Issue types with list_issue_types to check type"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

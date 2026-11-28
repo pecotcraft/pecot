@@ -1,0 +1,1 @@
+{"id":"2e9623134f79575f0093175aaa30d9ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release .githooks/scripts/tests/mcp-publish-common.bats#リリースの HEAD の確認が、タグと対象パスの差分に応じて、終える・続ける・止まる","name":"リリースの HEAD の確認が、タグと対象パスの差分に応じて、終える・続ける・止まる","status":"passed","testResultsByEnv":{"default":"ca9690c748fe0ba9557cb2ce5afad704"}}

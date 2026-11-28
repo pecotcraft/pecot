@@ -1,0 +1,1 @@
+{"some-lib":{"nested-dep":"^3.0.0"}}

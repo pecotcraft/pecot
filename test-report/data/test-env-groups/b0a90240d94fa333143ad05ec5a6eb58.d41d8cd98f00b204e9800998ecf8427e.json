@@ -1,0 +1,1 @@
+{"id":"b0a90240d94fa333143ad05ec5a6eb58.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh remote の URL が git:// の形なら、番号を出す","name":"remote の URL が git:// の形なら、番号を出す","status":"passed","testResultsByEnv":{"default":"9958f330b7762fdf4346bfb91bba5d21"}}

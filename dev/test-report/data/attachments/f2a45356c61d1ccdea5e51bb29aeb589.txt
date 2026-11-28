@@ -1,0 +1,185 @@
+
+ NX   Applying configured ignore patterns to changed files for release group "pecot-workflow"
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+ NX   No touched projects found based on changed files combined with configured ignore patterns under release group "pecot-workflow"
+
+
+ NX   Applying configured ignore patterns to changed files for release group "pecot-visual"
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+ NX   No touched projects found based on changed files combined with configured ignore patterns under release group "pecot-visual"
+
+
+ NX   Applying configured ignore patterns to changed files for release group "pecot-tools"
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+ NX   No touched projects found based on changed files combined with configured ignore patterns under release group "pecot-tools"
+
+
+ NX   Applying configured ignore patterns to changed files for release group "text-rules"
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+ NX   No touched projects found based on changed files combined with configured ignore patterns under release group "text-rules"
+
+
+ NX   Applying configured ignore patterns to changed files for release group "workflow-core"
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+ NX   No touched projects found based on changed files combined with configured ignore patterns under release group "workflow-core"
+
+
+ NX   Applying configured ignore patterns to changed files for release group "pecot-actions"
+
+  - README.md
+  - CHANGELOG.md
+  - CONTRIBUTING.md
+  - tests/
+  - conftest.py
+  - test-layers.txt
+  - vitest.config.ts
+  - vitest.e2e.config.ts
+  - .gitignore
+  - plugins/*/scripts/ci/**
+  - plugins/*/scripts/sandbox/**
+  - plugins/*/interface/**
+  - actions/interface/**
+  - actions/scripts/export-interface.ts
+  - actions/eslint.config.js
+  - plugins/*/cli*/scripts/export-interface.ts
+  - !plugins/pecot-visual/scripts/ci/dev-install-lib.sh
+  - plugins/pecot-visual/scripts/pptx-compare/
+  - plugins/pecot-visual/scripts/page-compare/
+  - plugins/*/cli/eslint.config.js
+  - libs/text-rules/eslint.config.js
+  - libs/workflow-core/eslint.config.js
+  - plugins/pecot-visual/assets/slidev/tsconfig.test.json
+
+
+ NX   No touched projects found based on changed files combined with configured ignore patterns under release group "pecot-actions"
+
+
+ NX   All touched projects have, or do not require, version plans.
+
+Run with --verbose to see the full list of changed files used for the touched projects logic.
+

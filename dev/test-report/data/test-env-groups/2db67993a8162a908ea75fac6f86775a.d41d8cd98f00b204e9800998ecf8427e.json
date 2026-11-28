@@ -1,0 +1,1 @@
+{"id":"2db67993a8162a908ea75fac6f86775a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page の失敗ルート examples が `---` で囲まれていない参照 yaml はページを作らずに失敗する","name":"examples が `---` で囲まれていない参照 yaml はページを作らずに失敗する","status":"passed","testResultsByEnv":{"default":"e369a65b40d00cb9a9dff409addc6e1e"}}

@@ -1,0 +1,2 @@
+created: PR acme/demo feat/demo/12 -> main: feat(demo): #12 見本の変更
+set: Issue #12 status to In Review

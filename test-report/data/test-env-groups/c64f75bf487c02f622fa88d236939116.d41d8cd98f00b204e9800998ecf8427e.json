@@ -1,0 +1,1 @@
+{"id":"c64f75bf487c02f622fa88d236939116.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け 上限が数でない だと、gh を呼ばずに終了コード 1 で止まる","name":"上限が数でない だと、gh を呼ばずに終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"ad73d35865ef7fa3473bffe304290831"}}

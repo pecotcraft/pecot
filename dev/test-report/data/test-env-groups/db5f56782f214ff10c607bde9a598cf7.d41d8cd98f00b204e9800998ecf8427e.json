@@ -1,0 +1,1 @@
+{"id":"db5f56782f214ff10c607bde9a598cf7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/child-stdin.test.ts#childStdin 設定を変更していない場合は、子プロセスの標準入力を親から継承する","name":"設定を変更していない場合は、子プロセスの標準入力を親から継承する","status":"passed","testResultsByEnv":{"default":"fc06b1eed92a5a2f70be15732898927c"}}

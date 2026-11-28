@@ -1,0 +1,1 @@
+{"id":"e2bf13c635ee9cfb21d22a92d2ab645c.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats#フォント実体を取り違えた pptx では、書体 part の多重集合の相違を検出する","name":"フォント実体を取り違えた pptx では、書体 part の多重集合の相違を検出する","status":"passed","testResultsByEnv":{"default":"6fa89f4fe9e6f272fbd005a5e92c6ae0"}}

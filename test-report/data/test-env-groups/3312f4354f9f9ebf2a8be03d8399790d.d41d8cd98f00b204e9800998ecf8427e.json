@@ -1,0 +1,1 @@
+{"id":"3312f4354f9f9ebf2a8be03d8399790d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#requestAsyncMerge status が未知の値の場合は、GitHubAPIError を発生させる","name":"status が未知の値の場合は、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"a3785e01ac67207d13f8a89603e15125"}}

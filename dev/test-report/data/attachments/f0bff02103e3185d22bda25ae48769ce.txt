@@ -1,0 +1,4 @@
+モード: 積（PR: nx affected --base=085d4626af584132a4d444ef15b3205250220f10 --head=bf68365ebf6c6e6d35298dfababca48576b474e8 / main: 07508a8b4d5c7c32dc2f35d13d94c8a5246efcbb..085d4626af584132a4d444ef15b3205250220f10）
+PR の変更のレーン: p:test-cli
+main の変更のレーン: q:test-hooks
+積: なし

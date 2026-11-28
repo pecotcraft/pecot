@@ -1,0 +1,1 @@
+{"id":"cf140b9aa9e0686638e26be2963523bd.365ae658478c0765aaa71db4edd13731","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_version_rejects_malformed_input","name":"`dev-version.mjs` は、版 7 と run 番号 1 を渡すと、エラーで終了する","status":"passed","testResultsByEnv":{"default":"39add7e11d968658a2df1959cd90c8f8"}}

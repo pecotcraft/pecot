@@ -1,0 +1,1 @@
+{"id":"30dd24c9a98bded4f6066f15075d1f0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/github-ops/common.test.ts#github ops GitHub が 403 で断ると、ok: false と GitHub の文を入れた行を出し、step を失敗にする","name":"GitHub が 403 で断ると、ok: false と GitHub の文を入れた行を出し、step を失敗にする","status":"passed","testResultsByEnv":{"default":"19475fe8fbd69750951c4505e255a260"}}

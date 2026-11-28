@@ -1,0 +1,1 @@
+{"id":"8030e4c6d2e6628caa2f395769351a31.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/frontmatter-file.test.ts#parseIssueFile ディレクトリを渡した場合は、読み込めないため OsError を送出する","name":"ディレクトリを渡した場合は、読み込めないため OsError を送出する","status":"passed","testResultsByEnv":{"default":"ca043463400f8dd437e1ce904c59aa4b"}}

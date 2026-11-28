@@ -1,0 +1,1 @@
+{"id":"22be1e785be2549d69f6efbb312ec36f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#stripCommitComments コミットメッセージを整えるとき、CRLF の scissors 行も見つける","name":"コミットメッセージを整えるとき、CRLF の scissors 行も見つける","status":"passed","testResultsByEnv":{"default":"204a72a1762e5bb3100a560f64914477"}}

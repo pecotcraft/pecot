@@ -1,0 +1,1 @@
+{"id":"b15387252dde675ebc4413a764845cd8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-sso.test.ts#SSO の 2 段構成 ログインが失敗した直後でも、同じ接続が次の呼び出しに応答する","name":"ログインが失敗した直後でも、同じ接続が次の呼び出しに応答する","status":"passed","testResultsByEnv":{"default":"90f317a1e337395f2b45a63ce1bc7a2b"}}

@@ -1,0 +1,1 @@
+{"id":"ef88910e989a2832e3b9b4f3441d0fc0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/changelog-file.test.ts#resolveChangelogPath 絶対パスで明示した場合は、そのパスをそのまま返す","name":"絶対パスで明示した場合は、そのパスをそのまま返す","status":"passed","testResultsByEnv":{"default":"64a402f9e0b5066fa74e59483f9f9ad9"}}

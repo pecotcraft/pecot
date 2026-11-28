@@ -1,0 +1,2 @@
+error: invalid input: ✖ Invalid option: expected one of "success"|"failure"|"cancelled"
+  → at job_status

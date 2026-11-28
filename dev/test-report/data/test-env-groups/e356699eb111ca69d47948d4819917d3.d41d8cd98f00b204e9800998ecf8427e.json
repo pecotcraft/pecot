@@ -1,0 +1,1 @@
+{"id":"e356699eb111ca69d47948d4819917d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/board-sync-workflow-template.test.ts#board sync のワークフローの雛形 npx で CLI を取らず、Node.js を用意しない","name":"npx で CLI を取らず、Node.js を用意しない","status":"passed","testResultsByEnv":{"default":"8bc3835e39cf2833872d1c5a022e1473"}}

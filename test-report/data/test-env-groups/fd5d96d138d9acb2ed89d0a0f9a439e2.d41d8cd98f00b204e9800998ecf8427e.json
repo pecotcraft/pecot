@@ -1,0 +1,1 @@
+{"id":"fd5d96d138d9acb2ed89d0a0f9a439e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 前提が輪になっている Issue は、cycle の blocked にする","name":"前提が輪になっている Issue は、cycle の blocked にする","status":"passed","testResultsByEnv":{"default":"fba7ce28b1deab29d11eaad2c2693385"}}

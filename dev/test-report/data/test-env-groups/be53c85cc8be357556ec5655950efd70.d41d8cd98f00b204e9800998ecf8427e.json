@@ -1,0 +1,1 @@
+{"id":"be53c85cc8be357556ec5655950efd70.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_release_group_changelog#test_root_project_changelogs_warns_and_skips","name":"root の projectChangelogs が有効だと、警告を出して確認を飛ばす","status":"passed","testResultsByEnv":{"default":"4536697539221adab0104a98d773fb74"}}

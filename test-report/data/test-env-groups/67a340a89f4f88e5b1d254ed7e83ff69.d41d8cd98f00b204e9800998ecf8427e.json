@@ -1,0 +1,1 @@
+{"id":"67a340a89f4f88e5b1d254ed7e83ff69.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/attach-mcp-tgz.test.sh#release view が失敗したら gh は 1 回だけ","name":"release view が失敗したら gh は 1 回だけ","status":"passed","testResultsByEnv":{"default":"2aff115c94c7ada7b705c69412b3de54"}}

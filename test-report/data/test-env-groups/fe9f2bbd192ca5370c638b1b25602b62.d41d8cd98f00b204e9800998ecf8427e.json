@@ -1,0 +1,1 @@
+{"id":"fe9f2bbd192ca5370c638b1b25602b62.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#stripCommitComments コミットメッセージを整えるとき、# 行を空行にする","name":"コミットメッセージを整えるとき、# 行を空行にする","status":"passed","testResultsByEnv":{"default":"c43ed14601f11fb7c0bba881dac0f183"}}

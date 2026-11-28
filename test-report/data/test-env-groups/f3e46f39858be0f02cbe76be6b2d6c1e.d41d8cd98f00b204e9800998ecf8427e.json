@@ -1,0 +1,1 @@
+{"id":"f3e46f39858be0f02cbe76be6b2d6c1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#runAwscli 終了した awscli のプロセスは、killRunningAwscli の対象から外れる","name":"終了した awscli のプロセスは、killRunningAwscli の対象から外れる","status":"passed","testResultsByEnv":{"default":"edc2d0c74309dfcc598886debbeca05a"}}

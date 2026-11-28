@@ -1,0 +1,1 @@
+{"id":"94a2025f299a12f93849a6e607c32bd4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-hooks.test.ts#スキルの frontmatter のフック skill w-active PostToolUse だけを持ち、1 組で ExitPlanMode に一致する","name":"PostToolUse だけを持ち、1 組で ExitPlanMode に一致する","status":"passed","testResultsByEnv":{"default":"3b56599262d5565ce0e8fa8719929eaa"}}

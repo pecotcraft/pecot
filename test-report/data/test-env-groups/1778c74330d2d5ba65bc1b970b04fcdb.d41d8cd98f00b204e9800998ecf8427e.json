@@ -1,0 +1,1 @@
+{"id":"1778c74330d2d5ba65bc1b970b04fcdb.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_no_successful_run","name":"成功した run が存在しないと、その理由を出力する","status":"passed","testResultsByEnv":{"default":"5aba585e48e8c78350aa9e7d6579caa1"}}

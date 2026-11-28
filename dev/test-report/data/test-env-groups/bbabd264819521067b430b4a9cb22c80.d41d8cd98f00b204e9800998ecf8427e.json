@@ -1,0 +1,1 @@
+{"id":"bbabd264819521067b430b4a9cb22c80.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_init MCP の data 2 つの設定ファイルを作ると、その絶対パスを configFile と ignoreFile に返す","name":"2 つの設定ファイルを作ると、その絶対パスを configFile と ignoreFile に返す","status":"passed","testResultsByEnv":{"default":"1b91f88d0dda380269d946a9ab3f169a"}}

@@ -1,0 +1,1 @@
+{"id":"59ead3c04ef30f151a410d9373eef900.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender-capture-flow.test.ts#captureAndReplaceElements 移動後の撮影で例外が発生した場合も、解除した transform を元に戻す","name":"移動後の撮影で例外が発生した場合も、解除した transform を元に戻す","status":"passed","testResultsByEnv":{"default":"bf7f65b069e4f7230bb909331d785905"}}

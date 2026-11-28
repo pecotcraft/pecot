@@ -1,0 +1,1 @@
+{"id":"346352b636fc98673a5f72eef0e713eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/config-dispatcher.test.ts#hooks-config.json によるスクリプトの無効化 gh-stack-check を設定で無効にすると、gh stack を通す","name":"gh-stack-check を設定で無効にすると、gh stack を通す","status":"passed","testResultsByEnv":{"default":"e0dfe9cae091692c25e94698b4226c3d"}}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: ftp://127.0.0.1"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: ftp://127.0.0.1\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: ftp://127.0.0.1"
+  },
+  "isError": true
+}

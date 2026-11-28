@@ -1,0 +1,1 @@
+{"id":"02c0ed799fd764814ec3ad524a058150.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate reads.views を渡さないと、board_url をビューを指さないボードの URL にする","name":"reads.views を渡さないと、board_url をビューを指さないボードの URL にする","status":"passed","testResultsByEnv":{"default":"fb78d5b113bf1cfb467377ed2cb706a5"}}

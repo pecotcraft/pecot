@@ -1,0 +1,1 @@
+{"id":"cd286ef0dcd8d5ec4d4c8c8467d4ff90.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create リリースを作ると、release_branch の先頭にタグを作る","name":"リリースを作ると、release_branch の先頭にタグを作る","status":"passed","testResultsByEnv":{"default":"7bde3582f515aa4a648fad2825fab111"}}

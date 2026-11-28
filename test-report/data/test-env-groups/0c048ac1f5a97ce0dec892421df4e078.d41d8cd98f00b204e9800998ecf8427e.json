@@ -1,0 +1,1 @@
+{"id":"0c048ac1f5a97ce0dec892421df4e078.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#deleteProjectField フィールドの削除で projectV2Field が null の場合は、GitHubAPIError が発生する","name":"フィールドの削除で projectV2Field が null の場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"80b31058c32c0bb85d4396aa45c78c06"}}

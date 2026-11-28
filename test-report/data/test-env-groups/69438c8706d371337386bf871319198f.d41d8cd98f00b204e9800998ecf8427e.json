@@ -1,0 +1,1 @@
+{"id":"69438c8706d371337386bf871319198f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry ポート衝突以外で即死したときは再試行しない","name":"ポート衝突以外で即死したときは再試行しない","status":"passed","testResultsByEnv":{"default":"85031105daa5b92440db7619fbbd2e94"}}

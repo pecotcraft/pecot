@@ -1,0 +1,1 @@
+{"id":"4da96055a5f9098cde29ac071947f077.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_build_runs_steps_in_order","name":"リリース版の build は、骨組みの取得からサイトの作成、梱包までを決まった順に実行する","status":"passed","testResultsByEnv":{"default":"e393f60d74955ab548ae6b29d6b52bbb"}}

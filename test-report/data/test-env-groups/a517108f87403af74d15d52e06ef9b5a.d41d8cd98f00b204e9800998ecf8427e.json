@@ -1,0 +1,1 @@
+{"id":"a517108f87403af74d15d52e06ef9b5a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_exclude_pages_store#test_defaults_to_repo_holding_the_script","name":"引数を渡さずに実行すると、スクリプトを含むリポジトリを対象にする","status":"passed","testResultsByEnv":{"default":"5fb8b9737f4c381046fa0fb5fc57fc79"}}

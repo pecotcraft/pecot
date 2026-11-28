@@ -1,0 +1,1 @@
+{"id":"eff0adb3d26753e69983527d2c35647e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/os-error.test.ts#hasErrorCode code が E で始まる文字列の Error のとき true、それ以外は false を返す","name":"code が E で始まる文字列の Error のとき true、それ以外は false を返す","status":"passed","testResultsByEnv":{"default":"c79c8231c8e6ab102e697272c56867d2"}}

@@ -1,0 +1,1 @@
+{"id":"90205ccd399700abd18ec80ca0feee03.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_report_downloads_history_only_for_release","name":"リリース版で履歴が見つかったときだけ、history-get が上げた artifact を受け取る","status":"passed","testResultsByEnv":{"default":"6f381e0fd56456cdbded4b9ce66d1d49"}}

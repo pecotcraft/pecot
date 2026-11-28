@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "error: git-no-verify-check: skipping git hooks is not allowed.\n\n  This project does not allow skipping CI or quality checks (pre-commit, pre-push, gitlint, etc.).\n  Every way of skipping hooks is blocked: --no-verify, -n on git commit, git -c core.hooksPath=...,\n  setting or unsetting core.hooksPath with git config, and SKIP=... or HUSKY=0 before git.\n\n  When a hook reports an error:\n    1. Read the error message and identify what is violated\n    2. Fix the root cause of the violation\n    3. Re-run normally (without any skip option) after the fix"
+  }
+}

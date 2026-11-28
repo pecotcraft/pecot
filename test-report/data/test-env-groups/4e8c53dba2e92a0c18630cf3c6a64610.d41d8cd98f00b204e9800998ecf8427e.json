@@ -1,0 +1,1 @@
+{"id":"4e8c53dba2e92a0c18630cf3c6a64610.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#slide_sync の theme 指定 (移行前の talk-dir) テーマの取得中の警告は、標準エラーに出力する","name":"テーマの取得中の警告は、標準エラーに出力する","status":"passed","testResultsByEnv":{"default":"f545869e11e9853dc20f8f729ac3405e"}}

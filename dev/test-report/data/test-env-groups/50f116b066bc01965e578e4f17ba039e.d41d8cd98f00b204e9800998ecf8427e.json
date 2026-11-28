@@ -1,0 +1,1 @@
+{"id":"50f116b066bc01965e578e4f17ba039e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: 両系統が失敗した場合 両系統が失敗したら、両系統の stdout と stderr を log に残す","name":"両系統が失敗したら、両系統の stdout と stderr を log に残す","status":"passed","testResultsByEnv":{"default":"2744a8fc7ba6eabdaa787ae9e8752e51"}}

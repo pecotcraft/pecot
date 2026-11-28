@@ -1,0 +1,1 @@
+{"id":"a2f83ea8fb26726ccff4d0e71f840418.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_agent_secret_reads_stay_denied_unconditionally","name":"secret の読み出しの拒否は、条件を付けず、常に有効にする","status":"passed","testResultsByEnv":{"default":"c192eb6870086c04364adb8f40cfffe7"}}

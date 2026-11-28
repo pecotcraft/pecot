@@ -1,0 +1,50 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "closed: Issue #12"
+    },
+    {
+      "type": "text",
+      "text": "{\"closedIssues\":[12],\"skippedIssues\":[],\"deletedBranches\":[{\"branch\":\"feat/demo/12\",\"location\":\"remote\"},{\"branch\":\"feat/demo/12\",\"location\":\"local\"}],\"readinessChanges\":[{\"issue\":\"#13\",\"from\":\"stackable on #12\",\"to\":\"startable\"},{\"issue\":\"#14\",\"from\":\"stackable on #12\",\"to\":\"startable\"}],\"restack\":[{\"issue\":\"#14\",\"branch\":\"feat/demo/14\"}],\"currentBranch\":\"main\",\"warnings\":[\"#14 is stacked on #12; call pr_restack in the working directory of feat/demo/14\"]}"
+    }
+  ],
+  "structuredContent": {
+    "closedIssues": [
+      12
+    ],
+    "skippedIssues": [],
+    "deletedBranches": [
+      {
+        "branch": "feat/demo/12",
+        "location": "remote"
+      },
+      {
+        "branch": "feat/demo/12",
+        "location": "local"
+      }
+    ],
+    "readinessChanges": [
+      {
+        "issue": "#13",
+        "from": "stackable on #12",
+        "to": "startable"
+      },
+      {
+        "issue": "#14",
+        "from": "stackable on #12",
+        "to": "startable"
+      }
+    ],
+    "restack": [
+      {
+        "issue": "#14",
+        "branch": "feat/demo/14"
+      }
+    ],
+    "currentBranch": "main",
+    "warnings": [
+      "#14 is stacked on #12; call pr_restack in the working directory of feat/demo/14"
+    ]
+  }
+}

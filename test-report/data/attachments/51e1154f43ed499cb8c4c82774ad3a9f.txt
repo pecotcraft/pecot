@@ -1,0 +1,1 @@
+error: could not find the root directory of the git repository

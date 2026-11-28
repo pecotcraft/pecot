@@ -1,0 +1,1 @@
+{"id":"81344f58823c54d337a790b50ed88054.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#installStdoutGuard 標準エラー出力へ振り替えた書き込みでも、完了を知らせるコールバックを呼び出す","name":"標準エラー出力へ振り替えた書き込みでも、完了を知らせるコールバックを呼び出す","status":"passed","testResultsByEnv":{"default":"864667be8c7d4fcc63744bbb295fe3e1"}}

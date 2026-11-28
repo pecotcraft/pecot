@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: the Waits for merge section of #7 is malformed: ## Waits for merge appears 2 times; fix the body with issue_check (method update) and issue_write first"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"waits-for-merge\",\"message\":\"the Waits for merge section of #7 is malformed: ## Waits for merge appears 2 times; fix the body with issue_check (method update) and issue_write first\"}],\"expected_status\":\"Blocked\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "waits-for-merge",
+        "message": "the Waits for merge section of #7 is malformed: ## Waits for merge appears 2 times; fix the body with issue_check (method update) and issue_write first"
+      }
+    ],
+    "expected_status": "Blocked"
+  }
+}

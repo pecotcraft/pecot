@@ -1,0 +1,1 @@
+{"id":"902a41e352f70ddb87fb9d6e697e17ce.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_17j_block_without_glob_needs_no_ignore_resolution","name":"除外の glob が存在しなければ、ignore を解決せず、nx 配下が存在しなくても失敗する","status":"passed","testResultsByEnv":{"default":"d340d31e45564266f2333cc5cd3a16c2"}}

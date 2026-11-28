@@ -1,0 +1,1 @@
+{"id":"af44ae8ea0ecce53571d343304868190.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-alerts.test.ts#fetchSecretScanningStatus API が失敗した場合は、種類の表示名を付けた SecurityAlertError の例外が発生する","name":"API が失敗した場合は、種類の表示名を付けた SecurityAlertError の例外が発生する","status":"passed","testResultsByEnv":{"default":"3b4662056a0cdbd0a1888e1495762dd7"}}

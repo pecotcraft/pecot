@@ -1,0 +1,1 @@
+{"id":"7bde5eaf5770bbc2960cb614f8b0d1c4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bash_test_lib#test_file_at_repo_root_has_dot_as_feature","name":"リポのルートの直下のテストのファイルは、feature が . になり、story がファイルの名前になる","status":"passed","testResultsByEnv":{"default":"9db2925a9a9f4a3c0497f27f3a52a301"}}

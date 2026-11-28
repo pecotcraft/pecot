@@ -1,0 +1,1 @@
+{"id":"7851538c027a7d35d9c531596eaf95b9.f44cf2d9c7cdbd42a3bc67ffb3c6e657","fullName":".githooks.tests.test_allure_report_labels#test_hierarchy_labels_without_nx_json_use_rootpath","name":"nx.json が上に無いと、.githooks/tests/conftest.py の conftest は rootpath からのパスで epic・feature・story を 1 つずつ付ける","status":"passed","testResultsByEnv":{"default":"ea9ce898466be27d53ed9164b0471676"}}

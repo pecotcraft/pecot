@@ -1,0 +1,1 @@
+{"id":"254121dd64538f57df3134b752c562d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/pecotv-gitignore-ensure.bats#CLAUDE_PROJECT_DIR が未設定だと、何もせず正常終了する","name":"CLAUDE_PROJECT_DIR が未設定だと、何もせず正常終了する","status":"passed","testResultsByEnv":{"default":"22521c5e45f55bd707b00c9667ce366e"}}

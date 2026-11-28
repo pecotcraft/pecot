@@ -1,0 +1,1 @@
+{"id":"d38e41ac2823adc145bb3c4b905ce937.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_athena_get_query_results max_items が文字列 の入力を、スキーマの検証で拒否する","name":"max_items が文字列 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"035a2351def98b3e8f9fe7655cac2cf2"}}

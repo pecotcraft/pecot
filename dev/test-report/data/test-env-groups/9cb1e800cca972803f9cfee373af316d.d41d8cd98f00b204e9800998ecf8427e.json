@@ -1,0 +1,1 @@
+{"id":"9cb1e800cca972803f9cfee373af316d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-definition.test.ts#defineTool 書き込む動詞のツールに writes が無い場合は、TypeError が発生する","name":"書き込む動詞のツールに writes が無い場合は、TypeError が発生する","status":"passed","testResultsByEnv":{"default":"025dd3c3d06d364a87da4cf6133adfbe"}}

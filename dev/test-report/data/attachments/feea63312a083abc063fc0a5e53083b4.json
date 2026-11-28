@@ -1,0 +1,25 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "skipped: symlink /tmp/pecot-cli-ean0jN/workspaces/wt1/demo/CLAUDE.local.md (target does not exist: /tmp/pecot-cli-ean0jN/workspaces/base/demo/CLAUDE.local.md)"
+    },
+    {
+      "type": "text",
+      "text": "{\"links\":[{\"path\":\"/tmp/pecot-cli-ean0jN/workspaces/wt1/demo/CLAUDE.local.md\",\"destination\":\"/tmp/pecot-cli-ean0jN/workspaces/base/demo/CLAUDE.local.md\",\"change\":\"skip\",\"reason\":\"target does not exist: /tmp/pecot-cli-ean0jN/workspaces/base/demo/CLAUDE.local.md\"}],\"warnings\":[\"target does not exist: /tmp/pecot-cli-ean0jN/workspaces/base/demo/CLAUDE.local.md\"]}"
+    }
+  ],
+  "structuredContent": {
+    "links": [
+      {
+        "path": "/tmp/pecot-cli-ean0jN/workspaces/wt1/demo/CLAUDE.local.md",
+        "destination": "/tmp/pecot-cli-ean0jN/workspaces/base/demo/CLAUDE.local.md",
+        "change": "skip",
+        "reason": "target does not exist: /tmp/pecot-cli-ean0jN/workspaces/base/demo/CLAUDE.local.md"
+      }
+    ],
+    "warnings": [
+      "target does not exist: /tmp/pecot-cli-ean0jN/workspaces/base/demo/CLAUDE.local.md"
+    ]
+  }
+}

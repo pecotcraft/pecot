@@ -1,0 +1,1 @@
+{"id":"41c0a6635ff3e445baa73c464d56e470.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け ci の待ちで、CI の無い回が続いても、途中で CI が現れたら数え直す","name":"ci の待ちで、CI の無い回が続いても、途中で CI が現れたら数え直す","status":"passed","testResultsByEnv":{"default":"8a9401ded73983a523bdd7f4b108c2fa"}}

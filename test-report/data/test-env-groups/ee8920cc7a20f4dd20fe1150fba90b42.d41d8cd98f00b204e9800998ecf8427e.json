@@ -1,0 +1,1 @@
+{"id":"ee8920cc7a20f4dd20fe1150fba90b42.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/entry.test.ts#main 引数があっても、引数を読まずにサーバを 1 回起動し、終了コードを書き換えない","name":"引数があっても、引数を読まずにサーバを 1 回起動し、終了コードを書き換えない","status":"passed","testResultsByEnv":{"default":"c5c0e4ba0c3eda1ff3db4e90d8f6498a"}}

@@ -1,0 +1,1 @@
+{"id":"e26c660807bc4513fe72b482e21a53c6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-security.test.ts#tracker sync 実行できない project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う","name":"project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う","status":"passed","testResultsByEnv":{"default":"1d65df1141f534f90985c305cc275303"}}

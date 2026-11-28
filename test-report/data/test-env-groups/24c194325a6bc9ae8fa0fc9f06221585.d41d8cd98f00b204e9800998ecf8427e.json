@@ -1,0 +1,1 @@
+{"id":"24c194325a6bc9ae8fa0fc9f06221585.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 必須の項目を宣言したツールの outputSchema は、成功の形のどれか、または kind と detail を求める","name":"必須の項目を宣言したツールの outputSchema は、成功の形のどれか、または kind と detail を求める","status":"passed","testResultsByEnv":{"default":"640b26fc92be448ac47d4e2fd0fb40f6"}}

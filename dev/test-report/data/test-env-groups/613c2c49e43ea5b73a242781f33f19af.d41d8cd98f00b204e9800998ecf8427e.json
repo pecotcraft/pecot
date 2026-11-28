@@ -1,0 +1,1 @@
+{"id":"613c2c49e43ea5b73a242781f33f19af.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) ツール aws_sqs_list_queues の outputSchema は、awscli の出力から作る項目を持つ","name":"ツール aws_sqs_list_queues の outputSchema は、awscli の出力から作る項目を持つ","status":"passed","testResultsByEnv":{"default":"bf339610755ef089d444968a87f9b6c6"}}

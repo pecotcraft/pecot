@@ -1,0 +1,1 @@
+{"id":"57b0caf6cf01a83b72934e5ff6157c10.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#errorToReason errorToReason は、ThemeSpecError の reason に theme- を付けた値を返す","name":"errorToReason は、ThemeSpecError の reason に theme- を付けた値を返す","status":"passed","testResultsByEnv":{"default":"5c8675eb075c58d9dd0eed0cd6b569f3"}}

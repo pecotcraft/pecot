@@ -1,0 +1,1 @@
+{"id":"43ea6747289ea4d859ba42c5630fb398.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-create.test.ts#executeSlideCreate (smoke) 宣言を持たないテーマでは、layout だけの初期ページを 1 つ作成し、警告を表示する","name":"宣言を持たないテーマでは、layout だけの初期ページを 1 つ作成し、警告を表示する","status":"passed","testResultsByEnv":{"default":"e959d5cbee0c5297767a1ab9d1acd7ba"}}

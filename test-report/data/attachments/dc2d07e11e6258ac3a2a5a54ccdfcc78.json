@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "image_ids and starting_token cannot be combined"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"image_ids and starting_token cannot be combined\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "image_ids and starting_token cannot be combined"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"2da14bf3df7684997337dce91173738b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/handoff-workflow-template.test.ts#handoff のワークフローの雛形 setup-node は、secret を持つ job なので npm のキャッシュを戻さず保存もしない","name":"setup-node は、secret を持つ job なので npm のキャッシュを戻さず保存もしない","status":"passed","testResultsByEnv":{"default":"f0613892a99b90532f8039d01b073b5c"}}

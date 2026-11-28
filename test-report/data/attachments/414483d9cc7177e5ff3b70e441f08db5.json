@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the repository of the work Issue (acme/demo) differs from the CWD git remote (other/tree)\n  move to the worktree of the target repository and call the tool again:\n  <project-root>/base/demo/ or <project-root>/<wtN>/demo/\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-mismatch\",\"detail\":\"the repository of the work Issue (acme/demo) differs from the CWD git remote (other/tree)\\n  move to the worktree of the target repository and call the tool again:\\n  <project-root>/base/demo/ or <project-root>/<wtN>/demo/\\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-mismatch",
+    "detail": "the repository of the work Issue (acme/demo) differs from the CWD git remote (other/tree)\n  move to the worktree of the target repository and call the tool again:\n  <project-root>/base/demo/ or <project-root>/<wtN>/demo/\n  create one with /pecot-w:w-worktree-add only if the repository has no worktree"
+  },
+  "isError": true
+}

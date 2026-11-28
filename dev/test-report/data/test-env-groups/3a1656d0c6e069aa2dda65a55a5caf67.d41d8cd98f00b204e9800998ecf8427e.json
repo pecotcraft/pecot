@@ -1,0 +1,1 @@
+{"id":"3a1656d0c6e069aa2dda65a55a5caf67.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_land_conflict_errors_and_keeps_branch","name":"マージが競合すると、`release-land.sh` はエラーで終了し、ブランチを残す","status":"passed","testResultsByEnv":{"default":"2cf908c72a485d54f6163af78f5e0978"}}

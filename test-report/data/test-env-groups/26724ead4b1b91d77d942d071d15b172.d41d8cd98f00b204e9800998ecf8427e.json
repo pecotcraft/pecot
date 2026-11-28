@@ -1,0 +1,1 @@
+{"id":"26724ead4b1b91d77d942d071d15b172.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-describe-title.test.ts#describeTitleConfig entries の形が違う定義書を渡すと、パスを添えて throw する","name":"entries の形が違う定義書を渡すと、パスを添えて throw する","status":"passed","testResultsByEnv":{"default":"6474a2ae0006fe260f082bfc54280aa4"}}

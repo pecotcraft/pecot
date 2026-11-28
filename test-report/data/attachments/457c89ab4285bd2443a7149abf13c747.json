@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Not approved yet. Approve at the given URL, then call again"
+    },
+    {
+      "type": "text",
+      "text": "{\"verificationUrl\":\"https://example.awsapps.com/start/#/device\",\"verificationUrlComplete\":\"https://example.awsapps.com/start/#/device?user_code=ABCD-EFGH\",\"userCode\":\"ABCD-EFGH\",\"state\":\"pending\"}"
+    }
+  ],
+  "structuredContent": {
+    "verificationUrl": "https://example.awsapps.com/start/#/device",
+    "verificationUrlComplete": "https://example.awsapps.com/start/#/device?user_code=ABCD-EFGH",
+    "userCode": "ABCD-EFGH",
+    "state": "pending"
+  }
+}

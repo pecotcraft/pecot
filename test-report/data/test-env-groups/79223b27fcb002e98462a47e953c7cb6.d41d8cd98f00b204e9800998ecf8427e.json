@@ -1,0 +1,1 @@
+{"id":"79223b27fcb002e98462a47e953c7cb6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/attach-mcp-tgz.test.sh#origin が https（末尾 /） でも dry-run は gh を呼ばない","name":"origin が https（末尾 /） でも dry-run は gh を呼ばない","status":"passed","testResultsByEnv":{"default":"f17b5d88bfa0cbafb9a936b7b3f20ec8"}}

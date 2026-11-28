@@ -1,0 +1,1 @@
+{"id":"d4063fad6156153e8deba2192a2a9f23.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge state が CLOSED なら、スタックを読まず要求も送らずに error の行を出し、終了コード 2 を返す","name":"state が CLOSED なら、スタックを読まず要求も送らずに error の行を出し、終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"0c300058037a6467bede1dbc3ff9ee86"}}

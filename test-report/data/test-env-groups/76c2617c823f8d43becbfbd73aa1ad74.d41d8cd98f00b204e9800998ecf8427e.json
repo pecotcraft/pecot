@@ -1,0 +1,1 @@
+{"id":"76c2617c823f8d43becbfbd73aa1ad74.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#版が上がると workflow run が新しいタグを指す","name":"版が上がると workflow run が新しいタグを指す","status":"passed","testResultsByEnv":{"default":"b480906dadf9912eb54118316a138ec5"}}

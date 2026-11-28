@@ -1,0 +1,25 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pecot-lane: pecot-lane lacks the lanes docs (color GREEN) at the end; add a set-options change that lists the existing options in their order with them"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"pecot-lane\",\"code\":\"missing-option\",\"message\":\"pecot-lane lacks the lanes docs (color GREEN) at the end; add a set-options change that lists the existing options in their order with them\",\"candidates\":[\"docs\"]}],\"deletable\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "pecot-lane",
+        "code": "missing-option",
+        "message": "pecot-lane lacks the lanes docs (color GREEN) at the end; add a set-options change that lists the existing options in their order with them",
+        "candidates": [
+          "docs"
+        ]
+      }
+    ],
+    "deletable": []
+  }
+}

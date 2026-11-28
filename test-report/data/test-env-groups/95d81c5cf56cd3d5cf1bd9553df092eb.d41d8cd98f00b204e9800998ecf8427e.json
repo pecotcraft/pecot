@@ -1,0 +1,1 @@
+{"id":"95d81c5cf56cd3d5cf1bd9553df092eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#judgeReadiness の見直しと注記 blocked の場合も、済んでいない前提のラベルが Needs Attention なら注記に含める","name":"blocked の場合も、済んでいない前提のラベルが Needs Attention なら注記に含める","status":"passed","testResultsByEnv":{"default":"31c09a0c1ec7352aa774c0cc53722c4b"}}

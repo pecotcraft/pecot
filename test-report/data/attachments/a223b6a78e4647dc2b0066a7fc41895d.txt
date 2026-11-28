@@ -1,0 +1,2 @@
+error: invalid status: foo
+  valid values: backlog/pending/blocked/ready/active/in_review/archived

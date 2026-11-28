@@ -1,0 +1,1 @@
+{"id":"dc0a4fbb0becc3810493ed4a93f10bdc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/github-ops-workflow-template.test.ts#github-ops のワークフローの雛形 workflow_dispatch だけで起動し、operation を 8 つの操作の選択肢で受ける","name":"workflow_dispatch だけで起動し、operation を 8 つの操作の選択肢で受ける","status":"passed","testResultsByEnv":{"default":"feff74e53221892672f6447c0a1c88ed"}}

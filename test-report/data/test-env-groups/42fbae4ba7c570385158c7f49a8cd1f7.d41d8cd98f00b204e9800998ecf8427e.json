@@ -1,0 +1,1 @@
+{"id":"42fbae4ba7c570385158c7f49a8cd1f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 点数の窓が実行の途中で切り替わると、差が正でも使用量の行を省く","name":"点数の窓が実行の途中で切り替わると、差が正でも使用量の行を省く","status":"passed","testResultsByEnv":{"default":"96b3b3ec0db454b00c9cd259261a7447"}}

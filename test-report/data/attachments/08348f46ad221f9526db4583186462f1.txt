@@ -1,0 +1,1 @@
+error: release PR base branch must be main (given: staging)

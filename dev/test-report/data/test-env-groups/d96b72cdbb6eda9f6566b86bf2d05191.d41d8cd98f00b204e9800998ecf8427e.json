@@ -1,0 +1,1 @@
+{"id":"d96b72cdbb6eda9f6566b86bf2d05191.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/github-ops/common.test.ts#github ops 空の params は {} として読む","name":"空の params は {} として読む","status":"passed","testResultsByEnv":{"default":"e0bf7df62323961f02f0b97f9eadecc4"}}

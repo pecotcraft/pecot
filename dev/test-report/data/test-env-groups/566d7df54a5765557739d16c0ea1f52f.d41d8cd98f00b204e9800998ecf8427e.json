@@ -1,0 +1,1 @@
+{"id":"566d7df54a5765557739d16c0ea1f52f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_athena_start_query_execution profile の書式に合わない値を渡すと、拒否する","name":"profile の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"f312cb4b10970c2993b52b25943e0c42"}}

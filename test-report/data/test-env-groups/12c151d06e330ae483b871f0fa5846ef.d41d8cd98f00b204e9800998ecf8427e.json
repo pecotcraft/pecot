@@ -1,0 +1,1 @@
+{"id":"12c151d06e330ae483b871f0fa5846ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — ヘッダー行割付 extraHeaders がない場合は、ヘッダーを 2 行にし、最終行を 2 行目にする","name":"extraHeaders がない場合は、ヘッダーを 2 行にし、最終行を 2 行目にする","status":"passed","testResultsByEnv":{"default":"d131bf2264185588026f663bb1a2cb48"}}

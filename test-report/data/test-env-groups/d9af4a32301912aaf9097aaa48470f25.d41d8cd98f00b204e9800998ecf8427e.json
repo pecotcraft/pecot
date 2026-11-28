@@ -1,0 +1,1 @@
+{"id":"d9af4a32301912aaf9097aaa48470f25.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-drift.test.ts#drift.ts 差がなくなると、開いた Tracker の本文の一覧を none に書き換えてから閉じる","name":"差がなくなると、開いた Tracker の本文の一覧を none に書き換えてから閉じる","status":"passed","testResultsByEnv":{"default":"1137fb74e70929cd948369d7a2230c4e"}}

@@ -1,0 +1,1 @@
+{"id":"a8fcd6f0d4dd5b419bbd32f75c577384.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_merge_group_rejects_head_mismatch","name":"merge_group で PR の head の artifact が存在しないと、head 不一致の理由を出力する","status":"passed","testResultsByEnv":{"default":"49850d8f3289b91d1d5ca5901499b5d8"}}

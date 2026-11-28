@@ -1,0 +1,1 @@
+{"id":"5e35faecffc7ac85b4d66da5429bba3a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#readSvgPixelSize px 以外の単位や 0 の値（5mm）の場合は、例外が発生する","name":"px 以外の単位や 0 の値（5mm）の場合は、例外が発生する","status":"passed","testResultsByEnv":{"default":"fe1d58b620b221b5ce62a0bb214b1b1e"}}

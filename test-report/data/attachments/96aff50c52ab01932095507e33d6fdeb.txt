@@ -1,0 +1,4 @@
+moved: #1 Ready -> Blocked (blocked by #2 (cycle: #1 -> #2 -> #1))
+moved: #2 Ready -> Blocked (blocked by #1 (cycle: #1 -> #2 -> #1))
+count: GraphQL points used: 30
+count: GraphQL points remaining: 4870

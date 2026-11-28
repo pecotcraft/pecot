@@ -1,0 +1,1 @@
+{"id":"4c6452f097672f5a379eeb938d4ff206.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings 単引用符 のとき、引用符を含まない本文だけを切り出す","name":"単引用符 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"e1aa7abe703ad52db8729b5e8755083e"}}

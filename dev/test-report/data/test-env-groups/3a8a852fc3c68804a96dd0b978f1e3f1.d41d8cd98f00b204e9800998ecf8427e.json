@@ -1,0 +1,1 @@
+{"id":"3a8a852fc3c68804a96dd0b978f1e3f1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#dataDirectory の解決順 空値は無効 のとき、/home/u/.local/share/pecot/pecot-visual を返す","name":"空値は無効 のとき、/home/u/.local/share/pecot/pecot-visual を返す","status":"passed","testResultsByEnv":{"default":"17343fca69736662b4da675cc6a660d6"}}

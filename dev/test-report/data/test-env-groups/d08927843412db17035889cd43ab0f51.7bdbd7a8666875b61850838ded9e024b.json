@@ -1,0 +1,1 @@
+{"id":"d08927843412db17035889cd43ab0f51.7bdbd7a8666875b61850838ded9e024b","fullName":".githooks.tests.test_gitlint_japanese_rule#test_title_passes","name":"タイトルが「build(repo): bump foo from 1.0.0 to 1.0.1 [security]」のコミットは、日本語の規則に違反しない","status":"passed","testResultsByEnv":{"default":"a1174b5841592fe15b756aeafa29fe5b"}}

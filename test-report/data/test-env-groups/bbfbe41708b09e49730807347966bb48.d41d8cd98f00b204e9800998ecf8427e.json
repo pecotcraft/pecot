@@ -1,0 +1,1 @@
+{"id":"bbfbe41708b09e49730807347966bb48.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#PECOT_GITHUB_API_URL が ftp://127.0.0.1 だと、受け付ける URL を示して失敗する","name":"PECOT_GITHUB_API_URL が ftp://127.0.0.1 だと、受け付ける URL を示して失敗する","status":"passed","testResultsByEnv":{"default":"1b0eca293ef23b538918554b02bb3093"}}

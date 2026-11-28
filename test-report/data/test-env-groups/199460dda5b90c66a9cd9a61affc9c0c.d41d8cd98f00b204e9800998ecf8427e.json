@@ -1,0 +1,1 @@
+{"id":"199460dda5b90c66a9cd9a61affc9c0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#本体の runtime manifest との整合 zod の pnpm の override は、cli/package.json の宣言の下限と一致する","name":"zod の pnpm の override は、cli/package.json の宣言の下限と一致する","status":"passed","testResultsByEnv":{"default":"8f7d16e265d7cb3a45d81793cfaf35fb"}}

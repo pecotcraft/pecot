@@ -1,0 +1,1 @@
+{"id":"eb8f3121bebb1eff6221d91d5b3393a7.433578083c9f03297c4ee3391a328d10","fullName":".githooks.tests.test_nx_affected_mapping#test_devcontainer_change_affects_all_projects","name":".devcontainer/features/playwright-deps/install.sh を変更すると、すべての project が affected になる","status":"passed","testResultsByEnv":{"default":"0194e7e485932e05eb621c70874e9f9d"}}

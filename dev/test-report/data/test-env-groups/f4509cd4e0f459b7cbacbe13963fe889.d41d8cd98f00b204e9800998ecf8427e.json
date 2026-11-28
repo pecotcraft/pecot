@@ -1,0 +1,1 @@
+{"id":"f4509cd4e0f459b7cbacbe13963fe889.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/preview-normalize.test.ts#detectPreviewDivergence 条件に当てはまる図形が複数ある場合は、すべて列挙する","name":"条件に当てはまる図形が複数ある場合は、すべて列挙する","status":"passed","testResultsByEnv":{"default":"2b26acc62341be686b08a92fa6f3c7dd"}}

@@ -1,0 +1,1 @@
+error: base branch must be feat/demo/11 while its PR #20 is open (given: main)

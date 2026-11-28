@@ -1,0 +1,1 @@
+{"id":"6d9294a9c2361c358e785431a23f9913.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_finish_fails_on_nonzero_done","name":"完了の印が 0 以外の場合は、終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"7c07adcf2b64c2d9e347ae4cdb82b2cb"}}

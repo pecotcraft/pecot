@@ -1,0 +1,1 @@
+{"id":"5779825c53efc8e05736277652844afa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish dry-run を true にすると、何も変えずに dry-run: would の行を出す","name":"dry-run を true にすると、何も変えずに dry-run: would の行を出す","status":"passed","testResultsByEnv":{"default":"7ff97d0d2fee2cc3f9386a295e15640f"}}

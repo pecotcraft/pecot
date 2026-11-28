@@ -1,0 +1,1 @@
+{"id":"20321453be60d0f1877b8aa033033c35.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add origin のリポが設定に無く、別の remote のリポが設定にあると、その remote を使う","name":"origin のリポが設定に無く、別の remote のリポが設定にあると、その remote を使う","status":"passed","testResultsByEnv":{"default":"94cd0ebe86e6867178613c2b4f75345e"}}

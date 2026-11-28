@@ -1,0 +1,1 @@
+{"id":"037fb9ada4dba81be145a05599a6e4c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 比較するキーが存在しないと、error を表示して終了コード 2 で止まる: ruleset に rules が無い","name":"比較するキーが存在しないと、error を表示して終了コード 2 で止まる: ruleset に rules が無い","status":"passed","testResultsByEnv":{"default":"698050d52cc8e3f9885e45faa99bbc7c"}}

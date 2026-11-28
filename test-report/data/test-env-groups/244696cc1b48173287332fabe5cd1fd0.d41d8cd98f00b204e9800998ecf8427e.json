@@ -1,0 +1,1 @@
+{"id":"244696cc1b48173287332fabe5cd1fd0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry ログインの制限時間を過ぎると、timed-out の状態にして awscli のプロセスを終了する","name":"ログインの制限時間を過ぎると、timed-out の状態にして awscli のプロセスを終了する","status":"passed","testResultsByEnv":{"default":"0b56762ff47e19517c9a11da122a59da"}}

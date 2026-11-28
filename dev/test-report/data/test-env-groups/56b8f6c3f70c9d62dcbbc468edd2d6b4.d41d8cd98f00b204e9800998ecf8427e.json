@@ -1,0 +1,1 @@
+{"id":"56b8f6c3f70c9d62dcbbc468edd2d6b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_behavior_belongs_to_its_command","name":"振る舞いは、所属するコマンドの need に紐づき、共通の振る舞いはどのコマンドにも紐づかない","status":"passed","testResultsByEnv":{"default":"2024d5d849efc57949a00c2502267fa4"}}

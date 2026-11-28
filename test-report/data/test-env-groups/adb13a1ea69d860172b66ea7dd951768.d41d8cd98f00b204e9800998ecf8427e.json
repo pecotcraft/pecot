@@ -1,0 +1,1 @@
+{"id":"adb13a1ea69d860172b66ea7dd951768.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_unset MCP の data 未設定だと change を unchanged にする","name":"未設定だと change を unchanged にする","status":"passed","testResultsByEnv":{"default":"a18e1fdcc176c6e59d0a50cb8a3c872d"}}

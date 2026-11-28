@@ -1,0 +1,1 @@
+{"id":"a086324830687ea245b0b0ed37cbfb1a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185） 要約が上限を超えると、文字数を付けて返す","name":"要約が上限を超えると、文字数を付けて返す","status":"passed","testResultsByEnv":{"default":"8939d621856bc4df45323d77e649b186"}}

@@ -1,0 +1,1 @@
+{"id":"4f53133c1b6013b5a97b90fa15d32b54.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#executeMcpServe executeMcpServe を呼び出すと、サーバを起動し、終了コードを変更しない","name":"executeMcpServe を呼び出すと、サーバを起動し、終了コードを変更しない","status":"passed","testResultsByEnv":{"default":"73fdeb8694887fc8d649a20eecc40ffc"}}

@@ -1,0 +1,1 @@
+{"id":"59b9eb15eddaaae0fd2e3a9961982e21.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_none_without_changes_does_not_push","name":"側を受けない `publish` は、変更がなければ push せず、閉じた PR があれば消して push する","status":"passed","testResultsByEnv":{"default":"0aa791fa148fba5feb16b2c0732e8224"}}

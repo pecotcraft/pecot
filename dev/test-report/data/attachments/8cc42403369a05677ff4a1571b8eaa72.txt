@@ -1,0 +1,1 @@
+ERROR: /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_dev_version_rejects_malfo1/plugin.json の version が x.y.z の形ではありません: 7.0

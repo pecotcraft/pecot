@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "generated evidence xlsx: /tmp/pecotv-test-e2e-9VLKfm/evidence.xlsx (1 items; 0 annotations; 0 skipped)"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"result\",\"outPath\":\"/tmp/pecotv-test-e2e-9VLKfm/evidence.xlsx\",\"items\":1,\"annotations\":0,\"skipped\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "event": "result",
+    "outPath": "/tmp/pecotv-test-e2e-9VLKfm/evidence.xlsx",
+    "items": 1,
+    "annotations": 0,
+    "skipped": []
+  }
+}

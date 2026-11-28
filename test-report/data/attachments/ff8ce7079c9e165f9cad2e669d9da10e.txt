@@ -1,0 +1,2 @@
+dry-run: would leave config file /tmp/pecot-cli-fNGtyv/.pecot/config/projects/github.com_acme_1.json unchanged
+dry-run: would set active project to github.com_acme_1

@@ -1,0 +1,1 @@
+{"id":"222a040241b1730804d54931ca6a16b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#ツールの呼び出し 終了コードが 0 でなければ、isError を付けて、kind と detail を返す","name":"終了コードが 0 でなければ、isError を付けて、kind と detail を返す","status":"passed","testResultsByEnv":{"default":"9a80f41678d638c209227e0450a584d8"}}

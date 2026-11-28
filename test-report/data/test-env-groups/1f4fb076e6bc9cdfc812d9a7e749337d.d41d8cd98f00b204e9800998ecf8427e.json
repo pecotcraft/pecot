@@ -1,0 +1,1 @@
+{"id":"1f4fb076e6bc9cdfc812d9a7e749337d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#jsonStrings コメントでないスラッシュ のとき、引用符を含まない本文だけを切り出す","name":"コメントでないスラッシュ のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"6a697c3dcd2c649e7f2911468c504091"}}

@@ -1,0 +1,1 @@
+{"id":"b548a10b678eed22f06c7a66fc09df96.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: Chromium の OS ライブラリ 足りなければ入れて成功を返し、入れたパッケージを message に載せる","name":"足りなければ入れて成功を返し、入れたパッケージを message に載せる","status":"passed","testResultsByEnv":{"default":"294fbaae7f22ed5a924859347d042fe8"}}

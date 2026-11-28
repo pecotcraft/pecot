@@ -1,0 +1,1 @@
+{"id":"f7d92658e3226b061d51f3a6d62ec6aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#PECOT_GITHUB_API_URL が ftp://127.0.0.1 だと、ツールの本体を動かさない","name":"PECOT_GITHUB_API_URL が ftp://127.0.0.1 だと、ツールの本体を動かさない","status":"passed","testResultsByEnv":{"default":"8037028bd5ebb2a9faa1d08cbc764c03"}}

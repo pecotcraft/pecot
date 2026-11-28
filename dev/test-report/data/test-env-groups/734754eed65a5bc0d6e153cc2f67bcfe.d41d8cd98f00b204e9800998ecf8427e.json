@@ -1,0 +1,1 @@
+{"id":"734754eed65a5bc0d6e153cc2f67bcfe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（patch-package の段の子プロセス失敗） 子プロセスが時間切れになった場合は、時間切れであることを案内する","name":"子プロセスが時間切れになった場合は、時間切れであることを案内する","status":"passed","testResultsByEnv":{"default":"2bd3471a2e89c06ff814e0203ba9c348"}}

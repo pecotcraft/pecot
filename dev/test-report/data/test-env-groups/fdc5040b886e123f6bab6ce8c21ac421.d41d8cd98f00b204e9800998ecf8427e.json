@@ -1,0 +1,1 @@
+{"id":"fdc5040b886e123f6bab6ce8c21ac421.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments エントリが --profile を入力として宣言していても、引数の末尾に 1 回だけ付ける","name":"エントリが --profile を入力として宣言していても、引数の末尾に 1 回だけ付ける","status":"passed","testResultsByEnv":{"default":"67a688c2f2f4b42e68238d08bdb2dd5b"}}

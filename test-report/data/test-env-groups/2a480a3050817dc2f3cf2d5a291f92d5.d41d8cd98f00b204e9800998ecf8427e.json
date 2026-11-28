@@ -1,0 +1,1 @@
+{"id":"2a480a3050817dc2f3cf2d5a291f92d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-copy.test.ts#copyFiles コピー元のファイルが存在しない場合は、skipped として結果に含める","name":"コピー元のファイルが存在しない場合は、skipped として結果に含める","status":"passed","testResultsByEnv":{"default":"6d7e296ea5d407e9af3411bb9d96492c"}}

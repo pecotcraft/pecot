@@ -1,0 +1,1 @@
+{"id":"2d9f5215df091313fef05f9503960fa3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/project-root-convention.test.ts#hooks の基準ディレクトリの規約 エントリポイントと lib のスクリプトを下限以上の数で列挙できる","name":"エントリポイントと lib のスクリプトを下限以上の数で列挙できる","status":"passed","testResultsByEnv":{"default":"e3da69f4b0cbeb0989b5b6b3dfd12ce9"}}

@@ -1,0 +1,1 @@
+{"id":"ea7db2ed43a360659bd5ff6a96c584d6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/changelog-file.test.ts#resolveChangelogPath ファイル名を明示した場合は、そのファイル名を使う","name":"ファイル名を明示した場合は、そのファイル名を使う","status":"passed","testResultsByEnv":{"default":"9b4ecd31fd5959ca778458699e710204"}}

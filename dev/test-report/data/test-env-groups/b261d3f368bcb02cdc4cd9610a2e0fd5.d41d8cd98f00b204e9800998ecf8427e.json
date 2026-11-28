@@ -1,0 +1,1 @@
+{"id":"b261d3f368bcb02cdc4cd9610a2e0fd5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#installChromium NODE_EXTRA_CA_CERTS が未設定の場合は、未設定のまま取得のプロセスへ渡す","name":"NODE_EXTRA_CA_CERTS が未設定の場合は、未設定のまま取得のプロセスへ渡す","status":"passed","testResultsByEnv":{"default":"bdcc61e1592c11d74b8640084100181e"}}

@@ -1,0 +1,1 @@
+{"id":"735f911b2febb7176303df4e07b87e99.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 宣言ごとの許す書体 (T051) 直し方の並びは sans-serif で終え、宣言がすでに総称の書体で終わる場合は追加しない","name":"直し方の並びは sans-serif で終え、宣言がすでに総称の書体で終わる場合は追加しない","status":"passed","testResultsByEnv":{"default":"20d09ba65e7124c89a79dcd9a202b500"}}

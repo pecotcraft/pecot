@@ -1,0 +1,1 @@
+{"id":"c5ab4b0adb68da69257ef8610c73d36c.582a505f12bdedaa7d970e8f4281731a","fullName":".githooks.tests.test_nx_affected_mapping#test_release_lane_is_cached_and_not_run_by_unrelated_changes","name":"plugins/pecot-visual/cli/src/domain/drawio/url.ts を変更しても、pecot-visual:test-release はキャッシュを再利用する","status":"passed","testResultsByEnv":{"default":"8da88edeb2eafe2da7c6c25262935aaa"}}

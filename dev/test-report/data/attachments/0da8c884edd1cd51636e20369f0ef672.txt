@@ -1,0 +1,1 @@
+PECOT_RESULT {"operation":"project-fields","request_id":"req-1","ok":true,"result":{"project":3,"applied":3,"fields":[{"name":"Status","id":"F_status","options":[{"name":"Todo","id":"o1"},{"name":"Done","id":"o2"}]},{"name":"Lane","id":"F_lane","options":[{"name":"cli","id":"l1"}]}]}}

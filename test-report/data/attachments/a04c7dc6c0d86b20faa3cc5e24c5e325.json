@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project not found: missing\n  available projects:\n  - board"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"project-not-found\",\"detail\":\"project not found: missing\\n  available projects:\\n  - board\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "project-not-found",
+    "detail": "project not found: missing\n  available projects:\n  - board"
+  },
+  "isError": true
+}

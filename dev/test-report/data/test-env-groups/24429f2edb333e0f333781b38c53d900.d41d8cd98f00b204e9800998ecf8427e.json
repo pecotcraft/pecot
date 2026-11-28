@@ -1,0 +1,1 @@
+{"id":"24429f2edb333e0f333781b38c53d900.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/_shared/tests/theme-settings.test.ts#readThemeSettings 凍結された settings を渡すと、書き換えず、元の配列とは別の配列を返す","name":"凍結された settings を渡すと、書き換えず、元の配列とは別の配列を返す","status":"passed","testResultsByEnv":{"default":"e1ed45a5cef0f6f6b98443bb1624537a"}}

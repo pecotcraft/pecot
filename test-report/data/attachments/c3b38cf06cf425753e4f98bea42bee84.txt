@@ -1,0 +1,2 @@
+error: status 'blocked' is not configured in the project
+  hint: call project_init to add the Blocked option to the board

@@ -1,0 +1,1 @@
+{"id":"3db62988e4adb7634b79d3d8b009eb08.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/entry.test.ts#main 修正版未満の Node.js では案内の 2 行目以降が空白 2 つで始まる","name":"修正版未満の Node.js では案内の 2 行目以降が空白 2 つで始まる","status":"passed","testResultsByEnv":{"default":"0ee1dbdd0d4ff0b0b32aa78a5c10dfa6"}}

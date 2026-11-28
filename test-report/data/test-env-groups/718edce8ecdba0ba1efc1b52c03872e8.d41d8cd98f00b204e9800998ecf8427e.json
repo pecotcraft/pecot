@@ -1,0 +1,1 @@
+{"id":"718edce8ecdba0ba1efc1b52c03872e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ project-activate-state を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ project-activate-state を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"6255abe8a67c838fb982dd3a43bf0b05"}}

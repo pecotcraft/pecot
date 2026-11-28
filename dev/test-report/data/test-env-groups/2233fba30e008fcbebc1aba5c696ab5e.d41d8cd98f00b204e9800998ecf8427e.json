@@ -1,0 +1,1 @@
+{"id":"2233fba30e008fcbebc1aba5c696ab5e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#applyPrerenderImageReplace meta の width が文字列の場合は、その entry を飛ばす","name":"meta の width が文字列の場合は、その entry を飛ばす","status":"passed","testResultsByEnv":{"default":"20104a07fb177ccb16969bc347a8fa64"}}

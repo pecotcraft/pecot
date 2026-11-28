@@ -1,0 +1,1 @@
+{"id":"7a9b25a42089c6ee39403cff353170d2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest manifest が「エントリがオブジェクトでない」の場合は、undefined を返す","name":"manifest が「エントリがオブジェクトでない」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"6f5507fa5a534c37c2cfe3ec0c630924"}}

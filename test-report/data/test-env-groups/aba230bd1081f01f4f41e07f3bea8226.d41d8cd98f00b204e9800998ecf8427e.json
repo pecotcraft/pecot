@@ -1,0 +1,1 @@
+{"id":"aba230bd1081f01f4f41e07f3bea8226.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml — 注記図形 注記のない画像は、grpSp を持たず、pic だけをアンカーに配置する","name":"注記のない画像は、grpSp を持たず、pic だけをアンカーに配置する","status":"passed","testResultsByEnv":{"default":"bcdc5588b8a28dcdf968319c57ebb566"}}

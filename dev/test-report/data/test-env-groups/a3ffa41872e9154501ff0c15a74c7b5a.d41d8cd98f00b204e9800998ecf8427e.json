@@ -1,0 +1,1 @@
+{"id":"a3ffa41872e9154501ff0c15a74c7b5a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/registry.test.ts#ツールの一覧 project_set の output は、入力の向きと出力の向きで JSON Schema が同じになる","name":"project_set の output は、入力の向きと出力の向きで JSON Schema が同じになる","status":"passed","testResultsByEnv":{"default":"b3409ff7dc872afa4d1fd81d0458f3c8"}}

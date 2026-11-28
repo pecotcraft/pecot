@@ -1,0 +1,1 @@
+{"id":"703ff673fb301a2556bfa80b2e480f7b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/direct-hint-lint.test.ts#案内の文字列を止める lint グループでない語 なら、案内の lint は報告しない","name":"グループでない語 なら、案内の lint は報告しない","status":"passed","testResultsByEnv":{"default":"a22064938a4b5416cb21c58ae452dcf7"}}

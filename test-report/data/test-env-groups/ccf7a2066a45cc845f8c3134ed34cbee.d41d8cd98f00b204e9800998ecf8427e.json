@@ -1,0 +1,1 @@
+{"id":"ccf7a2066a45cc845f8c3134ed34cbee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#parseHeadReference head が :feat/x/12 の場合は、undefined に分ける","name":"head が :feat/x/12 の場合は、undefined に分ける","status":"passed","testResultsByEnv":{"default":"72d15d99fd7bc414e232d8546a0e85e3"}}

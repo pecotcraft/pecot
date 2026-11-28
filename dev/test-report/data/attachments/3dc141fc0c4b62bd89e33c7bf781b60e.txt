@@ -1,0 +1,3 @@
+error: acme/demo is in 2 project configs
+  choose one with project: <NAME>
+  available: github.com_acme_board_acme, second

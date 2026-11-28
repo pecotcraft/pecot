@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_lambda_list_functions: max_items: Invalid input: expected int, received number"
+    }
+  ],
+  "isError": true
+}

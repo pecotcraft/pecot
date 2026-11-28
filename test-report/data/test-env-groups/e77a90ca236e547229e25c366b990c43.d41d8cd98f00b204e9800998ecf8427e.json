@@ -1,0 +1,1 @@
+{"id":"e77a90ca236e547229e25c366b990c43.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/patch-apply.test.ts#applyPatches 基準のパスを解決できなければ、パッチの適用を起動せずに、失敗の結果を返す","name":"基準のパスを解決できなければ、パッチの適用を起動せずに、失敗の結果を返す","status":"passed","testResultsByEnv":{"default":"e54bc2a6829af33df0a832f27af101b9"}}

@@ -1,0 +1,1 @@
+{"id":"266d924ca1f1ff67007ae22264be93f6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order template を省略すると、未指定として扱う","name":"template を省略すると、未指定として扱う","status":"passed","testResultsByEnv":{"default":"cbba513899218e9c37d96926eac7832e"}}

@@ -1,0 +1,1 @@
+{"id":"00326e299c2ed1fe4d3b22cd51d2d1d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree 空のディレクトリを削除できなければ、警告を出力して正常終了する","name":"空のディレクトリを削除できなければ、警告を出力して正常終了する","status":"passed","testResultsByEnv":{"default":"3ce09af26fcadb4b733e7730fe3121ea"}}

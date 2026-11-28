@@ -1,0 +1,1 @@
+{"id":"f6e858bcea1ccfe7c3f51e7ae3d1516e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender-capture.test.ts#isElementOffscreen 要素が表示領域の左側に全体がはみ出している場合は、true を返す","name":"要素が表示領域の左側に全体がはみ出している場合は、true を返す","status":"passed","testResultsByEnv":{"default":"881a3451fdf7df139cbfbc7032eb2eee"}}

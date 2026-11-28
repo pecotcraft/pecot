@@ -1,0 +1,1 @@
+{"id":"636bea1bf6e90c6ca208dfd0123a7755.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#judgeMove 前提の PR の base をたどれなければ、見つからない base を理由にする","name":"前提の PR の base をたどれなければ、見つからない base を理由にする","status":"passed","testResultsByEnv":{"default":"374073c4e8209689cad1f6c5da413529"}}

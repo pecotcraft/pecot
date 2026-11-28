@@ -1,0 +1,1 @@
+{"id":"d41203bbae09d9681180c8af8d71887f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/registry.test.ts#ツールの一覧 release_merge の output は、入力の向きと出力の向きで JSON Schema が同じになる","name":"release_merge の output は、入力の向きと出力の向きで JSON Schema が同じになる","status":"passed","testResultsByEnv":{"default":"88b3e570b2a84e187dd392c6f0ce2ff9"}}

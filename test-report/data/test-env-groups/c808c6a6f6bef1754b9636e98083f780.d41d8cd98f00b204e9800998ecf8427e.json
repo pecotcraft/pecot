@@ -1,0 +1,1 @@
+{"id":"c808c6a6f6bef1754b9636e98083f780.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_exec_passes_container_id_and_returns_exit_code","name":"exec は、保存したコンテナ ID を渡し、コマンドの終了コードを返す","status":"passed","testResultsByEnv":{"default":"7d23dea72e3d370f7b925e31c70aa644"}}

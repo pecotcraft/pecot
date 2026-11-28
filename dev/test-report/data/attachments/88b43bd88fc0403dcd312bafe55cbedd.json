@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.blocked_by: read the blocked-by of acme/demo/7 with issue_dependency_read (method get_blocked_by) and add it to reads.blocked_by"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.blocked_by\",\"code\":\"read-required\",\"message\":\"read the blocked-by of acme/demo/7 with issue_dependency_read (method get_blocked_by) and add it to reads.blocked_by\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.blocked_by",
+        "code": "read-required",
+        "message": "read the blocked-by of acme/demo/7 with issue_dependency_read (method get_blocked_by) and add it to reads.blocked_by"
+      }
+    ]
+  }
+}

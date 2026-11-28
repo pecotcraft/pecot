@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "additionalContext": "# Git Sync\nsecond",
+    "hookEventName": "SessionStart"
+  },
+  "additionalContext": "# Git Sync\nsecond"
+}

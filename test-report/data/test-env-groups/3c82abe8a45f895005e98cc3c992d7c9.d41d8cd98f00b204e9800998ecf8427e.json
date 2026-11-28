@@ -1,0 +1,1 @@
+{"id":"3c82abe8a45f895005e98cc3c992d7c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/npm-cache-opt-in.test.sh#publish 実配布 + 相対パスの opt-in: 拒否する","name":"publish 実配布 + 相対パスの opt-in: 拒否する","status":"passed","testResultsByEnv":{"default":"a5ac7a8974a30464ff96e25a4a435ffe"}}

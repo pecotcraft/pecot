@@ -1,0 +1,1 @@
+{"id":"b4efd48465daffe3fcccb489b29ed519.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/_helpers/fake-executables.test.ts#偽の実行ファイル token を指定しない gh は、常に終了コード 1 になる","name":"token を指定しない gh は、常に終了コード 1 になる","status":"passed","testResultsByEnv":{"default":"696a84a7d9fe17330c2da4b2b5155c72"}}

@@ -1,0 +1,1 @@
+{"id":"fdc888b0fe22dc16a6680986ed10590f.f040b1bd49530720c62c7852866d30b7","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_only_the_lanes_the_change_reaches","name":"plugins/pecot-workflow/scripts/ci/pnpm-lib.sh を変更すると、その変更が届くテストのレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"419de8e0f4cc69cafd37c2443cf27416"}}

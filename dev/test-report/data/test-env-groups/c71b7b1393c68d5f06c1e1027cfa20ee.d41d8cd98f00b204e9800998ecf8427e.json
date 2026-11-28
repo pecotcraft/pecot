@@ -1,0 +1,1 @@
+{"id":"c71b7b1393c68d5f06c1e1027cfa20ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry.stopAndWait SIGTERM を無視して生き続ける子でも、待ちを打ち切って戻る","name":"SIGTERM を無視して生き続ける子でも、待ちを打ち切って戻る","status":"passed","testResultsByEnv":{"default":"9656728cbedaabd1764c142cf524e81a"}}

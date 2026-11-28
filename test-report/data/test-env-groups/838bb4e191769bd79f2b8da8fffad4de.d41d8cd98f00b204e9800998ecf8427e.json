@@ -1,0 +1,1 @@
+{"id":"838bb4e191769bd79f2b8da8fffad4de.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge MCP の呼び出し リポジトリにスタックの API が無いと、スタックの外の PR として扱う","name":"リポジトリにスタックの API が無いと、スタックの外の PR として扱う","status":"passed","testResultsByEnv":{"default":"0b2adb6694a97ff9bed0039c9f53d920"}}

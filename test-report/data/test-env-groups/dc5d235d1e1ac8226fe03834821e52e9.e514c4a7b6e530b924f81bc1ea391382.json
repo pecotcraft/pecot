@@ -1,0 +1,1 @@
+{"id":"dc5d235d1e1ac8226fe03834821e52e9.e514c4a7b6e530b924f81bc1ea391382","fullName":".githooks.tests.test_pre_commit_config_wiring#test_plugin_validate_runs_when_definitions_change","name":"plugins/pecot-workflow/.claude-plugin/plugin.json を変更すると、plugin-validate が起動する","status":"passed","testResultsByEnv":{"default":"c9aa05b137ccfeb30d4f255b77bc326a"}}

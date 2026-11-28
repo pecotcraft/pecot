@@ -1,0 +1,1 @@
+{"id":"66fe98140cc8b443c9cf428daaf590f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/load.test.ts#syntax errors with a position YAML の alias の展開が過大になると、例外を投げず syntax の状態で返す","name":"YAML の alias の展開が過大になると、例外を投げず syntax の状態で返す","status":"passed","testResultsByEnv":{"default":"00e528b5e14527b3604800687d48d825"}}

@@ -1,0 +1,1 @@
+{"id":"cef9c6a2cde3657f1904e926bc6c8a05.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_workflow_checkouts#test_full_history_checkouts_filter_blobs","name":"全履歴を取得する checkout は、すべて `filter: blob:none` を指定している","status":"passed","testResultsByEnv":{"default":"18c1b6528a92d5387791065717c906fb"}}

@@ -1,0 +1,1 @@
+{"id":"227ea0c2f92e1f6779af562f1bd8124c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#nxProjects graph を解釈できない場合（nodes が空）は、undefined を返す","name":"graph を解釈できない場合（nodes が空）は、undefined を返す","status":"passed","testResultsByEnv":{"default":"478584cd2965552c9a7792e4bcd1f1f5"}}

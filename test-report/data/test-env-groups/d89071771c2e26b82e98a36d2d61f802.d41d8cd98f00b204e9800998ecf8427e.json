@@ -1,0 +1,1 @@
+{"id":"d89071771c2e26b82e98a36d2d61f802.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/os-error.test.ts#toOsError システムエラーでなければそのまま返す","name":"システムエラーでなければそのまま返す","status":"passed","testResultsByEnv":{"default":"68335c02a4f40476e94b241100ee414b"}}

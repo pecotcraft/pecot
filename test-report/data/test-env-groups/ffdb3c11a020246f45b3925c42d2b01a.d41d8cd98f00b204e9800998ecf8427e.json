@@ -1,0 +1,1 @@
+{"id":"ffdb3c11a020246f45b3925c42d2b01a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-extract.test.ts#extract.ts 未定義の引数を指定する と、usage を出力して終了コード 2 で終了し、取得しない","name":"未定義の引数を指定する と、usage を出力して終了コード 2 で終了し、取得しない","status":"passed","testResultsByEnv":{"default":"e43d55d63b6cce36b3f76419da22b56f"}}

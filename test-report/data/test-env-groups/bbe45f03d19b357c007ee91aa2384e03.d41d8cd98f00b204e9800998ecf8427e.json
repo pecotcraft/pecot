@@ -1,0 +1,1 @@
+{"id":"bbe45f03d19b357c007ee91aa2384e03.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge MCP の呼び出し 親 PR がマージ済みで並びに残っていても、一番下として扱い、残りの PR の数を stack に入れる","name":"親 PR がマージ済みで並びに残っていても、一番下として扱い、残りの PR の数を stack に入れる","status":"passed","testResultsByEnv":{"default":"0e645a739c748b57e95da41ea0d1c757"}}

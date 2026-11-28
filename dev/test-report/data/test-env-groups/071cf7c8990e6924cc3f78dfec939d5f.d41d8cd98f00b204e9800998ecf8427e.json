@@ -1,0 +1,1 @@
+{"id":"071cf7c8990e6924cc3f78dfec939d5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_validate _template.yaml を渡すと、検証せずに空のオブジェクトを返す","name":"_template.yaml を渡すと、検証せずに空のオブジェクトを返す","status":"passed","testResultsByEnv":{"default":"83a431fbcbba5bef79c6582ebe56b30c"}}

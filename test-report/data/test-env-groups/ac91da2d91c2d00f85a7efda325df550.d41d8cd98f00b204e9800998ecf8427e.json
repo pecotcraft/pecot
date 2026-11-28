@@ -1,0 +1,1 @@
+{"id":"ac91da2d91c2d00f85a7efda325df550.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli 実際の awscli がある環境では、ensureAwscli が版を取得して ok を返す","name":"実際の awscli がある環境では、ensureAwscli が版を取得して ok を返す","status":"passed","testResultsByEnv":{"default":"1ad31b3d0168206e4dd3b98427a0e327"}}

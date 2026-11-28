@@ -1,0 +1,1 @@
+{"id":"fd308303b1a178acd36ad8b2f82de7b6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/config-dispatcher.test.ts#pecot_hook_enabled 設定が false のとき、無効を返す","name":"設定が false のとき、無効を返す","status":"passed","testResultsByEnv":{"default":"6b4bf223d756ed5ce618284bbebd0180"}}

@@ -1,0 +1,1 @@
+{"id":"1a69bbf96027727ea9508904c8b98b51.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_resolve_takes_skeleton_from_each_tag","name":"骨組みは、すべてのタグの commit を祖先に持つ commit から選ぶ","status":"passed","testResultsByEnv":{"default":"7de557fce45921f3a2555a791fbd3e69"}}

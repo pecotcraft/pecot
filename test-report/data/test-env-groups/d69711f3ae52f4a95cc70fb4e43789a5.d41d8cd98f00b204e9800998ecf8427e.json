@@ -1,0 +1,1 @@
+{"id":"d69711f3ae52f4a95cc70fb4e43789a5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#runEvidenceCreate spec 全体が不正な場合は、エラーのパスを (root) と表示する","name":"spec 全体が不正な場合は、エラーのパスを (root) と表示する","status":"passed","testResultsByEnv":{"default":"cee0e6c50cdb5d43ef04c33a36413453"}}

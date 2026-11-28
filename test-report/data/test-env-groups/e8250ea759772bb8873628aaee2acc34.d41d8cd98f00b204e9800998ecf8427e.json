@@ -1,0 +1,1 @@
+{"id":"e8250ea759772bb8873628aaee2acc34.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-delete.test.ts#branch_delete MCP の data リポジトリの既定ブランチを読めないと、失敗を返す","name":"リポジトリの既定ブランチを読めないと、失敗を返す","status":"passed","testResultsByEnv":{"default":"32edfb7a1300159faddfb634ffca741c"}}

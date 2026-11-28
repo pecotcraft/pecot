@@ -1,0 +1,1 @@
+{"id":"d4f2e48772d1bfbe63444b722d26bdfe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 設定の解決 project で設定名 github.com_acme_other_acme を渡すと、設定が 2 つ以上あっても、その設定を使う","name":"project で設定名 github.com_acme_other_acme を渡すと、設定が 2 つ以上あっても、その設定を使う","status":"passed","testResultsByEnv":{"default":"35ae33333f9b179d5705e331dc25b5bd"}}

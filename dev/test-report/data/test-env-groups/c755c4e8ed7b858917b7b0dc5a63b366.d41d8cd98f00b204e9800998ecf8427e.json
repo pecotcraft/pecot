@@ -1,0 +1,1 @@
+{"id":"c755c4e8ed7b858917b7b0dc5a63b366.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight ローカルタグが既に存在すれば、ReleaseError を投げる","name":"ローカルタグが既に存在すれば、ReleaseError を投げる","status":"passed","testResultsByEnv":{"default":"d9eee5098ddb523ea173643c19d91a93"}}

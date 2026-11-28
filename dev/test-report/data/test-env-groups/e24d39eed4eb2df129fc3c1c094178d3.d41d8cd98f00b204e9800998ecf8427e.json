@@ -1,0 +1,1 @@
+{"id":"e24d39eed4eb2df129fc3c1c094178d3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_17f_pass_readme_case_insensitive","name":"小文字の readme.md も、大文字と小文字を区別せずに除外して、成功する","status":"passed","testResultsByEnv":{"default":"9087595c3e82248ecf832c872e0af30a"}}

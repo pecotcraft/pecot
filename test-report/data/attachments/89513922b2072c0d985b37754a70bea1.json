@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "CHANGELOG.md not found: /tmp/pecot-release-T58e8W/base/demo/CHANGELOG.md"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"CHANGELOG.md not found: /tmp/pecot-release-T58e8W/base/demo/CHANGELOG.md\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "CHANGELOG.md not found: /tmp/pecot-release-T58e8W/base/demo/CHANGELOG.md"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"12bb120123519da403c609aaabd63df7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/slidev-runner.test.ts#ChildProcessSlidevRunner 失敗した場合は、そのときの終了コードを返す","name":"失敗した場合は、そのときの終了コードを返す","status":"passed","testResultsByEnv":{"default":"6f48e1b30047c4973c22e9e69cf68077"}}

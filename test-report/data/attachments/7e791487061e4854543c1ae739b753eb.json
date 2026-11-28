@@ -1,0 +1,28 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: PR acme/demo feat/demo/12 -> feat/demo/11: feat(demo): #12 見本の変更"
+    },
+    {
+      "type": "text",
+      "text": "{\"url\":\"https://ghes.example.com/acme/demo/pull/21\",\"number\":21,\"head\":\"feat/demo/12\",\"base\":\"feat/demo/11\",\"title\":\"feat(demo): #12 見本の変更\",\"inReview\":12,\"stack\":{\"lower\":20,\"registered\":false},\"moves\":[],\"warnings\":[\"could not register stack: PR #20 is not the top of stack #5 (top: PR #22); PR #21 was not added\"]}"
+    }
+  ],
+  "structuredContent": {
+    "url": "https://ghes.example.com/acme/demo/pull/21",
+    "number": 21,
+    "head": "feat/demo/12",
+    "base": "feat/demo/11",
+    "title": "feat(demo): #12 見本の変更",
+    "inReview": 12,
+    "stack": {
+      "lower": 20,
+      "registered": false
+    },
+    "moves": [],
+    "warnings": [
+      "could not register stack: PR #20 is not the top of stack #5 (top: PR #22); PR #21 was not added"
+    ]
+  }
+}

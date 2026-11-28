@@ -1,0 +1,1 @@
+{"id":"ee7bfdc277e8a49fcf155c3e5b231170.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText AI の文章で多用される語を含む文を markdown モードで渡すと、no-ai-words の指摘を返す","name":"AI の文章で多用される語を含む文を markdown モードで渡すと、no-ai-words の指摘を返す","status":"passed","testResultsByEnv":{"default":"a43c03c4dc06b79ba0657811b5634b2e"}}

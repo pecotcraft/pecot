@@ -1,0 +1,1 @@
+{"id":"a734ed325c0bd6613e5175ffb4d1cf76.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildStylesXml cellXfs の数は、セルの書式の種類の数より、既定の xf の 1 件だけ多い","name":"cellXfs の数は、セルの書式の種類の数より、既定の xf の 1 件だけ多い","status":"passed","testResultsByEnv":{"default":"d08dce4e525e5b3e0e7de17c70ba3830"}}

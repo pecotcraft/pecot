@@ -1,0 +1,1 @@
+{"id":"390669d74d93ee68c4304456a7a6ed8a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ branch-delete-auth-fallback を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ branch-delete-auth-fallback を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"011cd2b1c19cd67e29600c0803a57589"}}

@@ -1,0 +1,1 @@
+{"id":"8d868ab8392d033a6b0839d9cc07634a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check MCP の data alert が残って失敗しても、alert の結果を data に残す","name":"alert が残って失敗しても、alert の結果を data に残す","status":"passed","testResultsByEnv":{"default":"7622f68be15558f2a46678de5ef30502"}}

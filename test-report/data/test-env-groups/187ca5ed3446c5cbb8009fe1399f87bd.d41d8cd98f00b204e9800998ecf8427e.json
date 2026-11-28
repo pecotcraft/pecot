@@ -1,0 +1,1 @@
+{"id":"187ca5ed3446c5cbb8009fe1399f87bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr のプレビューの配信 port が -1 だと、配信を立てられない旨を出力して終了コード 1 で止まる","name":"port が -1 だと、配信を立てられない旨を出力して終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"beda0a465c1c7ec886870caf87a053ef"}}

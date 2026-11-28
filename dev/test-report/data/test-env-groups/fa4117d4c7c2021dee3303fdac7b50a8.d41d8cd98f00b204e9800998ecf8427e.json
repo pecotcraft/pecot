@@ -1,0 +1,1 @@
+{"id":"fa4117d4c7c2021dee3303fdac7b50a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings エスケープした # と引用符 のとき、引用符を含まない本文だけを切り出す","name":"エスケープした # と引用符 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"d91690445b9fe421100745bc1ef82996"}}

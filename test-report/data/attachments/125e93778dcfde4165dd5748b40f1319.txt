@@ -1,0 +1,25 @@
+=== stage: pre-commit (通常) ===
+=== stage: pre-commit 終了 exit=0 ===
+=== stage: pre-push (通常) ===
+=== stage: pre-push 終了 exit=0 ===
+## 検証の結果（lint）
+
+### 範囲
+
+- base: `96f5a5acc733fb8680a9225e0907d05e53cc3286`
+- head: `ea4181923177fb557a9f36ae228dfe0f43b1ce3c`（PR では head は merge commit）
+- モード: 通常
+
+| stage | 成否 |
+|---|---|
+| pre-commit | 成功 |
+| pre-push | 成功 |
+
+全体: 成功
+
+### 環境
+
+- イメージ: -
+- node: v24.22.1
+- aws: aws-cli/2.39.4 Python/3.14.8 Linux/7.0.0-1020-azure exe/x86_64.ubuntu.26
+- actionlint: 1.7.12

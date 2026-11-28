@@ -1,0 +1,1 @@
+{"id":"39430ef457ab69e9219f9b2d8ebeb295.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues 開いた PR を持つブランチを branch と pr として返し、そのブランチで CI を直した回数も返す","name":"開いた PR を持つブランチを branch と pr として返し、そのブランチで CI を直した回数も返す","status":"passed","testResultsByEnv":{"default":"e47e743c50cc21d5c97f38332e54f9c6"}}

@@ -1,0 +1,1 @@
+{"id":"20d7c4a86ff62c01eaafe41d8115cff9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues Issue Type が Epic の場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","name":"Issue Type が Epic の場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","status":"passed","testResultsByEnv":{"default":"c1a0c83beec3eb650c365c758f2dec33"}}

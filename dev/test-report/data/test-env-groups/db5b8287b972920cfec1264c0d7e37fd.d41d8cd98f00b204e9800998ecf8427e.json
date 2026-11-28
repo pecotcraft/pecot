@@ -1,0 +1,1 @@
+{"id":"db5b8287b972920cfec1264c0d7e37fd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/_shared/tests/reference-loader.test.ts#loadLayoutReference（ディレクトリの配列） 先のディレクトリに reference が無いと、後のディレクトリで探す","name":"先のディレクトリに reference が無いと、後のディレクトリで探す","status":"passed","testResultsByEnv":{"default":"6d9384d4b4d39cf996337c2a05e8c8f3"}}

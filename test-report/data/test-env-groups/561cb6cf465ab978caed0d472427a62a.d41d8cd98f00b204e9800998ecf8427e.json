@@ -1,0 +1,1 @@
+{"id":"561cb6cf465ab978caed0d472427a62a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_pull_request_from_other_repo_base_only_is_dropped","name":"他のリポジトリを base にした PR だけを持つ run は、破棄する","status":"passed","testResultsByEnv":{"default":"301c197167cd775393cfa9bf01e75bf0"}}

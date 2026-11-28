@@ -1,0 +1,1 @@
+{"id":"2008958ba4437b34da207716cd6a3d86.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide リンクが存在しない場合は、hrefMap が空になり、href-map のログを出力しない","name":"リンクが存在しない場合は、hrefMap が空になり、href-map のログを出力しない","status":"passed","testResultsByEnv":{"default":"90de05802a18c7a6f826cea66b65b2db"}}

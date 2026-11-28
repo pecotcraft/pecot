@@ -1,0 +1,1 @@
+{"id":"5e9144f772d91ab0dcd53e28c458ad81.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/attach.test.ts#attach Allure の reporter が動くレーンの中 attachJsonInTest は、テストの外（beforeAll など）では何も残さない","name":"attachJsonInTest は、テストの外（beforeAll など）では何も残さない","status":"passed","testResultsByEnv":{"default":"138ba02ef96bcfaf381694a0287441b3"}}

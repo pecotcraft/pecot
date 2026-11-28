@@ -1,0 +1,1 @@
+{"id":"5c549c2749fe0c7aebc01b14f44be23a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start 戻すはずの札の選択肢が設定に無いと、書かずに project_check を案内して止まる","name":"戻すはずの札の選択肢が設定に無いと、書かずに project_check を案内して止まる","status":"passed","testResultsByEnv":{"default":"93e76eeaa63c55cb650bede40f8cda47"}}

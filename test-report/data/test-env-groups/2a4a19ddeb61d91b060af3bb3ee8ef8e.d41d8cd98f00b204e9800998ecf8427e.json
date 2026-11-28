@@ -1,0 +1,1 @@
+{"id":"2a4a19ddeb61d91b060af3bb3ee8ef8e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の状態 検証が \"EXPECTED\" のまま 24 時間を超えた場合は、検証の停滞を理由にする","name":"検証が \"EXPECTED\" のまま 24 時間を超えた場合は、検証の停滞を理由にする","status":"passed","testResultsByEnv":{"default":"72f8b9d928eebc35062562ed170a3ada"}}

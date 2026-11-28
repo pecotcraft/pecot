@@ -1,0 +1,1 @@
+{"id":"20b5043510a57f75f9bd6cb6b6509271.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments shorthand の入力名で直接値を指定しても、引数に含めない","name":"shorthand の入力名で直接値を指定しても、引数に含めない","status":"passed","testResultsByEnv":{"default":"e06aa5a9e3dfd1a6476fda7f5c272516"}}

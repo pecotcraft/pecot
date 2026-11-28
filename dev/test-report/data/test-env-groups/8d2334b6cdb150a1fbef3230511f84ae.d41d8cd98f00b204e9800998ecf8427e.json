@@ -1,0 +1,1 @@
+{"id":"8d2334b6cdb150a1fbef3230511f84ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/_shared/tests/drawio-geometry.test.ts#drawioGeometry: セル解決 parent が入れ子になっていると、2 段分の offset を加算する","name":"parent が入れ子になっていると、2 段分の offset を加算する","status":"passed","testResultsByEnv":{"default":"524929592d168967c79ab3491a4f7c69"}}

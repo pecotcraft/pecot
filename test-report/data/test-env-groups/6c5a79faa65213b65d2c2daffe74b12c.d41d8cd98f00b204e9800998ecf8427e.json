@@ -1,0 +1,1 @@
+{"id":"6c5a79faa65213b65d2c2daffe74b12c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#getLinkedRepositories user と organization のどちらも存在しない場合は、空配列を返す","name":"user と organization のどちらも存在しない場合は、空配列を返す","status":"passed","testResultsByEnv":{"default":"c0fc521f147ca69952066fe9ffc5ae91"}}

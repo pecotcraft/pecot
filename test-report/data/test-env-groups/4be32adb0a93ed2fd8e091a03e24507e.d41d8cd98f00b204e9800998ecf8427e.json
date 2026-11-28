@@ -1,0 +1,1 @@
+{"id":"4be32adb0a93ed2fd8e091a03e24507e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/errors.test.ts#BaseError OsError と GitCommandError は、PecotError を継承しない","name":"OsError と GitCommandError は、PecotError を継承しない","status":"passed","testResultsByEnv":{"default":"0eb6215effc720866e889d0c17161e4a"}}

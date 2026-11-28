@@ -1,0 +1,1 @@
+{"id":"ec6208ab3579086c0e6a03e28e73c9e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/command-definition.test.ts#CommandExit CommandExit は BaseError を継承し、UsageError を継承しない","name":"CommandExit は BaseError を継承し、UsageError を継承しない","status":"passed","testResultsByEnv":{"default":"ac145723b4af261c68c65af7129e5155"}}

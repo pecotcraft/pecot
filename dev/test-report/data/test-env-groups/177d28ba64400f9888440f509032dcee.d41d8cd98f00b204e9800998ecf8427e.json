@@ -1,0 +1,1 @@
+{"id":"177d28ba64400f9888440f509032dcee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#listOpenDependabotPullRequests 1 ページ目は after に null を送信し、dependabot の PR だけを返す","name":"1 ページ目は after に null を送信し、dependabot の PR だけを返す","status":"passed","testResultsByEnv":{"default":"49282c1ddaec4d4a038221101b2da268"}}

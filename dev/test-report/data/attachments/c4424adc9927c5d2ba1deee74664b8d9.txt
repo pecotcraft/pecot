@@ -1,0 +1,18 @@
+VIOLATION: /tmp/pecot-hooks-Myxki3/for_loop.sh
+  L2: for file in *.sh; do
+  L3:     echo "$file"
+  L4: done
+  [3 violations]
+
+  理由: エントリポイントスクリプトは3層アーキテクチャのディスパッチャー層です。
+  ロジックをエントリポイントに書くと、テスト困難・再利用不可・保守コスト増大を招きます。
+  ルール: エントリポイントでは以下のみ許可されます:
+    - source/. によるライブラリ読み込み
+    - 変数定義（静的文字列、コマンド置換なし）
+    - 外部スクリプト呼び出し（"$LIB/..."形式）
+    - 早期リターン（[ -z "$VAR" ] && exit N）
+  修正方法: 違反行のロジックを lib/ 配下のスクリプトに移動してください。
+  ロジックとは、ループ、条件分岐、関数定義等です。
+
+=== Summary ===
+1 files with violations, 0 files clean

@@ -1,0 +1,1 @@
+{"id":"55259c362a55c4b866ac1aebaf33f015.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/console-logger.test.ts#createLogger 複数の引数を渡すと、util.format と同じく空白で区切って連結する","name":"複数の引数を渡すと、util.format と同じく空白で区切って連結する","status":"passed","testResultsByEnv":{"default":"44bd5a9e4604236cd72d2d1eaedcdf6f"}}

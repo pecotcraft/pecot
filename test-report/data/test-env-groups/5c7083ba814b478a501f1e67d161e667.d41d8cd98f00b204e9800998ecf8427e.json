@@ -1,0 +1,1 @@
+{"id":"5c7083ba814b478a501f1e67d161e667.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check もし版を省いて CHANGELOG に版が 1 つも存在しないなら、終了コード 1 で終わる","name":"もし版を省いて CHANGELOG に版が 1 つも存在しないなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"72f4933c1baf65b50c45b1d6d793005b"}}

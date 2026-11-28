@@ -1,0 +1,1 @@
+{"id":"161c8bff59a02fce7f7e23870a754619.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/tests/lint-rules.test.ts#domain の依存方向 domain から node:net を import すると、no-restricted-imports の違反になる","name":"domain から node:net を import すると、no-restricted-imports の違反になる","status":"passed","testResultsByEnv":{"default":"d9a73b3cc1f56cc8c929098c72c4fee3"}}

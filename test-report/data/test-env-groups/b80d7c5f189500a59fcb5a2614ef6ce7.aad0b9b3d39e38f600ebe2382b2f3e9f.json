@@ -1,0 +1,1 @@
+{"id":"b80d7c5f189500a59fcb5a2614ef6ce7.aad0b9b3d39e38f600ebe2382b2f3e9f","fullName":".githooks.tests.test_pr_run#test_pr_number_from_head_ref","name":"head_ref が refs/heads/gh-readonly-queue/main/pr-7-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa のとき、PR 番号 7 を取り出す","status":"passed","testResultsByEnv":{"default":"e0caa2028566cc4fe3b9c986b5bba90e"}}

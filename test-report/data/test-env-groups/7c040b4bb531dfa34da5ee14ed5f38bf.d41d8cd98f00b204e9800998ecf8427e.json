@@ -1,0 +1,1 @@
+{"id":"7c040b4bb531dfa34da5ee14ed5f38bf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#isNodeModulesLinkCurrent (印との比較) 印のファイルが存在しない旧形の symlink 1 本の場合は、false を返す","name":"印のファイルが存在しない旧形の symlink 1 本の場合は、false を返す","status":"passed","testResultsByEnv":{"default":"39d5bc42a963c6b43a5e0c03eb10e6d2"}}

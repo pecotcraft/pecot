@@ -1,0 +1,1 @@
+{"id":"5299661851cc5699e9359fc30b47adb2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Markdown のブロックの規則 HTML ブロックの場合は、単独の開始タグ（type 7）は空行まで","name":"HTML ブロックの場合は、単独の開始タグ（type 7）は空行まで","status":"passed","testResultsByEnv":{"default":"005b6a5a95da463ee6239e7478b09c93"}}

@@ -1,0 +1,1 @@
+{"id":"b9c9b251135fdd814b24995ffa2d960c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide アニメーションの明示指定と装飾が混在するスライドは、明示指定ありと判定する","name":"アニメーションの明示指定と装飾が混在するスライドは、明示指定ありと判定する","status":"passed","testResultsByEnv":{"default":"1b3331edd902d984f74d204874d8017e"}}

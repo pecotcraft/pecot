@@ -1,0 +1,1 @@
+{"id":"67deb17eeefbac17d130d99321d1741d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_dispatch_from_tag_named_main_is_dropped","name":"main という名前のタグから手動実行した run は、head が main の祖先でないと破棄する","status":"passed","testResultsByEnv":{"default":"36e69684173d4411849b2a3b17f6c341"}}

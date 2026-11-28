@@ -1,0 +1,1 @@
+{"id":"2d0b849e8d812b73b3f5ae37414e8a9b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 絵文字（#1185） ショートコードでないコロンは通る: `:rocket:` は使わない（inline-code）","name":"ショートコードでないコロンは通る: `:rocket:` は使わない（inline-code）","status":"passed","testResultsByEnv":{"default":"725ad15c9557b95683b33e6991b575c7"}}

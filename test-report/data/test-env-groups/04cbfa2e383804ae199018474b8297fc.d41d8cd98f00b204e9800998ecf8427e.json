@@ -1,0 +1,1 @@
+{"id":"04cbfa2e383804ae199018474b8297fc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#validateWhitespaceWrap 和文を含み、shape が楕円で折り返し指定のないセルには、警告を 1 件返す","name":"和文を含み、shape が楕円で折り返し指定のないセルには、警告を 1 件返す","status":"passed","testResultsByEnv":{"default":"f341321cee16d2930972b5fe7d3109a2"}}

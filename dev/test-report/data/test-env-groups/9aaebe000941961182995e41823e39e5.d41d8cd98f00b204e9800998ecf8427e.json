@@ -1,0 +1,1 @@
+{"id":"9aaebe000941961182995e41823e39e5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ worktree-remove-state-not-found を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ worktree-remove-state-not-found を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"d440aa05740526024c49cec7287c9178"}}

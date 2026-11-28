@@ -1,0 +1,1 @@
+{"id":"f022af8b26981d8d0f7149d872b18f44.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate プロジェクトの番号か名前を渡すと、そのプロジェクトの設定ファイルを作る","name":"プロジェクトの番号か名前を渡すと、そのプロジェクトの設定ファイルを作る","status":"passed","testResultsByEnv":{"default":"1552b6d451eb4532a87711515a417b88"}}

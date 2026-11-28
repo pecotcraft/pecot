@@ -1,0 +1,1 @@
+{"id":"be0a9ac570441506a7d64951919f0c92.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_build_makes_the_site_without_running_tests","name":"ビルドの job は、テストを実行せずにサイトだけを作る","status":"passed","testResultsByEnv":{"default":"f352c569d1ced64e10b6543dcdaa9568"}}

@@ -1,0 +1,1 @@
+{"id":"459ffef091dc07b796efe70e57ed9f12.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#isReleasePullRequest テンプレートが release の場合は、リリース PR と判定する","name":"テンプレートが release の場合は、リリース PR と判定する","status":"passed","testResultsByEnv":{"default":"80e5e631dd2d56f2e7727d3b1e4d9400"}}

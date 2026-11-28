@@ -1,0 +1,1 @@
+{"id":"01a2ef38880a5309dc3f46a6a097698e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#進行の欄の判定 必須の選択肢の不足を、大文字と小文字を区別せず、必要な順に返す","name":"必須の選択肢の不足を、大文字と小文字を区別せず、必要な順に返す","status":"passed","testResultsByEnv":{"default":"91fd0d758410a1a2449004694bbe7075"}}

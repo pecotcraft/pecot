@@ -1,0 +1,1 @@
+{"id":"1efa73bd3ee0a9559e1ecdc5ee716640.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インラインコードの Code ノード コメントを調べる plugin だけで処理する .ts のコメントでも、バッククォートで囲んだ区間を対象から外す","name":"コメントを調べる plugin だけで処理する .ts のコメントでも、バッククォートで囲んだ区間を対象から外す","status":"passed","testResultsByEnv":{"default":"f15be756546144d0fa814ea3ff90da38"}}

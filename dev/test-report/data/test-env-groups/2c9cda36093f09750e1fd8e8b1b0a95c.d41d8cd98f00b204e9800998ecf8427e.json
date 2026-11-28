@@ -1,0 +1,1 @@
+{"id":"2c9cda36093f09750e1fd8e8b1b0a95c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-definition.test.ts#defineTool repo を指定しない場合は、undefined のままツールの本体へ渡す","name":"repo を指定しない場合は、undefined のままツールの本体へ渡す","status":"passed","testResultsByEnv":{"default":"7ea28c7c1ace50bb02c325c69e15decf"}}

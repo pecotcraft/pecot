@@ -1,0 +1,1 @@
+{"id":"2fd66652f0505880b1a24042d22b8116.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start ボードにあり、札を自動処理が書いていなければ、何も書かずに計画・結果・答えを JSON のファイルに書く","name":"ボードにあり、札を自動処理が書いていなければ、何も書かずに計画・結果・答えを JSON のファイルに書く","status":"passed","testResultsByEnv":{"default":"61ffa8ac180e9e2c8756276baac8b8e8"}}

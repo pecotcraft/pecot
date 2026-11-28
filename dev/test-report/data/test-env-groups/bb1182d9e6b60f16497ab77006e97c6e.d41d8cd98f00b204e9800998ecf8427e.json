@@ -1,0 +1,1 @@
+{"id":"bb1182d9e6b60f16497ab77006e97c6e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 帯と行高 キャプションの行は、キャプション用の書式を持つ 2 つのセルで帯にする","name":"キャプションの行は、キャプション用の書式を持つ 2 つのセルで帯にする","status":"passed","testResultsByEnv":{"default":"0123dda1171ed4eeb24b33ee2e778bf9"}}

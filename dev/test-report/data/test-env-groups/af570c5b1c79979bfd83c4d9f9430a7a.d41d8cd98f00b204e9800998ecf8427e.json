@@ -1,0 +1,1 @@
+{"id":"af570c5b1c79979bfd83c4d9f9430a7a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript サロゲートペアの文字の後ろでも、桁を 1 文字ずつ数えてずらさない","name":"サロゲートペアの文字の後ろでも、桁を 1 文字ずつ数えてずらさない","status":"passed","testResultsByEnv":{"default":"00f5b248af50c49369d1374467cc4956"}}

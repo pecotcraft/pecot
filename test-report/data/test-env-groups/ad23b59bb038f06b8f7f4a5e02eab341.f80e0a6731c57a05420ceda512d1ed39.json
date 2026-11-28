@@ -1,0 +1,1 @@
+{"id":"ad23b59bb038f06b8f7f4a5e02eab341.f80e0a6731c57a05420ceda512d1ed39","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_skips_other_files","name":"docs/index.html を変更しても、check-text は起動しない","status":"passed","testResultsByEnv":{"default":"88d93e0f02878152ce0e063d52785c36"}}

@@ -1,0 +1,1 @@
+{"id":"af9d89b0a874f2e741416186fc48c7dc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#create / sync 末尾の自動 deck lint deck lint が実行できなくても sync は成功し、data.lint は skipped になる","name":"deck lint が実行できなくても sync は成功し、data.lint は skipped になる","status":"passed","testResultsByEnv":{"default":"637d7f4c92dfd55bdcbeb7453409ee67"}}

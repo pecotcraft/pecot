@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: work directory .pecot/work/7/"
+    },
+    {
+      "type": "text",
+      "text": "{\"repository\":\"acme/demo\",\"base\":\"feat/3\",\"stackedOn\":3,\"issue\":\"acme/demo/7\",\"workDirectory\":\"/tmp/pecot-repo-CisjLl/.pecot/work/7\"}"
+    }
+  ],
+  "structuredContent": {
+    "repository": "acme/demo",
+    "base": "feat/3",
+    "stackedOn": 3,
+    "issue": "acme/demo/7",
+    "workDirectory": "/tmp/pecot-repo-CisjLl/.pecot/work/7"
+  }
+}

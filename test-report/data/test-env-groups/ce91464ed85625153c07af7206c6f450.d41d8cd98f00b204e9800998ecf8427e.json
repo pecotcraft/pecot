@@ -1,0 +1,1 @@
+{"id":"ce91464ed85625153c07af7206c6f450.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildContentTypesXml 画像の形式が混在している場合は、png、jpeg の固定の順に、両方を宣言する","name":"画像の形式が混在している場合は、png、jpeg の固定の順に、両方を宣言する","status":"passed","testResultsByEnv":{"default":"af0e8dbf58d600449206244c7528b6b2"}}

@@ -1,0 +1,94 @@
+{
+  "name": "aws_athena_start_query_execution",
+  "title": "Start Athena query",
+  "description": "Starts a read-only query (SELECT / WITH / SHOW / DESCRIBE / EXPLAIN) and returns query_execution_id. Mutating queries and multiple statements are rejected before running. Wait for completion with aws_athena_get_query_execution, then fetch results with aws_athena_get_query_results",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query_string": {
+        "type": "string",
+        "description": "Read-only query to run. Give a single statement that starts with SELECT / WITH / SHOW / DESCRIBE / EXPLAIN (no enclosing parentheses)"
+      },
+      "work_group": {
+        "description": "Workgroup name",
+        "type": "string"
+      },
+      "database": {
+        "description": "Default database name",
+        "type": "string"
+      },
+      "catalog": {
+        "description": "Data catalog name. Specify together with database (not on its own)",
+        "type": "string"
+      },
+      "output_location": {
+        "description": "Output location for results (starts with s3://)",
+        "type": "string"
+      },
+      "profile": {
+        "description": "AWS profile name. If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[\\w.-]+$"
+      },
+      "region": {
+        "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+      }
+    },
+    "required": [
+      "query_string"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "QueryExecutionId": {
+        "type": "string",
+        "description": "ID of the started query (Athena StartQueryExecution response)"
+      },
+      "lines": {
+        "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "output": {
+        "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+        "type": "string"
+      },
+      "truncated": {
+        "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+        "type": "boolean"
+      },
+      "kind": {
+        "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+        "type": "string"
+      },
+      "detail": {
+        "description": "Full text of the failure and how to recover (failure only)",
+        "type": "string"
+      },
+      "log": {
+        "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+        "type": "string"
+      },
+      "warnings": {
+        "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": true
+  }
+}

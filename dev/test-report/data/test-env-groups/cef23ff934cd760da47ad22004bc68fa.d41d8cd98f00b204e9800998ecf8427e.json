@@ -1,0 +1,1 @@
+{"id":"cef23ff934cd760da47ad22004bc68fa.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_affected_mapping#test_workspace_catalog_commit_selects_graph_lanes_via_base_head","name":"pnpm-workspace.yaml の catalog だけを変えた commit は、base と head の指定で、graph を読む githooks のレーンだけを選ぶ","status":"passed","testResultsByEnv":{"default":"dcc462afa4340692c3bbf2ae2c4bb898"}}

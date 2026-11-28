@@ -1,0 +1,4 @@
+==> 監査先の advisory 応答を確認 (canary minimist)
+==> 配布ツリーの依存を解決 (npm install --package-lock-only)
+==> 配布ツリーの依存を監査 (registry http://127.0.0.1:42357)
+==> 永続層の依存を解決 (npm install --package-lock-only)

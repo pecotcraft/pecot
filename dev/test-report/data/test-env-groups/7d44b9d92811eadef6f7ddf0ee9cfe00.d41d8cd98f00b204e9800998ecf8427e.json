@@ -1,0 +1,1 @@
+{"id":"7d44b9d92811eadef6f7ddf0ee9cfe00.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start ブランチが無いとき 前提が済んでいれば、AI の前に開発ブランチから feat/auto/<番号> を作り、文脈の branch に入れる","name":"前提が済んでいれば、AI の前に開発ブランチから feat/auto/<番号> を作り、文脈の branch に入れる","status":"passed","testResultsByEnv":{"default":"5bccdea945b59fe45f4301c0778863a5"}}

@@ -1,0 +1,1 @@
+{"id":"7f172e50a7ba1b1017ae7480e15ec87a.72a18e9391c5ccc101ed602f4bed5aad","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_runs_for_text_sources","name":".githooks/pre-commit/check-text.sh を変更すると、check-text が起動する","status":"passed","testResultsByEnv":{"default":"ae36def5e86d19a7d2fd451429545ed4"}}

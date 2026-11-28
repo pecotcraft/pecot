@@ -1,0 +1,1 @@
+{"id":"1224d2f3ac366ab1c042e326fe991a27.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#convertStepsSinglePass 1 パスで失敗したステップを従来の worker で変換する前に中断された場合は、例外を発生させる","name":"1 パスで失敗したステップを従来の worker で変換する前に中断された場合は、例外を発生させる","status":"passed","testResultsByEnv":{"default":"0d724f0c7059f60ad5f06f92d4a910fa"}}

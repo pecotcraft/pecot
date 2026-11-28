@@ -1,0 +1,1 @@
+{"id":"eccec9a79564cbb7daf80f01854d52a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh 作業中の Issue が無い（ブランチの末尾が番号でない）とき、何も出力せず、記録を残さない","name":"作業中の Issue が無い（ブランチの末尾が番号でない）とき、何も出力せず、記録を残さない","status":"passed","testResultsByEnv":{"default":"86d75d850fee89c302f1bc6d722904cb"}}

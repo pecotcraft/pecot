@@ -1,0 +1,1 @@
+{"id":"f473f8061cfa75ee57d43e2f2b56b1ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形の Check の中身 変数があれば、トークンを作れなかったことと確かめる設定と権限を本文に書き、書き方を守る","name":"変数があれば、トークンを作れなかったことと確かめる設定と権限を本文に書き、書き方を守る","status":"passed","testResultsByEnv":{"default":"975cf5d1f21b615a59280bda770c41da"}}

@@ -1,0 +1,1 @@
+{"id":"ea33f933f76aea20a26c5a5e9bb9b18f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#extractReferencesIssueNumbers 文の途中にある Refs からも、番号を返す","name":"文の途中にある Refs からも、番号を返す","status":"passed","testResultsByEnv":{"default":"20dab5bc75cfc7eb4d6244378f3ffa59"}}

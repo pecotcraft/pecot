@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+
+<html :class="{ 'dark' : darkMode === true }" data-content_root="../../" lang="ja" x-data="{ darkMode: $persist(window.matchMedia('(prefers-color-scheme: dark)').matches), activeSection: ''}">
+<head>
+<script>
+    (function () {
+      // Set initial color scheme
+      if ((localStorage.getItem("_x_darkMode") === "true") || (window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+        document.documentElement.classList.add("dark");
+      }
+
+      // Watch for media preference changes
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (event) => {
+        localStorage.setItem("_x_darkMode", event.matches);
+        document.documentElement.classList.toggle("dark", event.matches);
+      });
+    })();
+  </script>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="#ffffff" media="(prefers-color-scheme: light)" name="theme-color"/>
+<meta content="#030711" media="(prefers-color-scheme: dark)" name="theme-color"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>tracker sync | pecot</title>
+<meta content="tracker sync | pecot" property="og:title"/>
+<meta content="tracker sync | pecot" name="twitter:title"/>
+<link href="../../_static/pygments.css?v=e72c8e07" rel="stylesheet" type="text/css"/>
+<link href="../../_static/theme.css?v=009055c6" rel="stylesheet" type="text/css"/>
+<link href="../../_static/graphviz.css?v=4ae1632d" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-data-viewer/jsonview.bundle.css?v=f6ef2277" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/common_css/need_core.css?v=f5b60a78" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/common_css/need_links.css?v=2150a916" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/common_css/need_style.css?v=92936fa5" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/common_css/need_toggle.css?v=5c6620df" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/common_css/needstable.css?v=7b67799e" rel="stylesheet" type="text/css"/>
+<link href="../../_static/sphinx-needs/modern.css?v=c1bc121d" rel="stylesheet" type="text/css"/>
+<link href="../../_static/pecot.css?v=a16192ec" rel="stylesheet" type="text/css"/>
+<link href="../../_static/pecot-icon-light.svg" rel="icon"/>
+<link href="../../search.html" rel="search" title="検索"/>
+<link href="../../genindex.html" rel="index" title="索引"/>
+<link href="../../reference/file-formats/index.html" rel="next" title="ファイル形式"/>
+<link href="session-finish.html" rel="prev" title="session finish"/>
+</head>
+<body :class="{ 'overflow-hidden': showSidebar }" class="min-h-screen font-sans antialiased bg-background text-foreground" x-data="{ showSidebar: false, showScrollTop: false }">
+<div @click.self="showSidebar = false" class="fixed inset-0 z-50 overflow-hidden bg-background/80 backdrop-blur-sm md:hidden" x-cloak="" x-show="showSidebar"></div><div class="relative flex flex-col min-h-screen" id="page"><a class="absolute top-0 left-0 z-[100] block bg-background p-4 text-xl transition -translate-x-full opacity-0 focus:translate-x-0 focus:opacity-100" href="#content">
+      Skip to content
+    </a><header class="sticky top-0 z-40 w-full border-b shadow-xs border-border bg-background/90 backdrop-blur">
+<div class="pecot-site" data-side="pr" role="note">
+<div class="container pecot-site-row">
+<span>これはプルリクエスト #927 のプレビューです。</span>
+<a href="https://github.com/pecotcraft/pecot/pull/927" rel="noopener">プルリクエストを開く</a>
+<a href="/pecot/">最新のリリース版を見る</a>
+</div>
+</div><div class="container flex items-center h-14">
+<div class="hidden mr-4 md:flex">
+<a aria-label="pecot" class="flex items-center mr-6" href="../../index.html">
+<img alt="pecot" class="h-6 w-auto dark:hidden" height="24" src="../../_static/pecot-wordmark-light.svg"/>
+<img alt="pecot" class="h-6 w-auto hidden dark:block" height="24" src="../../_static/pecot-wordmark-dark.svg"/>
+</a><nav class="flex items-center gap-6 text-sm font-medium">
+<a class="transition-colors hover:text-foreground/80 text-foreground/60" href="../../introduction.html">はじめに</a>
+<a class="transition-colors hover:text-foreground/80 text-foreground/60" href="../../guides/index.html">ガイド</a>
+<a class="transition-colors hover:text-foreground/80 text-foreground/60" href="../../reference/index.html">リファレンス</a>
+</nav></div><button @click="showSidebar = true" class="inline-flex items-center justify-center h-10 px-0 py-2 mr-2 text-base font-medium transition-colors rounded-md hover:text-accent-foreground hover:bg-transparent md:hidden" type="button">
+<svg aria-hidden="true" fill="currentColor" height="24" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M152.587 825.087q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440Zm0-203.587q-19.152 0-32.326-13.174T107.087 576q0-19.152 13.174-32.326t32.326-13.174h320q19.152 0 32.326 13.174T518.087 576q0 19.152-13.174 32.326T472.587 621.5h-320Zm0-203.587q-19.152 0-32.326-13.174t-13.174-32.326q0-19.152 13.174-32.326t32.326-13.174h440q19.152 0 32.326 13.174t13.174 32.326q0 19.152-13.174 32.326t-32.326 13.174h-440ZM708.913 576l112.174 112.174q12.674 12.674 12.674 31.826t-12.674 31.826Q808.413 764.5 789.261 764.5t-31.826-12.674l-144-144Q600 594.391 600 576t13.435-31.826l144-144q12.674-12.674 31.826-12.674t31.826 12.674q12.674 12.674 12.674 31.826t-12.674 31.826L708.913 576Z"></path>
+</svg>
+<span class="sr-only">Toggle navigation menu</span>
+</button>
+<div class="flex items-center justify-between flex-1 gap-2 sm:gap-4 md:justify-end">
+<div class="flex-1 w-full md:w-auto md:flex-none"><form @keydown.k.window.meta="$refs.search.focus()" action="../../search.html" class="relative flex items-center group" id="searchbox" method="get">
+<input aria-label="Search the docs" class="inline-flex items-center font-medium transition-colors bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background border border-input hover:bg-accent focus:bg-accent hover:text-accent-foreground focus:text-accent-foreground hover:placeholder-accent-foreground py-2 px-4 relative h-9 w-full justify-start rounded-[0.5rem] text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64" id="search-input" name="q" placeholder="Search ..." type="search" x-ref="search"/>
+<kbd class="pointer-events-none absolute right-1.5 top-2 hidden h-5 select-none text-muted-foreground items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex group-hover:bg-accent group-hover:text-accent-foreground">
+<span class="text-xs">⌘</span>
+    K
+  </kbd>
+</form>
+</div>
+<nav class="flex items-center gap-1">
+<a href="https://github.com/pecotcraft/pecot" rel="noopener nofollow" title="Visit GitHub">
+<div class="inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent hover:text-accent-foreground h-9 w-9">
+<svg aria-hidden="true" fill="currentColor" height="20" viewbox="0 0 16 16"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path></svg>
+</div>
+</a>
+<button @click="darkMode = !darkMode" class="relative inline-flex items-center justify-center px-0 text-sm font-medium transition-colors rounded-md hover:bg-accent hover:text-accent-foreground h-9 w-9" title="Toggle color scheme" type="button">
+<svg class="absolute transition-all scale-100 rotate-0 dark:-rotate-90 dark:scale-0" fill="currentColor" height="16" viewbox="0 96 960 960" width="16" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 685q45.456 0 77.228-31.772Q589 621.456 589 576q0-45.456-31.772-77.228Q525.456 467 480 467q-45.456 0-77.228 31.772Q371 530.544 371 576q0 45.456 31.772 77.228Q434.544 685 480 685Zm0 91q-83 0-141.5-58.5T280 576q0-83 58.5-141.5T480 376q83 0 141.5 58.5T680 576q0 83-58.5 141.5T480 776ZM80 621.5q-19.152 0-32.326-13.174T34.5 576q0-19.152 13.174-32.326T80 530.5h80q19.152 0 32.326 13.174T205.5 576q0 19.152-13.174 32.326T160 621.5H80Zm720 0q-19.152 0-32.326-13.174T754.5 576q0-19.152 13.174-32.326T800 530.5h80q19.152 0 32.326 13.174T925.5 576q0 19.152-13.174 32.326T880 621.5h-80Zm-320-320q-19.152 0-32.326-13.174T434.5 256v-80q0-19.152 13.174-32.326T480 130.5q19.152 0 32.326 13.174T525.5 176v80q0 19.152-13.174 32.326T480 301.5Zm0 720q-19.152 0-32.326-13.17Q434.5 995.152 434.5 976v-80q0-19.152 13.174-32.326T480 850.5q19.152 0 32.326 13.174T525.5 896v80q0 19.152-13.174 32.33-13.174 13.17-32.326 13.17ZM222.174 382.065l-43-42Q165.5 327.391 166 308.239t13.174-33.065q13.435-13.674 32.587-13.674t32.065 13.674l42.239 43q12.674 13.435 12.555 31.706-.12 18.272-12.555 31.946-12.674 13.674-31.445 13.413-18.772-.261-32.446-13.174Zm494 494.761-42.239-43q-12.674-13.435-12.674-32.087t12.674-31.565Q686.609 756.5 705.38 757q18.772.5 32.446 13.174l43 41.761Q794.5 824.609 794 843.761t-13.174 33.065Q767.391 890.5 748.239 890.5t-32.065-13.674Zm-42-494.761Q660.5 369.391 661 350.62q.5-18.772 13.174-32.446l41.761-43Q728.609 261.5 747.761 262t33.065 13.174q13.674 13.435 13.674 32.587t-13.674 32.065l-43 42.239q-13.435 12.674-31.706 12.555-18.272-.12-31.946-12.555Zm-495 494.761Q165.5 863.391 165.5 844.239t13.674-32.065l43-42.239q13.435-12.674 32.087-12.674t31.565 12.674Q299.5 782.609 299 801.38q-.5 18.772-13.174 32.446l-41.761 43Q231.391 890.5 212.239 890t-33.065-13.174ZM480 576Z"></path>
+</svg>
+<svg class="absolute transition-all scale-0 rotate-90 dark:rotate-0 dark:scale-100" fill="currentColor" height="16" viewbox="0 96 960 960" width="16" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 936q-151 0-255.5-104.5T120 576q0-138 90-239.5T440 218q25-3 39 18t-1 44q-17 26-25.5 55t-8.5 61q0 90 63 153t153 63q31 0 61.5-9t54.5-25q21-14 43-1.5t19 39.5q-14 138-117.5 229T480 936Zm0-80q88 0 158-48.5T740 681q-20 5-40 8t-40 3q-123 0-209.5-86.5T364 396q0-20 3-40t8-40q-78 32-126.5 102T200 576q0 116 82 198t198 82Zm-10-270Z"></path>
+</svg>
+</button>
+</nav>
+</div>
+</div>
+</header>
+<div class="flex-1"><div class="container md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10"><aside :aria-hidden="!showSidebar" :class="{ 'translate-x-0': showSidebar }" class="fixed inset-y-0 left-0 md:top-14 z-50 md:z-30 bg-background md:bg-transparent transition-all duration-100 -translate-x-full md:translate-x-0 ml-0 p-6 md:p-0 md:-ml-2 md:h-[calc(100vh-3.5rem)] w-5/6 md:w-full overflow-y-auto border-r border-border md:sticky" id="left-sidebar">
+<a class="justify-start text-sm md:!hidden bg-background" href="../../index.html">
+<img alt="Logo" class="mr-2 hidden dark:block" height="16" src="../../_static/pecot-icon-dark.svg" width="16"/>
+<img alt="Logo" class="mr-2 dark:hidden" height="16" src="../../_static/pecot-icon-light.svg" width="16"/><span class="font-bold text-clip whitespace-nowrap">pecot</span>
+</a>
+<div class="relative overflow-hidden md:overflow-auto my-4 md:my-0">
+<div class="overflow-y-auto h-full w-full relative pr-6"><nav class="flex md:hidden flex-col font-medium mt-4">
+<a href="../../introduction.html">はじめに</a>
+<a href="../../guides/index.html">ガイド</a>
+<a href="../../reference/index.html">リファレンス</a>
+</nav><nav class="table w-full min-w-full my-6 lg:my-8">
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction.html">はじめに</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">インストール</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../guides/index.html">ガイド</a></li>
+<li class="toctree-l1 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/index.html">リファレンス<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l2 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/index.html">インタフェース定義<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l3" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-workflow.html">pecot-workflow<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/pecot-workflow-common.html">共通仕様</a></li>
+<li class="toctree-l4" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-workflow-tools.html">ツール一覧<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/board_check.html">Check board move</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/board_show.html">Show board dashboard</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/branch_check.html">Check Issue branch</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/issue_check.html">Check Issue</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/issue_comment_check.html">Check issue comment</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/issue_dependency_check.html">Check Issue dependency</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/pr_check.html">Check pull request</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/pr_restack.html">Restack branch</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/project_activate.html">Activate project</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/project_check.html">Check project board</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/project_get.html">Get project config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/project_link.html">Link repository to project</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/project_list.html">List projects</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/project_set.html">Set project config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/project_unset.html">Clear project config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/release_check.html">Check release</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/session_finish.html">Clean up after merge</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/session_show.html">Show session</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/session_start.html">Record Issue branch</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/workflow_doctor.html">Check workflow setup</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/workflow_install.html">Install workflow template</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/worktree_add.html">Add worktree</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/worktree_init.html">Initialize worktree config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/worktree_link.html">Update worktree symlinks</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-workflow/worktree_remove.html">Remove worktree</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/pecot-workflow-resources.html">リソース一覧</a></li>
+</ul>
+</li>
+<li class="toctree-l3" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-tools.html">pecot-tools<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/pecot-tools-common.html">共通仕様</a></li>
+<li class="toctree-l4" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-tools-tools.html">ツール一覧<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_athena_get_query_execution.html">Get Athena query status</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_athena_get_query_results.html">Get Athena query results</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_athena_start_query_execution.html">Start Athena query</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_cloudwatch_get_metric_statistics.html">Get CloudWatch metric statistics</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_ec2_describe_instances.html">List EC2 instances</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_ecr_describe_images.html">List ECR images</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_lambda_get_function_configuration.html">Get Lambda function config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_lambda_list_event_source_mappings.html">List event source mappings</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_lambda_list_functions.html">List Lambda functions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_logs_describe_log_groups.html">List log groups</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_logs_describe_log_streams.html">List log streams</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_logs_filter_log_events.html">Search log events</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_logs_get_log_events.html">Get log events</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_rds_describe_db_clusters.html">List DB clusters</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_rds_describe_db_instances.html">List DB instances</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_rds_describe_events.html">List RDS events</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_s3_ls.html">List S3 contents</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_scheduler_get_schedule.html">Get schedule details</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_scheduler_list_schedules.html">List schedules</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_sqs_get_queue_attributes.html">Get SQS queue attributes</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_sqs_list_queues.html">List SQS queues</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_sso_login.html">Start SSO login</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_sso_login_status.html">Get SSO login status</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-tools/aws_sts_get_caller_identity.html">Get caller identity</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-visual.html">pecot-visual<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/pecot-visual-common.html">共通仕様</a></li>
+<li class="toctree-l4" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-visual-tools.html">ツール一覧<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/drawio_create.html">Create draw.io diagram</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/drawio_export.html">Export draw.io diagram</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/evidence_create.html">Create evidence workbook</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/file_brief.html">Brief layout conventions</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/file_lint.html">Lint edited file</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/file_validate.html">Validate reference yaml</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/runtime_setup.html">Set up runtime</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_convert.html">Convert Slidev to PPTX</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_create.html">Create Slidev deck</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_dev.html">Start Slidev preview</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_lint.html">Lint Slidev deck</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_page.html">Create Slidev page</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_sync.html">Sync Slidev deck</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../pecot-visual/slide_theme.html">Get Slidev theme</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-actions.html">pecot-actions<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/pecot-actions-common.html">共通仕様</a></li>
+<li class="toctree-l4 current" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/tools/pecot-actions-tools.html">action 一覧<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul class="current" x-show="expanded">
+<li class="toctree-l5"><a class="reference internal" href="auto-finish.html">auto finish</a></li>
+<li class="toctree-l5"><a class="reference internal" href="auto-gate.html">auto gate</a></li>
+<li class="toctree-l5"><a class="reference internal" href="auto-start.html">auto start</a></li>
+<li class="toctree-l5"><a class="reference internal" href="board-sync.html">board sync</a></li>
+<li class="toctree-l5"><a class="reference internal" href="github-ops.html">github ops</a></li>
+<li class="toctree-l5"><a class="reference internal" href="release-check.html">release check</a></li>
+<li class="toctree-l5"><a class="reference internal" href="review-finish.html">review finish</a></li>
+<li class="toctree-l5"><a class="reference internal" href="session-finish.html">session finish</a></li>
+<li class="toctree-l5 current"><a class="current reference internal" href="#">tracker sync</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2" x-data="{ expanded: $el.classList.contains('current') ? true : false }"><a :class="{ 'expanded' : expanded }" @click="expanded = !expanded" class="reference internal expandable" href="../../reference/file-formats/index.html">ファイル形式<button @click.prevent.stop="expanded = !expanded" type="button" x-cloak=""><span class="sr-only"></span><svg fill="currentColor" height="18px" stroke="none" viewbox="0 0 24 24" width="18px" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg></button></a><ul x-cloak="" x-show="expanded">
+<li class="toctree-l3"><a class="reference internal" href="../../reference/file-formats/evidence-spec.html">EvidenceSpec</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../troubleshooting.html">トラブルシューティング</a></li>
+</ul>
+</nav>
+</div>
+</div>
+<button @click="showSidebar = false" class="absolute md:hidden right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100" type="button">
+<svg class="h-4 w-4" fill="currentColor" height="24" stroke="none" viewbox="0 96 960 960" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M480 632 284 828q-11 11-28 11t-28-11q-11-11-11-28t11-28l196-196-196-196q-11-11-11-28t11-28q11-11 28-11t28 11l196 196 196-196q11-11 28-11t28 11q11 11 11 28t-11 28L536 576l196 196q11 11 11 28t-11 28q-11 11-28 11t-28-11L480 632Z"></path>
+</svg>
+</button>
+</aside>
+<main class="relative py-6 lg:gap-10 lg:py-8 xl:grid xl:grid-cols-[1fr_300px]">
+<div class="w-full min-w-0 mx-auto">
+<nav aria-label="breadcrumbs" class="flex items-center mb-4 space-x-1 text-sm text-muted-foreground">
+<a class="overflow-hidden text-ellipsis whitespace-nowrap hover:text-foreground" href="../../index.html">
+<span class="hidden md:inline">pecot</span>
+<svg aria-label="Home" class="md:hidden" fill="currentColor" height="18" stroke="none" viewbox="0 96 960 960" width="18" xmlns="http://www.w3.org/2000/svg">
+<path d="M240 856h120V616h240v240h120V496L480 316 240 496v360Zm-80 80V456l320-240 320 240v480H520V696h-80v240H160Zm320-350Z"></path>
+</svg>
+</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="../../reference/index.html">リファレンス</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="../../reference/tools/index.html">インタフェース定義</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="../../reference/tools/pecot-actions.html">pecot-actions</a>
+<div class="mr-1">/</div><a class="hover:text-foreground overflow-hidden text-ellipsis whitespace-nowrap" href="../../reference/tools/pecot-actions-tools.html">action 一覧</a>
+<div class="mr-1">/</div><span aria-current="page" class="font-medium text-foreground overflow-hidden text-ellipsis whitespace-nowrap">tracker sync</span>
+</nav>
+<div id="content" role="main">
+<section id="tracker-sync">
+<h1>tracker sync<a class="headerlink" href="#tracker-sync" title="Link to this heading"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h1>
+<span id="PA-TRACKER-SYNC"></span><p class="iface-lead">ワークフローが動くリポで、<code class="docutils literal notranslate"><span class="pre">source</span></code> に選んだものの一覧を、open の Tracker に書き直します。<code class="docutils literal notranslate"><span class="pre">dependabot</span></code> は人の判断を待つ Dependabot の PR、<code class="docutils literal notranslate"><span class="pre">security</span></code> は open のセキュリティ alert です。<code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> は、GitHub の今のスキーマと Issue の機能の写しとの差です。</p>
+<p><code class="docutils literal notranslate"><span class="pre">source</span></code> で、Tracker に載せるものを選びます。<code class="docutils literal notranslate"><span class="pre">dependabot</span></code> は人の判断を待つ Dependabot の PR、<code class="docutils literal notranslate"><span class="pre">security</span></code> は open のセキュリティ alert です。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、ラベルが <code class="docutils literal notranslate"><span class="pre">dependabot-pr</span></code> で、本文に Tracker の印がある open の Tracker の Issue を探します。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、Tracker の本文の <code class="docutils literal notranslate"><span class="pre">list-begin</span></code> と <code class="docutils literal notranslate"><span class="pre">list-end</span></code> の間にある表を書き直します。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、表には、人の判断を待つ open の Dependabot の PR を載せます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、判断を待つ理由の無い PR は載せません。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、PR が自動マージの対象になるのは、次の 2 つがそろうときです。最初のコミットの作者が <code class="docutils literal notranslate"><span class="pre">dependabot[bot]</span></code> で、署名が有効なこと。分かっている update type のうち最大のものが minor か patch であること。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、update type が不明の依存は、ほかの依存の type が分かっている間は無視します。PR を不明として数えるのは、どの依存の type も分からないときだけです。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、update type が major か不明の PR は載せます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、対象の PR は、検証が失敗していると載せます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、自動マージを入れた対象の PR は、最後の push から 24 時間たっても検証が終わらないと載せます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、対象の PR は、30 分を超えて競合していると載せます。最後の push と base ブランチの最新のコミットのうち、遅い方から数えます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、対象の PR は、最後の push の後で merge queue から外され、自動マージも merge queue の登録も無いと載せます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、自動マージも merge queue の登録も無い対象の PR は、最後の push から 30 分たつと載せます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、最後の push は、最後の force push です。force push が無ければ、PR の作成です。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、表の各行は、PR の題、PR へのリンク、検証の状態（passed・failed・pending・none）です。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、判断を待つ理由は、Tracker の表に入れず、結果の行に出します。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、open の Tracker が無く、載せる PR があるときは、Tracker を作ってプロジェクトのボードに足します。Status を Backlog にします。ほかの欄には値を入れません。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、open の Tracker が無く、載せる PR も無いときは、何も作りません。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、一覧が空で open の Tracker があるときは、一覧を none にし、Tracker を completed として閉じます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、閉じない open の Tracker には、Status が空の間だけ値を入れます。人が変えた値は残ります。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、ラベルが <code class="docutils literal notranslate"><span class="pre">security-alert</span></code> で、本文に Tracker の印がある open の Tracker の Issue を探します。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、Tracker の本文の <code class="docutils literal notranslate"><span class="pre">list-begin</span></code> と <code class="docutils literal notranslate"><span class="pre">list-end</span></code> の間にある一覧を、open の alert で書き直します。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、open の Dependabot alert と secret scanning alert を読みます。code scanning alert は、既定ブランチの open のものを読みます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、Tracker の本文の見出しと表を、alert の種類ごとに分けます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、表の 3 列目は Severity で、GitHub の alert の重大度をそのまま出します。Dependabot は脆弱性の重大度（critical・high・medium・low）です。code scanning は rule の security severity level で、無ければ rule の severity（error・warning・note・none）です。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、GitHub が重大度を持たない secret scanning alert と、重大度の無い alert には <code class="docutils literal notranslate"><span class="pre">-</span></code> を出します。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、行を重大度の高い順に並べ、同じなら番号の順にします。順は critical、high と error、medium と warning、low と note、none、<code class="docutils literal notranslate"><span class="pre">-</span></code> です。Dependabot の 1 つの advisory の行は、その alert のうち最も高い重大度を出します。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、code scanning alert と secret scanning alert の行では、題を <code class="docutils literal notranslate"><span class="pre">masked</span></code> と書きます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、Dependabot の行には advisory の要約を書きます。同じ advisory の Dependabot alert は、1 つの行にまとめます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、機能が無効の種類は、見出しの下に <code class="docutils literal notranslate"><span class="pre">disabled</span></code> と書き、行を足しません。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、code scanning の解析が無いリポジトリは、code scanning alert が無いものとして数えます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、一覧を取れない種類は、前の行を残します。前の行が無かったときは、<code class="docutils literal notranslate"><span class="pre">unavailable</span></code> と書きます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、取れない種類があるときは、ほかの種類を反映した後で、step を失敗にします。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、Dependabot alert の 403 と secret scanning の 404 を、無効だと確かめられなければ、取れなかったものとして数えます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、open の Tracker が無く、載せる行があるときは、Tracker を作ってプロジェクトのボードに足します。Status を Backlog にします。ほかの欄には値を入れません。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、open の Tracker が無く、載せる行も無いときは、何も作りません。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、Tracker を閉じることはありません。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、alert がすべて無くなると、どの種類も <code class="docutils literal notranslate"><span class="pre">none</span></code> と書きます。Tracker を閉じて Archived へ動かすのは、人です。</p>
+<p><code class="docutils literal notranslate"><span class="pre">security</span></code> では、既にある Tracker には、Status が空の間だけ値を入れます。人が変えた値は残ります。</p>
+<p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> では、GitHub の公開スキーマ（GraphQL の SDL）と、REST の版 <code class="docutils literal notranslate"><span class="pre">2022-11-28</span></code> の OpenAPI を取ります。どちらも認証なしで取ります。</p>
+<p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> では、2 つから Issue の機能に関わる項目の id を抜き、<code class="docutils literal notranslate"><span class="pre">surface-file</span></code> の写しの項目と比べます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> では、ラベルが <code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、本文に Tracker の印がある open の Tracker の Issue を探します。</p>
+<p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> では、Tracker の本文の <code class="docutils literal notranslate"><span class="pre">list-begin</span></code> と <code class="docutils literal notranslate"><span class="pre">list-end</span></code> の間に、取得元の URL と、増えた項目と消えた項目の一覧を書きます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> では、open の Tracker が無く、差があるときは、Tracker を作ってプロジェクトのボードに足します。Status を Backlog にします。ほかの欄には値を入れません。</p>
+<p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> では、open の Tracker が無く、差も無いときは、何も作りません。</p>
+<p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> では、差が無くなって open の Tracker があるときは、一覧を none にし、Tracker を completed として閉じます。</p>
+<p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> では、閉じない open の Tracker には、Status が空の間だけ値を入れます。人が変えた値は残ります。</p>
+<p>Tracker の本文のうち、一覧の印の外にある文はそのまま残します。</p>
+<p>プロジェクトの設定が定義していないフィールドは設定しません。</p>
+<p>open の Tracker が複数あるときは、番号が最小のものを使い、ほかは open のまま残します。</p>
+<p>閉じた Tracker は使い回しません。</p>
+<p>checkout したリポに、ワークフローが動くリポを <code class="docutils literal notranslate"><span class="pre">repositories</span></code> か <code class="docutils literal notranslate"><span class="pre">aggregation_repo</span></code> に持つプロジェクトの設定が要ります。2 つ以上あるときは、<code class="docutils literal notranslate"><span class="pre">project</span></code> で選びます。</p>
+<p>設定のホストの GitHub トークンと、Issue とプロジェクトを編集する権限が要ります。<code class="docutils literal notranslate"><span class="pre">security</span></code> では、セキュリティ alert を読む権限も要ります。</p>
+<p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> では、<code class="docutils literal notranslate"><span class="pre">surface-file</span></code> の写しを checkout したリポに置きます。</p>
+<section id="id1">
+<h2>使用例<a class="headerlink" href="#id1" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id1'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<p>Tracker の一覧を書き直します。必要なら、Tracker を作るか閉じます。</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pecotcraft/pecot/actions/tracker-sync@&lt;ref&gt;</span>
+</span><span id="line-2"><span class="w">  </span><span class="nt">with</span><span class="p">:</span>
+</span><span id="line-3"><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dependabot</span>
+</span></code></pre></div>
+</div>
+<p>GitHub へ書き込まず、Tracker を変える予定を出します。</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pecotcraft/pecot/actions/tracker-sync@&lt;ref&gt;</span>
+</span><span id="line-2"><span class="w">  </span><span class="nt">with</span><span class="p">:</span>
+</span><span id="line-3"><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">security</span>
+</span><span id="line-4"><span class="w">    </span><span class="nt">dry-run</span><span class="p">:</span><span class="w"> </span><span class="s">'true'</span>
+</span></code></pre></div>
+</div>
+<p>GitHub の今のスキーマを写しと比べ、差を Tracker に書き直します。差が無くなれば、Tracker を閉じます。</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><code><span id="line-1"><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pecotcraft/pecot/actions/tracker-sync@&lt;ref&gt;</span>
+</span><span id="line-2"><span class="w">  </span><span class="nt">with</span><span class="p">:</span>
+</span><span id="line-3"><span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">issue-surface</span>
+</span><span id="line-4"><span class="w">    </span><span class="nt">surface-file</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">plugins/pecot-workflow/interface/github-issue-surface.json</span>
+</span></code></pre></div>
+</div>
+</section>
+<section id="id2">
+<h2>入力<a class="headerlink" href="#id2" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id2'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<dl class="std actioninput">
+<dt class="sig sig-object std">
+<span class="sig-name descname"><span class="pre">source</span></span></dt>
+<dd><p>Tracker に載せるものです。<code class="docutils literal notranslate"><span class="pre">dependabot</span></code> は人の判断を待つ PR、<code class="docutils literal notranslate"><span class="pre">security</span></code> は open の alert です。<code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> は、GitHub の今のスキーマと <code class="docutils literal notranslate"><span class="pre">surface-file</span></code> の写しとの差です。どれかを必ず渡します。</p>
+<dl class="field-list simple">
+<dt class="field-odd">指定<span class="colon">:</span></dt>
+<dd class="field-odd"><p>必須</p>
+</dd>
+<dt class="field-even">型<span class="colon">:</span></dt>
+<dd class="field-even"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="std actioninput">
+<dt class="sig sig-object std">
+<span class="sig-name descname"><span class="pre">dry-run</span></span></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">true</span></code> なら、何も変えずに、Tracker を変える予定の行だけを出します。既定は <code class="docutils literal notranslate"><span class="pre">false</span></code> です。</p>
+<dl class="field-list simple">
+<dt class="field-odd">指定<span class="colon">:</span></dt>
+<dd class="field-odd"><p>省略可</p>
+</dd>
+<dt class="field-even">型<span class="colon">:</span></dt>
+<dd class="field-even"><p>string</p>
+</dd>
+<dt class="field-odd">既定値<span class="colon">:</span></dt>
+<dd class="field-odd"><p>"false"</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="std actioninput">
+<dt class="sig sig-object std">
+<span class="sig-name descname"><span class="pre">project</span></span></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">.pecot/config/projects</span></code> の下にある、プロジェクトの設定の名前です。<code class="docutils literal notranslate"><span class="pre">.json</span></code> を付けずに渡します。省くと、ワークフローが動くリポを含む設定を使います。</p>
+<dl class="field-list simple">
+<dt class="field-odd">指定<span class="colon">:</span></dt>
+<dd class="field-odd"><p>省略可</p>
+</dd>
+<dt class="field-even">型<span class="colon">:</span></dt>
+<dd class="field-even"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="std actioninput">
+<dt class="sig sig-object std">
+<span class="sig-name descname"><span class="pre">surface-file</span></span></dt>
+<dd><p>checkout したリポの中の、Issue の機能の写し（<code class="docutils literal notranslate"><span class="pre">github-issue-surface.json</span></code>）のパスです。<code class="docutils literal notranslate"><span class="pre">source</span></code> が <code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> のときは必ず渡します。</p>
+<dl class="field-list simple">
+<dt class="field-odd">指定<span class="colon">:</span></dt>
+<dd class="field-odd"><p>省略可</p>
+</dd>
+<dt class="field-even">型<span class="colon">:</span></dt>
+<dd class="field-even"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="std actioninput">
+<dt class="sig sig-object std">
+<span class="sig-name descname"><span class="pre">token</span></span></dt>
+<dd><p>PR か alert を読み、Tracker とボードに書くトークンです。ワークフローの App のトークンか PAT を渡します。</p>
+<dl class="field-list simple">
+<dt class="field-odd">指定<span class="colon">:</span></dt>
+<dd class="field-odd"><p>省略可</p>
+</dd>
+<dt class="field-even">型<span class="colon">:</span></dt>
+<dd class="field-even"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+</section>
+<section id="id3">
+<h2>出力<a class="headerlink" href="#id3" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id3'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<ul class="simple">
+<li><p><strong>標準エラー</strong>: <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> では、<code class="docutils literal notranslate"><span class="pre">count</span></code> の行で、open の Dependabot の PR の数、判断を待つ PR の数、判断を待つ PR のうち検証の結果が無いものの数を出します。変更ごとに結果の行（<code class="docutils literal notranslate"><span class="pre">created</span></code>・<code class="docutils literal notranslate"><span class="pre">added</span></code>・<code class="docutils literal notranslate"><span class="pre">removed</span></code>・<code class="docutils literal notranslate"><span class="pre">updated</span></code>・<code class="docutils literal notranslate"><span class="pre">unchanged</span></code>・<code class="docutils literal notranslate"><span class="pre">closed</span></code>・<code class="docutils literal notranslate"><span class="pre">skipped</span></code>）を出します。<code class="docutils literal notranslate"><span class="pre">dry-run</span></code> が <code class="docutils literal notranslate"><span class="pre">true</span></code> のときは、代わりに <code class="docutils literal notranslate"><span class="pre">dry-run</span></code> の行を出します。open の Tracker が複数あるときは、<code class="docutils literal notranslate"><span class="pre">warning</span></code> の行を出します。失敗ごとに <code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出します。<code class="docutils literal notranslate"><span class="pre">security</span></code> では、変更ごとに結果の行（<code class="docutils literal notranslate"><span class="pre">created</span></code>・<code class="docutils literal notranslate"><span class="pre">added</span></code>・<code class="docutils literal notranslate"><span class="pre">removed</span></code>・<code class="docutils literal notranslate"><span class="pre">updated</span></code>・<code class="docutils literal notranslate"><span class="pre">unchanged</span></code>・<code class="docutils literal notranslate"><span class="pre">skipped</span></code>）を出します。<code class="docutils literal notranslate"><span class="pre">dry-run</span></code> が <code class="docutils literal notranslate"><span class="pre">true</span></code> のときは、代わりに <code class="docutils literal notranslate"><span class="pre">dry-run</span></code> の行を出します。open の Tracker が複数あるときは、<code class="docutils literal notranslate"><span class="pre">warning</span></code> の行を出します。失敗ごとに <code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出します。一覧を取れなかった種類ごとの行も含みます。<code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> では、変更ごとに結果の行（<code class="docutils literal notranslate"><span class="pre">created</span></code>・<code class="docutils literal notranslate"><span class="pre">updated</span></code>・<code class="docutils literal notranslate"><span class="pre">unchanged</span></code>・<code class="docutils literal notranslate"><span class="pre">closed</span></code>・<code class="docutils literal notranslate"><span class="pre">skipped</span></code>）を出します。<code class="docutils literal notranslate"><span class="pre">dry-run</span></code> が <code class="docutils literal notranslate"><span class="pre">true</span></code> のときは、代わりに <code class="docutils literal notranslate"><span class="pre">dry-run</span></code> の行を出します。open の Tracker が複数あるときは、<code class="docutils literal notranslate"><span class="pre">warning</span></code> の行を出します。失敗ごとに <code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出します。</p></li>
+</ul>
+</section>
+<section id="id4">
+<h2>エラー<a class="headerlink" href="#id4" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id4'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<div aria-label="表" class="pecot-table-scroll" role="region" tabindex="0">
+<table class="iface-errors docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>エラー名</p></th>
+<th class="head"><p>説明</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">no-active-project</span></code></p></td>
+<td><p>ワークフローが動くリポを含むプロジェクトの設定が 2 つ以上あり、<code class="docutils literal notranslate"><span class="pre">project</span></code> がありません。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">repo-not-in-project</span></code></p></td>
+<td><p>ワークフローが動くリポを含むプロジェクトの設定がありません。<code class="docutils literal notranslate"><span class="pre">project</span></code> で選んだ設定がそのリポを含まないときも含みます。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">project-not-found</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">project</span></code> の名前の設定がありません。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">content-invalid</span></code></p></td>
+<td><p>Tracker の本文にある <code class="docutils literal notranslate"><span class="pre">list-begin</span></code> と <code class="docutils literal notranslate"><span class="pre">list-end</span></code> の印が、ちょうど 1 組ではありません。<code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、<code class="docutils literal notranslate"><span class="pre">surface-file</span></code> が写しの形でないときも含みます。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">partial-failure</span></code></p></td>
+<td><p>Tracker の作成・書き直し・クローズ・ボードへの配置のどれかに失敗しました。<code class="docutils literal notranslate"><span class="pre">security</span></code> で取れない種類があるときも含みます。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">invalid-input</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">source</span></code> が無いか、<code class="docutils literal notranslate"><span class="pre">dependabot</span></code>・<code class="docutils literal notranslate"><span class="pre">security</span></code>・<code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> のどれでもありません。<code class="docutils literal notranslate"><span class="pre">source</span></code> が <code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で <code class="docutils literal notranslate"><span class="pre">surface-file</span></code> が無いときと、<code class="docutils literal notranslate"><span class="pre">dry-run</span></code> が <code class="docutils literal notranslate"><span class="pre">true</span></code> でも <code class="docutils literal notranslate"><span class="pre">false</span></code> でもないときも含みます。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">github-auth</span></code></p></td>
+<td><p>GitHub トークンが見つからないか、GitHub がトークンを拒みました。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">github-not-found</span></code></p></td>
+<td><p>GitHub に対象が見つかりません。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">github-rate-limit</span></code></p></td>
+<td><p>GitHub API のレート制限に当たりました。</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">github-api</span></code></p></td>
+<td><p>GitHub API がほかのエラーを返しました。</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">other</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">GITHUB_REPOSITORY</span></code> が <code class="docutils literal notranslate"><span class="pre">owner/repo</span></code> の形でありません。<code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、<code class="docutils literal notranslate"><span class="pre">surface-file</span></code> を読めないときと、今のスキーマを取れないか読めないときも含みます。ほかの名前に当たらない失敗も含みます。</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> と <code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> では、作った Tracker は、ボードへの配置に失敗しても GitHub に open のまま残り、次の実行でボードに置きます。本文の書き直しに失敗したときは、本文は元のままで、Tracker は open のままです。クローズに失敗したときは、一覧は none のまま、Tracker は open のままで、次の実行で閉じます。<code class="docutils literal notranslate"><span class="pre">security</span></code> では、作った Tracker は、ボードへの配置に失敗しても GitHub に open のまま残り、次の実行でボードに置きます。本文の書き直しに失敗したときは、本文は元のままで、次の実行でやり直します。どちらも、済んだ変更は巻き戻さず、step を失敗にします。</p>
+</section>
+<section id="id5">
+<h2>機能要件<a class="headerlink" href="#id5" title="Link to this heading" x-intersect.margin.0%.0%.-70%.0%="activeSection = '#id5'"><svg height="1em" viewbox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></a></h2>
+<p>次の 110 件の要件を、自動テストで確かめています。</p>
+<div aria-label="表" class="pecot-table-scroll" role="region" tabindex="0">
+<table class="iface-behaviors docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ID</p></th>
+<th class="head"><p>要件</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even" id="PA-TRACKER-SYNC-01"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-01</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、open の Tracker が無く、判断を待つ PR があると、label が <code class="docutils literal notranslate"><span class="pre">dependabot-pr</span></code> の Tracker の Issue を作ります</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-02"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-02</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、Tracker の Issue を作ると、ボードに足します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-03"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-03</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、Tracker の Issue を作ると、Status を Backlog にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-04"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-04</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、Tracker の Issue を作ると、ボードの Status だけを設定し、ほかの欄には値を入れません</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-05"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-05</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、open の Tracker が無く、判断を待つ PR も無いと、Tracker の Issue を作りません</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-06"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-06</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、open の Tracker も判断を待つ PR も無いと、<code class="docutils literal notranslate"><span class="pre">skipped</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-07"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-07</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、open の Tracker があると、<code class="docutils literal notranslate"><span class="pre">list-begin</span></code> と <code class="docutils literal notranslate"><span class="pre">list-end</span></code> の間の表を、判断を待つ PR の行に書き直します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-08"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-08</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、update type が major か不明の PR があると、その PR を表に載せます</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-09"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-09</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、自動マージの対象の PR の検証が失敗していると、その PR を表に載せます</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-10"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-10</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、自動マージを入れた PR の検証が最後の push から 24 時間たっても終わらないと、その PR を表に載せます</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-11"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-11</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、自動マージの対象の PR が競合したまま、最後の push と base の最新コミットの遅い方から 30 分を超えると、その PR を表に載せます</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-12"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-12</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、自動マージと queue のどちらも無い、自動マージの対象の PR が最後の push の後に merge queue から外されると、その PR を表に載せます</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-13"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-13</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、自動マージと queue と push 後の dequeue の記録が無い対象の PR の最後の push から 30 分を超えると、その PR を表に載せます</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-14"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-14</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、判断を待つ理由の無い PR があると、その PR を表に載せません</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-15"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-15</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、PR の一覧を取れて本文の印が正しいと、open の PR・判断を待つ PR・検証の結果が無い PR の数を <code class="docutils literal notranslate"><span class="pre">count</span></code> の行で出します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-16"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-16</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、表に PR を足すと、<code class="docutils literal notranslate"><span class="pre">added</span></code> の行を理由とともに標準エラーに出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-17"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-17</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、表から PR を外すと、<code class="docutils literal notranslate"><span class="pre">removed</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-18"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-18</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、行の足し外しが無く本文だけが変わると、本文を書き直します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-19"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-19</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、行の足し外しが無く本文だけが変わると、<code class="docutils literal notranslate"><span class="pre">updated</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-20"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-20</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、書き直した本文が今の本文と同じだと、本文を書き直しません</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-21"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-21</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、書き直した本文が今の本文と同じだと、<code class="docutils literal notranslate"><span class="pre">unchanged</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-22"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-22</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、判断を待つ PR が無く open の Tracker があると、表を none に書き直します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-23"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-23</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、表を none に書き直すと、Tracker を completed の理由で閉じます</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-24"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-24</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、Tracker を閉じると、<code class="docutils literal notranslate"><span class="pre">closed</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-25"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-25</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、表が既に none の open の Tracker があると、本文を書き直しません</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-26"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-26</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、表が既に none の open の Tracker があると、Tracker を閉じます</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-27"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-27</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、閉じない open の Tracker の Status が空だと、Backlog を入れます。ほかの欄には値を入れません</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-28"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-28</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、open の Tracker が複数あると、番号が最小のものを使います</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-29"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-29</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、open の Tracker が複数あると、使わないものを閉じません</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-30"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-30</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、open の Tracker が複数あると、<code class="docutils literal notranslate"><span class="pre">warning</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-31"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-31</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で <code class="docutils literal notranslate"><span class="pre">dry-run</span></code> が <code class="docutils literal notranslate"><span class="pre">true</span></code> だと、GitHub への書き込みをしません</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-32"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で <code class="docutils literal notranslate"><span class="pre">dry-run</span></code> が <code class="docutils literal notranslate"><span class="pre">true</span></code> だと、予定の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-33"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-33</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、対象のリポを含む設定から 1 つを選べないなら、候補の名前と <code class="docutils literal notranslate"><span class="pre">project</span></code> の案内を <code class="docutils literal notranslate"><span class="pre">error</span></code> の行に出して、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-34"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-34</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">GITHUB_REPOSITORY</span></code> が <code class="docutils literal notranslate"><span class="pre">owner/repo</span></code> の形でないなら、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出して、step を失敗にします</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-35"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-35</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、GitHub のトークンが見つからないなら、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を標準エラーに出して、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-37"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-37</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、PR か Issue の一覧を取れないなら、何も書きません</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-38"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-38</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、PR か Issue の一覧を取れないなら、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出して、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-39"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-39</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、使う Tracker の本文に <code class="docutils literal notranslate"><span class="pre">list-begin</span></code> と <code class="docutils literal notranslate"><span class="pre">list-end</span></code> の印が 1 組だけ無いなら、何も書きません</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-40"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-40</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、使う Tracker の本文に <code class="docutils literal notranslate"><span class="pre">list-begin</span></code> と <code class="docutils literal notranslate"><span class="pre">list-end</span></code> の印が 1 組だけ無いなら、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出して、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-41"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-41</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、Tracker の本文の書き直しに失敗したなら、Tracker を閉じません</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-42"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-42</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、Tracker の本文の書き直しに失敗したなら、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-43"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-43</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、表を none に書き直した後で Tracker を閉じられなかったなら、次の実行でやり直す旨の <code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-44"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-44</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、表を none に書き直した後で Tracker を閉じられなかったなら、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-45"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-45</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、Tracker の作成かボードへの追加に失敗したなら、Tracker の失敗の文を <code class="docutils literal notranslate"><span class="pre">error</span></code> の行に出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-46"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-46</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、Tracker の作成かボードへの追加に失敗したなら、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-47"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-47</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、open の Tracker が無く、載せる alert があると、label が <code class="docutils literal notranslate"><span class="pre">security-alert</span></code> の Tracker の Issue を作ります</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-48"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-48</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、Tracker の Issue を作ると、ボードに足します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-49"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-49</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、Tracker の Issue を作ると、Status を Backlog にします</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-50"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-50</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、Tracker の Issue を作ると、ボードの Status だけを設定し、ほかの欄には値を入れません</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-51"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-51</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、open の Tracker が無く、載せる alert も無いと、Tracker の Issue を作りません</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-52"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-52</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、open の Tracker が無く、載せる alert も無いと、<code class="docutils literal notranslate"><span class="pre">skipped</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-53"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-53</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、open の Tracker があると、<code class="docutils literal notranslate"><span class="pre">list-begin</span></code> と <code class="docutils literal notranslate"><span class="pre">list-end</span></code> の間を、alert の種類ごとの見出しと表に書き直します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-54"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-54</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、表に alert を足すと、<code class="docutils literal notranslate"><span class="pre">added</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-55"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-55</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、表から alert を外すと、<code class="docutils literal notranslate"><span class="pre">removed</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-56"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-56</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、行の足し外しが無く本文だけが変わると、本文を書き直します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-57"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-57</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、行の足し外しが無く本文だけが変わると、<code class="docutils literal notranslate"><span class="pre">updated</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-58"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-58</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、書き直した本文が今の本文と同じだと、本文を書き直しません</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-59"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-59</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、書き直した本文が今の本文と同じだと、<code class="docutils literal notranslate"><span class="pre">unchanged</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-60"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-60</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、open の alert がすべて無くなると、各種類の見出しの下に <code class="docutils literal notranslate"><span class="pre">none</span></code> を書きます</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-61"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-61</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、open の alert がすべて無くなると、Tracker を閉じません</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-62"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-62</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、code scanning と secret scanning の行を書くと、title を <code class="docutils literal notranslate"><span class="pre">masked</span></code> にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-63"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-63</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、機能が無効の種類があると、その見出しの下に <code class="docutils literal notranslate"><span class="pre">disabled</span></code> を書きます</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-64"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、機能が無効の種類があると、<code class="docutils literal notranslate"><span class="pre">skipped</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-65"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-65</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、code scanning の解析が無いリポジトリだと、code scanning の alert を 0 件として扱います</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-66"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-66</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、既存の Tracker の Status が空だと、Backlog を入れます。ほかの欄には値を入れません</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-67"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-67</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、open の Tracker が複数あると、番号が最小のものを使います</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-68"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-68</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、open の Tracker が複数あると、使わないものを閉じません</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-69"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-69</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、open の Tracker が複数あると、<code class="docutils literal notranslate"><span class="pre">warning</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-70"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-70</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で <code class="docutils literal notranslate"><span class="pre">dry-run</span></code> が <code class="docutils literal notranslate"><span class="pre">true</span></code> だと、GitHub への書き込みをしません</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-71"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-71</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で <code class="docutils literal notranslate"><span class="pre">dry-run</span></code> が <code class="docutils literal notranslate"><span class="pre">true</span></code> だと、予定の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-72"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-72</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、対象のリポを含む設定から 1 つを選べないなら、候補の名前と <code class="docutils literal notranslate"><span class="pre">project</span></code> の案内を <code class="docutils literal notranslate"><span class="pre">error</span></code> の行に出して、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-74"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-74</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、GitHub のトークンが見つからないなら、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を標準エラーに出して、step を失敗にします</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-76"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-76</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、ある種類の alert の一覧を取れないなら、その種類の前の行を残します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-77"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-77</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、ある種類の alert の一覧を取れず、前の行も無いなら、見出しの下に <code class="docutils literal notranslate"><span class="pre">unavailable</span></code> を書きます</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-78"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-78</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、ある種類の alert の一覧を取れないなら、その種類を触らない旨の <code class="docutils literal notranslate"><span class="pre">error</span></code> の行を標準エラーに出します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-79"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-79</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、ある種類の alert の一覧を取れないなら、ほかの種類を書き直します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-80"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-80</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、ある種類の alert の一覧を取れないなら、ほかの種類を書き直した後に、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-81"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-81</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、Dependabot alert が有効なのに一覧を 403 で取れないなら、その種類を取れなかったものとして扱います</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-82"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-82</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、secret scanning の一覧を 404 で取れず、無効とも確かめられないなら、その種類を取れなかったものとして扱います</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-83"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-83</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、Issue の一覧を取れないなら、何も書きません</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-84"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-84</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、Issue の一覧を取れないなら、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出して、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-85"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-85</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、使う Tracker の本文に <code class="docutils literal notranslate"><span class="pre">list-begin</span></code> と <code class="docutils literal notranslate"><span class="pre">list-end</span></code> の印が 1 組だけ無いなら、何も書きません</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-86"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-86</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、使う Tracker の本文に <code class="docutils literal notranslate"><span class="pre">list-begin</span></code> と <code class="docutils literal notranslate"><span class="pre">list-end</span></code> の印が 1 組だけ無いなら、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出して、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-87"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-87</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、Tracker の本文の書き直しに失敗したなら、失敗の文を <code class="docutils literal notranslate"><span class="pre">error</span></code> の行に出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-88"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-88</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、Tracker の本文の書き直しに失敗したなら、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-89"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-89</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、Tracker の作成かボードへの追加に失敗したなら、Tracker の失敗の文を <code class="docutils literal notranslate"><span class="pre">error</span></code> の行に出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-90"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-90</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、Tracker の作成かボードへの追加に失敗したなら、step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-91"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-91</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">source</span></code> を省いたなら、入力の誤りとして、終了コード 2 で step を失敗にします</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-92"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-92</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">source</span></code> に <code class="docutils literal notranslate"><span class="pre">dependabot</span></code>・<code class="docutils literal notranslate"><span class="pre">security</span></code>・<code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> のどれでもない値を渡したなら、入力の誤りとして、終了コード 2 で step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-93"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-93</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">dependabot</span></code> で、Tracker の Status の書き込みに失敗したなら、書けなかった欄と値を <code class="docutils literal notranslate"><span class="pre">error</span></code> の行に出し、最後に step を失敗にします。選択肢の ID が古くて書けないときは、ID を読み直す案内を、1 回の実行で 1 回だけ添えます</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-94"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-94</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">security</span></code> で、Tracker の Status の書き込みに失敗したなら、書けなかった欄と値を <code class="docutils literal notranslate"><span class="pre">error</span></code> の行に出し、最後に step を失敗にします。選択肢の ID が古くて書けないときは、ID を読み直す案内を、1 回の実行で 1 回だけ添えます</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-95"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-95</span></code></p></td>
+<td><p>もし対象のリポを含む設定が無いなら、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出して、step を失敗にします</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-96"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-96</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">project</span></code> で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使います</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-97"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-97</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で Tracker の本文を書くと、各表の 3 列目を Severity にし、GitHub の alert の重大度の値をそのまま出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-98"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-98</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で secret scanning alert か重大度の無い alert を表に書くと、Severity に <code class="docutils literal notranslate"><span class="pre">-</span></code> を出します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-99"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-99</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">security</span></code> で、既存の本文の行の印に旧い <code class="docutils literal notranslate"><span class="pre">priority=</span></code> があると、それを重大度として読み、次の書き直しで <code class="docutils literal notranslate"><span class="pre">severity=</span></code> の印にします</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-100"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-100</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で呼ぶと、公開スキーマの SDL と、REST の版 <code class="docutils literal notranslate"><span class="pre">2022-11-28</span></code> の OpenAPI を、認証なしで取ります</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-101"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-101</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、open の Tracker が無く写しとの差があると、Tracker の Issue を作ってボードに足し、Status を Backlog にします</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-102"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-102</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、open の Tracker も写しとの差も無いと、Tracker の Issue を作らずに、<code class="docutils literal notranslate"><span class="pre">skipped</span></code> の行を出します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-103"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-103</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、差が変わると、open の Tracker の <code class="docutils literal notranslate"><span class="pre">list-begin</span></code> と <code class="docutils literal notranslate"><span class="pre">list-end</span></code> の間だけを書き直し、外の文を残します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-104"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-104</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、open の Tracker の一覧が今の差と同じだと、本文を書き直さずに、<code class="docutils literal notranslate"><span class="pre">unchanged</span></code> の行を出します</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-105"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-105</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、差が無くなると、open の Tracker の一覧を none に書き直してから、Tracker を completed として閉じます</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-106"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-106</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、open の Tracker が 2 件以上あると、番号が最小のものを使い、ほかを <code class="docutils literal notranslate"><span class="pre">warning</span></code> の行に挙げます</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-107"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-107</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で <code class="docutils literal notranslate"><span class="pre">dry-run</span></code> が <code class="docutils literal notranslate"><span class="pre">true</span></code> だと、GitHub へ書き込まずに、作る・書き直す・閉じる予定を <code class="docutils literal notranslate"><span class="pre">dry-run</span></code> の行に出します</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-108"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-108</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">source</span></code> が <code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で <code class="docutils literal notranslate"><span class="pre">surface-file</span></code> を省いたなら、GitHub を呼ばずに、入力の誤りとして終了コード 2 で step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-109"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-109</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、<code class="docutils literal notranslate"><span class="pre">surface-file</span></code> を読めないか写しの形でないなら、スキーマを取らずに、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出して step を失敗にします</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-110"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-110</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、今のスキーマを取れないなら、Tracker を探さずに、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出して step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-111"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-111</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、Issue の一覧を取れないなら、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出して、step を失敗にします</p></td>
+</tr>
+<tr class="row-even" id="PA-TRACKER-SYNC-112"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-112</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、使う Tracker の本文に一覧の印が 1 組だけ無いなら、何も書かずに、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出して step を失敗にします</p></td>
+</tr>
+<tr class="row-odd" id="PA-TRACKER-SYNC-113"><td><p><code class="docutils literal notranslate"><span class="pre">PA-TRACKER-SYNC-113</span></code></p></td>
+<td><p>もし <code class="docutils literal notranslate"><span class="pre">issue-surface</span></code> で、Tracker の作成かボードの Status の書き込みに失敗したなら、<code class="docutils literal notranslate"><span class="pre">error</span></code> の行を出して、step を失敗にします</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+</div></div><aside class="hidden text-sm xl:block" id="right-sidebar">
+<div class="sticky top-16 -mt-10 max-h-[calc(100vh-5rem)] h-full overflow-y-auto pt-6 space-y-2"><p class="font-medium">On this page</p>
+<ul>
+<li><a :data-current="activeSection === '#id1'" class="reference internal" href="#id1">使用例</a></li>
+<li><a :data-current="activeSection === '#id2'" class="reference internal" href="#id2">入力</a></li>
+<li><a :data-current="activeSection === '#id3'" class="reference internal" href="#id3">出力</a></li>
+<li><a :data-current="activeSection === '#id4'" class="reference internal" href="#id4">エラー</a></li>
+<li><a :data-current="activeSection === '#id5'" class="reference internal" href="#id5">機能要件</a></li>
+</ul>
+<dl class="iface-about pt-6">
+<dt class="font-medium">ID</dt>
+<dd class="font-mono text-xs text-muted-foreground">PA-TRACKER-SYNC</dd>
+<dt class="font-medium">Group</dt>
+<dd class="text-muted-foreground">pecot-actions</dd>
+<dt class="font-medium">Interface</dt>
+<dd class="text-muted-foreground">Action</dd>
+</dl></div>
+</aside>
+</main>
+</div>
+</div><footer class="border-t border-border">
+<div class="container pecot-footer">
+<div class="pecot-footer-brand">
+<a aria-label="pecot" href="../../index.html">
+<img alt="pecot" class="h-6 w-6 dark:hidden" height="24" src="../../_static/pecot-icon-light.svg"/>
+<img alt="pecot" class="h-6 w-6 hidden dark:block" height="24" src="../../_static/pecot-icon-dark.svg"/>
+</a>
+<span>© 2026 pecotcraft</span>
+</div>
+<nav aria-label="関連リンク" class="pecot-footer-links">
+<a href="https://github.com/pecotcraft/pecot" rel="noopener">GitHub</a>
+<a href="https://github.com/pecotcraft/pecot/blob/main/LICENSE" rel="noopener">ライセンス</a>
+</nav>
+</div>
+</footer>
+</div>
+<script src="../../_static/jquery.js?v=5d32c60e"></script>
+<script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+<script src="../../_static/documentation_options.js?v=c033477b"></script>
+<script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+<script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+<script defer="defer" src="../../_static/theme.js?v=49cc6205"></script>
+<script src="../../_static/translations.js?v=4755f45a"></script>
+<script src="../../_static/sphinx-data-viewer/jsonview.bundle.js?v=18cd53c5"></script>
+<script src="../../_static/sphinx-data-viewer/jsonview_loader.js?v=f7ff7e7d"></script>
+<script src="../../_static/sphinx-needs/libs/html/sphinx_needs_collapse.js?v=dca66431"></script>
+<script src="../../_static/pecot.js?v=db60a368"></script>
+</body>
+</html>

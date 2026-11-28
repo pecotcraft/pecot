@@ -1,0 +1,1 @@
+{"id":"456db0b68bf340086786ef732ba95cb1.17400daed5bcf3986c5f7ae30aaf82d7","fullName":".githooks.tests.test_run_pr_checks#test_failed_stage_does_not_stop_later_stages","name":"manual の stage が失敗しても、後ろの stage を実行し、最後に終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"ebb0acccf3dfe95ff99d7d81893e6ded"}}

@@ -1,0 +1,1 @@
+{"id":"02517e84650e8889336e9bc2118cb11c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/command-definition.test.ts#hasOwnRepo ツール自身の repo が入力の検証に失敗すると、本体を呼ばずに検証の誤りを投げる","name":"ツール自身の repo が入力の検証に失敗すると、本体を呼ばずに検証の誤りを投げる","status":"passed","testResultsByEnv":{"default":"4b668227937320f3022284730484fb6a"}}

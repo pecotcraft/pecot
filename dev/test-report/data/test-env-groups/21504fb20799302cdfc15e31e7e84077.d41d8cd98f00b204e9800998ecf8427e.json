@@ -1,0 +1,1 @@
+{"id":"21504fb20799302cdfc15e31e7e84077.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_ecr_describe_images profile の書式に合わない値を渡すと、拒否する","name":"profile の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"ba758a4642311b61455a9aced8e7c600"}}

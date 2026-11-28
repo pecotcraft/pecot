@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "cannot get the repository information: check that a git remote is set to a GitHub repository URL"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\"cannot get the repository information: check that a git remote is set to a GitHub repository URL\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": "cannot get the repository information: check that a git remote is set to a GitHub repository URL"
+  },
+  "isError": true
+}

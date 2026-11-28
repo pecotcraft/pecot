@@ -1,0 +1,1 @@
+{"id":"d3a318dfc0b346bff386e7710b961f62.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#decidePullRequestBase 親 PR がマージされずに閉じた の場合は、PR を作成せずに止める","name":"親 PR がマージされずに閉じた の場合は、PR を作成せずに止める","status":"passed","testResultsByEnv":{"default":"24523921a6a45a3c9f2b6ef84cc2c2e1"}}

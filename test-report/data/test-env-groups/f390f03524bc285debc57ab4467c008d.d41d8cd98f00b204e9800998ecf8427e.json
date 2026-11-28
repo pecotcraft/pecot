@@ -1,0 +1,1 @@
+{"id":"f390f03524bc285debc57ab4467c008d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-start.test.ts#auto start ボードに無い Issue なら、進行の欄を Ready にしてボードに載せる","name":"ボードに無い Issue なら、進行の欄を Ready にしてボードに載せる","status":"passed","testResultsByEnv":{"default":"958b6adfd08bc6e135c9d80bba10da8f"}}

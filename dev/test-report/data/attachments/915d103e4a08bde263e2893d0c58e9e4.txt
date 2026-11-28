@@ -1,0 +1,1 @@
+warning: could not judge #13: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:43877/graphql' For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500

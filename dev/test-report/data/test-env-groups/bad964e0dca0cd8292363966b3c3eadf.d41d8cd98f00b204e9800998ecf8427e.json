@@ -1,0 +1,1 @@
+{"id":"bad964e0dca0cd8292363966b3c3eadf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#ホスト設定 未定義のホスト の場合は、undefined を返す","name":"未定義のホスト の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"baf1bb603bb7c2ee829d75a4c51bc329"}}

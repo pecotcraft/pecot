@@ -1,0 +1,1 @@
+{"id":"46dfd2671d55722fb4f5ec6b5c1cc01b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#gh-command-check.sh コマンドが gh stack merge のとき、終了コード 1 で止める","name":"コマンドが gh stack merge のとき、終了コード 1 で止める","status":"passed","testResultsByEnv":{"default":"88eb483b40d5e65abd083929d6297e5c"}}

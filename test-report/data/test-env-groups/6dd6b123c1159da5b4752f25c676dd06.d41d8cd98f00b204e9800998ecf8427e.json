@@ -1,0 +1,1 @@
+{"id":"6dd6b123c1159da5b4752f25c676dd06.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/pdf.test.ts#exportPdf PECOTV_FORCE_PDF_FAIL に 1 を指定すると、Playwright を起動せずに失敗し、何も書き出さない","name":"PECOTV_FORCE_PDF_FAIL に 1 を指定すると、Playwright を起動せずに失敗し、何も書き出さない","status":"passed","testResultsByEnv":{"default":"762910530de6914b9f753a70ee8ca974"}}

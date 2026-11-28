@@ -1,0 +1,1 @@
+{"id":"3842cdc001eb6d82905b8611195bc2c1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#素の URL の Link ノード http で始まらない語 は、Link として扱わない","name":"http で始まらない語 は、Link として扱わない","status":"passed","testResultsByEnv":{"default":"b0c6237019bbddcb4f6067017b3d4e19"}}

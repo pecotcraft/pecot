@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the result of pull_request_read in reads.pull_request is not in the shape of the official GitHub MCP server\n  head: Invalid input: expected object, received undefined\n  base: Invalid input: expected object, received undefined"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-mcp-shape\",\"detail\":\"the result of pull_request_read in reads.pull_request is not in the shape of the official GitHub MCP server\\n  head: Invalid input: expected object, received undefined\\n  base: Invalid input: expected object, received undefined\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-mcp-shape",
+    "detail": "the result of pull_request_read in reads.pull_request is not in the shape of the official GitHub MCP server\n  head: Invalid input: expected object, received undefined\n  base: Invalid input: expected object, received undefined"
+  },
+  "isError": true
+}

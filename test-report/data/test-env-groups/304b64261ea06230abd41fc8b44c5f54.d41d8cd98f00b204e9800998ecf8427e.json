@@ -1,0 +1,1 @@
+{"id":"304b64261ea06230abd41fc8b44c5f54.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: legacy) file_validate スキーマ違反を拒否する: file_path が数値","name":"スキーマ違反を拒否する: file_path が数値","status":"passed","testResultsByEnv":{"default":"ed93e8f15b27b978e057a5bfa95f0469"}}

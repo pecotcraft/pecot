@@ -1,0 +1,1 @@
+{"id":"9106d72cfc3c1657d2fa872c875b60d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-span-text-wrapper.test.ts#no-span-text-wrapper invalid div 直下の class 付き span がテキストを包むと、報告する","name":"div 直下の class 付き span がテキストを包むと、報告する","status":"passed","testResultsByEnv":{"default":"af0668efb6f1c7dd5c195b1c6b0c1e7b"}}

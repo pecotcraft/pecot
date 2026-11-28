@@ -1,0 +1,1 @@
+{"id":"42fb5701e4e4b7b0cc50167b5a956846.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats#テキストの消失・位置の変更・画像の差し替えがある pptx では、FAIL と判定して表に出す","name":"テキストの消失・位置の変更・画像の差し替えがある pptx では、FAIL と判定して表に出す","status":"passed","testResultsByEnv":{"default":"afb13de4879c82e85452f5f70120f924"}}

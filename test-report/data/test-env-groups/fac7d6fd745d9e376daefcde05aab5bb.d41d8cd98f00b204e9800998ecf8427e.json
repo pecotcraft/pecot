@@ -1,0 +1,1 @@
+{"id":"fac7d6fd745d9e376daefcde05aab5bb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） name を省略すると、プロジェクトのルートを基準に番号を決め、起点を develop_branch にする","name":"name を省略すると、プロジェクトのルートを基準に番号を決め、起点を develop_branch にする","status":"passed","testResultsByEnv":{"default":"b01683dcd094e220631b968dfe4437be"}}

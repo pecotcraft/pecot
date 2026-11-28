@@ -1,0 +1,1 @@
+{"id":"1eb41f44e320564ecceb9885ac3e5cce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#shorthand-list の項目値 通常の項目の値に構文の文字 \",\" を含む場合も、拒否せず JSON にエスケープして実行する","name":"通常の項目の値に構文の文字 \",\" を含む場合も、拒否せず JSON にエスケープして実行する","status":"passed","testResultsByEnv":{"default":"ba9be5f2923a3fe2781d7f6e6bd4a6a5"}}

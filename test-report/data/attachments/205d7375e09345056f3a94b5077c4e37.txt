@@ -1,0 +1,1 @@
+error: PR body has no Issue reference `#N` (use `no_issue_ref: true` for a PR not tied to an Issue)

@@ -1,0 +1,1 @@
+{"id":"8f84d4d1a44f09fb9272933fb600976b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-definition.test.ts#defineTool 入力が不正な場合は、ツールの本体を実行せず、ZodError が発生する","name":"入力が不正な場合は、ツールの本体を実行せず、ZodError が発生する","status":"passed","testResultsByEnv":{"default":"ddf53ce6e5262b2ec9bf275a6b206df3"}}

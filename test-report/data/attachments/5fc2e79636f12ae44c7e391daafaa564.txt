@@ -1,0 +1,2 @@
+error: develop-aist is a protected branch
+  protected: develop-aist, main, release-v1

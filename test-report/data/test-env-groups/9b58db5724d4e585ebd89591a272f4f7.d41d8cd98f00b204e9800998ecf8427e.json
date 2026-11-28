@@ -1,0 +1,1 @@
+{"id":"9b58db5724d4e585ebd89591a272f4f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base 親 PR がマージ済みのとき、題の scope を記録のコミットから head までの差分で確かめる","name":"親 PR がマージ済みのとき、題の scope を記録のコミットから head までの差分で確かめる","status":"passed","testResultsByEnv":{"default":"54100e6b9c25337f6565b512ee70fb6a"}}

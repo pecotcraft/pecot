@@ -1,0 +1,1 @@
+{"id":"3852f03fff3112e5a52e9fe0e99348e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「slideNumber 欠落」の場合は、undefined を返す","name":"エントリが「slideNumber 欠落」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"d4b2522e43fe45ceecb93d79ed18f751"}}

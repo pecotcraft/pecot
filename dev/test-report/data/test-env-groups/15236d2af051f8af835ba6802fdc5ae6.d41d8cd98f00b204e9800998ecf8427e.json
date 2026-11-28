@@ -1,0 +1,1 @@
+{"id":"15236d2af051f8af835ba6802fdc5ae6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/text-lint.test.ts#defaultLintText 行頭が箇条書きの形でも、断片として判定するので、指摘しない","name":"行頭が箇条書きの形でも、断片として判定するので、指摘しない","status":"passed","testResultsByEnv":{"default":"22675d7af1eabd15702a975925dd517e"}}

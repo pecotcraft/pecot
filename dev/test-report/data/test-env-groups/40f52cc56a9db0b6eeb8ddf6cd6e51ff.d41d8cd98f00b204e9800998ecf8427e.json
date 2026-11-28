@@ -1,0 +1,1 @@
+{"id":"40f52cc56a9db0b6eeb8ddf6cd6e51ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/user-prompt-submit-title.test.ts#user-prompt-submit-title.sh 作業対象の Issue があるとき、題名を sessionTitle に出す","name":"作業対象の Issue があるとき、題名を sessionTitle に出す","status":"passed","testResultsByEnv":{"default":"864ed8c125557e2822d06af75678cbbb"}}

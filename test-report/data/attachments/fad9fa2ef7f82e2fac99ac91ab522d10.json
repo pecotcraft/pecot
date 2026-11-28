@@ -1,0 +1,37 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: the reason of #5 in the ## Waits for merge section differs from blocked_by"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"waits-for-merge\",\"message\":\"the reason of #5 in the ## Waits for merge section differs from blocked_by\",\"candidates\":[\"- #5: スキーマが先に要る\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[{\"issue\":\"#5\",\"wait\":\"merge\"}],\"approach\":\"wait-merge\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "waits-for-merge",
+        "message": "the reason of #5 in the ## Waits for merge section differs from blocked_by",
+        "candidates": [
+          "- #5: スキーマが先に要る"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [
+          {
+            "issue": "#5",
+            "wait": "merge"
+          }
+        ],
+        "approach": "wait-merge"
+      }
+    ]
+  }
+}

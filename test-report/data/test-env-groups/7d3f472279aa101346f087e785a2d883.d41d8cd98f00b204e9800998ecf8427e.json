@@ -1,0 +1,1 @@
+{"id":"7d3f472279aa101346f087e785a2d883.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/branch-name.test.ts#activeIssueFromBranch リモートの owner に使えない文字が含まれる場合は、undefined を返す","name":"リモートの owner に使えない文字が含まれる場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"179a0050b54ffe6cb78e02221d42cdf7"}}

@@ -1,0 +1,1 @@
+{"id":"ddea8c161afef85d045f354dc8d3ad39.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#remoteTagExists remote にタグが存在する場合は isFound が true、存在しない場合は false を返す","name":"remote にタグが存在する場合は isFound が true、存在しない場合は false を返す","status":"passed","testResultsByEnv":{"default":"02151f328deb88d07a28182203d3e167"}}

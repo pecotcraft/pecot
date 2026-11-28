@@ -1,0 +1,1 @@
+{"id":"e7cd17d8153af153d4abfb97eea1b009.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#種類を分けられない package.json があると、静的確認が落ちて相対パスを示す","name":"種類を分けられない package.json があると、静的確認が落ちて相対パスを示す","status":"passed","testResultsByEnv":{"default":"3c56928ba0e74f6b86d57f0aaaadf7f7"}}

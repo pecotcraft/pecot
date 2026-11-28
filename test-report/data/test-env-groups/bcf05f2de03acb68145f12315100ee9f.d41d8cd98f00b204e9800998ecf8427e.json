@@ -1,0 +1,1 @@
+{"id":"bcf05f2de03acb68145f12315100ee9f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 許可リスト内のオプション 許可リスト内のオプション（--quiet）を付けても、exit 10 を返す","name":"許可リスト内のオプション（--quiet）を付けても、exit 10 を返す","status":"passed","testResultsByEnv":{"default":"6dd9b09addf84d06e3cb03e705f3b388"}}

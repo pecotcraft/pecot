@@ -1,0 +1,1 @@
+{"id":"b3673f014bc35e1775c7cd3fb91e93d2.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_release_job_has_no_actions_write","name":"release の job は、actions の書き込み権限を持たない","status":"passed","testResultsByEnv":{"default":"a4930d8bcff5f42dc5bee4d2cd5ab623"}}

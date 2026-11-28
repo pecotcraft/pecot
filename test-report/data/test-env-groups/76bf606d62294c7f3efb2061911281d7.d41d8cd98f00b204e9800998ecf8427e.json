@@ -1,0 +1,1 @@
+{"id":"76bf606d62294c7f3efb2061911281d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#mergeStderr 取り込んだ標準エラー出力 \"captured\" と追加の出力 \"\" は、\"captured\" に連結する","name":"取り込んだ標準エラー出力 \"captured\" と追加の出力 \"\" は、\"captured\" に連結する","status":"passed","testResultsByEnv":{"default":"2c240344187529dadec00cb09e66cbb7"}}

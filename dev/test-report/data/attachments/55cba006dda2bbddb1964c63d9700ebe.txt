@@ -1,0 +1,1 @@
+origin/nonexistent との merge に失敗したため、key のずれの確認を飛ばす

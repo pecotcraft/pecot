@@ -1,0 +1,9 @@
+warning: target does not exist: /tmp/pecot-cli-aF3y9C/workspaces/base/demo/second.md
+count: symlinks created in /tmp/pecot-cli-aF3y9C/workspaces/wt1/demo: 1
+skipped: symlink /tmp/pecot-cli-aF3y9C/workspaces/wt1/demo/second.md (target does not exist: /tmp/pecot-cli-aF3y9C/workspaces/base/demo/second.md)
+warning: target does not exist: /tmp/pecot-cli-aF3y9C/workspaces/base/demo/second.md
+count: symlinks created in /tmp/pecot-cli-aF3y9C/workspaces/wt2/demo: 1
+skipped: symlink /tmp/pecot-cli-aF3y9C/workspaces/wt2/demo/second.md (target does not exist: /tmp/pecot-cli-aF3y9C/workspaces/base/demo/second.md)
+count: symlinks created: 2
+count: symlinks skipped: 2
+count: symlink errors: 0

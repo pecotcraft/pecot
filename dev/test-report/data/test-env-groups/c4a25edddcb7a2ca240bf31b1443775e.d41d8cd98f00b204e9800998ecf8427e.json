@@ -1,0 +1,1 @@
+{"id":"c4a25edddcb7a2ca240bf31b1443775e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/gitignore-spec.test.ts#patternToRegex 末尾のバックスラッシュ付きの空白は残し、バックスラッシュのない空白は取り除く","name":"末尾のバックスラッシュ付きの空白は残し、バックスラッシュのない空白は取り除く","status":"passed","testResultsByEnv":{"default":"b4a6a927aa67804bcb37ba42aabf65bd"}}

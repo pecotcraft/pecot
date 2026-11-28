@@ -1,0 +1,1 @@
+{"id":"664928c733bd50dc20b17b35bc221ff6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#配布ツリーの runtime_setup が実行時依存と chromium を揃えて成功する","name":"配布ツリーの runtime_setup が実行時依存と chromium を揃えて成功する","status":"passed","testResultsByEnv":{"default":"98c9a6ee332bbaafae1f23704d4681fe"}}

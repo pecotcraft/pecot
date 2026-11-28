@@ -1,0 +1,1 @@
+{"id":"682645c4de069b539bb01d44e79441a5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_task_cache#test_nx_release_test_reads_the_installed_nx_version","name":"nx-release のテストは、入っている nx の版を入力として読む","status":"passed","testResultsByEnv":{"default":"e3c63bf5443d07041e1b191fac7d150c"}}

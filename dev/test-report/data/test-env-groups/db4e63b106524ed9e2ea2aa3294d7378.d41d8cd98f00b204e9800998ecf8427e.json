@@ -1,0 +1,1 @@
+{"id":"db4e63b106524ed9e2ea2aa3294d7378.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/skeleton.test.ts#extractSkeleton frontmatter の記号の直後に本文が存在しない参照は、undefined を返す","name":"frontmatter の記号の直後に本文が存在しない参照は、undefined を返す","status":"passed","testResultsByEnv":{"default":"c09363e780907e2542df2a3122b1bd83"}}

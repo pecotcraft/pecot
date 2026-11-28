@@ -1,0 +1,1 @@
+{"id":"39649e2125f6ea468e7954bcacf520bf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#runMcpServe サーバの作成処理が失敗したときは、標準エラー出力へ報告し、終了コードを 1 にして接続を閉じる","name":"サーバの作成処理が失敗したときは、標準エラー出力へ報告し、終了コードを 1 にして接続を閉じる","status":"passed","testResultsByEnv":{"default":"5882fc92714c7699337e25f6dd13e92d"}}

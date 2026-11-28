@@ -1,0 +1,1 @@
+{"id":"99bc033de003472d4721b7a9f4e80221.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#ensureAwscli resetAwscliProbe を呼んだ後は、再度 --version を実行する","name":"resetAwscliProbe を呼んだ後は、再度 --version を実行する","status":"passed","testResultsByEnv":{"default":"79a470cfd94b34cb78a806f0363c4846"}}

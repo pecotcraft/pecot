@@ -1,0 +1,1 @@
+{"id":"52bebbc5631154b59e21332cba094ad8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#calcViewbox ルート要素がない XML の場合は、空文字を返す","name":"ルート要素がない XML の場合は、空文字を返す","status":"passed","testResultsByEnv":{"default":"45f3a2f1cc0f6d5fe3c837daf10b6e58"}}

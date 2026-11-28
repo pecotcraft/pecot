@@ -1,0 +1,1 @@
+{"id":"6aece5ac5a6d2160ee220c97290c6d28.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#アクティブ設定 アクティブな設定を指定すると、.active に相対パスを書き込む","name":"アクティブな設定を指定すると、.active に相対パスを書き込む","status":"passed","testResultsByEnv":{"default":"02e9b03de0fb91ee92eaa7b76ed7a70c"}}

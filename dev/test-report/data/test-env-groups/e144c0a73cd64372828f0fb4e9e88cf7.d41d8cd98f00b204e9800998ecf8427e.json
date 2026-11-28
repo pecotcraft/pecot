@@ -1,0 +1,1 @@
+{"id":"e144c0a73cd64372828f0fb4e9e88cf7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#partitionStepsBySlide スライド順の連続した区間に分け、グループごとのステップ数をほぼ均等にする","name":"スライド順の連続した区間に分け、グループごとのステップ数をほぼ均等にする","status":"passed","testResultsByEnv":{"default":"ffed65e4a8f68667cb73fcfc1c7c367b"}}

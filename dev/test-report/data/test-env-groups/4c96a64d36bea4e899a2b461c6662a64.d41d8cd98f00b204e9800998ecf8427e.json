@@ -1,0 +1,1 @@
+{"id":"4c96a64d36bea4e899a2b461c6662a64.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-gate.test.ts#auto gate issues・workflow_run 以外のイベントで起こされると、何も読まずに入力の誤りで止まる","name":"issues・workflow_run 以外のイベントで起こされると、何も読まずに入力の誤りで止まる","status":"passed","testResultsByEnv":{"default":"f13486467983175ee3fb9b69b959bf09"}}

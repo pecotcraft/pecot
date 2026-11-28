@@ -1,0 +1,1 @@
+{"id":"fc92ab44dc2f8edb626814a2e3e36fec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-gate.test.ts#auto gate workflow_run のイベント CI が通った後に人が push した ブランチの CI なら、何も書かず、proceed を偽にする","name":"CI が通った後に人が push した ブランチの CI なら、何も書かず、proceed を偽にする","status":"passed","testResultsByEnv":{"default":"caf1919143f4cc508016b02e6c3a8142"}}

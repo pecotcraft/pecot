@@ -1,0 +1,1 @@
+{"id":"97ba91a62daea7d929ef96c38c027151.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/tests/version.test.ts#loadVersionFromPluginJson version のキーを持たない JSON を渡すと、undefined を返す","name":"version のキーを持たない JSON を渡すと、undefined を返す","status":"passed","testResultsByEnv":{"default":"dc626b0191d2627dc2df85a9d5383d53"}}

@@ -1,0 +1,1 @@
+{"id":"89ef72f7fd3cc44479db2efd24ee9a5b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_deploy_publishes_pages_store","name":"公開の job は、pages-store を checkout して Pages に公開する","status":"passed","testResultsByEnv":{"default":"81e85f5cf2e55ed60a2bb8c5536224e9"}}

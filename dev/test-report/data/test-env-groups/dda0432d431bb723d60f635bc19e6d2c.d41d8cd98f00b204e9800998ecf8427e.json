@@ -1,0 +1,1 @@
+{"id":"dda0432d431bb723d60f635bc19e6d2c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#loadConfig / saveConfig JSON が不正な場合は、WorktreeConfigError を送出する","name":"JSON が不正な場合は、WorktreeConfigError を送出する","status":"passed","testResultsByEnv":{"default":"d1d967efd4ae3cc3bf0812e25bf886f4"}}

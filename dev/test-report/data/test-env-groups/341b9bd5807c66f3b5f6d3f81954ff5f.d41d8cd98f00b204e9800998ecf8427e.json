@@ -1,0 +1,1 @@
+{"id":"341b9bd5807c66f3b5f6d3f81954ff5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/paths.test.ts#projectRoot cwd を指定しない場合は、呼び出し元の作業ディレクトリを基準にする","name":"cwd を指定しない場合は、呼び出し元の作業ディレクトリを基準にする","status":"passed","testResultsByEnv":{"default":"f8922d9d8c750609b172801d03cd8153"}}

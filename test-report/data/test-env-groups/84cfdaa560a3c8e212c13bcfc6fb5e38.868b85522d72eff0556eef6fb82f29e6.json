@@ -1,0 +1,1 @@
+{"id":"84cfdaa560a3c8e212c13bcfc6fb5e38.868b85522d72eff0556eef6fb82f29e6","fullName":".githooks.tests.test_review_workflow_copy#test_no_step_runs_the_npm_package","name":".github/workflows/pecot-review.yml は、npm のパッケージを呼ぶ step を持たない","status":"passed","testResultsByEnv":{"default":"aa2a820f0d9436bae1767cdbc3155fd1"}}

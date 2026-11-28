@@ -1,0 +1,1 @@
+{"id":"dc5d235d1e1ac8226fe03834821e52e9.ddc2313a24cf26ff60ee5b0907425f1a","fullName":".githooks.tests.test_pre_commit_config_wiring#test_plugin_validate_runs_when_definitions_change","name":"plugins/pecot-workflow/hooks/hooks.json を変更すると、plugin-validate が起動する","status":"passed","testResultsByEnv":{"default":"68c0d18eb46240ad966a99b4a9e1b6b6"}}

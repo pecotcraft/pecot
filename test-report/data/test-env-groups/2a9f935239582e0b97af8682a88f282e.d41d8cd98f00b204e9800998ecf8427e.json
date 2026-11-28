@@ -1,0 +1,1 @@
+{"id":"2a9f935239582e0b97af8682a88f282e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueSlim Issue が存在しない場合は、Slim の取得で GitHubNotFoundError が発生する","name":"Issue が存在しない場合は、Slim の取得で GitHubNotFoundError が発生する","status":"passed","testResultsByEnv":{"default":"de0851116ebad94c9dd3fcd19d24502e"}}

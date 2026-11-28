@@ -1,0 +1,1 @@
+{"id":"41ba4406d973d1f93856d77973b6a929.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/fs-sync.test.ts#removeTemplateEntries 名前そのものがシンボリックリンクなら、リンクだけを削除し、リンク先は削除しない","name":"名前そのものがシンボリックリンクなら、リンクだけを削除し、リンク先は削除しない","status":"passed","testResultsByEnv":{"default":"5c9e1e01b535835c9bcb490f1802952a"}}

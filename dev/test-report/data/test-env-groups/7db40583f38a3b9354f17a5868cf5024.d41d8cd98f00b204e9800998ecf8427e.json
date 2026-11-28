@@ -1,0 +1,1 @@
+{"id":"7db40583f38a3b9354f17a5868cf5024.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add 作らなかったリンクか作れなかったリンクがあると、その数を count の行で標準エラーに出す","name":"作らなかったリンクか作れなかったリンクがあると、その数を count の行で標準エラーに出す","status":"passed","testResultsByEnv":{"default":"63f3ea46754e5253fc5e02d04453c1c5"}}

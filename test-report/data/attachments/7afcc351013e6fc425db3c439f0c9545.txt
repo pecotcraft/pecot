@@ -1,0 +1,4 @@
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_grandchild_does_not_write0/outer/sample.test.sh
+PASS: 子
+
+PASS: 1 / FAIL: 0 / SKIP: 0

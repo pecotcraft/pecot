@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_lambda_get_function_configuration failed (auth-missing). Not authenticated. Run aws_sso_login or specify a profile"
+    },
+    {
+      "type": "text",
+      "text": "{\"log\":\"\\naws: [ERROR]: An error occurred (NoCredentials): Unable to locate credentials. You can configure credentials by running \\\"aws login\\\".\\n\",\"kind\":\"auth-missing\",\"detail\":\"aws_lambda_get_function_configuration failed (auth-missing). Not authenticated. Run aws_sso_login or specify a profile\"}"
+    }
+  ],
+  "structuredContent": {
+    "log": "\naws: [ERROR]: An error occurred (NoCredentials): Unable to locate credentials. You can configure credentials by running \"aws login\".\n",
+    "kind": "auth-missing",
+    "detail": "aws_lambda_get_function_configuration failed (auth-missing). Not authenticated. Run aws_sso_login or specify a profile"
+  },
+  "isError": true
+}

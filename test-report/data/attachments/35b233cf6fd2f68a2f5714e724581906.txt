@@ -1,0 +1,1 @@
+["pecot","pecot-visual","githooks","nx-release","pecot-workflow"]

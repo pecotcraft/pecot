@@ -1,0 +1,1 @@
+{"id":"0c7c24a333fec065adb7e5a20250dd7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#setIssueField 設定に存在しないオプションを指定した場合は、何も送信せず false を返す","name":"設定に存在しないオプションを指定した場合は、何も送信せず false を返す","status":"passed","testResultsByEnv":{"default":"4dfd1b2c48860b3e1286be095dca398f"}}

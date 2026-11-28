@@ -1,0 +1,1 @@
+{"id":"3bad5228713c5cf0d962143d608daa2e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/template-store.test.ts#pr/create.md の実体と検証器の結合 抽出した見出しがすべて含まれる場合だけ検証を通り、不足している見出しがあればその見出しを返す","name":"抽出した見出しがすべて含まれる場合だけ検証を通り、不足している見出しがあればその見出しを返す","status":"passed","testResultsByEnv":{"default":"a673ce7275ac598fc4b22567242b3009"}}

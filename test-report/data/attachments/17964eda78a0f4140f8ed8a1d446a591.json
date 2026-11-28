@@ -1,0 +1,6 @@
+[
+  "interface-spec:install",
+  "interface-spec:test-site",
+  "interface-spec:test-unit",
+  "pecot:install"
+]

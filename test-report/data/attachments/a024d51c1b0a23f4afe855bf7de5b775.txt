@@ -1,0 +1,113 @@
+
+nx exit code: 1
+... (nx 要約から失敗 project を取れず。ログ末尾 80 行と要約ブロック) ...
+ NX   Running target test for 2 projects failed
+
+Tasks not run because their dependencies failed or --nx-bail=true:
+
+- lane-three:test-unit
+
+SUMMARY_MARKER_LINE: summary without failed projects
+lane-one: TRAILING1
+lane-one: TRAILING2
+lane-one: TRAILING3
+lane-one: TRAILING4
+lane-one: TRAILING5
+lane-one: TRAILING6
+lane-one: TRAILING7
+lane-one: TRAILING8
+lane-one: TRAILING9
+lane-one: TRAILING10
+lane-one: TRAILING11
+lane-one: TRAILING12
+lane-one: TRAILING13
+lane-one: TRAILING14
+lane-one: TRAILING15
+lane-one: TRAILING16
+lane-one: TRAILING17
+lane-one: TRAILING18
+lane-one: TRAILING19
+lane-one: TRAILING20
+lane-one: TRAILING21
+lane-one: TRAILING22
+lane-one: TRAILING23
+lane-one: TRAILING24
+lane-one: TRAILING25
+lane-one: TRAILING26
+lane-one: TRAILING27
+lane-one: TRAILING28
+lane-one: TRAILING29
+lane-one: TRAILING30
+lane-one: TRAILING31
+lane-one: TRAILING32
+lane-one: TRAILING33
+lane-one: TRAILING34
+lane-one: TRAILING35
+lane-one: TRAILING36
+lane-one: TRAILING37
+lane-one: TRAILING38
+lane-one: TRAILING39
+lane-one: TRAILING40
+lane-one: TRAILING41
+lane-one: TRAILING42
+lane-one: TRAILING43
+lane-one: TRAILING44
+lane-one: TRAILING45
+lane-one: TRAILING46
+lane-one: TRAILING47
+lane-one: TRAILING48
+lane-one: TRAILING49
+lane-one: TRAILING50
+lane-one: TRAILING51
+lane-one: TRAILING52
+lane-one: TRAILING53
+lane-one: TRAILING54
+lane-one: TRAILING55
+lane-one: TRAILING56
+lane-one: TRAILING57
+lane-one: TRAILING58
+lane-one: TRAILING59
+lane-one: TRAILING60
+lane-one: TRAILING61
+lane-one: TRAILING62
+lane-one: TRAILING63
+lane-one: TRAILING64
+lane-one: TRAILING65
+lane-one: TRAILING66
+lane-one: TRAILING67
+lane-one: TRAILING68
+lane-one: TRAILING69
+lane-one: TRAILING70
+lane-one: TRAILING71
+lane-one: TRAILING72
+lane-one: TRAILING73
+lane-one: TRAILING74
+lane-one: TRAILING75
+lane-one: TRAILING76
+lane-one: TRAILING77
+lane-one: TRAILING78
+lane-one: TRAILING79
+lane-one: TRAILING80
+lane-one: TRAILING81
+lane-one: TRAILING82
+lane-one: TRAILING83
+lane-one: TRAILING84
+lane-one: TRAILING85
+lane-one: TRAILING86
+lane-one: TRAILING87
+lane-one: TRAILING88
+lane-one: TRAILING89
+lane-one: TRAILING90
+lane-one: TRAILING91
+lane-one: TRAILING92
+lane-one: TRAILING93
+lane-one: TRAILING94
+lane-one: TRAILING95
+lane-one: TRAILING96
+lane-one: TRAILING97
+lane-one: TRAILING98
+lane-one: TRAILING99
+lane-one: TRAILING100
+
+全出力: /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_failure_fallback_keeps_su0/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log
+進行確認: tail -f /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_failure_fallback_keeps_su0/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log

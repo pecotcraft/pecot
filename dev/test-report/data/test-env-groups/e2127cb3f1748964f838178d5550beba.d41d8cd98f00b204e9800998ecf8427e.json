@@ -1,0 +1,1 @@
+{"id":"e2127cb3f1748964f838178d5550beba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 注記図形の導出 画像が原寸で表示される場合は、相対座標を原寸のピクセル数に掛けて位置を求める","name":"画像が原寸で表示される場合は、相対座標を原寸のピクセル数に掛けて位置を求める","status":"passed","testResultsByEnv":{"default":"330074e63a3adf7e99a61b6bb2adb491"}}

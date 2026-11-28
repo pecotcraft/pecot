@@ -1,0 +1,1 @@
+error: repos/pecotcraft/pecot-sandbox/rulesets/27130266 を読めません（gh が失敗しました）

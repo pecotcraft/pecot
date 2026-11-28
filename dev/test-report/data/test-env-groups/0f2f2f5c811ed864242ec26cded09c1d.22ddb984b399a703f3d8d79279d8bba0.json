@@ -1,0 +1,1 @@
+{"id":"0f2f2f5c811ed864242ec26cded09c1d.22ddb984b399a703f3d8d79279d8bba0","fullName":".githooks.tests.test_report_lanes#test_plugin_only_for_release_units","name":"項目 nx-release:test-unit は、リリース版の単位の project にだけ、project 名と同じ plugin を持つ","status":"passed","testResultsByEnv":{"default":"d3722c6119c2b1335f4ea591e93aa4b4"}}

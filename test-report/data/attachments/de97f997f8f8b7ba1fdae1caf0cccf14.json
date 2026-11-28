@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the base branch of PR #31 does not match release_branch\n  base: main\n  release_branch: release"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"pr-state\",\"detail\":\"the base branch of PR #31 does not match release_branch\\n  base: main\\n  release_branch: release\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "pr-state",
+    "detail": "the base branch of PR #31 does not match release_branch\n  base: main\n  release_branch: release"
+  },
+  "isError": true
+}

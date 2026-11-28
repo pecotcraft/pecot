@@ -1,0 +1,1 @@
+reason=main_sha が base の祖先でない

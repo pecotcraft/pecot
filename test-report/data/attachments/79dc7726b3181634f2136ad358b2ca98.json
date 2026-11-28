@@ -1,0 +1,6 @@
+[
+  "githooks:test-checks",
+  "pecot:install",
+  "text-rules:build",
+  "text-rules:install"
+]

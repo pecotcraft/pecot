@@ -1,0 +1,37 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "1 item(s) of workflow board-sync are missing or outdated"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-setting-missing\",\"detail\":\"1 item(s) of workflow board-sync are missing or outdated\",\"repository\":\"acme/demo\",\"items\":[{\"name\":\".github/workflows/pecot-board-sync.yml\",\"state\":\"ok\"},{\"name\":\"workflow template board-sync\",\"state\":\"ok\"},{\"name\":\".github/workflows/pecot-board-sync.yml calls the pecot actions, not npx @pecot/workflow-mcp\",\"state\":\"ok\"},{\"name\":\"variable PECOT_BOARD_SYNC_APP_CLIENT_ID and secret PECOT_BOARD_SYNC_APP_PRIVATE_KEY, or variable PECOT_BOARD_SYNC_USE_PAT and secret PECOT_BOARD_SYNC_TOKEN\",\"state\":\"missing\"}],\"ready\":false}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-setting-missing",
+    "detail": "1 item(s) of workflow board-sync are missing or outdated",
+    "repository": "acme/demo",
+    "items": [
+      {
+        "name": ".github/workflows/pecot-board-sync.yml",
+        "state": "ok"
+      },
+      {
+        "name": "workflow template board-sync",
+        "state": "ok"
+      },
+      {
+        "name": ".github/workflows/pecot-board-sync.yml calls the pecot actions, not npx @pecot/workflow-mcp",
+        "state": "ok"
+      },
+      {
+        "name": "variable PECOT_BOARD_SYNC_APP_CLIENT_ID and secret PECOT_BOARD_SYNC_APP_PRIVATE_KEY, or variable PECOT_BOARD_SYNC_USE_PAT and secret PECOT_BOARD_SYNC_TOKEN",
+        "state": "missing"
+      }
+    ],
+    "ready": false
+  },
+  "isError": true
+}

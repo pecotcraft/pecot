@@ -1,0 +1,1 @@
+{"id":"f257249e75d9e7571fc547cb9bfa1b1c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#planLink リンク先がリンク切れのシンボリックリンクの場合は、skip-dangling を返す","name":"リンク先がリンク切れのシンボリックリンクの場合は、skip-dangling を返す","status":"passed","testResultsByEnv":{"default":"4122cda060f9c820280a53f152a70928"}}

@@ -1,0 +1,1 @@
+{"id":"cfa052e01542344a9d1cffa950dad6b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-sso.test.ts#SSO の 2 段構成 時間切れになったログインの状態確認は、timeout と再開始の案内を返す","name":"時間切れになったログインの状態確認は、timeout と再開始の案内を返す","status":"passed","testResultsByEnv":{"default":"4b3c2b192603efdf50acf2a03e734a47"}}

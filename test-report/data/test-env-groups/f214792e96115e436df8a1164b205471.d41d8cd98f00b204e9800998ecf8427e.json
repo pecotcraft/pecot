@@ -1,0 +1,1 @@
+{"id":"f214792e96115e436df8a1164b205471.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/diff.test.ts#diffGenerated 入力のプロパティの追加・default の変更・削除があると、それぞれの差の行を返す","name":"入力のプロパティの追加・default の変更・削除があると、それぞれの差の行を返す","status":"passed","testResultsByEnv":{"default":"988f9f4aaf465115ec30d9465274b79c"}}

@@ -1,0 +1,1 @@
+{"id":"c080e75c99e1eb93c30e57feb199b259.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#--out-dir が消してはいけない場所を指すと、消さずに拒否する","name":"--out-dir が消してはいけない場所を指すと、消さずに拒否する","status":"passed","testResultsByEnv":{"default":"fe3834ff7dd1871869de7203e7b75853"}}

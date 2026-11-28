@@ -1,0 +1,1 @@
+{"id":"ecc95eab51c31f03e7c9a62e2f2e532d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/paths.test.ts#projectRoot git の外で環境変数も存在しない場合は、ProjectRootNotFoundError を発生させる","name":"git の外で環境変数も存在しない場合は、ProjectRootNotFoundError を発生させる","status":"passed","testResultsByEnv":{"default":"ff9494b61c7e66c74b958b962d723224"}}

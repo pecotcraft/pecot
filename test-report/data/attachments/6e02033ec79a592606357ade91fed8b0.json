@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_lambda_get_function_configuration: function_name: Invalid input: expected string, received undefined"
+    }
+  ],
+  "isError": true
+}

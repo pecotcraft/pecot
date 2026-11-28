@@ -1,0 +1,1 @@
+{"id":"f088e33b246f3e6a06dc357f1e736646.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#validateWhitespaceWrap 和文を含み、AWS の図形で折り返し指定のないセルにも、警告を 1 件返す","name":"和文を含み、AWS の図形で折り返し指定のないセルにも、警告を 1 件返す","status":"passed","testResultsByEnv":{"default":"3eecb9fe49bccd8d6c22f22e8bc8e292"}}

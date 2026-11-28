@@ -1,0 +1,1 @@
+{"id":"a36424eb623d046db5762429bfe28874.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 止まる場合 release_branch を設定していないと、設定を案内して repo-setting-missing の失敗を返す","name":"release_branch を設定していないと、設定を案内して repo-setting-missing の失敗を返す","status":"passed","testResultsByEnv":{"default":"5b33a1fcac64d1631b9d25a174817027"}}

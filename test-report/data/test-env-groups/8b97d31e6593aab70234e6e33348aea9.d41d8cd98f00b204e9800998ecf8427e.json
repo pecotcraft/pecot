@@ -1,0 +1,1 @@
+{"id":"8b97d31e6593aab70234e6e33348aea9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の update-type 依存パッケージの名前に関係なく、minor の更新には理由を追加しない","name":"依存パッケージの名前に関係なく、minor の更新には理由を追加しない","status":"passed","testResultsByEnv":{"default":"535f08e8ea6709ab3384930e7ef49c96"}}

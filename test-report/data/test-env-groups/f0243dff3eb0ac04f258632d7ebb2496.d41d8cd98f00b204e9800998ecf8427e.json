@@ -1,0 +1,1 @@
+{"id":"f0243dff3eb0ac04f258632d7ebb2496.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/github-ops/project.test.ts#github ops project-fields に 単一選択でない欄の set-options を渡すと、書き込まずに ok: false を返す","name":"project-fields に 単一選択でない欄の set-options を渡すと、書き込まずに ok: false を返す","status":"passed","testResultsByEnv":{"default":"00367717471e4211ae7d50014234c451"}}

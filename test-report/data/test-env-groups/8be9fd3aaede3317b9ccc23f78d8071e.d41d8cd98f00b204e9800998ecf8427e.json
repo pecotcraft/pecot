@@ -1,0 +1,1 @@
+{"id":"8be9fd3aaede3317b9ccc23f78d8071e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check もし open の code scanning alert があるなら、終了コード 1 で終わる","name":"もし open の code scanning alert があるなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"57421813f22f79fd8c1443743949dba3"}}

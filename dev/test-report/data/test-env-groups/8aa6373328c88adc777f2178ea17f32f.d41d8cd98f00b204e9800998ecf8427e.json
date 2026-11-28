@@ -1,0 +1,1 @@
+{"id":"8aa6373328c88adc777f2178ea17f32f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/hook-input.test.ts#hook-input.sh 入力が不正または空（空の配列）のとき、すべて空の値になる","name":"入力が不正または空（空の配列）のとき、すべて空の値になる","status":"passed","testResultsByEnv":{"default":"f1c1a2c080a9dcf886e56d0a49f064e3"}}

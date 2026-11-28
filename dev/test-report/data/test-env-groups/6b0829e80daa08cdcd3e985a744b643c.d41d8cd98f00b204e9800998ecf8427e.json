@@ -1,0 +1,1 @@
+{"id":"6b0829e80daa08cdcd3e985a744b643c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-sync.test.ts#runSlideSyncDirectly (smoke) 同期を 2 回続けて実行しても、同じ項目が同じ向きにリンクされる","name":"同期を 2 回続けて実行しても、同じ項目が同じ向きにリンクされる","status":"passed","testResultsByEnv":{"default":"5316b5b930996d4847ff0c5a6449ddc1"}}

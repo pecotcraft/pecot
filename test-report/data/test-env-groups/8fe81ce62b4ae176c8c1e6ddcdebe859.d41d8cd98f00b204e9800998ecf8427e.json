@@ -1,0 +1,1 @@
+{"id":"8fe81ce62b4ae176c8c1e6ddcdebe859.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_keeps_hand_written_files","name":"手書きのファイルは、文章の検証から除外しない","status":"passed","testResultsByEnv":{"default":"6fd38ddcd380df79a942483363a1e788"}}

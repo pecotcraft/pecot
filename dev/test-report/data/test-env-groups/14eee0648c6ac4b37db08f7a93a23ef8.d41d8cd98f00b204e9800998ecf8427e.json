@@ -1,0 +1,1 @@
+{"id":"14eee0648c6ac4b37db08f7a93a23ef8.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/session-start.bats#hooks-config で追跡の案内を無効にすると、未追跡のリポでも案内を出さない","name":"hooks-config で追跡の案内を無効にすると、未追跡のリポでも案内を出さない","status":"passed","testResultsByEnv":{"default":"5ca10b1a48254fd01355d613490e4947"}}

@@ -1,0 +1,1 @@
+{"id":"bb8dceb0b692a47b9871bf86ce3e26d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites connection の取りこぼし 言及の件数が多くても、タイムラインを読み取らないので ok にする","name":"言及の件数が多くても、タイムラインを読み取らないので ok にする","status":"passed","testResultsByEnv":{"default":"9d638f706c3c10c60d16ad91b693859d"}}

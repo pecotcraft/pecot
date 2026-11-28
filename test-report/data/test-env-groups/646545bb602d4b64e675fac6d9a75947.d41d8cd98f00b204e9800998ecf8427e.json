@@ -1,0 +1,1 @@
+{"id":"646545bb602d4b64e675fac6d9a75947.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — 書式が出力まで届く レイアウトが返したすべてのセルが、sheet1.xml に過不足なく出力される","name":"レイアウトが返したすべてのセルが、sheet1.xml に過不足なく出力される","status":"passed","testResultsByEnv":{"default":"b16cf49ecef98dfe9b7129ebaa814f04"}}

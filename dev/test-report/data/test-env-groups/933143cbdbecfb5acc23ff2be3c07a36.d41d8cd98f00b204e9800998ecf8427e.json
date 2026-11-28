@@ -1,0 +1,1 @@
+{"id":"933143cbdbecfb5acc23ff2be3c07a36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slides-title.test.ts#sanitizeFilename 長い日本語の title は、UTF-8 で 250 バイト以内になるよう切り詰める","name":"長い日本語の title は、UTF-8 で 250 バイト以内になるよう切り詰める","status":"passed","testResultsByEnv":{"default":"d02e5f11990f023cfe87c436ac4f2b84"}}

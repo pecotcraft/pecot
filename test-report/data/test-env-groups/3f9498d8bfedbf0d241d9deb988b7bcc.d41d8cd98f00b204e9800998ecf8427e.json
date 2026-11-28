@@ -1,0 +1,1 @@
+{"id":"3f9498d8bfedbf0d241d9deb988b7bcc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/mcp-cancel.test.ts#トークンの無い pr_show が gh auth token を待つ間、ping に答え、取り消すと gh を止める","name":"トークンの無い pr_show が gh auth token を待つ間、ping に答え、取り消すと gh を止める","status":"passed","testResultsByEnv":{"default":"9dbd08190cefd306d0545314f7f4c83f"}}

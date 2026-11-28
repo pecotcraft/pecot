@@ -1,0 +1,1 @@
+{"id":"6ee0f537971b037c0619a422b003394b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board.test.ts#board_show pecot-lane json を付けて打つと、lanes を JSON にも入れる","name":"json を付けて打つと、lanes を JSON にも入れる","status":"passed","testResultsByEnv":{"default":"366e39472babcefaf231435e876a96c4"}}

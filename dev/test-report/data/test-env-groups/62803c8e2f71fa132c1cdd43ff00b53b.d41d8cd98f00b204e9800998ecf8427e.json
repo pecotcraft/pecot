@@ -1,0 +1,1 @@
+{"id":"62803c8e2f71fa132c1cdd43ff00b53b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/merge.test.ts#mergePptxFiles slide1.xml と rels がなく、基本の構造だけの入力の場合は、スライドを複製しない","name":"slide1.xml と rels がなく、基本の構造だけの入力の場合は、スライドを複製しない","status":"passed","testResultsByEnv":{"default":"5b715251d92e93b7e78dd9d58888add9"}}

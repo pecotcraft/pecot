@@ -1,0 +1,1 @@
+{"id":"7047ba1f8c031c68a462b12bb9af534f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_run_cmd_nx_failure_before_push_skips_land","name":"push の前に nx が失敗すると、`runCmd` は main に反映しない","status":"passed","testResultsByEnv":{"default":"133807e35a5777d739361e16518ee235"}}

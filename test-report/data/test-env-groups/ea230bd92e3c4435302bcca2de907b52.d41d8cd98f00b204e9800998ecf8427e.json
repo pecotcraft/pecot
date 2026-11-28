@@ -1,0 +1,1 @@
+{"id":"ea230bd92e3c4435302bcca2de907b52.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge PR の参照を渡して打つと、その PR を通常のマージ（マージコミット）でマージする","name":"PR の参照を渡して打つと、その PR を通常のマージ（マージコミット）でマージする","status":"passed","testResultsByEnv":{"default":"e5bf663c47c1ac6eb8ba2666d78c1bfc"}}

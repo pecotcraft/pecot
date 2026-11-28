@@ -1,0 +1,1 @@
+{"id":"e6ed8448fa4c2b7428c74b1b632e4b99.508cb2faf77b8258c7302195fb32cd75","fullName":".githooks.tests.test_pre_commit_config_wiring#test_nx_env_inputs_skips_unrelated_paths","name":"plugins/pecot-visual/CHANGELOG.md を変更しても、nx-env-inputs は起動しない","status":"passed","testResultsByEnv":{"default":"6ec9a01e91487d12a72e5a402e6e3d15"}}

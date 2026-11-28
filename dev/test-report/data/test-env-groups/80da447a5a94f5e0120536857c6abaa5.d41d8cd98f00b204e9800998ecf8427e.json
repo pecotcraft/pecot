@@ -1,0 +1,1 @@
+{"id":"80da447a5a94f5e0120536857c6abaa5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#hasFlag 状態のディレクトリが存在しない場合でも、false を返す","name":"状態のディレクトリが存在しない場合でも、false を返す","status":"passed","testResultsByEnv":{"default":"432f62daeacca3de3141f293eda1cab5"}}

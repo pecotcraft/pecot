@@ -1,0 +1,1 @@
+{"id":"b5144e96281179bd47b9eb4a87fb0b9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main 違反のない .md ファイルを渡すと、何も出力せず、終了コード 0 を返す","name":"違反のない .md ファイルを渡すと、何も出力せず、終了コード 0 を返す","status":"passed","testResultsByEnv":{"default":"1ecf560b813849d814545fc28b689524"}}

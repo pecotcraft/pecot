@@ -1,0 +1,1 @@
+{"id":"00c79a1a2facdc1db34c05212c2f644e.39552c356bd2fb8357732cd4adb87927","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_merge_group_head_ref_forms","name":"merge_group の HEAD_REF の接頭辞が「refs/heads/」のとき、キューの PR の artifact を選ぶ","status":"passed","testResultsByEnv":{"default":"00a9f889aad2a36e860d51b8d62f8c88"}}

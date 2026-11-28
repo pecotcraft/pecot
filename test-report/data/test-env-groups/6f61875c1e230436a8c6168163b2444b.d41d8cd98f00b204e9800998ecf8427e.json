@@ -1,0 +1,1 @@
+{"id":"6f61875c1e230436a8c6168163b2444b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#進行の欄の判定 現在の名前か旧い名前のフィールドが存在する場合だけ、ワークフローのフィールドが存在すると判定する","name":"現在の名前か旧い名前のフィールドが存在する場合だけ、ワークフローのフィールドが存在すると判定する","status":"passed","testResultsByEnv":{"default":"53fb1926fefe70368ec4087fb9856230"}}

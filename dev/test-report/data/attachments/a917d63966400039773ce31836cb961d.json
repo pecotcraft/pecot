@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "params.body: body must be the release notes of 0.2.0 (see candidates)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"params.body\",\"code\":\"body-mismatch\",\"message\":\"body must be the release notes of 0.2.0 (see candidates)\",\"candidates\":[\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"]}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "params.body",
+        "code": "body-mismatch",
+        "message": "body must be the release notes of 0.2.0 (see candidates)",
+        "candidates": [
+          "### 追加\n\n- 新機能 A\n- 新機能 B"
+        ]
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  }
+}

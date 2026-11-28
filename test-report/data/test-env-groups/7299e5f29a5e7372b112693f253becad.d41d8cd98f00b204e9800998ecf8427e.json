@@ -1,0 +1,1 @@
+{"id":"7299e5f29a5e7372b112693f253becad.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_report_downloads_all_results_into_the_repo_root","name":"report の job は、すべてのテスト結果をリポジトリのルートにダウンロードする","status":"passed","testResultsByEnv":{"default":"0d807c5f2056cae11d9a3544d8e6e94d"}}

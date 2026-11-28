@@ -1,0 +1,1 @@
+{"id":"c807a3d8d25de60b006b560af1bf3f7f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_summary_preflight_failure","name":"preflight が失敗したとき、サマリーは失敗を告げ、preflight のログを details に載せる","status":"passed","testResultsByEnv":{"default":"d6d9808282d1552af080fd2150d11ae9"}}

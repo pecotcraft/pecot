@@ -1,0 +1,1 @@
+{"id":"9d2b58fcdf8de9ddbf86eab3f0a295cb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 スコープを持たないホストは、案内のスコープの行が空行になる","name":"スコープを持たないホストは、案内のスコープの行が空行になる","status":"passed","testResultsByEnv":{"default":"2b5a4d009538c703771a46ccb85cf340"}}

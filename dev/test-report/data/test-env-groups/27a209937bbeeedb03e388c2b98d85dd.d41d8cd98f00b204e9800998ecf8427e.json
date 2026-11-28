@@ -1,0 +1,1 @@
+{"id":"27a209937bbeeedb03e388c2b98d85dd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest manifest が「JSON オブジェクトでない（配列）」の場合は、undefined を返す","name":"manifest が「JSON オブジェクトでない（配列）」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"968d39e86d1c02f1e20661b65b3f7b06"}}

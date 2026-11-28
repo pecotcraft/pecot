@@ -1,0 +1,1 @@
+{"id":"fdeb3ddb41072102372d097e4b36a913.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の札 Needs Attention を自動処理が書いた場合は、Todo に戻さない","name":"Needs Attention を自動処理が書いた場合は、Todo に戻さない","status":"passed","testResultsByEnv":{"default":"b5dd9a17f51f988c3c8abf998c550d6f"}}

@@ -1,0 +1,1 @@
+{"id":"a32a6a77de5b82066a7cb7c9eb580f9d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine serialize の出力は、XML 宣言と standalone=\"yes\" から始まる","name":"serialize の出力は、XML 宣言と standalone=\"yes\" から始まる","status":"passed","testResultsByEnv":{"default":"f8adf5e260b21bb5a40b79f283e539b5"}}

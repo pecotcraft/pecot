@@ -1,0 +1,1 @@
+{"id":"0500cbc90aa5652f06d290301ace3060.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 閉じていないリテラルやコメントを含むクエリは、理由を unterminated として拒否する","name":"閉じていないリテラルやコメントを含むクエリは、理由を unterminated として拒否する","status":"passed","testResultsByEnv":{"default":"8f144233a3e1714d335002119cfc1660"}}

@@ -1,0 +1,1 @@
+{"id":"a869df307eb0646be5035312013abf43.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#fixtures 名前が分からない環境変数の読み取りに interface-env のコメントが存在しないと、検証エラーにする","name":"名前が分からない環境変数の読み取りに interface-env のコメントが存在しないと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"2f6e5e0af63e52d444c9577011581963"}}

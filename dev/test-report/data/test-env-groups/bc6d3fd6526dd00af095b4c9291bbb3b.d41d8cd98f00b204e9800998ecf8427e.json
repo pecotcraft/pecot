@@ -1,0 +1,1 @@
+{"id":"bc6d3fd6526dd00af095b4c9291bbb3b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 本文と題の欠け create に本文を渡さないと、body の required の problem にする","name":"create に本文を渡さないと、body の required の problem にする","status":"passed","testResultsByEnv":{"default":"afd55b714d3ade3bb7d6e1684a509c77"}}

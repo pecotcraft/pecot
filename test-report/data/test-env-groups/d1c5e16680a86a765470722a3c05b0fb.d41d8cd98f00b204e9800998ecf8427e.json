@@ -1,0 +1,1 @@
+{"id":"d1c5e16680a86a765470722a3c05b0fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#--dev は配布ツリーに high があっても exit 0","name":"--dev は配布ツリーに high があっても exit 0","status":"passed","testResultsByEnv":{"default":"99ca0d585354fdcbbc6e24aead14145d"}}

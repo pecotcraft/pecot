@@ -1,0 +1,1 @@
+{"id":"1cee78add5ad9e414a131e9a737051ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge state が MERGED なら、スタックを読まず要求も送らずに error の行を出し、終了コード 2 を返す","name":"state が MERGED なら、スタックを読まず要求も送らずに error の行を出し、終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"7c09b2565e20801442339c25e8f9d364"}}

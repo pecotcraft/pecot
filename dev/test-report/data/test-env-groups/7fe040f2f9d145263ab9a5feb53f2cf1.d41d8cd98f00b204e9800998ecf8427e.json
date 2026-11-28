@@ -1,0 +1,1 @@
+{"id":"7fe040f2f9d145263ab9a5feb53f2cf1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Markdown のブロックの規則 全行が同じ字下げなら、その字下げをコードブロックとして扱わない","name":"全行が同じ字下げなら、その字下げをコードブロックとして扱わない","status":"passed","testResultsByEnv":{"default":"b59b7c34019ea8f1dc297c7ba27e851a"}}

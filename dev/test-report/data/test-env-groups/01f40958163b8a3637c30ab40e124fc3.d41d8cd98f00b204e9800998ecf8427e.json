@@ -1,0 +1,1 @@
+{"id":"01f40958163b8a3637c30ab40e124fc3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_verify#test_release_report_is_downloaded_checked_and_output","name":"リリース版のレポートの run は、artifact をダウンロードして検証し、結果を出力する","status":"passed","testResultsByEnv":{"default":"871c444896fe23dfc00909ffe23b556f"}}

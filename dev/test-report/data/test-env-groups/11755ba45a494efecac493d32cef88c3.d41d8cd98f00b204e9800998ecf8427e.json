@@ -1,0 +1,1 @@
+{"id":"11755ba45a494efecac493d32cef88c3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_verify#test_judge_compares_the_stored_dev_with_the_head","name":"保管した開発版より新しい push の run は、開発版として採用し、開いている PR の番号を返す","status":"passed","testResultsByEnv":{"default":"708ed937b2606128134a85965998ff0b"}}

@@ -1,0 +1,1 @@
+{"id":"492d6dea0ba952e4e4833ea4f8697f6b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#runAwscli 異常終了する awscli を実行すると、標準エラー出力と終了コード 254 をそのまま返す","name":"異常終了する awscli を実行すると、標準エラー出力と終了コード 254 をそのまま返す","status":"passed","testResultsByEnv":{"default":"4ac4beb05b4a0146ef3a00875e748c00"}}

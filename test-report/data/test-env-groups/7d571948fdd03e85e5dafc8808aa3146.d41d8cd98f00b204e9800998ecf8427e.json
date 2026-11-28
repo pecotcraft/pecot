@@ -1,0 +1,1 @@
+{"id":"7d571948fdd03e85e5dafc8808aa3146.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-key.test.ts#computeSlideHash スライド自身のブロックが変わった場合は、ハッシュも変わる","name":"スライド自身のブロックが変わった場合は、ハッシュも変わる","status":"passed","testResultsByEnv":{"default":"eeb62d3adc5e528ca093eb46937d7f3e"}}

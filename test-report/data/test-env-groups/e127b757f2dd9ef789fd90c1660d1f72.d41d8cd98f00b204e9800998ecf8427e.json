@@ -1,0 +1,1 @@
+{"id":"e127b757f2dd9ef789fd90c1660d1f72.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/sso-output.test.ts#parseSsoLoginOutput コードの形式に合わない行は、認証コードとして取り出さない","name":"コードの形式に合わない行は、認証コードとして取り出さない","status":"passed","testResultsByEnv":{"default":"4ca53758113667134236eadd44e03c1c"}}

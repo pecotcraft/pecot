@@ -1,0 +1,1 @@
+{"id":"802983608adb520de34404e01c85404e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#validateSemver 末尾に改行が 2 つ付いたバージョンは、受け付けない","name":"末尾に改行が 2 つ付いたバージョンは、受け付けない","status":"passed","testResultsByEnv":{"default":"893e37c6fef643cb3ac2c4e66d821508"}}

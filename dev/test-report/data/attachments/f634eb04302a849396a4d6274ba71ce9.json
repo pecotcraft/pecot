@@ -1,0 +1,33 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "parent_repo: acme/demo/extra is not a repository name"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"parent_repo\",\"code\":\"value\",\"message\":\"acme/demo/extra is not a repository name\"},{\"field\":\"title\",\"code\":\"title-order\",\"message\":\"#3-02: needs a parent Epic: give parent_owner, parent_repo and parent_issue_number, or remove it from the title\"}],\"plan\":[{\"key\":\"issues[0]\",\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "parent_repo",
+        "code": "value",
+        "message": "acme/demo/extra is not a repository name"
+      },
+      {
+        "field": "title",
+        "code": "title-order",
+        "message": "#3-02: needs a parent Epic: give parent_owner, parent_repo and parent_issue_number, or remove it from the title"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

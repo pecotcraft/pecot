@@ -1,0 +1,1 @@
+{"id":"fe91311ebccc11af87e0702520151bb2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations Point / Rect box で h が Infinity の場合は、拒否する","name":"box で h が Infinity の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"5ca780f5484d8d18f09ac53dd896afc6"}}

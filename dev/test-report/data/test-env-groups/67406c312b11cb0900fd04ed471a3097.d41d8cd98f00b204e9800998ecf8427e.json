@@ -1,0 +1,1 @@
+{"id":"67406c312b11cb0900fd04ed471a3097.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/caret-range.test.ts#caretRangeViolation: 入力と下限 8.3.6 は ^08.3.6 の範囲の外で、理由が「caret range ではない」になる","name":"8.3.6 は ^08.3.6 の範囲の外で、理由が「caret range ではない」になる","status":"passed","testResultsByEnv":{"default":"49a9a4189cb08f69f49006af51ce0457"}}

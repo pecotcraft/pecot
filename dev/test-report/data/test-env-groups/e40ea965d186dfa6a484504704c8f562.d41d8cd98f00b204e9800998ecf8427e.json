@@ -1,0 +1,1 @@
+{"id":"e40ea965d186dfa6a484504704c8f562.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/failure-kinds-definition.test.ts#定義書の exit_status と FAILURE_KINDS `PV-SLIDE-LINT` の実装に書かれた失敗の名前が、定義書の `exit_status` にある","name":"`PV-SLIDE-LINT` の実装に書かれた失敗の名前が、定義書の `exit_status` にある","status":"passed","testResultsByEnv":{"default":"591461edc9dea5a708d0efe39e9c7d3a"}}

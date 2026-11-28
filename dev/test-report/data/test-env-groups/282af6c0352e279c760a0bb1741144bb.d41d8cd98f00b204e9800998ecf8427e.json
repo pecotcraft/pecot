@@ -1,0 +1,1 @@
+{"id":"282af6c0352e279c760a0bb1741144bb.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_review_workflow_copy#test_copy_checks_out_the_default_branch_for_the_pecot_actions","name":"写しは、既定のブランチを別のパスに checkout して pecot の action を呼ぶ","status":"passed","testResultsByEnv":{"default":"ac44956960f76baa399b28fcdffe6137"}}

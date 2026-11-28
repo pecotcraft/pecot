@@ -1,0 +1,1 @@
+{"id":"dcd22a6f95bd76d2e0f5dfe372fac119.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool 指定した port が使用中なら理由付きで失敗を返す","name":"指定した port が使用中なら理由付きで失敗を返す","status":"passed","testResultsByEnv":{"default":"629f33005e78ca9b88f8a91275b1425f"}}

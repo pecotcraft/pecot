@@ -1,0 +1,316 @@
+TAP version 13
+# Subtest: 署名が一致し dependabot_alert なら dispatch して 202 を返す
+ok 1 - 署名が一致し dependabot_alert なら dispatch して 202 を返す
+  ---
+  duration_ms: 6.922785
+  type: 'test'
+  ...
+# Subtest: secret_scanning_alert も dispatch する
+ok 2 - secret_scanning_alert も dispatch する
+  ---
+  duration_ms: 1.4567
+  type: 'test'
+  ...
+# Subtest: main の code_scanning_alert は dispatch し、main 以外の ref は何もしない
+ok 3 - main の code_scanning_alert は dispatch し、main 以外の ref は何もしない
+  ---
+  duration_ms: 1.376385
+  type: 'test'
+  ...
+# Subtest: 署名の不一致は 401 で、何も呼ばない
+ok 4 - 署名の不一致は 401 で、何も呼ばない
+  ---
+  duration_ms: 0.382373
+  type: 'test'
+  ...
+# Subtest: 署名ヘッダの欠落は 401
+ok 5 - 署名ヘッダの欠落は 401
+  ---
+  duration_ms: 0.297107
+  type: 'test'
+  ...
+# Subtest: 署名の長さが違っても 401 で、例外にならない
+ok 6 - 署名の長さが違っても 401 で、例外にならない
+  ---
+  duration_ms: 0.22531
+  type: 'test'
+  ...
+# Subtest: verifySignature は一致だけを true にする
+ok 7 - verifySignature は一致だけを true にする
+  ---
+  duration_ms: 0.203974
+  type: 'test'
+  ...
+# Subtest: ヘッダの名前の大文字小文字を問わない
+ok 8 - ヘッダの名前の大文字小文字を問わない
+  ---
+  duration_ms: 1.443415
+  type: 'test'
+  ...
+# Subtest: base64 で届いた body も、生の body で署名を確かめる
+ok 9 - base64 で届いた body も、生の body で署名を確かめる
+  ---
+  duration_ms: 1.44867
+  type: 'test'
+  ...
+# Subtest: ping は 200 を返し、dispatch しない
+ok 10 - ping は 200 を返し、dispatch しない
+  ---
+  duration_ms: 0.494346
+  type: 'test'
+  ...
+# Subtest: 対象外のイベントは 202 で何もしない
+ok 11 - 対象外のイベントは 202 で何もしない
+  ---
+  duration_ms: 0.380687
+  type: 'test'
+  ...
+# Subtest: 対象外のリポは 202 で何もしない
+ok 12 - 対象外のリポは 202 で何もしない
+  ---
+  duration_ms: 0.246746
+  type: 'test'
+  ...
+# Subtest: token の要求は repositories と permissions で絞られ、JWT は公開鍵で検証できる
+ok 13 - token の要求は repositories と permissions で絞られ、JWT は公開鍵で検証できる
+  ---
+  duration_ms: 1.74451
+  type: 'test'
+  ...
+# Subtest: createAppJwt は iat を 60 秒戻し、exp を 10 分以内にする
+ok 14 - createAppJwt は iat を 60 秒戻し、exp を 10 分以内にする
+  ---
+  duration_ms: 1.113813
+  type: 'test'
+  ...
+# Subtest: token は expires_at の 1 分前まで使い回し、その後は取り直す
+ok 15 - token は expires_at の 1 分前まで使い回し、その後は取り直す
+  ---
+  duration_ms: 1.754821
+  type: 'test'
+  ...
+# Subtest: SSM の読み出しは App ごとにコールドスタートで 1 回だけ
+ok 16 - SSM の読み出しは App ごとにコールドスタートで 1 回だけ
+  ---
+  duration_ms: 0.425193
+  type: 'test'
+  ...
+# Subtest: dispatch の API が失敗したら 502
+ok 17 - dispatch の API が失敗したら 502
+  ---
+  duration_ms: 1.244294
+  type: 'test'
+  ...
+# Subtest: token の発行が失敗したら 502 で、dispatch しない
+ok 18 - token の発行が失敗したら 502 で、dispatch しない
+  ---
+  duration_ms: 1.280887
+  type: 'test'
+  ...
+# Subtest: ログは 1 行の項目だけで、payload と token を含まない
+ok 19 - ログは 1 行の項目だけで、payload と token を含まない
+  ---
+  duration_ms: 1.096161
+  type: 'test'
+  ...
+# Subtest: 失敗時のログにも payload と token が出ない
+ok 20 - 失敗時のログにも payload と token が出ない
+  ---
+  duration_ms: 1.285664
+  type: 'test'
+  ...
+# Subtest: 未知の path・末尾の / ・POST 以外は、署名を確かめず 404
+ok 21 - 未知の path・末尾の / ・POST 以外は、署名を確かめず 404
+  ---
+  duration_ms: 0.306313
+  type: 'test'
+  ...
+# Subtest: security の secret で署名した body を /dependabot-prs に送ると 401
+ok 22 - security の secret で署名した body を /dependabot-prs に送ると 401
+  ---
+  duration_ms: 0.398684
+  type: 'test'
+  ...
+# Subtest: dependabot の PR は dependabot-prs.yml を dependabot-prs の App で起こす
+ok 23 - dependabot の PR は dependabot-prs.yml を dependabot-prs の App で起こす
+  ---
+  duration_ms: 1.146682
+  type: 'test'
+  ...
+# Subtest: 対象の action はすべて dispatch する
+ok 24 - 対象の action はすべて dispatch する
+  ---
+  duration_ms: 6.449026
+  type: 'test'
+  ...
+# Subtest: dependabot 以外の作者・対象外の action・fork の head の PR は 202 で何もしない
+ok 25 - dependabot 以外の作者・対象外の action・fork の head の PR は 202 で何もしない
+  ---
+  duration_ms: 0.699884
+  type: 'test'
+  ...
+# Subtest: dependabot/ の branch の completed な workflow_run は workflow を問わず dispatch する
+ok 26 - dependabot/ の branch の completed な workflow_run は workflow を問わず dispatch する
+  ---
+  duration_ms: 1.233308
+  type: 'test'
+  ...
+# Subtest: dependabot/ 以外の branch・completed 以外の workflow_run は 202 で何もしない
+ok 27 - dependabot/ 以外の branch・completed 以外の workflow_run は 202 で何もしない
+  ---
+  duration_ms: 0.66844
+  type: 'test'
+  ...
+# Subtest: /dependabot-prs の ping は 200、security のイベントは 202 で何もしない
+ok 28 - /dependabot-prs の ping は 200、security のイベントは 202 で何もしない
+  ---
+  duration_ms: 0.29554
+  type: 'test'
+  ...
+# Subtest: /security は dependabot-prs のイベントを dispatch しない
+ok 29 - /security は dependabot-prs のイベントを dispatch しない
+  ---
+  duration_ms: 0.238064
+  type: 'test'
+  ...
+# Subtest: token は App ごとに分けて使い回す
+ok 30 - token は App ごとに分けて使い回す
+  ---
+  duration_ms: 2.497284
+  type: 'test'
+  ...
+# Subtest: 片方の App の SSM が未設定でも、もう片方は動く
+ok 31 - 片方の App の SSM が未設定でも、もう片方は動く
+  ---
+  duration_ms: 1.673942
+  type: 'test'
+  ...
+# Subtest: Scheduler の固定の値で、署名なしに 4 つの workflow を起こす
+ok 32 - Scheduler の固定の値で、署名なしに 4 つの workflow を起こす
+  ---
+  duration_ms: 11.924253
+  type: 'test'
+  ...
+# Subtest: requestContext.http があれば、Scheduler の値でも webhook として扱い署名なしは 401
+ok 33 - requestContext.http があれば、Scheduler の値でも webhook として扱い署名なしは 401
+  ---
+  duration_ms: 0.257779
+  type: 'test'
+  ...
+# Subtest: Scheduler の起動は 1 本が失敗しても、ほかの 3 本を起こしてから throw する
+ok 34 - Scheduler の起動は 1 本が失敗しても、ほかの 3 本を起こしてから throw する
+  ---
+  duration_ms: 6.170184
+  type: 'test'
+  ...
+# Subtest: Scheduler は workflow の環境変数が無い行を起こさず、失敗として残す
+ok 35 - Scheduler は workflow の環境変数が無い行を起こさず、失敗として残す
+  ---
+  duration_ms: 1.724059
+  type: 'test'
+  ...
+# Subtest: Scheduler の起動で片方の App の SSM が未設定でも、もう片方は起こす
+ok 36 - Scheduler の起動で片方の App の SSM が未設定でも、もう片方は起こす
+  ---
+  duration_ms: 1.767253
+  type: 'test'
+  ...
+# Subtest: Scheduler の 1 回の起動で、security の App の SSM の読み出しと token の発行は 1 回だけ
+ok 37 - Scheduler の 1 回の起動で、security の App の SSM の読み出しと token の発行は 1 回だけ
+  ---
+  duration_ms: 1.539533
+  type: 'test'
+  ...
+# Subtest: security の 3 本が同じ失効した token で 401 を受けても、token の取り直しは 1 回だけ
+ok 38 - security の 3 本が同じ失効した token で 401 を受けても、token の取り直しは 1 回だけ
+  ---
+  duration_ms: 2.018143
+  type: 'test'
+  ...
+# Subtest: Scheduler でも webhook でもない event は、何もせずログだけ残す
+ok 39 - Scheduler でも webhook でもない event は、何もせずログだけ残す
+  ---
+  duration_ms: 0.165973
+  type: 'test'
+  ...
+# Subtest: Scheduler のログにも token が出ない
+ok 40 - Scheduler のログにも token が出ない
+  ---
+  duration_ms: 1.545342
+  type: 'test'
+  ...
+# Subtest: Scheduler は 4 つの workflow を並列に起こす
+ok 41 - Scheduler は 4 つの workflow を並列に起こす
+  ---
+  duration_ms: 42.216662
+  type: 'test'
+  ...
+# Subtest: 失敗のログに stage と数値の status が出て、token と message は出ない
+ok 42 - 失敗のログに stage と数値の status が出て、token と message は出ない
+  ---
+  duration_ms: 2.7839
+  type: 'test'
+  ...
+# Subtest: Scheduler の失敗のログにも stage と status が出る
+ok 43 - Scheduler の失敗のログにも stage と status が出る
+  ---
+  duration_ms: 1.196835
+  type: 'test'
+  ...
+# Subtest: fetch の時間切れは 502 で、stage だけをログに残す
+ok 44 - fetch の時間切れは 502 で、stage だけをログに残す
+  ---
+  duration_ms: 1.265162
+  type: 'test'
+  ...
+# Subtest: 不正な JSON は署名が合っていても 400 で、dispatch しない
+ok 45 - 不正な JSON は署名が合っていても 400 で、dispatch しない
+  ---
+  duration_ms: 0.242195
+  type: 'test'
+  ...
+# Subtest: createPrivateKey が失敗したら 500 で、次の呼び出しで読み直す
+ok 46 - createPrivateKey が失敗したら 500 で、次の呼び出しで読み直す
+  ---
+  duration_ms: 1.145825
+  type: 'test'
+  ...
+# Subtest: code_scanning_alert の closed_by_user と reopened_by_user は ref なしで dispatch する
+ok 47 - code_scanning_alert の closed_by_user と reopened_by_user は ref なしで dispatch する
+  ---
+  duration_ms: 2.266811
+  type: 'test'
+  ...
+# Subtest: dispatch が 401 なら token を取り直して 1 回だけやり直す
+ok 48 - dispatch が 401 なら token を取り直して 1 回だけやり直す
+  ---
+  duration_ms: 1.721627
+  type: 'test'
+  ...
+# Subtest: dispatch が 401 を返し続けても、やり直すのは 1 回だけで 502
+ok 49 - dispatch が 401 を返し続けても、やり直すのは 1 回だけで 502
+  ---
+  duration_ms: 1.481663
+  type: 'test'
+  ...
+# Subtest: loadSecretsFromSsm は 2 つの値を読み、時間と再試行に上限を付ける
+ok 50 - loadSecretsFromSsm は 2 つの値を読み、時間と再試行に上限を付ける
+  ---
+  duration_ms: 0.290619
+  type: 'test'
+  ...
+# Subtest: loadSecretsFromSsm は値が欠けたら reject し、SDK の失敗はそのまま伝える
+ok 51 - loadSecretsFromSsm は値が欠けたら reject し、SDK の失敗はそのまま伝える
+  ---
+  duration_ms: 0.132064
+  type: 'test'
+  ...
+1..51
+# tests 51
+# suites 0
+# pass 51
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 313.852094

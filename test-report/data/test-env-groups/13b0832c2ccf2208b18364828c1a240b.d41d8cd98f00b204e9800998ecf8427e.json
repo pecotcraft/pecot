@@ -1,0 +1,1 @@
+{"id":"13b0832c2ccf2208b18364828c1a240b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template 入れ子の template があっても、その後ろの要素と、template の後ろの script まで読む","name":"入れ子の template があっても、その後ろの要素と、template の後ろの script まで読む","status":"passed","testResultsByEnv":{"default":"ee40f78bb65bc2463f076077960c35dc"}}

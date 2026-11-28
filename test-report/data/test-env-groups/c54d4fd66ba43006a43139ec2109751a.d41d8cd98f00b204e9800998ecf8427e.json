@@ -1,0 +1,1 @@
+{"id":"c54d4fd66ba43006a43139ec2109751a.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#dry-run の tgz の中身に .map を含むパスが無い","name":"dry-run の tgz の中身に .map を含むパスが無い","status":"passed","testResultsByEnv":{"default":"6c88909474ad286ccad629caf1f4ab78"}}

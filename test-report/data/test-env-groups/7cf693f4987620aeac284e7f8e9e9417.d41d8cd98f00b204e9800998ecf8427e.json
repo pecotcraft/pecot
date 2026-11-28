@@ -1,0 +1,1 @@
+{"id":"7cf693f4987620aeac284e7f8e9e9417.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#応答の中身 aws_lambda_list_event_source_mappings の NextToken を nextToken へ転記する","name":"aws_lambda_list_event_source_mappings の NextToken を nextToken へ転記する","status":"passed","testResultsByEnv":{"default":"b80e3dcbc540e0a402eae3e42128d2c3"}}

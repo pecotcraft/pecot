@@ -1,0 +1,1 @@
+{"id":"ac8657ebdb77dc5ac7026a7f59a5db06.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-gate.test.ts#auto gate workflow_run のイベント fork のブランチ の CI なら、何も読まず、proceed を偽にする","name":"fork のブランチ の CI なら、何も読まず、proceed を偽にする","status":"passed","testResultsByEnv":{"default":"733ce74cdef0800ae5a9762b7539ad73"}}

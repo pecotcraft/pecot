@@ -1,0 +1,1 @@
+{"id":"0cdbf11d2d68446229c3653b6d83accf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildStylesXml — theme 非依存 theme を参照せず、色には 8 桁の ARGB だけを使う","name":"theme を参照せず、色には 8 桁の ARGB だけを使う","status":"passed","testResultsByEnv":{"default":"9fe67030aa671bb7abe81a1fff680932"}}

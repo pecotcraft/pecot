@@ -1,0 +1,1 @@
+{"event":"slide.create.error","kind":"dest-exists","detail":"destination already exists (pass force: true to overwrite): /tmp/pecotv-e2e-errors-JhqYpH/sample-cuj3-exist"}

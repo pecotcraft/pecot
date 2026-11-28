@@ -1,0 +1,1 @@
+{"id":"e568d00651cbed2e4346dd51b4c6deab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/slide-worker-flow.test.ts#convertSingleSlideWithRetry すべてのリトライに失敗した場合は、最後のエラーで失敗する","name":"すべてのリトライに失敗した場合は、最後のエラーで失敗する","status":"passed","testResultsByEnv":{"default":"a32e127aae1ece17f9f407278bc4b4f2"}}

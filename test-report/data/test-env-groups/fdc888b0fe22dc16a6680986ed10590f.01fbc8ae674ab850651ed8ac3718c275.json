@@ -1,0 +1,1 @@
+{"id":"fdc888b0fe22dc16a6680986ed10590f.01fbc8ae674ab850651ed8ac3718c275","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_only_the_lanes_the_change_reaches","name":"plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh を変更すると、その変更が届くテストのレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"c5811c5e29187f71e148a0279fdd410d"}}

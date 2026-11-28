@@ -1,0 +1,33 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "1 item(s) of workflow handoff are missing or outdated"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-setting-missing\",\"detail\":\"1 item(s) of workflow handoff are missing or outdated\",\"repository\":\"acme/demo\",\"items\":[{\"name\":\".github/workflows/pecot-handoff.yml\",\"state\":\"ok\"},{\"name\":\"workflow template handoff\",\"state\":\"outdated\"},{\"name\":\"secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*\",\"state\":\"ok\"}],\"ready\":false}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-setting-missing",
+    "detail": "1 item(s) of workflow handoff are missing or outdated",
+    "repository": "acme/demo",
+    "items": [
+      {
+        "name": ".github/workflows/pecot-handoff.yml",
+        "state": "ok"
+      },
+      {
+        "name": "workflow template handoff",
+        "state": "outdated"
+      },
+      {
+        "name": "secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*",
+        "state": "ok"
+      }
+    ],
+    "ready": false
+  },
+  "isError": true
+}

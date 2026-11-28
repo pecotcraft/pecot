@@ -1,0 +1,2 @@
+error: preflight found warnings; fix them before creating a PR
+warning: Push Status: diverged: local is 1 commits ahead, fork/feat/demo/12 is 1 ahead (fix: git pull --rebase fork feat/demo/12, or git push --force-with-lease fork feat/demo/12 if you rewrote pushed commits)

@@ -1,0 +1,1 @@
+{"id":"1602908d6997a265fb383e6475ac5919.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/tool-names.test.ts#本文のツール名 w-pr の allowed-tools は、PR・ボード・コメントのチェックと、セッションのツールを許す","name":"w-pr の allowed-tools は、PR・ボード・コメントのチェックと、セッションのツールを許す","status":"passed","testResultsByEnv":{"default":"01fb2387d3431c4b1a36a19a90c47264"}}

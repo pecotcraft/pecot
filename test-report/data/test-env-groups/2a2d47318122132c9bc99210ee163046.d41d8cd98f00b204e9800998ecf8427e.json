@@ -1,0 +1,1 @@
+{"id":"2a2d47318122132c9bc99210ee163046.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 Blocked の列が存在しないボードでは、動かさずに missing へ入れる","name":"Blocked の列が存在しないボードでは、動かさずに missing へ入れる","status":"passed","testResultsByEnv":{"default":"ca60bd62a82d91b5c56a40571cb29e0d"}}

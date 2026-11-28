@@ -1,0 +1,1 @@
+{"id":"653d22ba1e5a0b84cb118efbf06af1e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page の失敗ルート 参照 yaml を読めないと、書き込みの失敗とは別の reference-read-failed のエラーを返す","name":"参照 yaml を読めないと、書き込みの失敗とは別の reference-read-failed のエラーを返す","status":"passed","testResultsByEnv":{"default":"d054897e3d804125195f73332f3c0011"}}

@@ -1,0 +1,1 @@
+{"id":"7a0908e56a1a91ca5f473d17df8b6e9e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#executeMcpServe のセッションのディレクトリ 移動に失敗したら、決められなかった場合として扱い、理由を返す","name":"移動に失敗したら、決められなかった場合として扱い、理由を返す","status":"passed","testResultsByEnv":{"default":"b02975bdda2a9b2fe773678fe050c3d9"}}

@@ -1,0 +1,1 @@
+{"id":"2fa300e4d674eebbafdb98d2f096cbdd.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_skip_and_plan_base_per_stage","name":"`SKIP` には全 stage で version plan の判定だけを指定し、`PECOT_VERSION_PLAN_BASE` は pre-push と manual にだけ渡す","status":"passed","testResultsByEnv":{"default":"9c5b6cef7cec8b2ea5380c7b7f6e1f29"}}

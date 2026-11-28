@@ -1,0 +1,1 @@
+{"id":"c3c794cdbb9089e250d2511f75e7ead6.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_broken_entries_become_warnings_and_are_skipped","name":"不正な項目は、警告を出して読み飛ばし、ビルドは成功させる","status":"passed","testResultsByEnv":{"default":"d57f4e9b502095393e7256746ef649d6"}}

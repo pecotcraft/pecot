@@ -1,0 +1,1 @@
+{"id":"5619f7db1c782cc40f133b3e88294287.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#rebaseOnto rebase.updateRefs を true に設定していても、範囲内の別のローカルブランチを更新しない","name":"rebase.updateRefs を true に設定していても、範囲内の別のローカルブランチを更新しない","status":"passed","testResultsByEnv":{"default":"5c9b02f155b380886b03e9aba95f990a"}}

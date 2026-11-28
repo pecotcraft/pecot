@@ -1,0 +1,1 @@
+{"id":"754ebef7e3c55501fa80ad79ed058374.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#number の lax な変換（Python の実出力どおり） number に {\"a\": 1} を渡した場合は、検証エラー int_type を返す","name":"number に {\"a\": 1} を渡した場合は、検証エラー int_type を返す","status":"passed","testResultsByEnv":{"default":"493fbd050decbb512d71139d77889488"}}

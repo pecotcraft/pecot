@@ -1,0 +1,1 @@
+{"id":"1b3cbc5105a2198f58a989569fbc0813.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-inset-shadow.test.ts#no-inset-shadow invalid box-shadow に inset を指定すると、報告する","name":"box-shadow に inset を指定すると、報告する","status":"passed","testResultsByEnv":{"default":"17072ee42352ab25bceb322c27c98b3c"}}

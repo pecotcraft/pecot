@@ -1,0 +1,1 @@
+{"id":"91bb3ea37b7a1d8598bac4d053efa583.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge 非同期のマージが 60 秒で終わらなければ、確かめる PR を示す error の行を出し、終了コード 1 を返す","name":"非同期のマージが 60 秒で終わらなければ、確かめる PR を示す error の行を出し、終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"158f6ee82628593d96dbae39e0876125"}}

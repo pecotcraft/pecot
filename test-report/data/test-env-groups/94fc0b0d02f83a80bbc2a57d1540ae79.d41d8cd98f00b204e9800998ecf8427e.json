@@ -1,0 +1,1 @@
+{"id":"94fc0b0d02f83a80bbc2a57d1540ae79.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_issue_surface_workflow#test_triggers_only_on_workflow_dispatch_with_dry_run_default_false","name":"issue-surface-drift.yml は、workflow_dispatch だけで動き、dry-run の既定値は false にする","status":"passed","testResultsByEnv":{"default":"7cb804206efff9f29b92e5e98fbcfee3"}}

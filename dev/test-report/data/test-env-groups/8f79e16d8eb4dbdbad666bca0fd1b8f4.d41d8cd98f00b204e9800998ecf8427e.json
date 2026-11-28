@@ -1,0 +1,1 @@
+{"id":"8f79e16d8eb4dbdbad666bca0fd1b8f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#manifest の読み書き manifest.json が存在しない場合は、status が missing になる","name":"manifest.json が存在しない場合は、status が missing になる","status":"passed","testResultsByEnv":{"default":"bba43e96a1f16dab5018413b38ae1cb2"}}

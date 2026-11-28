@@ -1,0 +1,1 @@
+{"id":"0559138b0ccfc9850e1a3b6cb8dfbb81.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/transforms.test.ts#applyMutation replace-with-xml の場合は、対象のノードを、XML の文字列から作成した新しいノードに置き換える","name":"replace-with-xml の場合は、対象のノードを、XML の文字列から作成した新しいノードに置き換える","status":"passed","testResultsByEnv":{"default":"7acfe802deaa56a0ffef91bf84a78b56"}}

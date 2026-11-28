@@ -1,0 +1,1 @@
+{"id":"e70712e85fcc0fbd5fd7fe216fb364a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の script 閉じていない script に違反があると、元のファイルの行と桁で指摘を返す","name":"閉じていない script に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"2e5604c0427b57bb3cd917b1b75ab7d8"}}

@@ -1,0 +1,1 @@
+{"id":"b8163c8d6015dc55972f310e82cfe310.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx logLevel が空文字の場合は、normal のロガーを使って変換に成功する","name":"logLevel が空文字の場合は、normal のロガーを使って変換に成功する","status":"passed","testResultsByEnv":{"default":"a7197d03f4876c41b8d12ee567b65c31"}}

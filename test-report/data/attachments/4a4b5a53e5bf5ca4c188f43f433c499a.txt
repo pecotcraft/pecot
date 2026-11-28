@@ -1,0 +1,1 @@
+dependabot の更新の version plan は PR の commit で作るため、version plan check を skip

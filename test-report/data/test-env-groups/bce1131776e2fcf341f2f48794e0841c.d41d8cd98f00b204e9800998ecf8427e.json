@@ -1,0 +1,1 @@
+{"id":"bce1131776e2fcf341f2f48794e0841c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check MCP の data develop_branch が設定に無いと、kind が repo-setting-missing の失敗を返す","name":"develop_branch が設定に無いと、kind が repo-setting-missing の失敗を返す","status":"passed","testResultsByEnv":{"default":"406d37861bd3305288e9a802c343878a"}}

@@ -1,0 +1,1 @@
+{"id":"69ecc710485e1659811933eb3840ae2a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/cache-identity-full-vs-diff.test.ts#CUJ: 差分変換の出力 = 全変換の出力 中央 1 枚を編集した差分変換の PPTX が、全変換の PPTX と XPath で抽出した値の水準で一致する","name":"中央 1 枚を編集した差分変換の PPTX が、全変換の PPTX と XPath で抽出した値の水準で一致する","status":"passed","testResultsByEnv":{"default":"fc630718baeff324b97c89335060ce59"}}

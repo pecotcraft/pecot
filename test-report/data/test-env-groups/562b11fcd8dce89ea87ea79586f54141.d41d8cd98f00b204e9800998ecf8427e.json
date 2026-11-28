@@ -1,0 +1,1 @@
+{"id":"562b11fcd8dce89ea87ea79586f54141.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data 待つ Issue の 2 件目の移動で想定外の例外が出ると、作った PR と動かせた 1 件目を data に残して失敗を返す","name":"待つ Issue の 2 件目の移動で想定外の例外が出ると、作った PR と動かせた 1 件目を data に残して失敗を返す","status":"passed","testResultsByEnv":{"default":"597a9f3638bc87698cbcd2d5c8c95352"}}

@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "additionalContext": "warning: the worktree setup command failed (exit 3): echo ran >> setup-count.txt; echo broken >&2; exit 3\n  it runs again at the next session start\n  log: /tmp/pecot-hooks-ZoqLQW/main/.git/worktrees/bold-oak/pecot-worktree-setup.log",
+    "hookEventName": "SessionStart"
+  },
+  "additionalContext": "warning: the worktree setup command failed (exit 3): echo ran >> setup-count.txt; echo broken >&2; exit 3\n  it runs again at the next session start\n  log: /tmp/pecot-hooks-ZoqLQW/main/.git/worktrees/bold-oak/pecot-worktree-setup.log"
+}

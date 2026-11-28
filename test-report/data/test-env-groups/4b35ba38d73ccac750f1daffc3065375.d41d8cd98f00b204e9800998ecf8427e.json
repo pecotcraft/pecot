@@ -1,0 +1,1 @@
+{"id":"4b35ba38d73ccac750f1daffc3065375.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/user-prompt-submit-features.test.ts#user-prompt-submit.sh プロンプトが 通常の文 のとき、何も出さず、起票待ちのフラグを作らない","name":"プロンプトが 通常の文 のとき、何も出さず、起票待ちのフラグを作らない","status":"passed","testResultsByEnv":{"default":"7a6264c661dce1b44f5c7b82fd5a7116"}}

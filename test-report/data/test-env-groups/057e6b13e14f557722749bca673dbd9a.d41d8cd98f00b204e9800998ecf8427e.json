@@ -1,0 +1,1 @@
+{"id":"057e6b13e14f557722749bca673dbd9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base head で別のブランチを指す ときは、記録を読まずに PR を作る","name":"head で別のブランチを指す ときは、記録を読まずに PR を作る","status":"passed","testResultsByEnv":{"default":"283a80d0ccf182cb006b668d183d0f69"}}

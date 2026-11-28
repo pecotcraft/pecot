@@ -1,0 +1,1 @@
+{"id":"3f635f52be394981165efb48f336b05a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#prose（人が書く欄の言語） prose が ja で、日本語のない欄は検証エラーにし、決まった値の欄は検証エラーにしない","name":"prose が ja で、日本語のない欄は検証エラーにし、決まった値の欄は検証エラーにしない","status":"passed","testResultsByEnv":{"default":"f6d45d0b05c8a7a63ad58688a36a117b"}}

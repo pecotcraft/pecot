@@ -1,0 +1,1 @@
+{"id":"52f98b274bfd9c6a43d8ca56b7b48797.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-create.test.ts#slide create の失敗 (FR-013) 取得が tag で失敗した場合は、reason theme-tag と対処の文言を返し、生成先を作成しない","name":"取得が tag で失敗した場合は、reason theme-tag と対処の文言を返し、生成先を作成しない","status":"passed","testResultsByEnv":{"default":"df59899135a120d2a2784b0527aa815f"}}

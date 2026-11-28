@@ -1,0 +1,1 @@
+{"id":"975d7f8e74193b8679abe335c3a53471.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url.test.ts#executeDrawioUrl output output の拡張子が .html なら警告は出ない","name":"output の拡張子が .html なら警告は出ない","status":"passed","testResultsByEnv":{"default":"4bc91926ae90ac22cd40ce6bd20df254"}}

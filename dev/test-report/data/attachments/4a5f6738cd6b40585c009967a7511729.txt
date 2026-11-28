@@ -1,0 +1,3 @@
+usage: -c [-h] [--local] --output OUTPUT [--history HISTORY]
+          [--sources SOURCES]
+-c: error: --history を --output の中に置けません（allure generate --clean が出力を消せません）

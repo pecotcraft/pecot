@@ -1,0 +1,1 @@
+{"id":"ad9653cad9d31b6d87ddd17ed59cc2a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slides-title.test.ts#parseSlidesTitle 改行が CRLF の場合も、title を取得する","name":"改行が CRLF の場合も、title を取得する","status":"passed","testResultsByEnv":{"default":"505dfc55849464f6357d27a76485cc9a"}}

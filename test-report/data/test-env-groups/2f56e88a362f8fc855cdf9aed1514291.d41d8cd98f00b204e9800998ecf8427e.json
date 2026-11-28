@@ -1,0 +1,1 @@
+{"id":"2f56e88a362f8fc855cdf9aed1514291.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_side_check_with_report_links_refuses_a_test_report_dir","name":"`report_links` を指定した場合は、側の中に `test-report/` があると指摘する","status":"passed","testResultsByEnv":{"default":"598206c5c2ba23999b299435a4ce0b91"}}

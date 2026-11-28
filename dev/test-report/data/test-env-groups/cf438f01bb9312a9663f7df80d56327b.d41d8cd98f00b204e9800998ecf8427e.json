@@ -1,0 +1,1 @@
+{"id":"cf438f01bb9312a9663f7df80d56327b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/tests/english-only.test.ts#findJapaneseStrings 文字列に かな が含まれているとき、日本語として 1 件検出する","name":"文字列に かな が含まれているとき、日本語として 1 件検出する","status":"passed","testResultsByEnv":{"default":"d58e07d19ac5079fd7509daef9d5713e"}}

@@ -1,0 +1,1 @@
+{"id":"9cfa445766a76e14278df26d87ed593e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store-unexpected.test.ts#state-store（想定外の失敗） 作業ディレクトリの作成が OS のエラーでない理由で失敗した場合は、そのまま送出する","name":"作業ディレクトリの作成が OS のエラーでない理由で失敗した場合は、そのまま送出する","status":"passed","testResultsByEnv":{"default":"aa432330615c860ab4e69515e2f36ee1"}}

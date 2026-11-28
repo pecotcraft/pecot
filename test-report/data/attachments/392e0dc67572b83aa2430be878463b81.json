@@ -1,0 +1,324 @@
+{
+  "name": "slide_sync",
+  "title": "Sync Slidev deck",
+  "description": "Syncs an existing talk-dir. A pre-migration talk-dir (one that holds a copy of the template; slide_dev and others stop with theme-none) is moved to a form that references the theme given by `theme`. Files that came from the template are deleted, and the work area (slides.md / pages/*.md / public/slides/) is kept. The deleted names are returned in migration.removed. A migrated talk-dir that references a theme (theme: in slides.md points to the theme in dependencies of package.json) fetches the theme at the version in the dependency and relinks node_modules, and aligns the generated files (vite.config.ts, start.mjs) with the current content of the plugin. Other files are left unchanged. To raise the theme version, rewrite the #<tag> of the dependency in package.json before calling. Returns the presentation categories (categories), the list of selectable layouts (layouts), and the lint result of the whole deck after the sync. A running slide_dev must be stopped with stop: true and started again.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "dir": {
+        "type": "string",
+        "description": "Absolute path of the talk-dir to sync. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+      },
+      "theme": {
+        "description": "Theme the pre-migration talk-dir should reference: `git+https://<host>/<owner>/<repo>.git#<tag>` or `file:<absolute path>`. Required for a pre-migration talk-dir (one that holds a copy of the template). Not used for a migrated talk-dir",
+        "type": "string"
+      },
+      "node_modules_only": {
+        "default": false,
+        "description": "Only relink node_modules. The theme in package.json is fetched first, then linked (no network access if it is already fetched). A migrated talk-dir that references a theme behaves the same even when this is omitted. The generated files (vite.config.ts, start.mjs) are also aligned with the current content of the plugin. Cannot be specified together with theme",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "dir"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "event": {
+        "type": "string",
+        "description": "slide.sync.done on success; slide.sync.error or runtime-dependencies.unavailable on failure (omitted when a path argument is rejected)"
+      },
+      "dir": {
+        "type": "string",
+        "description": "Absolute path of the synced talk-dir (success only)"
+      },
+      "nodeModulesTarget": {
+        "type": "string",
+        "description": "Where node_modules of the talk-dir links to (success only)"
+      },
+      "nodeModulesOnly": {
+        "type": "boolean",
+        "description": "Whether only node_modules was relinked (success only)"
+      },
+      "theme": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Package name of the theme"
+              },
+              "spec": {
+                "type": "string",
+                "description": "Theme specification in the dependencies of package.json"
+              },
+              "directory": {
+                "type": "string",
+                "description": "Absolute path of the theme root"
+              }
+            },
+            "required": [
+              "name",
+              "spec",
+              "directory"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Theme the talk-dir references, or null when it references none (success only)"
+      },
+      "migration": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "removed": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Names of the files from the template that were deleted"
+              }
+            },
+            "required": [
+              "removed"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Result of moving a pre-migration talk-dir onto the theme, or null when it was not moved (success only)"
+      },
+      "categories": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Category ID that layouts[].category refers to"
+            },
+            "label": {
+              "type": "string",
+              "description": "Display name of the category"
+            },
+            "question": {
+              "type": "string",
+              "description": "Question that tells when to choose the category"
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "question"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Presentation categories declared by the theme (success only)"
+      },
+      "layouts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "layout": {
+              "type": "string",
+              "description": "Layout name"
+            },
+            "description": {
+              "type": "string",
+              "description": "What the layout is for"
+            },
+            "category": {
+              "type": "string",
+              "description": "Category ID (uncategorized when unset or unknown)"
+            },
+            "deprecated": {
+              "type": "boolean",
+              "description": "Whether the layout is deprecated (not to be chosen)"
+            },
+            "filename": {
+              "type": "string",
+              "description": "File name of the reference yaml"
+            }
+          },
+          "required": [
+            "layout",
+            "description",
+            "category",
+            "deprecated",
+            "filename"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Selectable layouts (hidden layouts are excluded) (success only)"
+      },
+      "lint": {
+        "type": "object",
+        "properties": {
+          "skipped": {
+            "type": "boolean",
+            "description": "Whether the lint could not run (the generation or sync still succeeds)"
+          },
+          "detail": {
+            "description": "Why the lint could not run (only when skipped)",
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "clean",
+              "violations",
+              "no-target"
+            ],
+            "description": "clean (no violations), violations (some found), no-target (no file to lint)"
+          },
+          "lintedFileCount": {
+            "type": "number",
+            "description": "Number of files linted"
+          },
+          "errorCount": {
+            "type": "number",
+            "description": "Number of errors"
+          },
+          "warningCount": {
+            "type": "number",
+            "description": "Number of warnings"
+          },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "type": "string",
+                  "description": "Path relative to the talk-dir (absolute when outside it)"
+                },
+                "line": {
+                  "type": "number"
+                },
+                "column": {
+                  "type": "number"
+                },
+                "rule": {
+                  "type": "string",
+                  "description": "Rule ID"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "file",
+                "line",
+                "column",
+                "rule",
+                "message"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Violations found"
+          },
+          "skippedSymlinkDirectories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Symlinked directories under pages/ that were not linted (relative to the talk-dir)"
+          }
+        },
+        "required": [
+          "skipped"
+        ],
+        "additionalProperties": false,
+        "description": "Lint result of the whole deck (success only)"
+      },
+      "expectedAt": {
+        "description": "Where the missing runtime dependencies or Playwright Chromium are expected (failure only, kind runtime-dependencies-not-installed / chromium-not-installed / chromium-install-failed)",
+        "type": "string"
+      },
+      "invalidPaths": {
+        "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "convertedPaths": {
+        "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Value that was passed"
+            },
+            "to": {
+              "type": "string",
+              "description": "Path it was converted to"
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full text of the failure and how to recover (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "event",
+          "dir",
+          "nodeModulesTarget",
+          "nodeModulesOnly",
+          "theme",
+          "migration",
+          "categories",
+          "layouts",
+          "lint"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  }
+}

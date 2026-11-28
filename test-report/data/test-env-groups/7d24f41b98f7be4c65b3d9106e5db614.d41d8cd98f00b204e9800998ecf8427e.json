@@ -1,0 +1,1 @@
+{"id":"7d24f41b98f7be4c65b3d9106e5db614.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestSlim PR が存在しない場合は、GitHubNotFoundError を発生させる","name":"PR が存在しない場合は、GitHubNotFoundError を発生させる","status":"passed","testResultsByEnv":{"default":"23242a09265950e03828f398aaec4221"}}

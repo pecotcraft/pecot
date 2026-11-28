@@ -1,0 +1,1 @@
+{"id":"c17635e403249284f82164fae3a040e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の update-type 最初のコミットの author が null の場合は、種類を不明として扱う","name":"最初のコミットの author が null の場合は、種類を不明として扱う","status":"passed","testResultsByEnv":{"default":"a4c7bc23f0b4f3fc0a5d90fd6e844a5e"}}

@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Session status"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"topic\",\"repository\":\"acme/demo\",\"baseBranch\":\"origin/main\",\"worktree\":{\"list\":\"/tmp/pecot-project-C2D2yh 1eb981f [topic]\",\"directoryName\":\"pecot-project-C2D2yh\",\"isWorktree\":false}}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "topic",
+    "repository": "acme/demo",
+    "baseBranch": "origin/main",
+    "worktree": {
+      "list": "/tmp/pecot-project-C2D2yh 1eb981f [topic]",
+      "directoryName": "pecot-project-C2D2yh",
+      "isWorktree": false
+    }
+  }
+}

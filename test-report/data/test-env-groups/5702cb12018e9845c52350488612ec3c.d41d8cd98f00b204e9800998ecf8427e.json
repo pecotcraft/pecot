@@ -1,0 +1,1 @@
+{"id":"5702cb12018e9845c52350488612ec3c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/runtime-guard.test.ts#slide_convert への接続 実行時依存が未取得なら変換を始めず ToolResult 契約で返す","name":"実行時依存が未取得なら変換を始めず ToolResult 契約で返す","status":"passed","testResultsByEnv":{"default":"b1b33b8dce2813bd1c3c8bbff45e14d8"}}

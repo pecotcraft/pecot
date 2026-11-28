@@ -1,0 +1,1 @@
+{"id":"b4f06d8820be01af9c769f0b12e93535.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-sync.test.ts#slide_sync の node_modules_only (テーマを参照する talk-dir) テーマの取得に失敗したら、theme-<reason> と文言で止まる","name":"テーマの取得に失敗したら、theme-<reason> と文言で止まる","status":"passed","testResultsByEnv":{"default":"df03987885e4c06315d0ec35ac324197"}}

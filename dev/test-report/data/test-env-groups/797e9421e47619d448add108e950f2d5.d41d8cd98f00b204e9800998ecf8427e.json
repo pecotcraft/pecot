@@ -1,0 +1,1 @@
+{"id":"797e9421e47619d448add108e950f2d5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_download_failed_api_error","name":"--download-failed で API が失敗すると、取得の失敗の理由を出力する","status":"passed","testResultsByEnv":{"default":"5bd6446cd1425d3d9773cbe71af23062"}}

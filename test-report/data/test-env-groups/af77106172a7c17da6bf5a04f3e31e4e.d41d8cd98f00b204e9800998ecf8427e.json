@@ -1,0 +1,1 @@
+{"id":"af77106172a7c17da6bf5a04f3e31e4e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-security.test.ts#tracker sync source が使えない source を省く と、GitHub を呼ばずに入力の誤りとして終了コード 2 で step を失敗にする","name":"source を省く と、GitHub を呼ばずに入力の誤りとして終了コード 2 で step を失敗にする","status":"passed","testResultsByEnv":{"default":"d26c624167ccf6d3565c73f944ccca18"}}

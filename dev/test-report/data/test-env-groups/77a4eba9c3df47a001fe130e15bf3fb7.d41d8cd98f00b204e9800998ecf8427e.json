@@ -1,0 +1,1 @@
+{"id":"77a4eba9c3df47a001fe130e15bf3fb7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/copilot-skill-names.test.ts#pre-tool-use-skill.sh このプラグインのものでないスキル（パス遡上）のとき、何も出力せず、.pecot も作らない","name":"このプラグインのものでないスキル（パス遡上）のとき、何も出力せず、.pecot も作らない","status":"passed","testResultsByEnv":{"default":"1e409b72ea48be1a5b799c4831385082"}}

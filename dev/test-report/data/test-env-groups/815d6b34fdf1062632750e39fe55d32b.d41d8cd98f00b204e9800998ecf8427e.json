@@ -1,0 +1,1 @@
+{"id":"815d6b34fdf1062632750e39fe55d32b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/merge.test.ts#mergePptxFiles presentation.xml.rels は、種類が slide の関係だけを作り直し、ほかの種類の関係は残す","name":"presentation.xml.rels は、種類が slide の関係だけを作り直し、ほかの種類の関係は残す","status":"passed","testResultsByEnv":{"default":"0df5e7f5e049f33613f4d5cde91b4375"}}

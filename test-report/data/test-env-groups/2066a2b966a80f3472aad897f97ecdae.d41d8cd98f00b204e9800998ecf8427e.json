@@ -1,0 +1,1 @@
+{"id":"2066a2b966a80f3472aad897f97ecdae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/drawio.test.ts#drawio_export icons_dir 省略時は plugin-root 同梱のカタログを既定に使う","name":"icons_dir 省略時は plugin-root 同梱のカタログを既定に使う","status":"passed","testResultsByEnv":{"default":"7a588715380101eef628918c9e8e9559"}}

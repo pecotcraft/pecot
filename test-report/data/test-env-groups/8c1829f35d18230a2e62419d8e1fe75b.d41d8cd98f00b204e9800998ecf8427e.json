@@ -1,0 +1,1 @@
+{"id":"8c1829f35d18230a2e62419d8e1fe75b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#transformItems ラベルが存在しない場合は、labels を空の配列にする","name":"ラベルが存在しない場合は、labels を空の配列にする","status":"passed","testResultsByEnv":{"default":"49ed05f21b34ba3d74ed8a660782d939"}}

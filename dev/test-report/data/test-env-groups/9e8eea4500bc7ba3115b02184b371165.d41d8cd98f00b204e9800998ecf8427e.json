@@ -1,0 +1,1 @@
+{"id":"9e8eea4500bc7ba3115b02184b371165.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 ensureToken を呼ばずに要求すると、要求の前に gh のトークンを読んでヘッダに付ける","name":"ensureToken を呼ばずに要求すると、要求の前に gh のトークンを読んでヘッダに付ける","status":"passed","testResultsByEnv":{"default":"05e4ba48c66f1276a5069ffc9b0ea875"}}

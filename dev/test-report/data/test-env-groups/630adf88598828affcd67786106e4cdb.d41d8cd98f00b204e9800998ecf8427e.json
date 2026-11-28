@@ -1,0 +1,1 @@
+{"id":"630adf88598828affcd67786106e4cdb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/duration-ceiling.test.ts#durationCeilingMs 環境変数に下限の 1 と上限の 4 を指定した場合は、どちらも受け付ける","name":"環境変数に下限の 1 と上限の 4 を指定した場合は、どちらも受け付ける","status":"passed","testResultsByEnv":{"default":"43ce20652969a19fc224b8d20f061306"}}

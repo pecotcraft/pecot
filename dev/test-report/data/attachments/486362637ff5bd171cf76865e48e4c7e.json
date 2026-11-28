@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "slide_page: generated (/tmp/pecotv-test-e2e-9VLKfm/page-talk/pages/e2e-legacy-panel.md); fill in the content following props / text_constraints in reference, then register \"src: ./pages/e2e-legacy-panel.md\" in slides.md separately"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.page.done\",\"layout\":\"legacy-panel\",\"category\":\"figure\",\"deprecated\":true,\"path\":\"/tmp/pecotv-test-e2e-9VLKfm/page-talk/pages/e2e-legacy-panel.md\",\"skeleton\":\"---\\nlayout: legacy-panel\\nheading: 旧い枠の見出し\\n---\\n\",\"reference\":\"layout: 'legacy-panel'\\ndescription: '【非推奨】品質が水準に達していないため選ばない、見出しだけの枠。'\\ncategory: 'figure'\\nstatus: 'deprecated'\\n\\nincludes:\\n  - _common\\n\\nprops:\\n  heading:\\n    type: 'String'\\n    required: true\\n    description: '見出し'\\n\\ntext_constraints:\\n  'heading':\\n    min_chars: 2\\n    max_chars: 20\\n\\nexamples:\\n  - name: 基本\\n    frontmatter: |\\n      ---\\n      layout: legacy-panel\\n      heading: 旧い枠の見出し\\n      ---\\n\\nclicks:\\n  supported: false\\n\\nbest_practices:\\n  - '新しい資料では選ばない'\\n\\nanti_patterns:\\n  - '候補に数える'\\n\",\"includes\":{\"_common\":\"# Shared Reference: _common\\ndescription: 'テスト用テーマの共通の宣言。'\\n\\nlayout_categories:\\n  - id: 'text'\\n    label: '文章'\\n    question: '文章で見せる'\\n  - id: 'figure'\\n    label: '図'\\n    question: '図で見せる'\\n\"}}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.page.done",
+    "layout": "legacy-panel",
+    "category": "figure",
+    "deprecated": true,
+    "path": "/tmp/pecotv-test-e2e-9VLKfm/page-talk/pages/e2e-legacy-panel.md",
+    "skeleton": "---\nlayout: legacy-panel\nheading: 旧い枠の見出し\n---\n",
+    "reference": "layout: 'legacy-panel'\ndescription: '【非推奨】品質が水準に達していないため選ばない、見出しだけの枠。'\ncategory: 'figure'\nstatus: 'deprecated'\n\nincludes:\n  - _common\n\nprops:\n  heading:\n    type: 'String'\n    required: true\n    description: '見出し'\n\ntext_constraints:\n  'heading':\n    min_chars: 2\n    max_chars: 20\n\nexamples:\n  - name: 基本\n    frontmatter: |\n      ---\n      layout: legacy-panel\n      heading: 旧い枠の見出し\n      ---\n\nclicks:\n  supported: false\n\nbest_practices:\n  - '新しい資料では選ばない'\n\nanti_patterns:\n  - '候補に数える'\n",
+    "includes": {
+      "_common": "# Shared Reference: _common\ndescription: 'テスト用テーマの共通の宣言。'\n\nlayout_categories:\n  - id: 'text'\n    label: '文章'\n    question: '文章で見せる'\n  - id: 'figure'\n    label: '図'\n    question: '図で見せる'\n"
+    }
+  }
+}

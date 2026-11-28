@@ -1,0 +1,1 @@
+{"id":"d5bd665d5ddd54d489e5cf2cac7bf964.7e3bb6424d2571e5e9c80dd6ac750d64","fullName":".githooks.tests.test_nx_affected_mapping#test_plugin_source_affects_own_projects","name":"libs/workflow-core/src/domain/config.ts を変更すると、そのソースを持つ project が affected になる","status":"passed","testResultsByEnv":{"default":"a379d64e6b1bf5cb93dbe91bf2730afd"}}

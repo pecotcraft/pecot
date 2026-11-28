@@ -1,0 +1,1 @@
+{"id":"519be89d70c11f6550efa90692e0d5f6.0c92e08b5b480bf9d83a039c6ebf4f42","fullName":".githooks.tests.test_nx_affected_mapping#test_outside_project_file_affects_only_the_root_project","name":"プラグインの外の .devcontainer/tmux/tmux.conf を変更すると、ルートの project だけが affected になる","status":"passed","testResultsByEnv":{"default":"cab880de9fbd1ae3812c408555a13f48"}}

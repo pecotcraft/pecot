@@ -1,0 +1,1 @@
+{"id":"f75c645a6df90ebf6958c57fa5fa8ec2.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/attach-mcp-tgz.test.sh#必須の引数が欠けると非ゼロ終了になる","name":"必須の引数が欠けると非ゼロ終了になる","status":"passed","testResultsByEnv":{"default":"e2a1975d7939ebe8c9611c555031c209"}}

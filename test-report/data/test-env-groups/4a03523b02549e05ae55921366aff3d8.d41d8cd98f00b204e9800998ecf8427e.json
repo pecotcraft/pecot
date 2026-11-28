@@ -1,0 +1,1 @@
+{"id":"4a03523b02549e05ae55921366aff3d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/max-chars-rule.test.ts#同じ名前の reference が複数のディレクトリにあると、settings の先頭に近いものを使う","name":"同じ名前の reference が複数のディレクトリにあると、settings の先頭に近いものを使う","status":"passed","testResultsByEnv":{"default":"3abefc4a3e4dd34a6561f09550c4c6c8"}}

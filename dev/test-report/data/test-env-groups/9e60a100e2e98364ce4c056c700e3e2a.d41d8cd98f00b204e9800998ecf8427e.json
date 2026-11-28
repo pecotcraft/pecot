@@ -1,0 +1,1 @@
+{"id":"9e60a100e2e98364ce4c056c700e3e2a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry prerender の画像が 0 件の場合も、保存して復元できる","name":"prerender の画像が 0 件の場合も、保存して復元できる","status":"passed","testResultsByEnv":{"default":"25cf90cb165c1fcce57697fb28d5f817"}}

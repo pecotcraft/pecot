@@ -1,0 +1,1 @@
+{"id":"2d685d0b614cb9685daed5b8e3f752ea.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_preview_status_runs_after_deploy_or_in_store_without_upload","name":"プレビューのステータスは、deploy の後か、上げずに済んだ store の最後に付ける","status":"passed","testResultsByEnv":{"default":"6e8486ee7eb60afae614b28c0d65bb1b"}}

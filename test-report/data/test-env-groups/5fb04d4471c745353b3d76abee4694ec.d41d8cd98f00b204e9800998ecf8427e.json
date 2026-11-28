@@ -1,0 +1,1 @@
+{"id":"5fb04d4471c745353b3d76abee4694ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-coverage.test.ts#issue-coverage.yaml 一覧から supported の項目を 1 つ消すと、その id を挙げて落ちる","name":"一覧から supported の項目を 1 つ消すと、その id を挙げて落ちる","status":"passed","testResultsByEnv":{"default":"e44d80ac1c27f8bebd32643254f22a9e"}}

@@ -1,0 +1,1 @@
+{"id":"cd58cb2571d49d6ff4595927c96d6d2d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「hrefMap の値が文字列でない」の場合は、undefined を返す","name":"エントリが「hrefMap の値が文字列でない」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"8698a1e330ff2befb7dd581462d5f13c"}}

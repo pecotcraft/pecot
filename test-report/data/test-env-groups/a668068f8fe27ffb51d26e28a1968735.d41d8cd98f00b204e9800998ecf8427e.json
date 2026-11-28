@@ -1,0 +1,1 @@
+{"id":"a668068f8fe27ffb51d26e28a1968735.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show MCP の data json を省いても、json と同じ中身を返す","name":"json を省いても、json と同じ中身を返す","status":"passed","testResultsByEnv":{"default":"806c32f045c7506a29b913144029f2db"}}

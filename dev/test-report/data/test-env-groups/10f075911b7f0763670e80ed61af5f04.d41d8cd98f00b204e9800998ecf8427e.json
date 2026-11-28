@@ -1,0 +1,1 @@
+{"id":"10f075911b7f0763670e80ed61af5f04.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#ensureAwscli 版を判定できない出力のときは、awscli-missing と判定する","name":"版を判定できない出力のときは、awscli-missing と判定する","status":"passed","testResultsByEnv":{"default":"780f2abc852168f0112d6a96ff818465"}}

@@ -1,0 +1,1 @@
+{"id":"e5aa1e73084169f773351cfaf1e3591f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 開発ブランチから着手した記録があると、fetch とスタックし直しをせずに up to date と出す","name":"開発ブランチから着手した記録があると、fetch とスタックし直しをせずに up to date と出す","status":"passed","testResultsByEnv":{"default":"e51a68d8bcc38a3f505c984b64a84e3f"}}

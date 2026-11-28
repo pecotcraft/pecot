@@ -1,0 +1,1 @@
+{"id":"1e4df27f8122c08910cf65498faa3b8a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#createIssue labels が [] の場合は、本文に labels を含めない","name":"labels が [] の場合は、本文に labels を含めない","status":"passed","testResultsByEnv":{"default":"b739017a771f712d4e265a0a5ce438e8"}}

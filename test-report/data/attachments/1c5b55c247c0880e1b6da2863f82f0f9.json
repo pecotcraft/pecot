@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: text lint violations: /tmp/pecotv-test-file-tools-IjbT7z/repository/docs/note.md\\n\\n  /tmp/pecotv-test-file-tools-IjbT7z/repository/docs/note.md:3:1 no-ai-hype-expressions 「ゲームチェンジャー」という表現は機械的な印象を与える可能性があります。具体的な変化を説明することを検討してください。\\n\\n  The text above does not satisfy the writing rules. The rules stay enabled.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: text lint violations: /tmp/pecotv-test-file-tools-IjbT7z/repository/docs/note.md\n\n  /tmp/pecotv-test-file-tools-IjbT7z/repository/docs/note.md:3:1 no-ai-hype-expressions 「ゲームチェンジャー」という表現は機械的な印象を与える可能性があります。具体的な変化を説明することを検討してください。\n\n  The text above does not satisfy the writing rules. The rules stay enabled."
+    }
+  }
+}

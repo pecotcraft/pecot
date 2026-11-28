@@ -1,0 +1,1 @@
+{"id":"a5a3344c4949c34cf721ea70f58663b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#dataDirectory の解決順 CLAUDE_PLUGIN_DATA が最優先（実在しなくてもそのまま） のとき、/client/data を返す","name":"CLAUDE_PLUGIN_DATA が最優先（実在しなくてもそのまま） のとき、/client/data を返す","status":"passed","testResultsByEnv":{"default":"318ca6e177747aa1c4bd4bb4d58b73e5"}}

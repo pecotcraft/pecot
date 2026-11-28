@@ -1,0 +1,1 @@
+{"id":"914e51ecec35c16428e401e4ea3516b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript 複数行の文字列は、行ごとに位置を数えて指摘を返す","name":"複数行の文字列は、行ごとに位置を数えて指摘を返す","status":"passed","testResultsByEnv":{"default":"ea615a8de664ad4323c6f3587584038a"}}

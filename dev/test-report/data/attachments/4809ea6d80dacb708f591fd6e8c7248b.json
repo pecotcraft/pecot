@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pecot-status: pecot-status must be a single select field (it is TEXT); delete or rename it, then create it again"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"pecot-status\",\"code\":\"field-type\",\"message\":\"pecot-status must be a single select field (it is TEXT); delete or rename it, then create it again\"}],\"deletable\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "pecot-status",
+        "code": "field-type",
+        "message": "pecot-status must be a single select field (it is TEXT); delete or rename it, then create it again"
+      }
+    ],
+    "deletable": []
+  }
+}

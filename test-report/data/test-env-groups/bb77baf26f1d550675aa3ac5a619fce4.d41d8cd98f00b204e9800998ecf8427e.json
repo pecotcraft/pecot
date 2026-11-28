@@ -1,0 +1,1 @@
+{"id":"bb77baf26f1d550675aa3ac5a619fce4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check Dependabot alert の状態を読めない もし Dependabot alert の状態を読めないなら、warning の行を標準エラーに出す","name":"もし Dependabot alert の状態を読めないなら、warning の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"8037772937c1c9c2c3ecea0d41875cea"}}

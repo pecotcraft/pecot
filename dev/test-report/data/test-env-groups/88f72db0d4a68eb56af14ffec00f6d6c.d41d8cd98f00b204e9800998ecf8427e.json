@@ -1,0 +1,1 @@
+{"id":"88f72db0d4a68eb56af14ffec00f6d6c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 子の error イベントを拾って stderr に載せる (未処理だと MCP サーバごと落ちる)","name":"子の error イベントを拾って stderr に載せる (未処理だと MCP サーバごと落ちる)","status":"passed","testResultsByEnv":{"default":"bff44329012e49c99aab90595ef4a336"}}

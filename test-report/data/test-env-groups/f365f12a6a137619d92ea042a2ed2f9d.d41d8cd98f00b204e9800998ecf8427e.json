@@ -1,0 +1,1 @@
+{"id":"f365f12a6a137619d92ea042a2ed2f9d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/tests/node-runtime.test.ts#checkNodeRuntime Node.js のバージョンが unknown の場合は、起動を止める","name":"Node.js のバージョンが unknown の場合は、起動を止める","status":"passed","testResultsByEnv":{"default":"fa0e9ed9b1d4e4b970e8e4d5156ad48d"}}

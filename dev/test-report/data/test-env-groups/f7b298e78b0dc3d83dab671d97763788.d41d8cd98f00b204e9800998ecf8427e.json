@@ -1,0 +1,1 @@
+{"id":"f7b298e78b0dc3d83dab671d97763788.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_outputs_pr_main_run_and_head_on_success","name":"すべての条件を満たすと、PR の CI が基にした main の sha と、その run の ID と PR の head を出力する","status":"passed","testResultsByEnv":{"default":"929bdada117445b7b4902d885b301dd9"}}

@@ -1,0 +1,1 @@
+{"id":"a20583785185b952c5500c0489038a98.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_action_inputs_use_actioninput_and_examples_are_workflow_steps","name":"action の入力は actioninput で書き、使用例はワークフローの step の形で書く","status":"passed","testResultsByEnv":{"default":"e3f7ae211f5d3ae83c903078d299e1a7"}}

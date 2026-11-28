@@ -1,0 +1,1 @@
+{"id":"39f99a35fa29a216e8a91c972e42ab9e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/rules.test.ts#buildRules buildRules は、3 つの preset の規則を、除外した規則と未設定の規則を除いてすべて返す","name":"buildRules は、3 つの preset の規則を、除外した規則と未設定の規則を除いてすべて返す","status":"passed","testResultsByEnv":{"default":"cc331c12dd49404fa72a8f76d03c547d"}}

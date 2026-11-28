@@ -1,0 +1,1 @@
+{"id":"ca4972f6fe9d396027f8e02a37bfd7fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: 文字列の本文のエスケープ エスケープしたバックスラッシュに続く n は改行にせず、1 つの文として数える","name":"エスケープしたバックスラッシュに続く n は改行にせず、1 つの文として数える","status":"passed","testResultsByEnv":{"default":"97818df7de5a8f4b1254075da57e5baa"}}

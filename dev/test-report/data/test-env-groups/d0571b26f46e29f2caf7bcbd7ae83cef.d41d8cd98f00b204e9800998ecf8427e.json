@@ -1,0 +1,1 @@
+{"id":"d0571b26f46e29f2caf7bcbd7ae83cef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インラインコードの Code ノード YAML の文字列 のバッククォートで囲んだ区間は、規則の対象にしない","name":"YAML の文字列 のバッククォートで囲んだ区間は、規則の対象にしない","status":"passed","testResultsByEnv":{"default":"2d606cba99c8791fd707759bbdbde8ea"}}

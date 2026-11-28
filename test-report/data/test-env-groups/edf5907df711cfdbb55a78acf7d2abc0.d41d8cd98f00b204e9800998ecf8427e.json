@@ -1,0 +1,1 @@
+{"id":"edf5907df711cfdbb55a78acf7d2abc0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/patch-apply.test.ts#applyPatches 適用するパッチがなければ、何もしない","name":"適用するパッチがなければ、何もしない","status":"passed","testResultsByEnv":{"default":"772d8e5fda36e305c2b3b3276e9aadc3"}}

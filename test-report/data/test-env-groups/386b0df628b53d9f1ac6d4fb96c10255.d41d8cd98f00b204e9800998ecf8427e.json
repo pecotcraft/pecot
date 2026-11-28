@@ -1,0 +1,1 @@
+{"id":"386b0df628b53d9f1ac6d4fb96c10255.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/pr-waiting.test.ts#moveIssuesWaitingFor 待つ Issue の読み取りが次のとき（blocking が null）、ボードを読まずに終える","name":"待つ Issue の読み取りが次のとき（blocking が null）、ボードを読まずに終える","status":"passed","testResultsByEnv":{"default":"a9df7679e725a32e149e1c278b22e85f"}}

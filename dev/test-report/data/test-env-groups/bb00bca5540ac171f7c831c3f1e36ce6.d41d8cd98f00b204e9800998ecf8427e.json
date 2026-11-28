@@ -1,0 +1,1 @@
+{"id":"bb00bca5540ac171f7c831c3f1e36ce6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show スタックしていないと、baseBranch に remote の開発ブランチを入れる","name":"スタックしていないと、baseBranch に remote の開発ブランチを入れる","status":"passed","testResultsByEnv":{"default":"3d4465f35a194542cb1b53b9f549f94c"}}

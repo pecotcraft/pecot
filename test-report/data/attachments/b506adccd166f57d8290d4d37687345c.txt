@@ -1,0 +1,15 @@
+
+> nx run lane-one:test-unit
+
+
+> nx run lane-two:test-unit
+
+lane-one: LANE_ONE_BODY ok
+lane-two: LANE_TWO_BODY running
+lane-one: passed
+lane-two: CALL1_BODY call count marker
+lane-two: passed
+
+
+
+ NX   Successfully ran target test for 2 projects

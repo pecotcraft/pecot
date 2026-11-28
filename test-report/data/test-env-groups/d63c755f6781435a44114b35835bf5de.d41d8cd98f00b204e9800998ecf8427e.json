@@ -1,0 +1,1 @@
+{"id":"d63c755f6781435a44114b35835bf5de.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#ensureAwscli awscli が PATH に存在しないときは、導入を促すメッセージを返す","name":"awscli が PATH に存在しないときは、導入を促すメッセージを返す","status":"passed","testResultsByEnv":{"default":"6c8aef425970c6040d330a5fe2c5d4d1"}}

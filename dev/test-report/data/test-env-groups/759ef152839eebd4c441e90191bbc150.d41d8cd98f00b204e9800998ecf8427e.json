@@ -1,0 +1,1 @@
+{"id":"759ef152839eebd4c441e90191bbc150.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-issue-surface.test.ts#tracker sync issue-surface の dry-run 作成するときは、書き込まずに作成の予定の行を出す","name":"作成するときは、書き込まずに作成の予定の行を出す","status":"passed","testResultsByEnv":{"default":"e876679e73d6d4d6d057f14428822c38"}}

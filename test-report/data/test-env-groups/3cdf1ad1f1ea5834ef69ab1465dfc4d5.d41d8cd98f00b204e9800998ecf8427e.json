@@ -1,0 +1,1 @@
+{"id":"3cdf1ad1f1ea5834ef69ab1465dfc4d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#createPullRequest 422（既に PR がある）が返ると、GitHubAPIError を発生させる","name":"422（既に PR がある）が返ると、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"8fb7a377b1af70de3155e1c4366c5af5"}}

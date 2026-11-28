@@ -1,0 +1,1 @@
+{"id":"c08dc69b3ce68181b539bb8b8295e4e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-definition.test.ts#defineTool output が共通の項目名に含まれない名前 reason を持つ場合は、ツールを定義できる","name":"output が共通の項目名に含まれない名前 reason を持つ場合は、ツールを定義できる","status":"passed","testResultsByEnv":{"default":"6ff1ff3e2208733dff438f6fb331f651"}}

@@ -1,0 +1,1 @@
+{"id":"c7cc0646661a62bb5fd4390fdad453d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/command-references.test.ts#本文のツールの呼び出し 存在しない入力名を書いたインラインの呼び出しを検出する","name":"存在しない入力名を書いたインラインの呼び出しを検出する","status":"passed","testResultsByEnv":{"default":"eebdd739c346b0340282ce919514407c"}}

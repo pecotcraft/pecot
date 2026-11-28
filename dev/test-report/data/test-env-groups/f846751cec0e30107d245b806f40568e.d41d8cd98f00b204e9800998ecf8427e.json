@@ -1,0 +1,1 @@
+{"id":"f846751cec0e30107d245b806f40568e.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/plugin-update-notice.bats#hooks-config で無効化したとき、installed が古くても何も出さない","name":"hooks-config で無効化したとき、installed が古くても何も出さない","status":"passed","testResultsByEnv":{"default":"8c6ce054b467d1b2d89559981c4ebf37"}}

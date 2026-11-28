@@ -1,0 +1,1 @@
+{"id":"81391f554455f72d96b0f88094fe1e78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#updateIssueBody 状態コード 422 が返った場合は、GitHubAPIError が発生する","name":"状態コード 422 が返った場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"21ad29f1124ce7fa54aec194c6f74894"}}

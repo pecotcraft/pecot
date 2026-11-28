@@ -1,0 +1,4 @@
+ERROR: plugins/pecot-workflow libs/workflow-core に未コミットの変更があります。配布ツリーは作業ツリーから
+       組み立てるため、pecot-workflow-v0.0.0-test2804 が指すコミットと作業ツリーが一致した状態でのみ
+       publish できます:
+ M plugins/pecot-workflow/scripts/release/mcp-dist-README.md

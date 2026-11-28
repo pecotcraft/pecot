@@ -1,0 +1,1 @@
+{"id":"b4ca1fc12a6326446d0d4ffdbb60bc42.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint 文章の違反の無いファイルを渡すと、空のオブジェクトを返す","name":"文章の違反の無いファイルを渡すと、空のオブジェクトを返す","status":"passed","testResultsByEnv":{"default":"a716d41c39cfca855b7d97f51c9c8e38"}}

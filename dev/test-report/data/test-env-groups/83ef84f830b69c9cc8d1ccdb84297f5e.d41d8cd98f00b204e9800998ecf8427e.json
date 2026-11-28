@@ -1,0 +1,1 @@
+{"id":"83ef84f830b69c9cc8d1ccdb84297f5e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/attach.test.ts#attach Allure の reporter が動くレーンの中 対応表にない拡張子で attachContent を呼ぶと、拡張子を含むメッセージで例外が発生する","name":"対応表にない拡張子で attachContent を呼ぶと、拡張子を含むメッセージで例外が発生する","status":"passed","testResultsByEnv":{"default":"dab7f1ac4be0d3178826615eeba258cb"}}

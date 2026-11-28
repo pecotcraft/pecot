@@ -1,0 +1,1 @@
+{"id":"083fc1927d9fd8924487cc1ae919e864.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish base のリポに既定ブランチが無いと、本文の Closes の Issue も close する","name":"base のリポに既定ブランチが無いと、本文の Closes の Issue も close する","status":"passed","testResultsByEnv":{"default":"12d3b9b1424cacff879b8bd694aefafb"}}

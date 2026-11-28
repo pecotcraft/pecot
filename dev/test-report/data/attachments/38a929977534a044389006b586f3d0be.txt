@@ -1,0 +1,4 @@
+docker pull の所要: 不明 秒
+PECOT_CI_IMAGE=pecot-ci-local（PR の定義から build, sha256:localid）
+{"type":"log"}
+{"outcome":"success","containerId":"cid123"}

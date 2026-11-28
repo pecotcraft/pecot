@@ -1,0 +1,1 @@
+{"id":"4cd9e9623070039ee156517f8d035425.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#applyPrerenderImageReplace meta.json を読み込めない場合は、その entry を飛ばす","name":"meta.json を読み込めない場合は、その entry を飛ばす","status":"passed","testResultsByEnv":{"default":"3091f4cd39ec89404d087a6a0c87e430"}}

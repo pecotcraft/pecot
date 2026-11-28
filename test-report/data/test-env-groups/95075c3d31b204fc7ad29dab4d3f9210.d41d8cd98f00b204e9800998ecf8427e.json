@@ -1,0 +1,1 @@
+{"id":"95075c3d31b204fc7ad29dab4d3f9210.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/mcp/tools-list.test.ts#tools/list project_activate の outputSchema は、成功の結果の項目を anyOf で必須にする","name":"project_activate の outputSchema は、成功の結果の項目を anyOf で必須にする","status":"passed","testResultsByEnv":{"default":"3f003cb8e0597e0f23a8c53732626afd"}}

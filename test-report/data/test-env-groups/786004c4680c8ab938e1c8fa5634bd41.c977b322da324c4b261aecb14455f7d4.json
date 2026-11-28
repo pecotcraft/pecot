@@ -1,0 +1,1 @@
+{"id":"786004c4680c8ab938e1c8fa5634bd41.c977b322da324c4b261aecb14455f7d4","fullName":".githooks.tests.test_pages_store#test_publish_report_option_errors","name":"レポートの `publish` に不正なオプション {'side': 'none'} を渡すと、--kind report に関する例外が発生する","status":"passed","testResultsByEnv":{"default":"7bec27fa2857d4e6d5ed9f8f46dd9d46"}}

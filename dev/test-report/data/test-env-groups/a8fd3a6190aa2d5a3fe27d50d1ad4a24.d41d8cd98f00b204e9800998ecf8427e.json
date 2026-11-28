@@ -1,0 +1,1 @@
+{"id":"a8fd3a6190aa2d5a3fe27d50d1ad4a24.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — items item がオブジェクトでない場合は、その item のパスで拒否する","name":"item がオブジェクトでない場合は、その item のパスで拒否する","status":"passed","testResultsByEnv":{"default":"bf44a8c4c5c7097a6290e67dabd325fd"}}

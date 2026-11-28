@@ -1,0 +1,1 @@
+{"id":"c4c52cb8d3b17fe478330f0842691160.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/pecotv-run-output.test.ts#formatOutputTails 標準エラーが上限を超える場合は、末尾の OUTPUT_TAIL_LIMIT 文字だけを使う","name":"標準エラーが上限を超える場合は、末尾の OUTPUT_TAIL_LIMIT 文字だけを使う","status":"passed","testResultsByEnv":{"default":"d474a3237dcfe9aaa6996df62ea625ec"}}

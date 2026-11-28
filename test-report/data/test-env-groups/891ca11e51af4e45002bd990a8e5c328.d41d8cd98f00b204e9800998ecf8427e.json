@@ -1,0 +1,1 @@
+{"id":"891ca11e51af4e45002bd990a8e5c328.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#pythonRepr NaN と無限大は、nan・inf・-inf の文字列にする","name":"NaN と無限大は、nan・inf・-inf の文字列にする","status":"passed","testResultsByEnv":{"default":"2f67f18cd5aa173f2def8e1a343900fe"}}

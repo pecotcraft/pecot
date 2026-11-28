@@ -1,0 +1,1 @@
+{"id":"9eaa15a9c4f20f69df2148760456e4fc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create 待っている Issue 列の書き込みの接続 に失敗すると、PR を作ったまま warning の行を出し、終了コード 0 で終わる","name":"列の書き込みの接続 に失敗すると、PR を作ったまま warning の行を出し、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"ddaf7f46d41a1a9070c9e0b4397c8456"}}

@@ -1,0 +1,8 @@
+:iface-id: PW-PROJECT-LIST
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+List projects
+==========================
+
+.. iface-defs:: pecot-workflow PW-PROJECT-LIST

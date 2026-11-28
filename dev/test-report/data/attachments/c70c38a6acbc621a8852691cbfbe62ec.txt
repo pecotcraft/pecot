@@ -1,0 +1,5 @@
+project: ghes.example.com_acme_1 (ghes.example.com, acme #1)
+aggregation_repo: acme/roadmap
+repositories:
+- acme/demo (develop: main, release: release), release_type: single
+- acme/mono, release_type: multi

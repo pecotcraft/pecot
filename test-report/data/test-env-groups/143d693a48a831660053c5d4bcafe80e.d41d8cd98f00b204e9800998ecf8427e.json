@@ -1,0 +1,1 @@
+{"id":"143d693a48a831660053c5d4bcafe80e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/registry.test.ts#ツールの一覧 pr_restack の output は、入力の向きと出力の向きで JSON Schema が同じになる","name":"pr_restack の output は、入力の向きと出力の向きで JSON Schema が同じになる","status":"passed","testResultsByEnv":{"default":"56f43262ea534e2c7e6dd2b480c93d70"}}

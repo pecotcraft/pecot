@@ -1,0 +1,5 @@
+count: open dependabot PRs: 2
+count: PRs awaiting a decision: 1
+count: PRs awaiting a decision without check results: 0
+created: Tracker "[Tracker] dependabot PR — 2026-11-09"
+added: PR #2 to new Tracker (major)

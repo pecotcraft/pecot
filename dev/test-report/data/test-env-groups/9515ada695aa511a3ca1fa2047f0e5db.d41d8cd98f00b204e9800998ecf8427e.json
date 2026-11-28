@@ -1,0 +1,1 @@
+{"id":"9515ada695aa511a3ca1fa2047f0e5db.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync dry-run を true にすると、Archived の項目を削除せず、削除する件数を dry-run の行で出す","name":"dry-run を true にすると、Archived の項目を削除せず、削除する件数を dry-run の行で出す","status":"passed","testResultsByEnv":{"default":"1a13f273fac13ae5b0ffc6f493401d34"}}

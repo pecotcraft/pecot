@@ -1,0 +1,1 @@
+{"id":"2623f74a8c398b0270c3dfd1ada71ffa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface-export.test.ts#export-interface --write で書いたものを --check が通し、変わると stale を返す","name":"--write で書いたものを --check が通し、変わると stale を返す","status":"passed","testResultsByEnv":{"default":"ebf472bcebdecffb74a3fc3bf6c48993"}}

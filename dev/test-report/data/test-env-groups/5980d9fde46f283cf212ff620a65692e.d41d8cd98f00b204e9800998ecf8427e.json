@@ -1,0 +1,1 @@
+{"id":"5980d9fde46f283cf212ff620a65692e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/lockfile-single-version.test.ts#固定対象の単一版 (#1233) ロックファイルでは、shiki・@shikijs/*・vite が、パッケージごとに 1 つの版だけになる","name":"ロックファイルでは、shiki・@shikijs/*・vite が、パッケージごとに 1 つの版だけになる","status":"passed","testResultsByEnv":{"default":"2c60903d42a53647e95b451589a9638a"}}

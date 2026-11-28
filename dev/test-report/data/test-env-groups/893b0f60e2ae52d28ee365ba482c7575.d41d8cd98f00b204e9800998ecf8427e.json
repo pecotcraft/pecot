@@ -1,0 +1,1 @@
+{"id":"893b0f60e2ae52d28ee365ba482c7575.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#expectedScope 複数のプロジェクトに属する場合は、scope の昇順で返す","name":"複数のプロジェクトに属する場合は、scope の昇順で返す","status":"passed","testResultsByEnv":{"default":"6d19a19abb095aa694948e1948cc57c9"}}

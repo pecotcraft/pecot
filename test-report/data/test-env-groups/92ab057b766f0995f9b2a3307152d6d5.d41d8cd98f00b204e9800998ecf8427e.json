@@ -1,0 +1,1 @@
+{"id":"92ab057b766f0995f9b2a3307152d6d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/slidev-to-pptx-hash-router.test.ts#Issue #971 — routerMode: hash デッキの PPTX 変換 全走査で変換すると、すべてのステップを個別のスライドとして出力する","name":"全走査で変換すると、すべてのステップを個別のスライドとして出力する","status":"passed","testResultsByEnv":{"default":"580a4938be4b1f17eac4b79a7769f68e"}}

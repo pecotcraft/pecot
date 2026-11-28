@@ -1,0 +1,1 @@
+{"id":"080e43bd306b9b85f320ed31fe18e1ba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toToolResult 成功と失敗の structuredContent は outputSchema に合い、どちらでもない値と未知の項目は合わない","name":"成功と失敗の structuredContent は outputSchema に合い、どちらでもない値と未知の項目は合わない","status":"passed","testResultsByEnv":{"default":"2dc4fe70eefaba3b91f3b5c115579f18"}}

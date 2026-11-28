@@ -1,0 +1,1 @@
+{"id":"364a861627216f12043fca1fbefc7dc1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#loadCopyExcludeSpec 空の .worktreeignore は、何も除外せず、警告も出力しない","name":"空の .worktreeignore は、何も除外せず、警告も出力しない","status":"passed","testResultsByEnv":{"default":"68874a42b7821e897b6e749ce3b1587d"}}

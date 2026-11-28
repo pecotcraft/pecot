@@ -1,0 +1,1 @@
+{"id":"5f1e18fdcd99d886db3e3d5394b67777.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slide-url.test.ts#parseSlideUrl clicks が負の値の場合も、そのまま解析する","name":"clicks が負の値の場合も、そのまま解析する","status":"passed","testResultsByEnv":{"default":"6e6894d2cc18dcf6046189f5ae52c1fb"}}

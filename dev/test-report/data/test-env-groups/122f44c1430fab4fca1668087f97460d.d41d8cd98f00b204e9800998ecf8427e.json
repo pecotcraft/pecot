@@ -1,0 +1,1 @@
+{"id":"122f44c1430fab4fca1668087f97460d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/lockfile-single-version.test.ts#catalogViteOutside catalog の vite の下限が @slidev/cli の範囲以上なら、範囲に収まると判定する","name":"catalog の vite の下限が @slidev/cli の範囲以上なら、範囲に収まると判定する","status":"passed","testResultsByEnv":{"default":"b3caa645b845b1924f63f502b18724bd"}}

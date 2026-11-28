@@ -1,0 +1,1 @@
+{"id":"23ce5af9de45af53bffc4fcd098a71ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インラインコードの Code ノード 複数行の文字列では、2 行目以降の Code の行と桁を、元のファイルに合わせる","name":"複数行の文字列では、2 行目以降の Code の行と桁を、元のファイルに合わせる","status":"passed","testResultsByEnv":{"default":"70d035aeb93cbfd9723fe15b09b6232f"}}

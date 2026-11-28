@@ -1,0 +1,169 @@
+{
+  "name": "slide_lint",
+  "title": "Lint Slidev deck",
+  "description": "Lints the whole talk-dir (pages/**/*.md and slides.md) and returns the list of violations. The call itself succeeds even with violations; outcome is violations when any are found.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "dir": {
+        "type": "string",
+        "description": "Absolute path of the talk-dir to lint. Relative paths are not accepted. Windows-style paths (C:\\... / \\\\wsl.localhost\\<distro>\\...) are accepted and converted to an absolute path under /mnt/<drive>/ or inside WSL."
+      }
+    },
+    "required": [
+      "dir"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "event": {
+        "type": "string",
+        "description": "slide.lint.done or slide.lint.violations on success, slide.lint.error on failure (omitted when a path argument is rejected)"
+      },
+      "dir": {
+        "type": "string",
+        "description": "Absolute path of the linted talk-dir (success only)"
+      },
+      "outcome": {
+        "type": "string",
+        "enum": [
+          "clean",
+          "violations",
+          "no-target"
+        ],
+        "description": "clean (no violations), violations (some found), no-target (no file to lint) (success only)"
+      },
+      "lintedFileCount": {
+        "type": "number",
+        "description": "Number of files linted (success only)"
+      },
+      "errorCount": {
+        "type": "number",
+        "description": "Number of errors (success only)"
+      },
+      "warningCount": {
+        "type": "number",
+        "description": "Number of warnings (success only)"
+      },
+      "violations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "Path relative to the talk-dir (absolute when outside it)"
+            },
+            "line": {
+              "type": "number"
+            },
+            "column": {
+              "type": "number"
+            },
+            "rule": {
+              "type": "string",
+              "description": "Rule ID"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "file",
+            "line",
+            "column",
+            "rule",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Violations found (success only)"
+      },
+      "skippedSymlinkDirectories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Symlinked directories under pages/ that were not linted (relative to the talk-dir) (success only)"
+      },
+      "invalidPaths": {
+        "description": "Rejected path arguments as <parameter>=<value> (failure only, kind invalid-path)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "convertedPaths": {
+        "description": "Windows-style path arguments converted before the rejection, keyed by parameter name (failure only, kind invalid-path; omitted when nothing was converted)",
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Value that was passed"
+            },
+            "to": {
+              "type": "string",
+              "description": "Path it was converted to"
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full text of the failure and how to recover (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "event",
+          "dir",
+          "outcome",
+          "lintedFileCount",
+          "errorCount",
+          "warningCount",
+          "violations",
+          "skippedSymlinkDirectories"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": false
+  }
+}

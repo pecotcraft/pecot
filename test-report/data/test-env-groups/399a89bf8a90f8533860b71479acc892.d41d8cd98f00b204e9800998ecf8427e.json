@@ -1,0 +1,1 @@
+{"id":"399a89bf8a90f8533860b71479acc892.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-gitignore-ensure.test.ts#pecot-gitignore-ensure.sh .pecot が無くても .gitignore を書き、--print の出力と一致する","name":".pecot が無くても .gitignore を書き、--print の出力と一致する","status":"passed","testResultsByEnv":{"default":"f167150698c2bdbe0d345040a622066f"}}

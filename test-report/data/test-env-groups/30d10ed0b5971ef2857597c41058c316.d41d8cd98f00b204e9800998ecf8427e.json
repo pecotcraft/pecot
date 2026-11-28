@@ -1,0 +1,1 @@
+{"id":"30d10ed0b5971ef2857597c41058c316.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create ファイルと一緒に screenshot を渡すと、終了コード 1 で終わる","name":"ファイルと一緒に screenshot を渡すと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"c1dba519ae52a4f2af5ebbdab059a49c"}}

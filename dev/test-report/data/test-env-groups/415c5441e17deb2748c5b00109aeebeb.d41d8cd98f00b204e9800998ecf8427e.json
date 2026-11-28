@@ -1,0 +1,1 @@
+{"id":"415c5441e17deb2748c5b00109aeebeb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#installChromium playwright を解決できない場合は、例外を投げず、起動失敗を表す SpawnResult を返す","name":"playwright を解決できない場合は、例外を投げず、起動失敗を表す SpawnResult を返す","status":"passed","testResultsByEnv":{"default":"8931a3eab356a68f39a0a8f0a666eb42"}}

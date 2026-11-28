@@ -1,0 +1,1 @@
+{"id":"f964ab352818132eedf41523435c9d1a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_cli_fails_when_unit_has_no_release_group","name":"CLI は、単位のリリースのグループが nx.json に存在しないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"b95c331ffcedf7273524ee5d2fac2d36"}}

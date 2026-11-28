@@ -1,0 +1,1 @@
+{"id":"bac7b7676f44074ba369e8a746f53f9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「短縮 SHA」の場合は、エラーを返す","name":"テーマの指定が「短縮 SHA」の場合は、エラーを返す","status":"passed","testResultsByEnv":{"default":"5c2dc904727753791c2574a2e4c470c5"}}

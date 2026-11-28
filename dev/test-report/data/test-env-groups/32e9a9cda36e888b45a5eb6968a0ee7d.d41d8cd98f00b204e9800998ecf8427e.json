@@ -1,0 +1,1 @@
+{"id":"32e9a9cda36e888b45a5eb6968a0ee7d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/review-finish.test.ts#review finish 実行のファイルの最後の result が error_max_turns だと、limit のコメントを書く","name":"実行のファイルの最後の result が error_max_turns だと、limit のコメントを書く","status":"passed","testResultsByEnv":{"default":"7ad22f3ce1db64dae374de0a012f4bf8"}}

@@ -1,0 +1,1 @@
+{"id":"692243c2942de263752d538b8f98c008.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-comment-check.test.ts#issue_comment_check add に comment_id を渡すと、comment_id の problem にする","name":"add に comment_id を渡すと、comment_id の problem にする","status":"passed","testResultsByEnv":{"default":"faf2d18cd455648a9cc9c99b0c6def16"}}

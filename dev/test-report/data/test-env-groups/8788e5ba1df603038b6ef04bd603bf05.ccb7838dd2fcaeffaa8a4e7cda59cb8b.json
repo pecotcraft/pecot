@@ -1,0 +1,1 @@
+{"id":"8788e5ba1df603038b6ef04bd603bf05.ccb7838dd2fcaeffaa8a4e7cda59cb8b","fullName":".githooks.tests.test_release_workflow#test_sha_flow","name":"dry-run が false で sha が multi-line のとき、sha の確認の終了コードは 1 になる","status":"passed","testResultsByEnv":{"default":"a38dc29ba720848baa69971ed91a40ac"}}

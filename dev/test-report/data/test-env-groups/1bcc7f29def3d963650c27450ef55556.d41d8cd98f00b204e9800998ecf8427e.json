@@ -1,0 +1,1 @@
+{"id":"1bcc7f29def3d963650c27450ef55556.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_push_ignores_violation_outside_range","name":"push の範囲の外にある main の既存の違反は、確認の対象にしない","status":"passed","testResultsByEnv":{"default":"7b0ba4dfa12029be31fa90cfaccb8446"}}

@@ -1,0 +1,1 @@
+{"id":"108fe0e785c6edc57797fddf767f13c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/merge-hook-outputs.test.ts#merge-hook-outputs.sh 全サブスクリプトの出力が空なら、入力に hook_event_name があっても何も出さない","name":"全サブスクリプトの出力が空なら、入力に hook_event_name があっても何も出さない","status":"passed","testResultsByEnv":{"default":"3c0eb6c878acbf9acf73a46309b7a9f1"}}

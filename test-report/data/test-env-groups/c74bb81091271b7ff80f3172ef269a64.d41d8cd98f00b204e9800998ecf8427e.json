@@ -1,0 +1,1 @@
+{"id":"c74bb81091271b7ff80f3172ef269a64.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_skill_doc_direct_call#test_python3_abs_path_fails","name":"SKILL.md が python3 でプラグインのスクリプトを直接呼んでいると、失敗で終わる","status":"passed","testResultsByEnv":{"default":"ebd388bf6fe4d850e2f5fd0d0e46f881"}}

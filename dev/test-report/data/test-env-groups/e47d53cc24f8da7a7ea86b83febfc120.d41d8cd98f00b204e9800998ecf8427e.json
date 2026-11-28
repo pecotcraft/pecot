@@ -1,0 +1,1 @@
+{"id":"e47d53cc24f8da7a7ea86b83febfc120.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#validateWhitespaceWrap 記号の `✓` を含む value で、折り返し指定のない角丸のセルには、警告を 1 件返す","name":"記号の `✓` を含む value で、折り返し指定のない角丸のセルには、警告を 1 件返す","status":"passed","testResultsByEnv":{"default":"822cd35c9d225dff7b20b69d82ada393"}}

@@ -1,0 +1,1 @@
+{"id":"6f1f806897c0549ef884129ce1afc553.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/commands-md.test.ts#commands-md commands-md に 値の無い --root を渡すと、使い方を出力し、2 で終了する","name":"commands-md に 値の無い --root を渡すと、使い方を出力し、2 で終了する","status":"passed","testResultsByEnv":{"default":"297c43f0f5d24dce59994f35387086d0"}}

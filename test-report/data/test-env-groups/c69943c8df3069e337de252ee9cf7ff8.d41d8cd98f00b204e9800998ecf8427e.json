@@ -1,0 +1,1 @@
+{"id":"c69943c8df3069e337de252ee9cf7ff8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/theme-versions-side-by-side.test.ts#テーマの版の違う talk-dir を続けて描画する それぞれの版の印だけが出力に入り、同じ版の再取得は置き場を再利用する","name":"それぞれの版の印だけが出力に入り、同じ版の再取得は置き場を再利用する","status":"passed","testResultsByEnv":{"default":"dc346c0875d99de20bd3646c1b31d761"}}

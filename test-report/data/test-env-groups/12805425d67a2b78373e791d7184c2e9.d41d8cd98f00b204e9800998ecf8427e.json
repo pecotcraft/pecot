@@ -1,0 +1,1 @@
+{"id":"12805425d67a2b78373e791d7184c2e9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-create.test.ts#slide create の失敗 (FR-013) 宣言の形が誤っている場合は、theme-invalid-shape として、誤った項目名を示す","name":"宣言の形が誤っている場合は、theme-invalid-shape として、誤った項目名を示す","status":"passed","testResultsByEnv":{"default":"254d3d4f9313d8bc588c52ef60780144"}}

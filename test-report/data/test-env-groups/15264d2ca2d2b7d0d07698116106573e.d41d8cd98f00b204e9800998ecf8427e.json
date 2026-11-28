@@ -1,0 +1,1 @@
+{"id":"15264d2ca2d2b7d0d07698116106573e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/no-python-runtime.test.ts#Phase 4 acceptance: Python ランタイム痕跡ゼロ件 plugins/pecot-visual に pyproject.toml が存在しない","name":"plugins/pecot-visual に pyproject.toml が存在しない","status":"passed","testResultsByEnv":{"default":"2fa8741abc3f6a3483216d570582e09d"}}

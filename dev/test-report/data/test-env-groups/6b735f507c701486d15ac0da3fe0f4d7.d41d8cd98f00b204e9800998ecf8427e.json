@@ -1,0 +1,1 @@
+{"id":"6b735f507c701486d15ac0da3fe0f4d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/release-check.test.ts#release check Nx でないリポで通ると、リリースするコミットの数を count の行で出し、バージョン・タグ・リリースノートを標準出力に出す","name":"Nx でないリポで通ると、リリースするコミットの数を count の行で出し、バージョン・タグ・リリースノートを標準出力に出す","status":"passed","testResultsByEnv":{"default":"a022c0d077281e7ba4a59f11ecd97109"}}

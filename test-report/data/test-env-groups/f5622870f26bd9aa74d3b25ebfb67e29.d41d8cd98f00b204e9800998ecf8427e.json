@@ -1,0 +1,1 @@
+{"id":"f5622870f26bd9aa74d3b25ebfb67e29.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#extractClosingIssueNumbers 本文 \"Closes owner/repo#789\" から、閉じる Issue の番号を取り出す","name":"本文 \"Closes owner/repo#789\" から、閉じる Issue の番号を取り出す","status":"passed","testResultsByEnv":{"default":"26a23b18461b825c32f277b6ddcc21dd"}}

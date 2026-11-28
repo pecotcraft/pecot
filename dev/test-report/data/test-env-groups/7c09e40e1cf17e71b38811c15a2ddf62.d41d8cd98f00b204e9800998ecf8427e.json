@@ -1,0 +1,1 @@
+{"id":"7c09e40e1cf17e71b38811c15a2ddf62.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_real_05_error_nested_project","name":"実際の nx で、group 外の project がプラグインの配下にあると、エラーにする","status":"passed","testResultsByEnv":{"default":"9a8b28e69b3b83078510ec74f820e1b9"}}

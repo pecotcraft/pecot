@@ -1,0 +1,1 @@
+{"id":"cee09043f53fb05244e6083c215efe6b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_devcontainer_base_image_is_pinned_and_followed_by_dependabot","name":"devcontainer のベースイメージは digest で固定し、Dependabot が更新を追う設定にする","status":"passed","testResultsByEnv":{"default":"62cfe6bf53d539cf7e0d45539dc018ab"}}

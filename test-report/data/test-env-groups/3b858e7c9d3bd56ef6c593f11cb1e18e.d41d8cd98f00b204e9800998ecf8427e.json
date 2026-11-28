@@ -1,0 +1,1 @@
+{"id":"3b858e7c9d3bd56ef6c593f11cb1e18e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#runMcpServe 標準入力が終了した場合は、処理中のハンドラの signal を中断する","name":"標準入力が終了した場合は、処理中のハンドラの signal を中断する","status":"passed","testResultsByEnv":{"default":"498f36434761508fc01ee21346dda58d"}}

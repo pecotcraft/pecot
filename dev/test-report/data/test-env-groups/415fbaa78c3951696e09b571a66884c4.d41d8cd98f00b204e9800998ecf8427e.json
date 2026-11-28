@@ -1,0 +1,1 @@
+{"id":"415fbaa78c3951696e09b571a66884c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/plugin-manifests.test.ts#プラグインの 2 組の manifest mcp.json は $schema と mcpServers だけを持つ","name":"mcp.json は $schema と mcpServers だけを持つ","status":"passed","testResultsByEnv":{"default":"730c9991d9f8be1549accb991167f1bf"}}

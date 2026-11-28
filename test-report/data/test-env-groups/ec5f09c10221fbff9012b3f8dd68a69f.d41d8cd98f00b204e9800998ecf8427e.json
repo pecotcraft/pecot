@@ -1,0 +1,1 @@
+{"id":"ec5f09c10221fbff9012b3f8dd68a69f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/queries.test.ts#queries.json との一致 QUERY_GET_ISSUE_KIND の GraphQL の文が、記録した文と一致する","name":"QUERY_GET_ISSUE_KIND の GraphQL の文が、記録した文と一致する","status":"passed","testResultsByEnv":{"default":"5c3c2e4701424ef4ff4ecd797f7e1fb7"}}

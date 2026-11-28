@@ -1,0 +1,1 @@
+{"id":"5dcca0810aa536a7d636a902b292b690.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyHyperlinkFix solidFill や srgbClr が存在しない run の場合は、変換しない","name":"solidFill や srgbClr が存在しない run の場合は、変換しない","status":"passed","testResultsByEnv":{"default":"80f1726075f487f85144ed5e0d8febd2"}}

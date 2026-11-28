@@ -1,0 +1,1 @@
+{"id":"4c879b53be532fb727508377c5940aaa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#renderRedirectHtml 非常に長い URL でも、charset の宣言を先頭の 1024 バイト以内に配置する","name":"非常に長い URL でも、charset の宣言を先頭の 1024 バイト以内に配置する","status":"passed","testResultsByEnv":{"default":"aa5fdbd7da16e7806bcc3315cc919c4b"}}

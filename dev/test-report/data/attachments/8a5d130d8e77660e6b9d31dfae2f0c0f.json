@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"/tmp/pecotv-test-file-tools-AtaQ6E/talk/node_modules/slidev-theme-pecotv-test-declared/references/plain.yaml:\\n\\nbest_practices:\\n  - '1 枚で伝える内容を 1 つに絞る'\\n\\nanti_patterns:\\n  - '見出しに文章を書く'\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "/tmp/pecotv-test-file-tools-AtaQ6E/talk/node_modules/slidev-theme-pecotv-test-declared/references/plain.yaml:\n\nbest_practices:\n  - '1 枚で伝える内容を 1 つに絞る'\n\nanti_patterns:\n  - '見出しに文章を書く'"
+    }
+  }
+}

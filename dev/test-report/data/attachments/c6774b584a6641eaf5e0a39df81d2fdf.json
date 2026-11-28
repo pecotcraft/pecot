@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "output_location must not contain , = { }: s3://b/p,ExpectedBucketOwner=123456789012"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"output_location must not contain , = { }: s3://b/p,ExpectedBucketOwner=123456789012\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "output_location must not contain , = { }: s3://b/p,ExpectedBucketOwner=123456789012"
+  },
+  "isError": true
+}

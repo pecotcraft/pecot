@@ -1,0 +1,1 @@
+{"id":"f42ff3e2f19656b787d79cfad69f986f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge もし PR が閉じているなら、終了コード 1 で終わる","name":"もし PR が閉じているなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"e1e787cff0e91321501f28b3a3a3ae08"}}

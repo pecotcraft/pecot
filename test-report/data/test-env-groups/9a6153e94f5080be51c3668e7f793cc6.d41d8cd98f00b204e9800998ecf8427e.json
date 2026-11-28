@@ -1,0 +1,1 @@
+{"id":"9a6153e94f5080be51c3668e7f793cc6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#`-` 始まりの値（research R3） フラグで渡す文字列の値が - で始まる場合は、拒否せず --flag=value の 1 つの引数にして実行する","name":"フラグで渡す文字列の値が - で始まる場合は、拒否せず --flag=value の 1 つの引数にして実行する","status":"passed","testResultsByEnv":{"default":"01c38aa5ed0b96a28ce51e1229f51e9f"}}

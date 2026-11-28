@@ -1,0 +1,1 @@
+{"id":"33b382afc64eaf7d7955bda78e08b1e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — PNG PNG は、最初のチャンクが IHDR でない場合は、読み取れないものとして扱う","name":"PNG は、最初のチャンクが IHDR でない場合は、読み取れないものとして扱う","status":"passed","testResultsByEnv":{"default":"52be33a7a92f7d54e6cc035088040147"}}

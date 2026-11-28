@@ -1,0 +1,1 @@
+{"id":"1ac580b98bec088cd25a93c32507889f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_remove keep_branch を付けて呼ぶと、ブランチを残す","name":"keep_branch を付けて呼ぶと、ブランチを残す","status":"passed","testResultsByEnv":{"default":"a3fa2fbd27924005bb5f333880545a72"}}

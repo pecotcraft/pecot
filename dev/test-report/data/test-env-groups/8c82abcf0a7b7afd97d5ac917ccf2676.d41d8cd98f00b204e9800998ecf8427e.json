@@ -1,0 +1,1 @@
+{"id":"8c82abcf0a7b7afd97d5ac917ccf2676.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#readCurrentGitRemote git remote get-url が失敗したら、undefined を返す","name":"git remote get-url が失敗したら、undefined を返す","status":"passed","testResultsByEnv":{"default":"fc4ad5ec025714137f3fe7577b2e0a8a"}}

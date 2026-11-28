@@ -1,0 +1,1 @@
+{"id":"3620e8a1d8fb5f8d01585415ee453c8b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#jsonStrings 閉じていない文字列は行末で止まる のとき、引用符を含まない本文だけを切り出す","name":"閉じていない文字列は行末で止まる のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"7dd440d4f723b7a12ce2fce561b91c2a"}}

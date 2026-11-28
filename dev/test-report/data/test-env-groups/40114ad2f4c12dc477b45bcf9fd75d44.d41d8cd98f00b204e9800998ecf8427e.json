@@ -1,0 +1,1 @@
+{"id":"40114ad2f4c12dc477b45bcf9fd75d44.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_real_06_pass_readme_only_and_plan_check_agrees","name":"実際の nx で、README.md だけの変更は成功し、nx の plan:check も同じ判定をする","status":"passed","testResultsByEnv":{"default":"a4df603d1a423a11360a2d4d81de11d5"}}

@@ -1,0 +1,1 @@
+{"id":"d24112c738647cd0af1eb2ac679be719.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#タグがあるとき publish が正常終了する","name":"タグがあるとき publish が正常終了する","status":"passed","testResultsByEnv":{"default":"97b112360af137fb736c2e12853d6c4b"}}

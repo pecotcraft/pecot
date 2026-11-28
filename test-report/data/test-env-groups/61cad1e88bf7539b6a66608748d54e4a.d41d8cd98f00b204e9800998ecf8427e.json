@@ -1,0 +1,1 @@
+{"id":"61cad1e88bf7539b6a66608748d54e4a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#projectConfigFileName ホスト・持ち主・番号から設定ファイルの名前を作成し、ボードの題は使わない","name":"ホスト・持ち主・番号から設定ファイルの名前を作成し、ボードの題は使わない","status":"passed","testResultsByEnv":{"default":"99b94496766bf90b51f51edbc6cfb228"}}

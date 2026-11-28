@@ -1,0 +1,1 @@
+{"id":"e4c12cb18b63b285a0515437481ec692.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#validateHtml ルート要素がない XML を渡した場合は、例外が発生せず、空の配列を返す","name":"ルート要素がない XML を渡した場合は、例外が発生せず、空の配列を返す","status":"passed","testResultsByEnv":{"default":"eac4abc222297d1eb72c8ac7075281f2"}}

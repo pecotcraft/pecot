@@ -1,0 +1,1 @@
+{"id":"76add8dd365dd3170d766240e778712f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/result.test.ts#toCallToolResult ツールの項目に kind と detail がある場合は、共通の値で上書きする","name":"ツールの項目に kind と detail がある場合は、共通の値で上書きする","status":"passed","testResultsByEnv":{"default":"c0804c5d50258c56e04d2caecf2f352c"}}

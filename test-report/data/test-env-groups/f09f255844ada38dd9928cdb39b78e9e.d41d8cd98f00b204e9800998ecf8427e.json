@@ -1,0 +1,1 @@
+{"id":"f09f255844ada38dd9928cdb39b78e9e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 表記の違う同じ talk-dir は同じサーバとして扱う","name":"表記の違う同じ talk-dir は同じサーバとして扱う","status":"passed","testResultsByEnv":{"default":"842452a044d2e64e21924757260e29bf"}}

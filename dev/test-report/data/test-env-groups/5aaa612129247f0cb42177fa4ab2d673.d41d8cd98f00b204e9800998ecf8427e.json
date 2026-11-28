@@ -1,0 +1,1 @@
+{"id":"5aaa612129247f0cb42177fa4ab2d673.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start 札が自動処理の書いた Needs Attention で 開いた PR がある なら、札を In Progress に戻す","name":"札が自動処理の書いた Needs Attention で 開いた PR がある なら、札を In Progress に戻す","status":"passed","testResultsByEnv":{"default":"6ad6c1640f8c22c4a6d1f529403723fa"}}

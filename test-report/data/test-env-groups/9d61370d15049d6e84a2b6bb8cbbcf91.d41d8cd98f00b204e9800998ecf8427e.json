@@ -1,0 +1,1 @@
+{"id":"9d61370d15049d6e84a2b6bb8cbbcf91.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-dependency-check.test.ts#issue_dependency_check 引数と読み取り ボードの読み取りを渡さないと、列を決めるための読み取りを求める","name":"ボードの読み取りを渡さないと、列を決めるための読み取りを求める","status":"passed","testResultsByEnv":{"default":"9fd30cec195b1c0ca6418c3dcd82e122"}}

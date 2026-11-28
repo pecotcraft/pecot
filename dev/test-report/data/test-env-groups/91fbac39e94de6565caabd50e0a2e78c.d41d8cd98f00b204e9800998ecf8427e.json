@@ -1,0 +1,1 @@
+{"id":"91fbac39e94de6565caabd50e0a2e78c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_keeps_fresh_dist","name":"ソースが dist と同じなら、dist を作り直さない","status":"passed","testResultsByEnv":{"default":"3e14fba934c315629ea8b3620b8166c6"}}

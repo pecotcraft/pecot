@@ -1,0 +1,1 @@
+{"id":"b28fc7a6ad008a960cc77a7d0c630006.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/copilot-skill-names.test.ts#pre-tool-use-skill.sh このプラグインのものでないスキル（空文字）のとき、何も出力せず、.pecot も作らない","name":"このプラグインのものでないスキル（空文字）のとき、何も出力せず、.pecot も作らない","status":"passed","testResultsByEnv":{"default":"ff5952680a81317c01bf801a4a85aef8"}}

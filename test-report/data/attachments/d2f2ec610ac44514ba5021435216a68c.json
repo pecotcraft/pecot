@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": ".pecot-base is malformed: garbage"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"content-invalid\",\"detail\":\".pecot-base is malformed: garbage\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "content-invalid",
+    "detail": ".pecot-base is malformed: garbage"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"b5dc731a2a60ce4abf1e0154860eb6d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#fullWidthEquivalent 半角だけの文字列を渡すと、文字数に 0.7 を掛けて切り上げた値を返す","name":"半角だけの文字列を渡すと、文字数に 0.7 を掛けて切り上げた値を返す","status":"passed","testResultsByEnv":{"default":"7c979bbfdb07480d8778438df0b64daf"}}

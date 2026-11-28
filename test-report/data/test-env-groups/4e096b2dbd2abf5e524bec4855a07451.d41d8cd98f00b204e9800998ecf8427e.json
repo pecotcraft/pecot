@@ -1,0 +1,1 @@
+{"id":"4e096b2dbd2abf5e524bec4855a07451.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ board-show-ok-json を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ board-show-ok-json を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"b921ca7ebd669aa5a4d0b7d5e713b131"}}

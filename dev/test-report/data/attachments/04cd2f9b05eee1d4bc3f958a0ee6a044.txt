@@ -1,0 +1,2 @@
+error: package 'other' is not registered in acme/demo
+  available: core

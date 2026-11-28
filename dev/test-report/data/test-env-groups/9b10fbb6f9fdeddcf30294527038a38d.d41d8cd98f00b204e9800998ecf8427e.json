@@ -1,0 +1,1 @@
+{"id":"9b10fbb6f9fdeddcf30294527038a38d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_stdin_two_lines_two_affected","name":"標準入力が 2 行（2 ブランチ）の場合は、それぞれの head で affected を 2 回実行する","status":"passed","testResultsByEnv":{"default":"e536f0c08d4ea9d7c4f190319550ca27"}}

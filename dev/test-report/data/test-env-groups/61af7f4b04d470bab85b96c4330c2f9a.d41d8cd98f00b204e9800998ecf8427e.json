@@ -1,0 +1,1 @@
+{"id":"61af7f4b04d470bab85b96c4330c2f9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/deck-lint-rules.test.ts#REFERENCE_FREE_RULE_IDS textlint 規則は項目の宣言を読むが、referencesDirectories が空の場合は何も報告しない","name":"textlint 規則は項目の宣言を読むが、referencesDirectories が空の場合は何も報告しない","status":"passed","testResultsByEnv":{"default":"df31367021464b38f26d31c9fe3e219c"}}

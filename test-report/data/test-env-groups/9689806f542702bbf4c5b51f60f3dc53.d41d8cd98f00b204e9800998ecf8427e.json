@@ -1,0 +1,1 @@
+{"id":"9689806f542702bbf4c5b51f60f3dc53.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree ブランチを残す場合も、削除した worktree の中から呼ぶと、ルートの検出で OsError になる","name":"ブランチを残す場合も、削除した worktree の中から呼ぶと、ルートの検出で OsError になる","status":"passed","testResultsByEnv":{"default":"29a9b2e222e379ffda3e6b7c9e25950a"}}

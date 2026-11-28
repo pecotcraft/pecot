@@ -1,0 +1,1 @@
+{"id":"8d430e33ab1918822f9e7f6de97055c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree shouldKeepBranch を指定すれば、ブランチを残して undefined を返す","name":"shouldKeepBranch を指定すれば、ブランチを残して undefined を返す","status":"passed","testResultsByEnv":{"default":"6062fd79dac72743b6f9082c08d78d8a"}}

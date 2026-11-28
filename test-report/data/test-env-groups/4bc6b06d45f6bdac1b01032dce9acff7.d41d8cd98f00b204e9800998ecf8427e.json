@@ -1,0 +1,1 @@
+{"id":"4bc6b06d45f6bdac1b01032dce9acff7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/english-only.test.ts#hooks がエージェントへ返す文言 コメントの判定は、heredoc と複数行の引用符の中を本文として扱う","name":"コメントの判定は、heredoc と複数行の引用符の中を本文として扱う","status":"passed","testResultsByEnv":{"default":"9eb24ee70e3df4940c0b3da54d342252"}}

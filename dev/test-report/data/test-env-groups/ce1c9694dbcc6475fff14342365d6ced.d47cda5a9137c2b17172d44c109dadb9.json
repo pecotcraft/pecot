@@ -1,0 +1,1 @@
+{"id":"ce1c9694dbcc6475fff14342365d6ced.d47cda5a9137c2b17172d44c109dadb9","fullName":".githooks.tests.test_nx_affected_mapping#test_skill_body_change_runs_skills_lane","name":"plugins/pecot-workflow/cli/src/main.ts を変更すると、pecot-workflow:test-skills レーンが再実行される","status":"passed","testResultsByEnv":{"default":"90723996c1dd2d50c4abf7212741dbab"}}

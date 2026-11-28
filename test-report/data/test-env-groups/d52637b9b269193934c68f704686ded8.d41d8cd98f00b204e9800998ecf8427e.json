@@ -1,0 +1,1 @@
+{"id":"d52637b9b269193934c68f704686ded8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateClosedHeadings（テンプレに無い ## / ### 見出し #1330） h1 と h4 以下の見出しは、制限しない","name":"h1 と h4 以下の見出しは、制限しない","status":"passed","testResultsByEnv":{"default":"ef5d9c2b7ee67df86eb89724fd315df9"}}

@@ -1,0 +1,4 @@
+created: PR acme/demo feat/demo/12 -> main: feat(demo): #12 見本の変更
+warning: status update of Issue #12 failed: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}
+  hint: if the board options were recreated, call project_activate with project: "ghes.example.com_acme_board_acme" to read their IDs again
+warning: could not move #13: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}

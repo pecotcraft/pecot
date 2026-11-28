@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "give the repository as owner/repo\n  example: project_link with repo: \"example-org/my-repo\""
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"give the repository as owner/repo\\n  example: project_link with repo: \\\"example-org/my-repo\\\"\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "give the repository as owner/repo\n  example: project_link with repo: \"example-org/my-repo\""
+  },
+  "isError": true
+}

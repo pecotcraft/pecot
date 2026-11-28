@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: references schema violations: 10 files checked, 1 error(s) found.\\n  This is the validation result for the whole references directory (edited file: /tmp/pecotv-test-file-tools-IjbT7z/validate-untouched/talk/node_modules/slidev-theme-pecotv-test-declared/references/plain.yaml).\\n\\n  Validating: /tmp/pecotv-test-file-tools-IjbT7z/validate-untouched/talk-theme/references\\n\\n    ✓ _common.yaml\\n    ✓ cover.yaml\\n    ✓ end.yaml\\n    ✓ legacy-panel.yaml\\n    ✓ link.yaml\\n    ✓ marked.yaml\\n    ✓ panel.yaml\\n    ✗ plain.yaml\\n      [#/type] must be object\\n    ✓ scratch.yaml\\n    ✓ section.yaml\\n\\n  10 files checked, 1 error(s) found.\\n\\n  The output above lists the schema violations.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: references schema violations: 10 files checked, 1 error(s) found.\n  This is the validation result for the whole references directory (edited file: /tmp/pecotv-test-file-tools-IjbT7z/validate-untouched/talk/node_modules/slidev-theme-pecotv-test-declared/references/plain.yaml).\n\n  Validating: /tmp/pecotv-test-file-tools-IjbT7z/validate-untouched/talk-theme/references\n\n    ✓ _common.yaml\n    ✓ cover.yaml\n    ✓ end.yaml\n    ✓ legacy-panel.yaml\n    ✓ link.yaml\n    ✓ marked.yaml\n    ✓ panel.yaml\n    ✗ plain.yaml\n      [#/type] must be object\n    ✓ scratch.yaml\n    ✓ section.yaml\n\n  10 files checked, 1 error(s) found.\n\n  The output above lists the schema violations."
+    }
+  }
+}

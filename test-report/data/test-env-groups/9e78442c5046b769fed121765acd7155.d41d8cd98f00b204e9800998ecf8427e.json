@@ -1,0 +1,1 @@
+{"id":"9e78442c5046b769fed121765acd7155.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create project を渡すと、対象のリポを含む設定が 2 つあってもその設定で PR を作る","name":"project を渡すと、対象のリポを含む設定が 2 つあってもその設定で PR を作る","status":"passed","testResultsByEnv":{"default":"3610dd41ef75e21300811bf6f0e6a275"}}

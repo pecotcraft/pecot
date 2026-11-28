@@ -1,0 +1,1 @@
+{"id":"f9f0de99c9a58bda87258e051afe4747.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check リリースの種類 release_type が nx のリポジトリでは、alert だけを確かめる","name":"release_type が nx のリポジトリでは、alert だけを確かめる","status":"passed","testResultsByEnv":{"default":"7e1fec55b27f87e335a2fbb1b91dbbe2"}}

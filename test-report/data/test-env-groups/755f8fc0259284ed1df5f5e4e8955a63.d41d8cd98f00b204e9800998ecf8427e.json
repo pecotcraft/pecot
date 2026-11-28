@@ -1,0 +1,1 @@
+{"id":"755f8fc0259284ed1df5f5e4e8955a63.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint 違反の文が上限を超えると、3500 バイトで切って残りの件数を書く","name":"違反の文が上限を超えると、3500 バイトで切って残りの件数を書く","status":"passed","testResultsByEnv":{"default":"bce7ca4204a5274c280025a6ca220353"}}

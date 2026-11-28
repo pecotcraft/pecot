@@ -1,0 +1,1 @@
+{"id":"5d48e2b96958bbc682ef8be1cf014752.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#dry-run が gh を実行せず終わる","name":"dry-run が gh を実行せず終わる","status":"passed","testResultsByEnv":{"default":"3a42fa57387d278df98ed3fe5b53131a"}}

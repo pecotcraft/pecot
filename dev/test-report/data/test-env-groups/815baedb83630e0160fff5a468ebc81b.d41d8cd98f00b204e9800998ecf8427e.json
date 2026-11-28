@@ -1,0 +1,1 @@
+{"id":"815baedb83630e0160fff5a468ebc81b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateFoldSummaries（折りたたみの開閉部分 <summary> の形 #1299） 閉じていないコードフェンスは、validateBodyStyle に任せる","name":"閉じていないコードフェンスは、validateBodyStyle に任せる","status":"passed","testResultsByEnv":{"default":"456cd9e89664be56b0bd1483df4c6ed0"}}

@@ -1,0 +1,1 @@
+{"id":"8f650908275367aff01560864138713d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — extraHeaders extraHeaders で 未知キー の場合は、拒否する","name":"extraHeaders で 未知キー の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"561d0742954ab8cfd4c46537939fd59b"}}

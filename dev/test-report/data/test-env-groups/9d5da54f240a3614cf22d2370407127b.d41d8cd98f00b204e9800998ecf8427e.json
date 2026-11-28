@@ -1,0 +1,1 @@
+{"id":"9d5da54f240a3614cf22d2370407127b.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#audit-summary.mjs は、via の伝播・循環・例外の適用を、キーの並びによらず数える","name":"audit-summary.mjs は、via の伝播・循環・例外の適用を、キーの並びによらず数える","status":"passed","testResultsByEnv":{"default":"0dfbce2dd8e63092253edc43cf430d74"}}

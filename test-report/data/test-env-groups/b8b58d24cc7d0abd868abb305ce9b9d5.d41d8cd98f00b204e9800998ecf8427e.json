@@ -1,0 +1,1 @@
+{"id":"b8b58d24cc7d0abd868abb305ce9b9d5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_verify#test_stored_dev_reads_the_record_of_its_kind","name":"定義書とレポートの記録が両方存在すると、指定した種類の記録を返す","status":"passed","testResultsByEnv":{"default":"913801b62e0aec76e834e2375e76b6f2"}}

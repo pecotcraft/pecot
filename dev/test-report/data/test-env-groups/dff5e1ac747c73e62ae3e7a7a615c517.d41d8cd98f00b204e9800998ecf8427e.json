@@ -1,0 +1,1 @@
+{"id":"dff5e1ac747c73e62ae3e7a7a615c517.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/npm-cache-opt-in.bats#opt-in に相対パスを設定して publish を動かすと、npm を呼ばずに拒否する","name":"opt-in に相対パスを設定して publish を動かすと、npm を呼ばずに拒否する","status":"passed","testResultsByEnv":{"default":"0f1ad3ff54ea147cb14e7d949c737885"}}

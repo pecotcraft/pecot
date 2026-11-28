@@ -1,0 +1,3 @@
+created: branch feat/7 in acme/demo from main
+warning: could not set Issue acme/demo/7 status active: GraphQL query error: {'type': 'VALIDATION', 'message': 'bad item'}
+created: work directory .pecot/work/7/

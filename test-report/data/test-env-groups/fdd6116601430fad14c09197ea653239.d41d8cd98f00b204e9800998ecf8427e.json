@@ -1,0 +1,1 @@
+{"id":"fdd6116601430fad14c09197ea653239.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#配布ツリーの指紋を 64 桁 hex で出力する","name":"配布ツリーの指紋を 64 桁 hex で出力する","status":"passed","testResultsByEnv":{"default":"44317e5ebbb0c8907381683e1b289aae"}}

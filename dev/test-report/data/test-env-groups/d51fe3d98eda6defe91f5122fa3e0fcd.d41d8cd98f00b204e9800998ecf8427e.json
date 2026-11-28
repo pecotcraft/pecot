@@ -1,0 +1,1 @@
+{"id":"d51fe3d98eda6defe91f5122fa3e0fcd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree 他のリポジトリの worktree が残っていれば、<root>/<name>/ は削除しない","name":"他のリポジトリの worktree が残っていれば、<root>/<name>/ は削除しない","status":"passed","testResultsByEnv":{"default":"56433328ddc64802bab78eb62c68c3ef"}}

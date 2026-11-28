@@ -1,0 +1,1 @@
+{"id":"4918ccde57ff8bf67dacf4e6ee441504.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_logs_filter_log_events profile の書式に合わない値を渡すと、拒否する","name":"profile の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"1f1a475a4aca7769e4a9d046426fe4aa"}}

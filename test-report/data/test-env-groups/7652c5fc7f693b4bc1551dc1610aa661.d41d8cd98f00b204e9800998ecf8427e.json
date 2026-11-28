@@ -1,0 +1,1 @@
+{"id":"7652c5fc7f693b4bc1551dc1610aa661.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/setup.test.ts#createSandbox 作成の途中で失敗した場合は、一時ディレクトリを削除して例外を再送出する","name":"作成の途中で失敗した場合は、一時ディレクトリを削除して例外を再送出する","status":"passed","testResultsByEnv":{"default":"20489ebd194a9a82841d8311f75a3554"}}

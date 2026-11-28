@@ -1,0 +1,1 @@
+{"id":"51373d5efb748de7021d51e16282ff23.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/launch.test.ts#launchChromium OS のライブラリが不足している場合は、取得ではなく runtime_setup を案内するエラーに包み直す","name":"OS のライブラリが不足している場合は、取得ではなく runtime_setup を案内するエラーに包み直す","status":"passed","testResultsByEnv":{"default":"2a9e0281467d46dc7fb41a267727a5d6"}}

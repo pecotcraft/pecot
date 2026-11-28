@@ -1,0 +1,1 @@
+{"id":"e0318158ca0c2c8add773af9144721f5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-no-verify-check.sh 有効にしてコマンドが git log -n 5 のとき、何も出力せず通す","name":"有効にしてコマンドが git log -n 5 のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"20287cb8b9bfc680bd0ceeee988a986d"}}

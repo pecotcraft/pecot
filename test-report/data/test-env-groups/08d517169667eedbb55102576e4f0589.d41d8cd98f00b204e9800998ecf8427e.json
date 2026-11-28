@@ -1,0 +1,1 @@
+{"id":"08d517169667eedbb55102576e4f0589.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync_workflow_copy#test_workflow_is_a_copy_of_the_template","name":"board sync のワークフローは、action の版を除いて雛形と一致する","status":"passed","testResultsByEnv":{"default":"7f51c8d1e39fb284065557e13c79e129"}}

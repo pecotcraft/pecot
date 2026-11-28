@@ -1,0 +1,1 @@
+error: HOOK_COMMAND environment variable is required

@@ -1,0 +1,1 @@
+{"id":"aaf9e647a64f95c4e0987cf69033c250.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け ci の待ちで、必須の check の結果がまだ無い間は待ち続け、CI が通ったら CI_PASSED を出力する","name":"ci の待ちで、必須の check の結果がまだ無い間は待ち続け、CI が通ったら CI_PASSED を出力する","status":"passed","testResultsByEnv":{"default":"c7c8b911bd0b9cbe63cd4029933aa7ec"}}

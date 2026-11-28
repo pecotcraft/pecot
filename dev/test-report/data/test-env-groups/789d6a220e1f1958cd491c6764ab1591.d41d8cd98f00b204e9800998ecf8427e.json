@@ -1,0 +1,1 @@
+{"id":"789d6a220e1f1958cd491c6764ab1591.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-case.test.ts#interface-case の準備 ホスト名と owner から設定のファイル名を作り、CLAUDE_PROJECT_DIR をプロジェクトルートに向ける","name":"ホスト名と owner から設定のファイル名を作り、CLAUDE_PROJECT_DIR をプロジェクトルートに向ける","status":"passed","testResultsByEnv":{"default":"099c45bad21cb486177e07633953fda6"}}

@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "generated evidence xlsx: /tmp/pecotv-1029-evidence-format-j7tol8/format/evidence.xlsx (4 items; 2 annotations; 0 skipped)"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"result\",\"outPath\":\"/tmp/pecotv-1029-evidence-format-j7tol8/format/evidence.xlsx\",\"items\":4,\"annotations\":2,\"skipped\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "event": "result",
+    "outPath": "/tmp/pecotv-1029-evidence-format-j7tol8/format/evidence.xlsx",
+    "items": 4,
+    "annotations": 2,
+    "skipped": []
+  }
+}

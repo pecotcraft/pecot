@@ -1,0 +1,1 @@
+{"id":"1a5251e8c7aa893139261f826378e4fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#blockedByReadCount 一覧の件数が不明 の場合、前提の読み込み件数は undefined になる","name":"一覧の件数が不明 の場合、前提の読み込み件数は undefined になる","status":"passed","testResultsByEnv":{"default":"759ceeeea899fe6302afb5e13556b585"}}

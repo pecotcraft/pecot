@@ -1,0 +1,1 @@
+{"id":"9bb47e5f36b65aa8232be088082a8fe4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create 待っている Issue 待つ Issue を全件読めなければ、読めた分を動かして warning の行を出す","name":"待つ Issue を全件読めなければ、読めた分を動かして warning の行を出す","status":"passed","testResultsByEnv":{"default":"a83f3ec79f5399ec1f0385eb68fb67fc"}}

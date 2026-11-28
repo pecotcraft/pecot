@@ -1,0 +1,1 @@
+{"id":"2a040e0fed16629141ec5559eaf8b5e7.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_served#test_variant_rejects_name_without_letters","name":"ファイル名に英数字が無い URL は、符号化できずに止まる","status":"passed","testResultsByEnv":{"default":"e1ceb9f839820f543fd3e2d029a5e645"}}

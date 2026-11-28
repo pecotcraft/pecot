@@ -1,0 +1,1 @@
+{"id":"d8178198ef285d9dc18e0474ac4d05c5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — 受理 複数の item の順序を保持し、caption の指定と補完を item ごとに独立して扱う","name":"複数の item の順序を保持し、caption の指定と補完を item ごとに独立して扱う","status":"passed","testResultsByEnv":{"default":"bcfc3ed2af6bbe33d41f5a76e692b59b"}}

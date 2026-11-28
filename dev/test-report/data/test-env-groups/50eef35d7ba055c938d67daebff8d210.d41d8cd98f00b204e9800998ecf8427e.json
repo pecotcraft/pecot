@@ -1,0 +1,1 @@
+{"id":"50eef35d7ba055c938d67daebff8d210.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_direct_commit#test_main_normal_commit_blocked","name":"main ブランチへの通常のコミットは、理由を出力して拒否する","status":"passed","testResultsByEnv":{"default":"5e1f1163b8d2c2b75f7f0f0315a75b75"}}

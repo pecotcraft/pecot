@@ -1,0 +1,1 @@
+{"id":"9cc7979786ee2718c7eb3f25f63b3a00.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#メンバーが workspace から外れて未分類になると、静的確認が落ちる","name":"メンバーが workspace から外れて未分類になると、静的確認が落ちる","status":"passed","testResultsByEnv":{"default":"a7507a5273649dc5aa65fa82a29434a3"}}

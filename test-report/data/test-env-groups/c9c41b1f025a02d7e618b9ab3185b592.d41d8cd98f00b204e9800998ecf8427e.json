@@ -1,0 +1,1 @@
+{"id":"c9c41b1f025a02d7e618b9ab3185b592.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml — 注記図形 callout の文章は、制御文字の除去と、XML のエスケープを両方行う","name":"callout の文章は、制御文字の除去と、XML のエスケープを両方行う","status":"passed","testResultsByEnv":{"default":"51e77b93e4792554277d1e2dccc72e34"}}

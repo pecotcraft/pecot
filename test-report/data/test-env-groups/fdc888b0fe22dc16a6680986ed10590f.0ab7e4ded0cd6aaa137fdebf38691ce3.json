@@ -1,0 +1,1 @@
+{"id":"fdc888b0fe22dc16a6680986ed10590f.0ab7e4ded0cd6aaa137fdebf38691ce3","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_only_the_lanes_the_change_reaches","name":"plugins/pecot-workflow/scripts/release/publish-mcp-dist.sh を変更すると、その変更が届くテストのレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"7d179a0ff1d2f15adb253c41cdbe2716"}}

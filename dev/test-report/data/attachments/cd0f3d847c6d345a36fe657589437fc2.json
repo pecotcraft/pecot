@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "half done\n  hint: retry"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-api\",\"detail\":\"half done\\n  hint: retry\",\"warnings\":[\"slow API\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "half done\n  hint: retry",
+    "warnings": [
+      "slow API"
+    ]
+  },
+  "isError": true
+}

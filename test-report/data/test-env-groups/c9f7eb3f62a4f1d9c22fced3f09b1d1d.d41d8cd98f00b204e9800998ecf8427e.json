@@ -1,0 +1,1 @@
+{"id":"c9f7eb3f62a4f1d9c22fced3f09b1d1d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseRepositoryReference \"owner/repo/123\" を渡すと、参照エラーの例外が発生する","name":"\"owner/repo/123\" を渡すと、参照エラーの例外が発生する","status":"passed","testResultsByEnv":{"default":"4e116e369e4bdaee0c24ecb0f1c4f483"}}

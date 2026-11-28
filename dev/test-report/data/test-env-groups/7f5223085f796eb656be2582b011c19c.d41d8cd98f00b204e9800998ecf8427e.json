@@ -1,0 +1,1 @@
+{"id":"7f5223085f796eb656be2582b011c19c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 列が Archived の場合は、どの判定でも動かさない","name":"列が Archived の場合は、どの判定でも動かさない","status":"passed","testResultsByEnv":{"default":"a6b6d3e6d797bcaab819b43355d518e0"}}

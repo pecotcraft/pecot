@@ -1,0 +1,1 @@
+{"id":"f802fdfaa946ac6553486e9948242bc5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText 先頭に空行があると、空行も行番号に含める","name":"先頭に空行があると、空行も行番号に含める","status":"passed","testResultsByEnv":{"default":"6594cce9dcadba2725e860073ab8b0d8"}}

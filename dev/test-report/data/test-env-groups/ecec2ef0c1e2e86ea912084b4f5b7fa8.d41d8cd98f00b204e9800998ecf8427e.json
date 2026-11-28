@@ -1,0 +1,1 @@
+{"id":"ecec2ef0c1e2e86ea912084b4f5b7fa8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_validate テーマが node_modules に張られていないと、検証しなかったことと slide_sync の案内を返す","name":"テーマが node_modules に張られていないと、検証しなかったことと slide_sync の案内を返す","status":"passed","testResultsByEnv":{"default":"be334e02322cc4899a1ce56bbbab86d7"}}

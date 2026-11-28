@@ -1,0 +1,1 @@
+{"id":"580a57d392f97451b274e7f876a339cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sc005-no-github-io.test.ts#SC-005: MCP のツールは GitHub に読み書きしない 禁じたモジュールを import するファイルを起点にすると、その import を挙げる","name":"禁じたモジュールを import するファイルを起点にすると、その import を挙げる","status":"passed","testResultsByEnv":{"default":"83d67bf8b75aee810c4caccbbd28fff3"}}

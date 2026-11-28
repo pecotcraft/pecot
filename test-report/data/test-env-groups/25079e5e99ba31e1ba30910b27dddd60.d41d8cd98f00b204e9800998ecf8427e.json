@@ -1,0 +1,1 @@
+{"id":"25079e5e99ba31e1ba30910b27dddd60.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/validate-clicks.test.ts#frontmatter が無いテキストを渡すと、パース結果は null になる","name":"frontmatter が無いテキストを渡すと、パース結果は null になる","status":"passed","testResultsByEnv":{"default":"b570d867c1f988033e0a37f9654d2baf"}}

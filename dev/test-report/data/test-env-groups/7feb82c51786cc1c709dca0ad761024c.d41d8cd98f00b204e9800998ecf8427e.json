@@ -1,0 +1,1 @@
+{"id":"7feb82c51786cc1c709dca0ad761024c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 同じ talk-dir の再呼び出しでは起こし直さず既存を返す","name":"同じ talk-dir の再呼び出しでは起こし直さず既存を返す","status":"passed","testResultsByEnv":{"default":"9a286c880a674cb4828b81d455cd4b79"}}

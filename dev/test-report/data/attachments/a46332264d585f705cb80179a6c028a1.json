@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: text lint not run: /tmp/pecotv-test-file-tools-AtaQ6E/missing-bin/note.md\\n  pecot-text-lint is missing (/tmp/pecotv-test-file-tools-AtaQ6E/empty-root/vendor/text-rules/dist/bin/pecot-text-lint.js).\\n  To restore it, call the `runtime_setup` tool (it fetches the runtime dependencies).\\n  The writing rules were not applied to this file, so no violations were detected.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: text lint not run: /tmp/pecotv-test-file-tools-AtaQ6E/missing-bin/note.md\n  pecot-text-lint is missing (/tmp/pecotv-test-file-tools-AtaQ6E/empty-root/vendor/text-rules/dist/bin/pecot-text-lint.js).\n  To restore it, call the `runtime_setup` tool (it fetches the runtime dependencies).\n  The writing rules were not applied to this file, so no violations were detected."
+    }
+  }
+}

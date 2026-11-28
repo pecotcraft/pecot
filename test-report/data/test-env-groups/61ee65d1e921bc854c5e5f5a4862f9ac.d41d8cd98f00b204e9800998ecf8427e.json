@@ -1,0 +1,1 @@
+{"id":"61ee65d1e921bc854c5e5f5a4862f9ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#createProject 作成したプロジェクトを返し、ownerId と title を変数として送信する","name":"作成したプロジェクトを返し、ownerId と title を変数として送信する","status":"passed","testResultsByEnv":{"default":"9ce12fc57947c8491d2c4bc5f8d86075"}}

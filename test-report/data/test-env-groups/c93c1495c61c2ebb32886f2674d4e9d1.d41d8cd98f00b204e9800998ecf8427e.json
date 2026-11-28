@@ -1,0 +1,1 @@
+{"id":"c93c1495c61c2ebb32886f2674d4e9d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/domain/tests/issue-surface.test.ts#issueCoverageSchema 未定義の status を含む項目は、スキーマの検証で拒否する","name":"未定義の status を含む項目は、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"f76c70a54b904ab2ddc1e62fd1771cbd"}}

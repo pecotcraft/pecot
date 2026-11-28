@@ -1,0 +1,1 @@
+{"id":"9983c52fd15b575b94683a24d2e658c1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_release_job_rejects_dry_run_first","name":"リリース版の job は、最初の step で dry-run の指定を拒否する","status":"passed","testResultsByEnv":{"default":"12700517497bb36bcb493a46d3459a0e"}}

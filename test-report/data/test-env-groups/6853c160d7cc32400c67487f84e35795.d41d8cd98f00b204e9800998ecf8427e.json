@@ -1,0 +1,1 @@
+{"id":"6853c160d7cc32400c67487f84e35795.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/data-directory.test.ts#dataDirectory CLAUDE_PLUGIN_DATA が相対パス とき、/data/plugin を返す","name":"CLAUDE_PLUGIN_DATA が相対パス とき、/data/plugin を返す","status":"passed","testResultsByEnv":{"default":"9b7db374d5779f7b8a433e7732d532f8"}}

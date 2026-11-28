@@ -1,0 +1,1 @@
+{"id":"4bdf8d1433a886456c28628776a83d8a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/compare-junit.test.ts#compareJunit 片方にだけあるケースと、結果の違うケースを分けて返す","name":"片方にだけあるケースと、結果の違うケースを分けて返す","status":"passed","testResultsByEnv":{"default":"e1bf0f3ef7e883e457443f46c1eb4079"}}

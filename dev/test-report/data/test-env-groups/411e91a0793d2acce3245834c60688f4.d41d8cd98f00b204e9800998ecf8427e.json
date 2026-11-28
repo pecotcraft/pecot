@@ -1,0 +1,1 @@
+{"id":"411e91a0793d2acce3245834c60688f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add worktree-config.json が無いと、worktree_init を促す error の行を標準エラーに出す","name":"worktree-config.json が無いと、worktree_init を促す error の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"0d34b9ad5b9fcf080c0d98a974c54de3"}}

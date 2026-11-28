@@ -1,0 +1,1 @@
+{"id":"c1695823eb10115fd2e708c49b42d0ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/asset-path/tests/require-resolve-asset-path.test.ts#require-resolve-asset-path valid fetch の引数が外部 URL のテンプレートリテラルだと、報告しない","name":"fetch の引数が外部 URL のテンプレートリテラルだと、報告しない","status":"passed","testResultsByEnv":{"default":"38847f80596e99c93cda7f3374889d89"}}

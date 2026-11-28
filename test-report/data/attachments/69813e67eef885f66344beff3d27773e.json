@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project already exists: board\n  url: https://ghes.example.com/users/acme/projects/1"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"already-exists\",\"detail\":\"project already exists: board\\n  url: https://ghes.example.com/users/acme/projects/1\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "already-exists",
+    "detail": "project already exists: board\n  url: https://ghes.example.com/users/acme/projects/1"
+  },
+  "isError": true
+}

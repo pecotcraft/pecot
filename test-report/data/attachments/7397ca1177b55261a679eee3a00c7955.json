@@ -1,0 +1,15 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "=== Projects ==="
+    },
+    {
+      "type": "text",
+      "text": "{\"projects\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "projects": []
+  }
+}

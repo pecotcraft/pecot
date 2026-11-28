@@ -1,0 +1,4 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_json_escapes_quotes_backs0/suite/sample.bats
+1..1
+# pecot-description: 特殊な文字のテストです。
+ok 1 題 "引用" \ 日本語 # skip "引用" \ 1行目	タブ 日本語

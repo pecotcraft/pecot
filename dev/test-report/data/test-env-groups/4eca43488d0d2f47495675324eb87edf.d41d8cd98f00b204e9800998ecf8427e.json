@@ -1,0 +1,1 @@
+{"id":"4eca43488d0d2f47495675324eb87edf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-table-complex-content.test.ts#no-table-complex-content valid セルの中が strong なら、報告しない","name":"セルの中が strong なら、報告しない","status":"passed","testResultsByEnv":{"default":"230d1c87dbbda16d46695eea882eb61b"}}

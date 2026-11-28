@@ -1,0 +1,1 @@
+{"id":"fda70701d69b48ce7e817d879490b869.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#対象を決めないツールに repo を渡すと、渡したリポジトリを対象にする","name":"対象を決めないツールに repo を渡すと、渡したリポジトリを対象にする","status":"passed","testResultsByEnv":{"default":"9b2a944437c75683b83d146bc59d24c7"}}

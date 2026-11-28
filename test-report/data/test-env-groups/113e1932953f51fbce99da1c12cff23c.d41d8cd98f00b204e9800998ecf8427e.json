@@ -1,0 +1,1 @@
+{"id":"113e1932953f51fbce99da1c12cff23c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#readIssueOf html_url が Issue の URL でなければ、github-mcp-shape で止める","name":"html_url が Issue の URL でなければ、github-mcp-shape で止める","status":"passed","testResultsByEnv":{"default":"8e44a1a3277669312e82c5406e5d268d"}}

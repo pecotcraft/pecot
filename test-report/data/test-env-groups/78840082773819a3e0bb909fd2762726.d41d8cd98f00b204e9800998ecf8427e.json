@@ -1,0 +1,1 @@
+{"id":"78840082773819a3e0bb909fd2762726.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-drift.test.ts#drift.ts 差があって開いた Tracker が存在しないと、ラベル付きの Tracker を作成してボードの Backlog に載せる","name":"差があって開いた Tracker が存在しないと、ラベル付きの Tracker を作成してボードの Backlog に載せる","status":"passed","testResultsByEnv":{"default":"717813a806e8b3b0ce53d82f1ca3e66e"}}

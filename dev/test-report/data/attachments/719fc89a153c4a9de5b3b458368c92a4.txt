@@ -1,0 +1,3 @@
+error: acme/app is in 2 project configs
+  choose one with project: <NAME>
+  available: a, b

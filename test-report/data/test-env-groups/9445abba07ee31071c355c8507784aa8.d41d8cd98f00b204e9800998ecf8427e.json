@@ -1,0 +1,1 @@
+{"id":"9445abba07ee31071c355c8507784aa8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge スタックの読み取り が GitHub の失敗で止まると、PR を示す error の行を出し、終了コード 1 を返す","name":"スタックの読み取り が GitHub の失敗で止まると、PR を示す error の行を出し、終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"f104a22b9bbf20046655cfbff8a80649"}}

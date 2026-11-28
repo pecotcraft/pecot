@@ -1,0 +1,1 @@
+{"id":"2ca28e6e39194597fc745b4abfe0da1f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/direct-output-lint.test.ts#直接の出力を止める lint src/infra/worktree.ts のパス process.stdout.write(\"x\") を書くと、期待したルールの違反が報告される","name":"process.stdout.write(\"x\") を書くと、期待したルールの違反が報告される","status":"passed","testResultsByEnv":{"default":"9e1febac41a9523aebc37ac4d259518b"}}

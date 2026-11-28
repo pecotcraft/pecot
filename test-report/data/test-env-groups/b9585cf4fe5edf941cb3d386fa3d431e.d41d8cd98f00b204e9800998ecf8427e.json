@@ -1,0 +1,1 @@
+{"id":"b9585cf4fe5edf941cb3d386fa3d431e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data MCP の呼び出し 対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す","name":"対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す","status":"passed","testResultsByEnv":{"default":"10c54532f401c8c0fd906a6262e3e0eb"}}

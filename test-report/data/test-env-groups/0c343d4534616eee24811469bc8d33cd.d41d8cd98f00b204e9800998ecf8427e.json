@@ -1,0 +1,1 @@
+{"id":"0c343d4534616eee24811469bc8d33cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_sso_login_status profile が数値 の入力を、スキーマの検証で拒否する","name":"profile が数値 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"0b9f2e66c58897e919fbae96205ba11a"}}

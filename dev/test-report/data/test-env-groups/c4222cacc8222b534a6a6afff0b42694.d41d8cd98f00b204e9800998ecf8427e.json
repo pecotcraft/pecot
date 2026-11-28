@@ -1,0 +1,1 @@
+{"id":"c4222cacc8222b534a6a6afff0b42694.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#.pecot/.gitignore の生成スクリプトの探索 スクリプトが失敗しても、リンクの作成は続け、標準エラー出力を警告として出力する","name":"スクリプトが失敗しても、リンクの作成は続け、標準エラー出力を警告として出力する","status":"passed","testResultsByEnv":{"default":"021458e6f8555a70a5775d457ea6d1c8"}}

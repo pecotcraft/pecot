@@ -1,0 +1,1 @@
+{"id":"80e37c89924d4599c707cb251f6c1519.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getUntrackedFiles 該当するファイルが存在しない場合と git の外の場合は、空の一覧を返す","name":"該当するファイルが存在しない場合と git の外の場合は、空の一覧を返す","status":"passed","testResultsByEnv":{"default":"4086130b31fe328aab3e025465497a98"}}

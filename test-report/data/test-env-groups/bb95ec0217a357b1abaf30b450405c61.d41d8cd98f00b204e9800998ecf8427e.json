@@ -1,0 +1,1 @@
+{"id":"bb95ec0217a357b1abaf30b450405c61.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の状態 検証が PENDING で 24 時間以内の場合は、待っている PR に含めない","name":"検証が PENDING で 24 時間以内の場合は、待っている PR に含めない","status":"passed","testResultsByEnv":{"default":"eae5ad92ccf50b82edae40ef9a74378e"}}

@@ -1,0 +1,1 @@
+/workspaces/base/pecot/.githooks/ci/nx-cache-server.mjs --dir=/tmp/pytest-of-vscode/pytest-0/popen-gw0/test_server_receives_used_file0/nx-remote --port-file=/tmp/pytest-of-vscode/pytest-0/popen-gw0/test_server_receives_used_file0/repo/.pecot/tmp/ci/nx-cache-port --used-file=/tmp/pytest-of-vscode/pytest-0/popen-gw0/test_server_receives_used_file0/repo/.pecot/tmp/ci/nx-used.txt

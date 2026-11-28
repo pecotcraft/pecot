@@ -1,0 +1,1 @@
+{"id":"d8c21b65e823e99a60a5be39da538b38.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#boardShapeOf 進行の欄も Status の欄も無ければ、どちらも undefined にする","name":"進行の欄も Status の欄も無ければ、どちらも undefined にする","status":"passed","testResultsByEnv":{"default":"d7fc7aefbf0d1ba748d7a9a2e2537176"}}

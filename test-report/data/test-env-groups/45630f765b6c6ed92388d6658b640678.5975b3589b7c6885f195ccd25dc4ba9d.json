@@ -1,0 +1,1 @@
+{"id":"45630f765b6c6ed92388d6658b640678.5975b3589b7c6885f195ccd25dc4ba9d","fullName":".githooks.tests.test_check_pytest_titles#test_reports_missing_title_or_docstring","name":"docstring の無いテストを、場所と理由を添えて止める","status":"passed","testResultsByEnv":{"default":"7240996f705443e6066b518cff984c65"}}

@@ -1,0 +1,1 @@
+{"id":"bacab5940a3281813d4b72730001fe78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#executeSlideLint 違反ありは slide.lint.violations に違反の一覧を載せる","name":"違反ありは slide.lint.violations に違反の一覧を載せる","status":"passed","testResultsByEnv":{"default":"de4a8dfb094869b5d46e4f6674bedc16"}}

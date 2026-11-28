@@ -1,0 +1,239 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "blocked_by: an Issue takes up to 50 blocked-by Issues"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"blocked_by\",\"code\":\"limit\",\"message\":\"an Issue takes up to 50 blocked-by Issues\"},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/10 with issue_read (method get): the column depends on whether the prerequisites are done\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[{\"issue\":\"#10\",\"wait\":\"stack\"},{\"issue\":\"#11\",\"wait\":\"stack\"},{\"issue\":\"#12\",\"wait\":\"stack\"},{\"issue\":\"#13\",\"wait\":\"stack\"},{\"issue\":\"#14\",\"wait\":\"stack\"},{\"issue\":\"#15\",\"wait\":\"stack\"},{\"issue\":\"#16\",\"wait\":\"stack\"},{\"issue\":\"#17\",\"wait\":\"stack\"},{\"issue\":\"#18\",\"wait\":\"stack\"},{\"issue\":\"#19\",\"wait\":\"stack\"},{\"issue\":\"#20\",\"wait\":\"stack\"},{\"issue\":\"#21\",\"wait\":\"stack\"},{\"issue\":\"#22\",\"wait\":\"stack\"},{\"issue\":\"#23\",\"wait\":\"stack\"},{\"issue\":\"#24\",\"wait\":\"stack\"},{\"issue\":\"#25\",\"wait\":\"stack\"},{\"issue\":\"#26\",\"wait\":\"stack\"},{\"issue\":\"#27\",\"wait\":\"stack\"},{\"issue\":\"#28\",\"wait\":\"stack\"},{\"issue\":\"#29\",\"wait\":\"stack\"},{\"issue\":\"#30\",\"wait\":\"stack\"},{\"issue\":\"#31\",\"wait\":\"stack\"},{\"issue\":\"#32\",\"wait\":\"stack\"},{\"issue\":\"#33\",\"wait\":\"stack\"},{\"issue\":\"#34\",\"wait\":\"stack\"},{\"issue\":\"#35\",\"wait\":\"stack\"},{\"issue\":\"#36\",\"wait\":\"stack\"},{\"issue\":\"#37\",\"wait\":\"stack\"},{\"issue\":\"#38\",\"wait\":\"stack\"},{\"issue\":\"#39\",\"wait\":\"stack\"},{\"issue\":\"#40\",\"wait\":\"stack\"},{\"issue\":\"#41\",\"wait\":\"stack\"},{\"issue\":\"#42\",\"wait\":\"stack\"},{\"issue\":\"#43\",\"wait\":\"stack\"},{\"issue\":\"#44\",\"wait\":\"stack\"},{\"issue\":\"#45\",\"wait\":\"stack\"},{\"issue\":\"#46\",\"wait\":\"stack\"},{\"issue\":\"#47\",\"wait\":\"stack\"},{\"issue\":\"#48\",\"wait\":\"stack\"},{\"issue\":\"#49\",\"wait\":\"stack\"},{\"issue\":\"#50\",\"wait\":\"stack\"},{\"issue\":\"#51\",\"wait\":\"stack\"},{\"issue\":\"#52\",\"wait\":\"stack\"},{\"issue\":\"#53\",\"wait\":\"stack\"},{\"issue\":\"#54\",\"wait\":\"stack\"},{\"issue\":\"#55\",\"wait\":\"stack\"},{\"issue\":\"#56\",\"wait\":\"stack\"},{\"issue\":\"#57\",\"wait\":\"stack\"},{\"issue\":\"#58\",\"wait\":\"stack\"},{\"issue\":\"#59\",\"wait\":\"stack\"},{\"issue\":\"#60\",\"wait\":\"stack\"}],\"approach\":\"join\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "blocked_by",
+        "code": "limit",
+        "message": "an Issue takes up to 50 blocked-by Issues"
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/10 with issue_read (method get): the column depends on whether the prerequisites are done"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [
+          {
+            "issue": "#10",
+            "wait": "stack"
+          },
+          {
+            "issue": "#11",
+            "wait": "stack"
+          },
+          {
+            "issue": "#12",
+            "wait": "stack"
+          },
+          {
+            "issue": "#13",
+            "wait": "stack"
+          },
+          {
+            "issue": "#14",
+            "wait": "stack"
+          },
+          {
+            "issue": "#15",
+            "wait": "stack"
+          },
+          {
+            "issue": "#16",
+            "wait": "stack"
+          },
+          {
+            "issue": "#17",
+            "wait": "stack"
+          },
+          {
+            "issue": "#18",
+            "wait": "stack"
+          },
+          {
+            "issue": "#19",
+            "wait": "stack"
+          },
+          {
+            "issue": "#20",
+            "wait": "stack"
+          },
+          {
+            "issue": "#21",
+            "wait": "stack"
+          },
+          {
+            "issue": "#22",
+            "wait": "stack"
+          },
+          {
+            "issue": "#23",
+            "wait": "stack"
+          },
+          {
+            "issue": "#24",
+            "wait": "stack"
+          },
+          {
+            "issue": "#25",
+            "wait": "stack"
+          },
+          {
+            "issue": "#26",
+            "wait": "stack"
+          },
+          {
+            "issue": "#27",
+            "wait": "stack"
+          },
+          {
+            "issue": "#28",
+            "wait": "stack"
+          },
+          {
+            "issue": "#29",
+            "wait": "stack"
+          },
+          {
+            "issue": "#30",
+            "wait": "stack"
+          },
+          {
+            "issue": "#31",
+            "wait": "stack"
+          },
+          {
+            "issue": "#32",
+            "wait": "stack"
+          },
+          {
+            "issue": "#33",
+            "wait": "stack"
+          },
+          {
+            "issue": "#34",
+            "wait": "stack"
+          },
+          {
+            "issue": "#35",
+            "wait": "stack"
+          },
+          {
+            "issue": "#36",
+            "wait": "stack"
+          },
+          {
+            "issue": "#37",
+            "wait": "stack"
+          },
+          {
+            "issue": "#38",
+            "wait": "stack"
+          },
+          {
+            "issue": "#39",
+            "wait": "stack"
+          },
+          {
+            "issue": "#40",
+            "wait": "stack"
+          },
+          {
+            "issue": "#41",
+            "wait": "stack"
+          },
+          {
+            "issue": "#42",
+            "wait": "stack"
+          },
+          {
+            "issue": "#43",
+            "wait": "stack"
+          },
+          {
+            "issue": "#44",
+            "wait": "stack"
+          },
+          {
+            "issue": "#45",
+            "wait": "stack"
+          },
+          {
+            "issue": "#46",
+            "wait": "stack"
+          },
+          {
+            "issue": "#47",
+            "wait": "stack"
+          },
+          {
+            "issue": "#48",
+            "wait": "stack"
+          },
+          {
+            "issue": "#49",
+            "wait": "stack"
+          },
+          {
+            "issue": "#50",
+            "wait": "stack"
+          },
+          {
+            "issue": "#51",
+            "wait": "stack"
+          },
+          {
+            "issue": "#52",
+            "wait": "stack"
+          },
+          {
+            "issue": "#53",
+            "wait": "stack"
+          },
+          {
+            "issue": "#54",
+            "wait": "stack"
+          },
+          {
+            "issue": "#55",
+            "wait": "stack"
+          },
+          {
+            "issue": "#56",
+            "wait": "stack"
+          },
+          {
+            "issue": "#57",
+            "wait": "stack"
+          },
+          {
+            "issue": "#58",
+            "wait": "stack"
+          },
+          {
+            "issue": "#59",
+            "wait": "stack"
+          },
+          {
+            "issue": "#60",
+            "wait": "stack"
+          }
+        ],
+        "approach": "join"
+      }
+    ]
+  }
+}

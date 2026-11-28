@@ -1,0 +1,1 @@
+{"id":"6f0a4dc71e8343a327cb49d22edc43f1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender.test.ts#prerenderComplexElements 待機方法が fixed の場合は、指定した時間だけ待機して、要素を画像にする","name":"待機方法が fixed の場合は、指定した時間だけ待機して、要素を画像にする","status":"passed","testResultsByEnv":{"default":"af32ca4089554fade397fdba68cba3c4"}}

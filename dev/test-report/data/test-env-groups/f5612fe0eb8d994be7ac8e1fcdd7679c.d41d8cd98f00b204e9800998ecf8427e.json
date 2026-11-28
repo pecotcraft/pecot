@@ -1,0 +1,1 @@
+{"id":"f5612fe0eb8d994be7ac8e1fcdd7679c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText AI の文章で多用される語を含む文を fragment モードで渡すと、no-ai-words の指摘を返す","name":"AI の文章で多用される語を含む文を fragment モードで渡すと、no-ai-words の指摘を返す","status":"passed","testResultsByEnv":{"default":"69e618b20809a01750422abb35d93cf9"}}

@@ -1,0 +1,1 @@
+{"id":"b536b867c77e3d7f07c71b4fd898a3fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#配布ツリーの high も、例外リストの同じ規則で免除する","name":"配布ツリーの high も、例外リストの同じ規則で免除する","status":"passed","testResultsByEnv":{"default":"2c7f7bd2cb8cbce6b29b06177a5554e9"}}

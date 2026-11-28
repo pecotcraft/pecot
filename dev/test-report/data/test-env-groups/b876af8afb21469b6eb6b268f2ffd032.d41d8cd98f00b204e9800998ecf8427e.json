@@ -1,0 +1,1 @@
+{"id":"b876af8afb21469b6eb6b268f2ffd032.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/plugin-update-notice.bats#installed 側の plugin.json に version が無いとき、何も出さない","name":"installed 側の plugin.json に version が無いとき、何も出さない","status":"passed","testResultsByEnv":{"default":"58da1f46bd0d3e03788907cad34e50bf"}}

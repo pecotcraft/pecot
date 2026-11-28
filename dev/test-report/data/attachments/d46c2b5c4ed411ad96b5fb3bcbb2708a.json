@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "up to date: feat/demo/12 on feat/demo/11"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/demo/12\",\"base\":\"feat/demo/11\",\"outcome\":\"up-to-date\"}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/demo/12",
+    "base": "feat/demo/11",
+    "outcome": "up-to-date"
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"11f925a6f9bc0ec388b8bfc96fabcb47.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName プロジェクトのルートが存在しなくても wt1 を返す","name":"プロジェクトのルートが存在しなくても wt1 を返す","status":"passed","testResultsByEnv":{"default":"78c8a4eba9dd5bef968a561accd116c1"}}

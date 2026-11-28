@@ -1,0 +1,1 @@
+{"id":"23263e8a941f9ca3f0e04993f01e28e5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-no-verify-check.sh 有効にしてコマンドが echo x&git commit -n のとき、終了コード 1 で止める","name":"有効にしてコマンドが echo x&git commit -n のとき、終了コード 1 で止める","status":"passed","testResultsByEnv":{"default":"8fbd01a4f886b9d8ff8950416c811f20"}}

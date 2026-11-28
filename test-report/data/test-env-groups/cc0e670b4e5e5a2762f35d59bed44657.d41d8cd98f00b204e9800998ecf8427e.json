@@ -1,0 +1,1 @@
+{"id":"cc0e670b4e5e5a2762f35d59bed44657.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/tests/english-only.test.ts#findJapaneseStrings 文字列に 漢字 が含まれているとき、日本語として 1 件検出する","name":"文字列に 漢字 が含まれているとき、日本語として 1 件検出する","status":"passed","testResultsByEnv":{"default":"fa83ccfa011cf9fa842203eb40e6ec9f"}}

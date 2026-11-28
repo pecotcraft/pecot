@@ -1,0 +1,2 @@
+==> 開発版: version plan とリリースタグを見ずに監査する
+==> 監査先の advisory 応答を確認 (canary minimist)

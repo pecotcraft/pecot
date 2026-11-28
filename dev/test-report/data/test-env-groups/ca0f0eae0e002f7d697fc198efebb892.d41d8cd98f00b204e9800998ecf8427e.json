@@ -1,0 +1,1 @@
+{"id":"ca0f0eae0e002f7d697fc198efebb892.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface-export.test.ts#generated.json の書き出し legacy と modern のどちらの世代で取得しても、同じバイト列を書き出す","name":"legacy と modern のどちらの世代で取得しても、同じバイト列を書き出す","status":"passed","testResultsByEnv":{"default":"deb1966829dd72500d66c4c7b435d8bd"}}

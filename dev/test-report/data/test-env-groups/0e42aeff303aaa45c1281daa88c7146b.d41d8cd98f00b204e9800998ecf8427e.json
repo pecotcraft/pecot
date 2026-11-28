@@ -1,0 +1,1 @@
+{"id":"0e42aeff303aaa45c1281daa88c7146b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender.test.ts#prerenderComplexElements 高解像度用のページと元のページで要素の数が異なる場合は、不一致の警告を出力する","name":"高解像度用のページと元のページで要素の数が異なる場合は、不一致の警告を出力する","status":"passed","testResultsByEnv":{"default":"adbd6ba08cb78b2d463b93ddc8a414e6"}}

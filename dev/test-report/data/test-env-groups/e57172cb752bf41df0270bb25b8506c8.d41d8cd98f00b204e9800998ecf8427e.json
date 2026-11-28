@@ -1,0 +1,1 @@
+{"id":"e57172cb752bf41df0270bb25b8506c8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/repository-match.test.ts#resolveCurrentRepository git の外では undefined を返す","name":"git の外では undefined を返す","status":"passed","testResultsByEnv":{"default":"59882fd481630c972ea7a80440f03005"}}

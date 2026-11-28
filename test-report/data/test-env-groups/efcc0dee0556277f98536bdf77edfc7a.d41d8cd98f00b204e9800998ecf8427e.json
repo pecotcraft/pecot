@@ -1,0 +1,1 @@
+{"id":"efcc0dee0556277f98536bdf77edfc7a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_release_group_changelog#test_directory_path_fails_with_not_a_file_message","name":"CHANGELOG のパスがディレクトリだと、ファイルではない旨を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"4f6f7495a033009ef33e331c18de3ad9"}}

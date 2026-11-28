@@ -1,0 +1,1 @@
+{"id":"5b3a6463940df170483972913e97c2bc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_finish_copies_summary_and_passes_on_done_0","name":"完了の印が 0 の場合は、Summary を書き写して終了コード 0 で終了する","status":"passed","testResultsByEnv":{"default":"9edf497cfe742a47e2edeed0c84fe11d"}}

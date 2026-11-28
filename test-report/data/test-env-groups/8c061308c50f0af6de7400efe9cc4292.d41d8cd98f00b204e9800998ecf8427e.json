@@ -1,0 +1,1 @@
+{"id":"8c061308c50f0af6de7400efe9cc4292.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 見本のリポジトリ valid を検証すると、検証エラーの行を過不足なく決まった順で返す","name":"見本のリポジトリ valid を検証すると、検証エラーの行を過不足なく決まった順で返す","status":"passed","testResultsByEnv":{"default":"b1e0524dd7bdece3be104b02e9fe4d85"}}

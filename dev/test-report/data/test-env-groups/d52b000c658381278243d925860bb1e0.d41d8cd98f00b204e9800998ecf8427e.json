@@ -1,0 +1,1 @@
+{"id":"d52b000c658381278243d925860bb1e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-composite-border-on-text.test.ts#no-composite-border-on-text valid p の :style に border 以外のキーしか無いと、報告しない","name":"p の :style に border 以外のキーしか無いと、報告しない","status":"passed","testResultsByEnv":{"default":"66879aa8063b38468c5e6e5294c8a3c3"}}

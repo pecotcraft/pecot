@@ -1,0 +1,1 @@
+{"id":"11d0aa8de7defef075bd587e62820dc6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と列 前提の無い task を Backlog に置くと、Ready を候補にして problem にする","name":"前提の無い task を Backlog に置くと、Ready を候補にして problem にする","status":"passed","testResultsByEnv":{"default":"54418f5774528a65a42ff67aa3c75c34"}}

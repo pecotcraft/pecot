@@ -1,0 +1,1 @@
+{"id":"74886c21f7f9d9f6c1e5cdb8ec3f4f6b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_common_env_is_passed_without_declaring_it","name":"NX_BASE と CI の共通の環境変数は、宣言しなくても remote-env として渡す","status":"passed","testResultsByEnv":{"default":"d86b656fbd2ebe9f499e57ae5608fb67"}}

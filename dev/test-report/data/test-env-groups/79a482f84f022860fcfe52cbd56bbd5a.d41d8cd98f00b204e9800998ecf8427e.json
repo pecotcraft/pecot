@@ -1,0 +1,1 @@
+{"id":"79a482f84f022860fcfe52cbd56bbd5a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_push_rebuilds_stale_dist","name":"push の確認でも、dist が古いと作り直してから文章規則を適用する","status":"passed","testResultsByEnv":{"default":"3960108f5539a32bf931ffeaa3ff39e1"}}

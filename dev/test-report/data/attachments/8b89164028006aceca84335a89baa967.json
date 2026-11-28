@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "host is required\n  example: project_activate with project: \"1\", host: \"github.com\", owner: \"example-org\", owner_type: \"org\"\n  example: project_activate with project: \"ghes.example.com_example-org_1\""
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"host is required\\n  example: project_activate with project: \\\"1\\\", host: \\\"github.com\\\", owner: \\\"example-org\\\", owner_type: \\\"org\\\"\\n  example: project_activate with project: \\\"ghes.example.com_example-org_1\\\"\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "host is required\n  example: project_activate with project: \"1\", host: \"github.com\", owner: \"example-org\", owner_type: \"org\"\n  example: project_activate with project: \"ghes.example.com_example-org_1\""
+  },
+  "isError": true
+}

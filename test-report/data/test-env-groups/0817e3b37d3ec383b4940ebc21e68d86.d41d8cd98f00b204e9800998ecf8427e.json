@@ -1,0 +1,1 @@
+{"id":"0817e3b37d3ec383b4940ebc21e68d86.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show Stack の節 記録が無い作業ディレクトリ 判定が blocked なら、warning を出し、Stack の節を出さない","name":"判定が blocked なら、warning を出し、Stack の節を出さない","status":"passed","testResultsByEnv":{"default":"218b2c51d19dafe62c117fdc0806c7c2"}}

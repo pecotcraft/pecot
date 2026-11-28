@@ -1,0 +1,1 @@
+{"id":"c9e58c43d1c72b770dc3103539b14920.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-gitignore-ensure.test.ts#pecot-gitignore-ensure.sh 追跡している .gitignore を書き換えると、差分が変更として現れる","name":"追跡している .gitignore を書き換えると、差分が変更として現れる","status":"passed","testResultsByEnv":{"default":"03ea0048f399c0c1e5be81666ea4a34a"}}

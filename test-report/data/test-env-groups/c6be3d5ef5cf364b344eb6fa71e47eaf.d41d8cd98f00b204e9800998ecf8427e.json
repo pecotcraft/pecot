@@ -1,0 +1,1 @@
+{"id":"c6be3d5ef5cf364b344eb6fa71e47eaf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#parseScenario 形式に誤りがあると、例外が発生する: match が空","name":"形式に誤りがあると、例外が発生する: match が空","status":"passed","testResultsByEnv":{"default":"339f479231bb119d2bbc650871a9ee36"}}

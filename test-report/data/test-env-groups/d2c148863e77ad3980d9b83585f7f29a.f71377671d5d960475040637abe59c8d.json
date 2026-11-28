@@ -1,0 +1,1 @@
+{"id":"d2c148863e77ad3980d9b83585f7f29a.f71377671d5d960475040637abe59c8d","fullName":".githooks.tests.test_githooks_lanes#test_command_names_the_full_path_of_each_test","name":"test-nx-affected の command は、各テストを .githooks/tests からのパスで指定する","status":"passed","testResultsByEnv":{"default":"3ef3c85b7c98a4043bc6591d9d14cbb0"}}

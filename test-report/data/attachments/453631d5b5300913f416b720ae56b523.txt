@@ -1,0 +1,3 @@
+error: cannot infer the stacked base: GraphQL query error: other side closed
+  the PR is not created, since a PR to the develop branch can include the changes of the layer below
+  fix the cause and call it again, or call pr_create in the work directory where session_start wrote .pecot/state/.pecot-base

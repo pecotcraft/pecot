@@ -1,0 +1,1 @@
+{"id":"91a065c224b781c5bea3227424c914d8.4fd660afd576bc8332cd9041c5393fff","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_targets_maps_changed_files_to_plugins","name":"変更ファイルが [] のとき、`dev-targets.mjs` は対象のプラグインを [] に決める","status":"passed","testResultsByEnv":{"default":"413102789dbf71404a0efa773d729c6f"}}

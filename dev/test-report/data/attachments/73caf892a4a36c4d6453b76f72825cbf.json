@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "expectedHeadSha: the head of PR #21 is 89abcdef0123456789abcdef0123456789abcdef, not 0000000000000000000000000000000000000000: new commits were pushed; check them before merging"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"expectedHeadSha\",\"code\":\"head-moved\",\"message\":\"the head of PR #21 is 89abcdef0123456789abcdef0123456789abcdef, not 0000000000000000000000000000000000000000: new commits were pushed; check them before merging\",\"candidates\":[\"89abcdef0123456789abcdef0123456789abcdef\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "expectedHeadSha",
+        "code": "head-moved",
+        "message": "the head of PR #21 is 89abcdef0123456789abcdef0123456789abcdef, not 0000000000000000000000000000000000000000: new commits were pushed; check them before merging",
+        "candidates": [
+          "89abcdef0123456789abcdef0123456789abcdef"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"dcd4799d0c1eb1e48bb7bd3bfcf475a5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#pythonRepr 文字列の repr は、引用符の選び方が Python と同じになる","name":"文字列の repr は、引用符の選び方が Python と同じになる","status":"passed","testResultsByEnv":{"default":"2852fad00804a33baf02cfa628113a86"}}

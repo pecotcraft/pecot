@@ -1,0 +1,33 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.sub_issues: read the sub-issues of acme/demo/3 with issue_read (method get_sub_issues) and add it to reads.sub_issues with parent acme/demo/3: the order in the title must not be used by a sibling"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.sub_issues\",\"code\":\"read-required\",\"message\":\"read the sub-issues of acme/demo/3 with issue_read (method get_sub_issues) and add it to reads.sub_issues with parent acme/demo/3: the order in the title must not be used by a sibling\"},{\"field\":\"title\",\"code\":\"title-order\",\"message\":\"the title of a sub-issue of acme/demo/3 starts with #3-<order>: after the prefix\"}],\"plan\":[{\"key\":\"issues[0]\",\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.sub_issues",
+        "code": "read-required",
+        "message": "read the sub-issues of acme/demo/3 with issue_read (method get_sub_issues) and add it to reads.sub_issues with parent acme/demo/3: the order in the title must not be used by a sibling"
+      },
+      {
+        "field": "title",
+        "code": "title-order",
+        "message": "the title of a sub-issue of acme/demo/3 starts with #3-<order>: after the prefix"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

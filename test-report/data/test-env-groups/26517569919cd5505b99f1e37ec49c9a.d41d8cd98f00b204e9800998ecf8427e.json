@@ -1,0 +1,1 @@
+{"id":"26517569919cd5505b99f1e37ec49c9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#builtinValuesOfIssue 値を持たない Issue の場合は、空の配列と undefined にする","name":"値を持たない Issue の場合は、空の配列と undefined にする","status":"passed","testResultsByEnv":{"default":"a5619185bd85ba68444e6efcaac6b48e"}}

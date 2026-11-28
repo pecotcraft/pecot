@@ -1,0 +1,1 @@
+{"id":"4670ce2bcd5ea8ea42b818d15a502c99.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-describe-title.test.ts#describe-title invalid 修飾を 2 つ重ねた describe も、題が name に無ければ止める","name":"修飾を 2 つ重ねた describe も、題が name に無ければ止める","status":"passed","testResultsByEnv":{"default":"a4fff47deb5d2f05823f0d001b0db137"}}

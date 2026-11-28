@@ -1,0 +1,1 @@
+{"id":"2ca4f724b0eefa7caf6d763d7ee07ffb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order parent_epic の整数は、そのまま保持する","name":"parent_epic の整数は、そのまま保持する","status":"passed","testResultsByEnv":{"default":"8f5d9e5e4028d7b8e35b76bb58d53a11"}}

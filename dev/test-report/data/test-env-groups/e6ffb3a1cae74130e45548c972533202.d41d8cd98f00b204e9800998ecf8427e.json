@@ -1,0 +1,1 @@
+{"id":"e6ffb3a1cae74130e45548c972533202.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/queue.test.ts#createExecutionQueue タスクが失敗した場合は、呼び出し元に失敗を伝え、後続のタスクは続けて処理する","name":"タスクが失敗した場合は、呼び出し元に失敗を伝え、後続のタスクは続けて処理する","status":"passed","testResultsByEnv":{"default":"e9df1f810be0cda4771b1ea0c51a3b0e"}}

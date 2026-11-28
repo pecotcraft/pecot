@@ -1,0 +1,1 @@
+{"id":"df5f55201611a2d40287f434aef55217.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185） ASCII だけの要約は、日本語を含まないとしてエラーを返す","name":"ASCII だけの要約は、日本語を含まないとしてエラーを返す","status":"passed","testResultsByEnv":{"default":"43feed7b98fd61f567ed9cce0aa85982"}}

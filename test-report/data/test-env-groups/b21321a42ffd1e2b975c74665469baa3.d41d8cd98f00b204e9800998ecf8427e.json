@@ -1,0 +1,1 @@
+{"id":"b21321a42ffd1e2b975c74665469baa3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 MCP の呼び出し 前提が輪になっている Issue は、readiness を cycle の blocked にする","name":"前提が輪になっている Issue は、readiness を cycle の blocked にする","status":"passed","testResultsByEnv":{"default":"e6670da130f4889d3395296d30f027b7"}}

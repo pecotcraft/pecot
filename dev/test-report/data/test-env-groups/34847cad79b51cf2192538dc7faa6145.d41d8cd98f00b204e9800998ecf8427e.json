@@ -1,0 +1,1 @@
+{"id":"34847cad79b51cf2192538dc7faa6145.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） worktree-config.json が存在しなければ、init を案内するエラーを返す","name":"worktree-config.json が存在しなければ、init を案内するエラーを返す","status":"passed","testResultsByEnv":{"default":"5348205fd6e04216dcbd5fd5604b2d60"}}

@@ -1,0 +1,1 @@
+{"id":"cb73cd58039c46a04a6455ef3373c644.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#toIssueFacts Waits for merge の節が不正な形式のときは、前提をすべて merge にし、判定は順 4 になる","name":"Waits for merge の節が不正な形式のときは、前提をすべて merge にし、判定は順 4 になる","status":"passed","testResultsByEnv":{"default":"30a9c5d38328c2abaf72f6f11e076f34"}}

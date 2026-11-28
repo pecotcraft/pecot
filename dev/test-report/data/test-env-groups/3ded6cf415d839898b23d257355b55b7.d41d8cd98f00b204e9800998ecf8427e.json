@@ -1,0 +1,1 @@
+{"id":"3ded6cf415d839898b23d257355b55b7.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_08_block_plan_declares_wrong_group","name":"version plan が変更とは別の group だけを宣言していると、変更した group を示して失敗する","status":"passed","testResultsByEnv":{"default":"1bb09bdd119521d0a9e641595449da5f"}}

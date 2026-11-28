@@ -1,0 +1,1 @@
+{"id":"92be35a7080c019f9077c4a530127bbf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-onboarding の兄弟リポの検出 ssh 形式の origin でも、一致する設定ファイルを 1 件と数える","name":"ssh 形式の origin でも、一致する設定ファイルを 1 件と数える","status":"passed","testResultsByEnv":{"default":"ef2613ddeb18e4acd17bad71c66de393"}}

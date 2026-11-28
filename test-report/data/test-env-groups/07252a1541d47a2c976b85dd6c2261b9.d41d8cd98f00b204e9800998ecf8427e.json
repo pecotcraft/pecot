@@ -1,0 +1,1 @@
+{"id":"07252a1541d47a2c976b85dd6c2261b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「file の相対パス」の形の場合は、種類と url またはパスに分解する","name":"テーマの指定が「file の相対パス」の形の場合は、種類と url またはパスに分解する","status":"passed","testResultsByEnv":{"default":"d46fbb693bb615112967cc30051f567f"}}

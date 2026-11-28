@@ -1,0 +1,1 @@
+{"id":"e72d00a161ce50244c3f73a663eece03.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_readable_history_is_left_as_is","name":"履歴がすべて読めるときは、内容を変えず、通知もしない","status":"passed","testResultsByEnv":{"default":"30e9957e22ebd0f62a1a63f399ef989d"}}

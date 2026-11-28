@@ -1,0 +1,1 @@
+{"id":"0139c8fa9aab70fa20bb87332f90c110.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#MCP の表示名と使用例 使用例の arguments が input に存在しない名前を持つか、必須の入力が欠けていると、検証エラーにする","name":"使用例の arguments が input に存在しない名前を持つか、必須の入力が欠けていると、検証エラーにする","status":"passed","testResultsByEnv":{"default":"a2183d0e47b98041a588a77dfe6495c9"}}

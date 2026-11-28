@@ -1,0 +1,1 @@
+{"id":"6e6379ca7a13a5dfba1ae921c323b413.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Markdown のブロックの規則 フェンスで囲んだコードブロックを外し、閉じていなければ末尾まで外す","name":"フェンスで囲んだコードブロックを外し、閉じていなければ末尾まで外す","status":"passed","testResultsByEnv":{"default":"4fb18c9ccd9c96e60646873a96c6d563"}}

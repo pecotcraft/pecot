@@ -1,0 +1,4 @@
+devcontainer --version 
+devcontainer --version 
+npm install -g @devcontainers/cli@0.90.0
+npm install -g @devcontainers/cli@0.90.0

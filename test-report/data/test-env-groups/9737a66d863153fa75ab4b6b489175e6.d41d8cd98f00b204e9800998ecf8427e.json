@@ -1,0 +1,1 @@
+{"id":"9737a66d863153fa75ab4b6b489175e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#Python reads Python のソースに an f-string name があると、名前を解決できない行を 1 件返し、名前は返さない","name":"Python のソースに an f-string name があると、名前を解決できない行を 1 件返し、名前は返さない","status":"passed","testResultsByEnv":{"default":"799260c2e084ee74329e980be873d988"}}

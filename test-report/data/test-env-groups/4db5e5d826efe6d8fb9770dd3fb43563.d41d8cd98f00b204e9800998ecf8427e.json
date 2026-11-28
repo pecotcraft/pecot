@@ -1,0 +1,1 @@
+{"id":"4db5e5d826efe6d8fb9770dd3fb43563.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/evidence-create.test.ts#evidence_create — US3 ヘッダー・キャプション・並び順の指定 items の指定順が通し番号になり、caption の明示と省略が混在しても崩れない","name":"items の指定順が通し番号になり、caption の明示と省略が混在しても崩れない","status":"passed","testResultsByEnv":{"default":"0b1327c82d487989e2578543fb992f13"}}

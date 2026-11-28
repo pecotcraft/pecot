@@ -1,0 +1,1 @@
+{"id":"65a54ba83fcf4f94b9ecd4c82500d63d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#getSecretScanningStatus 応答で「secret_scanning が無い」の場合は、undefined を返す","name":"応答で「secret_scanning が無い」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"033ce02be77cdd289bd3dd018e957393"}}

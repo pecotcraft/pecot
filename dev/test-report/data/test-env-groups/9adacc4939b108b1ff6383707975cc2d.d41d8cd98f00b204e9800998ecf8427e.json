@@ -1,0 +1,1 @@
+{"id":"9adacc4939b108b1ff6383707975cc2d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/baseline-scripts.test.ts#baseline.json の hooks.scripts 間接に動くスクリプトは、どのテストからも名指しされていない","name":"間接に動くスクリプトは、どのテストからも名指しされていない","status":"passed","testResultsByEnv":{"default":"20db7bd27689133e8889a5107c0ab795"}}

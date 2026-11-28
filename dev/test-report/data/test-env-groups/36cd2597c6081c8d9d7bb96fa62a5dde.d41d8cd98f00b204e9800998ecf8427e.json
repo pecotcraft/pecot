@@ -1,0 +1,1 @@
+{"id":"36cd2597c6081c8d9d7bb96fa62a5dde.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate pecot-status と旧い名前の進行の欄が両方あるボードでも、pecot-status の欄で同期する","name":"pecot-status と旧い名前の進行の欄が両方あるボードでも、pecot-status の欄で同期する","status":"passed","testResultsByEnv":{"default":"2a5ba18afdfdba6ac2e69512f1381c69"}}

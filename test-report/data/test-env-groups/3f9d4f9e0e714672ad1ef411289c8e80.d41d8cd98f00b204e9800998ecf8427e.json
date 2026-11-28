@@ -1,0 +1,1 @@
+{"id":"3f9d4f9e0e714672ad1ef411289c8e80.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: 文字列をまたぐ文書単位の規則 別々の文字列でも、文の調子がそろっていれば、違反にしない","name":"別々の文字列でも、文の調子がそろっていれば、違反にしない","status":"passed","testResultsByEnv":{"default":"61e4ec6173d5f5fa1c0f62e7027c5524"}}

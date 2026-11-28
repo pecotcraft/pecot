@@ -1,0 +1,1 @@
+{"id":"7518606494736ae9b2eb304ee0054722.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations 注記で type が数値 の場合は、拒否する","name":"注記で type が数値 の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"f46c980d8c71106c902541017b90ef6a"}}

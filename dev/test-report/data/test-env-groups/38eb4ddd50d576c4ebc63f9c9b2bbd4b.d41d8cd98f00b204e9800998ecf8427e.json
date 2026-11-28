@@ -1,0 +1,1 @@
+{"id":"38eb4ddd50d576c4ebc63f9c9b2bbd4b.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/session-start.bats#古い node では、systemMessage と additionalContext に起動しない旨を案内する","name":"古い node では、systemMessage と additionalContext に起動しない旨を案内する","status":"passed","testResultsByEnv":{"default":"ae19d6407e1ce0559aafb5905be9bafa"}}

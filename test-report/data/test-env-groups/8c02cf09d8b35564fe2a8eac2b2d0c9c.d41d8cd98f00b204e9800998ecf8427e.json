@@ -1,0 +1,1 @@
+{"id":"8c02cf09d8b35564fe2a8eac2b2d0c9c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateSections（必須セクション検証: 見出しレベル・em-dash サマリ） 見出しの名前に特殊文字を含んでいても、不足なしで空の配列を返す","name":"見出しの名前に特殊文字を含んでいても、不足なしで空の配列を返す","status":"passed","testResultsByEnv":{"default":"ee2c48dfad14ef8f5895e5d741a4219e"}}

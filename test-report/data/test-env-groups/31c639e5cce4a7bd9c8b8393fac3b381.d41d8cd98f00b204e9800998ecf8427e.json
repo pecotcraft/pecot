@@ -1,0 +1,1 @@
+{"id":"31c639e5cce4a7bd9c8b8393fac3b381.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#案内の文字列を止める lint 案内に当たらない書き方（グループの語で終わる文）は、lint の違反にならない","name":"案内に当たらない書き方（グループの語で終わる文）は、lint の違反にならない","status":"passed","testResultsByEnv":{"default":"9f6282a20a081a8eaba5d540f6200a05"}}

@@ -1,0 +1,1 @@
+{"id":"b8bf276eb0ed02b45f26fa1fd0abf181.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getWorktreeList porcelain の出力を、空白を含むパス・detached・bare も含めて分ける（偽の git）","name":"porcelain の出力を、空白を含むパス・detached・bare も含めて分ける（偽の git）","status":"passed","testResultsByEnv":{"default":"4f602f58e9d5e6b77c41361c2e38d361"}}

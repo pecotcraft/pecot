@@ -1,0 +1,1 @@
+{"id":"0d15bd7fc10629f971e331d7b87184e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_set MCP の data yes を付けて上書きすると、上書きの知らせから確認の案内を省く","name":"yes を付けて上書きすると、上書きの知らせから確認の案内を省く","status":"passed","testResultsByEnv":{"default":"4da63633d7d8caa94a799cfe2f8b93ce"}}

@@ -1,0 +1,1 @@
+{"id":"1f21b1825ff3ea621ef1ae4f11a75569.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck monorepo で未登録の package を渡すと、error を出して失敗にする","name":"monorepo で未登録の package を渡すと、error を出して失敗にする","status":"passed","testResultsByEnv":{"default":"ff78640062ff45f64d9d5d3aa035f2c7"}}

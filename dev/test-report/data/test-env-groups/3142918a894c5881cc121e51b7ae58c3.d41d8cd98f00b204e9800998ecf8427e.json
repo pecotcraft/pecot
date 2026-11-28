@@ -1,0 +1,1 @@
+{"id":"3142918a894c5881cc121e51b7ae58c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/mcp/resources.test.ts#resources/read 存在しない URI を読むと、-32602 のエラーを返す","name":"存在しない URI を読むと、-32602 のエラーを返す","status":"passed","testResultsByEnv":{"default":"a515f5664e5d5cf71c07d99297e65446"}}

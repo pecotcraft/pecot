@@ -1,0 +1,7 @@
+
+[7m[1m[31m NX [39m[22m[27m  [31mRunning target [1mlint-src[22m for project lane-lint failed[39m
+
+[2mFailed tasks:[22m
+
+[2m-[22m lane-lint:lint-src
+

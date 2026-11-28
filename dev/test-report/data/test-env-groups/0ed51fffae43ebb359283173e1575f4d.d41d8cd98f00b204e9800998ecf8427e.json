@@ -1,0 +1,1 @@
+{"id":"0ed51fffae43ebb359283173e1575f4d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/errors.test.ts#PipelineRuntimeError options.cause を渡した場合は、Error.cause に設定する","name":"options.cause を渡した場合は、Error.cause に設定する","status":"passed","testResultsByEnv":{"default":"95646ec846d3dbf83cbb2d59162fcb17"}}

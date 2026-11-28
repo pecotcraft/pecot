@@ -1,0 +1,1 @@
+{"id":"0fa13a78ce8eabfb74719a2fc7d8a208.f5489494496c119aa2547ebd5d42e6c0","fullName":".githooks.tests.test_pages_provenance#test_report_dispatch_takes_the_side_of_its_only_report_artifact","name":"レポートの手動実行の run は、レポートの artifact が ['test-report-release'] だと、release 側として受け付ける","status":"passed","testResultsByEnv":{"default":"5cdf165d045e35b4e8e98057491e1420"}}

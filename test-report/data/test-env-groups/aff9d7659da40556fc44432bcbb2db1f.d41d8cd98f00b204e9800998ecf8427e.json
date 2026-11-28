@@ -1,0 +1,1 @@
+{"id":"aff9d7659da40556fc44432bcbb2db1f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-judgment.test.ts#missingWarning ボードに存在しない選択肢を名前順に並べ、数に応じて it と them を使い分けた警告文を作成する","name":"ボードに存在しない選択肢を名前順に並べ、数に応じて it と them を使い分けた警告文を作成する","status":"passed","testResultsByEnv":{"default":"a2a0a3af02a978a07c5f5051e612a06a"}}

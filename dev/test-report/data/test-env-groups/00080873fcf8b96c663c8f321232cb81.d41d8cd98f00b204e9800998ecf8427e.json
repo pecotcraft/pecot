@@ -1,0 +1,1 @@
+{"id":"00080873fcf8b96c663c8f321232cb81.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_30_pass_dependabot_only","name":"dependabot の commit だけの範囲は、理由を出力して成功する","status":"passed","testResultsByEnv":{"default":"1e8fcf1bdc7e3dfb3847679a0cb23453"}}

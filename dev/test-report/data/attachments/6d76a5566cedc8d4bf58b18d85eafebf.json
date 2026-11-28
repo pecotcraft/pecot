@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_cloudwatch_get_metric_statistics: statistics.0: Invalid option: expected one of \"SampleCount\"|\"Average\"|\"Sum\"|\"Minimum\"|\"Maximum\""
+    }
+  ],
+  "isError": true
+}

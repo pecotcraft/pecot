@@ -1,0 +1,1 @@
+{"id":"bb27f73bff5825871d13f1cb334fda1c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_create pecot-lane と Lanes のビュー lanes が存在しないと、pecot-lane とビューを作らずに、lanes の渡し方を案内する","name":"lanes が存在しないと、pecot-lane とビューを作らずに、lanes の渡し方を案内する","status":"passed","testResultsByEnv":{"default":"62b840c719bb7d9eed210aee1315a45c"}}

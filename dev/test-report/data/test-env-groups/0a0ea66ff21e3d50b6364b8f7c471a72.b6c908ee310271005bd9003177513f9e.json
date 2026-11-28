@@ -1,0 +1,1 @@
+{"id":"0a0ea66ff21e3d50b6364b8f7c471a72.b6c908ee310271005bd9003177513f9e","fullName":".githooks.tests.test_pages_store#test_report_changes_only_its_test_report_and_record","name":"release のレポートを保管すると、その側のテストレポートと記録だけが変わる","status":"passed","testResultsByEnv":{"default":"32e295515e2be46e0d79da27341efee7"}}

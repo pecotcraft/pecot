@@ -1,0 +1,1 @@
+{"id":"b70035e4ef9df71313ca40cd37d561ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-gate.test.ts#auto gate workflow_run のイベント CI が通ると、ci-passed の結果のコメントを書き、ラベルと Status は書かない","name":"CI が通ると、ci-passed の結果のコメントを書き、ラベルと Status は書かない","status":"passed","testResultsByEnv":{"default":"977fa501e8a8764bf1f5e0c14ee450b3"}}

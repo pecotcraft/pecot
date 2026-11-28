@@ -1,0 +1,7 @@
+created: project #1 https://ghes.example.com/users/acme/projects/1
+created: field pecot-status (ID: PVTSSF_w)
+created: field pecot-lane (ID: PVTSSF_lane)
+added: option Needs Attention to field Status
+created: view Lanes (https://ghes.example.com/users/acme/projects/1/views/2)
+created: config file /tmp/pecot-repo-J9NIqU/.pecot/config/projects/ghes.example.com_acme_1.json
+set: active project to ghes.example.com_acme_1

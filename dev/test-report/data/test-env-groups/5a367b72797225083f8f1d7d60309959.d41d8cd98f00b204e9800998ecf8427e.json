@@ -1,0 +1,1 @@
+{"id":"5a367b72797225083f8f1d7d60309959.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link 複数の worktree に作ると、作った数と飛ばした数と失敗した数の合計を count の行で標準エラーに出す","name":"複数の worktree に作ると、作った数と飛ばした数と失敗した数の合計を count の行で標準エラーに出す","status":"passed","testResultsByEnv":{"default":"3777f7a41b865bc7810449560721a4da"}}

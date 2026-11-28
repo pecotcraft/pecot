@@ -1,0 +1,1 @@
+{"id":"a7afc35aa1d3e9a3c3b328010df7c8dd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-gate.test.ts#auto gate イベントのファイルが無いと、何も読まずに入力の誤りで止まる","name":"イベントのファイルが無いと、何も読まずに入力の誤りで止まる","status":"passed","testResultsByEnv":{"default":"351a217168b5de212a7317a2519c4d9d"}}

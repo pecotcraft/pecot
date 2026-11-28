@@ -1,0 +1,1 @@
+{"id":"752f88d976b3672c2aa5b0bfe2daa819.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/attach-mcp-tgz.test.sh#存在しない --dist は非ゼロ終了になる","name":"存在しない --dist は非ゼロ終了になる","status":"passed","testResultsByEnv":{"default":"670fc0e7a2b55e5be780126337777876"}}

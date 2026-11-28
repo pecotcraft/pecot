@@ -1,0 +1,1 @@
+{"id":"1ef7d4f440d8eff840498e64a5dc2c22.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh 相対 cd のとき、フックの pwd ではなく HOOK_TOOL_CWD を基点に解決して止める","name":"相対 cd のとき、フックの pwd ではなく HOOK_TOOL_CWD を基点に解決して止める","status":"passed","testResultsByEnv":{"default":"4dbf95eacf116c09172b2bd21d9c2386"}}

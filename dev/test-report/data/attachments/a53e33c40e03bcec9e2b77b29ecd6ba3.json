@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-visual",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool evidence_create: input_path: Invalid input: expected string, received undefined"
+    }
+  ],
+  "isError": true
+}

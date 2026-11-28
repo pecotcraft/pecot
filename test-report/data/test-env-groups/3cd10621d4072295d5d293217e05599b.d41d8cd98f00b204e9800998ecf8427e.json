@@ -1,0 +1,1 @@
+{"id":"3cd10621d4072295d5d293217e05599b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/branch-name.test.ts#activeIssueFromBranch リモートが存在しない場合は、番号を含むブランチでも undefined を返す","name":"リモートが存在しない場合は、番号を含むブランチでも undefined を返す","status":"passed","testResultsByEnv":{"default":"1ea0f442732e1c5b1438bbae694dca0f"}}

@@ -1,0 +1,1 @@
+{"id":"581c269594b76007dc3d413e23d8c2e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync bot が書いた最後の自動処理の結果が limit なら、前提が済んでも Needs Attention を Todo に戻さない","name":"bot が書いた最後の自動処理の結果が limit なら、前提が済んでも Needs Attention を Todo に戻さない","status":"passed","testResultsByEnv":{"default":"3c751c69637b78a43a4c17dae3d55fcb"}}

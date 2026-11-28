@@ -1,0 +1,4 @@
+count: Issues to close: 1
+closed: Issue #12
+moved: #13 Blocked -> Ready (startable)
+warning: #14 is stacked on #12; call pr_restack in the working directory of feat/demo/14

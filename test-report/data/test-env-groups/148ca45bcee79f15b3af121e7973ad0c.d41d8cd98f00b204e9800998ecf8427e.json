@@ -1,0 +1,1 @@
+{"id":"148ca45bcee79f15b3af121e7973ad0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#引数なし起動 で tools/list の先頭が契約表の順になる","name":"引数なし起動 で tools/list の先頭が契約表の順になる","status":"passed","testResultsByEnv":{"default":"06f56562d76f6582ca07bb7b5629cfe4"}}

@@ -1,0 +1,1 @@
+{"id":"79110f589028217d1621b59904ad90ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#素の URL の Link ノード autolink に含まれる URL は、文の長さに含めない","name":"autolink に含まれる URL は、文の長さに含めない","status":"passed","testResultsByEnv":{"default":"1ae17434de42b5810afdff7ed6a8ee3e"}}

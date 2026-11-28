@@ -1,0 +1,1 @@
+{"id":"5805ffd3b4b26d438ce0e68623c96cdb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#gh-command-check.sh コマンドが echo \"gh pr create\" のとき、何も出力せず通す","name":"コマンドが echo \"gh pr create\" のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"2e36ca8772795664790815dea0af2e7f"}}

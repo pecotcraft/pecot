@@ -1,0 +1,1 @@
+warning: mxCell id=big: first font inter is not in the default font: "Title"; diagram text is set in the default font (fix: add fontFamily=sans-serif to style)

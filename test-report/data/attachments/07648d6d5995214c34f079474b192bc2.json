@@ -1,0 +1,41 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "blocked_by[0].reason: reason is only for wait merge; a stack prerequisite has no reason"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"blocked_by[0].reason\",\"code\":\"unexpected\",\"message\":\"reason is only for wait merge; a stack prerequisite has no reason\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[{\"issue\":\"#5\",\"wait\":\"stack\"}],\"approach\":\"stack\",\"stackOn\":\"#5\"}],\"stackableChains\":[[\"#5\",\"issues[0]\"]]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "blocked_by[0].reason",
+        "code": "unexpected",
+        "message": "reason is only for wait merge; a stack prerequisite has no reason"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [
+          {
+            "issue": "#5",
+            "wait": "stack"
+          }
+        ],
+        "approach": "stack",
+        "stackOn": "#5"
+      }
+    ],
+    "stackableChains": [
+      [
+        "#5",
+        "issues[0]"
+      ]
+    ]
+  }
+}

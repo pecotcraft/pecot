@@ -1,0 +1,1 @@
+{"id":"3f8e5a21f93d03d785312cb1e5c707cb.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_format#test_all_release_group_keys_pass","name":"3 つの release group をすべてキーにした version plan は、成功で終わる","status":"passed","testResultsByEnv":{"default":"c565e3a950d8400b13ad811a00adf258"}}

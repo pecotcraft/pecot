@@ -1,0 +1,8 @@
+# ページ画像の比較
+
+- before: `/tmp/bats-run-IHNnqy/test/12/out/a`
+- after: `/tmp/bats-run-IHNnqy/test/12/out/b`
+
+結果: PASS（差のあるページはありません）
+
+- 対応ページ: 1 / before 固有: 0 / after 固有: 0

@@ -1,0 +1,1 @@
+{"id":"dbf57411e6ccc4c2ab816e7bec3e385f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript 閉じていない文字列は数えず、次の行の文字列は読む","name":"閉じていない文字列は数えず、次の行の文字列は読む","status":"passed","testResultsByEnv":{"default":"bd7066c1964b5313ed293ac680ad95de"}}

@@ -1,0 +1,1 @@
+{"id":"1e0775998a341e0fa4e9294d3aecb7b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#fallbackSizeMatch pngHeight が 0 の候補の場合は、幅が 0 でなくても飛ばす","name":"pngHeight が 0 の候補の場合は、幅が 0 でなくても飛ばす","status":"passed","testResultsByEnv":{"default":"ee6607680b45c67dacf5b42493edc0af"}}

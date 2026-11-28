@@ -1,0 +1,1 @@
+{"id":"dbeef9f1ab6cf1f2ba8f94edeaab5de8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 1 文目が空でも、; の後ろに文があれば、理由を multi-statement として拒否する","name":"1 文目が空でも、; の後ろに文があれば、理由を multi-statement として拒否する","status":"passed","testResultsByEnv":{"default":"7fe74335d1955f84ee6db89178fcaf2b"}}

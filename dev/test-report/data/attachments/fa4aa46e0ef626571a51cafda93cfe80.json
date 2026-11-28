@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool drawio_create: mode: Invalid option: expected one of \"view\"|\"edit\""
+    }
+  ],
+  "isError": true
+}

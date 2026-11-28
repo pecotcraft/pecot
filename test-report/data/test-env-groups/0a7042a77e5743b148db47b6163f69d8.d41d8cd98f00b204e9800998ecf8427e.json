@@ -1,0 +1,1 @@
+{"id":"0a7042a77e5743b148db47b6163f69d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#NX_DRY_RUN=1 が gh を実行せず終わる","name":"NX_DRY_RUN=1 が gh を実行せず終わる","status":"passed","testResultsByEnv":{"default":"b16e55450d3b345cb873ad0d24ef703a"}}

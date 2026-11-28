@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-SCHEDULER-GET-SCHEDULE
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+Get schedule details
+========================================
+
+.. iface-defs:: pecot-tools PT-AWS-SCHEDULER-GET-SCHEDULE

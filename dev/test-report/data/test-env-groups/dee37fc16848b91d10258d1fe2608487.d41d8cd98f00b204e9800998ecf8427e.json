@@ -1,0 +1,1 @@
+{"id":"dee37fc16848b91d10258d1fe2608487.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/hook-resolution-count.test.ts#リポジトリ解決回数 ls を実行するとき、PreToolUse でリポジトリのルートを 1 回だけ解決する","name":"ls を実行するとき、PreToolUse でリポジトリのルートを 1 回だけ解決する","status":"passed","testResultsByEnv":{"default":"3467decbcb70f84f5ffae44705ad8c8f"}}

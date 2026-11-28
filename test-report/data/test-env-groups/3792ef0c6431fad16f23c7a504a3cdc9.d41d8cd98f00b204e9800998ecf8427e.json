@@ -1,0 +1,1 @@
+{"id":"3792ef0c6431fad16f23c7a504a3cdc9.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#--out-dir ガードが 空でない既存ディレクトリ を弾く","name":"--out-dir ガードが 空でない既存ディレクトリ を弾く","status":"passed","testResultsByEnv":{"default":"ffeb4df27c67997934e67c7e8bb5528c"}}

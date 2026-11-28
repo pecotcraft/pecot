@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "owner not found: acme"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-not-found\",\"detail\":\"owner not found: acme\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-not-found",
+    "detail": "owner not found: acme"
+  },
+  "isError": true
+}

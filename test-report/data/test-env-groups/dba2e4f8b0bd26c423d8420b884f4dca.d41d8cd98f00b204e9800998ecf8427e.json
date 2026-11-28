@@ -1,0 +1,1 @@
+{"id":"dba2e4f8b0bd26c423d8420b884f4dca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create もし packages を設定したリポジトリに package を渡さなかったなら、終了コード 1 で終わる","name":"もし packages を設定したリポジトリに package を渡さなかったなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"056de0b2d75138cb0e24e9cf5ec4c197"}}

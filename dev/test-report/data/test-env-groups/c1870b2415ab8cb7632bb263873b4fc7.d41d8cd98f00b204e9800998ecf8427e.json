@@ -1,0 +1,1 @@
+{"id":"c1870b2415ab8cb7632bb263873b4fc7.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_without_project_no_epic","name":"nx の project が無いと、epic と project を付けず、feature と story は付ける","status":"passed","testResultsByEnv":{"default":"e4e7ec82205cc62fc60db96898356759"}}

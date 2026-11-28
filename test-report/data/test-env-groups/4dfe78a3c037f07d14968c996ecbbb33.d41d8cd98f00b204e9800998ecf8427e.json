@@ -1,0 +1,1 @@
+{"id":"4dfe78a3c037f07d14968c996ecbbb33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check 記録が無く、親ブランチの追跡参照が無い と、warning の行を出し、develop_branch の追跡参照と比べる","name":"記録が無く、親ブランチの追跡参照が無い と、warning の行を出し、develop_branch の追跡参照と比べる","status":"passed","testResultsByEnv":{"default":"ced4a340241e444e083d91fa84ad9f8c"}}

@@ -1,0 +1,1 @@
+{"id":"5f18db22d2009bb0d453ad767ce938f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init pecot-lane と Lanes のビュー ビューの作成が断られると、警告の行に画面で作る手順を番号つきで出し、終了コード 0 で終わる","name":"ビューの作成が断られると、警告の行に画面で作る手順を番号つきで出し、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"aaf305cf3e4867ed7eaadd1ec42f8e3c"}}

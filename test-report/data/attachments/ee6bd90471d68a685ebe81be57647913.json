@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "several config files point to project #1:\n  - ghes.example.com_acme_board_acme.json\n  - ghes.example.com_acme_other_acme.json\n  remove all but one, then run again; it is moved to ghes.example.com_acme_1.json"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"config-invalid\",\"detail\":\"several config files point to project #1:\\n  - ghes.example.com_acme_board_acme.json\\n  - ghes.example.com_acme_other_acme.json\\n  remove all but one, then run again; it is moved to ghes.example.com_acme_1.json\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "config-invalid",
+    "detail": "several config files point to project #1:\n  - ghes.example.com_acme_board_acme.json\n  - ghes.example.com_acme_other_acme.json\n  remove all but one, then run again; it is moved to ghes.example.com_acme_1.json"
+  },
+  "isError": true
+}

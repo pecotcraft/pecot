@@ -1,0 +1,1 @@
+{"id":"5493547db973cd4b3a341186566284ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 縮小と EMU 幅 1920 の画像は 960 に縮小し、ext の値を、ピクセル数に 9525 を掛けた EMU にする","name":"幅 1920 の画像は 960 に縮小し、ext の値を、ピクセル数に 9525 を掛けた EMU にする","status":"passed","testResultsByEnv":{"default":"faf00b38c5f04c5143ead1bed83e7efd"}}

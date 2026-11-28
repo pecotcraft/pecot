@@ -1,0 +1,1 @@
+{"id":"b148373050d53f5302fed846f5932236.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_push_stage_and_flags","name":"check-text-push は pre-push の stage で常に実行し、ファイル名を渡さない","status":"passed","testResultsByEnv":{"default":"6a715cbe3536444ec6835485c4fd0e7c"}}

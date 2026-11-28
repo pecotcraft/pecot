@@ -1,0 +1,6 @@
+{
+  "hookSpecificOutput": {
+    "sessionTitle": "#1",
+    "hookEventName": "SessionStart"
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"8c1cf08305c498c88653ba7435364dd4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#対象のリポを決められなかったとき 理由を指定しても、tools/list の結果は変わらない","name":"理由を指定しても、tools/list の結果は変わらない","status":"passed","testResultsByEnv":{"default":"efc0d447e5132764af0d5fb3991112e2"}}

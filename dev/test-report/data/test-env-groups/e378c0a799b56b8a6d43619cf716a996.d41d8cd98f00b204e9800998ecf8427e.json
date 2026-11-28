@@ -1,0 +1,1 @@
+{"id":"e378c0a799b56b8a6d43619cf716a996.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — skip 分類 除外した項目が混在する場合は、有効な項目だけで No. と media を採番し直す","name":"除外した項目が混在する場合は、有効な項目だけで No. と media を採番し直す","status":"passed","testResultsByEnv":{"default":"2b27e366c4f444e84a9e43ab9c07d073"}}

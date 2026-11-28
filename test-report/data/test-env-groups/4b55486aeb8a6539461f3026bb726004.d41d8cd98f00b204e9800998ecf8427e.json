@@ -1,0 +1,1 @@
+{"id":"4b55486aeb8a6539461f3026bb726004.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#配布ツリーに cert を含むパスが無い","name":"配布ツリーに cert を含むパスが無い","status":"passed","testResultsByEnv":{"default":"83d0224427ae7a971c6e19b16025165f"}}

@@ -1,0 +1,1 @@
+{"id":"1c3d616220fa9fc4b3d12c3debe61e1c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/state.test.ts#workDirectoryName owner/repo/N 形式の参照を渡すと、末尾の番号を返す","name":"owner/repo/N 形式の参照を渡すと、末尾の番号を返す","status":"passed","testResultsByEnv":{"default":"4e3316154041c2702b83a397faadcbc3"}}

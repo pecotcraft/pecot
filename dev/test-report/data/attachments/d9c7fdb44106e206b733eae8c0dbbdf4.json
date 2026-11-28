@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ok"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[],\"skipped\":[],\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\",\"warnings\":[\"could not check Dependabot alerts. The release is not blocked.\\n  reason: 403 Resource not accessible by integration\"]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [],
+    "skipped": [],
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B",
+    "warnings": [
+      "could not check Dependabot alerts. The release is not blocked.\n  reason: 403 Resource not accessible by integration"
+    ]
+  }
+}

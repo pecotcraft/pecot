@@ -1,0 +1,1 @@
+{"id":"f580156f46781fa3dbf77aae50463622.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_builds_missing_dist","name":"dist が存在しなくても、ソースがあれば作ってから文章規則を適用する","status":"passed","testResultsByEnv":{"default":"732548d23afb52ba430ea7c60b8d9bad"}}

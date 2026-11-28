@@ -1,0 +1,1 @@
+{"id":"60f60edd7cfa4006e1e1e85b810c6316.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName 使用中として渡した番号だけでも、最大の番号が上がる","name":"使用中として渡した番号だけでも、最大の番号が上がる","status":"passed","testResultsByEnv":{"default":"36d7d23bd7850177f37359e156fb4d4d"}}

@@ -1,0 +1,1 @@
+{"id":"be7dc39bd0718af24e25e7fe316f3966.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#jsonStrings コロン前の改行があるキーを除く のとき、引用符を含まない本文だけを切り出す","name":"コロン前の改行があるキーを除く のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"5fad77634ec12f5c5745d8f0a407388a"}}

@@ -1,0 +1,1 @@
+{"id":"07db5564740022e3e905fcf7e5676e28.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName 使用中として渡した番号には参加せず、次の番号にする","name":"使用中として渡した番号には参加せず、次の番号にする","status":"passed","testResultsByEnv":{"default":"2d2572735a79c6d161e2c8c732e1952c"}}

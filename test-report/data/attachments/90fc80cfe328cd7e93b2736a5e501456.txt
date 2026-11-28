@@ -1,0 +1,1 @@
+error: repos/pecotcraft/pecot/rulesets/26538811 の応答に rules がありません（権限の不足とみられます）

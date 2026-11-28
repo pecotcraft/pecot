@@ -1,0 +1,1 @@
+{"id":"387a81b09972e8c866444eae573e50cc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-check.test.ts#branch_check プロジェクトに無いリポジトリの Issue を渡すと、not-in-project の problem を返す","name":"プロジェクトに無いリポジトリの Issue を渡すと、not-in-project の problem を返す","status":"passed","testResultsByEnv":{"default":"5fc334b838f57c2b123a38a7306218f9"}}

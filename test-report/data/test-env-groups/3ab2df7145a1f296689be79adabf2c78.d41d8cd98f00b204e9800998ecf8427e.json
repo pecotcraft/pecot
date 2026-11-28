@@ -1,0 +1,1 @@
+{"id":"3ab2df7145a1f296689be79adabf2c78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getStackOfPullRequest 対象の PR を含まないスタックの形式が不正でも、読み飛ばして対象を含むスタックを返す","name":"対象の PR を含まないスタックの形式が不正でも、読み飛ばして対象を含むスタックを返す","status":"passed","testResultsByEnv":{"default":"73608149ba69f5417c74ad6af806b433"}}

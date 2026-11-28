@@ -1,0 +1,1 @@
+{"id":"8653e653e1e0ea3fe7d32965650a7dcd.122d88d0170fd66a465c327fc86f5a64","fullName":".githooks.tests.test_nx_cache_server#test_non_alphanumeric_hash_is_400","name":"hash に a.b のような英数字以外の文字があると、400 を返し、何も保存しない","status":"passed","testResultsByEnv":{"default":"41b8e6e2aa99a64a35956268cd3ac862"}}

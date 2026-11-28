@@ -1,0 +1,1 @@
+{"id":"52da53b645b812528fe28e235354bffa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/failure.test.ts#exitCodeOfFailure 報告できる失敗の場合は、error: で始まる行を表示して終了コード 1 を返す","name":"報告できる失敗の場合は、error: で始まる行を表示して終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"df0ac13c00a871c3adc3a25e9f59dd9c"}}

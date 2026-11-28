@@ -1,0 +1,1 @@
+{"id":"dc5d235d1e1ac8226fe03834821e52e9.36cb165b8d93f09b81068c0329781c72","fullName":".githooks.tests.test_pre_commit_config_wiring#test_plugin_validate_runs_when_definitions_change","name":".claude-plugin/marketplace.json を変更すると、plugin-validate が起動する","status":"passed","testResultsByEnv":{"default":"0d6379026bea8662c4c0fc2ceae4c60e"}}

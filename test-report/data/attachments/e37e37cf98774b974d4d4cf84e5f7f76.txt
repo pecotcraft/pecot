@@ -1,0 +1,2 @@
+error: GraphQL query error: Server error '502 Bad Gateway' for url 'http://127.0.0.1:34037/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502

@@ -1,0 +1,1 @@
+{"id":"f3b3f67c890923e6993513feca10aa2e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-check.test.ts#branch_check reads を渡さないと、Issue の読み取りを案内する read-required の problem を返す","name":"reads を渡さないと、Issue の読み取りを案内する read-required の problem を返す","status":"passed","testResultsByEnv":{"default":"4a00a6c0a3dd8b06215180f7bf4b2fba"}}

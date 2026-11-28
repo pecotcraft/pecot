@@ -1,0 +1,1 @@
+{"id":"89cb567572164640c28808f57136ea45.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の update-type 更新の種類が 1 つも決まらない場合は、種類を不明として扱う","name":"更新の種類が 1 つも決まらない場合は、種類を不明として扱う","status":"passed","testResultsByEnv":{"default":"366fc2a3be27700d35d055d4f3ecc3ef"}}

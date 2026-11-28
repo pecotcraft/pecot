@@ -1,0 +1,1 @@
+{"id":"aebeee6d79353f6fc5c8aa6b14473f97.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check create・update の値 ブランチの Issue が Epic だと、本文に Closes が無くても problem の無い結果を返す","name":"ブランチの Issue が Epic だと、本文に Closes が無くても problem の無い結果を返す","status":"passed","testResultsByEnv":{"default":"02f214d3688f12e8dbc6bbc7faccc0e6"}}

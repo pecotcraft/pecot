@@ -1,0 +1,1 @@
+{"id":"dd7ede73c1f51c0a315c77e9f38e0fc5.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_report_links_on_generated_pages_point_to_the_side_root","name":"生成したページからテストレポートへのリンクは、側のルートを基準とする相対パスで表す","status":"passed","testResultsByEnv":{"default":"f1ecfa135c2dccaee840eed066749b6f"}}

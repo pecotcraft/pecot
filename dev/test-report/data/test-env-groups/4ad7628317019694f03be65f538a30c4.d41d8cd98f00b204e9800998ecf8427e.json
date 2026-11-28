@@ -1,0 +1,1 @@
+{"id":"4ad7628317019694f03be65f538a30c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#案内の文字列を止める lint 案内に当たらない書き方（コメントの中）は、lint の違反にならない","name":"案内に当たらない書き方（コメントの中）は、lint の違反にならない","status":"passed","testResultsByEnv":{"default":"019de567f44c68cb78bf2364fe4810ae"}}

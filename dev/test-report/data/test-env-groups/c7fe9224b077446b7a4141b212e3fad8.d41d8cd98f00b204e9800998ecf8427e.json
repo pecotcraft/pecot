@@ -1,0 +1,1 @@
+{"id":"c7fe9224b077446b7a4141b212e3fad8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/review-finish.test.ts#review finish review-has-token が無い と、何も読まずに終了コード 2 で終わる","name":"review-has-token が無い と、何も読まずに終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"3977151e7e7793e78d8fb08b9893f18b"}}

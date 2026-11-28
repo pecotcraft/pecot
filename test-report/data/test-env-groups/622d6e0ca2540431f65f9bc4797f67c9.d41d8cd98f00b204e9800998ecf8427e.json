@@ -1,0 +1,1 @@
+{"id":"622d6e0ca2540431f65f9bc4797f67c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#gitCurrentBranch git が存在しない場合は、undefined を返す","name":"git が存在しない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"112949a4549c42302d3ffad7ee3e55b8"}}

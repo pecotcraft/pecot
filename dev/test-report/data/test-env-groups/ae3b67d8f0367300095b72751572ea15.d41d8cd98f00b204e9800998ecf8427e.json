@@ -1,0 +1,1 @@
+{"id":"ae3b67d8f0367300095b72751572ea15.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add リポジトリが <ルート>/base/<リポジトリ> の配置に無いと、何も作らず、失敗を返す","name":"リポジトリが <ルート>/base/<リポジトリ> の配置に無いと、何も作らず、失敗を返す","status":"passed","testResultsByEnv":{"default":"20699fe9be39ede1a66d24ec16343ad1"}}

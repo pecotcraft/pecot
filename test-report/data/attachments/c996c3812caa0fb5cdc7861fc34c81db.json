@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ok"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[],\"expected_status\":\"Ready\",\"warnings\":[\"the Waits for merge section of #7 is malformed: ## Waits for merge appears 2 times; fix it by hand\"]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [],
+    "expected_status": "Ready",
+    "warnings": [
+      "the Waits for merge section of #7 is malformed: ## Waits for merge appears 2 times; fix it by hand"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: worktree wt2 at /tmp/pecot-cli-OkMi8L/workspaces/wt2/demo (branch wt2 from develop)"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt2\",\"path\":\"/tmp/pecot-cli-OkMi8L/workspaces/wt2/demo\",\"branch\":\"wt2\",\"base\":\"develop\",\"setupFailed\":false}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt2",
+    "path": "/tmp/pecot-cli-OkMi8L/workspaces/wt2/demo",
+    "branch": "wt2",
+    "base": "develop",
+    "setupFailed": false
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"223657ee17ea014d233c3dfc7cd52713.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#judgeReadiness の見直しと注記 ラベルが Needs Attention の前提は、注記に含め、判定の区分は変えない","name":"ラベルが Needs Attention の前提は、注記に含め、判定の区分は変えない","status":"passed","testResultsByEnv":{"default":"050ff645fd430edddadc340ab394d01e"}}

@@ -1,0 +1,1 @@
+{"id":"71c662c96b08776279e8475d742c34e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 担当・マイルストーン・type リポジトリの共同作業者でない担当 を渡すと、共同作業者でない担当だけを warning に挙げる","name":"リポジトリの共同作業者でない担当 を渡すと、共同作業者でない担当だけを warning に挙げる","status":"passed","testResultsByEnv":{"default":"78452394953989102e06480d70c448d3"}}

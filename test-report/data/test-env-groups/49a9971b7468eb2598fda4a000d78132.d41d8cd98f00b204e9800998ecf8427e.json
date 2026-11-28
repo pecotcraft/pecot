@@ -1,0 +1,1 @@
+{"id":"49a9971b7468eb2598fda4a000d78132.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/pecotv-run-output.test.ts#stdoutTail 複数行で上限を超える場合は、古い行をまとめて除き、先頭に除いた行数を表示する","name":"複数行で上限を超える場合は、古い行をまとめて除き、先頭に除いた行数を表示する","status":"passed","testResultsByEnv":{"default":"8a36fdfbce4ba84365b4319bfc2453ba"}}

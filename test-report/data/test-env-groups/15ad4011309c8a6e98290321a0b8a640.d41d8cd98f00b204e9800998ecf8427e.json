@@ -1,0 +1,1 @@
+{"id":"15ad4011309c8a6e98290321a0b8a640.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/mcp-cancel.test.ts#worktree_add が setup_command を待つ間、ping に答え、取り消すとシェルの下のコマンドも止める","name":"worktree_add が setup_command を待つ間、ping に答え、取り消すとシェルの下のコマンドも止める","status":"passed","testResultsByEnv":{"default":"0087ce7a679bdf7fde1911b33baa784b"}}

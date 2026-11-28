@@ -1,0 +1,1 @@
+{"id":"e2c865e0bd65acabf58fc129293186dc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_build_permissions_are_contents_read_only","name":"pages-build の権限は、contents の読み取りだけに限る","status":"passed","testResultsByEnv":{"default":"f7dda6dc88ee411aa5ba7f1f824a48bb"}}

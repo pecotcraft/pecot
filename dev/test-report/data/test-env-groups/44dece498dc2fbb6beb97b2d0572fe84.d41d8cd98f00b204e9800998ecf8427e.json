@@ -1,0 +1,1 @@
+{"id":"44dece498dc2fbb6beb97b2d0572fe84.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings heredoc の本文を読み飛ばす のとき、引用符を含まない本文だけを切り出す","name":"heredoc の本文を読み飛ばす のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"b0445e6efa24f7ecc12d0ffe42f20ddb"}}

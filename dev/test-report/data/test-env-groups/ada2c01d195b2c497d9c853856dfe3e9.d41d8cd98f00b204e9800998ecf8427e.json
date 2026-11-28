@@ -1,0 +1,1 @@
+{"id":"ada2c01d195b2c497d9c853856dfe3e9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/e2e/mcp-stdio.test.ts#pecot-tools-mcp (stdio) SIGTERM を受けると、終了コード 143 で終了し、標準出力は JSON-RPC だけになる","name":"SIGTERM を受けると、終了コード 143 で終了し、標準出力は JSON-RPC だけになる","status":"passed","testResultsByEnv":{"default":"7db83be2b1e936c26cb764bd04d8ab28"}}

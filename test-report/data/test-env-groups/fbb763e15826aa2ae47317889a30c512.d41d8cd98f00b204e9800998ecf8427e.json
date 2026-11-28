@@ -1,0 +1,1 @@
+{"id":"fbb763e15826aa2ae47317889a30c512.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli ツール aws_athena_get_query_execution の引数の並びは、実際の awscli が構文として受理する","name":"ツール aws_athena_get_query_execution の引数の並びは、実際の awscli が構文として受理する","status":"passed","testResultsByEnv":{"default":"d9467ed0bfbdcca3fdeda1801f635b5d"}}

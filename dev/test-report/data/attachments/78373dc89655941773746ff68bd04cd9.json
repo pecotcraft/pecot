@@ -1,0 +1,30 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated_field.value: Ready is not an option ID (the id form does not take names) of pecot-status that can be set here"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"updated_field.value\",\"code\":\"unknown-option\",\"message\":\"Ready is not an option ID (the id form does not take names) of pecot-status that can be set here\",\"candidates\":[\"o1\",\"o2\",\"o3\",\"o4\",\"o5\",\"o6\",\"o7\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "updated_field.value",
+        "code": "unknown-option",
+        "message": "Ready is not an option ID (the id form does not take names) of pecot-status that can be set here",
+        "candidates": [
+          "o1",
+          "o2",
+          "o3",
+          "o4",
+          "o5",
+          "o6",
+          "o7"
+        ]
+      }
+    ]
+  }
+}

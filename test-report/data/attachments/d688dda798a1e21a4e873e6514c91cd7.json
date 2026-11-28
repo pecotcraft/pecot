@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "repo: owner and repo are required"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"repo\",\"code\":\"required\",\"message\":\"owner and repo are required\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "repo",
+        "code": "required",
+        "message": "owner and repo are required"
+      }
+    ]
+  }
+}

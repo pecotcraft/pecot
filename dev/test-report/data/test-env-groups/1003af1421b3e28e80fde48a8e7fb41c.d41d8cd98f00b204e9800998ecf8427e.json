@@ -1,0 +1,1 @@
+{"id":"1003af1421b3e28e80fde48a8e7fb41c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/compare-junit.test.ts#main 引数が不足していれば、使い方を出力して 2 を返す","name":"引数が不足していれば、使い方を出力して 2 を返す","status":"passed","testResultsByEnv":{"default":"292aedc2f076633ffe037fef24d654c3"}}

@@ -1,0 +1,26 @@
+{
+  "project": "githooks",
+  "target": "test-nx-affected",
+  "runtime": [
+    "dpkg-query -W -f='${Package}=${Version}\\n'",
+    "git --version",
+    "git hash-object pnpm-lock.yaml",
+    "git ls-files -- $(cat .githooks/tests/representative-files.txt) | git hash-object --stdin",
+    "git ls-files -- plugins/pecot-workflow/cli/src libs/workflow-core/src | git hash-object --stdin",
+    "jq --version",
+    "node --version",
+    "node -p \"require('nx/package.json').version\"",
+    "uv --version",
+    "uv python find --no-project --show-version 3.12"
+  ],
+  "environment": [
+    "HOME",
+    "NODE_OPTIONS",
+    "NODE_V8_COVERAGE",
+    "NX_CLOUD_ENCRYPTION_KEY",
+    "PECOT_REPORT_SITE_URL"
+  ],
+  "external": [
+    "AllExternalDependencies"
+  ]
+}

@@ -1,0 +1,1 @@
+{"id":"094cb9ad0fd77865b12a9619d710f2c1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_unresolvable_base_falls_back_to_run_many","name":"base を解決できない場合は、`run-affected-tests.sh` が全 project の run-many を呼ぶ","status":"passed","testResultsByEnv":{"default":"e552b6838a836bdf47f3c0648a29b6a3"}}

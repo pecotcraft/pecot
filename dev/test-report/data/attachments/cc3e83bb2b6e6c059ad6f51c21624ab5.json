@@ -1,0 +1,25 @@
+{
+  "project": "pecot-workflow",
+  "target": "test-skills",
+  "runtime": [
+    "dpkg-query -W -f='${Package}=${Version}\\n'",
+    "git hash-object pnpm-lock.yaml",
+    "node --version"
+  ],
+  "environment": [
+    "CLAUDE_PLUGIN_ROOT",
+    "CLAUDE_PROJECT_DIR",
+    "COPILOT_PLUGIN_ROOT",
+    "COPILOT_SESSION_CWD",
+    "HOME",
+    "NODE_OPTIONS",
+    "NODE_V8_COVERAGE",
+    "NX_CLOUD_ENCRYPTION_KEY",
+    "PECOT_HOOKS_CONFIG_PATH",
+    "PECOT_REPORT_SITE_URL",
+    "PLUGIN_ROOT"
+  ],
+  "external": [
+    "AllExternalDependencies"
+  ]
+}

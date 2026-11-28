@@ -1,0 +1,1 @@
+{"id":"86ebe74e15e3ddd38f45b00bcf760b0d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#gh-command-check.sh コマンドが echo x && gh stack submit のとき、終了コード 1 で止める","name":"コマンドが echo x && gh stack submit のとき、終了コード 1 で止める","status":"passed","testResultsByEnv":{"default":"8c8bb22a090c3d0a08fc2c3c97c67d6c"}}

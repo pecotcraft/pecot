@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "status 'blocked' is not configured in the project\n  hint: call project_init to add the Blocked option to the board"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"status-not-configured\",\"detail\":\"status 'blocked' is not configured in the project\\n  hint: call project_init to add the Blocked option to the board\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "status-not-configured",
+    "detail": "status 'blocked' is not configured in the project\n  hint: call project_init to add the Blocked option to the board"
+  },
+  "isError": true
+}

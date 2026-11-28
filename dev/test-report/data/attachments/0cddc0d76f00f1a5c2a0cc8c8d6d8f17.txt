@@ -1,0 +1,1 @@
+error: read the fields of project #1 with projects_list (method list_project_fields) and pass its result as reads.fields

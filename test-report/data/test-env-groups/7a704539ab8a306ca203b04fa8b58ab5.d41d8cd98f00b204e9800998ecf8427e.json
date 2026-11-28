@@ -1,0 +1,1 @@
+{"id":"7a704539ab8a306ca203b04fa8b58ab5.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_defs_with_unknown_id_warns","name":"`iface-defs` に存在しない ID を渡すと、警告を出し、項目をビルドしない","status":"passed","testResultsByEnv":{"default":"6999705b3edec04a40fdd89435ca1ad0"}}

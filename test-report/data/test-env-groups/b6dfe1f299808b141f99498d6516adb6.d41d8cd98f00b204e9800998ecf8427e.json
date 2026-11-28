@@ -1,0 +1,1 @@
+{"id":"b6dfe1f299808b141f99498d6516adb6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check MCP の data 渡した version が空文字 と、kind が invalid-input の失敗を返す","name":"渡した version が空文字 と、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"ec0245e149cd837f31a1c2fc60a02789"}}

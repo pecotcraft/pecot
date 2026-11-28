@@ -1,0 +1,1 @@
+{"id":"d39f890f3460c10c93251b0bd78ae0d6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate 設定ファイルのパスかファイル名を渡すと、host を渡さなくても設定ファイルの host で同期する","name":"設定ファイルのパスかファイル名を渡すと、host を渡さなくても設定ファイルの host で同期する","status":"passed","testResultsByEnv":{"default":"3260109d33dd29529505511c9a9363f1"}}

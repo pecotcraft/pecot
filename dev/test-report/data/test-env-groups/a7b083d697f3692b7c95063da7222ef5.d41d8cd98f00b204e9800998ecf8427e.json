@@ -1,0 +1,1 @@
+{"id":"a7b083d697f3692b7c95063da7222ef5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_ci_report_results#test_stage_results_leaves_nothing_when_copy_fails","name":"結果を写す途中で失敗すると、step は失敗し、上げる場所に欠けた結果を置かない","status":"passed","testResultsByEnv":{"default":"b714f865245799ae49dcfe34ef2e317b"}}

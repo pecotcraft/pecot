@@ -1,0 +1,1 @@
+{"id":"f554cf64a2a1ed82b6dab68d745ca753.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_init メインの worktree を見つけられないと、失敗を返す","name":"メインの worktree を見つけられないと、失敗を返す","status":"passed","testResultsByEnv":{"default":"f6a80c9fbda1681f9744fe7555493024"}}

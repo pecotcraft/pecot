@@ -1,0 +1,1 @@
+{"id":"bb0bd8a33ad960b2f43da30f8a831101.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#fallbackSizeMatch 大きさの差が ±15% 以内の場合は、一致とみなす","name":"大きさの差が ±15% 以内の場合は、一致とみなす","status":"passed","testResultsByEnv":{"default":"9fb5f00a7224726275e745a6a2b87e58"}}

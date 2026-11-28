@@ -1,0 +1,1 @@
+{"id":"01d6accf344e44c9e8368c5156a37a45.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/migration.test.ts#isLegacyWorkflowFieldName pecot-status は、旧い名前かを false で返す","name":"pecot-status は、旧い名前かを false で返す","status":"passed","testResultsByEnv":{"default":"3d2b03b2bc66255baed34f413ef33d57"}}

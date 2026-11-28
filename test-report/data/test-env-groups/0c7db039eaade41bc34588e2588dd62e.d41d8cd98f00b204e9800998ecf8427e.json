@@ -1,0 +1,1 @@
+{"id":"0c7db039eaade41bc34588e2588dd62e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_deploy_ssm_paths_match_template_defaults","name":"deploy.sh が書き込む SSM パラメータのパスは、template の既定値と一致する","status":"passed","testResultsByEnv":{"default":"7c5789c7bbf3037aaeda71265d181637"}}

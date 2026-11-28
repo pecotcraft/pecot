@@ -1,0 +1,1 @@
+{"id":"16bebdf3e098a9d5bd293a29c43b6f74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/board-sync-workflow-template.test.ts#board sync のワークフローの雛形 文書に、マージで閉じた PR の片付けの節と、finish の job の権限がある","name":"文書に、マージで閉じた PR の片付けの節と、finish の job の権限がある","status":"passed","testResultsByEnv":{"default":"160baf63aa0a7bc9993b4748e6d410a5"}}

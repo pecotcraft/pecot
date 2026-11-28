@@ -1,0 +1,1 @@
+{"id":"59795661c8f313c2fa2413e11d0e6174.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-judgment.test.ts#judgeBoard Issue の取得に失敗した場合は、判定できなかった項目（unreadable）として返す","name":"Issue の取得に失敗した場合は、判定できなかった項目（unreadable）として返す","status":"passed","testResultsByEnv":{"default":"980f18f31e1e86162c3a12ebafe81d28"}}

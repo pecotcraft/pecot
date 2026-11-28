@@ -1,0 +1,1 @@
+{"id":"83c7b6440717eb1fbe7491379464caa3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 定型の外 コマンドが定型の外（clone 先が /tmp 配下）のとき、許可せず何も出力しない","name":"コマンドが定型の外（clone 先が /tmp 配下）のとき、許可せず何も出力しない","status":"passed","testResultsByEnv":{"default":"b23cd3f7bbad2ffaeafe2a37060dabf1"}}

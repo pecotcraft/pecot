@@ -1,0 +1,1 @@
+{"id":"9182f6475ef4a9607dd3008f36c96f90.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: legacy) slide_create スキーマ違反を拒否する: 必須の project_dir が無い","name":"スキーマ違反を拒否する: 必須の project_dir が無い","status":"passed","testResultsByEnv":{"default":"473342e56b3a591a65aa2774503e068b"}}

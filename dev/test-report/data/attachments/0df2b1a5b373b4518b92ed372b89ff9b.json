@@ -1,0 +1,5 @@
+[
+  "pecot:install",
+  "workflow-core:install",
+  "workflow-core:test-unit"
+]

@@ -1,0 +1,1 @@
+{"id":"9a870cf7694fbedd76aaa33aedfd54da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — items items がない場合は、型の不一致とは別の、欠落を示すメッセージで拒否する","name":"items がない場合は、型の不一致とは別の、欠落を示すメッセージで拒否する","status":"passed","testResultsByEnv":{"default":"267515ba94e9300681d05c8ce905440f"}}

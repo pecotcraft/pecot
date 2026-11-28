@@ -1,0 +1,1 @@
+{"id":"d8c84d4eb011dccb1f5b05a1ab4a2dfc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 段落の中の改行（GitHub は改行のまま表示する） つなげた段落 は、改行のエラーにしない","name":"つなげた段落 は、改行のエラーにしない","status":"passed","testResultsByEnv":{"default":"7abe84a825cf30d48d73c9f8def0e466"}}

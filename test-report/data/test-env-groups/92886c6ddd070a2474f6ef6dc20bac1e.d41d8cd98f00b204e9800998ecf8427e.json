@@ -1,0 +1,1 @@
+{"id":"92886c6ddd070a2474f6ef6dc20bac1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#parseScenario 形式に誤りがあると、例外が発生する: worktrees の name が wt で始まらない","name":"形式に誤りがあると、例外が発生する: worktrees の name が wt で始まらない","status":"passed","testResultsByEnv":{"default":"fca95c656ecea33a4e82b01696646ff6"}}

@@ -1,0 +1,1 @@
+{"id":"17eb517c4e60b5ad555ffea823b08f54.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#runMcpServe JSON-RPC として不正な標準入力の行は、標準エラー出力へ報告し、接続は維持する","name":"JSON-RPC として不正な標準入力の行は、標準エラー出力へ報告し、接続は維持する","status":"passed","testResultsByEnv":{"default":"f58c0442e0dee826c041d41a36ed3e13"}}

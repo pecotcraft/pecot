@@ -1,0 +1,1 @@
+{"id":"eb8f3121bebb1eff6221d91d5b3393a7.87ba6dfc27a91e317b27118e67cf012a","fullName":".githooks.tests.test_nx_affected_mapping#test_devcontainer_change_affects_all_projects","name":".devcontainer/devcontainer.json を変更すると、すべての project が affected になる","status":"passed","testResultsByEnv":{"default":"1a7c82fed5e7d3a4edb7e3b032d5cd56"}}

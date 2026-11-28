@@ -1,0 +1,1 @@
+{"id":"18f0be013f3302ecb9e03fd00a39f832.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#NX_DRY_RUN=1 でも gh を呼ばない","name":"NX_DRY_RUN=1 でも gh を呼ばない","status":"passed","testResultsByEnv":{"default":"2ea4f2417c4f5e0627e1bcad0201986d"}}

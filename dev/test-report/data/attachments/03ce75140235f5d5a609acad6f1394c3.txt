@@ -1,0 +1,5 @@
+
+ NX   JSON output created in /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_gate_selects_only_the_lan7
+
+/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_gate_selects_only_the_lan7/graph-test.json
+

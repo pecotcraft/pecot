@@ -1,0 +1,8 @@
+error: the result of pull_request_read in reads.pull_requests[0] is not in the shape of the official GitHub MCP server
+  number: Invalid input: expected number, received undefined
+  state: Invalid option: expected one of "open"|"closed"
+  draft: Invalid input: expected boolean, received undefined
+  merged: Invalid input: expected boolean, received undefined
+  html_url: Invalid input: expected string, received undefined
+  head: Invalid input: expected object, received undefined
+  base: Invalid input: expected object, received undefined

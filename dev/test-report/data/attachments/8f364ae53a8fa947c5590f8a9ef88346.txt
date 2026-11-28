@@ -1,0 +1,1 @@
+ERROR: 監査未実施のため中止: request to http://127.0.0.1:1/-/npm/v1/security/advisories/bulk failed, reason: connect ECONNREFUSED 127.0.0.1:1

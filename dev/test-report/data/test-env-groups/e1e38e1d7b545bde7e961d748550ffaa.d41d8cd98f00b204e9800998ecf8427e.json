@@ -1,0 +1,1 @@
+{"id":"e1e38e1d7b545bde7e961d748550ffaa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#Python reads Python のソースに a variable name in get があると、名前を解決できない行を 1 件返し、名前は返さない","name":"Python のソースに a variable name in get があると、名前を解決できない行を 1 件返し、名前は返さない","status":"passed","testResultsByEnv":{"default":"8c57e4ac69976485262bc52b04fc230e"}}

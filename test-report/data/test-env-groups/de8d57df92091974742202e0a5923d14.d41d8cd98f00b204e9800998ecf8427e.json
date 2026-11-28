@@ -1,0 +1,1 @@
+{"id":"de8d57df92091974742202e0a5923d14.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_runs_tests_in_parallel","name":"同じファイルの @test を、並べて同時に動かす","status":"passed","testResultsByEnv":{"default":"6d76be5d6eb91dd6251678167357b3bf"}}

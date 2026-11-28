@@ -1,0 +1,1 @@
+{"id":"b76490b92bdaec89dae9ad67f1556365.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/fs-sync.test.ts#writeGeneratedFiles vite.config.ts と start.mjs を本体の生成内容で書き、同名のファイルがあれば置き換える","name":"vite.config.ts と start.mjs を本体の生成内容で書き、同名のファイルがあれば置き換える","status":"passed","testResultsByEnv":{"default":"988466570c63e9de36bf95bf8fee9ec4"}}

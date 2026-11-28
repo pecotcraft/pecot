@@ -1,0 +1,1 @@
+{"id":"1cfaff167f978fa3dc5387c103461c5f.e1dee54ce15f4376842af9c450a6a90b","fullName":".githooks.tests.test_nx_task_cache#test_pecot_workflow_lanes_do_not_declare_the_uv_runtime","name":"pecot-workflow:test-skills は、uv の版を runtime の入力に宣言しない","status":"passed","testResultsByEnv":{"default":"1bf252a97cfd30f01752f194777c00f2"}}

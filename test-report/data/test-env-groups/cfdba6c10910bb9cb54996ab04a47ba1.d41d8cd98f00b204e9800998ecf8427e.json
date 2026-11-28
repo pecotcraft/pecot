@@ -1,0 +1,1 @@
+{"id":"cfdba6c10910bb9cb54996ab04a47ba1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh 連結コマンドの中の git commit も、保護ブランチなら止める","name":"連結コマンドの中の git commit も、保護ブランチなら止める","status":"passed","testResultsByEnv":{"default":"d74481e9a52192cec83dd39baf2eb4ef"}}

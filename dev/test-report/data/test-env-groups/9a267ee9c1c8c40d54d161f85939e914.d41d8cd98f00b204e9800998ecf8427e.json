@@ -1,0 +1,1 @@
+{"id":"9a267ee9c1c8c40d54d161f85939e914.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#installChromium 中断済みの signal を渡した場合は、起動の直後に子プロセスを終了させる","name":"中断済みの signal を渡した場合は、起動の直後に子プロセスを終了させる","status":"passed","testResultsByEnv":{"default":"590e8e0878d6d84022d5e120fbebbbd4"}}

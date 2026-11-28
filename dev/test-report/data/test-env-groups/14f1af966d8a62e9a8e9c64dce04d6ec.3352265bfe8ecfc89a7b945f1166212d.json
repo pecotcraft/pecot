@@ -1,0 +1,1 @@
+{"id":"14f1af966d8a62e9a8e9c64dce04d6ec.3352265bfe8ecfc89a7b945f1166212d","fullName":".githooks.tests.test_pages_store#test_report_refuses_pr_and_none","name":"レポートを pr の側で保管しようとすると、例外が発生する","status":"passed","testResultsByEnv":{"default":"fd60d565a49635b82b0244c4c032adc8"}}

@@ -1,0 +1,1 @@
+{"id":"0fb22c4d9981e0ae6379ffb887755156.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck monorepo で package を渡すと、そのパッケージの CHANGELOG とタグの接頭辞で確認する","name":"monorepo で package を渡すと、そのパッケージの CHANGELOG とタグの接頭辞で確認する","status":"passed","testResultsByEnv":{"default":"da8e212d4038b09c5f5d11f3a9b915db"}}

@@ -1,0 +1,1 @@
+{"id":"193b6bf843e38ae3195ead223ca01f1f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link 設定ファイルが無いと、init を促す error の行を標準エラーに出す","name":"設定ファイルが無いと、init を促す error の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"d71005c286c5b1660dfda1654aaf63a2"}}

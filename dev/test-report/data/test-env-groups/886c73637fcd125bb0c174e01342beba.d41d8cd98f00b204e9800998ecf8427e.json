@@ -1,0 +1,1 @@
+{"id":"886c73637fcd125bb0c174e01342beba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings <<- は先頭のタブを除いた終端語 のとき、引用符を含まない本文だけを切り出す","name":"<<- は先頭のタブを除いた終端語 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"5746c6457d4ce244742955b253aebb32"}}

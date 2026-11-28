@@ -1,0 +1,1 @@
+{"id":"8be61846ddaa31ed989dffbb552249f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#gh-command-check.sh コマンドが gh pr list 2>&1 のとき、何も出力せず通す","name":"コマンドが gh pr list 2>&1 のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"a193b53bb25f7836ef5ec48def74c3b8"}}

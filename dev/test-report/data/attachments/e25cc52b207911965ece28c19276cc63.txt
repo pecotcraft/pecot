@@ -1,0 +1,4 @@
+count: open dependabot PRs: 1
+count: PRs awaiting a decision: 0
+count: PRs awaiting a decision without check results: 0
+dry-run: would skip Tracker creation

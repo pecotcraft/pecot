@@ -1,0 +1,1 @@
+{"id":"c5ab4b0adb68da69257ef8610c73d36c.599aece3498cb51a016d1a61ebff999c","fullName":".githooks.tests.test_nx_affected_mapping#test_release_lane_is_cached_and_not_run_by_unrelated_changes","name":"plugins/pecot-visual/skills/v-slidev/SKILL.md を変更しても、pecot-visual:test-release はキャッシュを再利用する","status":"passed","testResultsByEnv":{"default":"7f8701d6605757797eeeb60955496c3a"}}

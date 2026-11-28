@@ -1,0 +1,1 @@
+{"id":"3e4291ad1a4213f5be7751756de25c0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry URL とコードが揃った時点で pending の状態を返し、awscli のプロセスは終了させない","name":"URL とコードが揃った時点で pending の状態を返し、awscli のプロセスは終了させない","status":"passed","testResultsByEnv":{"default":"d02fb1e096e5e4648fa14690a8ec84c6"}}

@@ -1,0 +1,1 @@
+{"id":"d6e13eb92d5da522eeabefcadade183f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#兄弟 PDF 標準では、SVG の兄弟の `.pdf` へ、書き出した SVG と同じ内容の SVG を渡す","name":"標準では、SVG の兄弟の `.pdf` へ、書き出した SVG と同じ内容の SVG を渡す","status":"passed","testResultsByEnv":{"default":"f1e6fb100aa8fb4b64359d9a91c6c27e"}}

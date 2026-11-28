@@ -1,0 +1,1 @@
+PECOT_RESULT {"operation":"repo-settings","request_id":"req-1","ok":false,"error":{"kind":"github-auth","message":"authentication failed: check the token Bad credentials"}}

@@ -1,0 +1,1 @@
+{"id":"c002b59a082577334a844af76daa980c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-context.test.ts#permissionCandidates 対象に plan を指定した場合は、計画を書いた人だけを返す","name":"対象に plan を指定した場合は、計画を書いた人だけを返す","status":"passed","testResultsByEnv":{"default":"6382fc7be0aede179b2dfd4a8266d772"}}

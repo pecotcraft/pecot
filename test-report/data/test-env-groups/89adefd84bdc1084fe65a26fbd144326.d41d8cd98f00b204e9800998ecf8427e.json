@@ -1,0 +1,1 @@
+{"id":"89adefd84bdc1084fe65a26fbd144326.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/golden-path-default-out.test.ts#CUJ 1b: --out 省略時 `--out` を省略すると、`slides.md` の `title` から決めた既定のパスへ PPTX を書き出す","name":"`--out` を省略すると、`slides.md` の `title` から決めた既定のパスへ PPTX を書き出す","status":"passed","testResultsByEnv":{"default":"53c786b845048075b8a60789f7957c36"}}

@@ -1,0 +1,1 @@
+{"id":"878914030845667b56e4574b1f9fce4c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/max-chars-rule.test.ts#文字数の超過と太字の欠けが重なると、maxChars と boldRequired を同時に報告する","name":"文字数の超過と太字の欠けが重なると、maxChars と boldRequired を同時に報告する","status":"passed","testResultsByEnv":{"default":"d670eec85b51284dfddcb4ffbb7cf1cf"}}

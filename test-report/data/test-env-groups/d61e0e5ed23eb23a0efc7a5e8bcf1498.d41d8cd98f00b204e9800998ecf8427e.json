@@ -1,0 +1,1 @@
+{"id":"d61e0e5ed23eb23a0efc7a5e8bcf1498.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#parseProjectConfig（旧い形） 旧い設定の fields.priority・fields.size は読み捨て、保存し直す内容にも含めない","name":"旧い設定の fields.priority・fields.size は読み捨て、保存し直す内容にも含めない","status":"passed","testResultsByEnv":{"default":"a727777b3dd0932b4303735309bc9e60"}}

@@ -1,0 +1,1 @@
+affected -t lint,lint-docs,lint-src --files=plugins/pecot-workflow/cli/a.py --parallel=1 --output-style=stream

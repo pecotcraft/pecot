@@ -1,0 +1,2 @@
+error: give the repository as owner/repo
+  example: project_link with repo: "example-org/my-repo"

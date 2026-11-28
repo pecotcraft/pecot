@@ -1,0 +1,1 @@
+{"id":"9d12a46a29a8f8c7a90d48ad446bc54c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-install.test.ts#workflow_install リポのサブディレクトリを directory に渡すと、リポのルートからの置き先に書き出す","name":"リポのサブディレクトリを directory に渡すと、リポのルートからの置き先に書き出す","status":"passed","testResultsByEnv":{"default":"883cb58abc8f06ef769158955660d4fe"}}

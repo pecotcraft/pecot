@@ -1,0 +1,1 @@
+{"id":"841282cc9f06ce1db37ef32e8186550e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_build_rejects_a_real_publish_outside_main_first","name":"開発版のビルドは、main 以外での本番の publish を最初の step で拒否する","status":"passed","testResultsByEnv":{"default":"60b308a703fa3a9db7841ae940be8b18"}}

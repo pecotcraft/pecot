@@ -1,0 +1,1 @@
+{"id":"86cecd3f25fb2afee55bba9fd38eba3a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: シェル 変数の長さを表す記法の # をコメントとして扱わず、後ろの文字列を読む","name":"変数の長さを表す記法の # をコメントとして扱わず、後ろの文字列を読む","status":"passed","testResultsByEnv":{"default":"563006545b925a52a4a2086919c22bdb"}}

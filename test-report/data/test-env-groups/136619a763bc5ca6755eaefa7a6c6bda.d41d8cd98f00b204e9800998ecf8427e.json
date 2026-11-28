@@ -1,0 +1,1 @@
+{"id":"136619a763bc5ca6755eaefa7a6c6bda.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/command-definition.test.ts#interfaceIdOf ツール名を大文字にし、_ を - に置き換えて、先頭に PW- を付けたインタフェース ID を作成する","name":"ツール名を大文字にし、_ を - に置き換えて、先頭に PW- を付けたインタフェース ID を作成する","status":"passed","testResultsByEnv":{"default":"a7c4e52d592ad9f82307848e389c0da4"}}

@@ -1,0 +1,1 @@
+{"id":"03d08781eaa5838a93af263da994d0f0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#runGit check を指定しない場合は、git が 0 以外で終了しても、その結果を返す","name":"check を指定しない場合は、git が 0 以外で終了しても、その結果を返す","status":"passed","testResultsByEnv":{"default":"c06f6351343f59688da72cf3ba7611af"}}

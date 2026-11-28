@@ -1,0 +1,1 @@
+{"id":"f3f5dabdc86b1598fbf9dc0f9a054173.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/store-layout.test.ts#parseThemeStamp スタンプの内容が「tag が文字列でない」の場合は、undefined を返す","name":"スタンプの内容が「tag が文字列でない」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"8d8f6db40e9cf276b64c8b958375db3d"}}

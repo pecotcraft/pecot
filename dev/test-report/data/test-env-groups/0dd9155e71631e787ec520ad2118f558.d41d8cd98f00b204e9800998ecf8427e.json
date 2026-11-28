@@ -1,0 +1,1 @@
+{"id":"0dd9155e71631e787ec520ad2118f558.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#findMainWorktree どの WT からでも、最初のエントリ（メイン WT）を返す","name":"どの WT からでも、最初のエントリ（メイン WT）を返す","status":"passed","testResultsByEnv":{"default":"7813181e0230b3fa5e72f9392ed9b2dc"}}

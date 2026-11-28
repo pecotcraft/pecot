@@ -1,0 +1,1 @@
+{"id":"455b28828713bb007621c8567137d489.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery EXPLAIN の内側が変更系のクエリ、または空のときは、理由を not-read-only として拒否する","name":"EXPLAIN の内側が変更系のクエリ、または空のときは、理由を not-read-only として拒否する","status":"passed","testResultsByEnv":{"default":"adb195c67c6e84025df0206c90b4003a"}}

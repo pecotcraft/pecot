@@ -1,0 +1,1 @@
+{"id":"0057bf64417eae54517bd41283c80cf7.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_cli_fails_when_tag_is_off_main","name":"CLI は、タグが main の祖先でないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"8523a0996cbe6a7efb65ce17b408ca67"}}

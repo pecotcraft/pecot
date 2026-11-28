@@ -1,0 +1,4 @@
+warning: mxCell id=big: first font inter is not in the theme font (slidev-theme-pecotv-test-declared): "Title"; diagram text is set in the theme font (slidev-theme-pecotv-test-declared) (fix: add fontFamily=Test Sans, Test Sans JP, sans-serif to style)
+warning: mxCell id=plain: first font sans-serif is not in the theme font (slidev-theme-pecotv-test-declared): "Plain"; diagram text is set in the theme font (slidev-theme-pecotv-test-declared) (fix: add fontFamily=Test Sans, Test Sans JP, sans-serif to style)
+warning: mxCell id=big: font size 52px is not a theme size: "Title"; only these 5 sizes are allowed: 18, 15, 14, 11, 10 px (heading 18, subheading 15, body 14, caption 11, label 10) (fix: add fontSize=<size> to style)
+warning: mxCell id=plain: font size 52px is not a theme size: "Plain"; only these 5 sizes are allowed: 18, 15, 14, 11, 10 px (heading 18, subheading 15, body 14, caption 11, label 10) (fix: add fontSize=<size> to style)

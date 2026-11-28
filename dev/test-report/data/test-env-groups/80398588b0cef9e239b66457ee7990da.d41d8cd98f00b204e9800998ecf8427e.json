@@ -1,0 +1,1 @@
+{"id":"80398588b0cef9e239b66457ee7990da.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_ci_result#test_lint_skip_zero_lanes","name":"lint を飛ばす設定で、レーンが 0 件なら、成功で終わる","status":"passed","testResultsByEnv":{"default":"6d1d5d14b20965a1bb3abf2aed904af3"}}

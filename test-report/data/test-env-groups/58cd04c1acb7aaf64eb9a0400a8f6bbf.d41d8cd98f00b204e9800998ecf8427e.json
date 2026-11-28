@@ -1,0 +1,1 @@
+{"id":"58cd04c1acb7aaf64eb9a0400a8f6bbf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyHyperlinkFix テキストと URL が異なる場合も、hrefMap に一致するなら、ハイパーリンクに変換する","name":"テキストと URL が異なる場合も、hrefMap に一致するなら、ハイパーリンクに変換する","status":"passed","testResultsByEnv":{"default":"ec8a337f2c141e258937160b381ac1c8"}}

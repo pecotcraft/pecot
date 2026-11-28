@@ -1,0 +1,1 @@
+{"id":"accd7916b45d75c3c8b5b5c63002d0be.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_version_plan_base_override","name":"`PECOT_VERSION_PLAN_BASE` を指定すると、指定した base の merge-base を使う","status":"passed","testResultsByEnv":{"default":"3fe8bb1bf29ed36e20447af748bdc0dc"}}

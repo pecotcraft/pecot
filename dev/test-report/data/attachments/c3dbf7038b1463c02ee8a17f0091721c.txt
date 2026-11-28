@@ -1,0 +1,2 @@
+error: invalid input: ✖ surface-file is required when source is issue-surface
+  → at surface_file

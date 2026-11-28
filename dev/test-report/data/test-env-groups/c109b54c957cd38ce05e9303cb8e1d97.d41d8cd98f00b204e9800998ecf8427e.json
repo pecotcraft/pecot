@@ -1,0 +1,1 @@
+{"id":"c109b54c957cd38ce05e9303cb8e1d97.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync dry-run が true だと、予定の行を標準エラーに出す","name":"dry-run が true だと、予定の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"6483dbbe4313df69ebffa77d7678ab36"}}

@@ -1,0 +1,1 @@
+{"id":"b293550761ea8c93bde3d4af028642fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-show.test.ts#board_show ボードに pecot-lane があると、各 Item の lane と、選択肢の順の lanes を PR を除いて数える","name":"ボードに pecot-lane があると、各 Item の lane と、選択肢の順の lanes を PR を除いて数える","status":"passed","testResultsByEnv":{"default":"995fa3ab95ba1b99b5530da8fa1918de"}}

@@ -1,0 +1,1 @@
+{"id":"19ee4fe6e8609fc03aac5a754672a938.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url.test.ts#executeDrawioUrl png / PNG 出力 拡張子ガードで弾かれた output では capturePng も呼ばれない","name":"拡張子ガードで弾かれた output では capturePng も呼ばれない","status":"passed","testResultsByEnv":{"default":"4655eda41469866f0e43ae7e2422235f"}}

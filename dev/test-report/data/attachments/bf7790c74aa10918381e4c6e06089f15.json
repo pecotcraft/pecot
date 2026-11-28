@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "set: current branch to worktree-team/task"
+    },
+    {
+      "type": "text",
+      "text": "{\"deletedBranches\":[{\"branch\":\"feat/demo/12\",\"location\":\"local\"}],\"readinessChanges\":[],\"restack\":[],\"currentBranch\":\"worktree-team/task\"}"
+    }
+  ],
+  "structuredContent": {
+    "deletedBranches": [
+      {
+        "branch": "feat/demo/12",
+        "location": "local"
+      }
+    ],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "worktree-team/task"
+  }
+}

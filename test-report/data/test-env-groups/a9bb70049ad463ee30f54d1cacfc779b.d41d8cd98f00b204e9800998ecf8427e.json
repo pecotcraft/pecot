@@ -1,0 +1,1 @@
+{"id":"a9bb70049ad463ee30f54d1cacfc779b.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/attach-mcp-tgz.test.sh#origin が https（末尾 /） でも -R が owner/name になる","name":"origin が https（末尾 /） でも -R が owner/name になる","status":"passed","testResultsByEnv":{"default":"d7a5d6c33f093e9091467adb92af9cc5"}}

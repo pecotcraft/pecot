@@ -1,0 +1,1 @@
+{"id":"c4cc102f15be99e70caf0c39c9010a1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（git の段の子プロセス失敗） ロックの待機が上限を超えた場合は、別のプロセスが取得中であることを案内する","name":"ロックの待機が上限を超えた場合は、別のプロセスが取得中であることを案内する","status":"passed","testResultsByEnv":{"default":"54228d1cab4d846c56c982f74cafb24a"}}

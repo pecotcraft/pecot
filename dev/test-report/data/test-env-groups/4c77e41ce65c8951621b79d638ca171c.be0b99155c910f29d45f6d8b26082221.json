@@ -1,0 +1,1 @@
+{"id":"4c77e41ce65c8951621b79d638ca171c.be0b99155c910f29d45f6d8b26082221","fullName":".githooks.tests.test_list_test_lanes#test_skipped_is_empty_outside_stack_mode","name":"通常のモードでは、省いたレーンが無いので skipped に空の配列を出力する","status":"passed","testResultsByEnv":{"default":"a4213950ed61fab722c25080db950e09"}}

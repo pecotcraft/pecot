@@ -1,0 +1,1 @@
+{"id":"0c67a8f2aa2725ab33b263cc8dcc7cb3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show 子 PR remote が無いとき、作業中の Issue と子 PR を読まない","name":"remote が無いとき、作業中の Issue と子 PR を読まない","status":"passed","testResultsByEnv":{"default":"fdcf75cb38b6654a860d780afb7b5ba7"}}

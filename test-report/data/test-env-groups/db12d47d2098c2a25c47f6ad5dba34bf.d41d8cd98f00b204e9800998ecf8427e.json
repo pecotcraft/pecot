@@ -1,0 +1,1 @@
+{"id":"db12d47d2098c2a25c47f6ad5dba34bf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 札が Needs Attention の Issue のコメントを読めないと、判定を出せない warning を出し、札を戻さない","name":"札が Needs Attention の Issue のコメントを読めないと、判定を出せない warning を出し、札を戻さない","status":"passed","testResultsByEnv":{"default":"c6f96cb22ea7c8a2f67ffb678b368cdf"}}

@@ -1,0 +1,7 @@
+  remote: denied: fetch first        
+  error: failed to push some refs to '/tmp/pytest-of-vscode/pytest-0/popen-gw1/test_land_stops_at_once_when_r0/origin.git'
+  To /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_land_stops_at_once_when_r0/origin.git
+  !	11c2a4f0fc8ea410d810c32f6ef5f7d5f6f215b9:refs/heads/main	[remote rejected] (pre-receive hook declined)
+  !	:refs/heads/release/run-1-1	[remote rejected] (pre-receive hook declined)
+  Done
+error: push to main was rejected (branch: release/run-1-1)

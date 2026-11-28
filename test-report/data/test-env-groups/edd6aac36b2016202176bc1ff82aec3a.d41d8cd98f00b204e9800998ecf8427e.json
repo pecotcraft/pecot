@@ -1,0 +1,1 @@
+{"id":"edd6aac36b2016202176bc1ff82aec3a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/review-finish.test.ts#renderReviewStopped detail の改行と続く空白は、1 つの空白にまとめ、1 行のコードとして書く","name":"detail の改行と続く空白は、1 つの空白にまとめ、1 行のコードとして書く","status":"passed","testResultsByEnv":{"default":"da5e7039c6dfdbc08647643699ebcd30"}}

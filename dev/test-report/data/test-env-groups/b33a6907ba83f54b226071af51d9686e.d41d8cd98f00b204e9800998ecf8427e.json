@@ -1,0 +1,1 @@
+{"id":"b33a6907ba83f54b226071af51d9686e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName 番号に上限は存在せず、wt1 から wt9 に参加済みなら wt10 を返す","name":"番号に上限は存在せず、wt1 から wt9 に参加済みなら wt10 を返す","status":"passed","testResultsByEnv":{"default":"bc558fab6c377288623d1e11bf3ebc10"}}

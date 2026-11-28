@@ -1,0 +1,1 @@
+{"id":"b7839a9ae062f0bfc27b7ce5a48d51d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#stripLeadingHtmlComment（冒頭ガイドコメント除去 #958 F-02） 先頭の 1 ブロックだけを除去し、本文の途中の HTML は残す","name":"先頭の 1 ブロックだけを除去し、本文の途中の HTML は残す","status":"passed","testResultsByEnv":{"default":"c8275676d172f00d67511ed5a2659b22"}}

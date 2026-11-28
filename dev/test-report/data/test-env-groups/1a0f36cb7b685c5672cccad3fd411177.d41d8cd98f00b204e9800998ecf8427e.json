@@ -1,0 +1,1 @@
+{"id":"1a0f36cb7b685c5672cccad3fd411177.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_sync slides.md がないディレクトリを渡すと、not-talk-dir のエラーを返す","name":"slides.md がないディレクトリを渡すと、not-talk-dir のエラーを返す","status":"passed","testResultsByEnv":{"default":"cc7a0aeafd6a22596364c6e3437b8378"}}

@@ -1,0 +1,1 @@
+{"id":"837140d87a9ab604b0c4d389d5215e6f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-surface-tracker.test.ts#renderTrackerBody 既存の本文が存在しない場合は、Tracker のマーカーの後ろに、取得元と増えた・消えた項目の一覧だけを置く","name":"既存の本文が存在しない場合は、Tracker のマーカーの後ろに、取得元と増えた・消えた項目の一覧だけを置く","status":"passed","testResultsByEnv":{"default":"5fd2e3a444a721ba3cc30786a60cb9b9"}}

@@ -1,0 +1,1 @@
+{"id":"7463fbd6bc94434902da72d59431ddb4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_pull_failure_falls_back_to_build","name":"up でイメージの pull に失敗すると、PR の定義から build して、そのイメージを使う","status":"passed","testResultsByEnv":{"default":"38ecf4d5a8858d862ad136ecaf94ea99"}}

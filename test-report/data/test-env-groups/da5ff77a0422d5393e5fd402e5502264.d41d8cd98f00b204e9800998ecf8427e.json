@@ -1,0 +1,1 @@
+{"id":"da5ff77a0422d5393e5fd402e5502264.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#parseScenario 形式に誤りがあると、例外が発生する: 未知の kind","name":"形式に誤りがあると、例外が発生する: 未知の kind","status":"passed","testResultsByEnv":{"default":"601ef96aa99a768f2af918ba4b3a01e1"}}

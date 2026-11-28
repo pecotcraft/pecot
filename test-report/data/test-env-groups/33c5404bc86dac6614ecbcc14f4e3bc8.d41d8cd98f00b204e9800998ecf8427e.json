@@ -1,0 +1,1 @@
+{"id":"33c5404bc86dac6614ecbcc14f4e3bc8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Markdown のブロックの規則 字下げした HTML の断片は、字下げを除いて HTML ブロックとして外す","name":"字下げした HTML の断片は、字下げを除いて HTML ブロックとして外す","status":"passed","testResultsByEnv":{"default":"58d2220260cedad5243844dde22c4ec6"}}

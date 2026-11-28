@@ -1,0 +1,1 @@
+{"id":"e9f35876946cf8c280d14b8ec03a5ce0.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/plugin-update-notice.bats#known_marketplaces.json が無いとき、何も出さない","name":"known_marketplaces.json が無いとき、何も出さない","status":"passed","testResultsByEnv":{"default":"5d72bb592f7f17f92bb283fe100670a5"}}

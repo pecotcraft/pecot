@@ -1,0 +1,1 @@
+{"id":"c626ed34d89e81c0f8c393852edea24b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor 持ち主が個人だと、organization の一覧を取得しない","name":"持ち主が個人だと、organization の一覧を取得しない","status":"passed","testResultsByEnv":{"default":"4797caa65553e7dcf28464148b764529"}}

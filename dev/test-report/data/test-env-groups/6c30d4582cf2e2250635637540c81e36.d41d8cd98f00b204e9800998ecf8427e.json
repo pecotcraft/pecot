@@ -1,0 +1,1 @@
+{"id":"6c30d4582cf2e2250635637540c81e36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/changelog-file.test.ts#resolveChangelogPath 両方が存在する場合は、CHANGELOG.md を優先する","name":"両方が存在する場合は、CHANGELOG.md を優先する","status":"passed","testResultsByEnv":{"default":"6ab7a8af7485fa9d383995a7f9f02ddf"}}

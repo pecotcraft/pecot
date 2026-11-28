@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "comment_id: comment 1 (https://ghes.example.com/acme/demo/pull/8#issuecomment-1) is on another Issue than acme/demo/7"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"comment_id\",\"code\":\"other-issue\",\"message\":\"comment 1 (https://ghes.example.com/acme/demo/pull/8#issuecomment-1) is on another Issue than acme/demo/7\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "comment_id",
+        "code": "other-issue",
+        "message": "comment 1 (https://ghes.example.com/acme/demo/pull/8#issuecomment-1) is on another Issue than acme/demo/7"
+      }
+    ]
+  }
+}

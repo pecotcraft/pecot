@@ -1,0 +1,1 @@
+{"id":"4a5a3061f0eb62deab2f7f6b63014e51.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/index.test.ts#GitHubClient 基底 → repos → projects → issues → pulls の順に継承し、全 API の操作を持つ","name":"基底 → repos → projects → issues → pulls の順に継承し、全 API の操作を持つ","status":"passed","testResultsByEnv":{"default":"14719ce6ae18c115e4f8c7b99e8cdba6"}}

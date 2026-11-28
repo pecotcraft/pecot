@@ -1,0 +1,1 @@
+{"id":"7c5ce2203fdc9077ae24089b7f47fdbd.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_dev_sources#test_resolve_runs_added_lanes_and_drops_removed_lanes","name":"前の結果に無いレーンは main で流し、レポートのレーンから外れたレーンは捨てる","status":"passed","testResultsByEnv":{"default":"5438e1b41602b61ef7ad58eb0a7d661d"}}

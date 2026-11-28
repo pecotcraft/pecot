@@ -1,0 +1,1 @@
+{"id":"6312478ac2e992f870d587dc74e9b40a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 見本のリポジトリ invalid-json を検証すると、検証エラーの行を過不足なく決まった順で返す","name":"見本のリポジトリ invalid-json を検証すると、検証エラーの行を過不足なく決まった順で返す","status":"passed","testResultsByEnv":{"default":"20f6f70b7627691454f3b1f4dce0f262"}}

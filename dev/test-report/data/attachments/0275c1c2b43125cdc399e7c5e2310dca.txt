@@ -1,0 +1,1 @@
+{"event":"slide.convert.error","reason":"pptx-convert-failed","detail":"pptx convert failed: aborted","warnings":["cannot read the cache manifest; cleaning existing artifacts and rebuilding"],"errors":[]}

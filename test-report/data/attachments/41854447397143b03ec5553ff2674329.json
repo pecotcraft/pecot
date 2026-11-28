@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_cloudwatch_get_metric_statistics: region: Invalid string: must match pattern /^[a-z]{2,4}(?:-[a-z]+)+-\\d$/"
+    }
+  ],
+  "isError": true
+}

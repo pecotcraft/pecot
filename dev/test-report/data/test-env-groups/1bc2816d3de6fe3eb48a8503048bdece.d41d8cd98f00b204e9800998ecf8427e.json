@@ -1,0 +1,1 @@
+{"id":"1bc2816d3de6fe3eb48a8503048bdece.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/attach.test.ts#attach Allure の reporter が動くレーンの中 attachJson に値を渡すと、字下げした JSON で残す","name":"attachJson に値を渡すと、字下げした JSON で残す","status":"passed","testResultsByEnv":{"default":"72a32da649a12524311bca530c15971d"}}

@@ -1,0 +1,1 @@
+{"id":"f6d67b625a0a36bb70987275f181d567.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#resultEffects limit は、待ちの値を書くかが true で、起動ラベルを外すかが true になる","name":"limit は、待ちの値を書くかが true で、起動ラベルを外すかが true になる","status":"passed","testResultsByEnv":{"default":"89cec18db0ea8ae5ade705bb2589db82"}}

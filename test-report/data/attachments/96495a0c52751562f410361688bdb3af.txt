@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "additionalContext": "note: synced the branch with the remote (branch: master)",
+    "hookEventName": "SessionStart"
+  },
+  "additionalContext": "note: synced the branch with the remote (branch: master)"
+}

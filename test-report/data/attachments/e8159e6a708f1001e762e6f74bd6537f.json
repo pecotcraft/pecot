@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Session status"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"main\",\"repository\":\"acme/project-repo\"}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "main",
+    "repository": "acme/project-repo"
+  }
+}

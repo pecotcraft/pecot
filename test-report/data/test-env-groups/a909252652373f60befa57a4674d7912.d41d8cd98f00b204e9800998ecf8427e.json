@@ -1,0 +1,1 @@
+{"id":"a909252652373f60befa57a4674d7912.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_cli_output_lines_match#test_note_cases_match_across_files_that_have_them","name":"note の診断行の期待は、note を持つファイルの間で同じ集合になる","status":"passed","testResultsByEnv":{"default":"44e951a2d387595804a441a539347cfe"}}

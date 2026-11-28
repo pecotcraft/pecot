@@ -1,0 +1,1 @@
+{"id":"07cc5bd12566b48121661f257d4e7868.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#critical の advisory だけでも、パッケージと advisory を示して中止する","name":"critical の advisory だけでも、パッケージと advisory を示して中止する","status":"passed","testResultsByEnv":{"default":"dddcf8e4c06068896c3c973609c0ca2b"}}

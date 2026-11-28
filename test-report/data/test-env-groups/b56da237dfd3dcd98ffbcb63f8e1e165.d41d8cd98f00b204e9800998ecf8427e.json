@@ -1,0 +1,1 @@
+{"id":"b56da237dfd3dcd98ffbcb63f8e1e165.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#createSymlinks worktree のパスの途中に、深さの異なるシンボリックリンクがある場合でも、リンク先を参照できる","name":"worktree のパスの途中に、深さの異なるシンボリックリンクがある場合でも、リンク先を参照できる","status":"passed","testResultsByEnv":{"default":"219c3961575432ea95192b8e67b17efb"}}

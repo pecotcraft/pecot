@@ -1,0 +1,1 @@
+{"id":"b8d4c39229fd7abeb3bd47cb89477944.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#main の --write 書けなければ、cannot write の行を出して 1 を返す","name":"書けなければ、cannot write の行を出して 1 を返す","status":"passed","testResultsByEnv":{"default":"8b77b0a7a763bc61684eecf2bada1538"}}

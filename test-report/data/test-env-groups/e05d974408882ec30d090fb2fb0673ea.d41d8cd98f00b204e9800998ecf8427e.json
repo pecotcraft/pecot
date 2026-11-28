@@ -1,0 +1,1 @@
+{"id":"e05d974408882ec30d090fb2fb0673ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#ファイル名を渡したときの文 extractVersionReleaseNotes のバージョンが存在しない場合のメッセージには、渡したファイル名を使う","name":"extractVersionReleaseNotes のバージョンが存在しない場合のメッセージには、渡したファイル名を使う","status":"passed","testResultsByEnv":{"default":"7321a23e502ac0fd7212cf700d3287a9"}}

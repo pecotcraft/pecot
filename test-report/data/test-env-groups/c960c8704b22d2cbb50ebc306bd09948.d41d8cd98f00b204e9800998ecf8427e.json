@@ -1,0 +1,1 @@
+{"id":"c960c8704b22d2cbb50ebc306bd09948.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start 着手の判定 済んでいない前提が 1 件で merge 待ちなら、直し方にその Issue の参照を入れる","name":"済んでいない前提が 1 件で merge 待ちなら、直し方にその Issue の参照を入れる","status":"passed","testResultsByEnv":{"default":"3f53d336f13f0f3163539f28556e9067"}}

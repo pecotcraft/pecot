@@ -1,0 +1,1 @@
+{"id":"c1064140b436a59c1e373934be1b1d7a.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#使い捨てリポ側の配布ツリーの vite が HEAD の catalog の範囲になる","name":"使い捨てリポ側の配布ツリーの vite が HEAD の catalog の範囲になる","status":"passed","testResultsByEnv":{"default":"cc654afd0df2222265d8e015ce540a01"}}

@@ -1,0 +1,1 @@
+{"id":"5a54dbfaaf7cbdb93b29011d6b9ea114.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge MCP の data マージして head ブランチを削除すると、PR・ブランチと deletedBranch を返す","name":"マージして head ブランチを削除すると、PR・ブランチと deletedBranch を返す","status":"passed","testResultsByEnv":{"default":"9e38381c1ddd2f72961f50d55dbfee4a"}}

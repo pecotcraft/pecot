@@ -1,0 +1,1 @@
+{"id":"7a0c47a8c338489b15c7c6113fe9e2b5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-content-before-frontmatter.test.ts#複数行のコメントの後に frontmatter があると、先頭に内容ありと判定する","name":"複数行のコメントの後に frontmatter があると、先頭に内容ありと判定する","status":"passed","testResultsByEnv":{"default":"4dfdfb615bec68391eb84146de5bf11a"}}

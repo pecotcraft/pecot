@@ -1,0 +1,1 @@
+{"id":"cb1117979da49f7633165832b9d1f06e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/registry.test.ts#ツールの一覧 pr_check の output は、入力の向きと出力の向きで JSON Schema が同じになる","name":"pr_check の output は、入力の向きと出力の向きで JSON Schema が同じになる","status":"passed","testResultsByEnv":{"default":"8d84fd7dd7b9aa7ed976d7d1fd7e5002"}}

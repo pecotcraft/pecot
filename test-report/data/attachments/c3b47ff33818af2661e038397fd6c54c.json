@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "drawio_create: cannot read input file: /workspaces/base/pecot/plugins/pecot-visual/no-such-dir-980/missing.drawio: ENOENT: no such file or directory, open '/workspaces/base/pecot/plugins/pecot-visual/no-such-dir-980/missing.drawio'"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"drawio.url.error\",\"kind\":\"input-not-found\",\"detail\":\"drawio_create: cannot read input file: /workspaces/base/pecot/plugins/pecot-visual/no-such-dir-980/missing.drawio: ENOENT: no such file or directory, open '/workspaces/base/pecot/plugins/pecot-visual/no-such-dir-980/missing.drawio'\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "drawio.url.error",
+    "kind": "input-not-found",
+    "detail": "drawio_create: cannot read input file: /workspaces/base/pecot/plugins/pecot-visual/no-such-dir-980/missing.drawio: ENOENT: no such file or directory, open '/workspaces/base/pecot/plugins/pecot-visual/no-such-dir-980/missing.drawio'"
+  },
+  "isError": true
+}

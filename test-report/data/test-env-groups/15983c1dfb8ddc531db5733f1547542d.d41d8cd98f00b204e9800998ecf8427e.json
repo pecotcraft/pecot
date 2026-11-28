@@ -1,0 +1,1 @@
+{"id":"15983c1dfb8ddc531db5733f1547542d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-hint.test.ts#案内の誤り 案内に 入力名だけの指定で、定義に存在しない入力名 を指定して整形すると、TypeError が発生する","name":"案内に 入力名だけの指定で、定義に存在しない入力名 を指定して整形すると、TypeError が発生する","status":"passed","testResultsByEnv":{"default":"16a5149777e2c6e52bffcbb4e9354540"}}

@@ -1,0 +1,1 @@
+{"id":"487c03b735e4de118bc9f24dfa14795b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 config/.env のファイルからトークンを取得し、process.env にも設定する","name":"config/.env のファイルからトークンを取得し、process.env にも設定する","status":"passed","testResultsByEnv":{"default":"cec1bbbacd72fb73ceb25b7647ea52fb"}}

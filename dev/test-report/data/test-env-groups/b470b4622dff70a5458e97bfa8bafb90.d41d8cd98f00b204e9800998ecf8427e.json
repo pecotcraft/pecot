@@ -1,0 +1,1 @@
+{"id":"b470b4622dff70a5458e97bfa8bafb90.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#runtimeInstallLockPath 永続層の直下にある、固定名のパスを返す","name":"永続層の直下にある、固定名のパスを返す","status":"passed","testResultsByEnv":{"default":"993d6adadd4c130060f559253822bfd0"}}

@@ -1,0 +1,1 @@
+{"id":"e9a0561c1ae9b5665cedff077667e1fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Processor 対象外の拡張子を渡すと、stringParagraphs が RangeError を投げる","name":"対象外の拡張子を渡すと、stringParagraphs が RangeError を投げる","status":"passed","testResultsByEnv":{"default":"983c80ba795d930fa20d1971d8cf9a88"}}

@@ -1,0 +1,1 @@
+{"id":"5bca4f42788043e68021052d67e3bc7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#findWorktreeConfigFile メイン WT の worktree-config.json を、サブ WT からでも見つける","name":"メイン WT の worktree-config.json を、サブ WT からでも見つける","status":"passed","testResultsByEnv":{"default":"e4fa9b826a9b48e34b46c5dc1f1f6c30"}}

@@ -1,0 +1,1 @@
+{"id":"fbb141e5899e2204fbe9d597333fdda9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#引数の組み立て descending を指定しない場合は、--no-descending を付けて実行する","name":"descending を指定しない場合は、--no-descending を付けて実行する","status":"passed","testResultsByEnv":{"default":"5bcc6a4541217a1294edb7a77be825c3"}}

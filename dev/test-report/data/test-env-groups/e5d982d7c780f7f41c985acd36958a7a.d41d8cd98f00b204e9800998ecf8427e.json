@@ -1,0 +1,1 @@
+{"id":"e5d982d7c780f7f41c985acd36958a7a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_run_attached_attaches_output","name":"run_attached で動かすと、コマンドと終了コードを名前にした stdout と stderr を添付し、run と同じ値を残す","status":"passed","testResultsByEnv":{"default":"8ec3419b460073a9f17a898a8054f9cf"}}

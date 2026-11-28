@@ -1,0 +1,1 @@
+{"id":"3b1fb428ec508ebb3ab535a850461b8d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#parseUpdateMetadata 版が 1.2.3 から 1.2.3 に変わると、種類は undefined になる","name":"版が 1.2.3 から 1.2.3 に変わると、種類は undefined になる","status":"passed","testResultsByEnv":{"default":"d53f665bd67d8e40243049b959149a70"}}

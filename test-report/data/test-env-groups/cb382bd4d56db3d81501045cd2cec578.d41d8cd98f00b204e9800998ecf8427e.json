@@ -1,0 +1,1 @@
+{"id":"cb382bd4d56db3d81501045cd2cec578.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show MCP の data 作業中の Issue が無いとき、ブランチとリポジトリだけを data に返し、activeIssue を省く","name":"作業中の Issue が無いとき、ブランチとリポジトリだけを data に返し、activeIssue を省く","status":"passed","testResultsByEnv":{"default":"bf7c9c32f4e8019185d7fad5ecb6b0ba"}}

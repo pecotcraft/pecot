@@ -1,0 +1,1 @@
+{"id":"95f9bdf7ca88a441d87c8f0ff1f3999e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/registry.test.ts#ツールの一覧 board_check の output は、入力の向きと出力の向きで JSON Schema が同じになる","name":"board_check の output は、入力の向きと出力の向きで JSON Schema が同じになる","status":"passed","testResultsByEnv":{"default":"691124fa507279a8d99b6c4d02adc70a"}}

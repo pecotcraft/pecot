@@ -1,0 +1,1 @@
+{"id":"3a1b1dff930ee6eeee281d1bf6a64f2a.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#版が上がると tgz の version が新版になる","name":"版が上がると tgz の version が新版になる","status":"passed","testResultsByEnv":{"default":"20eac2fdb25e59b5499f3023b3350462"}}

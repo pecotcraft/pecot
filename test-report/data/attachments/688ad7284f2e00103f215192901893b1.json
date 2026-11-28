@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool slide_page: layout: Invalid input: expected string, received undefined"
+    }
+  ],
+  "isError": true
+}

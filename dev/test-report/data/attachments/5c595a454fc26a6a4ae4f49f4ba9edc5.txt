@@ -1,0 +1,4 @@
+ずれは 1 件
+ruleset other
+  このリポ: {"target":"branch","enforcement":"active","conditions":{"ref_name":{"exclude":[],"include":["~DEFAULT_BRANCH"]}},"rules":{"deletion":{},"merge_queue":{"merge_method":"SQUASH","max_entries_to_build":1,"grouping_strategy":"ALLGREEN"},"non_fast_forward":{},"pull_request":{"required_approving_review_count":0,"allowed_merge_methods":["squash"]},"required_status_checks":{"strict_required_status_checks_policy":false,"required_status_checks":[{"context":"ci-result"},{"context":"version-plan"}]}}}
+  検証用: なし

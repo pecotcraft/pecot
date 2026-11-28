@@ -1,0 +1,1 @@
+{"id":"4de0b307736b108e07b49015ed57e498.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/web-fonts.test.ts#isGenericFamily 総称の書体名は、大文字と小文字や空白の違いを除いて true と判定し、通常の書体名は false と判定する","name":"総称の書体名は、大文字と小文字や空白の違いを除いて true と判定し、通常の書体名は false と判定する","status":"passed","testResultsByEnv":{"default":"f3e71a0fedecd20fdea45cc3cea46cf2"}}

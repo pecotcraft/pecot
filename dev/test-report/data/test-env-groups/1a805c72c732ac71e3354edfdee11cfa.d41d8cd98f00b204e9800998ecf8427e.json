@@ -1,0 +1,1 @@
+{"id":"1a805c72c732ac71e3354edfdee11cfa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#installStdoutGuard 同じ標準出力に 2 回ガードを設定しても、初回と同じ Writable を返す","name":"同じ標準出力に 2 回ガードを設定しても、初回と同じ Writable を返す","status":"passed","testResultsByEnv":{"default":"ccd04a4db714df4b8909dc0e474d53e1"}}

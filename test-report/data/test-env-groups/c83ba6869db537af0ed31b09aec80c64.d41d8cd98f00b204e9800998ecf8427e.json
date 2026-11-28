@@ -1,0 +1,1 @@
+{"id":"c83ba6869db537af0ed31b09aec80c64.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/inspect-pptx.bats#--json の書き込み先が存在しないとき、スタックトレースを出さずに終了コード 2 で終わる","name":"--json の書き込み先が存在しないとき、スタックトレースを出さずに終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"68e9892effb7afd4305a4b6708cf62bd"}}

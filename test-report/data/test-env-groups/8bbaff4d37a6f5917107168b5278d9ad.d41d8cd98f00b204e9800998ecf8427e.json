@@ -1,0 +1,1 @@
+{"id":"8bbaff4d37a6f5917107168b5278d9ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_sts_get_caller_identity の region region の書式に合わない値を渡すと、拒否する","name":"region の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"e0b656ef274482e53fe49cfd3c71b2fd"}}

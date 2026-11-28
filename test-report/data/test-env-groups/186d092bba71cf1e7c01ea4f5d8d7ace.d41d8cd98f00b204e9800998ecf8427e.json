@@ -1,0 +1,1 @@
+{"id":"186d092bba71cf1e7c01ea4f5d8d7ace.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data MCP の呼び出し no_issue_ref を付けると、Closes を足さず、Issue の参照の確認もしない","name":"no_issue_ref を付けると、Closes を足さず、Issue の参照の確認もしない","status":"passed","testResultsByEnv":{"default":"2ef5765fbf7e0499caf0c685dc2436af"}}

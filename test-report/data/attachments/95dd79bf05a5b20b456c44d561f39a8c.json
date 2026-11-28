@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project_fields.pecot-status: write the column pecot-status: Ready"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"project_fields.pecot-status\",\"code\":\"required\",\"message\":\"write the column pecot-status: Ready\",\"candidates\":[\"Ready\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "project_fields.pecot-status",
+        "code": "required",
+        "message": "write the column pecot-status: Ready",
+        "candidates": [
+          "Ready"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

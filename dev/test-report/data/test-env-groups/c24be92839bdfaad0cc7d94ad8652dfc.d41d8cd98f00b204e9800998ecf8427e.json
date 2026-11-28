@@ -1,0 +1,1 @@
+{"id":"c24be92839bdfaad0cc7d94ad8652dfc.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#例外リストが 1 件不足していると、残る advisory で中止する","name":"例外リストが 1 件不足していると、残る advisory で中止する","status":"passed","testResultsByEnv":{"default":"f4a371a8ad0785e2d7ee354947780384"}}

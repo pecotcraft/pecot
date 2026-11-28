@@ -1,0 +1,1 @@
+{"id":"0cd2d04e399b6ce49c3d658119aeac88.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/tracker-body.test.ts#listRegion 印の組が正しくない場合（順序が逆）は、渡された型の例外が発生する","name":"印の組が正しくない場合（順序が逆）は、渡された型の例外が発生する","status":"passed","testResultsByEnv":{"default":"61666bcba0a38805168b9f7f2382cd3b"}}

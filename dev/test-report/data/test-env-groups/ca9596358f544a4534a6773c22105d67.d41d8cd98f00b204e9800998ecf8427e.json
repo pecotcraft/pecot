@@ -1,0 +1,1 @@
+{"id":"ca9596358f544a4534a6773c22105d67.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#calculateSpcValue letter-spacing が 1.4px のとき、spc が 105 になる","name":"letter-spacing が 1.4px のとき、spc が 105 になる","status":"passed","testResultsByEnv":{"default":"8dcbdea4c17840333d0787e62c274690"}}

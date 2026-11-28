@@ -1,0 +1,1 @@
+{"id":"17f53846cc82e9e753f1f9281d8b4198.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#pushFixHintOf 親 PR がマージ済み の場合は、pr_restack を案内する","name":"親 PR がマージ済み の場合は、pr_restack を案内する","status":"passed","testResultsByEnv":{"default":"be84e3a8ada9ed8cb8c0ced436541daa"}}

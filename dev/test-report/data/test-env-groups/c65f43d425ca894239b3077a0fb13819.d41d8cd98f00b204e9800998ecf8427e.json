@@ -1,0 +1,1 @@
+{"id":"c65f43d425ca894239b3077a0fb13819.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-no-verify-check.sh HOOK_COMMAND が未設定のとき、終了コード 2 を返す","name":"HOOK_COMMAND が未設定のとき、終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"1f90962a5719f26506b73a208bb5654f"}}

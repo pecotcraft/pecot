@@ -1,0 +1,1 @@
+{"id":"925eb31fbf16259f68cdfdf81ded6f4d.43858b9bcaf63fe8a1cae2eada3ffa33","fullName":".githooks.tests.test_bats_report#test_layer_label_from_project_table","name":"どの規則にも当たらないテストのファイルの結果に、project の層の表で引いた層 [] を付ける","status":"passed","testResultsByEnv":{"default":"8385c249712c28dbb2f2f72703e2e5d7"}}

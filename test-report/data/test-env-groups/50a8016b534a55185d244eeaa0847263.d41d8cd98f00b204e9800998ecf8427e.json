@@ -1,0 +1,1 @@
+{"id":"50a8016b534a55185d244eeaa0847263.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#ホスト設定 未定義のホストの環境変数名は、ドットをアンダースコアに置き換えたフォールバックの名前にする","name":"未定義のホストの環境変数名は、ドットをアンダースコアに置き換えたフォールバックの名前にする","status":"passed","testResultsByEnv":{"default":"1d9ba2f700c050d9b901eb0e30408e2b"}}

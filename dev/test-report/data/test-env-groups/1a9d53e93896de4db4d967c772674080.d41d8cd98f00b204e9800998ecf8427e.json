@@ -1,0 +1,1 @@
+{"id":"1a9d53e93896de4db4d967c772674080.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#computePruneTargets / removeEntries すべての stepIndex が生存している場合は、削除対象が空になる","name":"すべての stepIndex が生存している場合は、削除対象が空になる","status":"passed","testResultsByEnv":{"default":"52517a01b5fdc8eac7c4de28e8dd614a"}}

@@ -1,0 +1,5 @@
+remote-control
+--spawn
+worktree
+--permission-mode=plan
+DIRS=/tmp/pytest-of-vscode/pytest-0/popen-gw0/test_keeps_permission_mode_giv0/wt/plugins/pecot-workflow:/tmp/pytest-of-vscode/pytest-0/popen-gw0/test_keeps_permission_mode_giv0/wt/plugins/pecot-tools:/tmp/pytest-of-vscode/pytest-0/popen-gw0/test_keeps_permission_mode_giv0/wt/plugins/pecot-visual

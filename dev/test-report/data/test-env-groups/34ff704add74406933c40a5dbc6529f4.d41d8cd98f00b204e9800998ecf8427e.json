@@ -1,0 +1,1 @@
+{"id":"34ff704add74406933c40a5dbc6529f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getStackOfPullRequest pull_requests の番号が数値でない場合は、GitHubAPIError を発生させる","name":"pull_requests の番号が数値でない場合は、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"c827e7914e6bae07088c388d7eecc419"}}

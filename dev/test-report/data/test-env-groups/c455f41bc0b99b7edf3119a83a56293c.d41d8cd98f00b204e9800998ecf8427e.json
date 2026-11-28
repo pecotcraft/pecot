@@ -1,0 +1,1 @@
+{"id":"c455f41bc0b99b7edf3119a83a56293c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 途中の記録が無いのに abort を付けると、利用者が始めた rebase を動かさずに終了コード 2 で終わる","name":"途中の記録が無いのに abort を付けると、利用者が始めた rebase を動かさずに終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"4c197521beea004cf4f261b7047df4e9"}}

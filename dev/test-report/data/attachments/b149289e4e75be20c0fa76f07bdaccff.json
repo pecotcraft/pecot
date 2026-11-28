@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "worktree config not found: .pecot/config/worktree-config.json\n    call worktree_init to generate the template"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"not-initialized\",\"detail\":\"worktree config not found: .pecot/config/worktree-config.json\\n    call worktree_init to generate the template\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "not-initialized",
+    "detail": "worktree config not found: .pecot/config/worktree-config.json\n    call worktree_init to generate the template"
+  },
+  "isError": true
+}

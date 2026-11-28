@@ -1,0 +1,2 @@
+error: invalid version format: 1.2
+  use semantic versioning (X.Y.Z)

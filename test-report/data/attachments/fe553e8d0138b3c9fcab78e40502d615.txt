@@ -1,0 +1,2 @@
+error: develop_branch is not set
+  set it with: project_link with repo: "owner/repo", develop_branch: "develop"

@@ -1,0 +1,1 @@
+{"id":"e956930b96850cbbdc78419834b1ce79.23ffd4e47338b1acd699764d3c1670de","fullName":".githooks.tests.test_pages_provenance#test_report_head_not_ancestor_of_main_is_dropped","name":"レポートの push の run は、head が main の祖先でないと破棄する","status":"passed","testResultsByEnv":{"default":"9ae058b3f0042ef7308cb755eb77a5d9"}}

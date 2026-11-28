@@ -1,0 +1,1 @@
+{"id":"ecab6c097acaa74ff64042dcf60eccc2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template 補間で区切られたテキストを、それぞれ別の段落にする","name":"補間で区切られたテキストを、それぞれ別の段落にする","status":"passed","testResultsByEnv":{"default":"d81c409eaf03ca6d5c47ec0f2b4915cb"}}

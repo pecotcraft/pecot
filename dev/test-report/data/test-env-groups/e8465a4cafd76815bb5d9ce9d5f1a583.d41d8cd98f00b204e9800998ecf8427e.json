@@ -1,0 +1,1 @@
+{"id":"e8465a4cafd76815bb5d9ce9d5f1a583.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる","name":"対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"7142720146a9875d3c46a52c2143199a"}}

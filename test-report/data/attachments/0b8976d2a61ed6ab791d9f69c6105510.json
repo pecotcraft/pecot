@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"name\":\"a\",\"warnings\":[\"slow API\"]}"
+    }
+  ],
+  "structuredContent": {
+    "name": "a",
+    "warnings": [
+      "slow API"
+    ]
+  }
+}

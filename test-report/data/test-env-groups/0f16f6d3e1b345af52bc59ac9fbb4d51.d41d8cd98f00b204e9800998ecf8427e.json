@@ -1,0 +1,1 @@
+{"id":"0f16f6d3e1b345af52bc59ac9fbb4d51.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#runSlideSync エラー伝播 移行中に使い方エラーが発生した場合は、別のエラーに包まずそのまま返す","name":"移行中に使い方エラーが発生した場合は、別のエラーに包まずそのまま返す","status":"passed","testResultsByEnv":{"default":"e4c7e77935039f401eacef90058684c5"}}

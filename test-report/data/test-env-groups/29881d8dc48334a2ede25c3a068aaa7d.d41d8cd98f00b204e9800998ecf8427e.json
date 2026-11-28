@@ -1,0 +1,1 @@
+{"id":"29881d8dc48334a2ede25c3a068aaa7d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_commit_text_rebuilds_stale_dist","name":"dist がソースより古いと、コミットメッセージの確認は作り直してから文章規則を適用する","status":"passed","testResultsByEnv":{"default":"6e8581dcb54f186575952adc3154adf4"}}

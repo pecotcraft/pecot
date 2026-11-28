@@ -1,0 +1,96 @@
+{
+  "name": "aws_rds_describe_db_instances",
+  "title": "List DB instances",
+  "description": "Returns the configuration and state of DB instances (DBInstanceStatus, endpoint, etc.). Narrow to one with db_instance_identifier",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "db_instance_identifier": {
+        "description": "Instance identifier or ARN. If omitted, all instances",
+        "type": "string"
+      },
+      "max_items": {
+        "description": "Maximum number of items in one response",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "starting_token": {
+        "description": "nextToken from the previous response. Fetches the next page",
+        "type": "string"
+      },
+      "profile": {
+        "description": "AWS profile name. If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[\\w.-]+$"
+      },
+      "region": {
+        "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "DBInstances": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {}
+        },
+        "description": "DBInstance objects of the RDS DescribeDBInstances response"
+      },
+      "NextToken": {
+        "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+        "type": "string"
+      },
+      "lines": {
+        "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "output": {
+        "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+        "type": "string"
+      },
+      "truncated": {
+        "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+        "type": "boolean"
+      },
+      "nextToken": {
+        "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+        "type": "string"
+      },
+      "kind": {
+        "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+        "type": "string"
+      },
+      "detail": {
+        "description": "Full text of the failure and how to recover (failure only)",
+        "type": "string"
+      },
+      "log": {
+        "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+        "type": "string"
+      },
+      "warnings": {
+        "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": true
+  }
+}

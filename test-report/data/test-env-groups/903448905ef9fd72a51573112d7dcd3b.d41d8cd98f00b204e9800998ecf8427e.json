@@ -1,0 +1,1 @@
+{"id":"903448905ef9fd72a51573112d7dcd3b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create no_issue_ref を付けて打つと、Closes を足さず、Issue の参照の確認もしない","name":"no_issue_ref を付けて打つと、Closes を足さず、Issue の参照の確認もしない","status":"passed","testResultsByEnv":{"default":"c4ee29ecb1eef463f587c530571d47e1"}}

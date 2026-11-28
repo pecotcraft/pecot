@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_ecr_describe_images: image_ids.0: Unrecognized key: \"extra\""
+    }
+  ],
+  "isError": true
+}

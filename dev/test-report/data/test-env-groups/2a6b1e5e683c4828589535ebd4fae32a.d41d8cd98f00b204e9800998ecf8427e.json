@@ -1,0 +1,1 @@
+{"id":"2a6b1e5e683c4828589535ebd4fae32a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-install.test.ts#workflow_install 置いたファイルの版を確かめる ときは、reads.commit が無くても成功を返す","name":"置いたファイルの版を確かめる ときは、reads.commit が無くても成功を返す","status":"passed","testResultsByEnv":{"default":"652c8bfd5072b1834ec4fcbc86841ab8"}}

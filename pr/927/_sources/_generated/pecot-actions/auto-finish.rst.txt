@@ -1,0 +1,8 @@
+:iface-id: PA-AUTO-FINISH
+:iface-plugin: pecot-actions
+:iface-kind: Action
+
+auto finish
+======================
+
+.. iface-defs:: pecot-actions PA-AUTO-FINISH

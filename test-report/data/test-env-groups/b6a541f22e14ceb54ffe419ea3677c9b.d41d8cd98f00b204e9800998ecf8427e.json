@@ -1,0 +1,1 @@
+{"id":"b6a541f22e14ceb54ffe419ea3677c9b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#expectedScope 同じ scope の tag を持つ複数のプロジェクトは、1 つの scope にまとめる","name":"同じ scope の tag を持つ複数のプロジェクトは、1 つの scope にまとめる","status":"passed","testResultsByEnv":{"default":"e21b55daaf6024bfdbd1e574be4bf6e5"}}

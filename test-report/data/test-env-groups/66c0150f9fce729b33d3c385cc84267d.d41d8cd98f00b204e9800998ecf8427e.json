@@ -1,0 +1,1 @@
+{"id":"66c0150f9fce729b33d3c385cc84267d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack スタックし直し済みの判断 手でスタックし直した後に check を付けると、MCP の outcome が up-to-date になる","name":"手でスタックし直した後に check を付けると、MCP の outcome が up-to-date になる","status":"passed","testResultsByEnv":{"default":"c0018003412ebd15086b854ec5fac491"}}

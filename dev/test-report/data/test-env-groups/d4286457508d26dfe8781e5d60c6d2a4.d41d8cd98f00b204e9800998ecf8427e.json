@@ -1,0 +1,1 @@
+{"id":"d4286457508d26dfe8781e5d60c6d2a4.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release .githooks/scripts/tests/attach-mcp-tgz.bats#origin から owner/name を求められないと、gh を呼ばずに止まる","name":"origin から owner/name を求められないと、gh を呼ばずに止まる","status":"passed","testResultsByEnv":{"default":"0630fcdb4b6ffd0c3ea89efde9245b41"}}

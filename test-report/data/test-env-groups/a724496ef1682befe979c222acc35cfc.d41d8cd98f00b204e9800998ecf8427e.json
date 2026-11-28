@@ -1,0 +1,1 @@
+{"id":"a724496ef1682befe979c222acc35cfc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-handoff の手順 frontmatter に allowed-tools を持たず、手元のセッションでは使わないと書く","name":"frontmatter に allowed-tools を持たず、手元のセッションでは使わないと書く","status":"passed","testResultsByEnv":{"default":"e23914f3f9b95acc1f6712ee8d75bbe2"}}

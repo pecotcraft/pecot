@@ -1,0 +1,1 @@
+{"id":"8f0edcdd74eb80f145dc404ed61e7395.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 未編集プレースホルダの検出と正当な `<...>` の通過（#962） 同じトークンは、1 件だけ報告する","name":"同じトークンは、1 件だけ報告する","status":"passed","testResultsByEnv":{"default":"d783f1e12caa1d293d66bcd20effc50e"}}

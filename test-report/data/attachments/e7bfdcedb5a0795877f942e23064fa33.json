@@ -1,0 +1,119 @@
+{
+  "name": "worktree_add",
+  "title": "Add worktree",
+  "description": "Create a new worktree",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "directory": {
+        "description": "Target Git repository (absolute or relative path)",
+        "type": "string"
+      },
+      "base": {
+        "description": "Base branch (default: the develop_branch of the repository in its project config)",
+        "type": "string"
+      },
+      "path": {
+        "description": "Where to create the worktree (default: <project_root>/<auto-numbered>/<repository name>)",
+        "type": "string"
+      },
+      "no_copy": {
+        "default": false,
+        "description": "Skip copying untracked files",
+        "type": "boolean"
+      },
+      "no_link": {
+        "default": false,
+        "description": "Skip creating symlinks",
+        "type": "boolean"
+      },
+      "setup": {
+        "description": "Command to run after creation",
+        "type": "string"
+      },
+      "allow_existing_branch": {
+        "default": false,
+        "description": "Allow reusing an existing branch even if its upstream differs from develop_branch",
+        "type": "boolean"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "directory"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Name of the worktree (the wtN it was numbered as)"
+      },
+      "path": {
+        "type": "string",
+        "description": "Absolute path of the worktree"
+      },
+      "branch": {
+        "type": "string",
+        "description": "Branch checked out in the worktree"
+      },
+      "base": {
+        "type": "string",
+        "description": "Base branch the worktree branch starts from"
+      },
+      "setupFailed": {
+        "type": "boolean",
+        "description": "true when the setup command failed or timed out, false when it succeeded or was not run"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "name",
+          "path",
+          "branch",
+          "base",
+          "setupFailed"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

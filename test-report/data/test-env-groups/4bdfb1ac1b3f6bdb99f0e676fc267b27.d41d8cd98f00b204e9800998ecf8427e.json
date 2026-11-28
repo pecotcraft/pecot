@@ -1,0 +1,1 @@
+{"id":"4bdfb1ac1b3f6bdb99f0e676fc267b27.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_closed_pull_request_only_triggers_cleanup","name":"閉じた PR の run は、どの側としても受け付けず、後片付けの対象にする","status":"passed","testResultsByEnv":{"default":"8fa38849918b30efc5fb82e0a01e3c13"}}

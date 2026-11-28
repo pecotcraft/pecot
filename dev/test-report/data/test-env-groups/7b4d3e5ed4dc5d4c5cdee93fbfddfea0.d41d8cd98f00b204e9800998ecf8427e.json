@@ -1,0 +1,1 @@
+{"id":"7b4d3e5ed4dc5d4c5cdee93fbfddfea0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init-detection.test.ts#UserPromptSubmit pecot 以外のスラッシュコマンド（/v-slidev）のとき、init が発火しない","name":"pecot 以外のスラッシュコマンド（/v-slidev）のとき、init が発火しない","status":"passed","testResultsByEnv":{"default":"851f01ef6c1283ad5fdffdc4ffb765fd"}}

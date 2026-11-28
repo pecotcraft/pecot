@@ -1,0 +1,1 @@
+{"id":"2e4e78dec02428b1f9e4103e870bcba5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_failure_body_truncated_at_line_boundary_by_byte_limit","name":"失敗の出力がバイト数の上限を超える場合は、行の境界で切り、マルチバイト文字を分断しない","status":"passed","testResultsByEnv":{"default":"437f276ce5841bd9fb69315a423a5805"}}

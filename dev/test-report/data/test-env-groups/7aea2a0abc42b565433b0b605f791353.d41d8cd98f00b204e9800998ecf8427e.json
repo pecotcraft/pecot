@@ -1,0 +1,1 @@
+{"id":"7aea2a0abc42b565433b0b605f791353.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_attach#test_run_attached_check_attaches_before_raising","name":"check=True で終了コードが 0 以外になると、出力を添付してから CalledProcessError を送出する","status":"passed","testResultsByEnv":{"default":"61e0cd9308895f49207728fc9e190057"}}

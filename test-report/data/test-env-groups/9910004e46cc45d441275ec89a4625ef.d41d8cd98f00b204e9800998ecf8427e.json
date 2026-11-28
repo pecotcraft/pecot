@@ -1,0 +1,1 @@
+{"id":"9910004e46cc45d441275ec89a4625ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — items imagePath が数値 の場合は、items[0].imagePath のエラーとして拒否する","name":"imagePath が数値 の場合は、items[0].imagePath のエラーとして拒否する","status":"passed","testResultsByEnv":{"default":"c255cdfa3f18eda1f8b745f18e6215e1"}}

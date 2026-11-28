@@ -1,0 +1,1 @@
+{"id":"73e59aa0fba3c3036f8f41ada9e4a173.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/attach.test.ts#attach Allure の reporter が動くレーンの中 attachOutput の出力が 両方空 とき、名前にコマンドと終了コードを持つ添付を残す","name":"attachOutput の出力が 両方空 とき、名前にコマンドと終了コードを持つ添付を残す","status":"passed","testResultsByEnv":{"default":"b13c4611c326e8812ff90fef261c37c5"}}

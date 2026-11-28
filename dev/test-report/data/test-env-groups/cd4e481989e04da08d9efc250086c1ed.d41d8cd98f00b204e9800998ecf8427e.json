@@ -1,0 +1,1 @@
+{"id":"cd4e481989e04da08d9efc250086c1ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_rds_describe_events duration が 0 の入力を、スキーマの検証で拒否する","name":"duration が 0 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"896bf8817ce404729065f14e8a4e69df"}}

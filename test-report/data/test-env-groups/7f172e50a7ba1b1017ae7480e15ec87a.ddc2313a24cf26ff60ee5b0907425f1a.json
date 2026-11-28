@@ -1,0 +1,1 @@
+{"id":"7f172e50a7ba1b1017ae7480e15ec87a.ddc2313a24cf26ff60ee5b0907425f1a","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_runs_for_text_sources","name":"plugins/pecot-workflow/hooks/hooks.json を変更すると、check-text が起動する","status":"passed","testResultsByEnv":{"default":"95fef568d44972e0bfc3292d08fb47d1"}}

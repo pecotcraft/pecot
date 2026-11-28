@@ -1,0 +1,1 @@
+{"id":"c16011e95f15e22d5867e5c2d2d9fecc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 親ブランチが消えていて、PR が無い と、終了コード 1 で終わる","name":"親ブランチが消えていて、PR が無い と、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"c16b41d20d567dc37b1c9f1577567695"}}

@@ -1,0 +1,1 @@
+{"id":"fc918374157b5a631abd0654c8c49926.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.bats#BASH_SOURCE の形で SCRIPT_DIR を代入したファイルでも、参照を解決する","name":"BASH_SOURCE の形で SCRIPT_DIR を代入したファイルでも、参照を解決する","status":"passed","testResultsByEnv":{"default":"ad009573d5e57aaff86fd6973f96b422"}}

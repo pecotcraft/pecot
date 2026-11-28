@@ -1,0 +1,1 @@
+{"id":"f908f7343266a7243de134077b2c3690.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#autoMarker limit の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","name":"limit の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","status":"passed","testResultsByEnv":{"default":"199a55cf6371fbb8c53b7aa8e3268e15"}}

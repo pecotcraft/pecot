@@ -1,0 +1,1 @@
+{"id":"c9bdd019f48269092846ccbfdec64795.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/review-finish.test.ts#review finish pr が無い と、何も読まずに終了コード 2 で終わる","name":"pr が無い と、何も読まずに終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"1c13d69dc684418df6f91f08f33149b4"}}

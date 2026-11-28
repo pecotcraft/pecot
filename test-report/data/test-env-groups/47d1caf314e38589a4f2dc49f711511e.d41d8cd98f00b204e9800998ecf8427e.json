@@ -1,0 +1,1 @@
+{"id":"47d1caf314e38589a4f2dc49f711511e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ workflow-install-ok を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ workflow-install-ok を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"86b92a4dba365c87a46aa9cc9512c3e1"}}

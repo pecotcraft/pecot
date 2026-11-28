@@ -1,0 +1,1 @@
+{"id":"1bee0d87a8f1cba503629f5fbee741b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-sweep.test.ts#sandbox-sweep.sh 引数と読めない場合 閉じた直後のものしか存在しない場合は、0 件になる","name":"閉じた直後のものしか存在しない場合は、0 件になる","status":"passed","testResultsByEnv":{"default":"aa28588ab192a0463593fcc72da1c54e"}}

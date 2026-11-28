@@ -1,0 +1,2 @@
+FAILED: 1 本のテストが失敗しました:
+  /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_one_result_per_check_with0/suite/sample.test.sh (exit 1)

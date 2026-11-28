@@ -1,0 +1,1 @@
+{"id":"c401e3da3dec94642d12e609bfd03420.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#ホスト設定 取得先 URL と scopes を返し、未定義のホストは設定画面の URL と空の scopes を返す","name":"取得先 URL と scopes を返し、未定義のホストは設定画面の URL と空の scopes を返す","status":"passed","testResultsByEnv":{"default":"2e816551a76599b3e49576d48c2973ef"}}

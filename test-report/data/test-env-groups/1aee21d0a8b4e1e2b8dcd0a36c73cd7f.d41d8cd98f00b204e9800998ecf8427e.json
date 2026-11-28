@@ -1,0 +1,1 @@
+{"id":"1aee21d0a8b4e1e2b8dcd0a36c73cd7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#manifest の読み書き rename に失敗した場合は、旧 manifest を保ち、最終パスに途中までの JSON を残さない","name":"rename に失敗した場合は、旧 manifest を保ち、最終パスに途中までの JSON を残さない","status":"passed","testResultsByEnv":{"default":"3bcc98c31f9da60cefa3d4c6e9ee9676"}}

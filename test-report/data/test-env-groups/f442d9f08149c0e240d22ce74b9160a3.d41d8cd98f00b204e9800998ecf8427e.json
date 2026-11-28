@@ -1,0 +1,1 @@
+{"id":"f442d9f08149c0e240d22ce74b9160a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 action の step は、Start が成功したときだけ動く","name":"action の step は、Start が成功したときだけ動く","status":"passed","testResultsByEnv":{"default":"c61fc696cb3808e5a3ea4cab3ed455c9"}}

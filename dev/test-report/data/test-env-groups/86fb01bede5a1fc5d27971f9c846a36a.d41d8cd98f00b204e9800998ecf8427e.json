@@ -1,0 +1,1 @@
+{"id":"86fb01bede5a1fc5d27971f9c846a36a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/gitignore-spec.test.ts#patternToRegex 不正なパターン \"a\\\\\" を渡すと、GitIgnorePatternError を送出する","name":"不正なパターン \"a\\\\\" を渡すと、GitIgnorePatternError を送出する","status":"passed","testResultsByEnv":{"default":"4cbea6e93856e6b2deb9ca96f6a7aa1e"}}

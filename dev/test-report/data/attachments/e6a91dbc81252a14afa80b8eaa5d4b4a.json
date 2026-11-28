@@ -1,0 +1,43 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project: ghes.example.com_acme_1 (ghes.example.com, acme #1)"
+    },
+    {
+      "type": "text",
+      "text": "{\"project\":{\"name\":\"ghes.example.com_acme_1\",\"host\":\"ghes.example.com\",\"owner\":\"acme\",\"number\":1,\"aggregation_repo\":null},\"repositories\":[{\"full_name\":\"acme/demo\",\"develop_branch\":\"main\",\"release_branch\":null,\"release_type\":\"single\",\"packages\":[],\"changelog_file\":\"docs/CHANGELOG.md\"},{\"full_name\":\"acme/mono\",\"develop_branch\":null,\"release_branch\":null,\"release_type\":\"nx\",\"packages\":[{\"name\":\"a\",\"changelog\":\"a/CHANGELOG.md\"}]}]}"
+    }
+  ],
+  "structuredContent": {
+    "project": {
+      "name": "ghes.example.com_acme_1",
+      "host": "ghes.example.com",
+      "owner": "acme",
+      "number": 1,
+      "aggregation_repo": null
+    },
+    "repositories": [
+      {
+        "full_name": "acme/demo",
+        "develop_branch": "main",
+        "release_branch": null,
+        "release_type": "single",
+        "packages": [],
+        "changelog_file": "docs/CHANGELOG.md"
+      },
+      {
+        "full_name": "acme/mono",
+        "develop_branch": null,
+        "release_branch": null,
+        "release_type": "nx",
+        "packages": [
+          {
+            "name": "a",
+            "changelog": "a/CHANGELOG.md"
+          }
+        ]
+      }
+    ]
+  }
+}

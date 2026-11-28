@@ -1,0 +1,1 @@
+{"id":"fdd2f440a6690c6d5020f231dc7439ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx の 1 パス変換 (#1141) 中断された後に 1 パス変換が例外を発生させた場合は、ステップごとの変換へ切り替えずに打ち切る","name":"中断された後に 1 パス変換が例外を発生させた場合は、ステップごとの変換へ切り替えずに打ち切る","status":"passed","testResultsByEnv":{"default":"18090ba129472c2d68d09563af1eac92"}}

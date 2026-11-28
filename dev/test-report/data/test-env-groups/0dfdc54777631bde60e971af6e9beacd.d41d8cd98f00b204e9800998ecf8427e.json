@@ -1,0 +1,1 @@
+{"id":"0dfdc54777631bde60e971af6e9beacd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight remote を渡すと、ls-remote とエラーメッセージにその remote を使う","name":"remote を渡すと、ls-remote とエラーメッセージにその remote を使う","status":"passed","testResultsByEnv":{"default":"45d3543f249eabd25952dafa94d30375"}}

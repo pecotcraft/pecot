@@ -1,0 +1,1 @@
+{"id":"825316e303a6c0fd59b910ae86a20f2c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#末尾が / の link.path（pathlib は末尾の / を落とす） confirm が true を返した場合でも、共有先の内容は削除しない","name":"confirm が true を返した場合でも、共有先の内容は削除しない","status":"passed","testResultsByEnv":{"default":"8d5035dffa3ccfc1e45b8ea176fd8dda"}}

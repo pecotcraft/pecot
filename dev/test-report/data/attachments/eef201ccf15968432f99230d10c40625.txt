@@ -1,0 +1,2 @@
+install cache=/tmp/bats-run-Mvjqnl/test/7/persistent-npm-cache prefer_offline=true offline=unset cwd=dist-nxdry
+pack cache=unset prefer_offline=unset offline=unset cwd=dist-nxdry

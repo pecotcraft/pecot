@@ -1,0 +1,3 @@
+ERROR: 監査記録がありません: /tmp/bats-run-c8L97U/test/19/audit-record.json
+       release commit 上で次を実行して、記録を作り直してください。
+       bash plugins/pecot-visual/scripts/release/audit-mcp-dist.sh

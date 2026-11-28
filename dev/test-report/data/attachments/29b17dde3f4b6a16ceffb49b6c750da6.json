@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Output validation error: Invalid structured content for tool aws_cloudwatch_get_metric_statistics: data must NOT have additional properties"
+    }
+  ],
+  "isError": true
+}

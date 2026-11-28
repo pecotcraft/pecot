@@ -1,0 +1,1 @@
+{"id":"8672e382c7e7879b1625cc1eb1b0b861.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#ツールの呼び出し 確認が要る所で問わずに止めると、detail が Aborted. の失敗を返す","name":"確認が要る所で問わずに止めると、detail が Aborted. の失敗を返す","status":"passed","testResultsByEnv":{"default":"92cfb89c6f9e5f71ea83832eea3ae47d"}}

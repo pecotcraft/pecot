@@ -1,0 +1,1 @@
+{"id":"4e89cb849f0c740bc7a93b40ffb25e39.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#isChromiumInstalled ディレクトリが存在しても、取得完了のマーカーが存在しない場合は、未取得と判定する","name":"ディレクトリが存在しても、取得完了のマーカーが存在しない場合は、未取得と判定する","status":"passed","testResultsByEnv":{"default":"e5c137f5d45a8e9a63bf25791c86270e"}}

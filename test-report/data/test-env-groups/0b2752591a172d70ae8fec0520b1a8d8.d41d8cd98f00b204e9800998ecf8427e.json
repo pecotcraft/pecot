@@ -1,0 +1,1 @@
+{"id":"0b2752591a172d70ae8fec0520b1a8d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#failApi API のエラーに状態コードがある場合はメッセージに付け、ない場合は付けずに止める","name":"API のエラーに状態コードがある場合はメッセージに付け、ない場合は付けずに止める","status":"passed","testResultsByEnv":{"default":"f194e55ac6223c56f64615e1d6a0350d"}}

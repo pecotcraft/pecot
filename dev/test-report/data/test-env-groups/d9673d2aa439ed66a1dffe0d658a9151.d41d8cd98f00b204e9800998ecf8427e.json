@@ -1,0 +1,1 @@
+{"id":"d9673d2aa439ed66a1dffe0d658a9151.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/drawio.test.ts#drawio_create theme theme の file: に相対パスを渡すと実処理を呼ばずに invalid-option で弾く","name":"theme の file: に相対パスを渡すと実処理を呼ばずに invalid-option で弾く","status":"passed","testResultsByEnv":{"default":"1a4621e75df36360065edceb91101cf3"}}

@@ -1,0 +1,1 @@
+{"id":"5c2805bb3bf21bcc3fe2d713f3625f65.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#closeIssue closeIssue に state_reason を渡した場合は、送信する本文に state_reason を含める","name":"closeIssue に state_reason を渡した場合は、送信する本文に state_reason を含める","status":"passed","testResultsByEnv":{"default":"188ec733bb204d496cd7ec609ab26abd"}}

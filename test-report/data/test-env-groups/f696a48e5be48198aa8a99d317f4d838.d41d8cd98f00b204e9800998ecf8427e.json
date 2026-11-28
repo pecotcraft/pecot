@@ -1,0 +1,1 @@
+{"id":"f696a48e5be48198aa8a99d317f4d838.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#ツールの呼び出し 報告できる失敗は、error の行の文を detail と text に入れる","name":"報告できる失敗は、error の行の文を detail と text に入れる","status":"passed","testResultsByEnv":{"default":"3206691c15e5bb0b9989870370d35c7f"}}

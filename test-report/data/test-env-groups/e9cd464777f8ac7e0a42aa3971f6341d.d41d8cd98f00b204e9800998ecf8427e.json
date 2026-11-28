@@ -1,0 +1,1 @@
+{"id":"e9cd464777f8ac7e0a42aa3971f6341d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/handoff-workflow-template.test.ts#handoff のワークフローの雛形 action に、書き込み権限を持たない人を通す入力・追跡のモード・API キーを渡さない","name":"action に、書き込み権限を持たない人を通す入力・追跡のモード・API キーを渡さない","status":"passed","testResultsByEnv":{"default":"d68bf20c07ad67b5f0ae9105300fb858"}}

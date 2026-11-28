@@ -1,0 +1,1 @@
+{"id":"8e47a6c3bde6a38572079dcd072c8b3b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_cache_inputs_are_logged_and_summarized","name":"キャッシュの入力（取り込み元と自分の tree、lock の hash、apt の一覧の hash）を、ログと Summary に 1 行ずつ表示する","status":"passed","testResultsByEnv":{"default":"3279d2de306cafc2195db80c3182abbb"}}

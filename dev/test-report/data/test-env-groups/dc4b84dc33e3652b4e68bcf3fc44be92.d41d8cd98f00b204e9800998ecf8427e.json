@@ -1,0 +1,1 @@
+{"id":"dc4b84dc33e3652b4e68bcf3fc44be92.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_ci_dir_hooks_run_only_in_manual","name":"`.githooks/ci/` 直下のスクリプトを使う hook は、manual の stage だけで動く","status":"passed","testResultsByEnv":{"default":"32eebeb5485bfc2e1a61b3e8714803ab"}}

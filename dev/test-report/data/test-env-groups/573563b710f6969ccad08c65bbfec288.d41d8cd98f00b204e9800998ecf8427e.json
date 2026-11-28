@@ -1,0 +1,1 @@
+{"id":"573563b710f6969ccad08c65bbfec288.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#stripCommitComments コミットメッセージを整えるとき、コメント行の次の行を件名とする","name":"コミットメッセージを整えるとき、コメント行の次の行を件名とする","status":"passed","testResultsByEnv":{"default":"9f29f6522d2ad48d8ea7640b99c3e848"}}

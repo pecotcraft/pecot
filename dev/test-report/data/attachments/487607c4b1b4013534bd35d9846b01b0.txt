@@ -1,0 +1,5 @@
+{
+  "hookSpecificOutput": {
+    "additionalContext": "plain text output"
+  }
+}

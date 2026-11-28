@@ -1,0 +1,13 @@
+
+ RUN  v5.1.2 /workspaces/base/pecot/libs/interface-spec/tests/fixtures/unique-titles
+
+ ❯ duplicated.fixture.ts (2 tests | 2 skipped) 5ms
+   ↓ 読む (2)
+     ↓ a を読む
+     ↓ a を読む
+
+ Test Files  1 failed (1)
+      Tests  2 skipped (2)
+   Start at  12:03:32
+   Duration  203ms (transform 55%, setup 22%, worker 9%, tests 7%, import 6%)
+

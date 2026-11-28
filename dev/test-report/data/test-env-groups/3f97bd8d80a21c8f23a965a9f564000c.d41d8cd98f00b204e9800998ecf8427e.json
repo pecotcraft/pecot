@@ -1,0 +1,1 @@
+{"id":"3f97bd8d80a21c8f23a965a9f564000c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-test-description.test.ts#規則のファイル 子プロセスの node が、型を除去して import できる","name":"子プロセスの node が、型を除去して import できる","status":"passed","testResultsByEnv":{"default":"c4f5a959e68365174dcd0150836b3b8b"}}

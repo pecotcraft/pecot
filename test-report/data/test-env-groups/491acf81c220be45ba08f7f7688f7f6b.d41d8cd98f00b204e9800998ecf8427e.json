@@ -1,0 +1,1 @@
+{"id":"491acf81c220be45ba08f7f7688f7f6b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#hasSummaryImage 画像の無い Summary の場合は、偽を返す","name":"画像の無い Summary の場合は、偽を返す","status":"passed","testResultsByEnv":{"default":"cc9bcda533d38a335a0afa342470adfd"}}

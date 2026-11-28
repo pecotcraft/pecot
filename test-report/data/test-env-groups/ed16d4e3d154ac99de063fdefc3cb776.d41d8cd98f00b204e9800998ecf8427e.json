@@ -1,0 +1,1 @@
+{"id":"ed16d4e3d154ac99de063fdefc3cb776.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/text-violation.test.ts#SC-002 止める場所ごとの規則名の一致 evidence_create に禁止文を渡すと、ほかの止める場所と同じ 3 つの規則名を返す","name":"evidence_create に禁止文を渡すと、ほかの止める場所と同じ 3 つの規則名を返す","status":"passed","testResultsByEnv":{"default":"d32b6ffde9b67c87a29ec3eda7abd7ed"}}

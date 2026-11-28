@@ -1,0 +1,1 @@
+{"id":"2a655568d9c66fc9eca714cf7a47e185.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/load.test.ts#loadJson and loadYaml YAML に構文エラーが複数あると、すべてのエラーに行番号を付けて返す","name":"YAML に構文エラーが複数あると、すべてのエラーに行番号を付けて返す","status":"passed","testResultsByEnv":{"default":"832212163cd36f59dd24433125fa8670"}}

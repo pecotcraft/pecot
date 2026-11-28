@@ -1,0 +1,1 @@
+{"id":"3682a1abf70ecbebf27cb6ff6c1e9a16.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/error-utils.test.ts#sanitizeErrorMessage Error 以外の値は、errorMessage と同じ規則で文字列にする","name":"Error 以外の値は、errorMessage と同じ規則で文字列にする","status":"passed","testResultsByEnv":{"default":"59730721631c47e3672d5afdbc85fef8"}}

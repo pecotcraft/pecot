@@ -1,0 +1,1 @@
+{"id":"69eb3dd3169077fc1d110615ceb694c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/_shared/tests/drawio-geometry.test.ts#drawioGeometry: フィットモデル 外接矩形に端数があると、原点の平行移動を切り捨て、キャンバスの寸法を切り上げる","name":"外接矩形に端数があると、原点の平行移動を切り捨て、キャンバスの寸法を切り上げる","status":"passed","testResultsByEnv":{"default":"316e5138d6e7b464bc5d093ac2200bcb"}}

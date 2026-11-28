@@ -1,0 +1,1 @@
+{"id":"9b0100f3e297b0d63d5190ee87c58079.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge MCP の呼び出し uuid の結果が消え、PR がマージ済み なら、PR の状態を読み直して status を merged にする","name":"uuid の結果が消え、PR がマージ済み なら、PR の状態を読み直して status を merged にする","status":"passed","testResultsByEnv":{"default":"b043a35bb7f1aa1109175086f4bce47a"}}

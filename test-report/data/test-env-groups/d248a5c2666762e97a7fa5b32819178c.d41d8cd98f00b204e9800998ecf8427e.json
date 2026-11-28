@@ -1,0 +1,1 @@
+{"id":"d248a5c2666762e97a7fa5b32819178c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#expectedScope .nx/version-plans/ 配下のファイルは対象にせず、それだけの場合は空の一覧を返す","name":".nx/version-plans/ 配下のファイルは対象にせず、それだけの場合は空の一覧を返す","status":"passed","testResultsByEnv":{"default":"0d059da00b14f819ef745be4e76987c1"}}

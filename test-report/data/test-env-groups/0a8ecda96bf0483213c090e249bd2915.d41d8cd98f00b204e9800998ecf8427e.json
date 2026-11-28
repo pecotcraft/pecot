@@ -1,0 +1,1 @@
+{"id":"0a8ecda96bf0483213c090e249bd2915.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildSheetXml 前後に空白がある値には、xml:space=\"preserve\" を付ける","name":"前後に空白がある値には、xml:space=\"preserve\" を付ける","status":"passed","testResultsByEnv":{"default":"af365bbe04cac881bb55b0cf7d55e995"}}

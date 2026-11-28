@@ -1,0 +1,14 @@
+{
+  "tools": [
+    {
+      "name": "cancelled",
+      "title": "Test tool",
+      "description": "呼び出し前のキャンセルの検証",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      }
+    }
+  ]
+}

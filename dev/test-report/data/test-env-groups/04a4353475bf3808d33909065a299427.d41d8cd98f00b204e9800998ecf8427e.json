@@ -1,0 +1,1 @@
+{"id":"04a4353475bf3808d33909065a299427.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_git_lanes_at_reads_the_file_of_a_commit","name":"git から、コミットの report-lanes.json を読み、無いコミットは読めないと伝える","status":"passed","testResultsByEnv":{"default":"98b6bd70c58f9e0b859a6898dd6e9d49"}}

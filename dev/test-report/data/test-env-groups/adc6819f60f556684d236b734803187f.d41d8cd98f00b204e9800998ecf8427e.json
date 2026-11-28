@@ -1,0 +1,1 @@
+{"id":"adc6819f60f556684d236b734803187f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: Chromium の OS ライブラリ sudo を使えなければ chromium-host-deps-missing として入れるコマンドを返す","name":"sudo を使えなければ chromium-host-deps-missing として入れるコマンドを返す","status":"passed","testResultsByEnv":{"default":"ac55f66cda16aa7a565131aed57134e0"}}

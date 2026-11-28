@@ -1,0 +1,1 @@
+{"id":"417b3b258a3b2838a2a0793ac9c2bb71.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data MCP の呼び出し 記録が無い作業ディレクトリ 判定が blocked とき、投稿では PR を作らずに失敗を返す","name":"判定が blocked とき、投稿では PR を作らずに失敗を返す","status":"passed","testResultsByEnv":{"default":"97a9b3e76b6c5632274ff97dca035ffa"}}

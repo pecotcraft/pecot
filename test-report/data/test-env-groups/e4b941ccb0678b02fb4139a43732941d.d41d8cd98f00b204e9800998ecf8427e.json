@@ -1,0 +1,1 @@
+{"id":"e4b941ccb0678b02fb4139a43732941d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_does_not_pick_expired_artifact","name":"期限切れの artifact は選ばず、次の候補を選ぶ","status":"passed","testResultsByEnv":{"default":"3c1877fd15fff56b5cc2622d63158b15"}}

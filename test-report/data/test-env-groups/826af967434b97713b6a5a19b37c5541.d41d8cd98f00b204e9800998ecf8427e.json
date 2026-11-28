@@ -1,0 +1,1 @@
+{"id":"826af967434b97713b6a5a19b37c5541.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/layer-file-placement.test.ts#layer-file-placement valid components 直下に PascalCase の .vue を置くと、報告しない","name":"components 直下に PascalCase の .vue を置くと、報告しない","status":"passed","testResultsByEnv":{"default":"20efa7dcc533d493d5e2706ed47f46f7"}}

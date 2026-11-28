@@ -1,0 +1,1 @@
+{"id":"bb1068fa14ccd43562b7633884aee990.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-gate.test.ts#auto gate workflow_run のイベント 同じ push の CI でもう ci-passed を書いていれば、ci-passed を重ねて書かない","name":"同じ push の CI でもう ci-passed を書いていれば、ci-passed を重ねて書かない","status":"passed","testResultsByEnv":{"default":"d127838c5c94800e7f079724ce2c8a2a"}}

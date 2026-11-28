@@ -1,0 +1,1 @@
+{"id":"fa2a5d5b9e5f44970953e3621111e9c5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_build_uploads_one_side_for_seven_days","name":"ビルドの job は、1 つの側を artifact として 7 日間保存する","status":"passed","testResultsByEnv":{"default":"f6d9a38bf154ab103055913c15e4c19f"}}

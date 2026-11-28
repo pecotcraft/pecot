@@ -1,0 +1,1 @@
+{"id":"982075cbec9b1370adc6cae2e03ad62a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_branch_delete_push_skips","name":"ブランチを削除する push では、nx を起動せずに終了コード 0 で終了する","status":"passed","testResultsByEnv":{"default":"8718e9e3d9adeb8867ce45fc490bd151"}}

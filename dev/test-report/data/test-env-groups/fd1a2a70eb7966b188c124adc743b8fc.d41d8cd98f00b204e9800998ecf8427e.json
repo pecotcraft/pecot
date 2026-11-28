@@ -1,0 +1,1 @@
+{"id":"fd1a2a70eb7966b188c124adc743b8fc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#validateTheme テーマ名に許容文字（英数字・@・/・_・.・-）だけを使った場合は、検証に成功する","name":"テーマ名に許容文字（英数字・@・/・_・.・-）だけを使った場合は、検証に成功する","status":"passed","testResultsByEnv":{"default":"41890b42bd6376d509a66454fd2bb6bb"}}

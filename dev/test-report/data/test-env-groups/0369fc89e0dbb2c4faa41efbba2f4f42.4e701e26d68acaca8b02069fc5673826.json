@@ -1,0 +1,1 @@
+{"id":"0369fc89e0dbb2c4faa41efbba2f4f42.4e701e26d68acaca8b02069fc5673826","fullName":".githooks.tests.test_pre_commit_config_wiring#test_nx_env_inputs_runs_when_env_scan_inputs_change","name":"libs/text-rules/tests/bin.test.ts を変更すると、nx-env-inputs が起動する","status":"passed","testResultsByEnv":{"default":"db619eedaa443ea9c0ee0dde5e8d9177"}}

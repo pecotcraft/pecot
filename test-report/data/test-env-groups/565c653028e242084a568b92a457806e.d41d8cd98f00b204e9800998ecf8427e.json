@@ -1,0 +1,1 @@
+{"id":"565c653028e242084a568b92a457806e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_direct_commit#test_develop_pecot_normal_commit_allowed","name":"develop-aist ブランチへの通常のコミットは許可する","status":"passed","testResultsByEnv":{"default":"dec40f205e548270116589bf83d54652"}}

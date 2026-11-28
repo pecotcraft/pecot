@@ -1,0 +1,1 @@
+{"id":"34d755048b986046a4983b70d9febb8a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_artifacts_api_failure","name":"artifact の一覧の API だけが失敗しても、取得の失敗の理由を出力する","status":"passed","testResultsByEnv":{"default":"23717bdb018fa2c19f3da881792dbf7a"}}

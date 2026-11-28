@@ -1,0 +1,1 @@
+WARN: base 解決失敗のため全 project の test を実行します。

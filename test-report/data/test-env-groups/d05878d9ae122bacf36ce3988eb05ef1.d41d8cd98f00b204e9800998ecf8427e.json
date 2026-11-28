@@ -1,0 +1,1 @@
+{"id":"d05878d9ae122bacf36ce3988eb05ef1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#parseFrontmatter 本文が空のとき、body を空文字列にする","name":"本文が空のとき、body を空文字列にする","status":"passed","testResultsByEnv":{"default":"addb699fa1c4312295b1b330d8381291"}}

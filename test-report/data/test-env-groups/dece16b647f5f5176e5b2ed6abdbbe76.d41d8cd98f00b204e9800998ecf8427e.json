@@ -1,0 +1,1 @@
+{"id":"dece16b647f5f5176e5b2ed6abdbbe76.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#コマンドの実体 .textlintignore 作業ディレクトリの外のファイルを渡すと、除外の型に一致しても、違反を返す","name":"作業ディレクトリの外のファイルを渡すと、除外の型に一致しても、違反を返す","status":"passed","testResultsByEnv":{"default":"64507de4a50fad3088fbebd5b1cbb9e6"}}

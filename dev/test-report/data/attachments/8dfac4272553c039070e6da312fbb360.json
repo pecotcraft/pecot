@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "stacked_on: the short form 'N' is not accepted here: use the full form 'owner/repo/N'"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"stacked_on: the short form 'N' is not accepted here: use the full form 'owner/repo/N'\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "stacked_on: the short form 'N' is not accepted here: use the full form 'owner/repo/N'"
+  },
+  "isError": true
+}

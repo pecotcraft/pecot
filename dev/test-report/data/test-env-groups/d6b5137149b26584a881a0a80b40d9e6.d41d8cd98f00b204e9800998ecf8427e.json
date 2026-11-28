@@ -1,0 +1,1 @@
+{"id":"d6b5137149b26584a881a0a80b40d9e6.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_upload_dir_is_empty_without_used_file","name":"サーバが一覧を書かなかった場合は、取り込み済みの成果物も upload しない","status":"passed","testResultsByEnv":{"default":"29a1b62e626851a41f54525db9ff559e"}}

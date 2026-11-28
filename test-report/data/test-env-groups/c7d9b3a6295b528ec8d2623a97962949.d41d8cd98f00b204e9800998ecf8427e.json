@@ -1,0 +1,1 @@
+{"id":"c7d9b3a6295b528ec8d2623a97962949.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_publish_push_uses_zstd_registry_output","name":"publish --push は、zstd で圧縮する registry の出力を指定する","status":"passed","testResultsByEnv":{"default":"931e9c5ccceb53c4167a98116492bc5d"}}

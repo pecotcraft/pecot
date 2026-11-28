@@ -1,0 +1,1 @@
+{"id":"9d41df1ea428bc680e3ec68f3ad17296.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 見本のリポジトリ field-null を検証すると、検証エラーの行を過不足なく決まった順で返す","name":"見本のリポジトリ field-null を検証すると、検証エラーの行を過不足なく決まった順で返す","status":"passed","testResultsByEnv":{"default":"22a7b81663639225ad8ca3226c7fa9f3"}}

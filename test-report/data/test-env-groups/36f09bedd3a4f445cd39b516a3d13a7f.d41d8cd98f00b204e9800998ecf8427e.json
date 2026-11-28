@@ -1,0 +1,1 @@
+{"id":"36f09bedd3a4f445cd39b516a3d13a7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move ボードに Blocked が存在しないとき、blocked を渡すと、選択肢の追加方法を案内する error を出す","name":"ボードに Blocked が存在しないとき、blocked を渡すと、選択肢の追加方法を案内する error を出す","status":"passed","testResultsByEnv":{"default":"6c7421d469f27ed9cd36cf1e19f92a71"}}

@@ -1,0 +1,1 @@
+{"id":"e62a380bb813c8de2365d5e0382d48eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/attributes.test.ts#readAttributeValues ボードを読み取れない部分エラーでも、Issue の値は返し、警告を 1 行追加する","name":"ボードを読み取れない部分エラーでも、Issue の値は返し、警告を 1 行追加する","status":"passed","testResultsByEnv":{"default":"4f8133a13f847067fe7b793c87ea89a8"}}

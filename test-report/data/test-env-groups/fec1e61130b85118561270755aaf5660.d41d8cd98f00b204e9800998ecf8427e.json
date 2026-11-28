@@ -1,0 +1,1 @@
+{"id":"fec1e61130b85118561270755aaf5660.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#convertStepsSinglePass グループのすべてのコンテナでスライドが描画されるまで、prerender の対象の検出に進まない","name":"グループのすべてのコンテナでスライドが描画されるまで、prerender の対象の検出に進まない","status":"passed","testResultsByEnv":{"default":"4391647637d3e4390b6a9632396694c9"}}

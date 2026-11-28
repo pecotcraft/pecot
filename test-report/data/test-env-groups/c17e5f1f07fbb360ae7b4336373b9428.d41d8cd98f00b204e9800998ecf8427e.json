@@ -1,0 +1,1 @@
+{"id":"c17e5f1f07fbb360ae7b4336373b9428.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings 入力末尾で閉じていないトリプル のとき、引用符を含まない本文だけを切り出す","name":"入力末尾で閉じていないトリプル のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"e50ccf3a29307c542c50292966ead1c7"}}

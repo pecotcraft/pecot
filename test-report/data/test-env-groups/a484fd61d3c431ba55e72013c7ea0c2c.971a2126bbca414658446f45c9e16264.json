@@ -1,0 +1,1 @@
+{"id":"a484fd61d3c431ba55e72013c7ea0c2c.971a2126bbca414658446f45c9e16264","fullName":".githooks.tests.test_pages_provenance#test_run_kind_follows_the_workflow_path","name":"run の path が .github/workflows/ci.yml のとき、種類は None になる","status":"passed","testResultsByEnv":{"default":"845ac485fa5973329cdc548be8280498"}}

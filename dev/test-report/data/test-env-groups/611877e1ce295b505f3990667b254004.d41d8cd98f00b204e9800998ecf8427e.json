@@ -1,0 +1,1 @@
+{"id":"611877e1ce295b505f3990667b254004.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/hook-resolution-count.test.ts#リポジトリ解決回数 別リポの .pecot/work 配下は判定が外れ、セッションの toplevel と cwd の 2 回解決する","name":"別リポの .pecot/work 配下は判定が外れ、セッションの toplevel と cwd の 2 回解決する","status":"passed","testResultsByEnv":{"default":"538cfb0fe9c757a9ea7be927c3b342ca"}}

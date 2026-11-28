@@ -1,0 +1,1 @@
+{"id":"29738883d24fbb07e02688f517995757.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats#書体 part の並びだけを入れ替えた pptx では、書体 part が両側で同一になる","name":"書体 part の並びだけを入れ替えた pptx では、書体 part が両側で同一になる","status":"passed","testResultsByEnv":{"default":"d6cac01c9ed7d2c09780659e9eaaab00"}}

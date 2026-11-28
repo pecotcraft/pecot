@@ -1,0 +1,1 @@
+{"id":"f400e52f48b50a9affd1ba953cac3687.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/errors.test.ts#PecotError cause を指定すると、その値が cause に保持される","name":"cause を指定すると、その値が cause に保持される","status":"passed","testResultsByEnv":{"default":"3d0e4fafef8ceb470b8ee0826133113a"}}

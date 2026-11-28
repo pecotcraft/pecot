@@ -1,0 +1,1 @@
+{"id":"a5773de8588b21d6459f49a515df34a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats#cli/dist が存在しないとき、build の手順を stderr に出して終了コード 2 で終わる","name":"cli/dist が存在しないとき、build の手順を stderr に出して終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"662f412b0110002e34ce202dd9b30fe3"}}

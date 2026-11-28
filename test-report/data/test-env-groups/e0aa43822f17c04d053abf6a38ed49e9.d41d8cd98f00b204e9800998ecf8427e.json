@@ -1,0 +1,1 @@
+{"id":"e0aa43822f17c04d053abf6a38ed49e9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_root_entries#test_rule_table_matches_hook_allowed_list","name":"ルールファイルの表のディレクトリは、hook の ALLOWED の一覧と一致する","status":"passed","testResultsByEnv":{"default":"145cacb93af2737b8925b7f0057e8ae9"}}

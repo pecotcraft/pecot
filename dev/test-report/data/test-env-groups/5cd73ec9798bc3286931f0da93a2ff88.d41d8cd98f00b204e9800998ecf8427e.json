@@ -1,0 +1,1 @@
+{"id":"5cd73ec9798bc3286931f0da93a2ff88.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/pr-waiting.test.ts#moveIssuesWaitingFor 待つ Issue の判定を読めなければ、列を動かさない","name":"待つ Issue の判定を読めなければ、列を動かさない","status":"passed","testResultsByEnv":{"default":"5e2d7616efe03c27e1a18b395f0e8a45"}}

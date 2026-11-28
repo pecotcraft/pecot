@@ -1,0 +1,1 @@
+{"id":"83aa42e372f0b6c28e658351e5c1d93b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#caretLowerBound ^x.y.z の形なら下限の版を返し、それ以外の形なら例外を送出する","name":"^x.y.z の形なら下限の版を返し、それ以外の形なら例外を送出する","status":"passed","testResultsByEnv":{"default":"bb2b8b4af04712af916fa690c42a566d"}}

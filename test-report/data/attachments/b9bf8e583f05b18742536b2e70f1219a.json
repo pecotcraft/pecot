@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"links\":[{\"path\":\"/tmp/pecot-cli-PDSvBu/workspaces/wt1/demo/CLAUDE.local.md\",\"destination\":\"/tmp/pecot-cli-PDSvBu/workspaces/base/demo/CLAUDE.local.md\",\"change\":\"error\",\"reason\":\"symlink creation aborted because the path is tracked by git: CLAUDE.local.md\"}],\"warnings\":[\"symlink creation skipped because the path is tracked by git: /tmp/pecot-cli-PDSvBu/workspaces/wt1/demo/CLAUDE.local.md\"]}"
+    }
+  ],
+  "structuredContent": {
+    "links": [
+      {
+        "path": "/tmp/pecot-cli-PDSvBu/workspaces/wt1/demo/CLAUDE.local.md",
+        "destination": "/tmp/pecot-cli-PDSvBu/workspaces/base/demo/CLAUDE.local.md",
+        "change": "error",
+        "reason": "symlink creation aborted because the path is tracked by git: CLAUDE.local.md"
+      }
+    ],
+    "warnings": [
+      "symlink creation skipped because the path is tracked by git: /tmp/pecot-cli-PDSvBu/workspaces/wt1/demo/CLAUDE.local.md"
+    ]
+  }
+}

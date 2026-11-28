@@ -1,0 +1,1 @@
+{"id":"5bc702090dc103d0f847db0c4d9d5bbc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry URL を出力せずに終了コード 0 で終了したときは、completed の状態にする","name":"URL を出力せずに終了コード 0 で終了したときは、completed の状態にする","status":"passed","testResultsByEnv":{"default":"52770e93e1d7979b3763a132b98d490d"}}

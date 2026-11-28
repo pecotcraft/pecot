@@ -1,0 +1,1 @@
+{"id":"04543c8213552182d9f505ed555b1c75.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_set 未設定の状態で値を渡すと、set の行を標準エラーに出す","name":"未設定の状態で値を渡すと、set の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"2734607c5a6b97671798356e8c47b624"}}

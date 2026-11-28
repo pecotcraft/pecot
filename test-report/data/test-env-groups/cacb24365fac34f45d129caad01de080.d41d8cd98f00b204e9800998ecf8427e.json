@@ -1,0 +1,1 @@
+{"id":"cacb24365fac34f45d129caad01de080.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_verify#test_pr_side_is_downloaded_checked_and_output","name":"PR の定義書の run は、artifact をダウンロードして検証し、結果を出力する","status":"passed","testResultsByEnv":{"default":"bf76e896a342aa2ead2092056ed121ed"}}

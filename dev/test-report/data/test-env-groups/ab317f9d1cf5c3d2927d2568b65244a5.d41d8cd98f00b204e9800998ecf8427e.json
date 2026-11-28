@@ -1,0 +1,1 @@
+{"id":"ab317f9d1cf5c3d2927d2568b65244a5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#buildPicMediaMap blipFill や blip が存在しない pic の場合は、対象から外す","name":"blipFill や blip が存在しない pic の場合は、対象から外す","status":"passed","testResultsByEnv":{"default":"dcd1a348fa82fdddbd58a00a322ede40"}}

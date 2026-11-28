@@ -1,0 +1,1 @@
+{"id":"d1ae2c80327d2e2840279cef6620778b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/english-only.test.ts#cli/src/ と eslint の規則・設定の固定の文言が英語 対象のファイルの文字列リテラルに、日本語の文字が含まれない","name":"対象のファイルの文字列リテラルに、日本語の文字が含まれない","status":"passed","testResultsByEnv":{"default":"c798fafe49becb46b3b37e14b2713f4d"}}

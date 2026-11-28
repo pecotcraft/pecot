@@ -1,0 +1,1 @@
+WARN: release.changelog.projectChangelogs が有効なため確認対象外（既定パスは確認しない）

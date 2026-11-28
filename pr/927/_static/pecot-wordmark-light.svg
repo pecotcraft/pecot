@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="8.5 -0.5 307.3 95" role="img" aria-label="pecot">
+  <g stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke="#16181D">
+    <path d="M14 18 V73"/>
+    <circle cx="38" cy="42" r="22"/>
+    <path d="M81.1 48.8 L122.9 35.2 A22 22 0 1 0 106.6 63.5"/>
+    <path d="M171.1 20.2 A22 22 0 1 0 183.6 57.6"/>
+    <circle cx="226.3" cy="42" r="22"/>
+    <path d="M280.3 5 V50 Q280.3 64 294.3 64 H298.3"/>
+    <path d="M266.3 20 H294.3"/>
+  </g>
+  <g fill="#2F8F83">
+    <circle cx="14" cy="88" r="6.5"/>
+    <circle cx="119.3" cy="55.5" r="6.5"/>
+    <circle cx="184.3" cy="27.3" r="6.5"/>
+    <circle cx="226.3" cy="42" r="6.5"/>
+    <circle cx="309.3" cy="20" r="6.5"/>
+  </g>
+</svg>

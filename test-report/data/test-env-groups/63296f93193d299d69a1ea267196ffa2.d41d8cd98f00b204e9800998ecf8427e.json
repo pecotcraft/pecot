@@ -1,0 +1,1 @@
+{"id":"63296f93193d299d69a1ea267196ffa2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/evidence-xlsx-soffice.test.ts#生成 xlsx の soffice 変換 注記付きの xlsx も修復せず PDF へ変換でき、吹き出しの文言が含まれる","name":"注記付きの xlsx も修復せず PDF へ変換でき、吹き出しの文言が含まれる","status":"passed","testResultsByEnv":{"default":"5b2d67d949078a61f09b34267abdcfc4"}}

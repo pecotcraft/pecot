@@ -1,0 +1,1 @@
+{"id":"43c8f374b506b9b9cf4cb9e856d0ed46.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree base とメインのブランチ名を渡すと、メインの worktree を残して worktree not found になる","name":"base とメインのブランチ名を渡すと、メインの worktree を残して worktree not found になる","status":"passed","testResultsByEnv":{"default":"42e67f32c84a69389e10cb7205a94d51"}}

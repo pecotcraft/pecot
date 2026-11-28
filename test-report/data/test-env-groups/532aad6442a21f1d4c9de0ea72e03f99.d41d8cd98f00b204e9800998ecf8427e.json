@@ -1,0 +1,1 @@
+{"id":"532aad6442a21f1d4c9de0ea72e03f99.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order template に task-implement を指定すると、検証を通す","name":"template に task-implement を指定すると、検証を通す","status":"passed","testResultsByEnv":{"default":"fa6170d1e94cb9a961e01dd03c41f26b"}}

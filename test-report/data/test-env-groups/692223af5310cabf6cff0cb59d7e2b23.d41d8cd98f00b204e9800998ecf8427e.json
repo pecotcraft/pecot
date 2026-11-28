@@ -1,0 +1,1 @@
+{"id":"692223af5310cabf6cff0cb59d7e2b23.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_cloudwatch_get_metric_statistics period が文字列 の入力を、スキーマの検証で拒否する","name":"period が文字列 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"63aefd1374fd897c69a24bc5d1222f8f"}}

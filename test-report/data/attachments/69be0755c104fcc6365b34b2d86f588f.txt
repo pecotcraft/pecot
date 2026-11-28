@@ -1,0 +1,2 @@
+OS=vitest
+Node.js=v24.0.0

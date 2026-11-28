@@ -1,0 +1,1 @@
+{"id":"795eb5d3bb62265587c69a3a683b1819.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide convert の出力同一性 (T011-a) 同じテキストの letterSpacing を後勝ちで集約した値は、差分変換でも全変換と同じ値になる","name":"同じテキストの letterSpacing を後勝ちで集約した値は、差分変換でも全変換と同じ値になる","status":"passed","testResultsByEnv":{"default":"4a67dd2d8cca58d0718b1e3baad4ebcb"}}

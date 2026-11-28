@@ -1,0 +1,1 @@
+{"id":"7e137c5c5cb56fa0e0aa166ca071a7c1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 宣言にない書体（Fira Code）を指定したセルには、理由と直し方を示す警告を 1 件返す","name":"宣言にない書体（Fira Code）を指定したセルには、理由と直し方を示す警告を 1 件返す","status":"passed","testResultsByEnv":{"default":"bc8a4e6daf3da416626550b5dc227dfb"}}

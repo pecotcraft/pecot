@@ -1,0 +1,1 @@
+{"id":"4ec7bbfa62e47ae1bf78e2b9eff06ad5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueKind 戻り値のキーは、number・state・issue_type・sub_issues_total の順に並ぶ","name":"戻り値のキーは、number・state・issue_type・sub_issues_total の順に並ぶ","status":"passed","testResultsByEnv":{"default":"e53e6e9ddd00347723f3392d761ebed2"}}

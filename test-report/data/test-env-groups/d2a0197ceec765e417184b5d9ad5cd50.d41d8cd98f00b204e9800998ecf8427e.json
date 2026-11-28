@@ -1,0 +1,1 @@
+{"id":"d2a0197ceec765e417184b5d9ad5cd50.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create MCP の data リリースを作ると、タグ・URL・リリースノートを返す","name":"リリースを作ると、タグ・URL・リリースノートを返す","status":"passed","testResultsByEnv":{"default":"317f2b35e6234d4cd91b0a2a0a16d760"}}

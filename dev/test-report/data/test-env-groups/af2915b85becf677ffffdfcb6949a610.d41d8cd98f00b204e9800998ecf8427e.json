@@ -1,0 +1,1 @@
+{"id":"af2915b85becf677ffffdfcb6949a610.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-finish.test.ts#auto finish result と job-status を渡すと、何も読まずに終了コード 1 で終わる","name":"result と job-status を渡すと、何も読まずに終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"da79734d5c803802af8e309490abaf31"}}

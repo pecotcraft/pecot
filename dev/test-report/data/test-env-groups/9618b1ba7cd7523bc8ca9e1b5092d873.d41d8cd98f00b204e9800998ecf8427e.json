@@ -1,0 +1,1 @@
+{"id":"9618b1ba7cd7523bc8ca9e1b5092d873.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release .githooks/scripts/tests/mcp-publish-common.bats#npm キャッシュの opt-in が相対パスだと、変数名を示して exit 1 になる","name":"npm キャッシュの opt-in が相対パスだと、変数名を示して exit 1 になる","status":"passed","testResultsByEnv":{"default":"5dd509ef809cea78642c6cf996183d03"}}

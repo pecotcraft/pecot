@@ -1,0 +1,1 @@
+{"id":"38ba15388a6972a769d47c50bad171bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（file） package.json が JSON として解析できない場合は、name が存在しないものとして失敗する","name":"package.json が JSON として解析できない場合は、name が存在しないものとして失敗する","status":"passed","testResultsByEnv":{"default":"29356476c3e59c648aa0484c9d8995a3"}}

@@ -1,0 +1,1 @@
+{"id":"b13218d993925e8512cc8850df9d09d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/hint-catalog.test.ts#ACTION_HINT_COMMANDS tracker-sync の形の inputs が、action.yml の token 以外の inputs と同じになる","name":"tracker-sync の形の inputs が、action.yml の token 以外の inputs と同じになる","status":"passed","testResultsByEnv":{"default":"95046cf9176b714d99e15226478ca360"}}

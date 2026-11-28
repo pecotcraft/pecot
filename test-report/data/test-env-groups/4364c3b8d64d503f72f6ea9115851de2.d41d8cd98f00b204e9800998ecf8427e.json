@@ -1,0 +1,1 @@
+{"id":"4364c3b8d64d503f72f6ea9115851de2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 pecot 以外の action を 40 桁の SHA で固定し、review の雛形と同じ版にそろえる","name":"pecot 以外の action を 40 桁の SHA で固定し、review の雛形と同じ版にそろえる","status":"passed","testResultsByEnv":{"default":"39d8c1c2ef1ec85a709ca209f3b85047"}}

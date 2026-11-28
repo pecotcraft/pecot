@@ -1,0 +1,5 @@
+error: push was rejected: To ghes.example.com:acme/demo.git
+   ! [remote rejected] feat/demo/12 -> feat/demo/12 (pre-receive hook declined)
+  error: failed to push some refs to 'ghes.example.com:acme/demo.git'
+  feat/demo/12 is restacked locally and the base record is unchanged
+  call pr_restack again

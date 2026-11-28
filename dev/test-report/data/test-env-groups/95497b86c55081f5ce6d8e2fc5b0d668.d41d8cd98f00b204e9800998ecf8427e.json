@@ -1,0 +1,1 @@
+{"id":"95497b86c55081f5ce6d8e2fc5b0d668.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 許可リスト外のオプション 許可リスト外のオプション（--template）を付けると、許可せず何も出力しない","name":"許可リスト外のオプション（--template）を付けると、許可せず何も出力しない","status":"passed","testResultsByEnv":{"default":"21944f5bdec94d2cf3af41f6416a8b38"}}

@@ -1,0 +1,1 @@
+{"id":"069d2ae6297fb948aee0928685821946.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 起票先と用法 プロジェクトに無いリポジトリへ起票すると、not-in-project の problem にする","name":"プロジェクトに無いリポジトリへ起票すると、not-in-project の problem にする","status":"passed","testResultsByEnv":{"default":"b74bfd7ffd5f10ae274d0501b76d2015"}}

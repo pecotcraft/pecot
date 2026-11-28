@@ -1,0 +1,5 @@
+warning: could not check Dependabot alerts. The release is not blocked.
+  reason: acme/demo: Dependabot alerts are enabled but the list cannot be fetched (permission may be missing)
+count: open code scanning alerts: 0
+count: open secret scanning alerts: 0
+count: commits to release (origin/develop -> origin/release): 1

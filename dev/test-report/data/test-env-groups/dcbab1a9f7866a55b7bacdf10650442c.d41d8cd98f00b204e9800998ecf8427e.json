@@ -1,0 +1,1 @@
+{"id":"dcbab1a9f7866a55b7bacdf10650442c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/attributes.test.ts#projectFieldDefinition 名前が Status でも単一選択でないフィールドは、書き込める定義にする","name":"名前が Status でも単一選択でないフィールドは、書き込める定義にする","status":"passed","testResultsByEnv":{"default":"c6b2573d03fe2bf4c712757b7fa477ad"}}

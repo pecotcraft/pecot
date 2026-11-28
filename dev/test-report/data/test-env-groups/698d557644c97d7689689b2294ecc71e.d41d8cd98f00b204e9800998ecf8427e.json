@@ -1,0 +1,1 @@
+{"id":"698d557644c97d7689689b2294ecc71e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#runSlideSync (移行済みの talk-dir) テーマの状態が前回と同じで張り直しが不要だった場合も、テーマを指定してリンクを張り直す","name":"テーマの状態が前回と同じで張り直しが不要だった場合も、テーマを指定してリンクを張り直す","status":"passed","testResultsByEnv":{"default":"46cda46cde53e9a615d2b9786de0b373"}}

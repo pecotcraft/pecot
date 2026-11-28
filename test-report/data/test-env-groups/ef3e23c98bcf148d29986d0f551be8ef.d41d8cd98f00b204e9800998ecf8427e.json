@@ -1,0 +1,1 @@
+{"id":"ef3e23c98bcf148d29986d0f551be8ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments shorthand の項目を 1 つも指定していないときは、フラグごと引数に含めない","name":"shorthand の項目を 1 つも指定していないときは、フラグごと引数に含めない","status":"passed","testResultsByEnv":{"default":"ca523b214719456a3092a0cbe87564e2"}}

@@ -1,0 +1,1 @@
+{"id":"4d66654b2d1bd1ce0525428da1ddc1b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/workflow-template.test.ts#readTemplateVersion 1 行目にマーカーが存在しない場合は、undefined を返す","name":"1 行目にマーカーが存在しない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"2e41d076aa220f4afd0a71ab85a0afac"}}

@@ -1,0 +1,1 @@
+{"id":"4b6cbae378f678a2050b3934da387a1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#collectIconReferences style 属性の外に書かれた icon:// の文字列は、参照として集めない","name":"style 属性の外に書かれた icon:// の文字列は、参照として集めない","status":"passed","testResultsByEnv":{"default":"0f0857df33f9c70a78fe806bc4de26ca"}}

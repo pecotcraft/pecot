@@ -1,0 +1,1 @@
+{"id":"2c87fb454c091cdd8947b3aaeb75c569.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_no_push_info_run_many_fallback","name":"push 情報が環境変数と標準入力のどちらにもない場合は、全 project の run-many に切り替える","status":"passed","testResultsByEnv":{"default":"6a02ed4657545059304e8c58a0ae76c6"}}

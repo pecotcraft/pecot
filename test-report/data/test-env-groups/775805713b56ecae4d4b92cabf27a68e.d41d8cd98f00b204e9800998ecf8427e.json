@@ -1,0 +1,1 @@
+{"id":"775805713b56ecae4d4b92cabf27a68e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate 渡した設定ファイルを読めないと、終了コード 1 で終わる","name":"渡した設定ファイルを読めないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"402bafb47b48e9c5f36834a003ef2e7c"}}

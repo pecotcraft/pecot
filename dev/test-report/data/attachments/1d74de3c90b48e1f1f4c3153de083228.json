@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: work directory .pecot/work/7/"
+    },
+    {
+      "type": "text",
+      "text": "{\"repository\":\"acme/demo\",\"base\":\"main\",\"issue\":\"acme/demo/7\",\"workDirectory\":\"/tmp/pecot-repo-cfPYXU/.pecot/work/7\",\"leftovers\":[{\"pullRequest\":\"acme/demo/21\"}],\"warnings\":[\"PR acme/demo#21 of the current branch feat/old/5 is merged but not cleaned up; call session_finish with pr_ref: \\\"acme/demo/21\\\"\"]}"
+    }
+  ],
+  "structuredContent": {
+    "repository": "acme/demo",
+    "base": "main",
+    "issue": "acme/demo/7",
+    "workDirectory": "/tmp/pecot-repo-cfPYXU/.pecot/work/7",
+    "leftovers": [
+      {
+        "pullRequest": "acme/demo/21"
+      }
+    ],
+    "warnings": [
+      "PR acme/demo#21 of the current branch feat/old/5 is merged but not cleaned up; call session_finish with pr_ref: \"acme/demo/21\""
+    ]
+  }
+}

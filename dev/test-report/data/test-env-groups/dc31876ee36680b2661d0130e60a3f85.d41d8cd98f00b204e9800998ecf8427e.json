@@ -1,0 +1,1 @@
+{"id":"dc31876ee36680b2661d0130e60a3f85.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#splitIssueTitle 接頭辞と番号を持つ題は、親 Epic の番号・order・残りに分ける","name":"接頭辞と番号を持つ題は、親 Epic の番号・order・残りに分ける","status":"passed","testResultsByEnv":{"default":"9a6c90c0943eaa5e1929c0d0d0235f63"}}

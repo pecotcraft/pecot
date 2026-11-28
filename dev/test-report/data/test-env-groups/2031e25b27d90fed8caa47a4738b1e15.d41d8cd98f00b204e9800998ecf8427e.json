@@ -1,0 +1,1 @@
+{"id":"2031e25b27d90fed8caa47a4738b1e15.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「semver 範囲」の場合は、エラーを返す","name":"テーマの指定が「semver 範囲」の場合は、エラーを返す","status":"passed","testResultsByEnv":{"default":"33a33e3e94f6e161aa11b50c93b08e1b"}}

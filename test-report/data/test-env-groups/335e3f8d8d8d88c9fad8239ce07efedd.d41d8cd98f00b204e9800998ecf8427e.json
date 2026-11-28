@@ -1,0 +1,1 @@
+{"id":"335e3f8d8d8d88c9fad8239ce07efedd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/server.test.ts#createMcpServer クライアントがキャンセルしたときは、ハンドラの signal を中断する [legacy]","name":"クライアントがキャンセルしたときは、ハンドラの signal を中断する [legacy]","status":"passed","testResultsByEnv":{"default":"34b8304449153e0d19612c9a44df07b5"}}

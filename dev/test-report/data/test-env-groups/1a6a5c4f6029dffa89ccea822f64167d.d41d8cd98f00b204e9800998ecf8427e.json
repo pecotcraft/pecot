@@ -1,0 +1,1 @@
+{"id":"1a6a5c4f6029dffa89ccea822f64167d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry ログインが終了した状態のセッションは、次の開始で新しいプロセスに置き換える","name":"ログインが終了した状態のセッションは、次の開始で新しいプロセスに置き換える","status":"passed","testResultsByEnv":{"default":"4b8a6d085599388f6b312a1d0f7fc750"}}

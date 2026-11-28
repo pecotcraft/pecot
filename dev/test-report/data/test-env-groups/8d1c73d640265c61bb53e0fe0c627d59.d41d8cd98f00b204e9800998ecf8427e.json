@@ -1,0 +1,1 @@
+{"id":"8d1c73d640265c61bb53e0fe0c627d59.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — JPEG JPEG は、SOF が現れないままデータの末尾に達した場合は、読み取れないものとして扱う","name":"JPEG は、SOF が現れないままデータの末尾に達した場合は、読み取れないものとして扱う","status":"passed","testResultsByEnv":{"default":"0bfd5e30692b4df979c23dcb6d648101"}}

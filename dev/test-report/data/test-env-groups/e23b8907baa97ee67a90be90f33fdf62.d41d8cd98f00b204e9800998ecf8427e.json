@@ -1,0 +1,1 @@
+{"id":"e23b8907baa97ee67a90be90f33fdf62.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#validateHtml style の fontColor があっても、font タグに color 属性がない場合は、note の通知を返さない","name":"style の fontColor があっても、font タグに color 属性がない場合は、note の通知を返さない","status":"passed","testResultsByEnv":{"default":"377a521fde22364dfa8caf0509d80247"}}

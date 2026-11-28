@@ -1,0 +1,1 @@
+{"id":"4b8d97a27a38e0e15d031b40e4f4f77e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath 相対パスは、変換しない","name":"相対パスは、変換しない","status":"passed","testResultsByEnv":{"default":"d015d4773001d3fbaf228d4fba1bdd48"}}

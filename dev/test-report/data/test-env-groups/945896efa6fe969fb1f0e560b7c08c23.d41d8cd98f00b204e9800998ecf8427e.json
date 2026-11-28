@@ -1,0 +1,1 @@
+{"id":"945896efa6fe969fb1f0e560b7c08c23.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_targets_every_push_path_reaches_a_plugin","name":"push の契機の `paths` に指定したパスは、すべていずれかのプラグインに対応する","status":"passed","testResultsByEnv":{"default":"d107d4c78f06d9a01c5aa5a1cc85d75c"}}

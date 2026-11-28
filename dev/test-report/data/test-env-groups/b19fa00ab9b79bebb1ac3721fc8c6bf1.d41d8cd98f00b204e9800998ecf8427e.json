@@ -1,0 +1,1 @@
+{"id":"b19fa00ab9b79bebb1ac3721fc8c6bf1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_dev_report_survives_while_dev_site_is_a_guide","name":"開発版の定義書が案内のページである間も、開発版のレポートは残す","status":"passed","testResultsByEnv":{"default":"376e98a7dc62a32fc467fbd4b61db99e"}}

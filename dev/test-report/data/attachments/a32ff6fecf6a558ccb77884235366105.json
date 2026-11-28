@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.secret_scanning_alerts: the last page of list_secret_scanning_alerts has a next page; read it with after and add it to reads.secret_scanning_alerts.pages"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.secret_scanning_alerts\",\"code\":\"alerts-unread\",\"message\":\"the last page of list_secret_scanning_alerts has a next page; read it with after and add it to reads.secret_scanning_alerts.pages\"}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.secret_scanning_alerts",
+        "code": "alerts-unread",
+        "message": "the last page of list_secret_scanning_alerts has a next page; read it with after and add it to reads.secret_scanning_alerts.pages"
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  }
+}

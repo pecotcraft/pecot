@@ -1,0 +1,6 @@
+{
+  "features": {
+    // 残す。
+    "./features/playwright-deps": { "version": "1.64.1" }
+  }
+}

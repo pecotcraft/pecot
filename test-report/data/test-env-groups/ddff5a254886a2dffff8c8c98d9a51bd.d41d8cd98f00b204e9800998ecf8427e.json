@@ -1,0 +1,1 @@
+{"id":"ddff5a254886a2dffff8c8c98d9a51bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#bare import の走査が 1 件以上を検出する（走査 0 件での無条件 pass を防ぐ）","name":"bare import の走査が 1 件以上を検出する（走査 0 件での無条件 pass を防ぐ）","status":"passed","testResultsByEnv":{"default":"25073aa0d364466d5c1abd05a1a803f6"}}

@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "branch: the branch name must end with /7 after a prefix, such as feat/7"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"branch\",\"code\":\"branch-name\",\"message\":\"the branch name must end with /7 after a prefix, such as feat/7\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "branch",
+        "code": "branch-name",
+        "message": "the branch name must end with /7 after a prefix, such as feat/7"
+      }
+    ]
+  }
+}

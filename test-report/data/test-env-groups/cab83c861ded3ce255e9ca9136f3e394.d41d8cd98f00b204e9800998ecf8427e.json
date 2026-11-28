@@ -1,0 +1,1 @@
+{"id":"cab83c861ded3ce255e9ca9136f3e394.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestForMerge PR が存在しない場合は、GitHubNotFoundError を発生させる","name":"PR が存在しない場合は、GitHubNotFoundError を発生させる","status":"passed","testResultsByEnv":{"default":"91f4908acd2b15e2d1c9e3fae97faad1"}}

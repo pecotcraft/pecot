@@ -1,0 +1,1 @@
+{"id":"604258ee749c770b8c0900b2e83f7034.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — 受理 extraHeaders と annotations を省略した場合は、空の配列で補う","name":"extraHeaders と annotations を省略した場合は、空の配列で補う","status":"passed","testResultsByEnv":{"default":"2ef16575656c46308badd9f620972b74"}}

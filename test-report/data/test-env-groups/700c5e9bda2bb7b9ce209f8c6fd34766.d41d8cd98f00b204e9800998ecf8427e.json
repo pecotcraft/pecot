@@ -1,0 +1,1 @@
+{"id":"700c5e9bda2bb7b9ce209f8c6fd34766.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-decorative-bar-element.test.ts#no-decorative-bar-element invalid border-radius の祖先の中に細いバーがあると、報告する","name":"border-radius の祖先の中に細いバーがあると、報告する","status":"passed","testResultsByEnv":{"default":"3de21f30e20546bd70d306c9879670bd"}}

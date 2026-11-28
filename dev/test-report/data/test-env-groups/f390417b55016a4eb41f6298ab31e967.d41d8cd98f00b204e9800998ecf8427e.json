@@ -1,0 +1,1 @@
+{"id":"f390417b55016a4eb41f6298ab31e967.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/visibility-helpers.test.ts#waitForFontsReady document.fonts が存在しない環境では、待機せずに終了する","name":"document.fonts が存在しない環境では、待機せずに終了する","status":"passed","testResultsByEnv":{"default":"0ea70686e6106fe202acab52790b8bdc"}}

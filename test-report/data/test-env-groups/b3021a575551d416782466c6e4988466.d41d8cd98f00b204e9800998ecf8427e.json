@@ -1,0 +1,1 @@
+{"id":"b3021a575551d416782466c6e4988466.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#loadConfig 存在しないファイルを読み込むと、ConfigError を発生させる","name":"存在しないファイルを読み込むと、ConfigError を発生させる","status":"passed","testResultsByEnv":{"default":"584aba16c70c4554996f6b74a3c336da"}}

@@ -1,0 +1,1 @@
+{"id":"bd395371b5c4709d446696621ff7aa78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#getDefaultConfig 自リポジトリを指定した場合は、自リポジトリの main の worktree を指す 3 つのリンクが加わる","name":"自リポジトリを指定した場合は、自リポジトリの main の worktree を指す 3 つのリンクが加わる","status":"passed","testResultsByEnv":{"default":"7b0a1e000ba2c667398b964d9c3990fc"}}

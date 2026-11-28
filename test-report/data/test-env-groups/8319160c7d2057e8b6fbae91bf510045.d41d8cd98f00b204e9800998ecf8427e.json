@@ -1,0 +1,1 @@
+{"id":"8319160c7d2057e8b6fbae91bf510045.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check 対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を出して終了コード 1 で終わる","name":"対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"2020e71e104260584781d90d81ade5b0"}}

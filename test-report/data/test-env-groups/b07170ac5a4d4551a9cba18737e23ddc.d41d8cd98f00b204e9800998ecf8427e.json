@@ -1,0 +1,1 @@
+{"id":"b07170ac5a4d4551a9cba18737e23ddc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_sync_playwright_deps#test_rewrites_only_the_version_and_keeps_comments","name":"lock の版が設定と違うと、版だけを書き換えてコメントを残す","status":"passed","testResultsByEnv":{"default":"9bbfbce8d2e566589cd57b5116c8b939"}}

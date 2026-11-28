@@ -1,0 +1,1 @@
+{"id":"4882347997fe8055515cf9260b0b6a12.7ef2b0bc91c9f3d73967df3280e14e35","fullName":".githooks.tests.test_pages_verify#test_stored_dev_report_without_record_is_empty","name":"レポートの記録が [] のとき、レポートの開発版の記録は空になる","status":"passed","testResultsByEnv":{"default":"404a69fdbd53c71a6c2a3ab356302a7c"}}

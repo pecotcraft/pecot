@@ -1,0 +1,4 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_results_dir_is_not_passed0/suite/sample.bats
+1..1
+# pecot-description: 環境変数を読むテストです。
+ok 1 渡らない # in 76 ms

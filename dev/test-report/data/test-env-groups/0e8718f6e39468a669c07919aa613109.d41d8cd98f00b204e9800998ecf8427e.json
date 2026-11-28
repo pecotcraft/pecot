@@ -1,0 +1,1 @@
+{"id":"0e8718f6e39468a669c07919aa613109.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_missing_pr_number","name":"pull_request で PR_NUMBER が空だと、PR 番号不明の理由を出力する","status":"passed","testResultsByEnv":{"default":"93eadab81eccf72371af0a2d60890e12"}}

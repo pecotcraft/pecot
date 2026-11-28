@@ -1,0 +1,44 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "issue_number: create takes no issue_number; use method update to rewrite an Issue"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"issue_number\",\"code\":\"unexpected\",\"message\":\"create takes no issue_number; use method update to rewrite an Issue\"},{\"field\":\"state\",\"code\":\"unexpected\",\"message\":\"state is only for update\"},{\"field\":\"state_reason\",\"code\":\"unexpected\",\"message\":\"state_reason is only for update\"},{\"field\":\"duplicate_of\",\"code\":\"unexpected\",\"message\":\"duplicate_of is only for update\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "issue_number",
+        "code": "unexpected",
+        "message": "create takes no issue_number; use method update to rewrite an Issue"
+      },
+      {
+        "field": "state",
+        "code": "unexpected",
+        "message": "state is only for update"
+      },
+      {
+        "field": "state_reason",
+        "code": "unexpected",
+        "message": "state_reason is only for update"
+      },
+      {
+        "field": "duplicate_of",
+        "code": "unexpected",
+        "message": "duplicate_of is only for update"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

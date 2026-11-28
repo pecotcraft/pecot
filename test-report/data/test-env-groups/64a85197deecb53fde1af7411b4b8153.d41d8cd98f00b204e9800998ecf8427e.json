@@ -1,0 +1,1 @@
+{"id":"64a85197deecb53fde1af7411b4b8153.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#フラグ名の文字列を止める lint src/domain/work-start.ts のパス 呼び出しの引数の文字列 にフラグ名を書くと、lint の違反になる","name":"呼び出しの引数の文字列 にフラグ名を書くと、lint の違反になる","status":"passed","testResultsByEnv":{"default":"6f6979215d0ff844c970b1bb6aeb7650"}}

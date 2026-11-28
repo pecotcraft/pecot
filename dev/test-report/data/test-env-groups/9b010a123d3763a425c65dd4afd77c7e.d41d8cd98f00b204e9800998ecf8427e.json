@@ -1,0 +1,1 @@
+{"id":"9b010a123d3763a425c65dd4afd77c7e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の札 作業の跡が存在せず要見直しで、札の値が undefined の場合は、Needs Attention を書き込む","name":"作業の跡が存在せず要見直しで、札の値が undefined の場合は、Needs Attention を書き込む","status":"passed","testResultsByEnv":{"default":"472cd233a2af033a2049bd03634ffc96"}}

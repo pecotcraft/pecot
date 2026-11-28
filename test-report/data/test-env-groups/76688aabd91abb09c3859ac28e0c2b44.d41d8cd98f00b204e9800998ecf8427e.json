@@ -1,0 +1,1 @@
+{"id":"76688aabd91abb09c3859ac28e0c2b44.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_step_gate#test_names_parametrized_rows_with_their_values","name":"step の存在しないテストが parametrize の行である場合は、行ごとの値を添えた名前を出力する","status":"passed","testResultsByEnv":{"default":"ce1d67b738b5167a141d1ff163a44e84"}}

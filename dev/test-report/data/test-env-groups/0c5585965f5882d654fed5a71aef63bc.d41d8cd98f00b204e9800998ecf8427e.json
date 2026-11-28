@@ -1,0 +1,1 @@
+{"id":"0c5585965f5882d654fed5a71aef63bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/fs.test.ts#setupPublicSlides 生成先がまだ存在しなくても、親のディレクトリから作成する","name":"生成先がまだ存在しなくても、親のディレクトリから作成する","status":"passed","testResultsByEnv":{"default":"1ada7d8711782549eda9d24c3b999956"}}

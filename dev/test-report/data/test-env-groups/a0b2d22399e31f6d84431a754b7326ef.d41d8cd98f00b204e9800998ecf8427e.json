@@ -1,0 +1,1 @@
+{"id":"a0b2d22399e31f6d84431a754b7326ef.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_commit_text_restores_missing_deps","name":"依存が欠けていても pnpm install で戻せると、コミットメッセージの確認は戻してから成功で終わる","status":"passed","testResultsByEnv":{"default":"5f9201da238f73552d468f4ad4cfc959"}}

@@ -1,0 +1,1 @@
+{"id":"3641bb140cdf9739f2d2a391c11db63c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show remote の URL の形が合わないとき、Active Issue の行に none を出す","name":"remote の URL の形が合わないとき、Active Issue の行に none を出す","status":"passed","testResultsByEnv":{"default":"13c1966d0853869bc6c20f736a41e3e4"}}

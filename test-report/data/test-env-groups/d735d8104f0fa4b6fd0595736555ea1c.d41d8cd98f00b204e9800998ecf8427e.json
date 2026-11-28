@@ -1,0 +1,1 @@
+{"id":"d735d8104f0fa4b6fd0595736555ea1c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/slides-md.test.ts#setSlidesTheme YAML が文字列として読まないテーマ名は、引用符で囲んで書き込む","name":"YAML が文字列として読まないテーマ名は、引用符で囲んで書き込む","status":"passed","testResultsByEnv":{"default":"5c4e53d362f526aeba00a2be3eb54cff"}}

@@ -1,0 +1,1 @@
+{"id":"6d8a1c25dae16aab3ccae561f1e23db0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/types.test.ts#PipelineError 型 level に slide と element を入れると、入れた値のまま保持する","name":"level に slide と element を入れると、入れた値のまま保持する","status":"passed","testResultsByEnv":{"default":"828702e3d33e4f1d83fb098330e9b658"}}

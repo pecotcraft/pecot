@@ -1,0 +1,1 @@
+{"id":"0f3b846160306de375d583df7131c2df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/visibility-helpers.test.ts#スコープ付き locate / wait (#1141) scope を指定した場合は、範囲の外のコンテナの待機対象を見ない","name":"scope を指定した場合は、範囲の外のコンテナの待機対象を見ない","status":"passed","testResultsByEnv":{"default":"4f9061d6c7f1421531094dcc31e45b99"}}

@@ -1,0 +1,1 @@
+{"id":"edfd010823f4e440500548857db736c7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-definition.test.ts#defineTool output が MCP の結果の共通の項目名 detail を持つ場合は、TypeError が発生する","name":"output が MCP の結果の共通の項目名 detail を持つ場合は、TypeError が発生する","status":"passed","testResultsByEnv":{"default":"161ee48085e864b42082d7cc93ad5b05"}}

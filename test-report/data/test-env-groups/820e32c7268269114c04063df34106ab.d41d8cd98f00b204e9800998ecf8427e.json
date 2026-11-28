@@ -1,0 +1,1 @@
+{"id":"820e32c7268269114c04063df34106ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator props validation props に description が無いと、検証に失敗する","name":"props に description が無いと、検証に失敗する","status":"passed","testResultsByEnv":{"default":"bac5239602b3ec316d2629f9e19b9b06"}}

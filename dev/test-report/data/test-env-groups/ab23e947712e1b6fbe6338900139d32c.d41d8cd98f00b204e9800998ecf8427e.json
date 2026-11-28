@@ -1,0 +1,1 @@
+{"id":"ab23e947712e1b6fbe6338900139d32c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText fragment モードでは、行頭の \"1. \" を Markdown のブロック記法として扱わない","name":"fragment モードでは、行頭の \"1. \" を Markdown のブロック記法として扱わない","status":"passed","testResultsByEnv":{"default":"69741dcd69e23bba39d4a911d0f7972c"}}

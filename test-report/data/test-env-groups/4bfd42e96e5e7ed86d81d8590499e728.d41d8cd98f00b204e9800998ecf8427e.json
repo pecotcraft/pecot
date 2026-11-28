@@ -1,0 +1,1 @@
+{"id":"4bfd42e96e5e7ed86d81d8590499e728.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create MCP の data package が設定に登録していないパッケージ名 と、kind が invalid-input の失敗を返す","name":"package が設定に登録していないパッケージ名 と、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"7a53b8b43ceb178bcfc8177716fb83fe"}}

@@ -1,0 +1,1 @@
+{"id":"502ee99beac23d4e7fd3598958123ef7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/validate-clicks.test.ts#空文字列を渡すと、本文を取り出せず null を返す","name":"空文字列を渡すと、本文を取り出せず null を返す","status":"passed","testResultsByEnv":{"default":"c912900c19887aff15a22c56aee52574"}}

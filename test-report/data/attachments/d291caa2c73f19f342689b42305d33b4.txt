@@ -1,0 +1,22 @@
+
+[7m[1m[36m NX [39m[22m[27m  [36mRunning target [1mlint-src[22m for project lane-lint:[39m
+
+[2m-[22m lane-lint
+
+[2m[36m[39m[22m
+
+[2m> [22m[2mnx run[22m lane-lint:lint-src  [2m[existing outputs match the cache, left as is][22m
+
+[2m> [22mecho ran >> /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_lint_with_unchanged_input0/lint-runs.log && test ! -e /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_lint_with_unchanged_input0/lint-fail.flag
+
+
+[2m[32m[39m[22m
+
+[7m[1m[32m NX [39m[22m[27m  [32mSuccessfully ran target [1mlint-src[22m for project lane-lint[39m
+
+[2mNx read the output from the cache instead of running the command for 1 out of 1 tasks.[22m
+
+  Run duration:      20ms
+  Cache:             1/1 hit (100%)
+  Critical path:     1ms (1 task)
+  Recoverable time:  <1ms

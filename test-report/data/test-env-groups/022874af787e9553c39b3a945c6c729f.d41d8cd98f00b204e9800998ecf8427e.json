@@ -1,0 +1,1 @@
+{"id":"022874af787e9553c39b3a945c6c729f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185） 文字数と文の数の違反が重なるときは、同じ見出しについてすべて返す","name":"文字数と文の数の違反が重なるときは、同じ見出しについてすべて返す","status":"passed","testResultsByEnv":{"default":"360aba09377def1dff8f4be5b44e85fe"}}

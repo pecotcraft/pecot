@@ -1,0 +1,1 @@
+{"id":"96e55ed76752d6b20d315a4a764ba74e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_pull_request_does_not_need_main_ancestor","name":"PR 版は、head が main の祖先でなくても、受け付ける","status":"passed","testResultsByEnv":{"default":"20b7e0647d42f2c9723c9ac7f1360ce6"}}

@@ -1,0 +1,1 @@
+{"id":"44fff2d29bcb6a11b2291bb642b65383.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/errors.test.ts#PipelineTimeoutError idleTimeoutMs・elapsedMs・lastProgress を保持し、message に含める","name":"idleTimeoutMs・elapsedMs・lastProgress を保持し、message に含める","status":"passed","testResultsByEnv":{"default":"aa8ab1ab0ba8bd60a677be9219ce7836"}}

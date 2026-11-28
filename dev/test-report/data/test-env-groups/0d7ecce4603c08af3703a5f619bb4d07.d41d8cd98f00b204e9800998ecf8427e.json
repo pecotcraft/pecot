@@ -1,0 +1,1 @@
+{"id":"0d7ecce4603c08af3703a5f619bb4d07.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql errors が文字列なら先頭の 1 文字 のとき、GitHubAPIError が発生する","name":"errors が文字列なら先頭の 1 文字 のとき、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"0a94b04737174149c0fc56a5e3fac6e5"}}

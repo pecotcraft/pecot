@@ -1,0 +1,1 @@
+{"id":"6391cad8370d0b62f6bb7ac09ff1800f.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.test.sh#リポ内を指す symlink は実体で判定して exit 1","name":"リポ内を指す symlink は実体で判定して exit 1","status":"passed","testResultsByEnv":{"default":"f1694d569d2fa7969f21cc18f1c038c9"}}

@@ -1,0 +1,1 @@
+{"id":"febafca7a6bd56661b6b9ef6127a14fe.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_dispatch_with_dev_artifact_is_dev","name":"手動実行の run は、開発版の artifact を持つと、開発版として受け付ける","status":"passed","testResultsByEnv":{"default":"139f8d66925537a6bdaa75651357d993"}}

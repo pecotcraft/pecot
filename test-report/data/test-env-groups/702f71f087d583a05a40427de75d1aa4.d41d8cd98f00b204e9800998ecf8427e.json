@@ -1,0 +1,1 @@
+{"id":"702f71f087d583a05a40427de75d1aa4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 利用者が足す許可は、job の env の空の変数から、空でないときだけ --allowedTools の末尾に足す","name":"利用者が足す許可は、job の env の空の変数から、空でないときだけ --allowedTools の末尾に足す","status":"passed","testResultsByEnv":{"default":"7364073708ce9663f3c78c249a91a2d4"}}

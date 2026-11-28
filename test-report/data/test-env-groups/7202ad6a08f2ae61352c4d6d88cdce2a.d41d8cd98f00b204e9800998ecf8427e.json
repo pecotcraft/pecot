@@ -1,0 +1,1 @@
+{"id":"7202ad6a08f2ae61352c4d6d88cdce2a.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot:.nx/nx-release/tests/dependabot-plans.test.mjs#uv の indirect は、プロジェクトの本番の依存から届くときだけ作る。dev からだけなら「開発用」","name":"uv の indirect は、プロジェクトの本番の依存から届くときだけ作る。dev からだけなら「開発用」","status":"passed","testResultsByEnv":{"default":"d0ba7dfbd6e2ae8757cdad464cf48a37"}}

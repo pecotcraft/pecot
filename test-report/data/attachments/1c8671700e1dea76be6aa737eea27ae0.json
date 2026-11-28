@@ -1,0 +1,30 @@
+{
+  "host": "ghes.example.com",
+  "owner": "acme",
+  "project": {
+    "number": 1,
+    "id": "PVT_1",
+    "board_url": "https://ghes.example.com/users/acme/projects/1",
+    "fields": {
+      "workflow": {
+        "id": "PVTSSF_workflow",
+        "options": {
+          "backlog": "o1",
+          "pending": "o2",
+          "ready": "o3",
+          "active": "o4",
+          "in_review": "o5",
+          "archived": "o6"
+        }
+      }
+    }
+  },
+  "repositories": [
+    {
+      "owner": "acme",
+      "name": "demo",
+      "develop_branch": "dev",
+      "release_branch": "release"
+    }
+  ]
+}

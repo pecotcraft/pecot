@@ -1,0 +1,1 @@
+{"id":"5c58c772b4d3aa0bddddb4dc619ca4e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create ボードの status の更新で GitHub API がエラーを返すと、PR は作ったまま warning の行を標準エラーに出す","name":"ボードの status の更新で GitHub API がエラーを返すと、PR は作ったまま warning の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"c7bcd908c0e52bef2ecb5a446b425e4b"}}

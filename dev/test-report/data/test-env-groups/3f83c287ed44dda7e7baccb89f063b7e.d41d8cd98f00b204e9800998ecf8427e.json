@@ -1,0 +1,1 @@
+{"id":"3f83c287ed44dda7e7baccb89f063b7e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の blocked_by wait が stack でも merge でもない場合は、選択肢を示すエラーにする","name":"wait が stack でも merge でもない場合は、選択肢を示すエラーにする","status":"passed","testResultsByEnv":{"default":"36958296ec50afb5ce408aedcf82339a"}}

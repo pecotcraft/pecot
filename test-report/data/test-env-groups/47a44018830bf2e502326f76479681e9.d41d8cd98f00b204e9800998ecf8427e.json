@@ -1,0 +1,1 @@
+{"id":"47a44018830bf2e502326f76479681e9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/names.test.ts#項目の名前と names rest が true だと、後ろの自由な語を許可し、自由な語がない名前は検証エラーにする","name":"rest が true だと、後ろの自由な語を許可し、自由な語がない名前は検証エラーにする","status":"passed","testResultsByEnv":{"default":"dbcc2c7766a6b941c493c8c0fa5d51db"}}

@@ -1,0 +1,1 @@
+{"id":"438d87e1cbdc9d86aedff742a43c47fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#boardShapeOf 設定が無ければ、欄の名前で進行の欄を見つけ、選択肢は名前で探す","name":"設定が無ければ、欄の名前で進行の欄を見つけ、選択肢は名前で探す","status":"passed","testResultsByEnv":{"default":"6526a72102efd130d7887d9b042563ae"}}

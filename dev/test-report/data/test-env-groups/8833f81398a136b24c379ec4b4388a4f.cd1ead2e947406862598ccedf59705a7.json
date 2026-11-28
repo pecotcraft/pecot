@@ -1,0 +1,1 @@
+{"id":"8833f81398a136b24c379ec4b4388a4f.cd1ead2e947406862598ccedf59705a7","fullName":".githooks.tests.test_nx_task_cache#test_non_cacheable_target_says_cache_false","name":"pecot-visual:check-pm-guard は、cache を false と明示している","status":"passed","testResultsByEnv":{"default":"8607eccf07667e3da51d0da9fc10cf58"}}

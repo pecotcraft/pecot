@@ -1,0 +1,1 @@
+{"id":"ee48e153c4952087725b48396413ade6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/index.test.ts#InProcessSlidevPptxPipeline skipPostprocess を指定しない場合は、false を runner に渡す","name":"skipPostprocess を指定しない場合は、false を runner に渡す","status":"passed","testResultsByEnv":{"default":"706e319c1cbc1aeb1834d121b70ac456"}}

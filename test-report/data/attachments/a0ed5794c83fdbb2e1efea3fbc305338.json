@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "cannot determine the target repository: the server was started in the plugin directory (/tmp/pecot-repo-RJZxcq) and the host passed no session directory (COPILOT_SESSION_CWD); upgrade GitHub Copilot CLI to 1.0.106 or later, or start the server in the target repository"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"session-directory-unresolved\",\"detail\":\"cannot determine the target repository: the server was started in the plugin directory (/tmp/pecot-repo-RJZxcq) and the host passed no session directory (COPILOT_SESSION_CWD); upgrade GitHub Copilot CLI to 1.0.106 or later, or start the server in the target repository\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "session-directory-unresolved",
+    "detail": "cannot determine the target repository: the server was started in the plugin directory (/tmp/pecot-repo-RJZxcq) and the host passed no session directory (COPILOT_SESSION_CWD); upgrade GitHub Copilot CLI to 1.0.106 or later, or start the server in the target repository"
+  },
+  "isError": true
+}

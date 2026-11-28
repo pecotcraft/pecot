@@ -1,0 +1,1 @@
+{"id":"d67e13deddb9ba5ace4b4a300f173f08.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#末尾が / の link.path（pathlib は末尾の / を落とす） force を指定しても、共有先の内容は削除せず、シンボリックリンクだけを張り替える","name":"force を指定しても、共有先の内容は削除せず、シンボリックリンクだけを張り替える","status":"passed","testResultsByEnv":{"default":"5f6e3bce7e7d635fe3b26b53d17c0b09"}}

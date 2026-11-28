@@ -1,0 +1,1 @@
+{"id":"1dd3a2ac71aced779c04967a3027f65a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#decidePullRequestBase 記録が不正な形式の場合は、止める","name":"記録が不正な形式の場合は、止める","status":"passed","testResultsByEnv":{"default":"11a53198ce2119e3fb86d53051cc42e5"}}

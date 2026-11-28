@@ -1,0 +1,1 @@
+{"id":"f2faf5a3b07540c85c6b912609d3f66c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/sso.test.ts#ssoTools ログインの開始に失敗して出力が上限を超えたときは、切り詰めたことを detail に残す","name":"ログインの開始に失敗して出力が上限を超えたときは、切り詰めたことを detail に残す","status":"passed","testResultsByEnv":{"default":"765ff2838820e7c704ab5614749c9949"}}

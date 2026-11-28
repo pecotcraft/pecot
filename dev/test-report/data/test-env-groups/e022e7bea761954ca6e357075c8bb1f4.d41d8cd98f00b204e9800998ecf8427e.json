@@ -1,0 +1,1 @@
+{"id":"e022e7bea761954ca6e357075c8bb1f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#defaultDependencies 環境変数と cwd は実プロセスのものを使い、作業ディレクトリは process.chdir で移す","name":"環境変数と cwd は実プロセスのものを使い、作業ディレクトリは process.chdir で移す","status":"passed","testResultsByEnv":{"default":"a9c866b5f5dd07e666708ae89165959f"}}

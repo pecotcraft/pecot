@@ -1,0 +1,1 @@
+{"id":"f0fd9cc45b54afe723af0547d2351f26.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#linkNodeModules (張り直し) 旧形の symlink 1 本の場合は、実ディレクトリに置き換え、依存ルートを削除しない","name":"旧形の symlink 1 本の場合は、実ディレクトリに置き換え、依存ルートを削除しない","status":"passed","testResultsByEnv":{"default":"aa0611a211487970496062597106d0b9"}}

@@ -1,0 +1,1 @@
+{"id":"0db61b886e33bb2d0badde66e4f18efb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#transformItems content が空の項目も、変換せず除外する","name":"content が空の項目も、変換せず除外する","status":"passed","testResultsByEnv":{"default":"8f8631f5c3734072cb365eea5becf0b2"}}

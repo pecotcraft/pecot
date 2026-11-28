@@ -1,0 +1,2 @@
+error: pecot-status field is missing options: Pending, Ready, Active, In Review, Archived
+  required options: Backlog / Pending / Ready / Active / In Review / Archived

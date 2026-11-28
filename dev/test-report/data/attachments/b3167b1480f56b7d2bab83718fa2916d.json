@@ -1,0 +1,11 @@
+{
+  "tags": {
+    "b": "b-v2.0.0",
+    "a": "a-v1.0.0"
+  },
+  "commits": {
+    "b": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "a": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "skeleton": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+}

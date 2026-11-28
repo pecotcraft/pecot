@@ -1,0 +1,1 @@
+{"id":"da4eee94b0a92241f94203d96e381c1d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml 画像がない場合は、アンカーを持たない wsDr を出力する","name":"画像がない場合は、アンカーを持たない wsDr を出力する","status":"passed","testResultsByEnv":{"default":"496b723ef0374ddb08372ba61e8b7061"}}

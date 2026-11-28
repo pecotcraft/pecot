@@ -1,0 +1,1 @@
+{"id":"47f4d09e9120e5193f4e53465def0012.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） base が空で上流のあるブランチは、期待する上流が None の不一致として扱う","name":"base が空で上流のあるブランチは、期待する上流が None の不一致として扱う","status":"passed","testResultsByEnv":{"default":"36198b40c96d1c803937b33cc5fcd208"}}

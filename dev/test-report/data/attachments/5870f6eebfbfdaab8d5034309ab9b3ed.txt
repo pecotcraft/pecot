@@ -1,0 +1,5 @@
+warning: multiple open Trackers; using #9 (lowest number) and leaving #12 open
+count: open dependabot PRs: 0
+count: PRs awaiting a decision: 0
+count: PRs awaiting a decision without check results: 0
+error: could not update Tracker #9 body: GitHub API error: 422

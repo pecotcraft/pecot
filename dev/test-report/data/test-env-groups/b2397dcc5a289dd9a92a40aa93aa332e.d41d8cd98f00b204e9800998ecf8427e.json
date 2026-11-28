@@ -1,0 +1,1 @@
+{"id":"b2397dcc5a289dd9a92a40aa93aa332e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings 末尾のバックスラッシュ対 のとき、引用符を含まない本文だけを切り出す","name":"末尾のバックスラッシュ対 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"d5577cce212f760eb8b6b47e6c9007b7"}}

@@ -1,0 +1,1 @@
+{"id":"bb975171ba0035c17d74f94b63182f4b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText textlint-disable のコメントがあっても指摘を返し、行番号を 1 から数える","name":"textlint-disable のコメントがあっても指摘を返し、行番号を 1 から数える","status":"passed","testResultsByEnv":{"default":"a4ecd227258fe9fe2e9e3adc9cd898fc"}}

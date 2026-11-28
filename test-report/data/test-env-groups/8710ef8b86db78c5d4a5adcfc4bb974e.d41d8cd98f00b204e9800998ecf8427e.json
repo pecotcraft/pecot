@@ -1,0 +1,1 @@
+{"id":"8710ef8b86db78c5d4a5adcfc4bb974e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/url.test.ts#generateDrawioViewerUrl 生成した URL は、lightbox を有効にした draw.io のアドレスで始まる","name":"生成した URL は、lightbox を有効にした draw.io のアドレスで始まる","status":"passed","testResultsByEnv":{"default":"ded917d3ce247e476fa9bb725ef37b85"}}

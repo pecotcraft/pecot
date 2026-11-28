@@ -1,0 +1,1 @@
+{"id":"81f993c5df5c3cc114519372900e217b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-tracker.test.ts#normalizeAlerts code scanning は rule が空なら重大度を持たない","name":"code scanning は rule が空なら重大度を持たない","status":"passed","testResultsByEnv":{"default":"777b9acb32545b161489991d151c7fbe"}}

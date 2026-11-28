@@ -1,0 +1,1 @@
+{"id":"05cd66a2943d9671c7da4c4dc7692bab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#inputSchema 段階で落ちる違反 region の形式が誤っている場合は、入力検証エラーになる","name":"region の形式が誤っている場合は、入力検証エラーになる","status":"passed","testResultsByEnv":{"default":"44ad88af8c40c45378475f390bf5b098"}}

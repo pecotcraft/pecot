@@ -1,0 +1,1 @@
+{"id":"4bca36b1777501fde8090f71a5f4b47b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形の Check の中身 権限を読めないとき、本文と outputs を書かずに成功で終わる","name":"権限を読めないとき、本文と outputs を書かずに成功で終わる","status":"passed","testResultsByEnv":{"default":"973816c0da71b9cb7a138358cbd6f6f3"}}

@@ -1,0 +1,1 @@
+{"id":"4ef3f0a741d2a0ebf2d39c50acfd74c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText 指摘の対象にならない入力 \"This is English only.\" は、どのモードでも空の配列を返す","name":"指摘の対象にならない入力 \"This is English only.\" は、どのモードでも空の配列を返す","status":"passed","testResultsByEnv":{"default":"38033ae8a8e776d36f8f6b354e988566"}}

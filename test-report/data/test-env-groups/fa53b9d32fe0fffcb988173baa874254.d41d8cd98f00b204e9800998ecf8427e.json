@@ -1,0 +1,1 @@
+{"id":"fa53b9d32fe0fffcb988173baa874254.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-text.test.ts#specTexts 空白だけの title、caption、callout の text は、結果に含めない","name":"空白だけの title、caption、callout の text は、結果に含めない","status":"passed","testResultsByEnv":{"default":"81fc4eab40e0f6bbcd02a6f517a9c910"}}

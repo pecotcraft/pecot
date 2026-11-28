@@ -1,0 +1,1 @@
+{"id":"eac6ed86cc7c07161295ac7eebba6d02.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_lone_carriage_return_splits_lines_like_node_readline","name":"単独の CR と U+2028 でも、Node の readline と同じ位置で行を区切る","status":"passed","testResultsByEnv":{"default":"f8f9eb8637e5bf87246d67c6c3df27c2"}}

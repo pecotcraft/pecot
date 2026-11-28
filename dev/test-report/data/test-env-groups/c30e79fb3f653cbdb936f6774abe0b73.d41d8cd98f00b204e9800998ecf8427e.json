@@ -1,0 +1,1 @@
+{"id":"c30e79fb3f653cbdb936f6774abe0b73.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check タグ・本文・名前 CHANGELOG に版の節が存在しない と、changelog-missing の項目を返す","name":"CHANGELOG に版の節が存在しない と、changelog-missing の項目を返す","status":"passed","testResultsByEnv":{"default":"a38e1c3b62422291363ad18100851b67"}}

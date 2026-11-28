@@ -1,0 +1,1 @@
+{"id":"a500a31a421219d090e8a0b2bd2d811b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/tests/lint-rules.test.ts#domain の依存方向 domain から node:path を import しても、違反にならない","name":"domain から node:path を import しても、違反にならない","status":"passed","testResultsByEnv":{"default":"df28965e799f4224ea43bd3884759702"}}

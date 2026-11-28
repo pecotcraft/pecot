@@ -1,0 +1,1 @@
+{"id":"6e5b3c554ed8772c91494b29cf961a53.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#PECOT_GITHUB_API_URL ループバックの http でなければ、入力の検証より先に失敗を返し、detail は error の行の文にする","name":"ループバックの http でなければ、入力の検証より先に失敗を返し、detail は error の行の文にする","status":"passed","testResultsByEnv":{"default":"e63ffdcfa8be04c6cd780fc33e053d9b"}}

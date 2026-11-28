@@ -1,0 +1,8 @@
+:iface-id: PA-AUTO-GATE
+:iface-plugin: actions
+:iface-kind: Action
+
+auto gate
+==================
+
+.. iface-defs:: actions PA-AUTO-GATE

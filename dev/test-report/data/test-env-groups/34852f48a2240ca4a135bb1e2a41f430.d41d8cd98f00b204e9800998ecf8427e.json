@@ -1,0 +1,1 @@
+{"id":"34852f48a2240ca4a135bb1e2a41f430.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#parseArgv 引数が [] のとき、{\"commitMsg\":false,\"files\":[]} を返す","name":"引数が [] のとき、{\"commitMsg\":false,\"files\":[]} を返す","status":"passed","testResultsByEnv":{"default":"aa43db8ea70ab6397a44906c34145c2e"}}

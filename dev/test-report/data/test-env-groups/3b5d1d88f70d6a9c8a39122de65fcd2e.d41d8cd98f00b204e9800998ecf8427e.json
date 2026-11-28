@@ -1,0 +1,1 @@
+{"id":"3b5d1d88f70d6a9c8a39122de65fcd2e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/caret-range.test.ts#caretRangeViolation: 入力と下限 08.3.6 は ^8.3.6 の範囲の外で、理由が「完全一致指定ではない」になる","name":"08.3.6 は ^8.3.6 の範囲の外で、理由が「完全一致指定ではない」になる","status":"passed","testResultsByEnv":{"default":"e510f0208562c30d26ee3bfab6a0cf4a"}}

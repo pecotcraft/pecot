@@ -1,0 +1,9 @@
+npm error code EBADDEVENGINES
+npm error EBADDEVENGINES The developer of this package has specified the following through devEngines
+npm error EBADDEVENGINES Invalid devEngines.packageManager
+npm error EBADDEVENGINES Invalid name "pnpm" does not match "npm" for "packageManager"
+npm error EBADDEVENGINES {
+npm error EBADDEVENGINES   current: { name: 'npm', version: '11.19.1' },
+npm error EBADDEVENGINES   required: { name: 'pnpm' }
+npm error EBADDEVENGINES }
+npm error A complete log of this run can be found in: /workspaces/base/pecot/.pecot/tmp/release-npm-cache/pecot-visual/_logs/2026-11-28T06_19_32_968Z-debug-0.log

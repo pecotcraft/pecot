@@ -1,0 +1,1 @@
+{"id":"e1754474307f5cf1a191b270f09f1035.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_units_read_targets_and_release_groups","name":"単位は、targets.json の plugins の各キーと、nx.json の同じ名前のグループのタグの形から決まる","status":"passed","testResultsByEnv":{"default":"3a25a3c6b43ea638ab9041ed03189c60"}}

@@ -1,0 +1,1 @@
+{"id":"cd6430738c34ba30ebe7e96c032cec77.f69c8fffe44d60ec4a93357f976982d6","fullName":".githooks.tests.test_pages_verify#test_stored_dev_reads_pecot_store_json_on_pages_store","name":"pages-store の `.pecot-store.json` の run_id が 55 のとき、定義書の開発版の記録を読み取る","status":"passed","testResultsByEnv":{"default":"700a1500789c418d38bc5ed301054cb9"}}

@@ -1,0 +1,1 @@
+{"id":"f930ffae5cd0cef3898afe6e888a53c7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateSections（必須セクション検証: 見出しレベル・em-dash サマリ） 必須の見出しがすべて正しいレベルで存在すれば、空の配列を返す","name":"必須の見出しがすべて正しいレベルで存在すれば、空の配列を返す","status":"passed","testResultsByEnv":{"default":"a0b59140ed89d2bde9f49da7e29ea482"}}

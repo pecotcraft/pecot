@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "set: current branch to worktree-bold-oak"
+    },
+    {
+      "type": "text",
+      "text": "{\"deletedBranches\":[{\"branch\":\"feat/demo/12\",\"location\":\"local\"}],\"readinessChanges\":[],\"restack\":[],\"currentBranch\":\"worktree-bold-oak\"}"
+    }
+  ],
+  "structuredContent": {
+    "deletedBranches": [
+      {
+        "branch": "feat/demo/12",
+        "location": "local"
+      }
+    ],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "worktree-bold-oak"
+  }
+}

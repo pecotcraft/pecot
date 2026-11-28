@@ -1,0 +1,1 @@
+{"id":"52bea11a081d34a0f041f1e156cf6950.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry 結果が確定する前に同時に開始しても、awscli のプロセスは 1 つだけ起動する","name":"結果が確定する前に同時に開始しても、awscli のプロセスは 1 つだけ起動する","status":"passed","testResultsByEnv":{"default":"b1cb5d2fc750e5e035889b39dc047f19"}}

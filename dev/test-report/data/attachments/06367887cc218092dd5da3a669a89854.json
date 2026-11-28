@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "cannot read spec JSON: /workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-980/spec.json: ENOENT: no such file or directory, open '/workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-980/spec.json'"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"evidence.create.error\",\"kind\":\"input-not-found\",\"detail\":\"cannot read spec JSON: /workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-980/spec.json: ENOENT: no such file or directory, open '/workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-980/spec.json'\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "evidence.create.error",
+    "kind": "input-not-found",
+    "detail": "cannot read spec JSON: /workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-980/spec.json: ENOENT: no such file or directory, open '/workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-980/spec.json'"
+  },
+  "isError": true
+}

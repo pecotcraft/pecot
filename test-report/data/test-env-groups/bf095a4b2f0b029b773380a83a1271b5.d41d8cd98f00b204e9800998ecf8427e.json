@@ -1,0 +1,1 @@
+{"id":"bf095a4b2f0b029b773380a83a1271b5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#createLinkedBranch repositoryId を省略すると、input に issueId・oid・name だけを送信する","name":"repositoryId を省略すると、input に issueId・oid・name だけを送信する","status":"passed","testResultsByEnv":{"default":"27ce1b80aacc6e9627ef486d573d2d65"}}

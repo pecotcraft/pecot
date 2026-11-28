@@ -1,0 +1,1 @@
+{"id":"5f985230055f5883ffbf79502f5d3214.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/server.test.ts#startServer dist 自身に正規化される要求 (`/.`・`//`) は 404 を返す","name":"dist 自身に正規化される要求 (`/.`・`//`) は 404 を返す","status":"passed","testResultsByEnv":{"default":"aa1ec4f616214c38dc9c75aa43ade49f"}}

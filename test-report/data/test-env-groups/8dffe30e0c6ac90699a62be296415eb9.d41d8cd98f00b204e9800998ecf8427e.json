@@ -1,0 +1,1 @@
+{"id":"8dffe30e0c6ac90699a62be296415eb9.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot:.nx/nx-release/tests/dependabot-plans.test.mjs#uv の indirect で uv.lock を読めていないときは throw する","name":"uv の indirect で uv.lock を読めていないときは throw する","status":"passed","testResultsByEnv":{"default":"4d79cb4e2f77d77f8f94bf4615a8394e"}}

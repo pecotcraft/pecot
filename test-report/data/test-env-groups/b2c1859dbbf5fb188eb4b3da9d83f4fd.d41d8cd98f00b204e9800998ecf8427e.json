@@ -1,0 +1,1 @@
+{"id":"b2c1859dbbf5fb188eb4b3da9d83f4fd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/user-prompt-submit-title.test.ts#user-prompt-submit-title.sh 作業中の Issue のブランチでないとき、.pecot-active があっても何も出力しない","name":"作業中の Issue のブランチでないとき、.pecot-active があっても何も出力しない","status":"passed","testResultsByEnv":{"default":"e693db95e39aace557d1583df13cf65b"}}

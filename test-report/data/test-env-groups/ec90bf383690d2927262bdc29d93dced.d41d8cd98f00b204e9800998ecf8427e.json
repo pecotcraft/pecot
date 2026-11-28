@@ -1,0 +1,1 @@
+{"id":"ec90bf383690d2927262bdc29d93dced.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh cd チェイン経由の push のとき、commit と同じく cd 先のブランチで判定して止める","name":"cd チェイン経由の push のとき、commit と同じく cd 先のブランチで判定して止める","status":"passed","testResultsByEnv":{"default":"bf571c72e9fed10ae02b25100cce75b6"}}

@@ -1,0 +1,1 @@
+{"id":"9ecbc9ea8628f03e83d98f2f99acff0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 本文と題の欠け update の本文に一括の key を指す書き方があると、Issue の番号で書くよう problem にする","name":"update の本文に一括の key を指す書き方があると、Issue の番号で書くよう problem にする","status":"passed","testResultsByEnv":{"default":"ffd5ca0d4ac226105a40b63a4e81ec54"}}

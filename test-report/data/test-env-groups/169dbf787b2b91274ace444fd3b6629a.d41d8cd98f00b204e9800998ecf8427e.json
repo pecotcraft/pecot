@@ -1,0 +1,1 @@
+{"id":"169dbf787b2b91274ace444fd3b6629a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 config/.env にトークンが存在しない場合は、ルートの .env の GITHUB_COM_TOKEN を使う","name":"config/.env にトークンが存在しない場合は、ルートの .env の GITHUB_COM_TOKEN を使う","status":"passed","testResultsByEnv":{"default":"26338247aff103b7b03710a2e41fdbeb"}}

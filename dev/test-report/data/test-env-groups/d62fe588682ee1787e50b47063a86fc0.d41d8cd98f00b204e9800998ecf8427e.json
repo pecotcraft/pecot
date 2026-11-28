@@ -1,0 +1,1 @@
+{"id":"d62fe588682ee1787e50b47063a86fc0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments awsFlag と positional のどちらも持たない入力は、引数に含めない","name":"awsFlag と positional のどちらも持たない入力は、引数に含めない","status":"passed","testResultsByEnv":{"default":"0988988075c02a34179affe11c35e532"}}

@@ -1,0 +1,1 @@
+{"id":"cd8ffb38b12dc71473156c930764acac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/label-text.test.ts#labelTexts HTML として解釈できない場合の代替処理でも、主な文字参照を 1 回だけ復号する","name":"HTML として解釈できない場合の代替処理でも、主な文字参照を 1 回だけ復号する","status":"passed","testResultsByEnv":{"default":"796fbeb5826c37bc0d2c4177d1810874"}}

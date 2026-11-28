@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "note: `.pecotv/.gitignore` is not tracked. Adding it with `git add -f .pecotv/.gitignore` and committing keeps the generated files under `.pecotv/` from showing as untracked in new clones and CI. Switching to a branch that does not track the file deletes it; the file is rewritten at the next session start."
+  },
+  "additionalContext": "note: `.pecotv/.gitignore` is not tracked. Adding it with `git add -f .pecotv/.gitignore` and committing keeps the generated files under `.pecotv/` from showing as untracked in new clones and CI. Switching to a branch that does not track the file deletes it; the file is rewritten at the next session start."
+}

@@ -1,0 +1,1 @@
+{"id":"cba8403598f64c616238a94deff0b274.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init pecot-lane と Lanes のビュー ビューの作成が 404 で断られると、画面で作る手順を返し、設定ファイルを同期して成功を返す","name":"ビューの作成が 404 で断られると、画面で作る手順を返し、設定ファイルを同期して成功を返す","status":"passed","testResultsByEnv":{"default":"d5ea02a3a7a965f053d832abf7c8b1ab"}}

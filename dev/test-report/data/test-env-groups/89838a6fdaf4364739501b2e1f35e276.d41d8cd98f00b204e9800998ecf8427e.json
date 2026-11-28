@@ -1,0 +1,1 @@
+{"id":"89838a6fdaf4364739501b2e1f35e276.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys 表紙の src を差し替えた場合は、全キャッシュを無効にせず、スライド 1 だけが変わる","name":"表紙の src を差し替えた場合は、全キャッシュを無効にせず、スライド 1 だけが変わる","status":"passed","testResultsByEnv":{"default":"7202cbc4ab52d9dae2b181006299cb6f"}}

@@ -1,0 +1,1 @@
+{"id":"f236f0be38d4b81417ca46b65ead9e09.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_cli_refuses_unsafe_tar","name":"`publish` コマンドは、危険なメンバーを含む tar を拒否し、push しない","status":"passed","testResultsByEnv":{"default":"27a491400a1385c925b1768313e4c3d0"}}

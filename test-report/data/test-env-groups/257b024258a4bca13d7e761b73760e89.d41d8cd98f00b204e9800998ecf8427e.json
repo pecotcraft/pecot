@@ -1,0 +1,1 @@
+{"id":"257b024258a4bca13d7e761b73760e89.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#number の lax な変換（Python の実出力どおり） number に 1.5 を渡した場合は、検証エラー int_from_float を返す","name":"number に 1.5 を渡した場合は、検証エラー int_from_float を返す","status":"passed","testResultsByEnv":{"default":"cbf0a0ed52ae61b5b456205540f538f4"}}

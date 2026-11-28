@@ -1,0 +1,1 @@
+{"id":"579b6ec6d579dd240cf70bee03df0a08.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — items items が object の場合は、型が一致しないものとして拒否する","name":"items が object の場合は、型が一致しないものとして拒否する","status":"passed","testResultsByEnv":{"default":"82b1fd42eadfde9b9840bf4d9e087040"}}

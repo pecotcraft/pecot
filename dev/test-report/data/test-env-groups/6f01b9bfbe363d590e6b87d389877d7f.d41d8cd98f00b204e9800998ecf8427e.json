@@ -1,0 +1,1 @@
+{"id":"6f01b9bfbe363d590e6b87d389877d7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#findMainWorktree 一覧が空でも WorktreeRuntimeError","name":"一覧が空でも WorktreeRuntimeError","status":"passed","testResultsByEnv":{"default":"5d552eff6697035adf3ea3a9e627c600"}}

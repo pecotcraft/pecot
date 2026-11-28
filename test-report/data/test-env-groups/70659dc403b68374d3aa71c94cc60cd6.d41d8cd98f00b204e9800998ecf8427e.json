@@ -1,0 +1,1 @@
+{"id":"70659dc403b68374d3aa71c94cc60cd6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh JSON として読み込めない設定ファイルは無視し、ずれが 0 件になる","name":"JSON として読み込めない設定ファイルは無視し、ずれが 0 件になる","status":"passed","testResultsByEnv":{"default":"168c00f7011f5f4e65ada27f97280711"}}

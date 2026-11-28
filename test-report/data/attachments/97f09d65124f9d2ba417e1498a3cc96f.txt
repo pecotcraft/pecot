@@ -1,0 +1,5 @@
+count: Issues to close: 1
+closed: Issue #12
+set: current branch to main
+warning: pulling main failed: Command ['git', 'pull', 'origin', 'main'] returned non-zero exit status 1.
+deleted: local branch feat/demo/12

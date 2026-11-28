@@ -1,0 +1,1 @@
+{"id":"3c95c039982a5b17507200ceb8d205c6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#syncProjectConfig ビューが存在しない場合は、絞り込みだけの URL にし、既存の設定のリポジトリの順序と値を引き継ぐ","name":"ビューが存在しない場合は、絞り込みだけの URL にし、既存の設定のリポジトリの順序と値を引き継ぐ","status":"passed","testResultsByEnv":{"default":"10fc5f53219b05b6a24790b23ae69221"}}

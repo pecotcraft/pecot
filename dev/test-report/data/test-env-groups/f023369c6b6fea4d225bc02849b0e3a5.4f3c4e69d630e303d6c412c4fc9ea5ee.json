@@ -1,0 +1,1 @@
+{"id":"f023369c6b6fea4d225bc02849b0e3a5.4f3c4e69d630e303d6c412c4fc9ea5ee","fullName":".githooks.tests.test_report_generate#test_bad_latest_stops_with_a_message","name":"材料の latest の形式が unknown のとき、レーンの名前とメッセージを表示して失敗する","status":"passed","testResultsByEnv":{"default":"b0b40068728d06e168cdc1fc065e0f0d"}}

@@ -1,0 +1,1 @@
+待ち受けを続けられません: 待ち方が ci でも merge でもありません（https://github.com/pecotcraft/pecot-sandbox/pull/12）

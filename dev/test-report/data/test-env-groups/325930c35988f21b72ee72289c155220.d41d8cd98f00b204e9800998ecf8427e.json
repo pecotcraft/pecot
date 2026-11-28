@@ -1,0 +1,1 @@
+{"id":"325930c35988f21b72ee72289c155220.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#SC-008 失敗の直後も同じ接続が次の呼び出しへ応答する 未導入、認証切れ、大量出力の失敗が続いた後でも、同じ接続が成功を返す","name":"未導入、認証切れ、大量出力の失敗が続いた後でも、同じ接続が成功を返す","status":"passed","testResultsByEnv":{"default":"10a52d3e117fbf91fea54c3590b378f1"}}

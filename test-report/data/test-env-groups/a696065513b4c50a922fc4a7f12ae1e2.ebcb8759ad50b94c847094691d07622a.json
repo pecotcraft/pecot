@@ -1,0 +1,1 @@
+{"id":"a696065513b4c50a922fc4a7f12ae1e2.ebcb8759ad50b94c847094691d07622a","fullName":".githooks.tests.test_pages_store#test_read_meta_fixes_reports_that_are_not_an_object","name":"記録の `reports` が x のようにオブジェクトでない場合は、空のオブジェクトに直して読む","status":"passed","testResultsByEnv":{"default":"114f9cc152c8349a026a0fc803895365"}}

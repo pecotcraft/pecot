@@ -1,0 +1,1 @@
+{"id":"ae020b70c9bc720da037d6fe91c33fd5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/repository-match.test.ts#resolveCurrentRepository remote の URL が手元のパスなら undefined を返す","name":"remote の URL が手元のパスなら undefined を返す","status":"passed","testResultsByEnv":{"default":"5d2da876720290a0dfc0aca12acb2919"}}

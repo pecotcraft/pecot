@@ -1,0 +1,1 @@
+{"id":"f1073860b48bae1173523c6c0019e340.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-test-description.test.ts#test-description invalid 本体が式のアロー関数は、説明を持てないので止める","name":"本体が式のアロー関数は、説明を持てないので止める","status":"passed","testResultsByEnv":{"default":"c959dec7d2d57998a3a2bcea10b1e51f"}}

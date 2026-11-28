@@ -1,0 +1,1 @@
+{"id":"4b2e5b096abaa6126e4b96ff2253f4fc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#runSlideConvert (fake DI 経由 / 全分岐) 取得の signal と警告の出力先を、ensureThemeLinked の引数の文脈として渡す","name":"取得の signal と警告の出力先を、ensureThemeLinked の引数の文脈として渡す","status":"passed","testResultsByEnv":{"default":"7ba76bb5adc995f2ba9fd3f9e4daa80c"}}

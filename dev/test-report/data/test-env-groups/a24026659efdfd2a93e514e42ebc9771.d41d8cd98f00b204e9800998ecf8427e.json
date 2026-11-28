@@ -1,0 +1,1 @@
+{"id":"a24026659efdfd2a93e514e42ebc9771.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/asset-path/tests/require-resolve-asset-path.test.ts#require-resolve-asset-path invalid fetch に先頭が / でないテンプレートリテラルを渡すと、報告する","name":"fetch に先頭が / でないテンプレートリテラルを渡すと、報告する","status":"passed","testResultsByEnv":{"default":"5f306f03fc3c6f8a4b6f7c9de7d0bfad"}}

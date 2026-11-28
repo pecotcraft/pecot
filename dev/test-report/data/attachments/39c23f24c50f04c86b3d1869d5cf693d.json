@@ -1,0 +1,51 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: missing section (pecot-template://comment/plan): ### Context"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"missing-section\",\"message\":\"missing section (pecot-template://comment/plan): ### Context\"},{\"field\":\"body\",\"code\":\"missing-section\",\"message\":\"missing section (pecot-template://comment/plan): ### Approach\"},{\"field\":\"body\",\"code\":\"missing-section\",\"message\":\"missing section (pecot-template://comment/plan): ### Files\"},{\"field\":\"body\",\"code\":\"missing-section\",\"message\":\"missing section (pecot-template://comment/plan): ### Notes\"},{\"field\":\"body\",\"code\":\"missing-section\",\"message\":\"missing section (pecot-template://comment/plan): ## PECOT-Workflow\"},{\"field\":\"body\",\"code\":\"missing-section\",\"message\":\"missing section (pecot-template://comment/plan): ### E2E\"},{\"field\":\"body\",\"code\":\"extra-heading\",\"message\":\"heading not in the template (pecot-template://comment/plan): ### Extra; put content that fits no other heading under ### Notes\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "missing-section",
+        "message": "missing section (pecot-template://comment/plan): ### Context"
+      },
+      {
+        "field": "body",
+        "code": "missing-section",
+        "message": "missing section (pecot-template://comment/plan): ### Approach"
+      },
+      {
+        "field": "body",
+        "code": "missing-section",
+        "message": "missing section (pecot-template://comment/plan): ### Files"
+      },
+      {
+        "field": "body",
+        "code": "missing-section",
+        "message": "missing section (pecot-template://comment/plan): ### Notes"
+      },
+      {
+        "field": "body",
+        "code": "missing-section",
+        "message": "missing section (pecot-template://comment/plan): ## PECOT-Workflow"
+      },
+      {
+        "field": "body",
+        "code": "missing-section",
+        "message": "missing section (pecot-template://comment/plan): ### E2E"
+      },
+      {
+        "field": "body",
+        "code": "extra-heading",
+        "message": "heading not in the template (pecot-template://comment/plan): ### Extra; put content that fits no other heading under ### Notes"
+      }
+    ]
+  }
+}

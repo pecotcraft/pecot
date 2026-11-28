@@ -1,0 +1,1 @@
+{"id":"906edb44241e7f34d1f47b35d33bd5be.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx templatePath と outputDir が絶対パスのとき、変換に成功する","name":"templatePath と outputDir が絶対パスのとき、変換に成功する","status":"passed","testResultsByEnv":{"default":"9814986481f17ab9ef770b6b62f39f6c"}}

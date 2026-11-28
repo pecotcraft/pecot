@@ -1,0 +1,1 @@
+{"id":"a392dd34d609d6c1961873cff18d965f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_pull_api_failure","name":"PR の API が失敗すると、取得の失敗の理由を出力する","status":"passed","testResultsByEnv":{"default":"577cb1cf32cfa4d719bf8f21a8879176"}}

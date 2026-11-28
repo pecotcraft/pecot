@@ -1,0 +1,1 @@
+{"id":"5c16be1de067c0a24f637040743e4a01.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) slide_lint は失敗した場合に、ok や stdout などの項目を含めず、kind と detail だけを返す","name":"slide_lint は失敗した場合に、ok や stdout などの項目を含めず、kind と detail だけを返す","status":"passed","testResultsByEnv":{"default":"6b46af899969bfe226f291f15f3aa7d2"}}

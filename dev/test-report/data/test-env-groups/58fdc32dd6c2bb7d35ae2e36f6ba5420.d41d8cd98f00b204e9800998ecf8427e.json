@@ -1,0 +1,1 @@
+{"id":"58fdc32dd6c2bb7d35ae2e36f6ba5420.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-hooks.test.ts#スキルの frontmatter のフック skill w-active command は固定の接頭辞で始まり、スキルごとの --mode で終わる","name":"command は固定の接頭辞で始まり、スキルごとの --mode で終わる","status":"passed","testResultsByEnv":{"default":"8f01d219d97d07c3732d5b73b6e669d7"}}

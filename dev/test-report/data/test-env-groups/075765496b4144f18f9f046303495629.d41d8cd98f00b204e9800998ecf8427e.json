@@ -1,0 +1,1 @@
+{"id":"075765496b4144f18f9f046303495629.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#REST の要求 Link ヘッダ \"<https://x/a>; a=b=c; rel=next\" の読み方は httpx と同じ","name":"Link ヘッダ \"<https://x/a>; a=b=c; rel=next\" の読み方は httpx と同じ","status":"passed","testResultsByEnv":{"default":"464d83b662fed90538bbd293b942a0f3"}}

@@ -1,0 +1,1 @@
+{"id":"6b09bae4f9fb0844a3361d486d79963b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/rule-tester.test.ts#no-numeric-asset-prefix valid 外部 URL の画像だと、数字で始まる名前でも報告しない","name":"外部 URL の画像だと、数字で始まる名前でも報告しない","status":"passed","testResultsByEnv":{"default":"675eb3d05787a37945cff4a746b381d1"}}

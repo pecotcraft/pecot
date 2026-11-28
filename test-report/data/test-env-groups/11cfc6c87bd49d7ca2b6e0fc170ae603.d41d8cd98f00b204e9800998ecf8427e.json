@@ -1,0 +1,1 @@
+{"id":"11cfc6c87bd49d7ca2b6e0fc170ae603.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_task_cache#test_aws_runtime_ignores_the_kernel_version_in_its_output","name":"aws の版の出力に含まれるカーネルの版が変わっても、キャッシュを再利用する","status":"passed","testResultsByEnv":{"default":"5f962a0d48cbc07ebf6e92a4dbdf5bd2"}}

@@ -1,0 +1,1 @@
+{"id":"17fdb80f06bad50a46fa1a29270cbe81.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/file-kind.test.ts#isDirectory / isFile ディレクトリへのシンボリックリンクは、リンク先をたどって判定する","name":"ディレクトリへのシンボリックリンクは、リンク先をたどって判定する","status":"passed","testResultsByEnv":{"default":"2423be073e00cb0f6540da2cea9e3462"}}

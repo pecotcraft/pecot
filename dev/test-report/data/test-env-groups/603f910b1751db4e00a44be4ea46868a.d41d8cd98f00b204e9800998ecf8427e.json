@@ -1,0 +1,1 @@
+{"id":"603f910b1751db4e00a44be4ea46868a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#isDependabotAlertsEnabled ステータスが 204 の場合は、Dependabot alert の有効状態として true を返す","name":"ステータスが 204 の場合は、Dependabot alert の有効状態として true を返す","status":"passed","testResultsByEnv":{"default":"622e478339e0b62bc8a8b3432f08d957"}}

@@ -1,0 +1,1 @@
+{"id":"0ebdd377772236566b7e1c381e570a7c.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.bats#未対応の引数は、引数名と固有の引数を示して exit 1 になる","name":"未対応の引数は、引数名と固有の引数を示して exit 1 になる","status":"passed","testResultsByEnv":{"default":"7968d78c49911a407e77617cd2c8b3d4"}}

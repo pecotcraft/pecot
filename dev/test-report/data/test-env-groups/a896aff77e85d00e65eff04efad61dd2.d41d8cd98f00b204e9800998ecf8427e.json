@@ -1,0 +1,1 @@
+{"id":"a896aff77e85d00e65eff04efad61dd2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#embedSourceHash / readSourceHash 自己終了タグのルート要素でも、/> を保ったまま SHA-256 の属性を埋め込む","name":"自己終了タグのルート要素でも、/> を保ったまま SHA-256 の属性を埋め込む","status":"passed","testResultsByEnv":{"default":"080e5d8b83ee33301ab19df537d19d3b"}}

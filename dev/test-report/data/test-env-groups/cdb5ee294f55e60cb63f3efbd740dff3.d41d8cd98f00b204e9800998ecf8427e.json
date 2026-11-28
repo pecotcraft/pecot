@@ -1,0 +1,1 @@
+{"id":"cdb5ee294f55e60cb63f3efbd740dff3.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.bats#README の登録例が公開名とサーバ名を使い、--prefix=/ で npx を起動する","name":"README の登録例が公開名とサーバ名を使い、--prefix=/ で npx を起動する","status":"passed","testResultsByEnv":{"default":"fbf6d9552740976c39b78d050aa24705"}}

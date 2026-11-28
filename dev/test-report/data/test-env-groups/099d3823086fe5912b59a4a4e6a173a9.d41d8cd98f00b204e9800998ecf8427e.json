@@ -1,0 +1,1 @@
+{"id":"099d3823086fe5912b59a4a4e6a173a9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_refuses_dev_report_outside_main","name":"開発版のレポートの SHA が `main` の祖先でない場合は、終了コード 1 で終了し、push しない","status":"passed","testResultsByEnv":{"default":"c1012490d259e418f6b1c6cf2d925621"}}

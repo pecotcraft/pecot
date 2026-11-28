@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "repo: acme/other is not in any project config"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"repo\",\"code\":\"not-in-project\",\"message\":\"acme/other is not in any project config\\navailable: ghes.example.com_acme_board_acme\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "repo",
+        "code": "not-in-project",
+        "message": "acme/other is not in any project config\navailable: ghes.example.com_acme_board_acme"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

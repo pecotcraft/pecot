@@ -1,0 +1,27 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "set: current branch to main"
+    },
+    {
+      "type": "text",
+      "text": "{\"deletedBranches\":[{\"branch\":\"feat/demo/12\",\"location\":\"local\"}],\"readinessChanges\":[],\"restack\":[],\"currentBranch\":\"main\",\"warnings\":[\"the Issues waiting for #12 are not judged: pass the result of issue_dependency_read (method get_blocking) for it in reads.blocking\",\"the PRs stacked on feat/demo/12 are not checked: pass the result of list_pull_requests (base feat/demo/12, state open) in reads.children\"]}"
+    }
+  ],
+  "structuredContent": {
+    "deletedBranches": [
+      {
+        "branch": "feat/demo/12",
+        "location": "local"
+      }
+    ],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "main",
+    "warnings": [
+      "the Issues waiting for #12 are not judged: pass the result of issue_dependency_read (method get_blocking) for it in reads.blocking",
+      "the PRs stacked on feat/demo/12 are not checked: pass the result of list_pull_requests (base feat/demo/12, state open) in reads.children"
+    ]
+  }
+}

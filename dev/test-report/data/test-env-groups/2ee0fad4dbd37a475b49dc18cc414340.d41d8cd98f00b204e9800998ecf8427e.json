@@ -1,0 +1,1 @@
+{"id":"2ee0fad4dbd37a475b49dc18cc414340.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#authored.yaml checks generated.json が存在せず、authored.yaml が構文エラーだと、ファイルごとの検証エラーを返す","name":"generated.json が存在せず、authored.yaml が構文エラーだと、ファイルごとの検証エラーを返す","status":"passed","testResultsByEnv":{"default":"6ba51ddc9c33060f1a9b0194d10741a8"}}

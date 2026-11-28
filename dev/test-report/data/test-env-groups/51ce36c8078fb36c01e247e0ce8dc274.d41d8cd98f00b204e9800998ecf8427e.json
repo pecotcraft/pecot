@@ -1,0 +1,1 @@
+{"id":"51ce36c8078fb36c01e247e0ce8dc274.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#renderAutoResult 不足している設定を渡した場合は、本文の後ろに、札を書けなかったことと設定の名前を追加する","name":"不足している設定を渡した場合は、本文の後ろに、札を書けなかったことと設定の名前を追加する","status":"passed","testResultsByEnv":{"default":"b324e982a14395ec1d3ccac59d8e55ce"}}

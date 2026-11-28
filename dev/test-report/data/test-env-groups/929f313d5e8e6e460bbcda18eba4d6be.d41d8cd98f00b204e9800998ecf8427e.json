@@ -1,0 +1,1 @@
+{"id":"929f313d5e8e6e460bbcda18eba4d6be.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_image_workflow_skips_only_the_app_push_run_of_dependabot_prs","name":"devcontainer-image.yml は、Dependabot の PR のうち、アプリの push の実行だけを飛ばす","status":"passed","testResultsByEnv":{"default":"d5c5b103774e8e8fb4bfa9d3655284ab"}}

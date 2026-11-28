@@ -1,0 +1,1 @@
+{"id":"4d300e90c44e357fc689af3dca6bf331.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName base ディレクトリと wt でないディレクトリは無視する","name":"base ディレクトリと wt でないディレクトリは無視する","status":"passed","testResultsByEnv":{"default":"da8c054bdb3b57b2cd1608a5f62cc93b"}}

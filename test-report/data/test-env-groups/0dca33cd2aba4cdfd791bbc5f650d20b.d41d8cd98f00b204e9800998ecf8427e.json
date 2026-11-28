@@ -1,0 +1,1 @@
+{"id":"0dca33cd2aba4cdfd791bbc5f650d20b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText 違反の前に文字がある場合は、その文字数に 1 を加えた桁を返す","name":"違反の前に文字がある場合は、その文字数に 1 を加えた桁を返す","status":"passed","testResultsByEnv":{"default":"41ca68c2a684bc972e67133afee26048"}}

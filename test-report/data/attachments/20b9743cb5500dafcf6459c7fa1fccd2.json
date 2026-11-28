@@ -1,0 +1,20 @@
+[
+  "githooks:test-checks",
+  "githooks:test-nx-affected",
+  "githooks:test-nx-cache",
+  "nx-release:test-unit",
+  "pecot-visual:build-cli",
+  "pecot-visual:build-slidev",
+  "pecot-visual:check-pm-guard",
+  "pecot-visual:chromium-preflight",
+  "pecot-visual:install",
+  "pecot-visual:test-cli",
+  "pecot-visual:test-compare",
+  "pecot-visual:test-hooks",
+  "pecot-visual:test-release",
+  "pecot-visual:test-skills",
+  "pecot-visual:test-slidev",
+  "pecot:install",
+  "text-rules:build",
+  "text-rules:install"
+]

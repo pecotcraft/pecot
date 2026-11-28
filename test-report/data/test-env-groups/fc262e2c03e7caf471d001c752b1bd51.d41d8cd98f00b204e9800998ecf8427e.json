@@ -1,0 +1,1 @@
+{"id":"fc262e2c03e7caf471d001c752b1bd51.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/template-rules.test.ts#plan テンプレート 利用者の判断が要る点は聞いて決めてから書かせ、「判断を仰ぐ点」を書く欄を持たない","name":"利用者の判断が要る点は聞いて決めてから書かせ、「判断を仰ぐ点」を書く欄を持たない","status":"passed","testResultsByEnv":{"default":"3b1af6b6567299876ae3d24c455ebaff"}}

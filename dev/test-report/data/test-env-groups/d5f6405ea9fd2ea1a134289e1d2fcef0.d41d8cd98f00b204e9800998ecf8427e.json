@@ -1,0 +1,1 @@
+{"id":"d5f6405ea9fd2ea1a134289e1d2fcef0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#doesContainJapanese ひらがな（入力 \"こんにちは\"）のとき、true を返す","name":"ひらがな（入力 \"こんにちは\"）のとき、true を返す","status":"passed","testResultsByEnv":{"default":"084b2a9fd1ed31a10026b62009462f32"}}

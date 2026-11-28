@@ -1,0 +1,1 @@
+{"id":"bd10176e9f285dab56c881e732ca3b1c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#hasSummaryImage 空白 4 つの見出しは別の節の終わりにならないが Summary でもない の場合は、偽を返す","name":"空白 4 つの見出しは別の節の終わりにならないが Summary でもない の場合は、偽を返す","status":"passed","testResultsByEnv":{"default":"cbb8a0b48b7b75c0b6b9f8d12a55ffc3"}}

@@ -1,0 +1,1 @@
+{"id":"75ce78de55820630d611476d35769ba9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/patch-apply.test.ts#scanPatchDigests patches ディレクトリが存在しなければ、空の結果を返し、エラーにしない","name":"patches ディレクトリが存在しなければ、空の結果を返し、エラーにしない","status":"passed","testResultsByEnv":{"default":"ef2c2ec5adf0c4101da10ff4cc238b7f"}}

@@ -1,0 +1,1 @@
+{"id":"3975eb592d4a9e9fd1c4f952895a3da4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#removeAnimationTiming p:extLst の配下にある p:timing の場合は、削除せず残す","name":"p:extLst の配下にある p:timing の場合は、削除せず残す","status":"passed","testResultsByEnv":{"default":"fe5ed693ca1e7a957579e064ae41990f"}}

@@ -1,0 +1,1 @@
+{"id":"659b77fc2000208fd943a3393a93100e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-gate.test.ts#auto gate 読めないイベントと GitHub の失敗 Blocked の Issue の前提を判定できないと、前提を blocked とだけ書いて、proceed を偽にする","name":"Blocked の Issue の前提を判定できないと、前提を blocked とだけ書いて、proceed を偽にする","status":"passed","testResultsByEnv":{"default":"4e5a31e987faf9f233eda985a034c843"}}

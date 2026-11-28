@@ -1,0 +1,1 @@
+{"id":"14ea4ae3c853082c60559d4143d17fd7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool テーマの張り直しは node_modules の確認より前に行う (張り直しで復旧できる状態を拒まない)","name":"テーマの張り直しは node_modules の確認より前に行う (張り直しで復旧できる状態を拒まない)","status":"passed","testResultsByEnv":{"default":"bbad896ab1d1c7e95f4a330ea65d8d82"}}

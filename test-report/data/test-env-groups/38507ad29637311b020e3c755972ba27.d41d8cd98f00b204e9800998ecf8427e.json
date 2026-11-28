@@ -1,0 +1,1 @@
+{"id":"38507ad29637311b020e3c755972ba27.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#gitRunnerFor と resolveRepository（実 git） origin があるリポジトリでは、現在のリポジトリとして origin を解決する","name":"origin があるリポジトリでは、現在のリポジトリとして origin を解決する","status":"passed","testResultsByEnv":{"default":"c3cf447373b0540429231cb4c2b2a299"}}

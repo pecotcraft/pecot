@@ -1,0 +1,1 @@
+{"id":"4f625ae3e2cf11e0ee1c85a31100b5dd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/github-ops/project.test.ts#github ops project-fields に 既に存在する欄の create を渡すと、書き込まずに ok: false を返す","name":"project-fields に 既に存在する欄の create を渡すと、書き込まずに ok: false を返す","status":"passed","testResultsByEnv":{"default":"b49d1d12ebea3399e2bb4dea05593a2f"}}

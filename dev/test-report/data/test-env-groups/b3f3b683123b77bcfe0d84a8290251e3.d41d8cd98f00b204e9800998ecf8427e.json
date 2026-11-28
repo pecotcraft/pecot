@@ -1,0 +1,1 @@
+{"id":"b3f3b683123b77bcfe0d84a8290251e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と列 列を選択肢の ID で書くと、選択肢の名前に読み替えて problem の無い結果を返す","name":"列を選択肢の ID で書くと、選択肢の名前に読み替えて problem の無い結果を返す","status":"passed","testResultsByEnv":{"default":"00db4ce6792cac80306caa26caba1285"}}

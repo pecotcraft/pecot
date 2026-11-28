@@ -1,0 +1,1 @@
+{"id":"64e463ff9fceb6b60f8ebc8560f417c7.a8315669ce678589eee1a167ca125941","fullName":".githooks.tests.test_pages_release#test_build_rejects_malformed_report_sources","name":"リリース版の build は、レポートの材料の形が不正だと、dev-side の場合に終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"5d510a08d2c9fe7da089639a75b10f00"}}

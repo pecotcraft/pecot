@@ -1,0 +1,1 @@
+{"id":"e866d78ae41c38a516494fd6ff83f955.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#fullWidthEquivalent 全角と半角を含む文字列を渡すと、全角は 1、半角は 0.7 と数えて切り上げた値を返す","name":"全角と半角を含む文字列を渡すと、全角は 1、半角は 0.7 と数えて切り上げた値を返す","status":"passed","testResultsByEnv":{"default":"05310373c65f180e785605d740e8b9f6"}}

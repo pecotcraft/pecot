@@ -1,0 +1,1 @@
+{"id":"558928ce08554665cf817e4f29ca43a4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#REST の要求 リダイレクトは辿らず、そのまま返す。失敗として扱う","name":"リダイレクトは辿らず、そのまま返す。失敗として扱う","status":"passed","testResultsByEnv":{"default":"68c8e3627045be4dbce4eadc4631ba77"}}

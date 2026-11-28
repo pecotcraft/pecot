@@ -1,0 +1,2 @@
+[NG] /tmp/lint-design-wKDacf/warning.md: errors 0 / warnings 1 / infos 2
+  warning orphaned-tokens colors.ghost: 'ghost' is defined but never referenced by any component.

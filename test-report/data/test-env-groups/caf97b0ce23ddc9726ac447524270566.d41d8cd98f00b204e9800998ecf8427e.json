@@ -1,0 +1,1 @@
+{"id":"caf97b0ce23ddc9726ac447524270566.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#executeDrawioExport の結果 成功時は done の data に file と icons 数を載せる","name":"成功時は done の data に file と icons 数を載せる","status":"passed","testResultsByEnv":{"default":"297cef66b81b315668db2acc13d04554"}}

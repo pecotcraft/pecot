@@ -1,0 +1,1 @@
+{"id":"4eceb55f30d34ed765fb0f113817b606.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_github_ops_workflow_copy#test_workflow_is_a_copy_of_the_template","name":"github-ops のワークフローは、action の版を除いて雛形と一致する","status":"passed","testResultsByEnv":{"default":"38169afc0c83d303e011a0f4f852ba66"}}

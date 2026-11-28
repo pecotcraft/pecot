@@ -1,0 +1,1 @@
+{"id":"41583a3da79aa08d1c7f1df5215c8d8b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_deploy_passes_the_check_when_credentials_work","name":"認証情報が使えると、確認を通過して gh を呼び出す","status":"passed","testResultsByEnv":{"default":"d53555fd46b4f6f8f09eab293b9d1409"}}

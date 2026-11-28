@@ -1,0 +1,1 @@
+{"id":"f3ebd6add2d1650a8f26e5aec99dcb5c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-line-height-centering.test.ts#no-line-height-centering valid line-height だけで height が無いと、報告しない","name":"line-height だけで height が無いと、報告しない","status":"passed","testResultsByEnv":{"default":"241934f9d9df12581260f9d930d6b12c"}}

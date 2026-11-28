@@ -1,0 +1,1 @@
+{"id":"3d23bb0847faae891008dc9d9789854e.36e4ebe725cf2a32f8096dd903a8f5ce","fullName":".githooks.tests.test_run_affected_tests#test_nx_parallel_invalid_fails_before_nx","name":"`PECOT_NX_PARALLEL` が -1 のように正の整数でない場合は、nx を起動せずにエラーで終了する","status":"passed","testResultsByEnv":{"default":"4c151a61b62a23b278f214a4f824e98f"}}

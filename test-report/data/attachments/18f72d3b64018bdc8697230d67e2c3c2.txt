@@ -1,0 +1,1 @@
+{"event":"slide.convert.error","reason":"pptx-convert-timeout","detail":"pptx convert timed out: no progress for 100ms (elapsed 100ms, last progress: no progress (before the scan started))","warnings":[],"errors":[{"level":"slide","slideNumber":2,"message":"worker-failed"}]}

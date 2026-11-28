@@ -1,0 +1,1 @@
+{"id":"fcfe5c65c123fa19299ae8a0f08a1d4b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_cache_server#test_unwritable_store_is_500_not_409","name":"ストアに書き込めないと、PUT は 409 ではなく 500 を返す","status":"passed","testResultsByEnv":{"default":"5c62f7188eb894e79c9471198de709df"}}

@@ -1,0 +1,1 @@
+{"id":"2d0de814fa6350749f018f8efa85ac3d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_exclude_pages_store#test_excludes_pages_store_and_removes_tracking_ref","name":"exclude-pages-store.sh を実行すると、pages-store を取得の対象から外し、追跡する ref を削除する","status":"passed","testResultsByEnv":{"default":"85a3d7cbeb6ae803ef0dc84026423ac2"}}

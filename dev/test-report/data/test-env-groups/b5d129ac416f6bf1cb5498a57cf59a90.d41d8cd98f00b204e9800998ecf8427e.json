@@ -1,0 +1,1 @@
+{"id":"b5d129ac416f6bf1cb5498a57cf59a90.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/merge-hook-outputs.test.ts#merge-hook-outputs.sh 素のテキストと JSON が両方あるとき、JSON に畳み、トップレベルにも同じ連結結果を出す","name":"素のテキストと JSON が両方あるとき、JSON に畳み、トップレベルにも同じ連結結果を出す","status":"passed","testResultsByEnv":{"default":"ceb87ad61b495af2ee4b0cb2319e8f85"}}

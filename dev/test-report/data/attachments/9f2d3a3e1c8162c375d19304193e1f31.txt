@@ -1,0 +1,1 @@
+ERROR: config の `- id:` 3 件と `min_cx_emu:` 2 件が一致しない

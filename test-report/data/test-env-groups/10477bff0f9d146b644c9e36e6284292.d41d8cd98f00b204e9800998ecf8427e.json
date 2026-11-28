@@ -1,0 +1,1 @@
+{"id":"10477bff0f9d146b644c9e36e6284292.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine text と setText は、テキストだけの要素の値を取得し、書き換えられる","name":"text と setText は、テキストだけの要素の値を取得し、書き換えられる","status":"passed","testResultsByEnv":{"default":"90d338de675ba457d8180b64faf9bef7"}}

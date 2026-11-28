@@ -1,0 +1,1 @@
+{"id":"f5ec214063204438459eb637c9f33669.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 終端語が無い heredoc は何も飛ばさない のとき、引用符を含まない本文だけを切り出す","name":"終端語が無い heredoc は何も飛ばさない のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"5aa72d7ac4a7e32d2862bcbe02c88e06"}}

@@ -1,0 +1,1 @@
+{"id":"78938dda96af1d89f191c10c5083d8b5.cac26578991b2b6d9c503950efde7bab","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_targets_rejects_unknown_arguments","name":"`dev-targets.mjs` は、引数が ['--bogus'] のとき、エラーで終了する","status":"passed","testResultsByEnv":{"default":"f699c558517612e9ba2f35057db972c0"}}

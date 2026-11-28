@@ -1,0 +1,1 @@
+{"id":"36b16c64560221cf574cb1507d9aab49.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#`-` 始まりの値（research R3） 配列の要素の値が - で始まる場合も、invalid-input として拒否する","name":"配列の要素の値が - で始まる場合も、invalid-input として拒否する","status":"passed","testResultsByEnv":{"default":"e43ea579cd7218d03103799c738b029a"}}

@@ -1,0 +1,1 @@
+{"id":"b476551f9ad44c95fc0bafc290b3f883.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine selectNodes は、名前空間付きの XPath を解釈して該当するノードを返す","name":"selectNodes は、名前空間付きの XPath を解釈して該当するノードを返す","status":"passed","testResultsByEnv":{"default":"c46787b8c4facbbeb7174fb06ad55c1a"}}

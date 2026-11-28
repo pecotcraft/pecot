@@ -1,0 +1,1 @@
+{"id":"5269364394275915dbce389ded8ed66c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create file の形で head ブランチ名の末尾に番号があると、本文にその番号の Closes を足す","name":"file の形で head ブランチ名の末尾に番号があると、本文にその番号の Closes を足す","status":"passed","testResultsByEnv":{"default":"3b793cafacc91cf648dd1fa92509fef3"}}

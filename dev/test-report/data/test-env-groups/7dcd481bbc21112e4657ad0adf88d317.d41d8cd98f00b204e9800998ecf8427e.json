@@ -1,0 +1,1 @@
+{"id":"7dcd481bbc21112e4657ad0adf88d317.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh develop-aist ブランチで commit するとき、何も出力せず通す","name":"develop-aist ブランチで commit するとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"6521061581fcd1eea2f5bb7d2f687216"}}

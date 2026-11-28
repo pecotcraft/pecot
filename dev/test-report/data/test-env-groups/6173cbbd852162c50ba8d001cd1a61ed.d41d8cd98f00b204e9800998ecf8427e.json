@@ -1,0 +1,1 @@
+{"id":"6173cbbd852162c50ba8d001cd1a61ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/annotations.test.ts#effects against mcp.annotations 書き込む項目が 3 つのヒントのどれかを持たないと、持たないヒントごとの検証エラーを返す","name":"書き込む項目が 3 つのヒントのどれかを持たないと、持たないヒントごとの検証エラーを返す","status":"passed","testResultsByEnv":{"default":"0ad6e1bb51bc96773d34a37c82868b9b"}}

@@ -1,0 +1,1 @@
+{"id":"a6adf1dd0f714b6bbd8f91c6b8a4c54c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — skip 分類 存在しないファイルは、除外理由 not-found として除外する","name":"存在しないファイルは、除外理由 not-found として除外する","status":"passed","testResultsByEnv":{"default":"4ca80e25e31e2989599afa47bd8799bf"}}

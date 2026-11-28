@@ -1,0 +1,1 @@
+{"id":"74bd8a4c2c9eaccc1caae871fa47e5af.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#XML 名前空間を含む drawio XML の扱い 既定の名前空間を宣言した XML でも、mxCell の折り返し指定を判定する","name":"既定の名前空間を宣言した XML でも、mxCell の折り返し指定を判定する","status":"passed","testResultsByEnv":{"default":"fdf07746a8a92aec7ccd2cd335a4a1d2"}}

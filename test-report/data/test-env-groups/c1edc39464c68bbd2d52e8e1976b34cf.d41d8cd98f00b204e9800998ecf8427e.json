@@ -1,0 +1,1 @@
+{"id":"c1edc39464c68bbd2d52e8e1976b34cf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/sso-output.test.ts#parseSsoLoginOutput SSO の設定がないときの stderr からは、何も取り出さない","name":"SSO の設定がないときの stderr からは、何も取り出さない","status":"passed","testResultsByEnv":{"default":"8fd4a6825145dddd2983089985084da2"}}

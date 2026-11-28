@@ -1,0 +1,1 @@
+{"id":"0fa42f731ad79d1d6a9128a85007941a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/github-ops-workflow-template.test.ts#github-ops のワークフローの雛形 App の token を、ワークフローのリポの持ち主とリポに向け、操作ごとに要る権限だけに絞る","name":"App の token を、ワークフローのリポの持ち主とリポに向け、操作ごとに要る権限だけに絞る","status":"passed","testResultsByEnv":{"default":"18d64a0d80bdb96a8b51291f462d6f33"}}

@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: the body closes no Issue: add Closes #12 at the end, so that the merge closes the Issue of the branch"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"missing-closes\",\"message\":\"the body closes no Issue: add Closes #12 at the end, so that the merge closes the Issue of the branch\",\"candidates\":[\"Closes #12\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "missing-closes",
+        "message": "the body closes no Issue: add Closes #12 at the end, so that the merge closes the Issue of the branch",
+        "candidates": [
+          "Closes #12"
+        ]
+      }
+    ]
+  }
+}

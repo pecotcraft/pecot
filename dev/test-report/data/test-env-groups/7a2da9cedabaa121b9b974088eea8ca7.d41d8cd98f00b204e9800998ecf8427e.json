@@ -1,0 +1,1 @@
+{"id":"7a2da9cedabaa121b9b974088eea8ca7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) runtime_setup のパスを指定するパラメータに相対パスを渡すと、実際の処理の前に invalid-path で失敗する","name":"runtime_setup のパスを指定するパラメータに相対パスを渡すと、実際の処理の前に invalid-path で失敗する","status":"passed","testResultsByEnv":{"default":"45ee1f2864cdd7d48da92e4792db7509"}}

@@ -1,0 +1,1 @@
+{"id":"30ca9bbd52165ea0a5216d1283e0863f.c925ecfe56f2401e3236920ddb088080","fullName":".githooks.tests.test_pecot_open_rc#test_without_rc_sends_nothing","name":"pecot-open.sh に --rc を指定しないと、`pecot-rc.sh` を送らない","status":"passed","testResultsByEnv":{"default":"c2f8820e3686e89f9a6b6ead53ee7ad8"}}

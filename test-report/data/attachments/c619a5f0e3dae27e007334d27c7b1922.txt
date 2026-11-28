@@ -1,0 +1,24 @@
+warning: could not check Dependabot alerts. The release is not blocked.
+  reason: authentication error: could not get a GitHub API token
+error: could not check alerts: authentication error: could not get a GitHub API token
+  
+  /tmp/pecot-release-trSHQp/base/demo/.pecot/config/.env was generated. Set the token as follows:
+  
+  1. get a token: https://ghes.example.com/settings/tokens
+  
+  
+  2. edit /tmp/pecot-release-trSHQp/base/demo/.pecot/config/.env and set the token in PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN
+  
+  or authenticate with the GitHub CLI:
+     gh auth login -h ghes.example.com
+error: could not check alerts: authentication error: could not get a GitHub API token
+  
+  /tmp/pecot-release-trSHQp/base/demo/.pecot/config/.env was generated. Set the token as follows:
+  
+  1. get a token: https://ghes.example.com/settings/tokens
+  
+  
+  2. edit /tmp/pecot-release-trSHQp/base/demo/.pecot/config/.env and set the token in PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN
+  
+  or authenticate with the GitHub CLI:
+     gh auth login -h ghes.example.com

@@ -1,0 +1,1 @@
+{"id":"5180078a3de2a7965449dabe5c04ddf3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: Python バックスラッシュと改行で続く文字列は、行ごとに数える","name":"バックスラッシュと改行で続く文字列は、行ごとに数える","status":"passed","testResultsByEnv":{"default":"653a0ba29c566b80006551a54446ebb0"}}

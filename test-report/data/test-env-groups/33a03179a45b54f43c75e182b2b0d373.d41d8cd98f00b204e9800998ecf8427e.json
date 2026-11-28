@@ -1,0 +1,1 @@
+{"id":"33a03179a45b54f43c75e182b2b0d373.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/domain/tests/issue-surface.test.ts#hasIssueSurfaceDifference 消えた id だけ なら true を返す","name":"消えた id だけ なら true を返す","status":"passed","testResultsByEnv":{"default":"724878dae9a51639792de3b928af72ac"}}

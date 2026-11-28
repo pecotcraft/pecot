@@ -1,0 +1,1 @@
+{"id":"bad6dd08b6c401c0bae1a422659eb54a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/executor.test.ts#createBoundedExecutor 上限を 1 にしたときは、投入した順に実行する","name":"上限を 1 にしたときは、投入した順に実行する","status":"passed","testResultsByEnv":{"default":"7a0aa1e734ac98ab8851af830698cf4d"}}

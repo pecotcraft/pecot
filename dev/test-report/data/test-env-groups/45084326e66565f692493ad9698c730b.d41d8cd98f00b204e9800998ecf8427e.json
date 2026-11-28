@@ -1,0 +1,1 @@
+{"id":"45084326e66565f692493ad9698c730b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main の除外 --commit-msg を付けると、除外の判定を作らずに、メッセージのファイルを調べる","name":"--commit-msg を付けると、除外の判定を作らずに、メッセージのファイルを調べる","status":"passed","testResultsByEnv":{"default":"80f0c5a73769bdd1dda4a8ac8dc08dfd"}}

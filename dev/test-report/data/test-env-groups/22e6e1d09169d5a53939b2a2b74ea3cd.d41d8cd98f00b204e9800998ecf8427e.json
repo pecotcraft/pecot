@@ -1,0 +1,1 @@
+{"id":"22e6e1d09169d5a53939b2a2b74ea3cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-policy.test.ts#不一致 warn モードでは、不一致のときに警告を出し、指定したリポジトリを採用して続行する","name":"warn モードでは、不一致のときに警告を出し、指定したリポジトリを採用して続行する","status":"passed","testResultsByEnv":{"default":"e2f6572f510c5120e1bddf1f0a9fcf95"}}

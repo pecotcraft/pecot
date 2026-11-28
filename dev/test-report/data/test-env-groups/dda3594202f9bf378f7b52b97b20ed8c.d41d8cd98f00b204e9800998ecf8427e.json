@@ -1,0 +1,1 @@
+{"id":"dda3594202f9bf378f7b52b97b20ed8c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: Python 代入した文字列に違反があると、元のファイルの行と桁で指摘を返す","name":"代入した文字列に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"470d1b925b149ba9a9021966e5216006"}}

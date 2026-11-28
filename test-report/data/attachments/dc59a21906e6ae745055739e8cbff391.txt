@@ -1,0 +1,7 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_explains_rejects_bad_valu0/suite/sample.bats
+1..1
+not ok 1 不正な説明 # in 77 ms
+# (from function `explains' in file .githooks/scripts/test_report/bats/pecot-bats/load.bash, line 12,
+#  in test file suite/sample.bats, line 6)
+#   `explains ""' failed
+# explains: 空でなく改行の無い説明を 1 つ渡してください

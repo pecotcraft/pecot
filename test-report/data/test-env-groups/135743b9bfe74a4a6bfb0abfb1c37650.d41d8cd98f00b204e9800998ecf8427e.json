@@ -1,0 +1,1 @@
+{"id":"135743b9bfe74a4a6bfb0abfb1c37650.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#evidenceCreateDefaultDependencies 既定の依存は、標準出力・標準エラー・書き出し関数・文面の確認器に実物を接続する","name":"既定の依存は、標準出力・標準エラー・書き出し関数・文面の確認器に実物を接続する","status":"passed","testResultsByEnv":{"default":"c6cc13437b34f1c979500dbf0e5d6ab0"}}

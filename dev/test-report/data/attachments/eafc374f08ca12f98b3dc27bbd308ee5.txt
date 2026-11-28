@@ -1,0 +1,3 @@
+モード: 通常（nx affected -t test-cli,test-hooks,test-unit --base=91c7a855bc65b67d40c26b570403a29b37f391ef --head=91c7a855bc65b67d40c26b570403a29b37f391ef）
+ERROR: nx の task graph を取れませんでした。
+       tasks boom

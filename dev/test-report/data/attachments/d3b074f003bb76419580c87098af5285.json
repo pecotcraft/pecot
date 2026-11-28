@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-visual",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "Output validation error: Invalid structured content for tool slide_lint: data must have required property 'event', data must have required property 'dir', data must have required property 'outcome', data must have required property 'lintedFileCount', data must have required property 'errorCount', data must have required property 'warningCount', data must have required property 'violations', data must have required property 'skippedSymlinkDirectories', data must have required property 'detail', data must match a schema in anyOf, data/kind must be string"
+    }
+  ],
+  "isError": true
+}

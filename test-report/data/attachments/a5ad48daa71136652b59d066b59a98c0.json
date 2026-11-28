@@ -1,0 +1,43 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pecot-status field is missing options: Pending, Ready, Active, In Review, Archived\n  required options: Backlog / Pending / Ready / Active / In Review / Archived"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"not-initialized\",\"detail\":\"pecot-status field is missing options: Pending, Ready, Active, In Review, Archived\\n  required options: Backlog / Pending / Ready / Active / In Review / Archived\",\"number\":1,\"url\":\"https://ghes.example.com/users/acme/projects/1\",\"title\":\"board\",\"owner\":\"acme\",\"fields\":[{\"name\":\"pecot-status\",\"change\":\"create\",\"addedOptions\":[]},{\"name\":\"pecot-lane\",\"change\":\"skip\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"update\",\"addedOptions\":[\"Needs Attention\"]}],\"warnings\":[\"field pecot-lane was not created because no lanes were given\\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "not-initialized",
+    "detail": "pecot-status field is missing options: Pending, Ready, Active, In Review, Archived\n  required options: Backlog / Pending / Ready / Active / In Review / Archived",
+    "number": 1,
+    "url": "https://ghes.example.com/users/acme/projects/1",
+    "title": "board",
+    "owner": "acme",
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "create",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "skip",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "update",
+        "addedOptions": [
+          "Needs Attention"
+        ]
+      }
+    ],
+    "warnings": [
+      "field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes"
+    ]
+  },
+  "isError": true
+}

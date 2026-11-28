@@ -1,0 +1,1 @@
+{"id":"856a1ffb96488871a39e6c3160192887.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/frontmatter-file.test.ts#parsePullRequestFile PR のファイルを読むと、frontmatter と本文を返す","name":"PR のファイルを読むと、frontmatter と本文を返す","status":"passed","testResultsByEnv":{"default":"1188b649e740b3c1f6058ab91b16fd21"}}

@@ -1,0 +1,1 @@
+{"id":"5d55c1452ff4f395fcba0938e22da624.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#runtimeInstallStamp catalog: を含む manifest でも例外を送出せず、範囲指定の manifest とは異なる印にする","name":"catalog: を含む manifest でも例外を送出せず、範囲指定の manifest とは異なる印にする","status":"passed","testResultsByEnv":{"default":"ead503ea3e07ef55c90355e0d5d43744"}}

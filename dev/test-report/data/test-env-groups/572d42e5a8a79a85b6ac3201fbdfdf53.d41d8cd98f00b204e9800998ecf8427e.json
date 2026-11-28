@@ -1,0 +1,1 @@
+{"id":"572d42e5a8a79a85b6ac3201fbdfdf53.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け 間隔が 0 だと、gh を呼ばずに終了コード 1 で止まる","name":"間隔が 0 だと、gh を呼ばずに終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"de7f0d5c6b0801c2d752278a72536c28"}}

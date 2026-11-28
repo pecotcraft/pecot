@@ -1,0 +1,1 @@
+{"id":"cba5a3dfcf2fda4a2d247947dc05580b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の状態 merge queue に入っていれば、待っている PR に含めない","name":"merge queue に入っていれば、待っている PR に含めない","status":"passed","testResultsByEnv":{"default":"2bdd5c121d416a34bb789b4c75522fae"}}

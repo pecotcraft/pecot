@@ -1,0 +1,1 @@
+{"id":"ec76ed2c56e994cce1213406cbe77ab2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree 記録した名前を渡すと、機能ブランチに移した path 指定の worktree と wt1 ブランチを削除する","name":"記録した名前を渡すと、機能ブランチに移した path 指定の worktree と wt1 ブランチを削除する","status":"passed","testResultsByEnv":{"default":"3d6e060a23e4416dbaf181c1b408bc3b"}}

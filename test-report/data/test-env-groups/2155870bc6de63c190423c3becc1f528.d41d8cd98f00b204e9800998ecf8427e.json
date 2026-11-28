@@ -1,0 +1,1 @@
+{"id":"2155870bc6de63c190423c3becc1f528.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/tests/version.test.ts#loadVersionFromPluginJson JSON として読めないファイルなら、undefined を返す","name":"JSON として読めないファイルなら、undefined を返す","status":"passed","testResultsByEnv":{"default":"dafc49bd2a160e3f7fc0312aeda48368"}}

@@ -1,0 +1,1 @@
+{"id":"fda0b43737ea43621aef7b4159ac7682.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#validatePullRequestContent スタックの記録の base が開発ブランチと同じ場合は、従来と同じ文でエラーにする","name":"スタックの記録の base が開発ブランチと同じ場合は、従来と同じ文でエラーにする","status":"passed","testResultsByEnv":{"default":"4d1b65dc77b7244fa3843eb026f89fa5"}}

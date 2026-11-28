@@ -1,0 +1,1 @@
+{"id":"4b39f5fcda2533af78fc562d693409a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/work-start.test.ts#inferStackedBase 判定が stackable でも、HEAD が親ブランチの変更を持たないと、開発ブランチからの着手として返す","name":"判定が stackable でも、HEAD が親ブランチの変更を持たないと、開発ブランチからの着手として返す","status":"passed","testResultsByEnv":{"default":"d45995764dea4f1d389c36e14eb76a1f"}}

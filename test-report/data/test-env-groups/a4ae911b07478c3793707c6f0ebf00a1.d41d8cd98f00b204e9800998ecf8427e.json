@@ -1,0 +1,1 @@
+{"id":"a4ae911b07478c3793707c6f0ebf00a1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#runSlideConvert のキャンセル (#1228) pipeline がキャンセルに間に合わず完了した場合も、PPTX を書き出さない","name":"pipeline がキャンセルに間に合わず完了した場合も、PPTX を書き出さない","status":"passed","testResultsByEnv":{"default":"cd7ae2a9029dbad21385e2fb6ced9bca"}}

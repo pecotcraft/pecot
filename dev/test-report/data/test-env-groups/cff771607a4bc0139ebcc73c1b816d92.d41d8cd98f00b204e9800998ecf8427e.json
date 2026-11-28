@@ -1,0 +1,1 @@
+{"id":"cff771607a4bc0139ebcc73c1b816d92.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check 設定と入力の誤り reads.pull_request が公式の MCP の結果の形でないと、github-mcp-shape の失敗を返す","name":"reads.pull_request が公式の MCP の結果の形でないと、github-mcp-shape の失敗を返す","status":"passed","testResultsByEnv":{"default":"1a973195456a04459f7b00b502bee2c3"}}

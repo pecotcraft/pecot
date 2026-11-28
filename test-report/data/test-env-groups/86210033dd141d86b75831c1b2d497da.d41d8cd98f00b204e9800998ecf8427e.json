@@ -1,0 +1,1 @@
+{"id":"86210033dd141d86b75831c1b2d497da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts object / UserObject に包まれたセル (F-04) object で包んだセルの書体が宣言どおりなら、警告を返さない","name":"object で包んだセルの書体が宣言どおりなら、警告を返さない","status":"passed","testResultsByEnv":{"default":"4ac1bc3fc09d3b063caae29e56dd7ad9"}}

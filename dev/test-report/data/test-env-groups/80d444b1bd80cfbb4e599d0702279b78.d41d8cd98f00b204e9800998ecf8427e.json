@@ -1,0 +1,1 @@
+{"id":"80d444b1bd80cfbb4e599d0702279b78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け gh が 1 回失敗しても、状態を取得し直して続ける","name":"gh が 1 回失敗しても、状態を取得し直して続ける","status":"passed","testResultsByEnv":{"default":"f4eb011da2aea6b1f1aa80dfcd89cd84"}}

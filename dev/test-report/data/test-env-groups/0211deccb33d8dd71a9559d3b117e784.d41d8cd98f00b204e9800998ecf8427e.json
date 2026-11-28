@@ -1,0 +1,1 @@
+{"id":"0211deccb33d8dd71a9559d3b117e784.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings コメントの中の引用符は読まない のとき、引用符を含まない本文だけを切り出す","name":"コメントの中の引用符は読まない のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"37c52415c2b9616b6dc09842151f6093"}}

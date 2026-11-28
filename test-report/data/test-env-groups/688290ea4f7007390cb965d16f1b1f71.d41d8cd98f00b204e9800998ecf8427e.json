@@ -1,0 +1,1 @@
+{"id":"688290ea4f7007390cb965d16f1b1f71.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#開発ツリーの workspace root packages から除外されたルートは、その workspace を使わず、undefined を返す","name":"packages から除外されたルートは、その workspace を使わず、undefined を返す","status":"passed","testResultsByEnv":{"default":"8d0f134bd6d602114564c8c6bb8d9e98"}}

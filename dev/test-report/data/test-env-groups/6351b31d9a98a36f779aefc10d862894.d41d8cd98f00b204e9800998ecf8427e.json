@@ -1,0 +1,1 @@
+{"id":"6351b31d9a98a36f779aefc10d862894.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_pr_changes_only_its_dir_and_record_and_drops_closed_prs","name":"PR 版の保管は、その PR のディレクトリと記録だけを変え、開いていない PR のディレクトリを消す","status":"passed","testResultsByEnv":{"default":"8ceccc40c0b58899a484f5d9793364f6"}}

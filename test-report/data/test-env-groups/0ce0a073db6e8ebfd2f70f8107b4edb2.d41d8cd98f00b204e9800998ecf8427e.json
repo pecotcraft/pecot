@@ -1,0 +1,1 @@
+{"id":"0ce0a073db6e8ebfd2f70f8107b4edb2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestSlim 基本の項目を snake_case で返し、本文の Refs を referenced_issues に含める","name":"基本の項目を snake_case で返し、本文の Refs を referenced_issues に含める","status":"passed","testResultsByEnv":{"default":"e28ff492d3c5513d93098db99dc1f0bd"}}

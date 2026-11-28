@@ -1,0 +1,1 @@
+{"id":"3b7e9884cdb42994697ee10cfc73ea78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#ensureAwscli 版が 2.22 未満のときは、awscli-missing と判定する","name":"版が 2.22 未満のときは、awscli-missing と判定する","status":"passed","testResultsByEnv":{"default":"bee60d95968a218f8fbd45994a6614d4"}}

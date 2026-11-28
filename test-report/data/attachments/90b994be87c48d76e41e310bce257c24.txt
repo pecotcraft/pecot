@@ -1,0 +1,6 @@
+graph --file=/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_stack_overlap_remains0/repo/.pecot/tmp/nx-lanes.G14BrC/graph.json
+ENV NO_COLOR=1 LEGACY=unset
+affected -t test-cli,test-hooks,test-unit --base=88115018eb3a2ab3053b95244c61969561d5b86b --head=b1f1c57e5275dbd54ec6c62973fd770a52523282 --graph=/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_stack_overlap_remains0/repo/.pecot/tmp/list-test-lanes.B19w81/tasks-graph-pr.json
+ENV NO_COLOR=1 LEGACY=unset
+affected -t test-cli,test-hooks,test-unit --base=95ae744938d812115d14042d7502d73913e8d934 --head=88115018eb3a2ab3053b95244c61969561d5b86b --graph=/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_stack_overlap_remains0/repo/.pecot/tmp/list-test-lanes.B19w81/tasks-graph-main.json
+ENV NO_COLOR=1 LEGACY=unset

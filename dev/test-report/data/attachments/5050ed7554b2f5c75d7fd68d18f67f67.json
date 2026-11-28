@@ -1,0 +1,14 @@
+[
+  "interface-spec:test-site",
+  "interface-spec:test-unit",
+  "nx-release:test-unit",
+  "pecot-actions:test-unit",
+  "pecot-tools:test-cli",
+  "pecot-visual:test-cli",
+  "pecot-visual:test-slidev",
+  "pecot-workflow:test-cli",
+  "pecot-workflow:test-hooks",
+  "pecot-workflow:test-skills",
+  "text-rules:test-unit",
+  "workflow-core:test-unit"
+]

@@ -1,0 +1,8 @@
+:iface-id: PV-SLIDE-PAGE
+:iface-plugin: pecot-visual
+:iface-kind: MCP
+
+Create Slidev page
+====================================
+
+.. iface-defs:: pecot-visual PV-SLIDE-PAGE

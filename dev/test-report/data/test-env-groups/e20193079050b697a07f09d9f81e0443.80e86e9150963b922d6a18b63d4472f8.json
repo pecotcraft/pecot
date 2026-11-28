@@ -1,0 +1,1 @@
+{"id":"e20193079050b697a07f09d9f81e0443.80e86e9150963b922d6a18b63d4472f8","fullName":".githooks.tests.test_nx_env_inputs#test_scan_counts_default_expansion_even_when_the_file_assigns_the_variable","name":"代入があっても、既定値つきの展開（:-）は外の値の読み取りとして数える","status":"passed","testResultsByEnv":{"default":"178ef4265f2860176abbaa9d1682f3ce"}}

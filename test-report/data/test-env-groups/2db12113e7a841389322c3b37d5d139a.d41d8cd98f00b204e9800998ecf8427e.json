@@ -1,0 +1,1 @@
+{"id":"2db12113e7a841389322c3b37d5d139a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create head が :feat/demo/12 のように owner かブランチ名を欠くと、終了コード 1 で止まる","name":"head が :feat/demo/12 のように owner かブランチ名を欠くと、終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"e0a3b2bec1aa98abf980468f3cc7aa85"}}

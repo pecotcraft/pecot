@@ -1,0 +1,1 @@
+{"id":"ba0dfd8f241c2f0bd7d1dbe3bd13baec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#リストの記号で始まる行 コメントを調べる plugin だけで処理する .ts のコメントでも、箇条書きを項目ごとに数える","name":"コメントを調べる plugin だけで処理する .ts のコメントでも、箇条書きを項目ごとに数える","status":"passed","testResultsByEnv":{"default":"e3cef289b9c6b94ac08a5f5e887f696b"}}

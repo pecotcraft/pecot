@@ -1,0 +1,1 @@
+{"id":"ba03ffb107436dbf21d916b2abc6733b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_remove 渡した名前の worktree が無いと、worktree not found の文を detail に入れて失敗を返す","name":"渡した名前の worktree が無いと、worktree not found の文を detail に入れて失敗を返す","status":"passed","testResultsByEnv":{"default":"159e946c5a2bcbbe359ab44cb0af1010"}}

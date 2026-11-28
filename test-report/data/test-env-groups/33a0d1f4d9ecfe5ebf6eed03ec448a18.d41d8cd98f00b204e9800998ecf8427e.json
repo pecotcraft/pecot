@@ -1,0 +1,1 @@
+{"id":"33a0d1f4d9ecfe5ebf6eed03ec448a18.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getWorktreeList git が失敗すれば空（git リポジトリの外）","name":"git が失敗すれば空（git リポジトリの外）","status":"passed","testResultsByEnv":{"default":"72c6e7cff6ad0cdc25b64b61878a8ac2"}}

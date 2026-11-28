@@ -1,0 +1,1 @@
+{"id":"beffd7c6939bf568bf076527cb704c5e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/semantic-validator.test.ts#semantic-validator text-constraints/bold-required 例の文に <strong> があると、エラーを返さない","name":"例の文に <strong> があると、エラーを返さない","status":"passed","testResultsByEnv":{"default":"5ffe4f9bc59c7d58e008ea863a37c8cc"}}

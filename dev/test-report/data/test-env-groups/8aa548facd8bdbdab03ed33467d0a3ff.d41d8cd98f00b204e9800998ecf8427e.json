@@ -1,0 +1,1 @@
+{"id":"8aa548facd8bdbdab03ed33467d0a3ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry profile を指定してログインを開始すると、--profile=値 の 1 つの引数で awscli に渡す","name":"profile を指定してログインを開始すると、--profile=値 の 1 つの引数で awscli に渡す","status":"passed","testResultsByEnv":{"default":"dd6da5f6a2a629ba73eb7b2cd9af11d1"}}

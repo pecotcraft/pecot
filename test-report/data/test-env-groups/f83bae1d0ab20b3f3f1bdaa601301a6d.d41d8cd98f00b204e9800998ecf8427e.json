@@ -1,0 +1,1 @@
+{"id":"f83bae1d0ab20b3f3f1bdaa601301a6d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create template が default でも release でもないと、終了コード 1 で終わる","name":"template が default でも release でもないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"1e9ccf11ff74509dbc9773837a1cae5e"}}

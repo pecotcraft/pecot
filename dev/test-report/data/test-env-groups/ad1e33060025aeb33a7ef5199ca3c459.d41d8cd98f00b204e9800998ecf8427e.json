@@ -1,0 +1,1 @@
+{"id":"ad1e33060025aeb33a7ef5199ca3c459.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: chromium Chromium の取得がタイムアウトすると、理由に download timed out を含める","name":"Chromium の取得がタイムアウトすると、理由に download timed out を含める","status":"passed","testResultsByEnv":{"default":"0344ec448d6bfa127b9fcd9105a66f87"}}

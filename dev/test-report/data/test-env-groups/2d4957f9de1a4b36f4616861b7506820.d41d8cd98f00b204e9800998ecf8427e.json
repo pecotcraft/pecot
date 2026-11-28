@@ -1,0 +1,1 @@
+{"id":"2d4957f9de1a4b36f4616861b7506820.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-pr の手順 Step 4 と Step 6 は、background の待ちが終わったら、w-pr を resume で呼び直させる","name":"Step 4 と Step 6 は、background の待ちが終わったら、w-pr を resume で呼び直させる","status":"passed","testResultsByEnv":{"default":"a36f2a6b48ea069dfe8ed75bfd7866a8"}}

@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: worktree wt1 at /tmp/pecot-cli-Rk8xZX/workspaces/wt1/demo (branch wt1 from develop)"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt1\",\"path\":\"/tmp/pecot-cli-Rk8xZX/workspaces/wt1/demo\",\"branch\":\"wt1\",\"base\":\"develop\",\"setupFailed\":false,\"warnings\":[\"copy /tmp/pecot-cli-Rk8xZX/workspaces/base/demo/.env.local: [Errno 13] Permission denied: '/tmp/pecot-cli-Rk8xZX/workspaces/base/demo/.env.local' -> '/tmp/pecot-cli-Rk8xZX/workspaces/wt1/demo/.env.local'\"]}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt1",
+    "path": "/tmp/pecot-cli-Rk8xZX/workspaces/wt1/demo",
+    "branch": "wt1",
+    "base": "develop",
+    "setupFailed": false,
+    "warnings": [
+      "copy /tmp/pecot-cli-Rk8xZX/workspaces/base/demo/.env.local: [Errno 13] Permission denied: '/tmp/pecot-cli-Rk8xZX/workspaces/base/demo/.env.local' -> '/tmp/pecot-cli-Rk8xZX/workspaces/wt1/demo/.env.local'"
+    ]
+  }
+}

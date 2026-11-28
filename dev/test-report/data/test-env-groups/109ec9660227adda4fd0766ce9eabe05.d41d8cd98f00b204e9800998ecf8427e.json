@@ -1,0 +1,1 @@
+{"id":"109ec9660227adda4fd0766ce9eabe05.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/references.test.ts#resolveLayoutReferences talk-dir に references/ が存在しない場合は、テーマの宣言をそのまま一覧にする","name":"talk-dir に references/ が存在しない場合は、テーマの宣言をそのまま一覧にする","status":"passed","testResultsByEnv":{"default":"24c53b3e6e773f8d37adac471aa111e4"}}

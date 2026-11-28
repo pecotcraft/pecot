@@ -1,0 +1,1 @@
+{"id":"3193fe4e2d4869ff7f303bee7b479d5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create もし GitHub のトークンが見つからないなら、error の行を標準エラーに出し、終了コード 1 で終わる","name":"もし GitHub のトークンが見つからないなら、error の行を標準エラーに出し、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"ac5c7aaa3ae51d015a4559e4ea1663ac"}}

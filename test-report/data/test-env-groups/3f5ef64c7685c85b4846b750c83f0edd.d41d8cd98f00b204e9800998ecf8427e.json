@@ -1,0 +1,1 @@
+{"id":"3f5ef64c7685c85b4846b750c83f0edd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/pnpm.test.ts#resolvePnpmCommand packageManager を読み取れなければ、定数の既定の版を使う","name":"packageManager を読み取れなければ、定数の既定の版を使う","status":"passed","testResultsByEnv":{"default":"519bbfa0d8756a1784e42229ff10568d"}}

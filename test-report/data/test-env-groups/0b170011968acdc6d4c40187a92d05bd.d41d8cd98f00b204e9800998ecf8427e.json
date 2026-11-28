@@ -1,0 +1,1 @@
+{"id":"0b170011968acdc6d4c40187a92d05bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/server.test.ts#createMcpServer の progress ハートビート ツールの呼び出しより先にキャンセルが届いたときは、progress の通知を 1 回も送らない [legacy]","name":"ツールの呼び出しより先にキャンセルが届いたときは、progress の通知を 1 回も送らない [legacy]","status":"passed","testResultsByEnv":{"default":"850f01547770f03f70b8c509ef44faee"}}

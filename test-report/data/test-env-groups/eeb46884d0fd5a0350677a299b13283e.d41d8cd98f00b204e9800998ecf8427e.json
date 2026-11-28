@@ -1,0 +1,1 @@
+{"id":"eeb46884d0fd5a0350677a299b13283e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#resolveDependency プラグイン側にパッケージが存在しなければ、永続層から解決する","name":"プラグイン側にパッケージが存在しなければ、永続層から解決する","status":"passed","testResultsByEnv":{"default":"7d1ab15aa21b90a7524f4bf67965c493"}}

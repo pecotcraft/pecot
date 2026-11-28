@@ -1,0 +1,1 @@
+{"id":"abe285a6378b616f081eaaed8d83a92b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx signal が中断済みの場合は、ブラウザとサーバーを起動せずに失敗する","name":"signal が中断済みの場合は、ブラウザとサーバーを起動せずに失敗する","status":"passed","testResultsByEnv":{"default":"aa7e16398263cece00e54b95ec88debd"}}

@@ -1,0 +1,1 @@
+{"id":"3e83c03a79cc4bbef437c59b6c910ee2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#loadCopyExcludeSpec 否定パターンで除外から外したパスは対象にせず、それ以外は除外の対象にする","name":"否定パターンで除外から外したパスは対象にせず、それ以外は除外の対象にする","status":"passed","testResultsByEnv":{"default":"70017898dbe30a38c2c1169aa7d4e7e0"}}

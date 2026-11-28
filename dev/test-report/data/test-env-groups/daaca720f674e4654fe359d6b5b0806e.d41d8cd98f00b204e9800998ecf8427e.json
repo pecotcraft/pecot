@@ -1,0 +1,1 @@
+{"id":"daaca720f674e4654fe359d6b5b0806e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/sso-output.test.ts#parseSsoLoginOutput 空文字を渡すと、undefined を返す","name":"空文字を渡すと、undefined を返す","status":"passed","testResultsByEnv":{"default":"c5c78e411b7c59544657787fec7e1f9a"}}

@@ -1,0 +1,1 @@
+{"id":"22aa9d682c9c56b71724245d6c06e80d.20b9b37c1daba09a494e7d1dd40b8c39","fullName":".githooks.tests.test_report_workflow#test_side_decides_side_and_site_url","name":"push で側の入力が  のとき、側を dev に、サイトの URL を https://pecotcraft.github.io/pecot/dev/ に決める","status":"passed","testResultsByEnv":{"default":"1f9df04ee2069be317a98a938fd15d7b"}}

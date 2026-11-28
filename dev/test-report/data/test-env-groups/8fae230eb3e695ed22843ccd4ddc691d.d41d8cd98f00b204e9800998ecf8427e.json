@@ -1,0 +1,1 @@
+{"id":"8fae230eb3e695ed22843ccd4ddc691d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/allowlist.test.ts#ALLOWLIST JSON 出力を持たないツールは、高レベル s3 コマンドの aws_s3_ls だけになる","name":"JSON 出力を持たないツールは、高レベル s3 コマンドの aws_s3_ls だけになる","status":"passed","testResultsByEnv":{"default":"f0fadd120351a2d1e8181694bfafc7b6"}}

@@ -1,0 +1,1 @@
+{"id":"d1081bdca3234e7f085f3920f7c3a4ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#素の URL の Link ノード シェルのコメント に含まれる URL は、文の長さに含めない","name":"シェルのコメント に含まれる URL は、文の長さに含めない","status":"passed","testResultsByEnv":{"default":"21e28c92dac575c089feacd463502c57"}}

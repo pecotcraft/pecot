@@ -1,0 +1,1 @@
+{"id":"1ebd592aa0a048b33996e98d18b1ed80.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish 対象のリポを含む設定が無いなら、error を出して終了コード 1 で終わる","name":"対象のリポを含む設定が無いなら、error を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"cee108bbd391cba1ce70738c98c3bcf3"}}

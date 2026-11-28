@@ -1,0 +1,4 @@
+ずれは 1 件
+board-fields / pecot-lane
+  このリポ: {"dataType":"SINGLE_SELECT","options":[{"name":"pecot-workflow"},{"name":"pecot-visual"},{"name":"pecot-tools"},{"name":"repo"}]}
+  検証用: {"dataType":"SINGLE_SELECT","options":[{"name":"repo"},{"name":"pecot-tools"},{"name":"pecot-visual"},{"name":"pecot-workflow"}]}

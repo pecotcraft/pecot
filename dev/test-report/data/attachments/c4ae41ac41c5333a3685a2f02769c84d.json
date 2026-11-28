@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "params.name: the release name must be pkg-a v0.2.0"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"params.name\",\"code\":\"release-name\",\"message\":\"the release name must be pkg-a v0.2.0\",\"candidates\":[\"pkg-a v0.2.0\"]}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "params.name",
+        "code": "release-name",
+        "message": "the release name must be pkg-a v0.2.0",
+        "candidates": [
+          "pkg-a v0.2.0"
+        ]
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  }
+}

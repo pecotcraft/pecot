@@ -1,0 +1,1 @@
+{"id":"ede661b8fcc0c3c08a5c4b2dd516129c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/work-start.test.ts#inferStackedBase 判定が blocked のときは、判定の文を理由に返す","name":"判定が blocked のときは、判定の文を理由に返す","status":"passed","testResultsByEnv":{"default":"1aa945f3cf2af88e38654c512dcf391a"}}

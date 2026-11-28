@@ -1,0 +1,1 @@
+{"event":"slide.convert.error","reason":"invalid-theme","detail":"theme accepts only [a-zA-Z0-9@/_.-]: $(rm -rf /)","warnings":[],"errors":[]}

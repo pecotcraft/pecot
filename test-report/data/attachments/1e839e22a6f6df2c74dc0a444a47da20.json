@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "cannot read repository info from the remote URL\n  check it with: git remote -v"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\"cannot read repository info from the remote URL\\n  check it with: git remote -v\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": "cannot read repository info from the remote URL\n  check it with: git remote -v"
+  },
+  "isError": true
+}

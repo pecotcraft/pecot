@@ -1,0 +1,1 @@
+{"id":"53b6da2d05d365c24dd2aafe7dfdcf7e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#exportEntries の失敗と refine 表に無い pattern は、ツールと引数の名前を付けて止める","name":"表に無い pattern は、ツールと引数の名前を付けて止める","status":"passed","testResultsByEnv":{"default":"2f2cbbd14ed397d266814c3c97b966ab"}}

@@ -1,0 +1,1 @@
+{"id":"668dd1d338faf06c1081a738eb35e129.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/handoff-workflow-template.test.ts#handoff のワークフローの雛形 許可するツールは、PR と Issue を読むものとコメントの投稿だけになる","name":"許可するツールは、PR と Issue を読むものとコメントの投稿だけになる","status":"passed","testResultsByEnv":{"default":"2fa338d0a4b7b09f9742d7fe45708b61"}}

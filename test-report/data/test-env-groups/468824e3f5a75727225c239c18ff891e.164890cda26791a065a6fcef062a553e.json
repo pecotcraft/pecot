@@ -1,0 +1,1 @@
+{"id":"468824e3f5a75727225c239c18ff891e.164890cda26791a065a6fcef062a553e","fullName":".githooks.tests.test_pages_provenance#test_path_head_repository_and_conclusion_must_match","name":"push の run は、path・head のリポジトリ・結論のいずれかが条件に合わないと、{'conclusion': None} の場合に破棄する","status":"passed","testResultsByEnv":{"default":"58f51105433529baaf27489a356ac1d4"}}

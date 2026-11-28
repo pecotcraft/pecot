@@ -1,0 +1,8 @@
+skipped: field pecot-status (already exists)
+skipped: field pecot-lane (no lanes given)
+warning: field pecot-lane was not created because no lanes were given
+  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes
+unchanged: option Blocked in field pecot-status
+skipped: field Status (not found)
+error: could not sync project config: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:41983/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500

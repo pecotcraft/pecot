@@ -1,0 +1,1 @@
+{"id":"e1e1f0ce35a3935578ec0b327707d9e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/runtime-commands.test.ts#本文が呼ぶ実行環境 スキル・エージェント・hooks のテンプレートの本文に python の語が含まれない","name":"スキル・エージェント・hooks のテンプレートの本文に python の語が含まれない","status":"passed","testResultsByEnv":{"default":"8605a8c1937745bfdbee1b858f81ba3b"}}

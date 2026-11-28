@@ -1,0 +1,1 @@
+{"id":"7c3f7fe36126bfb50a6f4daf1f4b1b73.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#captureCommandOutput 標準出力と標準エラー出力がどちらも上限を超えても、log の切り詰めの表示は冒頭の 1 つだけにする","name":"標準出力と標準エラー出力がどちらも上限を超えても、log の切り詰めの表示は冒頭の 1 つだけにする","status":"passed","testResultsByEnv":{"default":"d4470a49b70ce8b04b11ea6c4aa0d983"}}

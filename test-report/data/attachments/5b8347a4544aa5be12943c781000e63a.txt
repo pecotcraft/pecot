@@ -1,0 +1,4 @@
+error: the repository of the work Issue (acme/demo) differs from the CWD git remote (other/tree)
+  move to the worktree of the target repository and call the tool again:
+  <project-root>/base/demo/ or <project-root>/<wtN>/demo/
+  create one with /pecot-w:w-worktree-add only if the repository has no worktree

@@ -1,0 +1,1 @@
+{"id":"852cf9b7859b5a5e6835a7130830b160.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_root_entries#test_unlisted_root_dir_blocks_with_name_and_guidance","name":"許可の一覧に存在しないルート直下のディレクトリがあると、名前と案内を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"5b22788c9db2ccb99a534fa989a61493"}}

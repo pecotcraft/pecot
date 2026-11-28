@@ -1,0 +1,1 @@
+{"id":"4fcf7856c5cde9bd0cd307e10705ed17.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor Client ID の変数が存在しないと、秘密鍵の secret の項目を含めない","name":"Client ID の変数が存在しないと、秘密鍵の secret の項目を含めない","status":"passed","testResultsByEnv":{"default":"84b8e48e553d7c00dde460057da6d9fe"}}

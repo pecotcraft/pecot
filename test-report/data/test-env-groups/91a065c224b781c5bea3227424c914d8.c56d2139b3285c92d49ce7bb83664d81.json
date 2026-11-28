@@ -1,0 +1,1 @@
+{"id":"91a065c224b781c5bea3227424c914d8.c56d2139b3285c92d49ce7bb83664d81","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_targets_maps_changed_files_to_plugins","name":"変更ファイルが ['libs/interface-spec/x.ts', 'plugins/pecot-toolsx/a'] のとき、`dev-targets.mjs` は対象のプラグインを [] に決める","status":"passed","testResultsByEnv":{"default":"9b49fd5e5ede087c54f016c57c5ac1a0"}}

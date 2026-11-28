@@ -1,0 +1,1 @@
+{"id":"8bd5f3ab4b4c89830e3dae064aedc0fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#syncProjectConfig dry-run の場合は、設定ファイルを書かず、予定の行を表示する","name":"dry-run の場合は、設定ファイルを書かず、予定の行を表示する","status":"passed","testResultsByEnv":{"default":"169314916eee00dbd9f1de0a11035b88"}}

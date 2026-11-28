@@ -1,0 +1,1 @@
+{"id":"80663ae9867652d6a93defdc665017fd.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_scan_counts_interface_env_names_for_reads_by_a_constant","name":"名前を定数で渡して読む場合は、interface-env のコメントの名前を数える","status":"passed","testResultsByEnv":{"default":"89e13bd0cf37b010124525b95e3e3c72"}}

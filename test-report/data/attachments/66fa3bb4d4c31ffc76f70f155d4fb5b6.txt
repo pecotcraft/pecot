@@ -1,0 +1,4 @@
+error: PR body has no Issue reference `#N` (use `no_issue_ref: true` for a PR not tied to an Issue)
+error: missing sections: ## Summary, ## Changes, ## Verified, ## Risks
+error: Summary has no image and `screenshot` gives no reason to omit one. If the change alters a screen, Markdown the tool writes for GitHub, or CLI output text, take a screenshot and add it to Summary as `![alt](./<file>.png)`. Otherwise, write the reason in the `screenshot` frontmatter field (`screenshot` with `message`)
+error: base branch must be main (given: develop)

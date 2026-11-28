@@ -1,0 +1,1 @@
+{"id":"4245d37db840703983e7055b3abc3eea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#projectFieldsOf と projectDefinitionsOf 組み込みの欄を外し、ほかの欄の数の ID を書き込み用の ID へ直した定義を返す","name":"組み込みの欄を外し、ほかの欄の数の ID を書き込み用の ID へ直した定義を返す","status":"passed","testResultsByEnv":{"default":"c410b5936a7052e171b965b26b39009e"}}

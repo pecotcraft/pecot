@@ -1,0 +1,1 @@
+{"id":"5158799b101142b8c3c4b0723bd7d224.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形の Check の中身 ラベルを付けた人の名前が [bot] で終わると、権限を読まずに何も書かずに終わる","name":"ラベルを付けた人の名前が [bot] で終わると、権限を読まずに何も書かずに終わる","status":"passed","testResultsByEnv":{"default":"cc7ca6f6379cdab81249620311f71574"}}

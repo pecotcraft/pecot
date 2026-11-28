@@ -1,0 +1,1 @@
+{"id":"f3bc98672026958ac10390b9324b2bd9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 本文の保存し直しが失敗すると、手で保存し直す案内を添えた warning を出して終了コード 0 で終わる","name":"本文の保存し直しが失敗すると、手で保存し直す案内を添えた warning を出して終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"22c40bb858667d8496e88f67e7d9ee5c"}}

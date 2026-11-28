@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ok"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[],\"stacked_on\":\"acme/demo/5\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [],
+    "stacked_on": "acme/demo/5"
+  }
+}

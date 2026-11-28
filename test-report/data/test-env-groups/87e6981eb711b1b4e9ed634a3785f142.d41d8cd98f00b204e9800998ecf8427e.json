@@ -1,0 +1,1 @@
+{"id":"87e6981eb711b1b4e9ed634a3785f142.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/pptx-archive.test.ts#YauzlYazlPptxArchive 存在しないパートを read すると、エラーが発生する","name":"存在しないパートを read すると、エラーが発生する","status":"passed","testResultsByEnv":{"default":"877e29dd3541ed1cf23ced36185cedd1"}}

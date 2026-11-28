@@ -1,0 +1,1 @@
+{"id":"24e52c5cc2a1882799b54602b7eb99a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: modern) file_validate スキーマ違反を拒否する: 必須の file_path が無い","name":"スキーマ違反を拒否する: 必須の file_path が無い","status":"passed","testResultsByEnv":{"default":"844017f2d03820d13b47887ce8aa0de6"}}

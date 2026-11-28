@@ -1,0 +1,1 @@
+{"id":"3eec70c2039c4ab1f8e77d6838dfa476.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_validate 正しい参照の yaml を渡すと、空のオブジェクトを返す","name":"正しい参照の yaml を渡すと、空のオブジェクトを返す","status":"passed","testResultsByEnv":{"default":"b9a2a89f2c42803858fb505f7db4a102"}}

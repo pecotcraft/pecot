@@ -1,0 +1,1 @@
+ERROR: ファイルが見つかりません: /tmp/bats-run-1EtphK/test/13/no-such.pptx

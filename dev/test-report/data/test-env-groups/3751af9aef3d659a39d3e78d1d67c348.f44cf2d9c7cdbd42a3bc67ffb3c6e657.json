@@ -1,0 +1,1 @@
+{"id":"3751af9aef3d659a39d3e78d1d67c348.f44cf2d9c7cdbd42a3bc67ffb3c6e657","fullName":".githooks.tests.test_allure_report_labels#test_xdist_writes_environment_properties_once","name":"xdist の worker 2 つで動かしても、.githooks/tests/conftest.py の conftest は environment.properties を 1 つ正しく書く","status":"passed","testResultsByEnv":{"default":"51f7ea0781c4a5e0f6835de941431fa0"}}

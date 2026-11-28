@@ -1,0 +1,1 @@
+{"id":"1ebe8fb48a463b4b38e51b21d235327b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-table-cell-background.test.ts#require-table-cell-background valid table の外に置かれたセルなら、報告しない","name":"table の外に置かれたセルなら、報告しない","status":"passed","testResultsByEnv":{"default":"29732bbd49f1be4b0a0d7b29c9fadf5a"}}

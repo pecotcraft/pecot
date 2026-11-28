@@ -1,0 +1,1 @@
+{"id":"7d8357efd05b0bd3f6330f54ce707a12.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/npm-cache-opt-in.test.sh#publish NX_DRY_RUN + opt-in: 拒否しない","name":"publish NX_DRY_RUN + opt-in: 拒否しない","status":"passed","testResultsByEnv":{"default":"18ad4055bb4e10cceacc0bf82a866e4d"}}

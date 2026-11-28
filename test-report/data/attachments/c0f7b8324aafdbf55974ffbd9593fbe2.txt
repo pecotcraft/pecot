@@ -1,0 +1,2 @@
+ERROR: nx graph が失敗したため lint のレーン名を集められません。
+       simulated nx graph failure

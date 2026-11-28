@@ -1,0 +1,1 @@
+{"id":"1cfeaa5a939f597963c5848c87bfe49d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/result.test.ts#toCallToolResult 成功のとき、ツールの項目を structuredContent の最上位に置き、入れ物の項目と isError を持たない","name":"成功のとき、ツールの項目を structuredContent の最上位に置き、入れ物の項目と isError を持たない","status":"passed","testResultsByEnv":{"default":"a5124623a56024efcd850ee7070f2bb5"}}

@@ -1,0 +1,1 @@
+{"id":"1d109c9088613b8c3b1a61bd0cc1806c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/validate-clicks.test.ts#閉じの --- が無いテキストを渡すと、本文を取り出せず null を返す","name":"閉じの --- が無いテキストを渡すと、本文を取り出せず null を返す","status":"passed","testResultsByEnv":{"default":"b0c8fe7875b17ead0319fa2c34acfe95"}}

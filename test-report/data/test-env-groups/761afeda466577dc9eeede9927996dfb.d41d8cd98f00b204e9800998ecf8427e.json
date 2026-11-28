@@ -1,0 +1,1 @@
+{"id":"761afeda466577dc9eeede9927996dfb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/review-finish.test.ts#review finish review-conclusion の input が無いと、空と同じに Claude Code が動かなかった run とみなす","name":"review-conclusion の input が無いと、空と同じに Claude Code が動かなかった run とみなす","status":"passed","testResultsByEnv":{"default":"bdcb997cce12d872385381dae472ae68"}}

@@ -1,0 +1,1 @@
+{"id":"f04d5bcdfef38a49824948d63e84835e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_list_test_lanes#test_affected_mode_passes_base_head_and_lane_names","name":"affected のモードでは、base と head とレーン名を nx affected に渡す","status":"passed","testResultsByEnv":{"default":"8ca57971083d68e460ced6a45316fe0e"}}

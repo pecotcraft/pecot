@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not read project board: authentication error: could not get a GitHub API token\n  \n  /tmp/pecot-parity-RAJ9nW/base/demo/.pecot/config/.env was generated. Set the token as follows:\n  \n  1. get a token: https://ghes.example.com/settings/tokens\n  \n  \n  2. edit /tmp/pecot-parity-RAJ9nW/base/demo/.pecot/config/.env and set the token in PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN\n  \n  or authenticate with the GitHub CLI:\n     gh auth login -h ghes.example.com"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-auth\",\"detail\":\"could not read project board: authentication error: could not get a GitHub API token\\n  \\n  /tmp/pecot-parity-RAJ9nW/base/demo/.pecot/config/.env was generated. Set the token as follows:\\n  \\n  1. get a token: https://ghes.example.com/settings/tokens\\n  \\n  \\n  2. edit /tmp/pecot-parity-RAJ9nW/base/demo/.pecot/config/.env and set the token in PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN\\n  \\n  or authenticate with the GitHub CLI:\\n     gh auth login -h ghes.example.com\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-auth",
+    "detail": "could not read project board: authentication error: could not get a GitHub API token\n  \n  /tmp/pecot-parity-RAJ9nW/base/demo/.pecot/config/.env was generated. Set the token as follows:\n  \n  1. get a token: https://ghes.example.com/settings/tokens\n  \n  \n  2. edit /tmp/pecot-parity-RAJ9nW/base/demo/.pecot/config/.env and set the token in PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN\n  \n  or authenticate with the GitHub CLI:\n     gh auth login -h ghes.example.com"
+  },
+  "isError": true
+}

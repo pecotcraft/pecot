@@ -1,0 +1,1 @@
+{"id":"e3219d2f49327ea8b439c82eac19dc5e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#応答の中身 aws_ecr_describe_images の NextToken を nextToken へ転記する","name":"aws_ecr_describe_images の NextToken を nextToken へ転記する","status":"passed","testResultsByEnv":{"default":"0cc6e93e765549b9c7efe8b04869f1d3"}}

@@ -1,0 +1,1 @@
+{"id":"678543bc62cbc27d43362ea2bf9c47d4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/result.test.ts#toCallToolResult 成功のときは、content の 1 つ目の text にメッセージを入れ、メッセージが空なら JSON の text だけにする","name":"成功のときは、content の 1 つ目の text にメッセージを入れ、メッセージが空なら JSON の text だけにする","status":"passed","testResultsByEnv":{"default":"7b21c43ee3c6a2ab6a256420de86a877"}}

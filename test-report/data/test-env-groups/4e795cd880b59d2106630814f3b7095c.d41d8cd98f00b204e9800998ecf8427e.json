@@ -1,0 +1,1 @@
+{"id":"4e795cd880b59d2106630814f3b7095c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#runEvidenceCreate spec を読み込めない場合は、input-not-found の EvidenceCreateError が発生する","name":"spec を読み込めない場合は、input-not-found の EvidenceCreateError が発生する","status":"passed","testResultsByEnv":{"default":"624f4743516dce94d36c62887c7cfb5a"}}

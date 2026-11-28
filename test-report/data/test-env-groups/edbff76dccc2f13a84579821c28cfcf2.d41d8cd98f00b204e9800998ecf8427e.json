@@ -1,0 +1,1 @@
+{"id":"edbff76dccc2f13a84579821c28cfcf2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start base を省いて develop_branch も設定していないと、終了コード 1 で終わる","name":"base を省いて develop_branch も設定していないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"78b756d77056d3340901fef4be72b9fd"}}

@@ -1,0 +1,1 @@
+{"id":"143c6df6dc122258ffbe8a5e5b2ed65b.90443ccc98a6bb9e23ee28bfb844709d","fullName":".githooks.tests.test_nx_affected_mapping#test_out_of_lane_input_reruns_only_consumer_lane","name":"libs/workflow-core/tests/output/cases.json は、それを読むレーンの inputs にだけ含まれる","status":"passed","testResultsByEnv":{"default":"1a45004c4b4d36fb4df3871011559719"}}

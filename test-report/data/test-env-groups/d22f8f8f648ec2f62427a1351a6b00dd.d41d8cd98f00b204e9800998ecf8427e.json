@@ -1,0 +1,1 @@
+{"id":"d22f8f8f648ec2f62427a1351a6b00dd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#appendIssueCloseIfNeeded 本文の末尾の空白を除いてから、Closes を追加する","name":"本文の末尾の空白を除いてから、Closes を追加する","status":"passed","testResultsByEnv":{"default":"f7e585a88842ff28843e3c185b852e45"}}

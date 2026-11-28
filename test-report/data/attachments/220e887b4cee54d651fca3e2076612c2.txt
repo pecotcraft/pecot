@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "error: gh-issue-create-check: gh issue create is not allowed.\n\n  Reason: using gh issue create directly skips the checks of the workflow (the template,\n  the title number, the prerequisites and the board fields), which breaks the consistency\n  and traceability of the workflow.\n\n  Use this instead:\n    check the arguments with the MCP tool issue_check of the workflow server,\n    then create the Issue with issue_write of the official GitHub MCP server\n    (steps: skills/w-help/references/issue-write.md)",
+    "hookEventName": "PreToolUse"
+  }
+}

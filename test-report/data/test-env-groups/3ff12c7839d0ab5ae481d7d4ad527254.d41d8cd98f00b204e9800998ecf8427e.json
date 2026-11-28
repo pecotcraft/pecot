@@ -1,0 +1,1 @@
+{"id":"3ff12c7839d0ab5ae481d7d4ad527254.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#進行の欄の判定 fields.nodes を取り出し、存在しない場合は空の配列にする","name":"fields.nodes を取り出し、存在しない場合は空の配列にする","status":"passed","testResultsByEnv":{"default":"58210b80fdc6aea926de548d9818c966"}}

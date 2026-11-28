@@ -1,0 +1,1 @@
+{"id":"e68f4035ef059cfc1f06ca822eafd0ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#upsertWaitsForMerge 節が改行なしで本文の末尾にある場合は、追加した行も改行なしで終える","name":"節が改行なしで本文の末尾にある場合は、追加した行も改行なしで終える","status":"passed","testResultsByEnv":{"default":"fa837ba5fb7fdc6064da1e8aafd16b1b"}}

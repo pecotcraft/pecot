@@ -1,0 +1,3 @@
+usage: release_sources.py [-h] [--main MAIN] [--root ROOT] [--record RECORD]
+                          [--report {release}]
+release_sources.py: error: unrecognized arguments: --commit aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

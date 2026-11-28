@@ -1,0 +1,1 @@
+{"id":"fa3bf4e49ba9955f90148e3473c47ddb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments shorthand-list の入力が空の配列のときは、フラグごと引数に含めない","name":"shorthand-list の入力が空の配列のときは、フラグごと引数に含めない","status":"passed","testResultsByEnv":{"default":"a256832f9e92a19e2976123bb9d3ad1a"}}

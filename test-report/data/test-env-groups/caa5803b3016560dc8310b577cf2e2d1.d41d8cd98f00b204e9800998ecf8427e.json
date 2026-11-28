@@ -1,0 +1,1 @@
+{"id":"caa5803b3016560dc8310b577cf2e2d1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_release_group_changelog#test_missing_nx_json_skips","name":"nx.json が存在しないと、警告を出して成功で終わる","status":"passed","testResultsByEnv":{"default":"357db6fa1aa020dc28a53a0a2aa3d76c"}}

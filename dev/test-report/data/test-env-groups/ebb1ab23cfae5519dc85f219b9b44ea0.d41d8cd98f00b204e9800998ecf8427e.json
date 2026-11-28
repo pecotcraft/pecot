@@ -1,0 +1,1 @@
+{"id":"ebb1ab23cfae5519dc85f219b9b44ea0.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_cli_resolves_slash_v_tags_of_a_unit","name":"CLI は、nx.json のグループのタグの形が /v の単位を、その形のタグから決める","status":"passed","testResultsByEnv":{"default":"bff4176952c373e0d2e9f7ad53b0f4b2"}}

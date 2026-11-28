@@ -1,0 +1,2 @@
+created: worktree wt1 at /tmp/pecot-cli-AHqxp3/workspaces/wt1/demo (branch wt1 from develop)
+count: files copied: 1

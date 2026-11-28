@@ -1,0 +1,1 @@
+{"id":"22aa9d682c9c56b71724245d6c06e80d.81cd99f90be901bfd5e2974fe0b07e5a","fullName":".githooks.tests.test_report_workflow#test_side_decides_side_and_site_url","name":"workflow_dispatch で側の入力が release のとき、側を release に、サイトの URL を https://pecotcraft.github.io/pecot/ に決める","status":"passed","testResultsByEnv":{"default":"b143fff33b620a636e9b3945425c327c"}}

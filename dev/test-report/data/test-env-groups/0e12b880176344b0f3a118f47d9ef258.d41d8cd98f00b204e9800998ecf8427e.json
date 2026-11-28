@@ -1,0 +1,1 @@
+{"id":"0e12b880176344b0f3a118f47d9ef258.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「slideNumber 型不一致」の場合は、undefined を返す","name":"エントリが「slideNumber 型不一致」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"5c578c2c28e80877fa8240bbe0f5269c"}}

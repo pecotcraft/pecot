@@ -1,0 +1,1 @@
+{"id":"ee68062365827fb3f2e7b016ead3771b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 Decide は、起動ラベルを env で、App のトークン・CI を直す回数の上限・プロジェクトを入力で受ける","name":"Decide は、起動ラベルを env で、App のトークン・CI を直す回数の上限・プロジェクトを入力で受ける","status":"passed","testResultsByEnv":{"default":"ab98d6930a2deb11cf65f281956d9a20"}}

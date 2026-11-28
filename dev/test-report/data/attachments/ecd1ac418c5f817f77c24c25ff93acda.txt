@@ -1,0 +1,1 @@
+run-many -t test --parallel=4 --nxBail --output-style=stream

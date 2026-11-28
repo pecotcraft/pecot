@@ -1,0 +1,1 @@
+{"id":"afb89d06dfc6dc54a98ace7517c7ea6a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/load.test.ts#loadSources with a missing or broken repository root が git リポジトリでないと、LoadError を投げる","name":"root が git リポジトリでないと、LoadError を投げる","status":"passed","testResultsByEnv":{"default":"b9ca21c792d43e804bba88bd7f099b21"}}

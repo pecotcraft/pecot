@@ -1,0 +1,1 @@
+{"id":"cf8e7353ea0ee313cf92a382f2b3eb7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url.test.ts#executeDrawioUrl output なし mode edit でも成功し、view と同じ URL を返す","name":"mode edit でも成功し、view と同じ URL を返す","status":"passed","testResultsByEnv":{"default":"2b60ad7bbf42f8ed7a3b635bc5eb05f2"}}

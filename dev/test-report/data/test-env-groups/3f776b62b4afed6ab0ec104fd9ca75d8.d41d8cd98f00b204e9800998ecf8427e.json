@@ -1,0 +1,1 @@
+{"id":"3f776b62b4afed6ab0ec104fd9ca75d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#loginRegistry 共有のレジストリは常に同じインスタンスで、開始していなくてもシャットダウンで例外が発生しない","name":"共有のレジストリは常に同じインスタンスで、開始していなくてもシャットダウンで例外が発生しない","status":"passed","testResultsByEnv":{"default":"19dfc3bb754c47fc4052c7b21556261d"}}

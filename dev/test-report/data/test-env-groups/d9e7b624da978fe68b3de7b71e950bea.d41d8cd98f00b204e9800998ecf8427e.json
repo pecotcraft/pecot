@@ -1,0 +1,1 @@
+{"id":"d9e7b624da978fe68b3de7b71e950bea.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_cli_report","name":"`publish` コマンドでレポートの tar を渡すと、レポートとして保管し、変更ありと書く","status":"passed","testResultsByEnv":{"default":"59e97b4cb3fc310aa337796a431f2fdb"}}

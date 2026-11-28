@@ -1,0 +1,1 @@
+{"id":"090a3bfc474ee70a4caccf3311025a84.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#browsersRoot PLAYWRIGHT_BROWSERS_PATH と HOME のどちらも未設定の場合は、undefined を返す","name":"PLAYWRIGHT_BROWSERS_PATH と HOME のどちらも未設定の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"66219bd518d083ac14faa06237363c77"}}

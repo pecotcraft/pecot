@@ -1,0 +1,1 @@
+{"id":"597abfd63314534f9ebca3753dce0475.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-security.test.ts#tracker sync Tracker を作る ボードへの追加が失敗すると、Tracker の error の行を出して step を失敗にする","name":"ボードへの追加が失敗すると、Tracker の error の行を出して step を失敗にする","status":"passed","testResultsByEnv":{"default":"a1536205d9d02aaaa7dd7f83432d09a3"}}

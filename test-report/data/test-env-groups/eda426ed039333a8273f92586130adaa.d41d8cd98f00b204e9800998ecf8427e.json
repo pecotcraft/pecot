@@ -1,0 +1,1 @@
+{"id":"eda426ed039333a8273f92586130adaa.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_verify#test_report_record_is_the_sources_of_release_sources_report","name":"`report_record` は、`release_sources.py --report release` の出力から材料を取り出す","status":"passed","testResultsByEnv":{"default":"e37397810660eb952a8604d31c46e21b"}}

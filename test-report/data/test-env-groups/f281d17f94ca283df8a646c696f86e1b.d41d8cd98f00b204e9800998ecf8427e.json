@@ -1,0 +1,1 @@
+{"id":"f281d17f94ca283df8a646c696f86e1b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations Point / Rect y と h の合計が 1 を超える box は、h のパスで拒否する","name":"y と h の合計が 1 を超える box は、h のパスで拒否する","status":"passed","testResultsByEnv":{"default":"9a7d3d83d2d9cb6c04f73676de4bd4c2"}}

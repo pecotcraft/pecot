@@ -1,0 +1,1 @@
+{"id":"bf2400ccf9411e68d06eee3e972becf5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（失敗） 別のタグが取得済みの階層で取得に失敗した場合も、取得済みの置き場を残す","name":"別のタグが取得済みの階層で取得に失敗した場合も、取得済みの置き場を残す","status":"passed","testResultsByEnv":{"default":"f020467dcaf41260e814ab0404601cda"}}

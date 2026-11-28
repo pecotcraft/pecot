@@ -1,0 +1,1 @@
+{"id":"42355f4b9cce14925af11885728689aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh ftp:// で区切りが足りない とき、作業中の Issue は無いとして、出力せず記録を残さない","name":"ftp:// で区切りが足りない とき、作業中の Issue は無いとして、出力せず記録を残さない","status":"passed","testResultsByEnv":{"default":"ff20aac4c457c212578e5faaee1888a7"}}

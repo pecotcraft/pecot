@@ -1,0 +1,1 @@
+{"id":"958ac3cb18e9ef3a664ec20498712c12.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#changelogNotFoundMessage パスが /repo/AIST-CHANGELOG.md の場合は、ファイル名を含む「見つからない」メッセージを返す","name":"パスが /repo/AIST-CHANGELOG.md の場合は、ファイル名を含む「見つからない」メッセージを返す","status":"passed","testResultsByEnv":{"default":"1f2853b337b5a16f9d002932d5bc21ec"}}

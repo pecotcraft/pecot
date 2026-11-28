@@ -1,0 +1,2 @@
+warning: could not record the base: [Errno 21] Is a directory: '/tmp/pecot-repo-2SS0r8/.pecot/state/.pecot-base'
+created: work directory .pecot/work/7/

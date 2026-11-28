@@ -1,0 +1,1 @@
+{"id":"5b980a5e9ef16e4e6e6c7378677421a7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/fuzzy.test.ts#closeMatches 入力か候補が空の場合でも、例外を発生させず結果を返す","name":"入力か候補が空の場合でも、例外を発生させず結果を返す","status":"passed","testResultsByEnv":{"default":"e2d2d17bf122bac8dd18d8bbe94666a6"}}

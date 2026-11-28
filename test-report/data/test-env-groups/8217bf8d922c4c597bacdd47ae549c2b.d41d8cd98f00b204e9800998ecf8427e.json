@@ -1,0 +1,1 @@
+{"id":"8217bf8d922c4c597bacdd47ae549c2b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#readCurrentGitRemote origin と upstream がある場合は、origin を優先する","name":"origin と upstream がある場合は、origin を優先する","status":"passed","testResultsByEnv":{"default":"c9910b4a5f184044d56809024dde683d"}}

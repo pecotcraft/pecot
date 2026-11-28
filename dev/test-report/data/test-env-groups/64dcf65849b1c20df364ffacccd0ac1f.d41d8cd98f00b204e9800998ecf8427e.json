@@ -1,0 +1,1 @@
+{"id":"64dcf65849b1c20df364ffacccd0ac1f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「pptxFile 欠落」の場合は、undefined を返す","name":"エントリが「pptxFile 欠落」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"6a79eeb3a21851b1dca12ad21934811f"}}

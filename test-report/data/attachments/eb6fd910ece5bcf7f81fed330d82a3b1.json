@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "base branch feat/3 of #3 not found: resource not found: http://127.0.0.1:35123/repos/acme/demo/git/ref/heads/feat/3"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\"base branch feat/3 of #3 not found: resource not found: http://127.0.0.1:35123/repos/acme/demo/git/ref/heads/feat/3\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": "base branch feat/3 of #3 not found: resource not found: http://127.0.0.1:35123/repos/acme/demo/git/ref/heads/feat/3"
+  },
+  "isError": true
+}

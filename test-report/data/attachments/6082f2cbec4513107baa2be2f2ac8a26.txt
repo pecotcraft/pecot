@@ -1,0 +1,4 @@
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_eq_has_expected_and_actua0/suite/sample.test.sh
+FAIL: 等しい — 期待 [a] / 実際 [b]
+
+PASS: 0 / FAIL: 1 / SKIP: 0

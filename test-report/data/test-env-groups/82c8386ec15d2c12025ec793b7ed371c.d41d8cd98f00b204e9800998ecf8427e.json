@@ -1,0 +1,1 @@
+{"id":"82c8386ec15d2c12025ec793b7ed371c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_direct_commit#test_wtn_release_commit_allowed","name":"wtN ブランチ（wt1 など）でも、chore(release) で始まるコミットメッセージは許可する","status":"passed","testResultsByEnv":{"default":"78338462a901904e0cf33881515d8937"}}

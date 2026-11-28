@@ -1,0 +1,5 @@
+==> npm pack
+==> tgz: example-attach-test-1.2.3.tgz
+==> tgz の中身（1 ファイル）
+    package.json
+ERROR: origin の URL から owner/name を求められません: https://github.com/a/b/c.git

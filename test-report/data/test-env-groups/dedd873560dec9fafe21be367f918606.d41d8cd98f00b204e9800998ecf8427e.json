@@ -1,0 +1,1 @@
+{"id":"dedd873560dec9fafe21be367f918606.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_lint#test_nx_unresolved_fail_closed","name":"nx を解決できないと、復旧手順を添えたエラーを表示して終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"52fff8bb1a159c7a70bc347757a754e6"}}

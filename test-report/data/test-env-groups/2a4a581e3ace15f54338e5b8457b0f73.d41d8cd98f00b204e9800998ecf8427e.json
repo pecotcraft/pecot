@@ -1,0 +1,1 @@
+{"id":"2a4a581e3ace15f54338e5b8457b0f73.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#errorData — 失敗時の data 文面の違反は text-violation と violations の全件を返す","name":"文面の違反は text-violation と violations の全件を返す","status":"passed","testResultsByEnv":{"default":"39bc97cdf3251059c374273832d48a22"}}

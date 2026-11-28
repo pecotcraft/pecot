@@ -1,0 +1,1 @@
+{"id":"5c429fcea2c3ddc73ffd9c24066a39ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#merge 入力に拾うファイル名 slide-<数字>.pptx の形式に合わない名前のファイルは、結合の入力に含めない","name":"slide-<数字>.pptx の形式に合わない名前のファイルは、結合の入力に含めない","status":"passed","testResultsByEnv":{"default":"3a9322f5b6d2a58f6cc5b2bde61b9e42"}}

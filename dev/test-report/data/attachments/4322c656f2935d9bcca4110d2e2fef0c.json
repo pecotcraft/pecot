@@ -1,0 +1,46 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "issue_fields.Due: give value, field_option_name or delete"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"issue_fields.Due\",\"code\":\"required\",\"message\":\"give value, field_option_name or delete\"},{\"field\":\"issue_fields.Size\",\"code\":\"invalid_value\",\"message\":\"invalid_value: Size (issue_field); value \\\"XL\\\"; expected one of: S, M\",\"candidates\":[\"S\",\"M\"]},{\"field\":\"issue_fields.Owner\",\"code\":\"unknown_attribute\",\"message\":\"unknown_attribute: Owner (issue_field)\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}],\"warnings\":[\"issue_write takes no parent_* together with issue_fields: leave the parent out of issue_write and link it with sub_issue_write after the create\"]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "issue_fields.Due",
+        "code": "required",
+        "message": "give value, field_option_name or delete"
+      },
+      {
+        "field": "issue_fields.Size",
+        "code": "invalid_value",
+        "message": "invalid_value: Size (issue_field); value \"XL\"; expected one of: S, M",
+        "candidates": [
+          "S",
+          "M"
+        ]
+      },
+      {
+        "field": "issue_fields.Owner",
+        "code": "unknown_attribute",
+        "message": "unknown_attribute: Owner (issue_field)"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ],
+    "warnings": [
+      "issue_write takes no parent_* together with issue_fields: leave the parent out of issue_write and link it with sub_issue_write after the create"
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"8cc98e2e932907fd2ba11f1b1d0eb60e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/github-ops/project.test.ts#github ops project-view に名前・列・行の欄を渡すと、列と行の欄で分けたボードのビューを作り、番号と URL を返す","name":"project-view に名前・列・行の欄を渡すと、列と行の欄で分けたボードのビューを作り、番号と URL を返す","status":"passed","testResultsByEnv":{"default":"90791640bf5490e8bea4f1b4557820ef"}}

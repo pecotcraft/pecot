@@ -1,0 +1,106 @@
+/usr/local/share/nvm/versions/node/v24.22.1/bin/node undefined - 3.33.0
+
+  $ allure <command>
+
+General commands
+
+  allure agent [--config,-c #0] [--cwd #0] [--output,-o #0] [--report #0] [--expectations #0] [--goal #0] [--task-id #0] [--expect-tests #0] [--expect-label #0] [--expect-env #0] [--expect-test #0] [--expect-prefix #0] [--forbid-label #0] [--expect-step-containing #0] [--expect-steps #0] [--expect-attachments #0] [--expect-attachment #0] [--environment,--env #0] [--environment-name #0] [--silent] [--rerun-from #0] [--rerun-latest] [--rerun-preset #0] [--rerun-environment #0] [--rerun-label #0] [--results-dir #0] ...
+    Run specified command in Allure agent mode
+
+  allure agent capabilities [--json]
+    Print structured Allure agent capability information
+
+  allure agent inspect [--config,-c #0] [--cwd #0] [--output,-o #0] [--report #0] [--report-name,--name #0] [--dump #0] [--open] [--port #0] [--history-limit #0] [--hide-labels #0] [--expectations #0] [--goal #0] [--task-id #0] [--expect-tests #0] [--expect-label #0] [--expect-env #0] [--expect-test #0] [--expect-prefix #0] [--forbid-label #0] [--expect-step-containing #0] [--expect-steps #0] [--expect-attachments #0] [--expect-attachment #0] [--environment,--env #0] [--environment-name #0] ...
+    Inspect existing Allure results or dump archives in Allure agent mode
+
+  allure agent latest [--cwd #0]
+    Print the latest Allure agent output directory and index path for the current project
+
+  allure agent query [--cwd #0] [--from #0] [--latest] [--status #0] [--environment #0] [--label #0] [--severity #0] [--category #0] [--check #0] [--test #0] [--limit #0] [--include-markdown] [Query view: summary, tests, findings, or test (default: summary)]
+    Query an existing Allure agent output directory as focused JSON
+
+  allure agent select [--cwd #0] [--from #0] [--latest] [--preset #0] [--environment #0] [--label #0] [--output,-o #0]
+    Select tests from an existing agent output and emit a test plan
+
+  allure agent state-dir [--cwd #0]
+    Print the shared Allure agent state directory
+
+  allure check <--name #0> [--status #0] [--message #0] [--tag #0] [--config,-c #0] [--cwd #0] [--output,-o #0] [--dump #0] ...
+    Run a check command or record a manual check result
+
+  allure generate [--config,-c #0] [--output,-o #0] [--cwd #0] [--report-name,--name #0] [--dump #0] [--clean] [--open] [--port #0] [--host #0] [--history-limit #0] [--history-base-url #0] [--hide-labels #0] [--known-issues #0] ...
+    Generates the report in the specified directory.
+
+  allure history [--history-path,-h #0] [--history-limit #0] [--history-base-url #0] [--report-name,--name #0] ...
+    Generates the history to specified folder
+
+  allure open [--config,-c #0] [--port #0] [--host #0] [--cwd #0] [--hide-labels #0] ...
+    Serves a report and opens it in the default browser, generating it from test results if necessary.
+
+  allure quality-gate [--config,-c #0] [--fast-fail] [--max-failures #0] [--min-tests-count #0] [--success-rate #0] [--known-issues #0] [--environment,--env #0] [--environment-name #0] [--cwd #0] ...
+    Returns status code 1 if there any test failure above specified success rate
+
+  allure run [--config,-c #0] [--cwd #0] [--output,-o #0] [--open] [--port #0] [--host #0] [--report-name,--name #0] [--rerun #0] [--silent] [--verbose,-v] [--quiet,-q] [--ignore-logs] [--dump #0] [--environment,--env #0] [--environment-name #0] [--history-limit #0] [--history-base-url #0] [--hide-labels #0] [--known-issues #0] [--results-dir #0] ...
+    Run specified command
+
+  allure serve [--config,-c #0] [--port #0] [--host #0] [--cwd #0] [--hide-labels #0] [--open] ...
+    Serves an existing report or generates and serves a report from test results.
+
+  allure testops-plan [--output,-o #0]
+    Fetches a testplan.json for the current Allure TestOps job run
+
+  allure testplan [--output,-o #0] ...
+    Generates testplan.json based on provided Allure Results
+
+  allure watch [--config,-c #0] [--cwd #0] [--output,-o #0] [--report-name,--name #0] [--open] [--port #0] [--host #0] [--preserve] [--new-only] ...
+    Watches Allure Results changes in Real-time
+
+Allure Test Results
+
+  allure results pack [--name #0] [--config,-c #0] [--cwd #0] [Pattern to match test results directories. Overrides config.resultsDir. Defaults to ./**/allure-results when neither is set.]
+    Creates .zip archive with test results
+
+  allure results unpack [--output #0] [--cwd #0] ...
+    Extracts test results from .zip archives
+
+Integrations
+
+  allure gh-workflow [--environment,--env #0] [--config,-c #0] [--cwd #0] ...
+    Prints GitHub Actions jobs that run tests per environment and build one Allure report
+
+  allure gitlab [--config,-c #0] [--output,-o #0] [--report-name,--name #0] [--dump #0] [--history-path #0] [--history-limit #0] [--history-base-url #0] [--summary-comment] [--gitlab-token #0] ...
+    Generate test report and optionally post report summary in merge request comments
+
+  allure jira clear [--config,-c #0] [--cwd #0] [--token,-t #0] [--webhook #0] <--issue #0> [--reports] [--results]
+    Unlink test results or reports in Jira
+
+Reports
+
+  allure allure2 [--config,-c #0] [--cwd #0] [--output,-o #0] [--report-name,--name #0] [--report-language,--lang #0] [--single-file] [--history-path,-h #0] [--history-base-url #0] [--known-issues #0] ...
+    Generates Allure Classic report based on provided Allure Results
+
+  allure awesome [--config,-c #0] [--cwd #0] [--output,-o #0] [--report-name,--name #0] [--single-file] [--logo #0] [--theme #0] [--report-language,--lang #0] [--history-path,-h #0] [--history-base-url #0] [--known-issues #0] [--group-by,-g #0] [--hide-labels #0] ...
+    Generates Allure Awesome report based on provided Allure Results
+
+  allure classic [--config,-c #0] [--cwd #0] [--output,-o #0] [--report-name,--name #0] [--report-language,--lang #0] [--single-file] [--history-path,-h #0] [--history-base-url #0] [--known-issues #0] ...
+    Generates Allure Classic report based on provided Allure Results
+
+  allure csv [--config,-c #0] [--cwd #0] [--output,-o #0] [--disable-headers] [--separator #0] [--known-issues #0] ...
+    Generates CSV report based on provided Allure Results
+
+  allure dashboard [--config,-c #0] [--cwd #0] [--output,-o #0] [--report-name,--name #0] [--single-file] [--logo #0] [--theme #0] [--report-language,--lang #0] ...
+    Generates Allure Dashboard report based on provided Allure Results
+
+  allure log [--config,-c #0] [--cwd #0] [--group-by #0] [--all-steps] [--with-trace] [--quality-gate-results] [--all-quality-gate-results] ...
+    Prints Allure Results to the console
+
+  allure migrate
+    Shows how Allure 2 commands map to Allure 3
+
+  allure slack [--config,-c #0] [--cwd #0] [--token,-t #0] [--channel #0] [--webhook #0] ...
+    Posts test results into Slack Channel
+
+You can also print more details about any of these commands by calling them with 
+the `-h,--help` flag right after the command name.
+
+{"raw":{"name":"pecot テストレポート","plugins":{"awesome":{"options":{"groupBy":["epic","feature","story"],"reportLanguage":"ja"}}},"historyLimit":10,"flakyDetection":{"includePassedTests":true},"categories":{"rules":[{"id":"flaky","name":"不安定なテスト","matchers":{"statuses":["failed","broken"],"flaky":true},"groupBy":[{"label":"epic"},"severity"]},{"id":"product-errors","name":"製品の不具合","matchers":{"statuses":["failed"]},"groupBy":[{"label":"epic"},"severity"]},{"id":"test-errors","name":"テストの不具合","matchers":{"statuses":["broken"]},"groupBy":[{"label":"epic"},"severity"]}]}},"resolved":{"name":"pecot テストレポート","historyPath":null,"historyLimit":10,"historyBaseUrl":null,"flakyDetection":{"includePassedTests":true},"categories":[{"id":"flaky","name":"不安定なテスト","groupBy":[{"label":"epic"},"severity"]},{"id":"product-errors","name":"製品の不具合","groupBy":[{"label":"epic"},"severity"]},{"id":"test-errors","name":"テストの不具合","groupBy":[{"label":"epic"},"severity"]},{"id":"_product_errors_default_category","name":"Product errors","groupBy":[]},{"id":"_test_errors_default_category","name":"Test errors","groupBy":[]}],"variables":{}}}

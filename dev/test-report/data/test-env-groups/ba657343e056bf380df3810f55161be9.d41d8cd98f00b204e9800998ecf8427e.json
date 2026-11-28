@@ -1,0 +1,1 @@
+{"id":"ba657343e056bf380df3810f55161be9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#prose（人が書く欄の言語） prose が ja で、stdin・diagnostics・on_error が決まった値以外の英語だと、検証エラーにする","name":"prose が ja で、stdin・diagnostics・on_error が決まった値以外の英語だと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"8c50dde1471b6e60e86cbae507cfb21a"}}

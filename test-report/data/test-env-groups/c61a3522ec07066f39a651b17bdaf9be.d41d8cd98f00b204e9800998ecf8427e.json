@@ -1,0 +1,1 @@
+{"id":"c61a3522ec07066f39a651b17bdaf9be.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#statusViolation 既定の status と異なる場合は、既定の値と、作成後に動かす手順を案内する","name":"既定の status と異なる場合は、既定の値と、作成後に動かす手順を案内する","status":"passed","testResultsByEnv":{"default":"4ecb11be785d463d1a058e2eb5d35fa5"}}

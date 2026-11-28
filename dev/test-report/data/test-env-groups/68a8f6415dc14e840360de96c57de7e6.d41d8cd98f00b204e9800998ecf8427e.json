@@ -1,0 +1,1 @@
+{"id":"68a8f6415dc14e840360de96c57de7e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine serialize に、別のエンジンが作成した document を渡すと、TypeError が発生する","name":"serialize に、別のエンジンが作成した document を渡すと、TypeError が発生する","status":"passed","testResultsByEnv":{"default":"6ef950ebd60b69b6010a68d040401abb"}}

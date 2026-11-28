@@ -1,0 +1,1 @@
+{"id":"05e5555d730b4ec2f4290cfdd5973678.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_cache_server#test_other_methods_are_405","name":"POST と DELETE は、405 を返し、何も保存しない","status":"passed","testResultsByEnv":{"default":"261a480e10fbcbd5e50c2e3f85ddf710"}}

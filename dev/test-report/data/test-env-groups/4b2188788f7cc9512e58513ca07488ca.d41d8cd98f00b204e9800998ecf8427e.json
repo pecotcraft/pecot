@@ -1,0 +1,1 @@
+{"id":"4b2188788f7cc9512e58513ca07488ca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 先頭行の shebang の引用符は読まない のとき、引用符を含まない本文だけを切り出す","name":"先頭行の shebang の引用符は読まない のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"4cfcaeee9dfe1e0b115fff7916df3508"}}

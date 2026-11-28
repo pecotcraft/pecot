@@ -1,0 +1,1 @@
+{"id":"82fde6f133e846d7e70815ca6ee3afc1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#frontmatterOf 値がブロックスカラーの場合は、指示子の行を除いた本文を返す","name":"値がブロックスカラーの場合は、指示子の行を除いた本文を返す","status":"passed","testResultsByEnv":{"default":"bc9f347e934bf5c3978fac3e55cfa65f"}}

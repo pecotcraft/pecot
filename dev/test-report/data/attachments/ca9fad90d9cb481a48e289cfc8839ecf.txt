@@ -1,0 +1,1 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_load_failure_is_broken0/suite/sample.bats

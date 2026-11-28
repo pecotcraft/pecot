@@ -1,0 +1,1 @@
+{"id":"66f1365d80ef6763816875fc61c12015.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: TLS 証明書の検証で落ちた場合 chromium 側: playwright の文言を含む失敗には同じ誘導が付く","name":"chromium 側: playwright の文言を含む失敗には同じ誘導が付く","status":"passed","testResultsByEnv":{"default":"840b97df590511083974440dc479d45f"}}

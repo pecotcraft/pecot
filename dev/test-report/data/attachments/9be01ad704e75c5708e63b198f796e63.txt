@@ -1,0 +1,2 @@
+error: no restack in progress
+  to restack the branch, call pr_restack

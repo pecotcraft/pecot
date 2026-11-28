@@ -1,0 +1,1 @@
+{"id":"cfc0bf78248ad72f1f32129557e8cf09.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_failed_test_has_attachments","name":"判定か run の終了コードで落ちた @test にも、run_attached の出力を添付する","status":"passed","testResultsByEnv":{"default":"e65cf204e0d0526c78e395ae3c9aab53"}}

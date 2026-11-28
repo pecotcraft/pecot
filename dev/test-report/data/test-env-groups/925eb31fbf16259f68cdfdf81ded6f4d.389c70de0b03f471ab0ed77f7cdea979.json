@@ -1,0 +1,1 @@
+{"id":"925eb31fbf16259f68cdfdf81ded6f4d.389c70de0b03f471ab0ed77f7cdea979","fullName":".githooks.tests.test_bats_report#test_layer_label_from_project_table","name":"ディレクトリの規則に当たるテストのファイルの結果に、project の層の表で引いた層 ['integration'] を付ける","status":"passed","testResultsByEnv":{"default":"086e7acf2caf1b449f12170f69e1238b"}}

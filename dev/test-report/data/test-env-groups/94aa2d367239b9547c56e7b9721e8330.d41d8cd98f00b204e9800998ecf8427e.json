@@ -1,0 +1,1 @@
+{"id":"94aa2d367239b9547c56e7b9721e8330.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_with_timing#test_unwritable_record_keeps_exit_code","name":"記録先を作成できなくても、子の終了コードと出力は変えない","status":"passed","testResultsByEnv":{"default":"caa4fc5ed49f32b554136847d5d9a09d"}}

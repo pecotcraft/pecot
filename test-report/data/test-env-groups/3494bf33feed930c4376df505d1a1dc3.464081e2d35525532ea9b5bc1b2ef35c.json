@@ -1,0 +1,1 @@
+{"id":"3494bf33feed930c4376df505d1a1dc3.464081e2d35525532ea9b5bc1b2ef35c","fullName":".githooks.tests.test_pages_verify#test_check_side_report_refuses_history","name":"dev の report.tar が history.jsonl を持つと、保管に置かない旨を問題として報告する","status":"passed","testResultsByEnv":{"default":"b016b4e258929f573b0e23ad8f9985e6"}}

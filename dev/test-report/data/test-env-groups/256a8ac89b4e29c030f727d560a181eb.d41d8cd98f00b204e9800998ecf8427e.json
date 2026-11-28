@@ -1,0 +1,1 @@
+{"id":"256a8ac89b4e29c030f727d560a181eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#decidePullRequestBase 開発ブランチからの着手の記録 の場合は、渡された base をそのまま使い、スタックに登録しない","name":"開発ブランチからの着手の記録 の場合は、渡された base をそのまま使い、スタックに登録しない","status":"passed","testResultsByEnv":{"default":"1dbeb5798e56ea7a17794ab149d281fc"}}

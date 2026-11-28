@@ -1,0 +1,1 @@
+{"id":"d6dada03da475b0cc8037731dd317614.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/command-references.test.ts#本文のツールの呼び出し ブロックの中で、body の本文の深い字下げは入力として扱わない","name":"ブロックの中で、body の本文の深い字下げは入力として扱わない","status":"passed","testResultsByEnv":{"default":"d68bb5e6f783bb644788087dcd252dad"}}

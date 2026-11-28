@@ -1,0 +1,1 @@
+{"id":"1884d2f6a5d3650e4104a97073bbe2ab.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_run_many_fallback_does_not_need_the_graph","name":"全 project の run-many は、graph を読まずに起点の `test` を指定して実行する","status":"passed","testResultsByEnv":{"default":"616ab58cbc930c4c0d6478cedbdf9c31"}}

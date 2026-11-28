@@ -1,0 +1,1 @@
+{"id":"25f019d7f0f3bba334b7aeb2c5ced815.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_dev_sources_refuse_history","name":"開発版の材料に `--history` を付けると、`allure generate` を起動せずに失敗する","status":"passed","testResultsByEnv":{"default":"46451251a7282927b47178c4a734f703"}}

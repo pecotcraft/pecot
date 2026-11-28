@@ -1,0 +1,1 @@
+{"id":"26f4400ade0a27bea6eb5e1e6a056452.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#installStdoutGuard 標準エラー出力へ移した書き込みでも、callback を呼び出す","name":"標準エラー出力へ移した書き込みでも、callback を呼び出す","status":"passed","testResultsByEnv":{"default":"7165a2a5c8a4d1c5402482c460b4b5cc"}}

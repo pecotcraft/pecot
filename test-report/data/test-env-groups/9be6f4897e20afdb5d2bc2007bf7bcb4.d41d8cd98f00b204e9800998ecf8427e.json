@@ -1,0 +1,1 @@
+{"id":"9be6f4897e20afdb5d2bc2007bf7bcb4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/layer-file-placement.test.ts#layer-file-placement invalid layouts 直下に .vue 以外の拡張子のファイルを置くと、報告する","name":"layouts 直下に .vue 以外の拡張子のファイルを置くと、報告する","status":"passed","testResultsByEnv":{"default":"198f0098fc877b3e5f2f415bec339775"}}

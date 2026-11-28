@@ -1,0 +1,1 @@
+{"id":"4f8b682895e24c10262a625bcab0515a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#linkNodeModules (テーマ) 依存ルートに存在しない scope のテーマ名の場合も、scope を作成して張る","name":"依存ルートに存在しない scope のテーマ名の場合も、scope を作成して張る","status":"passed","testResultsByEnv":{"default":"30f9b1290bcc4d084954e0deeab486ef"}}

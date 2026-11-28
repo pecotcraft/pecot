@@ -1,0 +1,1 @@
+{"id":"6f3bfc6cec5acf07e2f84894d36d8a59.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base 親ブランチに、マージ済みの PR と後から作って閉じた PR があると、マージ済みの方で base を決める","name":"親ブランチに、マージ済みの PR と後から作って閉じた PR があると、マージ済みの方で base を決める","status":"passed","testResultsByEnv":{"default":"6ca27edd75e492e1a1c9b929e8179a62"}}

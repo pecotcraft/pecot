@@ -1,0 +1,1 @@
+{"id":"aabd5d5d40a96a29845c57b14ed5f166.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_cli_resolves_from_git_tags","name":"CLI は、git のタグから各単位の最新の版と骨組みを決めて出力する","status":"passed","testResultsByEnv":{"default":"8843294eaddf5ec32c6313c4aed84437"}}

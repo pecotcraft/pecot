@@ -1,0 +1,1 @@
+{"id":"36ba345f805bc0282aeace2bc9af97c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/git-url.test.ts#parseRemoteUrl \"ssh://git@github.com/owner\" を渡すと、形式が不正として例外が発生する","name":"\"ssh://git@github.com/owner\" を渡すと、形式が不正として例外が発生する","status":"passed","testResultsByEnv":{"default":"9296377df7c9c9d4dd88a0e1310da69e"}}

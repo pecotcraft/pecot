@@ -1,0 +1,1 @@
+{"id":"0369fc89e0dbb2c4faa41efbba2f4f42.bd7a7163f9c8c6bc4829f505d9135800","fullName":".githooks.tests.test_pre_commit_config_wiring#test_nx_env_inputs_runs_when_env_scan_inputs_change","name":"plugins/pecot-workflow/cli/tests/hooks/_helpers/run.ts を変更すると、nx-env-inputs が起動する","status":"passed","testResultsByEnv":{"default":"d9956038cc3254003fd6bd31f5e10d8f"}}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "package 'unknown' is not registered in acme/demo\n  available: pkg-a"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"package 'unknown' is not registered in acme/demo\\n  available: pkg-a\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "package 'unknown' is not registered in acme/demo\n  available: pkg-a"
+  },
+  "isError": true
+}

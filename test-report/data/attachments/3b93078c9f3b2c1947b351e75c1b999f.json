@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ghes.example.com_acme_board_acme, second"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"no-active-project\",\"detail\":\"acme/demo is in 2 project configs\\n  choose one with project: <NAME>\\n  available: ghes.example.com_acme_board_acme, second\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "no-active-project",
+    "detail": "acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: ghes.example.com_acme_board_acme, second"
+  },
+  "isError": true
+}

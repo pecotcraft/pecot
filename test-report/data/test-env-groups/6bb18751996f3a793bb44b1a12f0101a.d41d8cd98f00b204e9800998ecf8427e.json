@@ -1,0 +1,1 @@
+{"id":"6bb18751996f3a793bb44b1a12f0101a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_run_cmd_nx_failure_after_push_still_lands_and_returns_nx_code","name":"push の後に nx が失敗しても、`runCmd` は main に反映し、nx の終了コードを返す","status":"passed","testResultsByEnv":{"default":"fd24803ec834cbcd10bbc662e12bba63"}}

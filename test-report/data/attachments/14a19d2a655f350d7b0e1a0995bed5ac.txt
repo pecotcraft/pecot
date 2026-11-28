@@ -1,0 +1,1 @@
+PECOT_RESULT {"operation":"merge-async","request_id":"req-1","ok":false,"error":{"kind":"invalid-input","message":"unknown operation: merge-async (choose one of link-branch, stack-register, project-fields, project-view, project-link, repo-settings, workflow-doctor, release-create)"}}

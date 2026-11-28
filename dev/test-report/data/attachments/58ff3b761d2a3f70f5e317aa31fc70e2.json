@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "unchanged: aggregation_repo (not set)"
+    },
+    {
+      "type": "text",
+      "text": "{\"key\":\"aggregation_repo\",\"change\":\"unchanged\",\"configPath\":\"/tmp/pecot-parity-qUfjL3/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\"}"
+    }
+  ],
+  "structuredContent": {
+    "key": "aggregation_repo",
+    "change": "unchanged",
+    "configPath": "/tmp/pecot-parity-qUfjL3/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json"
+  }
+}

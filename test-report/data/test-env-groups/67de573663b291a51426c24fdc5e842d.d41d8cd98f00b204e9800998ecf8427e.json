@@ -1,0 +1,1 @@
+{"id":"67de573663b291a51426c24fdc5e842d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#結果の項目 result と warning で渡した値を、structuredContent の最上位の項目と warnings に入れる","name":"result と warning で渡した値を、structuredContent の最上位の項目と warnings に入れる","status":"passed","testResultsByEnv":{"default":"5ec695f7b0929a217422ac17104eaa26"}}

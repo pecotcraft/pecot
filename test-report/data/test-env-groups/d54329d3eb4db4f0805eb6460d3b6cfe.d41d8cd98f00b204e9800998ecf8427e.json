@@ -1,0 +1,1 @@
+{"id":"d54329d3eb4db4f0805eb6460d3b6cfe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#isFullWidth 漢字を渡すと、全角と判定する","name":"漢字を渡すと、全角と判定する","status":"passed","testResultsByEnv":{"default":"2d299411c8d60dfbf18474c25f2f8ed1"}}

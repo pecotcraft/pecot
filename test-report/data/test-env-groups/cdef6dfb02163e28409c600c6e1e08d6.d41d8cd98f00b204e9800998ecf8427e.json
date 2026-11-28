@@ -1,0 +1,1 @@
+{"id":"cdef6dfb02163e28409c600c6e1e08d6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 記録が無い作業ディレクトリ 親ブランチの追跡参照が手元に無くても、求める前に fetch して、親ブランチにスタックしたものとして扱う","name":"親ブランチの追跡参照が手元に無くても、求める前に fetch して、親ブランチにスタックしたものとして扱う","status":"passed","testResultsByEnv":{"default":"22be0848e0b38328d916f20f19e7616a"}}

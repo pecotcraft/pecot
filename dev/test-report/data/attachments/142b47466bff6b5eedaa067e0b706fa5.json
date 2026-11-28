@@ -1,0 +1,48 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "second: reads.issue_types: read the Issue types with list_issue_types to check type"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"issue\":\"second\",\"field\":\"reads.issue_types\",\"code\":\"read-required\",\"message\":\"read the Issue types with list_issue_types to check type\"},{\"issue\":\"first\",\"field\":\"title\",\"code\":\"title-order\",\"message\":\"the title of a sub-issue of acme/demo/3 starts with #3-<order>: after the prefix\",\"candidates\":[\"[Epic] #3-03: 一覧を作り直す\"]}],\"plan\":[{\"key\":\"first\",\"order\":3,\"blockedBy\":[],\"approach\":\"alone\"},{\"key\":\"second\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}],\"warnings\":[\"first: giving a parent Epic to an Epic is not recommended\"]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "issue": "second",
+        "field": "reads.issue_types",
+        "code": "read-required",
+        "message": "read the Issue types with list_issue_types to check type"
+      },
+      {
+        "issue": "first",
+        "field": "title",
+        "code": "title-order",
+        "message": "the title of a sub-issue of acme/demo/3 starts with #3-<order>: after the prefix",
+        "candidates": [
+          "[Epic] #3-03: 一覧を作り直す"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "first",
+        "order": 3,
+        "blockedBy": [],
+        "approach": "alone"
+      },
+      {
+        "key": "second",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ],
+    "warnings": [
+      "first: giving a parent Epic to an Epic is not recommended"
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"3a8c84043d86c270f43c5d08e6bc2dbf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#runGit cwd が存在しない場合は、例外を発生させる","name":"cwd が存在しない場合は、例外を発生させる","status":"passed","testResultsByEnv":{"default":"ebe5dd0dcd8be9c810615b76cf0e23f8"}}

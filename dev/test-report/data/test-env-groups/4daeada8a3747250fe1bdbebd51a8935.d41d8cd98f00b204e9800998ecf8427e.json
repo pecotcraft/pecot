@@ -1,0 +1,1 @@
+{"id":"4daeada8a3747250fe1bdbebd51a8935.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#getBranchSha 404 が返ると、URL を含む GitHubNotFoundError を発生させる","name":"404 が返ると、URL を含む GitHubNotFoundError を発生させる","status":"passed","testResultsByEnv":{"default":"104901f3b59cd388f5a71cc29aba9ffa"}}

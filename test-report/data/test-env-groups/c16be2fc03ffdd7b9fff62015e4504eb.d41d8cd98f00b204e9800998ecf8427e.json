@@ -1,0 +1,1 @@
+{"id":"c16be2fc03ffdd7b9fff62015e4504eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#createStack PR 番号を指定した順（下から）のまま POST し、作成したスタックを返す","name":"PR 番号を指定した順（下から）のまま POST し、作成したスタックを返す","status":"passed","testResultsByEnv":{"default":"5efc3b70311a58d49e1ffb934bc1d530"}}

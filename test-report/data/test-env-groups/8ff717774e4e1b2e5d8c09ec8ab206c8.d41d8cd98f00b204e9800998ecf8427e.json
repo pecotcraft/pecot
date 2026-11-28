@@ -1,0 +1,1 @@
+{"id":"8ff717774e4e1b2e5d8c09ec8ab206c8.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#install が失敗すると publish が非ゼロ終了する","name":"install が失敗すると publish が非ゼロ終了する","status":"passed","testResultsByEnv":{"default":"eea23a180aef32a28a1f4c44670c16c0"}}

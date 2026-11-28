@@ -1,0 +1,36 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "template: pecot-template://pr/default is not a bundled Issue template; use one of the candidates, or the path or URL of a replaced template"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"template\",\"code\":\"unknown-template\",\"message\":\"pecot-template://pr/default is not a bundled Issue template; use one of the candidates, or the path or URL of a replaced template\",\"candidates\":[\"pecot-template://issue/task\",\"pecot-template://issue/task-implement\",\"pecot-template://issue/bug\",\"pecot-template://issue/epic\",\"pecot-template://issue/tracker\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "template",
+        "code": "unknown-template",
+        "message": "pecot-template://pr/default is not a bundled Issue template; use one of the candidates, or the path or URL of a replaced template",
+        "candidates": [
+          "pecot-template://issue/task",
+          "pecot-template://issue/task-implement",
+          "pecot-template://issue/bug",
+          "pecot-template://issue/epic",
+          "pecot-template://issue/tracker"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

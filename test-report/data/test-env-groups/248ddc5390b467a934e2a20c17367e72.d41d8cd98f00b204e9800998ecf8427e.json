@@ -1,0 +1,1 @@
+{"id":"248ddc5390b467a934e2a20c17367e72.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/names.test.ts#names の形 names が不正な形（区切りが空白と _ のどちらでもない）だと、検証エラーにする","name":"names が不正な形（区切りが空白と _ のどちらでもない）だと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"ac9e02884b7873a67c43effd9a38e13b"}}

@@ -1,0 +1,22 @@
+[
+  "githooks:test-checks",
+  "githooks:test-ci",
+  "githooks:test-nx-affected",
+  "githooks:test-nx-cache",
+  "pecot-tools:build-cli",
+  "pecot-tools:install",
+  "pecot-tools:test-release",
+  "pecot-visual:build-cli",
+  "pecot-visual:build-slidev",
+  "pecot-visual:check-pm-guard",
+  "pecot-visual:install",
+  "pecot-visual:test-release",
+  "pecot-workflow:build-cli",
+  "pecot-workflow:install",
+  "pecot-workflow:test-release",
+  "pecot:install",
+  "text-rules:build",
+  "text-rules:install",
+  "workflow-core:build",
+  "workflow-core:install"
+]

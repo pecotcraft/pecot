@@ -1,0 +1,1 @@
+{"id":"bee3fe502d1125e25e9299b3b6f1d5a7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText 100 文字を超える文は、sentence-length の指摘として返す","name":"100 文字を超える文は、sentence-length の指摘として返す","status":"passed","testResultsByEnv":{"default":"01c635366449ee80d261a6eb29a2693c"}}

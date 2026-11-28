@@ -1,0 +1,1 @@
+{"id":"8c13a2ec43e381013de9e9c643968092.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/references-path-existence.bats#実在するパスだけの fixture では、違反を検出しない","name":"実在するパスだけの fixture では、違反を検出しない","status":"passed","testResultsByEnv":{"default":"9ad13bfc05d4308828a5b135db3e9d47"}}

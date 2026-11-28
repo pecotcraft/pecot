@@ -1,0 +1,6 @@
+=== Projects of acme (ghes.example.com) ===
+
+#    Title                                    URL
+--------------------------------------------------------------------------------
+1    board                                    https://ghes.example.com/users/acme/projects/1 [INITIALIZED]
+2    plain                                    https://ghes.example.com/users/acme/projects/2

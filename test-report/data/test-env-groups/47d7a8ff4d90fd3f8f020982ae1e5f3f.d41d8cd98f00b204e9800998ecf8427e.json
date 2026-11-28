@@ -1,0 +1,1 @@
+{"id":"47d7a8ff4d90fd3f8f020982ae1e5f3f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_list_test_lanes#test_stack_ignores_no_prev","name":"積モードでは、NO_PREV が true でも run-many を使わない","status":"passed","testResultsByEnv":{"default":"ce61ddd68fc2c655d50195a08302d840"}}

@@ -1,0 +1,2 @@
+==> @pecot/visual-mcp 配布ツリーを構築 (version=4.0.2 / dry-run=true)
+==> pnpm install --frozen-lockfile (cwd=/workspaces/base/pecot)

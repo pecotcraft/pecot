@@ -1,0 +1,1 @@
+{"id":"15e0d1e2a3eb0fb186a62b5031962f3d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#TypeScript reads TypeScript のソースに a plain alias があると、名前を解決できない行を返す","name":"TypeScript のソースに a plain alias があると、名前を解決できない行を返す","status":"passed","testResultsByEnv":{"default":"11ac3c3c0452e6476efaaf793288f95a"}}

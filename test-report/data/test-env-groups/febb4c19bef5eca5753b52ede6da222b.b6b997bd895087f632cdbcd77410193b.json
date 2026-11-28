@@ -1,0 +1,1 @@
+{"id":"febb4c19bef5eca5753b52ede6da222b.b6b997bd895087f632cdbcd77410193b","fullName":".githooks.tests.test_report_generate#test_release_variables_use_the_commit_of_runs","name":"リリース版の変数は、no-repository の環境で、runs のコミットとこの run の URL を付ける","status":"passed","testResultsByEnv":{"default":"e4f262a052e237fd95ead4b79d0f88e2"}}

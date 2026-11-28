@@ -1,0 +1,1 @@
+{"id":"f625c07bf5e9ce69c07460be19c72bf8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_failure_without_summary_falls_back_to_log_tail","name":"要約が出る前に nx が終了した場合は、ログの末尾を表示する","status":"passed","testResultsByEnv":{"default":"f93a9bafeefe1f84a96d6af792da46c2"}}

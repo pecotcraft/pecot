@@ -1,0 +1,18 @@
+2026-11-27T17:05:07+0000	task	lane-defaults:build	0.0	status=success
+2026-11-27T17:05:07+0000	task	fx:build	0.1	status=success
+2026-11-27T17:05:07+0000	task	fx-shared:install	0.1	status=success
+2026-11-27T17:05:07+0000	task	fx:test-lane-flaky	0.1	status=success
+2026-11-27T17:05:07+0000	task	fx:test-lane-pecotv	0.1	status=success
+2026-11-27T17:05:07+0000	task	fx:test-lane-pecot	0.1	status=success
+2026-11-27T17:05:07+0000	task	fx:test-lane-tools	0.1	status=success
+2026-11-27T17:05:07+0000	task	lane-defaults:test-lane-defaults	0.0	status=success
+2026-11-27T17:05:07+0000	nx	affected	2.8	parallel=4 lanes=5 longest=fx:test-lane-flaky rec=0.1
+2026-11-27T17:05:12+0000	task	fx:build	0.0	status=success
+2026-11-27T17:05:12+0000	task	fx-shared:install	0.0	status=success
+2026-11-27T17:05:12+0000	task	fx:test-lane-tools	0.0	status=local-cache-kept-existing
+2026-11-27T17:05:12+0000	task	fx:test-lane-pecot	0.0	status=local-cache-kept-existing
+2026-11-27T17:05:12+0000	task	fx:test-lane-pecotv	0.0	status=local-cache-kept-existing
+2026-11-27T17:05:12+0000	task	fx:test-lane-flaky	0.0	status=local-cache-kept-existing
+2026-11-27T17:05:12+0000	task	lane-defaults:build	0.0	status=success
+2026-11-27T17:05:12+0000	task	lane-defaults:test-lane-defaults	0.0	status=local-cache-kept-existing
+2026-11-27T17:05:12+0000	nx	affected	2.9	parallel=4 lanes=5 longest=fx:test-lane-tools rec=0.1

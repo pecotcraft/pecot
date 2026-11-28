@@ -1,0 +1,1 @@
+{"id":"ebc9ccd5ba9ca56e5afaf7861c324a72.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript 文字列の中の // や /* を、文字列の区切りやコメントとして扱わない","name":"文字列の中の // や /* を、文字列の区切りやコメントとして扱わない","status":"passed","testResultsByEnv":{"default":"26e35ee0f7f889f7623ab81b48cfbe50"}}

@@ -1,0 +1,1 @@
+{"id":"f19f5db322dcb97c612b6990a3e797be.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#version plan のキーを引用符で囲んでも、宣言として読んで監査する","name":"version plan のキーを引用符で囲んでも、宣言として読んで監査する","status":"passed","testResultsByEnv":{"default":"162c119e1c2040ab928fe452fa1c10de"}}

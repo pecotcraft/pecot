@@ -1,0 +1,1 @@
+{"id":"5256be272df7595460b752800068beb5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#フラグ名の文字列を止める lint フラグ名の検出に当たらない書き方（短いオプション）は、lint の違反にならない","name":"フラグ名の検出に当たらない書き方（短いオプション）は、lint の違反にならない","status":"passed","testResultsByEnv":{"default":"c2432c349bb9f50abdadaa95ecadfcdf"}}

@@ -1,0 +1,1 @@
+{"id":"b1eccc3dc20b4423727fa9f396496ae4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#judgeMove 前提の PR のブランチを読んでいなければ、読んでいない PR を理由にする","name":"前提の PR のブランチを読んでいなければ、読んでいない PR を理由にする","status":"passed","testResultsByEnv":{"default":"48bb3e3f8c7a1c3805dc5250576d9476"}}

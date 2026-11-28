@@ -1,0 +1,1 @@
+{"id":"42e916b28f102194116cda9a53cfef97.4ad5604d8ae1ba2e55f89e06ae329293","fullName":".githooks.tests.test_allure_report_labels#test_without_ini_labels_no_severity","name":"-o を指定しないと、libs/interface-spec/docs/tests/conftest.py の conftest は結果に severity のラベルを付けない","status":"passed","testResultsByEnv":{"default":"234ee3483bb9030d025972c9c079c07e"}}

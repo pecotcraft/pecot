@@ -1,0 +1,1 @@
+{"id":"feb6b3c14cfcd13f318cfef985bb53d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-judgment.test.ts#applyJudgedMoves 判定の結果に従って列を更新し、更新した内容を返す","name":"判定の結果に従って列を更新し、更新した内容を返す","status":"passed","testResultsByEnv":{"default":"197ac51bae3af50fc680e4c960fe1da8"}}

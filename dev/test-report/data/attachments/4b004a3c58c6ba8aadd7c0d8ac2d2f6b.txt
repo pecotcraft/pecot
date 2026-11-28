@@ -1,0 +1,2 @@
+warning: icon not found: /workspaces/base/pecot/plugins/pecot-visual/assets/drawio-icons/NoSuch/missing-a.svg
+warning: icon not found: /workspaces/base/pecot/plugins/pecot-visual/assets/drawio-icons/NoSuch/missing-b.svg

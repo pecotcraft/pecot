@@ -1,0 +1,1 @@
+{"id":"c82b9878a1e311049ee23cb533e0a4fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations Point / Rect box で x が負 の場合は、拒否する","name":"box で x が負 の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"6a9ea1a3be8ffa0ffcb2b243b20f8582"}}

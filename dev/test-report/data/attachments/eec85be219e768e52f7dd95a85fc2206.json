@@ -1,0 +1,66 @@
+[
+  {
+    "name": "project",
+    "value": "fixture-project"
+  },
+  {
+    "name": "lane",
+    "value": "test-release"
+  },
+  {
+    "name": "epic",
+    "value": "fixture-project"
+  },
+  {
+    "name": "Node.js",
+    "value": "v24.22.1"
+  },
+  {
+    "name": "framework",
+    "value": "vitest"
+  },
+  {
+    "name": "language",
+    "value": "javascript"
+  },
+  {
+    "name": "host",
+    "value": "f2b287e9a649"
+  },
+  {
+    "name": "thread",
+    "value": "vitest-worker-1"
+  },
+  {
+    "name": "_fallbackTestCaseId",
+    "value": "8d88b23a3299a99189cecc02f200f6e7"
+  },
+  {
+    "name": "package",
+    "value": "@pecot/interface-spec-src.tests.fixtures.report-labels.outcomes.fixture.ts"
+  },
+  {
+    "name": "parentSuite",
+    "value": "tests/fixtures/report-labels/outcomes.fixture.ts"
+  },
+  {
+    "name": "suite",
+    "value": "結果"
+  },
+  {
+    "name": "severity",
+    "value": "blocker"
+  },
+  {
+    "name": "feature",
+    "value": "libs/interface-spec/tests/fixtures/report-labels"
+  },
+  {
+    "name": "story",
+    "value": "libs/interface-spec/tests/fixtures/report-labels/outcomes.fixture.ts"
+  },
+  {
+    "name": "layer",
+    "value": "integration"
+  }
+]

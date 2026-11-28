@@ -1,0 +1,1 @@
+{"id":"e4bb90877edf4f999d83010b590d9759.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#resultEffects setup-missing は、待ちの値を書くかが false で、起動ラベルを外すかが true になる","name":"setup-missing は、待ちの値を書くかが false で、起動ラベルを外すかが true になる","status":"passed","testResultsByEnv":{"default":"611604ea3617a9a1f6e1d6b5c3f6e932"}}

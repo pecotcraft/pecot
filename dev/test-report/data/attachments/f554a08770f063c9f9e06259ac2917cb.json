@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated_field.name: the board has no field named Priority"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"updated_field.name\",\"code\":\"unknown-field\",\"message\":\"the board has no field named Priority\",\"candidates\":[\"pecot-status\",\"Status\",\"Note\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "updated_field.name",
+        "code": "unknown-field",
+        "message": "the board has no field named Priority",
+        "candidates": [
+          "pecot-status",
+          "Status",
+          "Note"
+        ]
+      }
+    ]
+  }
+}

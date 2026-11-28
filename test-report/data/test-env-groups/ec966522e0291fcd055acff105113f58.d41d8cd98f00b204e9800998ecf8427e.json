@@ -1,0 +1,1 @@
+{"id":"ec966522e0291fcd055acff105113f58.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/cli.test.ts#validate root が git リポジトリでないと、エラーを 1 行出力し、2 で終了する","name":"root が git リポジトリでないと、エラーを 1 行出力し、2 で終了する","status":"passed","testResultsByEnv":{"default":"069977119f290d2cc2240b324a342529"}}

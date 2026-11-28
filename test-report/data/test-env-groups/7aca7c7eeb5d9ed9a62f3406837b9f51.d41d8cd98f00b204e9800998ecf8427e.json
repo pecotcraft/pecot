@@ -1,0 +1,1 @@
+{"id":"7aca7c7eeb5d9ed9a62f3406837b9f51.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/text-file.test.ts#readTextFile BOM 付きのファイルを読み込むと、BOM を取り除かずに返す","name":"BOM 付きのファイルを読み込むと、BOM を取り除かずに返す","status":"passed","testResultsByEnv":{"default":"7474d663ec5e88d1fbbb5a7d60489aee"}}

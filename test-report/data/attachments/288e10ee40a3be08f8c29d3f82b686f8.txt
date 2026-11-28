@@ -1,0 +1,11 @@
+skipped: field pecot-status (already exists)
+skipped: field pecot-lane (no lanes given)
+warning: field pecot-lane was not created because no lanes were given
+  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes
+unchanged: option Blocked in field pecot-status
+skipped: field Status (not found)
+created: config file /tmp/pecot-repo-dRuiaW/.pecot/config/projects/ghes.example.com_acme_1.json
+set: active project to ghes.example.com_acme_1
+warning: these fields are not used by pecot and are left on the board: pecot-workflow-acme
+  deleting them also deletes their values on every item, and the values cannot be restored
+  show these names to the user and get their approval; only then, call project_init with owner: "acme", name: "board", host: "ghes.example.com", confirm_delete: true again

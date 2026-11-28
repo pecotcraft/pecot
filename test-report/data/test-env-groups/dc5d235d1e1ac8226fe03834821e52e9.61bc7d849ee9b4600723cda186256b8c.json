@@ -1,0 +1,1 @@
+{"id":"dc5d235d1e1ac8226fe03834821e52e9.61bc7d849ee9b4600723cda186256b8c","fullName":".githooks.tests.test_pre_commit_config_wiring#test_plugin_validate_runs_when_definitions_change","name":"plugins/pecot-visual/skills/v-drawio/SKILL.md を変更すると、plugin-validate が起動する","status":"passed","testResultsByEnv":{"default":"a205cac63586357c0b4e552bc80de9d0"}}

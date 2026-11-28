@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.project_fields: read the board fields with projects_list (method list_project_fields)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.project_fields\",\"code\":\"read-required\",\"message\":\"read the board fields with projects_list (method list_project_fields)\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.project_fields",
+        "code": "read-required",
+        "message": "read the board fields with projects_list (method list_project_fields)"
+      }
+    ]
+  }
+}

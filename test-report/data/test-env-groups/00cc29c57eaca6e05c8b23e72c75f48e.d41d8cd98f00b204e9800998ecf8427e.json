@@ -1,0 +1,1 @@
+{"id":"00cc29c57eaca6e05c8b23e72c75f48e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check open の code scanning alert が 2 件あると、複数形の error の行を出す","name":"open の code scanning alert が 2 件あると、複数形の error の行を出す","status":"passed","testResultsByEnv":{"default":"36b54c36e3ff540e80d81156abe1742a"}}

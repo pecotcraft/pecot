@@ -1,0 +1,1 @@
+{"id":"7fb3711b8d4a7d9263c1f95565b927b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/server.test.ts#startServer 拡張子の無い `..` の要求にも、index.html を返さず 404 を返す","name":"拡張子の無い `..` の要求にも、index.html を返さず 404 を返す","status":"passed","testResultsByEnv":{"default":"e61d51858efbb99f9a953a89a93a988f"}}

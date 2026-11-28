@@ -1,0 +1,1 @@
+{"id":"1e4b6e799ad95dccb772eb5d34a79b03.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-table-complex-content.test.ts#no-table-complex-content valid セルの中が span なら、報告しない","name":"セルの中が span なら、報告しない","status":"passed","testResultsByEnv":{"default":"f4585eba016600913a314bb85770ad53"}}

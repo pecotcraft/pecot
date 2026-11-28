@@ -1,0 +1,1 @@
+{"id":"0c055f9e78cd3c25f53b848bce8f2c3f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_sqs_list_queues の region region の書式に合わない値を渡すと、拒否する","name":"region の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"48197c304dc41a7ec628db1dd4f06ce7"}}

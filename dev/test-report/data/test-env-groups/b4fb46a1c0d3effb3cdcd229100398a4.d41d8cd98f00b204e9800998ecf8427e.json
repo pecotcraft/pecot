@@ -1,0 +1,1 @@
+{"id":"b4fb46a1c0d3effb3cdcd229100398a4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_37_block_dependabot_without_plan","name":"dependabot の更新が group へ届く場合に version plan が存在しないと、理由を出力して失敗する","status":"passed","testResultsByEnv":{"default":"8974d89450919dff509b6e663ac594ab"}}

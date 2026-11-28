@@ -1,0 +1,1 @@
+{"id":"e75db6e9699dc83938b7cee4e5c99bb5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/fs-sync.test.ts#removeTemplateEntries テンプレート由来のファイルとディレクトリをすべて削除し、削除した名前を返す","name":"テンプレート由来のファイルとディレクトリをすべて削除し、削除した名前を返す","status":"passed","testResultsByEnv":{"default":"5edb673c31279ee7ef3634cbbaa61b4c"}}

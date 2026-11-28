@@ -1,0 +1,1 @@
+{"event":"slide.convert.done","input":"/tmp/pecotv-slide-convert-P9684U/sample","output":"/tmp/pecotv-slide-convert-P9684U/sample/pptx/sample.pptx","durationMs":0,"warnings":[],"errors":[],"animationTimingRemovedSlides":0,"timings":{"scan":0,"phase1":0,"phase2":0,"perSlide":[],"outer":{"cleanBuild":0,"slidevBuild":0,"pipeline":0,"mergeAndPostprocess":0}}}

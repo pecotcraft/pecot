@@ -1,0 +1,1 @@
+{"id":"b8f0eb49bef5733fd3646121b03729f0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync 最初の commit の署名が有効でない PR は、理由 unknown update type で扱う","name":"最初の commit の署名が有効でない PR は、理由 unknown update type で扱う","status":"passed","testResultsByEnv":{"default":"589c30ca62e3e6e2d77827b8bae6c60c"}}

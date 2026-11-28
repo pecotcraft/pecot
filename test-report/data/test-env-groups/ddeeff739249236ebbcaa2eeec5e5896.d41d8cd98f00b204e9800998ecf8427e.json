@@ -1,0 +1,1 @@
+{"id":"ddeeff739249236ebbcaa2eeec5e5896.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli ツール aws_sqs_get_queue_attributes の引数の並びは、実際の awscli が構文として受理する","name":"ツール aws_sqs_get_queue_attributes の引数の並びは、実際の awscli が構文として受理する","status":"passed","testResultsByEnv":{"default":"2e1ea7de1d64d7f9573cddd491858b48"}}

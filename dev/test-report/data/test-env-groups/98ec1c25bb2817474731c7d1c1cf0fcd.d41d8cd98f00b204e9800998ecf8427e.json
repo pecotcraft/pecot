@@ -1,0 +1,1 @@
+{"id":"98ec1c25bb2817474731c7d1c1cf0fcd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order order を指定して parent_epic が存在しない場合は、エラーにする","name":"order を指定して parent_epic が存在しない場合は、エラーにする","status":"passed","testResultsByEnv":{"default":"6aabfad67b37351b4f0fe5b13876626f"}}

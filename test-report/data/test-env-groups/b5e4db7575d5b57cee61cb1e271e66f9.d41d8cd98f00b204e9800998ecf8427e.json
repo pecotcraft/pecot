@@ -1,0 +1,1 @@
+{"id":"b5e4db7575d5b57cee61cb1e271e66f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/batch-plan.test.ts#resolveBatch 前提が自分自身を指す場合は、エラーを返す","name":"前提が自分自身を指す場合は、エラーを返す","status":"passed","testResultsByEnv":{"default":"eaf1fc1e68c8c63b49eeb97edc07556c"}}

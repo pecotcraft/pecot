@@ -1,0 +1,1 @@
+{"id":"b7565acb1674a60442d7f33b5bc8b356.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add path を付けて呼ぶと、その場所に worktree を作る","name":"path を付けて呼ぶと、その場所に worktree を作る","status":"passed","testResultsByEnv":{"default":"a1836aa128d5e936953ea6643a90f7bd"}}

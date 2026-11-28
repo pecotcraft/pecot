@@ -1,0 +1,1 @@
+{"id":"69176e44a131e94a87f1e58d3554d6d9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate 指定したプロジェクトが初期化されていないと、終了コード 1 で終わる","name":"指定したプロジェクトが初期化されていないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"f6b6d6ad1bd68c732fec2368b4b5d8b4"}}

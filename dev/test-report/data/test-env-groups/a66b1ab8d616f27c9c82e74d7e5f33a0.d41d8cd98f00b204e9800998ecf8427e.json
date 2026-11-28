@@ -1,0 +1,1 @@
+{"id":"a66b1ab8d616f27c9c82e74d7e5f33a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh SessionStart の source が resume のとき、セッション名を出す","name":"SessionStart の source が resume のとき、セッション名を出す","status":"passed","testResultsByEnv":{"default":"9fabf15d796beae4c6bc2faa6460102b"}}

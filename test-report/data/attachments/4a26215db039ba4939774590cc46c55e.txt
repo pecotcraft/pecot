@@ -1,0 +1,2 @@
+count: Issues to close: 1
+unchanged: Issue #12 (already closed)

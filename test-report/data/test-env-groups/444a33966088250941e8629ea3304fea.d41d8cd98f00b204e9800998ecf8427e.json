@@ -1,0 +1,1 @@
+{"id":"444a33966088250941e8629ea3304fea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#exportEntries 見本の書き出し全体が node-sample.json と同じバイト列になる","name":"見本の書き出し全体が node-sample.json と同じバイト列になる","status":"passed","testResultsByEnv":{"default":"e8f04d623649011e8db35589dd16e39f"}}

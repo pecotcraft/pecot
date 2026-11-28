@@ -1,0 +1,1 @@
+{"id":"63cb1e62d6508ef8b33c77efa190f7f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql 要求の応答を待つ間に取り消すと、GraphQL の失敗に包まず CancelledError を投げる","name":"要求の応答を待つ間に取り消すと、GraphQL の失敗に包まず CancelledError を投げる","status":"passed","testResultsByEnv":{"default":"6ae9264cfd7cf2947bc36baa45cd60d6"}}

@@ -1,0 +1,1 @@
+{"id":"299893fca4e5ba0d90de7867e00ef8cb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main 対応する plugin が存在しない拡張子のファイルは、読み込まずに飛ばし、終了コード 0 を返す","name":"対応する plugin が存在しない拡張子のファイルは、読み込まずに飛ばし、終了コード 0 を返す","status":"passed","testResultsByEnv":{"default":"734c5a35907589ea7d58f430d81ea046"}}

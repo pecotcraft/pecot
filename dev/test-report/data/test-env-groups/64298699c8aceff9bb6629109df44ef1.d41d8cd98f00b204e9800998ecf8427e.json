@@ -1,0 +1,1 @@
+{"id":"64298699c8aceff9bb6629109df44ef1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#markerBranch 開いた PR が複数ある場合は、head の末尾が Issue の番号のものを選ぶ","name":"開いた PR が複数ある場合は、head の末尾が Issue の番号のものを選ぶ","status":"passed","testResultsByEnv":{"default":"55309624fbf98dd19e26bffdc38f7b13"}}

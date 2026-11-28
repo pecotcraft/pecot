@@ -1,0 +1,1 @@
+{"id":"ef7d291e839983ba89297fce4d2e2d27.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 出力がオブジェクトではない JSON のときは、行の配列として返す","name":"出力がオブジェクトではない JSON のときは、行の配列として返す","status":"passed","testResultsByEnv":{"default":"9476b48fdd881b686a8ee2ba1ab243c3"}}

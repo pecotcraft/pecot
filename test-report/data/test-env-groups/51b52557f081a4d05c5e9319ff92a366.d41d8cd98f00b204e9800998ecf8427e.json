@@ -1,0 +1,1 @@
+{"id":"51b52557f081a4d05c5e9319ff92a366.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/drawio-pdf-chromium.test.ts#CUJ: drawio export が実 chromium で SVG と兄弟 PDF を書き出す 日本語入りの図から exit 0 で SVG と 1 ページの PDF を書き出す","name":"日本語入りの図から exit 0 で SVG と 1 ページの PDF を書き出す","status":"passed","testResultsByEnv":{"default":"193e66dfecf588440b2a211bbb52712c"}}

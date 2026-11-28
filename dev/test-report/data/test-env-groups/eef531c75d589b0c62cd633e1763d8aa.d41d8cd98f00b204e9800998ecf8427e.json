@@ -1,0 +1,1 @@
+{"id":"eef531c75d589b0c62cd633e1763d8aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/direct-hint-lint.test.ts#案内の文字列を止める lint コメントの中 なら、案内の lint は報告しない","name":"コメントの中 なら、案内の lint は報告しない","status":"passed","testResultsByEnv":{"default":"3e92d3e2593c7a137389e9b367b84c4b"}}

@@ -1,0 +1,1 @@
+{"id":"8c836f177e7342b5ad914958d2c3f131.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-create.test.ts#slide create の失敗 (FR-013) 取得が auth で失敗した場合は、reason theme-auth と対処の文言を返し、生成先を作成しない","name":"取得が auth で失敗した場合は、reason theme-auth と対処の文言を返し、生成先を作成しない","status":"passed","testResultsByEnv":{"default":"a691291cc97472e9b04aad7bc9a073b0"}}

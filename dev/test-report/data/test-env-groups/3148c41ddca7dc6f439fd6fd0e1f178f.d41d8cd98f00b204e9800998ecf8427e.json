@@ -1,0 +1,1 @@
+{"id":"3148c41ddca7dc6f439fd6fd0e1f178f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_verify#test_dropped_report_outputs_no_kind","name":"採用しないレポートの run は、側と種類を空にして出力する","status":"passed","testResultsByEnv":{"default":"018d5ba77a9900656626c7610a27b19a"}}

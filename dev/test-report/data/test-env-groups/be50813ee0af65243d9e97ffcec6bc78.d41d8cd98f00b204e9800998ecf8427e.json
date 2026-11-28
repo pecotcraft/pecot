@@ -1,0 +1,1 @@
+{"id":"be50813ee0af65243d9e97ffcec6bc78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#parseReads reads が無ければ、空の結果を返す","name":"reads が無ければ、空の結果を返す","status":"passed","testResultsByEnv":{"default":"6240f5164ebcec94a372f0277997035e"}}

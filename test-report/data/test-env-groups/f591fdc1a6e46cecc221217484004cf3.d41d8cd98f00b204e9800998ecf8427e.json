@@ -1,0 +1,1 @@
+{"id":"f591fdc1a6e46cecc221217484004cf3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create message で repo を省き、origin のリポが設定に無いと、設定にあるリポを指す別の remote のリポで PR を作る","name":"message で repo を省き、origin のリポが設定に無いと、設定にあるリポを指す別の remote のリポで PR を作る","status":"passed","testResultsByEnv":{"default":"f35159688a75f7faec15e68790bd44d6"}}

@@ -1,0 +1,1 @@
+{"id":"4eb93a562d12cab1aff9dd50121665e5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#number の lax な変換（Python の実出力どおり） number に \" 12 \" を渡した場合は、整数 12 として読み取る","name":"number に \" 12 \" を渡した場合は、整数 12 として読み取る","status":"passed","testResultsByEnv":{"default":"125a7d74c3598c70c8984f7b88ed7617"}}

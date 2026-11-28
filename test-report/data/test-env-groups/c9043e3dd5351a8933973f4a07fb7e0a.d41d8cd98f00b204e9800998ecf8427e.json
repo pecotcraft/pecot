@@ -1,0 +1,1 @@
+{"id":"c9043e3dd5351a8933973f4a07fb7e0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-start.test.ts#auto start 書き込み権限の無い人の計画と答えは、本文を出さずに数だけを出す","name":"書き込み権限の無い人の計画と答えは、本文を出さずに数だけを出す","status":"passed","testResultsByEnv":{"default":"29ea8b05cd07ca0e0c75f9e73744f293"}}

@@ -1,0 +1,1 @@
+{"id":"54dc9e297add853386375f8f1f607502.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#失敗種別 fixture sso-token-expired の失敗は、失敗の種類 auth-expired と判定する","name":"fixture sso-token-expired の失敗は、失敗の種類 auth-expired と判定する","status":"passed","testResultsByEnv":{"default":"fb1fb2bde859340afaa242cca7433391"}}

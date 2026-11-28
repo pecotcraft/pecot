@@ -1,0 +1,1 @@
+{"id":"bccff573b4af237bf73a63fbf8af8ff0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-alerts.test.ts#fetchCodeScanningStatus 取得が unconfirmed の場合は、SecurityAlertError の例外が発生する","name":"取得が unconfirmed の場合は、SecurityAlertError の例外が発生する","status":"passed","testResultsByEnv":{"default":"24898a19b3aae4f5d8d2133f286eff5e"}}

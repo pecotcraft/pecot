@@ -1,0 +1,1 @@
+{"id":"d9b9b6c71583b2e8f7405e608f924214.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — 正常系 PNG と JPEG が混在する場合は、両方の Default を宣言し、拡張子を分けて格納する","name":"PNG と JPEG が混在する場合は、両方の Default を宣言し、拡張子を分けて格納する","status":"passed","testResultsByEnv":{"default":"9ba0318a2000abdba74c54107691824e"}}

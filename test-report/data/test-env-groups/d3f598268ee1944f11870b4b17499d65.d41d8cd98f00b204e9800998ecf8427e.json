@@ -1,0 +1,1 @@
+{"id":"d3f598268ee1944f11870b4b17499d65.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/linked-theme.test.ts#ensureTalkThemeLinked theme が none の talk-dir（移行前の形）は、テーマを取得せず、張り直さない","name":"theme が none の talk-dir（移行前の形）は、テーマを取得せず、張り直さない","status":"passed","testResultsByEnv":{"default":"2ff5d48852825f3cc9b49f46a47e97cc"}}

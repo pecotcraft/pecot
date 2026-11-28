@@ -1,0 +1,1 @@
+{"id":"1f10600a709683aaf06825748074faa9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/chromium-guard.test.ts#ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する 呼び出し元の signal を、取得のコマンドへ渡す","name":"呼び出し元の signal を、取得のコマンドへ渡す","status":"passed","testResultsByEnv":{"default":"cf262913d818534d0982f885a800cb98"}}

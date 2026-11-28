@@ -1,0 +1,304 @@
+{
+  "name": "project_check",
+  "title": "Check project board",
+  "description": "Check the arguments for projects_write create_project (the title is free for the owner), or the changes for the project-fields operation of github-ops against the pecot field rules: after the changes, the board has pecot-status, the Needs Attention option of Status and the pecot-lane values. Reads and writes nothing on GitHub; pass the results of the official reads in reads.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "method": {
+        "type": "string",
+        "enum": [
+          "create",
+          "fields"
+        ],
+        "description": "create before projects_write with method create_project; fields before the project-fields operation of github-ops, or to see what a board still lacks"
+      },
+      "owner": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Owner of the board (a user or an organization)"
+      },
+      "owner_type": {
+        "description": "With create: owner_type passed to create_project",
+        "type": "string",
+        "enum": [
+          "user",
+          "org"
+        ]
+      },
+      "title": {
+        "description": "With create: title passed to create_project",
+        "type": "string"
+      },
+      "project": {
+        "description": "With fields: number of the board (the project param of project-fields)",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "changes": {
+        "description": "With fields: the changes param of project-fields, applied in order to the fields read; omit it to check the board as it is",
+        "type": "array",
+        "items": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "create"
+                  ]
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "options": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "color": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "description": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "action",
+                "name",
+                "options"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "rename"
+                  ]
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "to": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "action",
+                "name",
+                "to"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "delete"
+                  ]
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "action",
+                "name"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "set-options"
+                  ]
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "options": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "color": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "description": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "action",
+                "name",
+                "options"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "lanes": {
+        "description": "With fields: values the pecot-lane field must have (the areas of work, in English); omit it when the board has no lanes",
+        "minItems": 1,
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "reads": {
+        "description": "Results of the official GitHub MCP reads the check needs",
+        "type": "object",
+        "properties": {
+          "projects": {
+            "description": "With create: results of projects_list with method list_projects for the owner (every page)",
+            "type": "array",
+            "items": {}
+          },
+          "fields": {
+            "description": "With fields: result of projects_list with method list_project_fields for the board"
+          }
+        }
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "method",
+      "owner"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "problems": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "description": "Issue the problem belongs to: a batch key or owner/repo/N (omitted when the check covers one target)",
+              "type": "string"
+            },
+            "field": {
+              "type": "string",
+              "description": "Name of the argument that breaks the rule (title, body, issue_fields.<name>, blocked_by.<i>, ...)"
+            },
+            "code": {
+              "type": "string",
+              "description": "Kind of the problem (missing-section, extra-heading, cycle, ...)"
+            },
+            "message": {
+              "type": "string",
+              "description": "What is wrong and how to fix it, with the expected value when there is one"
+            },
+            "candidates": {
+              "description": "Values that would be accepted (omitted when there is no fixed set)",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "field",
+            "code",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Rules the arguments break; when empty, the arguments can be passed to the write tool as they are"
+      },
+      "deletable": {
+        "description": "With fields: fields on the board after the changes that pecot does not use (pecot-priority, pecot-size, and the old pecot-workflow-<suffix> field next to pecot-status). Deleting one deletes its values on every card, so delete them only after the user approves",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "problems"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": false
+  }
+}

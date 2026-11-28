@@ -1,0 +1,1 @@
+{"id":"0c3789d280c6197ba7034f3fdbef3f63.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#--registry が env より優先されて exit 0","name":"--registry が env より優先されて exit 0","status":"passed","testResultsByEnv":{"default":"26b3ba19627119686be91dc62e1416fc"}}

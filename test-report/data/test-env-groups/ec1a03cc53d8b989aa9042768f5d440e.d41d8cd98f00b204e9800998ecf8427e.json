@@ -1,0 +1,1 @@
+{"id":"ec1a03cc53d8b989aa9042768f5d440e.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#session_show が一時リポのブランチ名を branch に返す","name":"session_show が一時リポのブランチ名を branch に返す","status":"passed","testResultsByEnv":{"default":"49a2c0d37f39bcf39d5f5a64c044c82a"}}

@@ -1,0 +1,1 @@
+{"id":"92a69bd05cf53af2527dbff3537a418e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide convert の実行と結果 (execute 経由) 成功すると slide.convert.done の data を返す","name":"成功すると slide.convert.done の data を返す","status":"passed","testResultsByEnv":{"default":"eb6c146b4f1e0034971b423d65151d7d"}}

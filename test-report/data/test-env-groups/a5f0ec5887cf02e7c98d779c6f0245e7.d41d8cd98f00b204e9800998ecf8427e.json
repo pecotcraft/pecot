@@ -1,0 +1,1 @@
+{"id":"a5f0ec5887cf02e7c98d779c6f0245e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add シンボリックリンクを作ると、作った数を symlinks created の count の行で標準エラーに出す","name":"シンボリックリンクを作ると、作った数を symlinks created の count の行で標準エラーに出す","status":"passed","testResultsByEnv":{"default":"b7ac393fbaa4dffd79c0911766456b5c"}}

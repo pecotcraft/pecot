@@ -1,0 +1,1 @@
+{"id":"6c7696fe0fc27396d04f6d172b089bd9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-table-complex-content.test.ts#no-table-complex-content invalid td の中に table を入れ子にすると、報告する","name":"td の中に table を入れ子にすると、報告する","status":"passed","testResultsByEnv":{"default":"6771e8cef0656eb97041d91f4969275d"}}

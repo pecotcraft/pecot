@@ -1,0 +1,1 @@
+{"id":"9f8a2f5d8d8f929914572f05d35bd23c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_cloudwatch_get_metric_statistics period が 0 の入力を、スキーマの検証で拒否する","name":"period が 0 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"ef797525bba3b703ad95dc143bb83e00"}}

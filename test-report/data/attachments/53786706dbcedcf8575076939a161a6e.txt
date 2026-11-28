@@ -1,0 +1,1 @@
+WARN: nx 配下の ignore を解決できないため version plan check を skip

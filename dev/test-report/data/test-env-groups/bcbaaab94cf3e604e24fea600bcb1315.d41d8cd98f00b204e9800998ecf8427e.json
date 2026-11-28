@@ -1,0 +1,1 @@
+{"id":"bcbaaab94cf3e604e24fea600bcb1315.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.bats#ガード対象のスクリプトを 10 本以上列挙し、tests 配下を含めない","name":"ガード対象のスクリプトを 10 本以上列挙し、tests 配下を含めない","status":"passed","testResultsByEnv":{"default":"8ac6b0036c18fb27901bc0118ef54dde"}}

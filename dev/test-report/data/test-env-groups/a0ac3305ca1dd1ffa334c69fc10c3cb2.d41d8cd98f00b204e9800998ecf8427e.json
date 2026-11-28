@@ -1,0 +1,1 @@
+{"id":"a0ac3305ca1dd1ffa334c69fc10c3cb2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/process-run.test.ts#runProcess 取り消すと、孫プロセスまでグループごと停止し、CancelledError を発生させる","name":"取り消すと、孫プロセスまでグループごと停止し、CancelledError を発生させる","status":"passed","testResultsByEnv":{"default":"5fc24f0e1ae4a77781e845eb864aac65"}}

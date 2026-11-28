@@ -1,0 +1,1 @@
+{"id":"6db6accdbb094ab8364824f3b00e0c0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge MCP の呼び出し GitHub API がほかのエラーを返すと、失敗を返す","name":"GitHub API がほかのエラーを返すと、失敗を返す","status":"passed","testResultsByEnv":{"default":"169aa365a190848372fcf4ee4e3040f7"}}

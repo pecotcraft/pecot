@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not load config file broken.json: invalid config file: /tmp/pecot-repo-oeQ10C/.pecot/config/projects/broken.json: Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"config-invalid\",\"detail\":\"could not load config file broken.json: invalid config file: /tmp/pecot-repo-oeQ10C/.pecot/config/projects/broken.json: Expected property name or '}' in JSON at position 2 (line 1 column 3)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "config-invalid",
+    "detail": "could not load config file broken.json: invalid config file: /tmp/pecot-repo-oeQ10C/.pecot/config/projects/broken.json: Expected property name or '}' in JSON at position 2 (line 1 column 3)"
+  },
+  "isError": true
+}

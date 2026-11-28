@@ -1,0 +1,1 @@
+{"id":"da08f62ad48b9e979ab8004c42e26f44.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings トリプルクォート内の単独引用符 のとき、引用符を含まない本文だけを切り出す","name":"トリプルクォート内の単独引用符 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"199e948532c1d685798187e4bb4c262c"}}

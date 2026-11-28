@@ -1,0 +1,1 @@
+{"id":"3249dbc1d4f4e0ba5df96831a5f762b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#runMcpServe transport 層のエラーも、標準エラー出力へ 1 行出力する","name":"transport 層のエラーも、標準エラー出力へ 1 行出力する","status":"passed","testResultsByEnv":{"default":"aa03082e84b1d798b12a357b10ab42a7"}}

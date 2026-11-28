@@ -1,0 +1,1 @@
+{"id":"491d4c8c9dcfd27c1aed25c7865b2791.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_affected_mapping#test_nx_json_still_affects_all_projects","name":"nx.json を変更すると、すべての project が affected になる","status":"passed","testResultsByEnv":{"default":"c731272ac5fd1320821a8d8a120b7f73"}}

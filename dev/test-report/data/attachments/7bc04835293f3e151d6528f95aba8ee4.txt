@@ -1,0 +1,2 @@
+error: the project config has no Status field (fields.status)
+  call project_activate with project: "1", owner: "acme"

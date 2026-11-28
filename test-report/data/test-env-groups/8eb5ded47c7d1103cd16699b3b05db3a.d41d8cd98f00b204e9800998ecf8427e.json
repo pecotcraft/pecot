@@ -1,0 +1,1 @@
+{"id":"8eb5ded47c7d1103cd16699b3b05db3a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#リストの記号で始まる行 YAML のコメント の箇条書きを、項目ごとに 1 文として数える","name":"YAML のコメント の箇条書きを、項目ごとに 1 文として数える","status":"passed","testResultsByEnv":{"default":"ba1c48a7835ff8a0c1a2d0af2f3cc1aa"}}

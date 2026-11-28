@@ -1,0 +1,1 @@
+{"id":"fe14232da53c901ffc77c4cb3dca44b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 両方の設定ファイルが旧い名前の形式なら、ずれが 0 件になる","name":"両方の設定ファイルが旧い名前の形式なら、ずれが 0 件になる","status":"passed","testResultsByEnv":{"default":"918f2d0f959a847820f2b8ffd04764ad"}}

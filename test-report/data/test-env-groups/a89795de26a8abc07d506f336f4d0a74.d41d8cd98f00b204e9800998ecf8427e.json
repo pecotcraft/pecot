@@ -1,0 +1,1 @@
+{"id":"a89795de26a8abc07d506f336f4d0a74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 除外の一覧にない名前の ruleset が検証用に存在しないと、ruleset の差異として表示する","name":"除外の一覧にない名前の ruleset が検証用に存在しないと、ruleset の差異として表示する","status":"passed","testResultsByEnv":{"default":"172a711f0394a05c482a6e19f111c3d7"}}

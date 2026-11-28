@@ -1,0 +1,1 @@
+{"id":"6ae7f844d76ea965157b30f0b7c6a5ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-show.test.ts#board_show ボードのカードと欄の読み取りを渡すと、Backlog から In Review までの開いた項目を board に入れる","name":"ボードのカードと欄の読み取りを渡すと、Backlog から In Review までの開いた項目を board に入れる","status":"passed","testResultsByEnv":{"default":"6191f776632b7708aea05f918ca79ebd"}}

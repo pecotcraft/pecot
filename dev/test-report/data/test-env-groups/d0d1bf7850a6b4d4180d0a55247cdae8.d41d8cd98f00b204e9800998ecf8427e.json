@@ -1,0 +1,1 @@
+{"id":"d0d1bf7850a6b4d4180d0a55247cdae8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_server_start_failure_falls_back_to_skip","name":"保存先を作れずにサーバを起動できない場合は、警告を表示して、従来どおりキャッシュを使わない","status":"passed","testResultsByEnv":{"default":"2815fbfa363fbedbc848decc639f325d"}}

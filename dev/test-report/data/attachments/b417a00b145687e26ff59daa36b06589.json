@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "slide_dev: started http://localhost:37197"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.dev.started\",\"dir\":\"/tmp/pecotv-test-e2e-9VLKfm/sigterm-talk\",\"url\":\"http://localhost:37197\",\"port\":37197,\"reused\":false,\"pid\":8371}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.dev.started",
+    "dir": "/tmp/pecotv-test-e2e-9VLKfm/sigterm-talk",
+    "url": "http://localhost:37197",
+    "port": 37197,
+    "reused": false,
+    "pid": 8371
+  }
+}

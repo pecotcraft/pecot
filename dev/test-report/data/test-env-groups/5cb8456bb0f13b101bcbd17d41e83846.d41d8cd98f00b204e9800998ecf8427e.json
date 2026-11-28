@@ -1,0 +1,1 @@
+{"id":"5cb8456bb0f13b101bcbd17d41e83846.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#readWaitsForMerge 箇条書きでない行 がある場合は、malformed を返す","name":"箇条書きでない行 がある場合は、malformed を返す","status":"passed","testResultsByEnv":{"default":"413df018bbee0ff7be75e475f34475b2"}}

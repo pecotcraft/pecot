@@ -1,0 +1,1 @@
+{"id":"8b4cf609b2f2615fcf4591d654723b10.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#runMcpServe 標準入力が終端に達したときは、接続を閉じ、終了処理をすべて呼び出す","name":"標準入力が終端に達したときは、接続を閉じ、終了処理をすべて呼び出す","status":"passed","testResultsByEnv":{"default":"243ad19215d4c4131da46d54cb955325"}}

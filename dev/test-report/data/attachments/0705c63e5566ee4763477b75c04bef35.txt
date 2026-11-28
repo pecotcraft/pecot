@@ -1,0 +1,11 @@
+error: gh-stack-check: gh stack is not allowed (only gh stack view (use --json) and --help are).
+
+  Reason: running gh stack directly changes the stack without the workflow's records,
+  the Issue reference and the readiness checks, which breaks the consistency of the workflow.
+
+  Use these instead:
+    open a stacked PR: check with the MCP tool pr_check of the workflow server, create it with
+      create_pull_request of the official GitHub MCP server, then register it with the
+      stack-register operation of github-ops (steps: skills/w-help/references/github-write.md)
+    merge a PR: the merge button on the GitHub page (/pecot-w:w-pr waits for it and cleans up)
+    restack a stacked branch: the MCP tool pr_restack of the workflow server

@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "issue_number: acme/demo/7 is not on the board acme/1: add it with projects_write (method add_project_item) first"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"issue_number\",\"code\":\"not-found\",\"message\":\"acme/demo/7 is not on the board acme/1: add it with projects_write (method add_project_item) first\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "issue_number",
+        "code": "not-found",
+        "message": "acme/demo/7 is not on the board acme/1: add it with projects_write (method add_project_item) first"
+      }
+    ]
+  }
+}

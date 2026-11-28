@@ -1,0 +1,1 @@
+{"id":"7f66ae9717bf95e59e76f61acbbb329d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-lint-reason.test.ts#errorToReason 例外 SlideCreateRuntimeError: x に対して、reason copy-failed を返す","name":"例外 SlideCreateRuntimeError: x に対して、reason copy-failed を返す","status":"passed","testResultsByEnv":{"default":"2ea5b7f841c47411f72abf561b64adce"}}

@@ -1,0 +1,1 @@
+{"id":"5208acf0998a65dc89b406f47e0d64a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#URL のパスの符号化 ブランチ名の記号はエンコードし、.. のセグメントは GitHubAPIError を発生させる","name":"ブランチ名の記号はエンコードし、.. のセグメントは GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"4900a0c69bb29b9fe94c02f1152a95b8"}}

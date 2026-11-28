@@ -1,0 +1,1 @@
+{"id":"9c412a6a8fab03a4f7fc406cabb46918.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/branch-name.test.ts#activeIssueFromBranch ブランチ名を取得できない場合は、undefined を返す","name":"ブランチ名を取得できない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"4d3571e13710322105591e0282945aee"}}

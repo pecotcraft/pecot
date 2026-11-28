@@ -1,0 +1,1 @@
+{"id":"59f579660e652ff7cbb2a8df8386857c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_with_timing#test_usage_error_without_child","name":"子のコマンドを指定しないと、usage を表示して終了コード 2 で終了する","status":"passed","testResultsByEnv":{"default":"b6a52d5eb5b08d84ff3f8fc0b8083b92"}}

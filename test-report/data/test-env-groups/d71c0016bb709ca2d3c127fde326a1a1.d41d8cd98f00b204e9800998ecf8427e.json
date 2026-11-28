@@ -1,0 +1,1 @@
+{"id":"d71c0016bb709ca2d3c127fde326a1a1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted log が上限を超えたときは、切り詰めたことを detail に残す","name":"log が上限を超えたときは、切り詰めたことを detail に残す","status":"passed","testResultsByEnv":{"default":"63585c7c7caf66ac150919fb65bd939e"}}

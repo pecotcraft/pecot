@@ -1,0 +1,1 @@
+{"id":"e1e390949d84ed2e37d27261804fcd94.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_nx_parallel_env_overrides_default","name":"`PECOT_NX_PARALLEL=2` を指定すると、nx に `--parallel=2` を渡し、表示と記録も並列 2 にする","status":"passed","testResultsByEnv":{"default":"972ec4e44a719aa6c4eca0afc401dd11"}}

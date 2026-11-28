@@ -1,0 +1,1 @@
+{"id":"b35f64905e06795bd62f959aa895bd29.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_attach_file_uses_content_type_table","name":"attach_file は拡張子から型を決めて添付し、型の決まっていない拡張子ではその @test を失敗にする","status":"passed","testResultsByEnv":{"default":"bb5517c1350ae8033550c99e294d76a6"}}

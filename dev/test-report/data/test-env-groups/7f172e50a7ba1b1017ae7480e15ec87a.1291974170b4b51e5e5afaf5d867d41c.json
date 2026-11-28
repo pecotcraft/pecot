@@ -1,0 +1,1 @@
+{"id":"7f172e50a7ba1b1017ae7480e15ec87a.1291974170b4b51e5e5afaf5d867d41c","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_runs_for_text_sources","name":"nx.json を変更すると、check-text が起動する","status":"passed","testResultsByEnv":{"default":"0218b7ce28d2d9982ea0dc2d879c6cb8"}}

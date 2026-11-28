@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "worktree config not found\n  call worktree_init with directory: <directory>"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"not-initialized\",\"detail\":\"worktree config not found\\n  call worktree_init with directory: <directory>\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "not-initialized",
+    "detail": "worktree config not found\n  call worktree_init with directory: <directory>"
+  },
+  "isError": true
+}

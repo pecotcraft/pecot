@@ -1,0 +1,1 @@
+{"id":"9edfc9f4dc488d0211eebd05202037ac.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_negative_duration_is_clamped_to_zero","name":"所要時間が負の値になる場合は、0.0 秒に丸めて合計の行を 1 行表示する","status":"passed","testResultsByEnv":{"default":"cfdecfbac710f5dedd75b506166e4eae"}}

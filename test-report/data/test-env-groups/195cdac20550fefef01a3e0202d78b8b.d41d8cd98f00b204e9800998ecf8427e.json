@@ -1,0 +1,1 @@
+{"id":"195cdac20550fefef01a3e0202d78b8b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_checks_out_full_history","name":"dependabot-commit.yml は、履歴をすべて取得してチェックアウトする","status":"passed","testResultsByEnv":{"default":"b0172fc6fc7fa7cceca1decaf72b44e9"}}

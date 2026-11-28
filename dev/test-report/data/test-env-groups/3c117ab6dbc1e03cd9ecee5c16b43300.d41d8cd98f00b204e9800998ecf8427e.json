@@ -1,0 +1,1 @@
+{"id":"3c117ab6dbc1e03cd9ecee5c16b43300.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toolOutputSchema 最上位は type が object で、properties にツールの項目と共通の 4 項目を並べ、閉じた型にする","name":"最上位は type が object で、properties にツールの項目と共通の 4 項目を並べ、閉じた型にする","status":"passed","testResultsByEnv":{"default":"84c7b6383c3ce2bb7a5a51d45f9defb9"}}

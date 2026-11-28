@@ -1,0 +1,1 @@
+{"id":"bc630bf4f31405034df0cf8fa8a571c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/failure-kinds-definition.test.ts#定義書の exit_status と FAILURE_KINDS `PV-SLIDE-SYNC` の実装に書かれた失敗の名前が、定義書の `exit_status` にある","name":"`PV-SLIDE-SYNC` の実装に書かれた失敗の名前が、定義書の `exit_status` にある","status":"passed","testResultsByEnv":{"default":"c0a6451ae6ea3986e953c61f68d4b856"}}

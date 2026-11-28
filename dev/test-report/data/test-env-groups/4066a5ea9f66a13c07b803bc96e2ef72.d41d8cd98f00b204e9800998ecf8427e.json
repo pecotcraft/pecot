@@ -1,0 +1,1 @@
+{"id":"4066a5ea9f66a13c07b803bc96e2ef72.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/mcp/session-directory.test.ts#MCP のサーバのセッションのディレクトリ COPILOT_SESSION_CWD が実在しなければ、理由を失敗で返す","name":"COPILOT_SESSION_CWD が実在しなければ、理由を失敗で返す","status":"passed","testResultsByEnv":{"default":"8984c7c00b4450f2423617efa0415250"}}

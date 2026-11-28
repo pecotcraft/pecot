@@ -1,0 +1,1 @@
+{"id":"c92fcbd2112ffda2a2702c4a33c56ded.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-definition.test.ts#defineTool 入力全体の refine を保持し、strictObject の入力でも repo を受け付ける","name":"入力全体の refine を保持し、strictObject の入力でも repo を受け付ける","status":"passed","testResultsByEnv":{"default":"296d2c4241147e00cf751966be3acc08"}}

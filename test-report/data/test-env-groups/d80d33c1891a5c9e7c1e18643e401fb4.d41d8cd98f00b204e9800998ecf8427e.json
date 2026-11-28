@@ -1,0 +1,1 @@
+{"id":"d80d33c1891a5c9e7c1e18643e401fb4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/directory-option.test.ts#directorySchema リンク先が存在しないシンボリックリンクも、does not exist の検証の誤りにする","name":"リンク先が存在しないシンボリックリンクも、does not exist の検証の誤りにする","status":"passed","testResultsByEnv":{"default":"d0f842e2a944320c2c71000e28fa84c8"}}

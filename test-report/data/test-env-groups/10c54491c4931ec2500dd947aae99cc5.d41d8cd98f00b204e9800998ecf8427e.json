@@ -1,0 +1,1 @@
+{"id":"10c54491c4931ec2500dd947aae99cc5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#collectIo の項目・warnings・errors・log error の文は、前置きなしで続きの行の字下げを残して集め、標準エラーの行は拾わない","name":"error の文は、前置きなしで続きの行の字下げを残して集め、標準エラーの行は拾わない","status":"passed","testResultsByEnv":{"default":"0588f79442b2863bcc299509c304b288"}}

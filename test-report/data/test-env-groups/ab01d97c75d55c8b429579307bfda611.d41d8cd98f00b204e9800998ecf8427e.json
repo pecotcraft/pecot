@@ -1,0 +1,1 @@
+{"id":"ab01d97c75d55c8b429579307bfda611.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/board-sync-workflow-template.test.ts#board sync のワークフローの雛形 pull_request_target を使い、pull_request は使わない","name":"pull_request_target を使い、pull_request は使わない","status":"passed","testResultsByEnv":{"default":"b3d4331f27125e318d1e4c7f961cb2bc"}}

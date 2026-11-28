@@ -1,0 +1,1 @@
+{"id":"e60cd26f31bab4d9314f55796559111a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#Python reads Python のソースに an import of environ があると、名前を解決できない行を 1 件返し、名前は返さない","name":"Python のソースに an import of environ があると、名前を解決できない行を 1 件返し、名前は返さない","status":"passed","testResultsByEnv":{"default":"de7eed3203d3573550bb6040e319835d"}}

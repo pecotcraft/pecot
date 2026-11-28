@@ -1,0 +1,1 @@
+{"id":"f6061f42c1b45d5238db73e9b19b11e5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/typescript-wasm.test.ts#typescript plugin: wasm の置き場の解決 wasm の置き場を解決できないと、違反ありの 1 ではなく、実行失敗の 2 を返す","name":"wasm の置き場を解決できないと、違反ありの 1 ではなく、実行失敗の 2 を返す","status":"passed","testResultsByEnv":{"default":"56cbbe8cddfe3ea57d399c39e1f48b39"}}

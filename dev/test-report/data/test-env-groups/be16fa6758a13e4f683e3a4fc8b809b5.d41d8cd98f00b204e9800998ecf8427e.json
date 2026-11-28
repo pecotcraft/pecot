@@ -1,0 +1,1 @@
+{"id":"be16fa6758a13e4f683e3a4fc8b809b5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_logs_get_log_events 必須の入力だけを渡すと受け付け、既定値を補って handler へ渡す","name":"必須の入力だけを渡すと受け付け、既定値を補って handler へ渡す","status":"passed","testResultsByEnv":{"default":"0a0038fb944b2b63e27d133704b813bf"}}

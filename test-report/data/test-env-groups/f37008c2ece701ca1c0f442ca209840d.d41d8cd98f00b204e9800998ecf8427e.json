@@ -1,0 +1,1 @@
+{"id":"f37008c2ece701ca1c0f442ca209840d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bash_test_lib#test_failure_in_subshell_is_counted","name":"サブシェルの中で確認が失敗しても、ファイルの終了コードと失敗の件数に数える","status":"passed","testResultsByEnv":{"default":"66cb98edd530d6c45aff09eb1c314fa3"}}

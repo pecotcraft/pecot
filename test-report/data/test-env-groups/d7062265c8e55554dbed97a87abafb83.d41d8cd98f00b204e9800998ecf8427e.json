@@ -1,0 +1,1 @@
+{"id":"d7062265c8e55554dbed97a87abafb83.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/pr-waiting.test.ts#moveIssuesWaitingFor 待つ Issue の読み取りが次のとき（依存関係に対応しない）、ボードを読まずに終える","name":"待つ Issue の読み取りが次のとき（依存関係に対応しない）、ボードを読まずに終える","status":"passed","testResultsByEnv":{"default":"144111bb82614043950dddf8cb91c81a"}}

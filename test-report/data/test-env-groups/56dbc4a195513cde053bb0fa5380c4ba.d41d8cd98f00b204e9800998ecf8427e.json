@@ -1,0 +1,1 @@
+{"id":"56dbc4a195513cde053bb0fa5380c4ba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/hooks-definitions.test.ts#残すフックの一覧 hooks.json に登録したスクリプトは、一覧と同じ集合になる","name":"hooks.json に登録したスクリプトは、一覧と同じ集合になる","status":"passed","testResultsByEnv":{"default":"14bf72861f93d722d6b49f10133e0cf1"}}

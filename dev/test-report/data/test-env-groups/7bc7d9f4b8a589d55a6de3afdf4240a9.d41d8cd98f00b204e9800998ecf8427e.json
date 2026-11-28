@@ -1,0 +1,1 @@
+{"id":"7bc7d9f4b8a589d55a6de3afdf4240a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#applyBoardMove 書き込みが VALIDATION で失敗した場合は、案内を表示し、2 回目以降の失敗では案内を重ねて表示しない","name":"書き込みが VALIDATION で失敗した場合は、案内を表示し、2 回目以降の失敗では案内を重ねて表示しない","status":"passed","testResultsByEnv":{"default":"54b272ebbaa4eb1cbcda99288d98d446"}}

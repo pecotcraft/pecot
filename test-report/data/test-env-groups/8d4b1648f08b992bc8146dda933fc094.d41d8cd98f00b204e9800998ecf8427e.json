@@ -1,0 +1,1 @@
+{"id":"8d4b1648f08b992bc8146dda933fc094.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ release-create-state-no-release-branch を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ release-create-state-no-release-branch を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"c8718814e368fa24de3c1233ee1734f6"}}

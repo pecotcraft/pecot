@@ -1,0 +1,1 @@
+{"id":"60b36c7b456123845f895c623a3ee737.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/index.test.ts#InProcessSlidevPptxPipeline 呼び出し元の signal が中断済みの場合は、中断済みの signal を runner に渡す","name":"呼び出し元の signal が中断済みの場合は、中断済みの signal を runner に渡す","status":"passed","testResultsByEnv":{"default":"172f033583e44980d01b5f471b0ed5f7"}}

@@ -1,0 +1,1 @@
+{"id":"1a04774bcd4a9409260cf646d16fcc8c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_pull_success_skips_build","name":"up でイメージの pull に成功すると、build せずにそのイメージを使う","status":"passed","testResultsByEnv":{"default":"3472faf3cb1d27d6c09290d2fb3ba8e0"}}

@@ -1,0 +1,1 @@
+{"id":"7f5360eb908bbec16855b7063a1e5b6f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の札 Todo の札が存在しないボードでは、書き込まずに missing へ入れる","name":"Todo の札が存在しないボードでは、書き込まずに missing へ入れる","status":"passed","testResultsByEnv":{"default":"65fc54b9df7f237df692795c7407b14a"}}

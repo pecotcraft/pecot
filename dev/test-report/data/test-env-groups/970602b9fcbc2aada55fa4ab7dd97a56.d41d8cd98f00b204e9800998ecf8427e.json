@@ -1,0 +1,1 @@
+{"id":"970602b9fcbc2aada55fa4ab7dd97a56.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml 複数の画像がある場合は、shape の id と rId を、渡した順に重複なく振る","name":"複数の画像がある場合は、shape の id と rId を、渡した順に重複なく振る","status":"passed","testResultsByEnv":{"default":"d9dabe14576e87ffcd3edb2d917c76cd"}}

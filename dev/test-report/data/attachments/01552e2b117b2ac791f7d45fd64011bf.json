@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool slide_dev: port: Too small: expected number to be >=1"
+    }
+  ],
+  "isError": true
+}

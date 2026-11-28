@@ -1,0 +1,1 @@
+{"id":"87441df21a7d098294c1b28865cd5370.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync Ready の Issue の前提が輪になると、Blocked へ動かす","name":"Ready の Issue の前提が輪になると、Blocked へ動かす","status":"passed","testResultsByEnv":{"default":"54ef6852d75fddd4813a2ea1f0bad2d1"}}

@@ -1,0 +1,1 @@
+{"id":"23f3c3853844af421da5240ced66a924.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_plugin_validate#test_fails_without_claude","name":"claude CLI が PATH に存在しないと、skip せずに非 0 で終了し、見つからない旨を表示する","status":"passed","testResultsByEnv":{"default":"1bb6300948379218bfde35f14efc88e0"}}

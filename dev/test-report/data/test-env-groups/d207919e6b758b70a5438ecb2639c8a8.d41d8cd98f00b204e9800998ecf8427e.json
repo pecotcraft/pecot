@@ -1,0 +1,1 @@
+{"id":"d207919e6b758b70a5438ecb2639c8a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#nxProjects root が . のプロジェクトは . のままにし、末尾の / は取り除き、空になる場合は . にする","name":"root が . のプロジェクトは . のままにし、末尾の / は取り除き、空になる場合は . にする","status":"passed","testResultsByEnv":{"default":"b248c2ad73ab33ba1b78014fe475ffa8"}}

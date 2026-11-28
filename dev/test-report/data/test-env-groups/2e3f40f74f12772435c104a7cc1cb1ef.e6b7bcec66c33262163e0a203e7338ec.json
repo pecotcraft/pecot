@@ -1,0 +1,1 @@
+{"id":"2e3f40f74f12772435c104a7cc1cb1ef.e6b7bcec66c33262163e0a203e7338ec","fullName":".githooks.tests.test_pages_release#test_build_stops_when_units_differ_from_sources","name":"リリース版の build は、材料の単位が作業ツリーの単位とそろわない（more）と、何も実行せずに終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"665e1b167f6c251b666ad98bf8fe1142"}}

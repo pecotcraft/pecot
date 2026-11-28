@@ -1,0 +1,21 @@
+WARN: base 解決失敗のため全 project の test を実行します。
+
+nx exit code: 130
+=== 失敗レーン: lane-two ===
+lane-two: LANE_TWO_BODY running
+lane-two: CALL1_BODY call count marker
+lane-two: AssertionError: expected 1 to be 2
+ NX   Running target test for 2 projects failed
+
+Tasks not run because their dependencies failed or --nx-bail=true:
+
+- lane-three:test-unit
+
+Failed tasks:
+
+- lane-two:test-unit
+
+
+
+全出力: /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_fallback_run_many_failure0/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log
+進行確認: tail -f /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_fallback_run_many_failure0/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log

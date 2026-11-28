@@ -1,0 +1,1 @@
+{"id":"bb15cba09bfc37cfbe7ab51f43473e5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/work-target.test.ts#recordWorkTarget 前の .pecot-base を削除し、options.base が渡された場合は新しく書き込む","name":"前の .pecot-base を削除し、options.base が渡された場合は新しく書き込む","status":"passed","testResultsByEnv":{"default":"79f0f05c052d02d300d2d05e0107c54a"}}

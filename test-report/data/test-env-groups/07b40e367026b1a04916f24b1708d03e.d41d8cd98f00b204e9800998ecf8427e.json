@@ -1,0 +1,1 @@
+{"id":"07b40e367026b1a04916f24b1708d03e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/vendor-text-rules.test.ts#vendor/text-rules git の index ではリンク（mode 120000）の 1 件だけで、実ディレクトリのファイルが入らない","name":"git の index ではリンク（mode 120000）の 1 件だけで、実ディレクトリのファイルが入らない","status":"passed","testResultsByEnv":{"default":"b795e7761e684dd25e653b3ad210d737"}}

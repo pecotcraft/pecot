@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project not found: Non Existent\n  available projects:\n  - Other Project"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"project-not-found\",\"detail\":\"project not found: Non Existent\\n  available projects:\\n  - Other Project\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "project-not-found",
+    "detail": "project not found: Non Existent\n  available projects:\n  - Other Project"
+  },
+  "isError": true
+}

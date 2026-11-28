@@ -1,0 +1,1 @@
+{"id":"986904e3bff04e68c8d4a341ba784435.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/eslint-runner.test.ts#resolveEslintBin assets/slidev は eslint の 10 系を宣言し、解決される eslint も 10 系になる","name":"assets/slidev は eslint の 10 系を宣言し、解決される eslint も 10 系になる","status":"passed","testResultsByEnv":{"default":"913033d62acbc48197d94145fa575dfc"}}

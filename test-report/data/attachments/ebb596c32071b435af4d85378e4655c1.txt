@@ -1,0 +1,3 @@
+error: develop_branch is not set for acme/demo
+  set it with: project_link with repo: "acme/demo", develop_branch: "develop"
+  or give the base: session_start with issue_ref: "acme/demo/7", branch: "feat", base: "main"

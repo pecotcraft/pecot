@@ -1,0 +1,1 @@
+{"id":"83c67cd6df22fb927449e7399f7a1d09.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#--dist と --runtime-dist の片方だけを渡すと、両方の指定を求めて中止する","name":"--dist と --runtime-dist の片方だけを渡すと、両方の指定を求めて中止する","status":"passed","testResultsByEnv":{"default":"e587361bd7ebfac4a23a3c22decf60f7"}}

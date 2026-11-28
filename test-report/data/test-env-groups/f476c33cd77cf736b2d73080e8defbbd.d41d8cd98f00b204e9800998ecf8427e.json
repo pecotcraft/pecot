@@ -1,0 +1,1 @@
+{"id":"f476c33cd77cf736b2d73080e8defbbd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-sso.test.ts#SSO の 2 段構成 失敗したログインの状態確認は、同じ種類と出力を返す","name":"失敗したログインの状態確認は、同じ種類と出力を返す","status":"passed","testResultsByEnv":{"default":"8b6ae9b025ed3fb18cd69382acc1119e"}}

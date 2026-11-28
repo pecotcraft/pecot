@@ -1,0 +1,1 @@
+{"id":"b947f24ca869935bcd2c0a5cc7c40095.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-view.test.ts#board show の表示 判定と Lane の情報を渡さない場合は、項目に readiness を付けず、Lane の一覧を空にする","name":"判定と Lane の情報を渡さない場合は、項目に readiness を付けず、Lane の一覧を空にする","status":"passed","testResultsByEnv":{"default":"098ceb07d07e6db8be381b75ed04c0d9"}}

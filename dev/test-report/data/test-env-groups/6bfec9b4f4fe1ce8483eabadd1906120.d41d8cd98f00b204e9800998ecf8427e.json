@@ -1,0 +1,1 @@
+{"id":"6bfec9b4f4fe1ce8483eabadd1906120.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/github-ops/project.test.ts#github ops project-view で列の欄がボードに無いと、作らずに github-not-found を返す","name":"project-view で列の欄がボードに無いと、作らずに github-not-found を返す","status":"passed","testResultsByEnv":{"default":"c78e9d2f47a363f1e482447b1b6a2380"}}

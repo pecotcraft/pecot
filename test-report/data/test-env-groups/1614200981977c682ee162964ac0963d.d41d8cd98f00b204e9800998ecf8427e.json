@@ -1,0 +1,1 @@
+{"id":"1614200981977c682ee162964ac0963d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#失敗の原因の名前 board_add でボードが定義していない status を渡すと、kind を status-not-configured にする","name":"board_add でボードが定義していない status を渡すと、kind を status-not-configured にする","status":"passed","testResultsByEnv":{"default":"f0fc6f93a66b0c2350f76270fe0379c2"}}

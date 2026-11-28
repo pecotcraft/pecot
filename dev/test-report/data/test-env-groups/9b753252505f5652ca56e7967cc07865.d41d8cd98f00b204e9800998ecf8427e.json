@@ -1,0 +1,1 @@
+{"id":"9b753252505f5652ca56e7967cc07865.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry ログインが終了した後は、出力の取り込みを止め、確定した output を返し続ける","name":"ログインが終了した後は、出力の取り込みを止め、確定した output を返し続ける","status":"passed","testResultsByEnv":{"default":"6637110667559ca68b1c2923a15d0098"}}

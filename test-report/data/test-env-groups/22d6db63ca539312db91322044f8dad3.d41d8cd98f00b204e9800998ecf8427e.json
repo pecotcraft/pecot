@@ -1,0 +1,1 @@
+{"id":"22d6db63ca539312db91322044f8dad3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order template が type と同じ値でも、検証を通す","name":"template が type と同じ値でも、検証を通す","status":"passed","testResultsByEnv":{"default":"63ec42ca74351c34dc507cd5a6391061"}}

@@ -1,0 +1,1 @@
+{"id":"8b0e9fed15ef0d89cefbc28393d6ede2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#readSvgPixelSize ルート要素以外の width と height は、読み取らない","name":"ルート要素以外の width と height は、読み取らない","status":"passed","testResultsByEnv":{"default":"733148e0bf778da51e345e0d9503488a"}}

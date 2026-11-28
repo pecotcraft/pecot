@@ -1,0 +1,1 @@
+{"id":"7b58faad15ce37affbe35ce250c38c88.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#getStateDirectory create を指定した場合は、ディレクトリが存在しなければ作成する","name":"create を指定した場合は、ディレクトリが存在しなければ作成する","status":"passed","testResultsByEnv":{"default":"c6bae5e9d62429a4c9595b3e82f5609d"}}

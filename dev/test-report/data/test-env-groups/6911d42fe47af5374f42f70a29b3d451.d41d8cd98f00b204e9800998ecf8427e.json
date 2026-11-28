@@ -1,0 +1,1 @@
+{"id":"6911d42fe47af5374f42f70a29b3d451.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#computeSourceHash XML が同じでも icon の内容が変わった場合は、ハッシュ値が変わる","name":"XML が同じでも icon の内容が変わった場合は、ハッシュ値が変わる","status":"passed","testResultsByEnv":{"default":"3328a0d3095e26ee9e52d4c7a78455ff"}}

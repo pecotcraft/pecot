@@ -1,0 +1,1 @@
+{"id":"673647cc2bdce63d5c45425e7e50eaf4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_install_cli_runs_npm_only_when_missing_or_other_version","name":"install-cli は、CLI が存在しない場合か版が異なる場合だけ、npm で指定の版を入れる","status":"passed","testResultsByEnv":{"default":"05ea64dfad76b4a84dc3fb48d2bed497"}}

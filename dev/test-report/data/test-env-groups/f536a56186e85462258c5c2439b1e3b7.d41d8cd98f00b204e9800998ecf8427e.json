@@ -1,0 +1,1 @@
+{"id":"f536a56186e85462258c5c2439b1e3b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface-export.test.ts#generated.json の書き出し --check は、形式が不正な場合は、error と run の 2 行を出力し、終了コード 1 で終わる","name":"--check は、形式が不正な場合は、error と run の 2 行を出力し、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"6a959c8d80a0cecf6531649bbd1d04f4"}}

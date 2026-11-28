@@ -1,0 +1,1 @@
+{"id":"3eb18145705635dc32de42c9cf89c789.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 止まる場合 リリース の形が公式の MCP の結果と違うと、github-mcp-shape の失敗を返す","name":"リリース の形が公式の MCP の結果と違うと、github-mcp-shape の失敗を返す","status":"passed","testResultsByEnv":{"default":"5cdd08e9de9e025f52e6145800c272ea"}}

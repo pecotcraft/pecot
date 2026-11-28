@@ -1,0 +1,1 @@
+{"id":"713b74d7d0513bb805c4c2a104fce2a2.27a083103219286a47df116b3ebb4176","fullName":".githooks.tests.test_check_bats_explains#test_passes_when_explains_comes_first","name":"本体の先頭で説明の文字列を渡して explains を呼ぶ @test は止めない","status":"passed","testResultsByEnv":{"default":"f1d44db9e6e698391c89d75ec0310f91"}}

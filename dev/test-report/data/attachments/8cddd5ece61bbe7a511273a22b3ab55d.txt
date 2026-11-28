@@ -1,0 +1,2 @@
+dry-run: would create config file /tmp/pecot-cli-nx26Dk/.pecot/config/projects/github.com_acme_1.json
+dry-run: would set active project to github.com_acme_1

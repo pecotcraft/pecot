@@ -1,0 +1,1 @@
+{"id":"a002d0f1fa304f47929b8d6fa1ac3f30.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data MCP の呼び出し スタックの作成が 422 とき、PR を残して warnings に入れる","name":"スタックの作成が 422 とき、PR を残して warnings に入れる","status":"passed","testResultsByEnv":{"default":"b5de400b9a810340b66705cf6aaa65d7"}}

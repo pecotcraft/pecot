@@ -1,0 +1,1 @@
+{"id":"0297c00e9e4afb6f964a5cec98b77d7e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/tests/node-runtime.test.ts#checkNodeRuntime Node.js のバージョンが 23.11.0 の場合は、起動を止める","name":"Node.js のバージョンが 23.11.0 の場合は、起動を止める","status":"passed","testResultsByEnv":{"default":"5b08bf274af2de48c5846de871d640dc"}}

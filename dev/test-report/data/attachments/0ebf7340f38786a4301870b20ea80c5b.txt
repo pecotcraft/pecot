@@ -1,0 +1,3 @@
+[OK] /tmp/lint-design-wKDacf/body-ref.md: errors 0 / warnings 0 / infos 2
+[NG] /tmp/lint-design-wKDacf/body-ref.md: 未解決の参照 1 件
+  {colors.missing-ref}

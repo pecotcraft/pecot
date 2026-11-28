@@ -1,0 +1,1 @@
+{"id":"595ed1541573e760c2749c537276755a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/tests/lint-rules.test.ts#domain の依存方向 infra から domain を import しても、違反にならない","name":"infra から domain を import しても、違反にならない","status":"passed","testResultsByEnv":{"default":"9fa062b1eec2ceab3b622f4fe53ae8ea"}}

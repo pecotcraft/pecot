@@ -1,0 +1,1 @@
+{"id":"a711ba6e0e9963fdf0450cc85886b59d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/config-dispatcher.test.ts#新規フックの追加フロー 設定で無効のとき、新しいフックは早期に戻る","name":"設定で無効のとき、新しいフックは早期に戻る","status":"passed","testResultsByEnv":{"default":"bc2daaeeba50459cb0d54249d917f283"}}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "give package: <NAME:PATH>: 'nocolon'"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"give package: <NAME:PATH>: 'nocolon'\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "give package: <NAME:PATH>: 'nocolon'"
+  },
+  "isError": true
+}

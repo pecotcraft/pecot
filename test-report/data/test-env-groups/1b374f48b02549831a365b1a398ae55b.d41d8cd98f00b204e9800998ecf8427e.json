@@ -1,0 +1,1 @@
+{"id":"1b374f48b02549831a365b1a398ae55b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli 先頭が - の値を --flag=value の形で渡すと、構文エラーにならない","name":"先頭が - の値を --flag=value の形で渡すと、構文エラーにならない","status":"passed","testResultsByEnv":{"default":"cc45becdf5ecc12ebf0fd01de1127b47"}}

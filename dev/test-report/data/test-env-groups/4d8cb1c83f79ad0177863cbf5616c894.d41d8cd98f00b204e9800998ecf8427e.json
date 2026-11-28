@@ -1,0 +1,1 @@
+{"id":"4d8cb1c83f79ad0177863cbf5616c894.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init.test.ts#pecot-dir-init.sh README の cp が dangling symlink で失敗しても、untracked が残らない","name":"README の cp が dangling symlink で失敗しても、untracked が残らない","status":"passed","testResultsByEnv":{"default":"59d457aa887af12fa153910c0ebb566b"}}

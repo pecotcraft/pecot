@@ -1,0 +1,1 @@
+{"id":"bbfb38e00d2a6034c172756953b20606.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_26_block_non_ascii_path","name":"非 ASCII のパスの変更も、クォートされず、持ち主の project の変更として扱い、失敗する","status":"passed","testResultsByEnv":{"default":"fc5a8388d5f7640bd12dc4f84981446d"}}

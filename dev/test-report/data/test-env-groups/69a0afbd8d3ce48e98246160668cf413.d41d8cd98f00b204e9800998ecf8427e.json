@@ -1,0 +1,1 @@
+{"id":"69a0afbd8d3ce48e98246160668cf413.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#resultEffects out-of-scope は、待ちの値を書くかが false で、起動ラベルを外すかが true になる","name":"out-of-scope は、待ちの値を書くかが false で、起動ラベルを外すかが true になる","status":"passed","testResultsByEnv":{"default":"88ab7c5ef229ddaa4584546ae62c1b76"}}

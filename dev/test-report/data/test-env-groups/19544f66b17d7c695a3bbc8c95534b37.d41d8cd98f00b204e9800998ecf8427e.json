@@ -1,0 +1,1 @@
+{"id":"19544f66b17d7c695a3bbc8c95534b37.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-numeric-filename-prefix.test.ts#数字から始まるファイル名を渡すと、ファイル全体でなく 1 行目の点で指摘する","name":"数字から始まるファイル名を渡すと、ファイル全体でなく 1 行目の点で指摘する","status":"passed","testResultsByEnv":{"default":"53185b4e6716cd5c1d0159ed46e58eee"}}

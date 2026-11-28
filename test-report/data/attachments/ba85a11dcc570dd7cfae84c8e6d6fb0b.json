@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "removed: aggregation_repo (was acme/roadmap)"
+    },
+    {
+      "type": "text",
+      "text": "{\"key\":\"aggregation_repo\",\"previous\":\"acme/roadmap\",\"change\":\"delete\",\"configPath\":\"/tmp/pecot-parity-yLCUEf/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\"}"
+    }
+  ],
+  "structuredContent": {
+    "key": "aggregation_repo",
+    "previous": "acme/roadmap",
+    "change": "delete",
+    "configPath": "/tmp/pecot-parity-yLCUEf/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json"
+  }
+}

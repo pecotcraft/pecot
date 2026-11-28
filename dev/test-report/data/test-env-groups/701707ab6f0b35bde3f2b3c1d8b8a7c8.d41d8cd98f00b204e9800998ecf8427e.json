@@ -1,0 +1,1 @@
+{"id":"701707ab6f0b35bde3f2b3c1d8b8a7c8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/config-dispatcher.test.ts#新規フックの追加フロー 設定で有効のとき、新しいフックが動く","name":"設定で有効のとき、新しいフックが動く","status":"passed","testResultsByEnv":{"default":"550b82faa11029078f26e6c459ce714b"}}

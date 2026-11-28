@@ -1,0 +1,1 @@
+{"id":"9291f27901cdfa02afcc9fb78f3d955d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-delete.test.ts#branch_delete MCP の data origin の URL が GitHub の形でなくても、引数のリポジトリのリモートブランチを削除する","name":"origin の URL が GitHub の形でなくても、引数のリポジトリのリモートブランチを削除する","status":"passed","testResultsByEnv":{"default":"db89db481a30e227e6b23eb449df920d"}}

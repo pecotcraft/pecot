@@ -1,0 +1,1 @@
+{"id":"f1227434da00c669607247b1471f0687.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#installRuntimeDependencies インストールが失敗した場合は、stamp を削除したままにする","name":"インストールが失敗した場合は、stamp を削除したままにする","status":"passed","testResultsByEnv":{"default":"a28a97a8a325e98d7f7c0e19276a8381"}}

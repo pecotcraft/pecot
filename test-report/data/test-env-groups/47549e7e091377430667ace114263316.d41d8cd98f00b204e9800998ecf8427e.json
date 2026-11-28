@@ -1,0 +1,1 @@
+{"id":"47549e7e091377430667ace114263316.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/version-range.test.ts#doesRangeAllowMajor: 範囲表記 > の後ろにマイナーバージョン以下を指定した場合は、そのメジャーバージョンも許可する","name":"> の後ろにマイナーバージョン以下を指定した場合は、そのメジャーバージョンも許可する","status":"passed","testResultsByEnv":{"default":"508f37526136020547a0c2fb9f7aeeb0"}}

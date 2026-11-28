@@ -1,0 +1,9 @@
+{
+  "name": "sample-cuj1",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "slidev-theme-pecotv-test-declared": "git+file:///tmp/pecotv-e2e-ZKE0yt/theme-cuj1/theme.git#v1.0.0"
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"f8e58afc6627595ae32d806198e6caa2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#collectPreflightWarnings Push Status の直し方を渡した場合は、その直し方を使う","name":"Push Status の直し方を渡した場合は、その直し方を使う","status":"passed","testResultsByEnv":{"default":"3c67a7198f50fb27e674daaf971962e5"}}

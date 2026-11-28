@@ -1,0 +1,1 @@
+{"id":"35346b46b7a15d358baa89965e851377.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/references.test.ts#readLayoutCategories どのディレクトリにも _common.yaml が存在しない場合は、分類を空にして警告する","name":"どのディレクトリにも _common.yaml が存在しない場合は、分類を空にして警告する","status":"passed","testResultsByEnv":{"default":"6f3d0e9e1fd9d5738fcbe4734dbcf154"}}

@@ -1,0 +1,1 @@
+{"id":"2b3f19b6d8e2cb030858ff20264fc7db.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_verify#test_judge_drops_an_older_dev_run","name":"保管した開発版より古い push の run は、採用しない","status":"passed","testResultsByEnv":{"default":"f19c4a49ba8401dfb4862bd18757b035"}}

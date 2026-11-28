@@ -1,0 +1,1 @@
+{"id":"68ee06fb962ee3cb30742f0474ae1a46.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#runAwscli 同じ名前のフィクスチャを 2 回目に使うと連番のフィクスチャを返し、以降は既定のフィクスチャに戻る","name":"同じ名前のフィクスチャを 2 回目に使うと連番のフィクスチャを返し、以降は既定のフィクスチャに戻る","status":"passed","testResultsByEnv":{"default":"f49f4cb745740021d3759f0e1a0a1975"}}

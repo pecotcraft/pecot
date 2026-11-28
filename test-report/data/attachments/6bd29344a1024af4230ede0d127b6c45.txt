@@ -1,0 +1,1 @@
+test-checks,test-ci,test-cli,test-compare,test-hooks,test-nx-affected,test-nx-cache,test-release,test-site,test-skills,test-slidev,test-unit

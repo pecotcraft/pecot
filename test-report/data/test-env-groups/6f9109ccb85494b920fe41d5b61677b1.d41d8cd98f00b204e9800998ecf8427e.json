@@ -1,0 +1,1 @@
+{"id":"6f9109ccb85494b920fe41d5b61677b1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check 対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる","name":"対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"009866f247cd37f4052d533f48c0b991"}}

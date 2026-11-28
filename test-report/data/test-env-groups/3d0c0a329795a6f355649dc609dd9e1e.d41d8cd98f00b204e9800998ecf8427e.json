@@ -1,0 +1,1 @@
+{"id":"3d0c0a329795a6f355649dc609dd9e1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#matchPrerenderToMedia meta に left が存在しない場合は、undefined を返す","name":"meta に left が存在しない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"4d3339edfc1edbadbb0957b959dc5a73"}}

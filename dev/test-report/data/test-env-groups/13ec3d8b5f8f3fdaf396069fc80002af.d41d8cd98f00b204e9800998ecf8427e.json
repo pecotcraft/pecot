@@ -1,0 +1,1 @@
+{"id":"13ec3d8b5f8f3fdaf396069fc80002af.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-check.test.ts#branch_check 閉じた Issue を渡すと、再び開くよう案内する issue-closed の problem を返す","name":"閉じた Issue を渡すと、再び開くよう案内する issue-closed の problem を返す","status":"passed","testResultsByEnv":{"default":"33155a30958c96342ccb25bfd186bc91"}}

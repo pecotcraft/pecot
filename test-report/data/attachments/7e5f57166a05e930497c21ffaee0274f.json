@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "added: acme/other to project #1"
+    },
+    {
+      "type": "text",
+      "text": "{\"repository\":\"acme/other\",\"projectNumber\":1,\"change\":\"create\",\"configPath\":\"/tmp/pecot-parity-eNGKky/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\"}"
+    }
+  ],
+  "structuredContent": {
+    "repository": "acme/other",
+    "projectNumber": 1,
+    "change": "create",
+    "configPath": "/tmp/pecot-parity-eNGKky/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json"
+  }
+}

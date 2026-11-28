@@ -1,0 +1,1 @@
+{"id":"1e8949f3002e8bfd7563480ada14243b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateSections（必須セクション検証: 見出しレベル・em-dash サマリ） 最初の h2 も、ほかの見出しと同じく、テンプレートの名前で始まる必要がある","name":"最初の h2 も、ほかの見出しと同じく、テンプレートの名前で始まる必要がある","status":"passed","testResultsByEnv":{"default":"886508cac1ac08de0ee742863de1f5dd"}}

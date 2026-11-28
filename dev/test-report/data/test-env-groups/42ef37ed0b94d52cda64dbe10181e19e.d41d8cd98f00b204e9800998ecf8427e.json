@@ -1,0 +1,1 @@
+{"id":"42ef37ed0b94d52cda64dbe10181e19e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateSections（必須セクション検証: 見出しレベル・em-dash サマリ） 正規表現の記号を含む節の名前は、文字どおりに比較する","name":"正規表現の記号を含む節の名前は、文字どおりに比較する","status":"passed","testResultsByEnv":{"default":"c1152b753f212aeef93d432d2382dc84"}}

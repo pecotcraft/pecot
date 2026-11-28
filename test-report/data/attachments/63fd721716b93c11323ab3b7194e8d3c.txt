@@ -1,0 +1,2 @@
+error: the repository is ambiguous
+  run inside a git repository that has a remote

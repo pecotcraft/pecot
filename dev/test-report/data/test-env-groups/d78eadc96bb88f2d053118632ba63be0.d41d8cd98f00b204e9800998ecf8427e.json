@@ -1,0 +1,1 @@
+{"id":"d78eadc96bb88f2d053118632ba63be0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getCurrentWorktreeName git リポジトリの外では、WorktreeRuntimeError を投げる","name":"git リポジトリの外では、WorktreeRuntimeError を投げる","status":"passed","testResultsByEnv":{"default":"a4e19a6300dafb0feb43031f92de59b5"}}

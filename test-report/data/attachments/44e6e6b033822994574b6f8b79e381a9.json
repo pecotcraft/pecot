@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "workflow template review is outdated (installed 0, bundled 10)\n  update it with: workflow_install with name: \"review\", force: true"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"not-ready\",\"detail\":\"workflow template review is outdated (installed 0, bundled 10)\\n  update it with: workflow_install with name: \\\"review\\\", force: true\",\"path\":\".github/workflows/pecot-review.yml\",\"version\":10,\"installedVersion\":0,\"written\":false,\"upToDate\":false}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "not-ready",
+    "detail": "workflow template review is outdated (installed 0, bundled 10)\n  update it with: workflow_install with name: \"review\", force: true",
+    "path": ".github/workflows/pecot-review.yml",
+    "version": 10,
+    "installedVersion": 0,
+    "written": false,
+    "upToDate": false
+  },
+  "isError": true
+}

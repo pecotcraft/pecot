@@ -1,0 +1,1 @@
+{"id":"39fb639551ed50fe1e54d737ccd51dd6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#release group が空要素を含む出力 のときレジストリへ問い合わせない","name":"release group が空要素を含む出力 のときレジストリへ問い合わせない","status":"passed","testResultsByEnv":{"default":"b2cee128065e32870ec7a4969b0789b3"}}

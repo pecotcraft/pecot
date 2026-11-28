@@ -1,0 +1,1 @@
+{"id":"8d72d2c6e6de06bffa70ca6540ecff5e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#readFlag（存在の確認と読み取りの間に消えた場合） フラグの名前がディレクトリの場合は、undefined を返す","name":"フラグの名前がディレクトリの場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"7d3080fb8eff9244984789efddfd351a"}}

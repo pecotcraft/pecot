@@ -1,0 +1,1 @@
+{"id":"b7094edfb7b99c97f51efe9baac1db33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Markdown のブロックの規則 リストの項目の内容の字下げ以上の行は、空行の後でも、項目の続きの段落として読む","name":"リストの項目の内容の字下げ以上の行は、空行の後でも、項目の続きの段落として読む","status":"passed","testResultsByEnv":{"default":"ba49a67106bc402fd1bbdcce71f0d6a7"}}

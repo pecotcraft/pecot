@@ -1,0 +1,1 @@
+{"id":"80d9b9e6a85e55b4dc83371b767c496c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create repo が今の git remote のリポジトリと食い違うと、warning の行を標準エラーに出す","name":"repo が今の git remote のリポジトリと食い違うと、warning の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"d311859cccbb7f09b46c59e77e98021e"}}

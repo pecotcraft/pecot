@@ -1,0 +1,1 @@
+{"id":"9db68ca11dea0b8ea10e2d68241605f6.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_empty_store_gets_guide_pages_without_links","name":"空の保管には、リンクを含まない案内のページを作る","status":"passed","testResultsByEnv":{"default":"6b31249c5099899394c4e8b906d2b2d4"}}

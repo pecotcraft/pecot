@@ -1,0 +1,1 @@
+{"id":"3be8e9a6e504df2bda7e8ba0d198ef56.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#checksLabel と rollupState 検証が EXPECTED の場合は、pending と表示する","name":"検証が EXPECTED の場合は、pending と表示する","status":"passed","testResultsByEnv":{"default":"5619e666d56db68f816ce7589cdf09f1"}}

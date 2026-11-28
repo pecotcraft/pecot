@@ -1,0 +1,1 @@
+{"id":"090fa49e91d26bfdd25582bb9af730d5.4b2701d9cd2a67f75b13e0f008747572","fullName":".githooks.tests.test_pages_store#test_check_cli_report_needs_a_report_side","name":"`check --kind report` に pr の側を渡すと、終了コード 2 で終了する","status":"passed","testResultsByEnv":{"default":"444dbe32a4da8c8204d654a0ae81870f"}}

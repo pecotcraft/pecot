@@ -1,0 +1,1 @@
+{"id":"e7b169b25dde223287dded5ce7a819e3.93254117a68b5d9e05556ae92058bf7a","fullName":".githooks.tests.test_pages_provenance#test_other_repo_pr_in_pull_requests_does_not_drop_dev_or_release","name":"workflow_dispatch の run は、他のリポジトリの PR が含まれていても、開発版を受け付ける","status":"passed","testResultsByEnv":{"default":"70fe3ab642288b852d27dfbac0330501"}}

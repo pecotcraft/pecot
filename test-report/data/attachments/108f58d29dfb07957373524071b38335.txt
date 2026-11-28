@@ -1,0 +1,2 @@
+error: project "Not Initialized Project" is not initialized
+  call project_init with owner: "acme", name: "Not Initialized Project", host: "ghes.example.com"

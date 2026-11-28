@@ -1,0 +1,27 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: branch feat/7 in acme/demo from main"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/7\",\"repository\":\"acme/demo\",\"base\":\"main\",\"issue\":\"acme/demo/7\",\"workDirectory\":\"/tmp/pecot-repo-ujuX61/.pecot/work/7\",\"leftovers\":[{\"pullRequest\":\"acme/demo/21\"}],\"warnings\":[\"PR acme/demo#21 of the current branch feat/old/5 is merged but not cleaned up; call session_finish with pr_ref: \\\"acme/demo/21\\\", delete_branch: true\"]}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/7",
+    "repository": "acme/demo",
+    "base": "main",
+    "issue": "acme/demo/7",
+    "workDirectory": "/tmp/pecot-repo-ujuX61/.pecot/work/7",
+    "leftovers": [
+      {
+        "pullRequest": "acme/demo/21"
+      }
+    ],
+    "warnings": [
+      "PR acme/demo#21 of the current branch feat/old/5 is merged but not cleaned up; call session_finish with pr_ref: \"acme/demo/21\", delete_branch: true"
+    ]
+  }
+}

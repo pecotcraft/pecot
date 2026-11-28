@@ -1,0 +1,1 @@
+{"id":"bebcd1900cbcb7bce4c87bb8930ad347.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/attributes.test.ts#projectFieldDefinition 単一選択で名前が Status のフィールドは、組み込みのものとして書き込めない定義にする","name":"単一選択で名前が Status のフィールドは、組み込みのものとして書き込めない定義にする","status":"passed","testResultsByEnv":{"default":"bafa2fc74c94d40eeaef4fc54b468b28"}}

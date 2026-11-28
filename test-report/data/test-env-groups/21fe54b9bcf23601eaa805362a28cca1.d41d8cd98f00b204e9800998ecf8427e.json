@@ -1,0 +1,1 @@
+{"id":"21fe54b9bcf23601eaa805362a28cca1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#installRuntimeDependencies NODE_EXTRA_CA_CERTS が設定されていれば、その値のまま npm に渡す","name":"NODE_EXTRA_CA_CERTS が設定されていれば、その値のまま npm に渡す","status":"passed","testResultsByEnv":{"default":"a5a65f92cc99b0a644f45b0d9824750b"}}

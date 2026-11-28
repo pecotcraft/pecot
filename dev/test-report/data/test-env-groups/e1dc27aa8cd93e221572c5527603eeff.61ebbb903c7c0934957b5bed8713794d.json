@@ -1,0 +1,1 @@
+{"id":"e1dc27aa8cd93e221572c5527603eeff.61ebbb903c7c0934957b5bed8713794d","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_the_githooks_lanes_that_read_the_change","name":".github/workflows/dependabot-commit.yml を変更すると、それを読む githooks のレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"90063b6d54d5a73981d0f0a5dc11c19a"}}

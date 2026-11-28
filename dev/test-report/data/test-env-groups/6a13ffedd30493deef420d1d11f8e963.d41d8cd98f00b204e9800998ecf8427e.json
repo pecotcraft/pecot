@@ -1,0 +1,1 @@
+{"id":"6a13ffedd30493deef420d1d11f8e963.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/template-store.test.ts#issue/epic.md の実体（AS-IS / TO-BE / GAP）と検証器の結合 区切りが半角ハイフンの見出しは、不足している見出しとして返す","name":"区切りが半角ハイフンの見出しは、不足している見出しとして返す","status":"passed","testResultsByEnv":{"default":"34902c1a9e68bc6bafeb6966a4aa4a23"}}

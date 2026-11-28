@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not count the commits from release to develop: resource not found: http://127.0.0.1:39995/repos/acme/demo/compare/release...develop?per_page=1"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-not-found\",\"detail\":\"could not count the commits from release to develop: resource not found: http://127.0.0.1:39995/repos/acme/demo/compare/release...develop?per_page=1\",\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"}}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-not-found",
+    "detail": "could not count the commits from release to develop: resource not found: http://127.0.0.1:39995/repos/acme/demo/compare/release...develop?per_page=1",
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  },
+  "isError": true
+}

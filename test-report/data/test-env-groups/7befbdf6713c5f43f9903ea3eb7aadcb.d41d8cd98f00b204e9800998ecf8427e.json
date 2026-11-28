@@ -1,0 +1,1 @@
+{"id":"7befbdf6713c5f43f9903ea3eb7aadcb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyJapaneseFontFix a:rPr の直下に a:latin が存在しない場合は、a:ea を a:rPr の最後の子として追加する","name":"a:rPr の直下に a:latin が存在しない場合は、a:ea を a:rPr の最後の子として追加する","status":"passed","testResultsByEnv":{"default":"6dd997ba140652cb2bd7280e9c413b9b"}}

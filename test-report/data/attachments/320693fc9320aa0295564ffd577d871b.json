@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "closed: Issue #12"
+    },
+    {
+      "type": "text",
+      "text": "{\"closedIssues\":[12],\"skippedIssues\":[],\"deletedBranches\":[],\"readinessChanges\":[],\"restack\":[],\"currentBranch\":\"feat/demo/12\",\"warnings\":[\"deleting remote branch feat/demo/12 failed: access denied Forbidden\",\"checking out ghost failed: Command ['git', 'checkout', 'ghost'] returned non-zero exit status 1.\"]}"
+    }
+  ],
+  "structuredContent": {
+    "closedIssues": [
+      12
+    ],
+    "skippedIssues": [],
+    "deletedBranches": [],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "feat/demo/12",
+    "warnings": [
+      "deleting remote branch feat/demo/12 failed: access denied Forbidden",
+      "checking out ghost failed: Command ['git', 'checkout', 'ghost'] returned non-zero exit status 1."
+    ]
+  }
+}

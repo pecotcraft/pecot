@@ -1,0 +1,1 @@
+{"id":"46253826eb08b17d6af21777ee21621a.93a1f6093805afab19c1bb135bb5304d","fullName":".githooks.tests.test_check_release_group_changelog#test_disabled_project_changelog_is_silently_skipped","name":"CHANGELOG を無効にした group（False）は、警告を出さずに確認を飛ばす","status":"passed","testResultsByEnv":{"default":"175e6567ddd52451890e240d647eaf8b"}}

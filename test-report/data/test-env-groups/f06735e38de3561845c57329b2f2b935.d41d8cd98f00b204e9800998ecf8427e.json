@@ -1,0 +1,1 @@
+{"id":"f06735e38de3561845c57329b2f2b935.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/tests/version.test.ts#loadVersionFromPluginJson 有効な plugin.json から、version の文字列を返す","name":"有効な plugin.json から、version の文字列を返す","status":"passed","testResultsByEnv":{"default":"0471d4f36875d436a7904a315ab54591"}}

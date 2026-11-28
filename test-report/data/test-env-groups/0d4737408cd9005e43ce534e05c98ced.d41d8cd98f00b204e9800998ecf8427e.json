@@ -1,0 +1,1 @@
+{"id":"0d4737408cd9005e43ce534e05c98ced.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-drift.test.ts#drift.ts 開いた Tracker が 2 件以上あると、番号が最も小さいものを対象にし、ほかを警告に挙げる","name":"開いた Tracker が 2 件以上あると、番号が最も小さいものを対象にし、ほかを警告に挙げる","status":"passed","testResultsByEnv":{"default":"e923b6df7fba2a7f3197cce639231d25"}}

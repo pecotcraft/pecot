@@ -1,0 +1,1 @@
+{"id":"5436b9dcfd2c382c6aa89e5f66caf846.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/lint-distribution.test.ts#cleanDistribution 直下のディレクトリの dist を消し、node_modules の dist を残す","name":"直下のディレクトリの dist を消し、node_modules の dist を残す","status":"passed","testResultsByEnv":{"default":"b36f343eed049ed77823eae74f018c53"}}

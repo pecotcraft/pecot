@@ -1,0 +1,1 @@
+{"id":"8ed97e284a0ca0e3af1137594d95839f.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#package.json の bin が cli/dist/main.js を指す","name":"package.json の bin が cli/dist/main.js を指す","status":"passed","testResultsByEnv":{"default":"f8af5f04787752e27dae02917c6d96db"}}

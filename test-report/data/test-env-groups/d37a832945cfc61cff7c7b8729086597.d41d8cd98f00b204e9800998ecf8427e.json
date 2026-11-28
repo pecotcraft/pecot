@@ -1,0 +1,1 @@
+{"id":"d37a832945cfc61cff7c7b8729086597.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool テーマの取得に失敗したときも、取得中の警告を warnings に残す","name":"テーマの取得に失敗したときも、取得中の警告を warnings に残す","status":"passed","testResultsByEnv":{"default":"4952b0cd50b27dfb4bc3babb6ca30f92"}}

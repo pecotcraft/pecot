@@ -1,0 +1,1 @@
+{"id":"4e753dc01826a973d08edcacd2d20860.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-create.test.ts#executeSlideCreate の結果と失敗 テーマのディレクトリが無い file: は theme-unknown で、生成先を作らない","name":"テーマのディレクトリが無い file: は theme-unknown で、生成先を作らない","status":"passed","testResultsByEnv":{"default":"6aa688eb9688d46c4c93edd8dda97caa"}}

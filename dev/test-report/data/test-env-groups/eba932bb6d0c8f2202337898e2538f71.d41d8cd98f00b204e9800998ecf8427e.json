@@ -1,0 +1,1 @@
+{"id":"eba932bb6d0c8f2202337898e2538f71.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_fallback_records_run_many","name":"run-many に切り替えた場合は、nx の行の名前を run-many にして合計の行も表示する","status":"passed","testResultsByEnv":{"default":"0421d58c0ec6fdcb827974d32452962b"}}

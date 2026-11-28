@@ -1,0 +1,1 @@
+{"id":"a8ba74a3bd292b55e44dd0a195d7fa27.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-kind.test.ts#isEpicIssue Issue Type が Task の場合は、Epic と判定しない","name":"Issue Type が Task の場合は、Epic と判定しない","status":"passed","testResultsByEnv":{"default":"708b02910b05ae8ff0295992eb059f1d"}}

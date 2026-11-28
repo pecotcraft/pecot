@@ -1,0 +1,1 @@
+error: repos/pecotcraft/pecot-sandbox/contents/.pecot/config/projects を読めません（gh が失敗しました）

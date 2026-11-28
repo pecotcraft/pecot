@@ -1,0 +1,1 @@
+{"id":"97f0a270c9870499646dfa2cc89ffec3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#transformItems 項目に値が存在しない場合は、JSON にすると null として出力する","name":"項目に値が存在しない場合は、JSON にすると null として出力する","status":"passed","testResultsByEnv":{"default":"01264e30dbda76d6443e6b87e6efd1f7"}}

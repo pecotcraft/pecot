@@ -1,0 +1,1 @@
+{"id":"0843abd02066f4148903fc18cf2a90b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/linked-theme.test.ts#ensureTalkThemeLinked リンクが一致していても生成ファイルを書き直した場合は、regenerated を真にし、警告で知らせる","name":"リンクが一致していても生成ファイルを書き直した場合は、regenerated を真にし、警告で知らせる","status":"passed","testResultsByEnv":{"default":"f4eac46350356e4ac3d5fcb2da6e1aa3"}}

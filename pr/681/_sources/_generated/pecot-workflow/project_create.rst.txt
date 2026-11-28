@@ -1,0 +1,8 @@
+:iface-id: PW-PROJECT-CREATE
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Create project
+============================
+
+.. iface-defs:: pecot-workflow PW-PROJECT-CREATE

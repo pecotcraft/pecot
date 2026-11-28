@@ -1,0 +1,1 @@
+{"id":"586cc5ef1084ce09e44f9497d06091b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#親が無いリポの拒否は gh を呼ばない","name":"親が無いリポの拒否は gh を呼ばない","status":"passed","testResultsByEnv":{"default":"ebd23b351e70ff520a8a94e3df8e81f9"}}

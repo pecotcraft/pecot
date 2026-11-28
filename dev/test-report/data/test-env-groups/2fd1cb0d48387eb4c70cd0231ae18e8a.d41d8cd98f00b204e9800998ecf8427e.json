@@ -1,0 +1,1 @@
+{"id":"2fd1cb0d48387eb4c70cd0231ae18e8a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/references.test.ts#buildLayoutCatalog 分類の一覧が空の場合は、レイアウトごとの警告を出さない","name":"分類の一覧が空の場合は、レイアウトごとの警告を出さない","status":"passed","testResultsByEnv":{"default":"c4e8db905fb09bea50ac8b3a016c54e9"}}

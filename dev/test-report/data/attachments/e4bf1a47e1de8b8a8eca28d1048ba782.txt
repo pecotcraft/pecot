@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "note: The tracked `.pecotv/.gitignore` lacks lines of the current definition. Rewriting it with `/workspaces/base/pecot/plugins/pecot-visual/hooks/lib/core/pecotv-gitignore-ensure.sh --print > .pecotv/.gitignore` and committing restores them."
+  },
+  "additionalContext": "note: The tracked `.pecotv/.gitignore` lacks lines of the current definition. Rewriting it with `/workspaces/base/pecot/plugins/pecot-visual/hooks/lib/core/pecotv-gitignore-ensure.sh --print > .pecotv/.gitignore` and committing restores them."
+}

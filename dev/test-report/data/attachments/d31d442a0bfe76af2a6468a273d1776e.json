@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_s3_ls succeeded"
+    },
+    {
+      "type": "text",
+      "text": "{\"lines\":[\"2026-09-01 10:00:00       1024 report.json\",\"                           PRE logs/\"]}"
+    }
+  ],
+  "structuredContent": {
+    "lines": [
+      "2026-09-01 10:00:00       1024 report.json",
+      "                           PRE logs/"
+    ]
+  }
+}

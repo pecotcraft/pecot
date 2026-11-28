@@ -1,0 +1,1 @@
+{"id":"4324a372b527439013899658a86c7b00.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx プリレンダの結果に失敗がある場合は、level が element のエラーを errors に追加する","name":"プリレンダの結果に失敗がある場合は、level が element のエラーを errors に追加する","status":"passed","testResultsByEnv":{"default":"aef66b826a7a700286d03b10a713df55"}}

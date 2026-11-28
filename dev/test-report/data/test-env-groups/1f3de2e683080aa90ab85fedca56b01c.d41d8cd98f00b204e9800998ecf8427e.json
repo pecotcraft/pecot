@@ -1,0 +1,1 @@
+{"id":"1f3de2e683080aa90ab85fedca56b01c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Markdown のブロックの規則 項目の字下げに満たない行でリストを終え、字下げが 4 以上の行はコードブロックに戻る","name":"項目の字下げに満たない行でリストを終え、字下げが 4 以上の行はコードブロックに戻る","status":"passed","testResultsByEnv":{"default":"45127d88629d8720ebacc3e0959f30ab"}}

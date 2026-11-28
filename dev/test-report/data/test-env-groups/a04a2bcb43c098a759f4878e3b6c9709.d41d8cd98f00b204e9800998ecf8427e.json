@@ -1,0 +1,1 @@
+{"id":"a04a2bcb43c098a759f4878e3b6c9709.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#describeBaseStop 親 PR が存在しない場合は、止めた理由と、pr_check を呼び直す直し方の 2 行を返す","name":"親 PR が存在しない場合は、止めた理由と、pr_check を呼び直す直し方の 2 行を返す","status":"passed","testResultsByEnv":{"default":"fd479852c4071f0f1830d37676db8c2c"}}

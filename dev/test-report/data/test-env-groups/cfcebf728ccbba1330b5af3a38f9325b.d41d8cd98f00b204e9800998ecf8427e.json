@@ -1,0 +1,1 @@
+{"id":"cfcebf728ccbba1330b5af3a38f9325b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory cwd がプラグインのルートの親にあるときは、cwd のままにする","name":"cwd がプラグインのルートの親にあるときは、cwd のままにする","status":"passed","testResultsByEnv":{"default":"bd1a675d874f3c6fdeb829e5b13ec928"}}

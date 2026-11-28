@@ -1,0 +1,8 @@
+:iface-id: PW-SESSION-SHOW
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Show session
+========================
+
+.. iface-defs:: pecot-workflow PW-SESSION-SHOW

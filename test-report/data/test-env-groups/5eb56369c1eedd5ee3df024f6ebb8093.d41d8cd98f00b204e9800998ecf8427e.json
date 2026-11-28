@@ -1,0 +1,1 @@
+{"id":"5eb56369c1eedd5ee3df024f6ebb8093.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_step_gate#test_fails_and_names_only_the_tests_without_named_steps","name":"名前の付いた step が存在しないテストがあると、gate は失敗で終わり、そのテストの名前だけを出力する","status":"passed","testResultsByEnv":{"default":"2564c76f4b5a179ca0d636438929511f"}}

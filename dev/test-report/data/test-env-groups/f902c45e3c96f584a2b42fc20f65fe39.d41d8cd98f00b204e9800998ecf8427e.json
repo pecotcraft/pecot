@@ -1,0 +1,1 @@
+{"id":"f902c45e3c96f584a2b42fc20f65fe39.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/rule-tester.test.ts#max-chars invalid 値が null の項目があると、emptyText を報告する","name":"値が null の項目があると、emptyText を報告する","status":"passed","testResultsByEnv":{"default":"84cc09d519f9763c34f6ef309ccd3083"}}

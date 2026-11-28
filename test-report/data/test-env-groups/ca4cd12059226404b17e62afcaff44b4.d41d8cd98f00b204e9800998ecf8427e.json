@@ -1,0 +1,1 @@
+{"id":"ca4cd12059226404b17e62afcaff44b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec タグの書式でない指定は、どれも同じ invalid tag format のメッセージで拒否する","name":"タグの書式でない指定は、どれも同じ invalid tag format のメッセージで拒否する","status":"passed","testResultsByEnv":{"default":"2e337fbfddd70a072de61abc43dcd61c"}}

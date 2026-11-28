@@ -1,0 +1,1 @@
+{"id":"6e02316752619d6ffa919b0221ec052d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show 別の番号の古い .pecot-active が残っていても読まず、ブランチ名の番号の Issue を出す","name":"別の番号の古い .pecot-active が残っていても読まず、ブランチ名の番号の Issue を出す","status":"passed","testResultsByEnv":{"default":"65731085f333ba5ff86b79ca22a75d8c"}}

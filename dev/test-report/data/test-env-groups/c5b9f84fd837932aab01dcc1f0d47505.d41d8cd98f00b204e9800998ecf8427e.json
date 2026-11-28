@@ -1,0 +1,1 @@
+{"id":"c5b9f84fd837932aab01dcc1f0d47505.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli ツール aws_logs_describe_log_streams の引数の並びは、実際の awscli が構文として受理する","name":"ツール aws_logs_describe_log_streams の引数の並びは、実際の awscli が構文として受理する","status":"passed","testResultsByEnv":{"default":"ac4674562d83d9770a217b82b35d06a0"}}

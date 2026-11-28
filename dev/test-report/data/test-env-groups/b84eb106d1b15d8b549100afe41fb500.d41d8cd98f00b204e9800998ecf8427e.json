@@ -1,0 +1,1 @@
+{"id":"b84eb106d1b15d8b549100afe41fb500.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#監査記録が無いと、dry-run でも配布ツリーを構築せずに止まる","name":"監査記録が無いと、dry-run でも配布ツリーを構築せずに止まる","status":"passed","testResultsByEnv":{"default":"7e2c085f61512c71ff7396e97d766996"}}

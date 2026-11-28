@@ -1,0 +1,1 @@
+{"id":"4b69aa99eae75e3dfa93a8720c060433.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/step.test.ts#stepSync レーンの中で本体が投げると、step を失敗で閉じ、同じ例外を投げる","name":"レーンの中で本体が投げると、step を失敗で閉じ、同じ例外を投げる","status":"passed","testResultsByEnv":{"default":"1e4dcfe2bfeb0fe6a594de089fa70818"}}

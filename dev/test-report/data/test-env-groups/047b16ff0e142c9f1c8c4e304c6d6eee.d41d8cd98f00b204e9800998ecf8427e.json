@@ -1,0 +1,1 @@
+{"id":"047b16ff0e142c9f1c8c4e304c6d6eee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/talk-theme.test.ts#classifyTalkTheme theme: がパッケージ名で dependencies に存在する場合は、migrated と判定する","name":"theme: がパッケージ名で dependencies に存在する場合は、migrated と判定する","status":"passed","testResultsByEnv":{"default":"a74fbd56d2bd16104100d32642725288"}}

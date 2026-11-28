@@ -1,0 +1,28 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-visual",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "spy"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"spy\",\"dir\":\"/spy\",\"outcome\":\"clean\",\"lintedFileCount\":0,\"errorCount\":0,\"warningCount\":0,\"violations\":[],\"skippedSymlinkDirectories\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "event": "spy",
+    "dir": "/spy",
+    "outcome": "clean",
+    "lintedFileCount": 0,
+    "errorCount": 0,
+    "warningCount": 0,
+    "violations": [],
+    "skippedSymlinkDirectories": []
+  }
+}

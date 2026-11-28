@@ -1,0 +1,1 @@
+{"id":"32c3bec3d20820723b75c82044ad2332.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx onlySteps を指定した場合は、指定したステップをサーバーの実際のポートの URL で変換して成功する","name":"onlySteps を指定した場合は、指定したステップをサーバーの実際のポートの URL で変換して成功する","status":"passed","testResultsByEnv":{"default":"d49c6e0fe707599d11c716bce3da2477"}}

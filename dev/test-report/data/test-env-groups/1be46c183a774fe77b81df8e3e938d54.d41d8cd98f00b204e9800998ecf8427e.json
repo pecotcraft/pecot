@@ -1,0 +1,1 @@
+{"id":"1be46c183a774fe77b81df8e3e938d54.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getWorktreeList メインと追加した WT を、パス・コミット・ブランチに分ける（実 git）","name":"メインと追加した WT を、パス・コミット・ブランチに分ける（実 git）","status":"passed","testResultsByEnv":{"default":"bf23acff2cfe980e25c5c4f96c97294a"}}

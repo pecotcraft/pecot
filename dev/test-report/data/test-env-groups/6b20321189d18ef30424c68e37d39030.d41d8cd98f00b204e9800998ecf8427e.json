@@ -1,0 +1,1 @@
+{"id":"6b20321189d18ef30424c68e37d39030.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#IssueReference Issue 参照を文字列にすると、o/r#42 の形になる","name":"Issue 参照を文字列にすると、o/r#42 の形になる","status":"passed","testResultsByEnv":{"default":"0403af38537baca4f08838182cff29e3"}}

@@ -1,0 +1,1 @@
+{"id":"3cc1a26501a84af34a8d53be63f5510e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init フィールドを作ると、created の行を標準エラーに出す","name":"フィールドを作ると、created の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"9d24c48c19817465584907c781561e39"}}

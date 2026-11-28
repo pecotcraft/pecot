@@ -1,0 +1,1 @@
+既存セッション 'pecot-base-parallel-a' にアタッチします

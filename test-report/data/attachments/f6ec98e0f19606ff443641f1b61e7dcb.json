@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated: acme/demo in /tmp/pecot-parity-uoPu5L/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json"
+    },
+    {
+      "type": "text",
+      "text": "{\"repository\":\"acme/demo\",\"projectNumber\":1,\"change\":\"update\",\"configPath\":\"/tmp/pecot-parity-uoPu5L/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\"}"
+    }
+  ],
+  "structuredContent": {
+    "repository": "acme/demo",
+    "projectNumber": 1,
+    "change": "update",
+    "configPath": "/tmp/pecot-parity-uoPu5L/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json"
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"b2f6e0274459e009e66ff3b5587f027e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName リンク先が存在しない wt1 のシンボリックリンクは、セットとして数えない","name":"リンク先が存在しない wt1 のシンボリックリンクは、セットとして数えない","status":"passed","testResultsByEnv":{"default":"ee375b0a0b497e662e3f630eea70fbfc"}}

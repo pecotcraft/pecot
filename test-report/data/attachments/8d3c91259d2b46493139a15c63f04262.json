@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Session status"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/demo/7\",\"repository\":\"acme/demo\",\"activeIssue\":{\"reference\":\"acme/demo/7\",\"title\":\"t\",\"state\":\"OPEN\",\"body\":\"\"},\"stack\":{\"branch\":\"feat/3\",\"stackedOn\":\"acme/demo/3\",\"pullRequest\":{\"number\":30,\"state\":\"CLOSED\"},\"readiness\":\"blocked by #3 (not in review: #3 (not started))\"}}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/demo/7",
+    "repository": "acme/demo",
+    "activeIssue": {
+      "reference": "acme/demo/7",
+      "title": "t",
+      "state": "OPEN",
+      "body": ""
+    },
+    "stack": {
+      "branch": "feat/3",
+      "stackedOn": "acme/demo/3",
+      "pullRequest": {
+        "number": 30,
+        "state": "CLOSED"
+      },
+      "readiness": "blocked by #3 (not in review: #3 (not started))"
+    }
+  }
+}

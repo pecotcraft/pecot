@@ -1,0 +1,1 @@
+{"id":"b3e582878f3c73da8accd143ab5c3158.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#relativeToCwd 作業ディレクトリの中のリンクの下のファイルは、リンク先が外にあっても、リンクを通った相対パスを返す","name":"作業ディレクトリの中のリンクの下のファイルは、リンク先が外にあっても、リンクを通った相対パスを返す","status":"passed","testResultsByEnv":{"default":"d1ba5e544cb79026478d1f76ee030267"}}

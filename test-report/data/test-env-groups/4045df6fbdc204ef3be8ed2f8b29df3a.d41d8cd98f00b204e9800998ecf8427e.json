@@ -1,0 +1,1 @@
+{"id":"4045df6fbdc204ef3be8ed2f8b29df3a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#referenceOf 番号が 0 の参照 を渡すと、undefined を返す","name":"番号が 0 の参照 を渡すと、undefined を返す","status":"passed","testResultsByEnv":{"default":"c5c1a6bc17fb687a06bd0728eb803364"}}

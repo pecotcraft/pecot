@@ -1,0 +1,1 @@
+{"id":"b5c174c18cc25d21406052c481cc1d14.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_verify#test_judge_does_not_ask_main_or_the_store_for_pull_request_runs","name":"pull_request の run では、main と保管ブランチを参照しない","status":"passed","testResultsByEnv":{"default":"bacda4ef2077957dc4183744d7d66df1"}}

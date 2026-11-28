@@ -1,0 +1,1 @@
+{"id":"ff93ce0581f8673a50b6c6e1d78038a5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_misplaced_pecot#test_nested_pecot_blocks","name":"リポジトリのルート以外に .pecot ディレクトリがあると、パスと対処を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"23d9c5cfd2b0f83ab1222f6727304935"}}

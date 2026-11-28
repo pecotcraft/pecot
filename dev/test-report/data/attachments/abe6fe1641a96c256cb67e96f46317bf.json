@@ -1,0 +1,35 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ok"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[{\"issue\":\"#5\",\"wait\":\"stack\"}],\"approach\":\"stack\",\"stackOn\":\"#5\"}],\"stackableChains\":[[\"#5\",\"issues[0]\"]]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [
+          {
+            "issue": "#5",
+            "wait": "stack"
+          }
+        ],
+        "approach": "stack",
+        "stackOn": "#5"
+      }
+    ],
+    "stackableChains": [
+      [
+        "#5",
+        "issues[0]"
+      ]
+    ]
+  }
+}

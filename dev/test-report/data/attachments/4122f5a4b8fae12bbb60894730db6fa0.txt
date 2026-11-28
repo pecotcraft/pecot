@@ -1,0 +1,1 @@
+{"issue":"acme/demo/7","number":7,"kind":"","proceed":false,"reason":"the CI already passed for this push of feat/fix-x/7","branch":"","pr":0,"ci_attempts":0}

@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"closedIssues\":[],\"skippedIssues\":[],\"deletedBranches\":[],\"readinessChanges\":[],\"restack\":[],\"warnings\":[\"current repository (acme/demo) differs from the PR's (acme/other); skipped local cleanup\"]}"
+    }
+  ],
+  "structuredContent": {
+    "closedIssues": [],
+    "skippedIssues": [],
+    "deletedBranches": [],
+    "readinessChanges": [],
+    "restack": [],
+    "warnings": [
+      "current repository (acme/demo) differs from the PR's (acme/other); skipped local cleanup"
+    ]
+  }
+}

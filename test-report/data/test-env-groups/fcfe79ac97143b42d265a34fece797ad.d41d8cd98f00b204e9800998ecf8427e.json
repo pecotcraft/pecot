@@ -1,0 +1,1 @@
+{"id":"fcfe79ac97143b42d265a34fece797ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#TypeScript reads 直前の行の // で始まる interface-env のコメントから、環境変数の名前を取得する","name":"直前の行の // で始まる interface-env のコメントから、環境変数の名前を取得する","status":"passed","testResultsByEnv":{"default":"c98bc88a148d0f151bca0d56b299343e"}}

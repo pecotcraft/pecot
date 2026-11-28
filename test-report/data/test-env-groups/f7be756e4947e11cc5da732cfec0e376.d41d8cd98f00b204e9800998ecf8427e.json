@@ -1,0 +1,1 @@
+{"id":"f7be756e4947e11cc5da732cfec0e376.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/baseline.test.ts#baseline.json hooks.scripts は hooks/ 配下の .sh で、重複なく昇順に並ぶ","name":"hooks.scripts は hooks/ 配下の .sh で、重複なく昇順に並ぶ","status":"passed","testResultsByEnv":{"default":"dddcefe5fc49ae03cd3a0718c7a7c459"}}

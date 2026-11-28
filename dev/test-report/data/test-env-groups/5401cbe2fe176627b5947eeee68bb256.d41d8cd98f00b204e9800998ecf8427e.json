@@ -1,0 +1,1 @@
+{"id":"5401cbe2fe176627b5947eeee68bb256.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#syncProjectConfig 止まるとき ワークフローのフィールドが存在しない 場合は、エラーの行を表示して止め、設定ファイルを書かない","name":"ワークフローのフィールドが存在しない 場合は、エラーの行を表示して止め、設定ファイルを書かない","status":"passed","testResultsByEnv":{"default":"8a52212cd540595426eeab3d741d52fc"}}

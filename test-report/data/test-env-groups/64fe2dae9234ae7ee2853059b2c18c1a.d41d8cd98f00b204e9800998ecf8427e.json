@@ -1,0 +1,1 @@
+{"id":"64fe2dae9234ae7ee2853059b2c18c1a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateClosedHeadings（テンプレに無い ## / ### 見出し #1330） マスクされた領域の中の見出しは見ない: fenced_code","name":"マスクされた領域の中の見出しは見ない: fenced_code","status":"passed","testResultsByEnv":{"default":"f8f550bb8ad8cfa7eb7e593a6397624a"}}

@@ -1,0 +1,1 @@
+{"id":"95b49510e5794b190d62ffc8fcf56e36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create default のテンプレのファイルで末尾の Closes # を空のまま打つと、head ブランチ名の末尾の番号を入れて PR を作る","name":"default のテンプレのファイルで末尾の Closes # を空のまま打つと、head ブランチ名の末尾の番号を入れて PR を作る","status":"passed","testResultsByEnv":{"default":"fa3be13705341d5de8cb01842d314a08"}}

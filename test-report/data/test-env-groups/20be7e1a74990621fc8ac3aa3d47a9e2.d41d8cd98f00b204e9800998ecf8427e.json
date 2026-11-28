@@ -1,0 +1,1 @@
+{"id":"20be7e1a74990621fc8ac3aa3d47a9e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check method ごとの引数 update に親 Epic を渡すと、sub_issue_write を案内して problem にする","name":"update に親 Epic を渡すと、sub_issue_write を案内して problem にする","status":"passed","testResultsByEnv":{"default":"1d94108779a1e9b0ba9a72dd4510dfb4"}}

@@ -1,0 +1,1 @@
+{"id":"190ccb2de268cb259a69cecd351999bc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_misplaced_pecot#test_unreadable_dir_without_misplaced_passes","name":"読み取りできないディレクトリがあっても、誤配置が存在しなければ成功で終わる","status":"passed","testResultsByEnv":{"default":"069c309b29649c712f287285e66f9b3b"}}

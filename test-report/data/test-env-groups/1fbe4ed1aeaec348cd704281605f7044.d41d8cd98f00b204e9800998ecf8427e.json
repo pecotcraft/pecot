@@ -1,0 +1,1 @@
+{"id":"1fbe4ed1aeaec348cd704281605f7044.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 一覧で前提が 0 件の Epic は、判定を出さず、前提を個別に読まない","name":"一覧で前提が 0 件の Epic は、判定を出さず、前提を個別に読まない","status":"passed","testResultsByEnv":{"default":"8ca0f24bf2e35001b5ca56effaa4a20d"}}

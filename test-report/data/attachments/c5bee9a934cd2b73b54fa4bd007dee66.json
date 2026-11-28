@@ -1,0 +1,33 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "set: current branch to main"
+    },
+    {
+      "type": "text",
+      "text": "{\"closedIssues\":[],\"skippedIssues\":[{\"number\":12,\"reason\":\"failed\"}],\"deletedBranches\":[{\"branch\":\"feat/demo/12\",\"location\":\"local\"}],\"readinessChanges\":[],\"restack\":[],\"currentBranch\":\"main\",\"warnings\":[\"closing Issue #12 failed: GitHub API error: 500 Server Error\"]}"
+    }
+  ],
+  "structuredContent": {
+    "closedIssues": [],
+    "skippedIssues": [
+      {
+        "number": 12,
+        "reason": "failed"
+      }
+    ],
+    "deletedBranches": [
+      {
+        "branch": "feat/demo/12",
+        "location": "local"
+      }
+    ],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "main",
+    "warnings": [
+      "closing Issue #12 failed: GitHub API error: 500 Server Error"
+    ]
+  }
+}

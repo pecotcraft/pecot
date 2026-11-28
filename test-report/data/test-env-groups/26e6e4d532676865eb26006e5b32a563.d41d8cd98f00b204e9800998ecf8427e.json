@@ -1,0 +1,1 @@
+{"id":"26e6e4d532676865eb26006e5b32a563.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#computePruneTargets / removeEntries スキャン結果に存在しない stepIndex のエントリと成果物を、削除対象にする","name":"スキャン結果に存在しない stepIndex のエントリと成果物を、削除対象にする","status":"passed","testResultsByEnv":{"default":"55294cd51bcd64e5f83d276626b7e079"}}

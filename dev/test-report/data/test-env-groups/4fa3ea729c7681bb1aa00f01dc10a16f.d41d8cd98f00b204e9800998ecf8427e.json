@@ -1,0 +1,1 @@
+{"id":"4fa3ea729c7681bb1aa00f01dc10a16f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_allure_report_labels#test_run_sh_outside_nx_passes_no_alluredir","name":"nx の外で run.sh を実行すると、pytest に --alluredir と -o を渡さない","status":"passed","testResultsByEnv":{"default":"ca12b9c92549b463c1e50dbb0ea89eae"}}

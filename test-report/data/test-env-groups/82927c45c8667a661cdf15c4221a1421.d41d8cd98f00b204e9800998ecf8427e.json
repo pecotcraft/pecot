@@ -1,0 +1,1 @@
+{"id":"82927c45c8667a661cdf15c4221a1421.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/result.test.ts#limitOutput 多バイト文字の途中で上限に達しても、不完全な文字を残さない","name":"多バイト文字の途中で上限に達しても、不完全な文字を残さない","status":"passed","testResultsByEnv":{"default":"84223f73042b009fd1a3e9fc2a97c80e"}}

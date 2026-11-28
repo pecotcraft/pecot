@@ -1,0 +1,1 @@
+{"id":"f7e8a4a5b508208f4ed86eaa7c8a69c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add リポジトリがどの設定にも無い と、何も作らず、失敗を返す","name":"リポジトリがどの設定にも無い と、何も作らず、失敗を返す","status":"passed","testResultsByEnv":{"default":"6908a39b4eb4992e93a7c570a4822f1b"}}

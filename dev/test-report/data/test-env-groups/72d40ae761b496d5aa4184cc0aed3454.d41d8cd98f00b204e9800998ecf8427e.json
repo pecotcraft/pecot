@@ -1,0 +1,1 @@
+{"id":"72d40ae761b496d5aa4184cc0aed3454.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide リンクと letter-spacing のどちらも存在しない場合は、2 つのマップが空になる","name":"リンクと letter-spacing のどちらも存在しない場合は、2 つのマップが空になる","status":"passed","testResultsByEnv":{"default":"49b9b2b7be7c63b81005625ef2bf80d4"}}

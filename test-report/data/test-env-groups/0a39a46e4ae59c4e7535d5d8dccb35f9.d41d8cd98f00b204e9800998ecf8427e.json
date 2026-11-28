@@ -1,0 +1,1 @@
+{"id":"0a39a46e4ae59c4e7535d5d8dccb35f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slide-url.test.ts#parseSlideUrl clicks が数値でない場合は、未指定と同じ null として解析する","name":"clicks が数値でない場合は、未指定と同じ null として解析する","status":"passed","testResultsByEnv":{"default":"a198471e70dd11aabaaf238701fadc72"}}

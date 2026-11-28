@@ -1,0 +1,1 @@
+{"id":"91a065c224b781c5bea3227424c914d8.a00cb09d72986354b61d11dffc9fecfc","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_targets_maps_changed_files_to_plugins","name":"変更ファイルが ['libs/workflow-core/src/domain/config.ts'] のとき、`dev-targets.mjs` は対象のプラグインを ['pecot-workflow'] に決める","status":"passed","testResultsByEnv":{"default":"3b646a0b9f36a36bb8fe479efedd7a02"}}

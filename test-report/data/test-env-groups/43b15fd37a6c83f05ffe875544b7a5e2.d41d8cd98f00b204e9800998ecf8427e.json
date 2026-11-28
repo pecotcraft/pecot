@@ -1,0 +1,1 @@
+{"id":"43b15fd37a6c83f05ffe875544b7a5e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 自力で落ちたサーバへの stop はポートを載せずに止めなかったと返す","name":"自力で落ちたサーバへの stop はポートを載せずに止めなかったと返す","status":"passed","testResultsByEnv":{"default":"5acae1be39eaa292f7bd78fe1afd0030"}}

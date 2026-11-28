@@ -1,0 +1,1 @@
+{"id":"ea69ecc2572e3f300094466ac17f591a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#列挙値 ワークフローのステータスの列挙値は、backlog から archived までの 7 つを順に返す","name":"ワークフローのステータスの列挙値は、backlog から archived までの 7 つを順に返す","status":"passed","testResultsByEnv":{"default":"182443b46f1de8d4371833f91c7614da"}}

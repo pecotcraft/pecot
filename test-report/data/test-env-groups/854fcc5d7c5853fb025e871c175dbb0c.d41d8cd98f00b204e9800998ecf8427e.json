@@ -1,0 +1,1 @@
+{"id":"854fcc5d7c5853fb025e871c175dbb0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueNodeId / getIssueNodeIdAndTitle Node ID とタイトルを、1 回のクエリで返す","name":"Node ID とタイトルを、1 回のクエリで返す","status":"passed","testResultsByEnv":{"default":"599316534ffcb6a91181d2f25133a47b"}}

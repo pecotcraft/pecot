@@ -1,0 +1,1 @@
+{"id":"a896b76f02e91716d090b4dab6501b1d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide 表示中のスライドが存在しない場合は、例外が発生する","name":"表示中のスライドが存在しない場合は、例外が発生する","status":"passed","testResultsByEnv":{"default":"ef0f757396f0939a8bd9671013d501ed"}}

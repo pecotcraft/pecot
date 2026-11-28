@@ -1,0 +1,1 @@
+{"id":"bc1dd19a88cb0628c9bd439eac684e54.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference 短縮形に 0 を渡すと、参照エラーではなく検証エラーの例外が発生する","name":"短縮形に 0 を渡すと、参照エラーではなく検証エラーの例外が発生する","status":"passed","testResultsByEnv":{"default":"79b41ba4c4ee43d48f635460730be3bf"}}

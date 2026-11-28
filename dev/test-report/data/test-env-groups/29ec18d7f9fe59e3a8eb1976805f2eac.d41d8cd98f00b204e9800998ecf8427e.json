@@ -1,0 +1,1 @@
+{"id":"29ec18d7f9fe59e3a8eb1976805f2eac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#primaryRemoteName origin が存在する場合は、ほかの remote が先に並んでいても origin を返す","name":"origin が存在する場合は、ほかの remote が先に並んでいても origin を返す","status":"passed","testResultsByEnv":{"default":"09de8255ea47d56371a587bf252a2e8a"}}

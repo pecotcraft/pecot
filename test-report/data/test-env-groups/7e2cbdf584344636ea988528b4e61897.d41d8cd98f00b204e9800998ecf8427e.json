@@ -1,0 +1,1 @@
+{"id":"7e2cbdf584344636ea988528b4e61897.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#リストの記号で始まる行 シェルのコメント の箇条書きを、項目ごとに 1 文として数える","name":"シェルのコメント の箇条書きを、項目ごとに 1 文として数える","status":"passed","testResultsByEnv":{"default":"3ca0c80aa1569fbaa5e468c129d67ab6"}}

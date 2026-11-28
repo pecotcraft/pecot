@@ -1,0 +1,1 @@
+{"id":"45c838522ca602f6b07a51293d2cf47e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#parseUpdateMetadata update-type と版のどちらも存在しない場合は、種類を undefined にする","name":"update-type と版のどちらも存在しない場合は、種類を undefined にする","status":"passed","testResultsByEnv":{"default":"21eacbb6de8663a1ab849a8036e402b3"}}

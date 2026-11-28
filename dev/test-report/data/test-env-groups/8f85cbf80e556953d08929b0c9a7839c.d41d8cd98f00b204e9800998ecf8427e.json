@@ -1,0 +1,1 @@
+{"id":"8f85cbf80e556953d08929b0c9a7839c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#checksLabel と rollupState 検証が ERROR の場合は、failed と表示する","name":"検証が ERROR の場合は、failed と表示する","status":"passed","testResultsByEnv":{"default":"a7c97e09de50f8eb06dd4ff5002a8655"}}

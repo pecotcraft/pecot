@@ -1,0 +1,1 @@
+{"id":"eba1186fa40ba73c78ca54a593396572.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#引数の組み立て filters のような配列の入力に配列の値が含まれる場合は、JSON の配列として載せて実行する","name":"filters のような配列の入力に配列の値が含まれる場合は、JSON の配列として載せて実行する","status":"passed","testResultsByEnv":{"default":"e64ab058c84f702751c0cc11aa977494"}}

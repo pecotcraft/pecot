@@ -1,0 +1,1 @@
+{"id":"4f7904e6661e2cef7f9c97600e0f500f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#gh-command-check.sh コマンドが gh api repos/owner/repo のとき、何も出力せず通す","name":"コマンドが gh api repos/owner/repo のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"78d289f17fb2db93ff81620012fc3c54"}}

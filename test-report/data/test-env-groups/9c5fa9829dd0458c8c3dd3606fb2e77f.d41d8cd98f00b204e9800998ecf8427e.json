@@ -1,0 +1,1 @@
+{"id":"9c5fa9829dd0458c8c3dd3606fb2e77f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql errors の日本語と改行 のとき、GitHubAPIError が発生する","name":"errors の日本語と改行 のとき、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"f83d50f03de4d5458602db801166ad88"}}

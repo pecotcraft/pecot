@@ -1,0 +1,1 @@
+{"id":"7f9552d327153af36d11237fbcf0fc7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/names.test.ts#項目の名前と names rest の自由な語が英小文字と数字でないと、検証エラーにする","name":"rest の自由な語が英小文字と数字でないと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"7fb09e05ff75bcb44c903febafb3d2fa"}}

@@ -1,0 +1,1 @@
+{"id":"3111bd6d9a7f4bdea94d720de773eba1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository mcp_output fields のキーが最上位の properties と食い違うと、不足しているキーと余分なキーを報告する","name":"fields のキーが最上位の properties と食い違うと、不足しているキーと余分なキーを報告する","status":"passed","testResultsByEnv":{"default":"3f4828ff76b6121c876043607f59cc68"}}

@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "preflight found warnings; fix them before creating a PR"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"preflight found warnings; fix them before creating a PR\",\"warnings\":[\"Push Status: no git remote points to a repository of someone on ghes.example.com (fix: git remote add fork https://ghes.example.com/someone/demo.git)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "preflight found warnings; fix them before creating a PR",
+    "warnings": [
+      "Push Status: no git remote points to a repository of someone on ghes.example.com (fix: git remote add fork https://ghes.example.com/someone/demo.git)"
+    ]
+  },
+  "isError": true
+}

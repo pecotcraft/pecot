@@ -1,0 +1,1 @@
+{"id":"3b51b726f795727ac43010c4e1aca01e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#loadConfig JSON として不正なファイルを読み込むと、invalid config file の ConfigError を発生させる","name":"JSON として不正なファイルを読み込むと、invalid config file の ConfigError を発生させる","status":"passed","testResultsByEnv":{"default":"5df1309d79a49e1bf313ced79ea5260e"}}

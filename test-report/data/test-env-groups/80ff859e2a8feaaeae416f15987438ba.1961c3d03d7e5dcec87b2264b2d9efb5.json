@@ -1,0 +1,1 @@
+{"id":"80ff859e2a8feaaeae416f15987438ba.1961c3d03d7e5dcec87b2264b2d9efb5","fullName":".githooks.tests.test_check_test_layers#test_reports_problem_with_place","name":"どのファイルにも勝たない規則があると、hook は .githooks/test-layers.txt:2: 'scripts/' に当たるテストのファイルが無い を出して 1 で終わる","status":"passed","testResultsByEnv":{"default":"484e76634e705be7cd94e75cc3d9c202"}}

@@ -1,0 +1,1 @@
+{"id":"a146fced0cf7f9b9ef5b57cea9143a5d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/review-finish.test.ts#review finish PR の読み取り が GitHub の失敗で止まると、PR を示して止まる","name":"PR の読み取り が GitHub の失敗で止まると、PR を示して止まる","status":"passed","testResultsByEnv":{"default":"a2a55cc0dabf974838962321729bcb4b"}}

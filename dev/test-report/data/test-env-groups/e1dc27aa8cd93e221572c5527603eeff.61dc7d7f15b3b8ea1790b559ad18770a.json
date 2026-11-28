@@ -1,0 +1,1 @@
+{"id":"e1dc27aa8cd93e221572c5527603eeff.61dc7d7f15b3b8ea1790b559ad18770a","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_the_githooks_lanes_that_read_the_change","name":".github/board-sync/handler.mjs を変更すると、それを読む githooks のレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"afbbf04e2eeb588cdc74c1b0b3521b3a"}}

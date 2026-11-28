@@ -1,0 +1,1 @@
+{"id":"0cadc3a176516c151b31848fa40c668b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-drift.test.ts#drift.ts --sdl だけを省略すると、SDL だけを公開スキーマから取得し、OpenAPI はファイルから読み込む","name":"--sdl だけを省略すると、SDL だけを公開スキーマから取得し、OpenAPI はファイルから読み込む","status":"passed","testResultsByEnv":{"default":"e62b79745c4135ff2fc880256ca2eb58"}}

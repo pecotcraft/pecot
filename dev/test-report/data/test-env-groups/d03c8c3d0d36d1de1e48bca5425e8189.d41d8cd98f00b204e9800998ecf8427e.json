@@ -1,0 +1,1 @@
+{"id":"d03c8c3d0d36d1de1e48bca5425e8189.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#素の URL の Link ノード URL ではない長い文字列は、文の長さの指摘を返す","name":"URL ではない長い文字列は、文の長さの指摘を返す","status":"passed","testResultsByEnv":{"default":"d96d25da4d1c7b6c7c82fa7e20e5356e"}}

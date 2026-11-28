@@ -1,0 +1,1 @@
+{"id":"a2975334fe2ec09c721b459ccf3afb66.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_checkouts_do_not_persist_credentials","name":"すべての checkout は、認証情報を残さない","status":"passed","testResultsByEnv":{"default":"96b1c74af1fa64685d61ebb086b43225"}}

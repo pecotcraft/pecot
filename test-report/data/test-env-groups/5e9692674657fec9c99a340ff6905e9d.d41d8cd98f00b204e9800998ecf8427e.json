@@ -1,0 +1,1 @@
+{"id":"5e9692674657fec9c99a340ff6905e9d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge 対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を出して終了コード 1 で終わる","name":"対象のリポを含む設定が 2 つあり .active も選べないと、候補と project の案内を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"3f3a8387e6735fa3fa980c4b46a9c7c0"}}

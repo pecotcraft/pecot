@@ -1,0 +1,1 @@
+{"id":"e3fcc901c1898ab3f5bef732bf4ddce9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/talk-theme.test.ts#findTalkThemeDependency node_modules にテーマが存在しなくても、dependencies から名前と spec を返す","name":"node_modules にテーマが存在しなくても、dependencies から名前と spec を返す","status":"passed","testResultsByEnv":{"default":"edebcead797882f788e2f80b38458b85"}}

@@ -1,0 +1,1 @@
+{"id":"b8875169359c56fd6f509c84f590e339.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#アクティブ設定 .active に相対パスが書かれている場合は、.active のあるディレクトリを基準に解決する","name":".active に相対パスが書かれている場合は、.active のあるディレクトリを基準に解決する","status":"passed","testResultsByEnv":{"default":"4cd064dea0b3e4758b6b8f6b046a0643"}}

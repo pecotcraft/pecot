@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "set: aggregation_repo to acme/new"
+    },
+    {
+      "type": "text",
+      "text": "{\"key\":\"aggregation_repo\",\"value\":\"acme/new\",\"previous\":\"acme/roadmap\",\"change\":\"update\",\"configPath\":\"/tmp/pecot-repo-dOJkH5/.pecot/config/projects/ghes.example.com_acme_1.json\",\"warnings\":[\"overwriting aggregation_repo: acme/roadmap -> acme/new\"]}"
+    }
+  ],
+  "structuredContent": {
+    "key": "aggregation_repo",
+    "value": "acme/new",
+    "previous": "acme/roadmap",
+    "change": "update",
+    "configPath": "/tmp/pecot-repo-dOJkH5/.pecot/config/projects/ghes.example.com_acme_1.json",
+    "warnings": [
+      "overwriting aggregation_repo: acme/roadmap -> acme/new"
+    ]
+  }
+}

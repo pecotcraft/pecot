@@ -1,0 +1,1 @@
+{"id":"01415d26b07115164e80ed4ee319ecd9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint eslint の終わり方が 違反の無い exit 1 なら、違反と言わずに lint しなかったことを返す","name":"eslint の終わり方が 違反の無い exit 1 なら、違反と言わずに lint しなかったことを返す","status":"passed","testResultsByEnv":{"default":"a9bebfbe7f0fd68043c4005fb9847863"}}

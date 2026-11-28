@@ -1,0 +1,1 @@
+{"id":"7f37ab35e21fcacc6f547374eb4a85c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185） em-dash を宣言しない見出しは、要約を検証しない","name":"em-dash を宣言しない見出しは、要約を検証しない","status":"passed","testResultsByEnv":{"default":"0d42d58f4261640d71fe32e142876cdd"}}

@@ -1,0 +1,1 @@
+{"id":"bbaba9dade9f2e28e7bc205983ca5fa4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_15_block_skill_md_only","name":"SKILL.md だけを変更した場合は、除外の glob に当たらないため、失敗する","status":"passed","testResultsByEnv":{"default":"f2f3566d5c376f2884a3bd6cfff38ccb"}}

@@ -1,0 +1,1 @@
+{"id":"09a37c11418e01a1e36c4b5758865ab4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「40 桁 SHA」の場合は、エラーを返す","name":"テーマの指定が「40 桁 SHA」の場合は、エラーを返す","status":"passed","testResultsByEnv":{"default":"1df2462fa029534bef76fe7cb0e96ecb"}}

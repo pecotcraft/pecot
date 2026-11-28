@@ -1,0 +1,1 @@
+{"id":"e3eb3d032e4fdd03575f878ff6224acf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#decidePullRequestBase 親 PR が開いているのに開発ブランチを渡した場合は、止める","name":"親 PR が開いているのに開発ブランチを渡した場合は、止める","status":"passed","testResultsByEnv":{"default":"e0b32787583230e9f6d4add465aa3c4d"}}

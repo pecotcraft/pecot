@@ -1,0 +1,1 @@
+{"id":"4095f2131ca693033b000427e97112a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#結果の項目 失敗では、kind・detail・途中まで進んだ項目を最上位に入れ、reason を入れない","name":"失敗では、kind・detail・途中まで進んだ項目を最上位に入れ、reason を入れない","status":"passed","testResultsByEnv":{"default":"151ec28c5eb4b3ffc8a4a211eeea6f10"}}

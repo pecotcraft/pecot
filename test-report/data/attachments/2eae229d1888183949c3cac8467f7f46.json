@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not link acme/other to project #1: GraphQL query error: {'type': 'NOT_FOUND', 'message': 'Could not resolve to a Repository with the name acme/other.'}"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-api\",\"detail\":\"could not link acme/other to project #1: GraphQL query error: {'type': 'NOT_FOUND', 'message': 'Could not resolve to a Repository with the name acme/other.'}\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "could not link acme/other to project #1: GraphQL query error: {'type': 'NOT_FOUND', 'message': 'Could not resolve to a Repository with the name acme/other.'}"
+  },
+  "isError": true
+}

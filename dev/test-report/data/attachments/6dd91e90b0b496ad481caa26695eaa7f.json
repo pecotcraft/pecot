@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.secret_scanning_alerts: read the open alerts with list_secret_scanning_alerts (state open, every page) and pass the results as reads.secret_scanning_alerts.pages, or its error text as reads.secret_scanning_alerts.error"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.secret_scanning_alerts\",\"code\":\"alerts-unread\",\"message\":\"read the open alerts with list_secret_scanning_alerts (state open, every page) and pass the results as reads.secret_scanning_alerts.pages, or its error text as reads.secret_scanning_alerts.error\"}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.secret_scanning_alerts",
+        "code": "alerts-unread",
+        "message": "read the open alerts with list_secret_scanning_alerts (state open, every page) and pass the results as reads.secret_scanning_alerts.pages, or its error text as reads.secret_scanning_alerts.error"
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  }
+}

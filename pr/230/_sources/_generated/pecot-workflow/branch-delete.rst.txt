@@ -1,0 +1,8 @@
+:iface-id: PW-BRANCH-DELETE
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Delete remote branch
+========================================
+
+.. iface-defs:: pecot-workflow PW-BRANCH-DELETE

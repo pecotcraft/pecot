@@ -1,0 +1,1 @@
+{"id":"94e514665136aab0dd49fcdf0ff062c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check CLI の出力 problem があると、項目ごとに引数と内容の行を標準出力に出し、終了コード 0 で終わる","name":"problem があると、項目ごとに引数と内容の行を標準出力に出し、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"61f8f75d2b04f4647ec6a191c85e5edb"}}

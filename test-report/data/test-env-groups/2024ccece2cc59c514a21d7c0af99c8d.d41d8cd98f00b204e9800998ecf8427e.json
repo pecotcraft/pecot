@@ -1,0 +1,1 @@
+{"id":"2024ccece2cc59c514a21d7c0af99c8d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_summary_with_lane_sections_for_tests_part","name":"tests の Summary は、見出しに part を書き、レーン・失敗・skip の欄を表示する","status":"passed","testResultsByEnv":{"default":"be6221df6f0e62fba0c0d13ca6caa8c8"}}

@@ -1,0 +1,1 @@
+{"id":"18732c33c282094b4e3986940b3b438c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) slide_sync は失敗した場合に、ok や stdout などの項目を含めず、kind と detail だけを返す","name":"slide_sync は失敗した場合に、ok や stdout などの項目を含めず、kind と detail だけを返す","status":"passed","testResultsByEnv":{"default":"a0881c68464267a99254bacd6389cf47"}}

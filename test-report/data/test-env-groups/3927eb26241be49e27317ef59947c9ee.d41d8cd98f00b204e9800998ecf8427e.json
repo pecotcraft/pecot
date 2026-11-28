@@ -1,0 +1,1 @@
+{"id":"3927eb26241be49e27317ef59947c9ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#installChromium 取得のコマンドを起動し、標準出力と終了コードをそのまま返す","name":"取得のコマンドを起動し、標準出力と終了コードをそのまま返す","status":"passed","testResultsByEnv":{"default":"cffd37fbe5bdc49603e07d689d0f384e"}}

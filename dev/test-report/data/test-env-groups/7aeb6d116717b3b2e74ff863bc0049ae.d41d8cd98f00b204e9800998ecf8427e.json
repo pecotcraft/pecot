@@ -1,0 +1,1 @@
+{"id":"7aeb6d116717b3b2e74ff863bc0049ae.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_server_dead_before_manual_stage_falls_back_to_skip","name":"manual の stage の前にサーバが終了していた場合は、キャッシュを使わずに実行する","status":"passed","testResultsByEnv":{"default":"a5d1d6741c984fb74fcca3c2591a9e16"}}

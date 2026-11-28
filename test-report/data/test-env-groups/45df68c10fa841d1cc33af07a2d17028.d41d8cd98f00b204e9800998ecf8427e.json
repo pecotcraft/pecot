@@ -1,0 +1,1 @@
+{"id":"45df68c10fa841d1cc33af07a2d17028.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge MCP の呼び出し 同じ PR のマージの要求が既にあると、その要求の結果を読み続ける","name":"同じ PR のマージの要求が既にあると、その要求の結果を読み続ける","status":"passed","testResultsByEnv":{"default":"791b16b5cd27f582236e3380d8e20bf1"}}

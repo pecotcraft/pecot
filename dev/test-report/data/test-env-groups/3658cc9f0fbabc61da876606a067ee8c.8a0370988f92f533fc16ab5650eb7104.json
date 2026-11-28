@@ -1,0 +1,1 @@
+{"id":"3658cc9f0fbabc61da876606a067ee8c.8a0370988f92f533fc16ab5650eb7104","fullName":".githooks.tests.test_ci_report_results#test_stage_results_keeps_the_repo_relative_path","name":"レーンが githooks:test-ci のとき、結果のディレクトリをリポのルートからのパスのまま集める","status":"passed","testResultsByEnv":{"default":"0f58660c230c60d99eeb4cb9ee300dc7"}}

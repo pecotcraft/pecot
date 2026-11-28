@@ -1,0 +1,1 @@
+{"id":"dba2d0054641610fd7a3798d1aaa3e92.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/server.test.ts#createMcpServer ハンドラに、signal を含む呼び出しの情報を渡す","name":"ハンドラに、signal を含む呼び出しの情報を渡す","status":"passed","testResultsByEnv":{"default":"eee22225f377d73261697a8eb61db406"}}

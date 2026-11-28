@@ -1,0 +1,1 @@
+{"id":"e429fed246eb74ad37e512953a678b96.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#extractVersionReleaseNotes CRLF の改行は区切り 1 つとして数え、LF の場合と同じリリースノートを返す","name":"CRLF の改行は区切り 1 つとして数え、LF の場合と同じリリースノートを返す","status":"passed","testResultsByEnv":{"default":"9821c0226e9a51eb1da33b2e5387f937"}}

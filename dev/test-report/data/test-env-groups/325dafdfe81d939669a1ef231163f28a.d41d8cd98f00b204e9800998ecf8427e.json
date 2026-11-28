@@ -1,0 +1,1 @@
+{"id":"325dafdfe81d939669a1ef231163f28a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#parseProjectConfig（旧い形） 旧い設定の workflow_suffix は読み捨て、保存する内容にも含めない","name":"旧い設定の workflow_suffix は読み捨て、保存する内容にも含めない","status":"passed","testResultsByEnv":{"default":"c2641f86c83f983e116a83b93b8c4a1c"}}

@@ -1,0 +1,1 @@
+{"id":"6ea028a79308e7fb5edc1376eb203b5d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/pr-waiting.test.ts#moveIssuesWaitingFor 待つ Issue の読み取りが API エラーなら、warning を出してボードを読まない","name":"待つ Issue の読み取りが API エラーなら、warning を出してボードを読まない","status":"passed","testResultsByEnv":{"default":"e4b9fdee7766a3e0f9d81abfd412fc47"}}

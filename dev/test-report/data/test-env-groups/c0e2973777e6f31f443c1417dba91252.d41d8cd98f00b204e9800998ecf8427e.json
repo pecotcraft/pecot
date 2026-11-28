@@ -1,0 +1,1 @@
+{"id":"c0e2973777e6f31f443c1417dba91252.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#hasClosingReference 本文 \"`Closes #12`\" は、閉じる語の有無を false と判定する","name":"本文 \"`Closes #12`\" は、閉じる語の有無を false と判定する","status":"passed","testResultsByEnv":{"default":"7f970095eb01481e5df81a4e96d4d720"}}

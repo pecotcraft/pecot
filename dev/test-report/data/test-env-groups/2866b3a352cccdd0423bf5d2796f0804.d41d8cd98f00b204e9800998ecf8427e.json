@@ -1,0 +1,1 @@
+{"id":"2866b3a352cccdd0423bf5d2796f0804.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference 形式が不正な参照を渡すと、受理する 2 種類の形式を並べた例外メッセージを返す","name":"形式が不正な参照を渡すと、受理する 2 種類の形式を並べた例外メッセージを返す","status":"passed","testResultsByEnv":{"default":"82b3e1156b680930cfc4297b0ba2321b"}}

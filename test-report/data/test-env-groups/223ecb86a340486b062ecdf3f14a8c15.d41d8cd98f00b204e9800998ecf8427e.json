@@ -1,0 +1,1 @@
+{"id":"223ecb86a340486b062ecdf3f14a8c15.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#resolveTalkDirectoryNodeModules node_modules が存在しても代表のパッケージを解決できなければ、次の候補のルートを使う","name":"node_modules が存在しても代表のパッケージを解決できなければ、次の候補のルートを使う","status":"passed","testResultsByEnv":{"default":"cfb51a058dbd2c7729c57a071efa6ff7"}}

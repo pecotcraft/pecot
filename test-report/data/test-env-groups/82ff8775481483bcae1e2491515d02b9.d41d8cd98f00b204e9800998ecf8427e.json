@@ -1,0 +1,1 @@
+{"id":"82ff8775481483bcae1e2491515d02b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start 着手の判定 前提が 2 件で、1 件が merge 待ちなら、ブランチを作らず理由と直し方を出して終了コード 2 で終わる","name":"前提が 2 件で、1 件が merge 待ちなら、ブランチを作らず理由と直し方を出して終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"0304b68ec01c84e5b93e8ecdded47b1d"}}

@@ -1,0 +1,1 @@
+{"id":"a46d80091169ba66db1cf81413ec8d13.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#タグ無しの実行は gh を呼ばない","name":"タグ無しの実行は gh を呼ばない","status":"passed","testResultsByEnv":{"default":"94a14d73f1ed0a9284bd4afa02c5959d"}}

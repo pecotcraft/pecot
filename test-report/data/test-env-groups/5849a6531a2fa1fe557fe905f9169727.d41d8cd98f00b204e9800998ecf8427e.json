@@ -1,0 +1,1 @@
+{"id":"5849a6531a2fa1fe557fe905f9169727.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath PECOTV_WSL_MOUNT_ROOT が設定されていない、空、または絶対パスでない場合は、/mnt をマウントルートにする","name":"PECOTV_WSL_MOUNT_ROOT が設定されていない、空、または絶対パスでない場合は、/mnt をマウントルートにする","status":"passed","testResultsByEnv":{"default":"df27c1da814b061f26817c3d9920ff87"}}

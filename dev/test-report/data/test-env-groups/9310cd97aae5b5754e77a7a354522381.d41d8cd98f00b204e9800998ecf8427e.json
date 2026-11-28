@@ -1,0 +1,1 @@
+{"id":"9310cd97aae5b5754e77a7a354522381.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_lint テーマを参照しない talk-dir は、eslint を起動せず theme-none の失敗を返す","name":"テーマを参照しない talk-dir は、eslint を起動せず theme-none の失敗を返す","status":"passed","testResultsByEnv":{"default":"4aafcc82d53c78c772e7e0ea39c336bc"}}

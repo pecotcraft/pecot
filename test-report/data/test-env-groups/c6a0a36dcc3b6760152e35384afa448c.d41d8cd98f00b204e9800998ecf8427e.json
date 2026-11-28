@@ -1,0 +1,1 @@
+{"id":"c6a0a36dcc3b6760152e35384afa448c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#renderRedirectHtml URL は、meta refresh と表示用のリンクの 2 箇所だけに、同じエスケープ済みの文字列で出力する","name":"URL は、meta refresh と表示用のリンクの 2 箇所だけに、同じエスケープ済みの文字列で出力する","status":"passed","testResultsByEnv":{"default":"add61bf1e9d0b0b173322be6acd1e12a"}}

@@ -1,0 +1,1 @@
+{"id":"ae15da45d2fefd8ad2c52f85140be1d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#slideSyncDefaultDependencies CLAUDE_PLUGIN_ROOT があっても読まず、pluginRoot をサーバ自身の置き場所から求める","name":"CLAUDE_PLUGIN_ROOT があっても読まず、pluginRoot をサーバ自身の置き場所から求める","status":"passed","testResultsByEnv":{"default":"0e003224c811df95b27154fba978f3f3"}}

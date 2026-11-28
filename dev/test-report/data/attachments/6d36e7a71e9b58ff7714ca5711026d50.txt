@@ -1,0 +1,1 @@
+error: .pecot-base is malformed: garbage

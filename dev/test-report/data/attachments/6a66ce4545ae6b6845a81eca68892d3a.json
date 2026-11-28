@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_sqs_list_queues succeeded"
+    },
+    {
+      "type": "text",
+      "text": "{\"QueueUrls\":[\"https://sqs.ap-northeast-1.amazonaws.com/123456789012/order-events\",\"https://sqs.ap-northeast-1.amazonaws.com/123456789012/order-events-dlq\"]}"
+    }
+  ],
+  "structuredContent": {
+    "QueueUrls": [
+      "https://sqs.ap-northeast-1.amazonaws.com/123456789012/order-events",
+      "https://sqs.ap-northeast-1.amazonaws.com/123456789012/order-events-dlq"
+    ]
+  }
+}

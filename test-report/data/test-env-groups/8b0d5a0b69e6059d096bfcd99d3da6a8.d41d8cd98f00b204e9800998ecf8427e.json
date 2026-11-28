@@ -1,0 +1,1 @@
+{"id":"8b0d5a0b69e6059d096bfcd99d3da6a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#ホスト設定 最上位がオブジェクトでない hosts.json は空の設定として扱う","name":"最上位がオブジェクトでない hosts.json は空の設定として扱う","status":"passed","testResultsByEnv":{"default":"5a5cef5e9e4ec6038ece7833f0ffec91"}}

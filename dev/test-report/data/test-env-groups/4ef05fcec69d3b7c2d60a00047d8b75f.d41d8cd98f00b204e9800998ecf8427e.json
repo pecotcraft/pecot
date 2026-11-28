@@ -1,0 +1,1 @@
+{"id":"4ef05fcec69d3b7c2d60a00047d8b75f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_failure_records_tasks_without_summary_line","name":"テストが失敗した場合は、終了コード 1 のまま task の行を記録し、合計の行は表示しない","status":"passed","testResultsByEnv":{"default":"fee768869be5d9f1c0394cf9b085eeb2"}}

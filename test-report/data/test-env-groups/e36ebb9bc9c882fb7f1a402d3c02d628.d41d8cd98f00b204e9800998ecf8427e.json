@@ -1,0 +1,1 @@
+{"id":"e36ebb9bc9c882fb7f1a402d3c02d628.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_real_allure_writes_the_variables_of_each_lane","name":"本物の allure で開発版のレポートを作ると、レーンごとの変数を `widgets/variables.json` に書く","status":"passed","testResultsByEnv":{"default":"e47c3ce1afbce4b6595a550037c3c279"}}

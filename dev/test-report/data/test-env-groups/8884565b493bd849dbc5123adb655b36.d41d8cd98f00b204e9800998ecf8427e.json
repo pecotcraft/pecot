@@ -1,0 +1,1 @@
+{"id":"8884565b493bd849dbc5123adb655b36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-surface.test.ts#checkIssueCoverage excluded の reason が空白だけ 場合は、スキーマの検証で止めず、id を示した問題を返す","name":"excluded の reason が空白だけ 場合は、スキーマの検証で止めず、id を示した問題を返す","status":"passed","testResultsByEnv":{"default":"ecfb1cf13ba92de81084f1f5ee81caef"}}

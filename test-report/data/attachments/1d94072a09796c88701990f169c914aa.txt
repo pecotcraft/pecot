@@ -1,0 +1,1 @@
+nx-cache-server: Error: EACCES: permission denied, open '/tmp/pytest-of-vscode/pytest-0/popen-gw3/test_unwritable_store_is_500_n0/store/.abc123.8baff08b2cf7.tmp'

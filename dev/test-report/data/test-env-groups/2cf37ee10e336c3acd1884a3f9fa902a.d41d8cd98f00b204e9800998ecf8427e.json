@@ -1,0 +1,1 @@
+{"id":"2cf37ee10e336c3acd1884a3f9fa902a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/errors.test.ts#独自例外は PecotError を継承する ConfigError は PecotError を継承する","name":"ConfigError は PecotError を継承する","status":"passed","testResultsByEnv":{"default":"4a6f742e8c46df166132f4396ea8d8fe"}}

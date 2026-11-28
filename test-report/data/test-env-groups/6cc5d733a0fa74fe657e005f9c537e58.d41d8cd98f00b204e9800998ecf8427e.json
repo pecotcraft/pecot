@@ -1,0 +1,1 @@
+{"id":"6cc5d733a0fa74fe657e005f9c537e58.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/issues.test.ts#issuesToFindings 項目の直下にないフィールドの issue は、括弧の案内を付けず報告する","name":"項目の直下にないフィールドの issue は、括弧の案内を付けず報告する","status":"passed","testResultsByEnv":{"default":"32cc3735637c6dc483be36bed8fb6d61"}}

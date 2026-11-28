@@ -1,0 +1,1 @@
+{"id":"3a5a7279672bd9009c4b9b348c4c7a19.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot:.nx/nx-release/tests/dependabot-plans.test.mjs##113 の後の squash（#120・#151 の実物）から、root に uv.lock があっても group ごとの plan を作る","name":"#113 の後の squash（#120・#151 の実物）から、root に uv.lock があっても group ごとの plan を作る","status":"passed","testResultsByEnv":{"default":"bf82bfdd2acb29427842925e5c28293e"}}

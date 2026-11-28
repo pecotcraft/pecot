@@ -1,0 +1,1 @@
+{"id":"d35b999f991a0b4e2f28fc2ea4ac4f56.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/page-compare/tests/compare-pages.bats#対応外の PNG（bit16）を渡すと、理由を stderr に出して終了コード 2 で終わる","name":"対応外の PNG（bit16）を渡すと、理由を stderr に出して終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"50933c5282a0707621768d303ceee074"}}

@@ -1,0 +1,1 @@
+{"id":"231e05e642d2e779aae4150d5c9ac009.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/console-logger.test.ts#createLogger 存在しない level を指定した場合は、normal と同じ扱いにする","name":"存在しない level を指定した場合は、normal と同じ扱いにする","status":"passed","testResultsByEnv":{"default":"a06663c125771fafaf96b0abca715e92"}}

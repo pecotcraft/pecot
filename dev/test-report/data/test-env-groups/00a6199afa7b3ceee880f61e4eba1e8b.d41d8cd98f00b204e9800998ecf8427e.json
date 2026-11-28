@@ -1,0 +1,1 @@
+{"id":"00a6199afa7b3ceee880f61e4eba1e8b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_get 未設定だと、none を標準出力に出す","name":"未設定だと、none を標準出力に出す","status":"passed","testResultsByEnv":{"default":"b78ef32d3ef4d53837f3b8e1a3b4c14f"}}

@@ -1,0 +1,1 @@
+{"id":"3cde0fa8871ca9f7a91561c49f6edba7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#autoMarker setup-missing の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","name":"setup-missing の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","status":"passed","testResultsByEnv":{"default":"cc0a49eb42ef1cb34588060eb9ca2a71"}}

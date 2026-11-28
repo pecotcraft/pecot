@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool slide_sync: node_modules_only: Invalid input: expected boolean, received number"
+    }
+  ],
+  "isError": true
+}

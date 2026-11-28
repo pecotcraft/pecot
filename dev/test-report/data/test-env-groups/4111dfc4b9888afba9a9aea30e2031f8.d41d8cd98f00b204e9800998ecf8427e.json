@@ -1,0 +1,1 @@
+{"id":"4111dfc4b9888afba9a9aea30e2031f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/result.test.ts#toCallToolResult ツールの項目に kind と detail があるときは、共通の kind と detail で上書きする","name":"ツールの項目に kind と detail があるときは、共通の kind と detail で上書きする","status":"passed","testResultsByEnv":{"default":"b906bcbf0fe9d9eabc567a28d82e4e03"}}

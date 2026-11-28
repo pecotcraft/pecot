@@ -1,0 +1,1 @@
+{"id":"5eba225981bab4b306e810156312a735.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け merge の待ちで、PR が マージされた なら、MERGED を 1 行出力して終了コード 0 で終了する","name":"merge の待ちで、PR が マージされた なら、MERGED を 1 行出力して終了コード 0 で終了する","status":"passed","testResultsByEnv":{"default":"d332a703221c23285a2ebd28dd27ee6d"}}

@@ -1,0 +1,1 @@
+{"id":"f828320c623cdfd25532ad2acddbb7a4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_no_artifact_means_no_run","name":"artifact が存在しないと、run なしの理由を出力し、run_id を出力しない","status":"passed","testResultsByEnv":{"default":"06e3ee694e1ed6fb2a82a4872b624a9f"}}

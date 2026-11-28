@@ -1,0 +1,1 @@
+{"id":"67fb75cd79452af7351b022c6617d0a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#validateSemver バージョンが 1.2.3.4 の場合は、InvalidVersionError を投げる","name":"バージョンが 1.2.3.4 の場合は、InvalidVersionError を投げる","status":"passed","testResultsByEnv":{"default":"a143ef7453b7e4a1fbdd9ef4c0b4f0b5"}}

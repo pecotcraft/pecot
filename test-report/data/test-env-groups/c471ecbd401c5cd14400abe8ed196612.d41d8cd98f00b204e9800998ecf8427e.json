@@ -1,0 +1,1 @@
+{"id":"c471ecbd401c5cd14400abe8ed196612.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#renameProjectField フィールドの改名で projectV2Field が null の場合は、GitHubAPIError が発生する","name":"フィールドの改名で projectV2Field が null の場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"49d7fef0d2e0120550c387ac0de37d57"}}

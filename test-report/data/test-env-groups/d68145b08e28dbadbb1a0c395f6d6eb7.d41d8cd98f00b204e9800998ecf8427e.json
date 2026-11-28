@@ -1,0 +1,1 @@
+{"id":"d68145b08e28dbadbb1a0c395f6d6eb7.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/script-refs.test.sh#セルフテスト: $0 形の SCRIPT_DIR 代入で $SCRIPT_DIR 参照が解決される","name":"セルフテスト: $0 形の SCRIPT_DIR 代入で $SCRIPT_DIR 参照が解決される","status":"passed","testResultsByEnv":{"default":"ad9eca6ea0b8ab0627f9a2ff14ba4454"}}

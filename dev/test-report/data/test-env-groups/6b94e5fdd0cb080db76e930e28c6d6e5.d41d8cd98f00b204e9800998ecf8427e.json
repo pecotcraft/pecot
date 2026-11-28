@@ -1,0 +1,1 @@
+{"id":"6b94e5fdd0cb080db76e930e28c6d6e5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/frontmatter-parser.test.ts#parseFrontmatter YAML の最上位が配列だと、null を返す","name":"YAML の最上位が配列だと、null を返す","status":"passed","testResultsByEnv":{"default":"610474923001562057d1c7716b7d8253"}}

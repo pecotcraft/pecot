@@ -1,0 +1,1 @@
+{"id":"da3161cbad7404d61c75c4a74eddf375.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-start-features.test.ts#session-start のロジックスクリプト git-sync.sh pull に失敗しても exit 0 で、同期した旨は出さない","name":"pull に失敗しても exit 0 で、同期した旨は出さない","status":"passed","testResultsByEnv":{"default":"e5458fcb0fae836f4841a2c1c5fecc3b"}}

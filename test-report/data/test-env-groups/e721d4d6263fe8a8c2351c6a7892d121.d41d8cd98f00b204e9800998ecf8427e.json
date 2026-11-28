@@ -1,0 +1,1 @@
+{"id":"e721d4d6263fe8a8c2351c6a7892d121.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_push_ignores_artifact_names","name":"push の run は、artifact 名にかかわらず、開発版として受け付ける","status":"passed","testResultsByEnv":{"default":"8dde52fc1494df712e0cb46bb9f33647"}}

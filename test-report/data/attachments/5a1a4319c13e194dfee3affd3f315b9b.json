@@ -1,0 +1,681 @@
+{
+  "pecot-workflow:test": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "test-cli",
+      "test-hooks",
+      "test-skills",
+      "test-release"
+    ]
+  },
+  "pecot-workflow:lint": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "lint-cli"
+    ]
+  },
+  "pecot-workflow:lint-cli": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      {
+        "projects": [
+          "workflow-core"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "pecot-workflow:test-cli": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "build-cli",
+      {
+        "projects": [
+          "workflow-core"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "pecot-workflow:test-skills": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      {
+        "projects": [
+          "workflow-core"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "pecot-workflow:test-hooks": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "build-cli",
+      {
+        "projects": [
+          "workflow-core"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "pecot-workflow:test-release": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "build-cli",
+      {
+        "projects": [
+          "workflow-core"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "pecot-workflow:build-cli": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": [
+      "install",
+      {
+        "projects": [
+          "workflow-core"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "pecot-workflow:install": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "pecot-workflow:nx-release-publish": {
+    "executor": "nx:run-commands",
+    "cache": null,
+    "dependsOn": null
+  },
+  "pecot-visual:install": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "pecot-visual:test": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "test-cli",
+      "test-slidev",
+      "test-hooks",
+      "test-compare",
+      "test-release",
+      "test-skills"
+    ]
+  },
+  "pecot-visual:lint": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "lint-cli",
+      "lint-slidev",
+      "lint-skills"
+    ]
+  },
+  "pecot-visual:lint-cli": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      {
+        "projects": [
+          "text-rules"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "pecot-visual:lint-slidev": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      {
+        "projects": [
+          "text-rules"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "pecot-visual:lint-skills": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "pecot-visual:test-cli": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "check-pm-guard",
+      "chromium-preflight",
+      "build-slidev",
+      "build-cli"
+    ]
+  },
+  "pecot-visual:test-slidev": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "check-pm-guard",
+      "build-slidev"
+    ]
+  },
+  "pecot-visual:test-hooks": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "check-pm-guard"
+    ]
+  },
+  "pecot-visual:test-compare": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "check-pm-guard",
+      "build-cli"
+    ]
+  },
+  "pecot-visual:test-release": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "check-pm-guard",
+      "build-cli",
+      "build-slidev",
+      {
+        "projects": [
+          "text-rules"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "pecot-visual:test-skills": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "check-pm-guard"
+    ]
+  },
+  "pecot-visual:build-cli": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": [
+      {
+        "projects": [
+          "text-rules"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "pecot-visual:build-slidev": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": [
+      "install",
+      {
+        "projects": [
+          "text-rules"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "pecot-visual:check-pm-guard": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "pecot-visual:chromium-preflight": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": [
+      "install",
+      "build-cli"
+    ]
+  },
+  "pecot-visual:nx-release-publish": {
+    "executor": "nx:run-commands",
+    "cache": null,
+    "dependsOn": null
+  },
+  "interface-spec:install": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "interface-spec:test": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "test-unit",
+      "test-site"
+    ]
+  },
+  "interface-spec:lint": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "interface-spec:lint-defs": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "interface-spec:test-unit": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "interface-spec:test-site": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "interface-spec:docs": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "pecot-tools:test": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "test-cli",
+      "test-release"
+    ]
+  },
+  "pecot-tools:lint": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": null
+  },
+  "pecot-tools:test-cli": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "build-cli"
+    ]
+  },
+  "pecot-tools:test-release": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "build-cli"
+    ]
+  },
+  "pecot-tools:build-cli": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": null
+  },
+  "pecot-tools:install": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "pecot-tools:nx-release-publish": {
+    "executor": "nx:run-commands",
+    "cache": null,
+    "dependsOn": null
+  },
+  "workflow-core:install": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "workflow-core:test": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "test-unit"
+    ]
+  },
+  "workflow-core:lint": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "workflow-core:test-unit": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "workflow-core:build": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "workflow-core:nx-release-publish": {
+    "executor": "nx:run-commands",
+    "cache": null,
+    "dependsOn": null
+  },
+  "text-rules:install": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "text-rules:test": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "test-unit"
+    ]
+  },
+  "text-rules:lint": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "text-rules:test-unit": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      "build"
+    ]
+  },
+  "text-rules:build": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": [
+      "install"
+    ]
+  },
+  "text-rules:nx-release-publish": {
+    "executor": "nx:run-commands",
+    "cache": null,
+    "dependsOn": null
+  },
+  "nx-release:lint": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "lint-types",
+      "lint-eslint"
+    ]
+  },
+  "nx-release:test": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "test-unit"
+    ]
+  },
+  "nx-release:lint-types": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "nx-release:lint-eslint": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "nx-release:test-unit": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      {
+        "projects": [
+          "text-rules"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "githooks:test": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "test-nx-cache",
+      "test-nx-affected",
+      "test-ci",
+      "test-checks"
+    ]
+  },
+  "githooks:test-nx-cache": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "githooks:test-nx-affected": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "githooks:test-ci": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "githooks:test-checks": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      },
+      {
+        "projects": [
+          "text-rules"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "actions:install": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      {
+        "projects": [
+          "pecot"
+        ],
+        "target": "install"
+      }
+    ]
+  },
+  "actions:test": {
+    "executor": "nx:noop",
+    "cache": false,
+    "dependsOn": [
+      "test-unit"
+    ]
+  },
+  "actions:lint": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      {
+        "projects": [
+          "workflow-core"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "actions:lint-dist": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "build"
+    ]
+  },
+  "actions:test-unit": {
+    "executor": "nx:run-commands",
+    "cache": true,
+    "dependsOn": [
+      "install",
+      {
+        "projects": [
+          "workflow-core"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "actions:sync-templates": {
+    "executor": "nx:run-script",
+    "cache": null,
+    "dependsOn": null
+  },
+  "actions:build": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": [
+      "install",
+      {
+        "projects": [
+          "workflow-core"
+        ],
+        "target": "build"
+      }
+    ]
+  },
+  "actions:nx-release-publish": {
+    "executor": "nx:run-commands",
+    "cache": null,
+    "dependsOn": null
+  },
+  "pecot:install": {
+    "executor": "nx:run-commands",
+    "cache": false,
+    "dependsOn": null
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"6eec86c199abb5c3dcdb6f5b9583044d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#repo が owner/repo の形でないと、入力の誤りとして失敗する","name":"repo が owner/repo の形でないと、入力の誤りとして失敗する","status":"passed","testResultsByEnv":{"default":"ad9954fffe768bb7dcd4f73751a3433e"}}

@@ -1,0 +1,1 @@
+{"id":"51d1d98ff838b17032862f3c941e08b6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/preview-normalize.test.ts#detectPreviewDivergence wrap が none で spAutoFit もある場合は、検出し、図形の名前を取得する","name":"wrap が none で spAutoFit もある場合は、検出し、図形の名前を取得する","status":"passed","testResultsByEnv":{"default":"9119c2c875388a383fe9b89fb476a1a6"}}

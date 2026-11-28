@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "read the commit of tag pecot-actions/v1.1.0 with get_commit (owner pecotcraft, repo pecot, sha pecot-actions/v1.1.0) and pass its result as reads.commit"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"read the commit of tag pecot-actions/v1.1.0 with get_commit (owner pecotcraft, repo pecot, sha pecot-actions/v1.1.0) and pass its result as reads.commit\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "read the commit of tag pecot-actions/v1.1.0 with get_commit (owner pecotcraft, repo pecot, sha pecot-actions/v1.1.0) and pass its result as reads.commit"
+  },
+  "isError": true
+}

@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "merge was rejected: Repository rule violations found"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"pr-state\",\"detail\":\"merge was rejected: Repository rule violations found\",\"pullRequest\":\"acme/demo/11\",\"base\":\"main\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "pr-state",
+    "detail": "merge was rejected: Repository rule violations found",
+    "pullRequest": "acme/demo/11",
+    "base": "main"
+  },
+  "isError": true
+}

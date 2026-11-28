@@ -1,0 +1,1 @@
+{"id":"f1cb6787e1c53ccdd34ad4ce949c6738.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/issues.test.ts#issuesToFindings 判別子を持たない invalid_union は、unknown validation issue として報告する","name":"判別子を持たない invalid_union は、unknown validation issue として報告する","status":"passed","testResultsByEnv":{"default":"76453d0179eabcc44ea9779858a0ce06"}}

@@ -1,0 +1,1 @@
+{"id":"17252ed4290a45da1f4ee7402e9deeb4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init.test.ts#pecot-dir-init.sh .pecot が無いとき、必要なディレクトリとファイルを作り、hosts.json と .env は作らない","name":".pecot が無いとき、必要なディレクトリとファイルを作り、hosts.json と .env は作らない","status":"passed","testResultsByEnv":{"default":"953669e63ac4aa348cf5def82466067c"}}

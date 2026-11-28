@@ -1,0 +1,1 @@
+{"id":"a1d3dce7dfe8bd7446e23d8fd91b51fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store-unexpected.test.ts#state-store（想定外の失敗） フラグの名前の途中がファイルの場合は、OsError を送出する","name":"フラグの名前の途中がファイルの場合は、OsError を送出する","status":"passed","testResultsByEnv":{"default":"fe3cf4e19dd85b30e1981c081774dd4d"}}

@@ -1,0 +1,1 @@
+{"id":"a4144493d6e231e09d684c1a521cfd33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/raster.test.ts#ppmToPng PPM の寸法と画素を、そのまま 8bit のフルカラーの PNG に変換する","name":"PPM の寸法と画素を、そのまま 8bit のフルカラーの PNG に変換する","status":"passed","testResultsByEnv":{"default":"2d147fbf9a0399bf688c1a1799c5e330"}}

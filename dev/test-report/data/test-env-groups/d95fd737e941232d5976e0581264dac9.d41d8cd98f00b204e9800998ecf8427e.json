@@ -1,0 +1,1 @@
+{"id":"d95fd737e941232d5976e0581264dac9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/entry-point-linter.test.ts#check-entry-point-logic.sh ロジック（while ループ）を含むとき、VIOLATION を報告する","name":"ロジック（while ループ）を含むとき、VIOLATION を報告する","status":"passed","testResultsByEnv":{"default":"9c822119a531e821f50ac3ae7253f5d1"}}

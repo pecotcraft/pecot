@@ -1,0 +1,8 @@
+[
+  "githooks:test-checks",
+  "githooks:test-ci",
+  "githooks:test-nx-affected",
+  "githooks:test-nx-cache",
+  "nx-release:test-unit",
+  "pecot-workflow:test-hooks"
+]

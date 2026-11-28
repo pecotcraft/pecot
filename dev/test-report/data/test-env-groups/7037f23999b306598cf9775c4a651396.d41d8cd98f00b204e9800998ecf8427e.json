@@ -1,0 +1,1 @@
+{"id":"7037f23999b306598cf9775c4a651396.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start ブランチが無いとき 既にブランチがあれば、開発ブランチが設定に無くても、そのブランチを文脈に入れて base を空にする","name":"既にブランチがあれば、開発ブランチが設定に無くても、そのブランチを文脈に入れて base を空にする","status":"passed","testResultsByEnv":{"default":"a8f2023070abd77d71ea3a334705a2df"}}

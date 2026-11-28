@@ -1,0 +1,4 @@
+checks: failure
+lanes: success
+lint: skip
+lint=skip のとき checks は skipped のはずです: failure

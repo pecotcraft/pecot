@@ -1,0 +1,1 @@
+{"id":"f9aa5af6acefcca2a17276122f9d3bb7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 作業の跡が存在しない Issue で、列 Active と判定 startable の組み合わせは、Ready に動かす","name":"作業の跡が存在しない Issue で、列 Active と判定 startable の組み合わせは、Ready に動かす","status":"passed","testResultsByEnv":{"default":"38c37ad26227177672934bce9a9a2ded"}}

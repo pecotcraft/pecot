@@ -1,0 +1,1 @@
+{"id":"386cb831214b697ffdb9c0c7034fb656.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-comment-check.test.ts#issue_comment_check テンプレートの省略 では、本文にテンプレートの決まりを当てずに problem の無い結果を返す","name":"テンプレートの省略 では、本文にテンプレートの決まりを当てずに problem の無い結果を返す","status":"passed","testResultsByEnv":{"default":"45704923c76c5bafb58089017e5b2208"}}

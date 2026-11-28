@@ -1,0 +1,85 @@
+{
+  "name": "aws_sso_login_status",
+  "title": "Get SSO login status",
+  "description": "Returns the state (pending / completed / failed / timed-out) of the authorization started by aws_sso_login. Does not run awscli",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "profile": {
+        "description": "AWS profile name. If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[\\w.-]+$"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "state": {
+        "description": "State of the device authorization. Returned on success and on failed / timed-out",
+        "type": "string",
+        "enum": [
+          "pending",
+          "completed",
+          "failed",
+          "timed-out"
+        ]
+      },
+      "verificationUrl": {
+        "description": "URL to open in a browser to approve (success only, once awscli has printed it)",
+        "type": "string"
+      },
+      "verificationUrlComplete": {
+        "description": "URL with the code filled in; no code entry is needed (success only, once awscli has printed it)",
+        "type": "string"
+      },
+      "userCode": {
+        "description": "Code to enter at verificationUrl (success only, once awscli has printed it)",
+        "type": "string"
+      },
+      "output": {
+        "description": "awscli output when the state is completed, only the beginning when it exceeds the limit",
+        "type": "string"
+      },
+      "kind": {
+        "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+        "type": "string"
+      },
+      "detail": {
+        "description": "Full text of the failure and how to recover (failure only)",
+        "type": "string"
+      },
+      "log": {
+        "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+        "type": "string"
+      },
+      "warnings": {
+        "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "state"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "openWorldHint": true
+  }
+}

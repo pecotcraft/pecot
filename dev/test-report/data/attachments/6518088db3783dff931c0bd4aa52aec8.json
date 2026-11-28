@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-tools",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_sts_get_caller_identity: profile: Invalid string: must match pattern /^[\\w.-]+$/"
+    }
+  ],
+  "isError": true
+}

@@ -1,0 +1,3 @@
+複数見つかりました（AskUserQuestion で選択）:
+  ../a/.pecot/config/projects/p.json
+  ../b/.pecot/config/projects/p.json

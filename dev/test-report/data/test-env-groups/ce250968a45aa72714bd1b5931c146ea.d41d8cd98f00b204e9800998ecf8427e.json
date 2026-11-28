@@ -1,0 +1,1 @@
+{"id":"ce250968a45aa72714bd1b5931c146ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Markdown のブロックの規則 HTML ブロックの場合は、style（type 1）は閉じタグまで空行をまたぐ","name":"HTML ブロックの場合は、style（type 1）は閉じタグまで空行をまたぐ","status":"passed","testResultsByEnv":{"default":"b568813d8b80d19c8f3cd9da90e55f28"}}

@@ -1,0 +1,1 @@
+{"id":"b5e9875a5a8c3a626f18707d4f3e7ec0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#listIssueCommentRecords / listIssueCommentReadings コメント一覧の記録は、投稿者・関係・時刻・URL を含み、存在しない項目は空文字にする","name":"コメント一覧の記録は、投稿者・関係・時刻・URL を含み、存在しない項目は空文字にする","status":"passed","testResultsByEnv":{"default":"9f7bee2bad56bb302e080d80ddb13756"}}

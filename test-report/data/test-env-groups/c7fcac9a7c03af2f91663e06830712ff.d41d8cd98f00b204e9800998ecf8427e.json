@@ -1,0 +1,1 @@
+{"id":"c7fcac9a7c03af2f91663e06830712ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/pnpm.test.ts#resolvePnpmCommand pnpm があれば、pnpm をそのまま使う","name":"pnpm があれば、pnpm をそのまま使う","status":"passed","testResultsByEnv":{"default":"c7e472a87b00930f728e2f7405aecd65"}}

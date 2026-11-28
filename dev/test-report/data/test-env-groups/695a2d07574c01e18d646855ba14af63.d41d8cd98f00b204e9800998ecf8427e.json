@@ -1,0 +1,1 @@
+{"id":"695a2d07574c01e18d646855ba14af63.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/setup.test.ts#createSandbox gh のスタブは、token を指定すると auth token で返し、指定しないと終了コード 1 で終了する","name":"gh のスタブは、token を指定すると auth token で返し、指定しないと終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"b40ab9ed19a5fc706bb92f688c801a38"}}

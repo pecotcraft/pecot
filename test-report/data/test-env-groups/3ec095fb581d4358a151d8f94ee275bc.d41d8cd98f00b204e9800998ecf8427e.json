@@ -1,0 +1,1 @@
+{"id":"3ec095fb581d4358a151d8f94ee275bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の update-type 検証が成功している minor の更新は、待っている PR に含めない","name":"検証が成功している minor の更新は、待っている PR に含めない","status":"passed","testResultsByEnv":{"default":"5b94605561b89e44a950487409518134"}}

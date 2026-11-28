@@ -1,0 +1,1 @@
+{"id":"2b9fc551d393021563a93b7dc034f607.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start MCP の data issue_ref が 7 でフル形式でないと、kind が invalid-input の失敗を返す","name":"issue_ref が 7 でフル形式でないと、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"0d398c89549ff4d53769ba1c188944e7"}}

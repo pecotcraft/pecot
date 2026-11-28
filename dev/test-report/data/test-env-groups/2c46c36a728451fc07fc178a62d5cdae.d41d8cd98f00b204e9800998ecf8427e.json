@@ -1,0 +1,1 @@
+{"id":"2c46c36a728451fc07fc178a62d5cdae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#itemHasFieldValue 設定に存在しないフィールドを指定した場合は、取得せずに入力済みとして扱う","name":"設定に存在しないフィールドを指定した場合は、取得せずに入力済みとして扱う","status":"passed","testResultsByEnv":{"default":"cd5f2902bcdff105cff3c72377830ab6"}}

@@ -1,0 +1,1 @@
+{"id":"45579c200468615dc49d71d7c87a9f3b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: JSON .jsonc のコメントは、文字列として数えず、コメントとして 1 件だけ返す","name":".jsonc のコメントは、文字列として数えず、コメントとして 1 件だけ返す","status":"passed","testResultsByEnv":{"default":"2e640c5cb57ebc22bfdf383126d57ffa"}}

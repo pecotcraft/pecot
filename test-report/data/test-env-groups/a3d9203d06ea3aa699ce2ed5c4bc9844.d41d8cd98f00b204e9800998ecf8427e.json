@@ -1,0 +1,1 @@
+{"id":"a3d9203d06ea3aa699ce2ed5c4bc9844.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-stdio.test.ts#MCP サーバ (stdio) プロトコルの版 `2026-07-28` で接続でき、`tools/list` が登録したツールの件数を返す","name":"プロトコルの版 `2026-07-28` で接続でき、`tools/list` が登録したツールの件数を返す","status":"passed","testResultsByEnv":{"default":"72eecd618decb98c6174fabb5d97cd29"}}

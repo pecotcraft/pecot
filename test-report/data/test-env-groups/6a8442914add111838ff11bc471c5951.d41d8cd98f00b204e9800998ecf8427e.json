@@ -1,0 +1,1 @@
+{"id":"6a8442914add111838ff11bc471c5951.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 board sync と同じ規則で数え、項目の食い違いを数え、動かす先の値がボードに存在しない Issue は数えない","name":"board sync と同じ規則で数え、項目の食い違いを数え、動かす先の値がボードに存在しない Issue は数えない","status":"passed","testResultsByEnv":{"default":"e7e80005e61c08f77ea38020cef7a414"}}

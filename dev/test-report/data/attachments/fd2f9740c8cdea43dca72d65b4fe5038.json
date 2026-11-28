@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "generated evidence xlsx: /tmp/pecotv-1094-e2e-mixed-d4H3uw/out.xlsx (1 items; 0 annotations; 1 skipped)"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"result\",\"outPath\":\"/tmp/pecotv-1094-e2e-mixed-d4H3uw/out.xlsx\",\"items\":1,\"annotations\":0,\"skipped\":[{\"path\":\"C:\\\\shots\\\\02-missing.png\",\"reason\":\"not-found\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "event": "result",
+    "outPath": "/tmp/pecotv-1094-e2e-mixed-d4H3uw/out.xlsx",
+    "items": 1,
+    "annotations": 0,
+    "skipped": [
+      {
+        "path": "C:\\shots\\02-missing.png",
+        "reason": "not-found"
+      }
+    ]
+  }
+}

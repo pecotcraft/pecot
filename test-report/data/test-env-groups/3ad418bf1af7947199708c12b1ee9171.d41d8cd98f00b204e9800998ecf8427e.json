@@ -1,0 +1,1 @@
+{"id":"3ad418bf1af7947199708c12b1ee9171.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/review-finish.test.ts#review finish 合言葉の環境変数があると、次にすることの文にその合言葉を書く","name":"合言葉の環境変数があると、次にすることの文にその合言葉を書く","status":"passed","testResultsByEnv":{"default":"e7473fbede69e411d67437901cb79428"}}

@@ -1,0 +1,8 @@
+remote-control
+--permission-mode
+auto
+--spawn
+worktree
+--name
+a b
+DIRS=/tmp/pytest-of-vscode/pytest-0/popen-gw1/test_passes_worktree_plugins_a0/wt/plugins/pecot-workflow:/tmp/pytest-of-vscode/pytest-0/popen-gw1/test_passes_worktree_plugins_a0/wt/plugins/pecot-tools:/tmp/pytest-of-vscode/pytest-0/popen-gw1/test_passes_worktree_plugins_a0/wt/plugins/pecot-visual

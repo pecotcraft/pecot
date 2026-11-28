@@ -1,0 +1,1 @@
+{"id":"ba75048004e897b581abe95ce2db6b44.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — 非対応形式 PNG のシグネチャの後ろ 4 バイトが不正な場合は、未対応の形式として扱う","name":"PNG のシグネチャの後ろ 4 バイトが不正な場合は、未対応の形式として扱う","status":"passed","testResultsByEnv":{"default":"ceb73d8159e099578a741b979c8aaf2b"}}

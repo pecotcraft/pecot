@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.blocked_by: the blocked-by of acme/demo/7 has more pages: read them all and pass one result with every Issue"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.blocked_by\",\"code\":\"read-required\",\"message\":\"the blocked-by of acme/demo/7 has more pages: read them all and pass one result with every Issue\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.blocked_by",
+        "code": "read-required",
+        "message": "the blocked-by of acme/demo/7 has more pages: read them all and pass one result with every Issue"
+      }
+    ]
+  }
+}

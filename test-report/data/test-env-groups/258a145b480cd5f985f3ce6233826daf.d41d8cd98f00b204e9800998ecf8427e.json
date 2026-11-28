@@ -1,0 +1,1 @@
+{"id":"258a145b480cd5f985f3ce6233826daf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync dry-run を true にすると、同じ文を dry-run の行で出し、ボードに書かない","name":"dry-run を true にすると、同じ文を dry-run の行で出し、ボードに書かない","status":"passed","testResultsByEnv":{"default":"e8c71b5f130dca4594f5e1b4d3954f79"}}

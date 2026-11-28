@@ -1,0 +1,1 @@
+{"id":"6e34e8f51ec12678b46820ff8fe70d69.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インラインコードの Code ノード シェルのコメント のバッククォートで囲んだ区間は、規則の対象にしない","name":"シェルのコメント のバッククォートで囲んだ区間は、規則の対象にしない","status":"passed","testResultsByEnv":{"default":"090f57644cebe1e36eed7c366390979c"}}

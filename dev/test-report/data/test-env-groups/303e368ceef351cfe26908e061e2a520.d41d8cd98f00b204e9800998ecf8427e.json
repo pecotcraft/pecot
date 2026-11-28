@@ -1,0 +1,1 @@
+{"id":"303e368ceef351cfe26908e061e2a520.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_01_block_no_plan","name":"プラグインのファイルを変更して version plan が存在しないと、その release group を示して失敗する","status":"passed","testResultsByEnv":{"default":"5e5a593047192a3420f91b394ba2227e"}}

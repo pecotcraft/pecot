@@ -1,0 +1,1 @@
+{"id":"0e70d363e0eb542a6e982b0e3ccda27a.dd0d1b261024ae583c81659ecfed855e","fullName":".githooks.tests.test_sync_playwright_deps#test_lock_without_exactly_one_version_stops","name":"lock の playwright の版が [] のとき、エラーで止まり設定を変更しない","status":"passed","testResultsByEnv":{"default":"20bc6182e2a29e509465da4deec99ef3"}}

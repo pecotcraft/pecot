@@ -1,0 +1,1 @@
+{"id":"5bccae51df1e6565e001f53b1a94dc81.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_up_fails_when_workspace_mount_is_missing","name":"設定に workspaceMount が存在しないと、up は失敗し、devcontainer up を呼ばない","status":"passed","testResultsByEnv":{"default":"85921d6952c6b06eca98d405e28bc2ae"}}

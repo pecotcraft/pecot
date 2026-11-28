@@ -1,0 +1,1 @@
+{"id":"a6516bc5803f6e9a436c3d84ff54e998.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_cache_server#test_no_used_file_without_arg","name":"--used-file を指定しないと、used のファイルを作らない","status":"passed","testResultsByEnv":{"default":"f03efe876a312780fd236784087a4ebd"}}

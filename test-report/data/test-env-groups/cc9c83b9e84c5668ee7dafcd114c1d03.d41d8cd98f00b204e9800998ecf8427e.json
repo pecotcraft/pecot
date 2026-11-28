@@ -1,0 +1,1 @@
+{"id":"cc9c83b9e84c5668ee7dafcd114c1d03.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot:.nx/nx-release/tests/dependabot-plans.test.mjs#indirect が dev の依存からしか届かないときと、どこにも届かないときは作らない","name":"indirect が dev の依存からしか届かないときと、どこにも届かないときは作らない","status":"passed","testResultsByEnv":{"default":"1239f2f6b799ff92e1c97cc536df63b6"}}

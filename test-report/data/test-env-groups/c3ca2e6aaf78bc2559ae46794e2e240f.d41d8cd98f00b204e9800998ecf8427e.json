@@ -1,0 +1,1 @@
+{"id":"c3ca2e6aaf78bc2559ae46794e2e240f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#cycleThrough 指定した Issue から到達できない循環は、対象にしない","name":"指定した Issue から到達できない循環は、対象にしない","status":"passed","testResultsByEnv":{"default":"16138625d3c14e3dd3a21964ad084f05"}}

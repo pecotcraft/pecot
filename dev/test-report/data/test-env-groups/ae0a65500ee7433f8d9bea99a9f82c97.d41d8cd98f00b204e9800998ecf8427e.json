@@ -1,0 +1,1 @@
+{"id":"ae0a65500ee7433f8d9bea99a9f82c97.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.bats#write_shrinkwrap が shrinkwrap を作り、npm にタイムアウト・再試行・キャッシュの引数を渡す","name":"write_shrinkwrap が shrinkwrap を作り、npm にタイムアウト・再試行・キャッシュの引数を渡す","status":"passed","testResultsByEnv":{"default":"f578b7cc6a954484513e2be28513de96"}}

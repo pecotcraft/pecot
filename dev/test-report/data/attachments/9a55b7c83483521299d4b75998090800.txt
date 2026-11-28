@@ -1,0 +1,1 @@
+ERROR: 監査未実施のため中止: version plan の探索先がありません: /tmp/bats-run-ZtRN2n/test/15/plans-missing

@@ -1,0 +1,1 @@
+{"id":"c24542be0e62011d315f779079706bc8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#doesContainJapanese 記号のみ（入力 \"!@#$%^&*()\"）のとき、false を返す","name":"記号のみ（入力 \"!@#$%^&*()\"）のとき、false を返す","status":"passed","testResultsByEnv":{"default":"d3f1fd11726aa0306c955b01dc4d1a6c"}}

@@ -1,0 +1,1 @@
+{"id":"bf7752519696f6bb1fbd6e4fbd8df8f6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/review-finish.test.ts#decideReviewFinish job が success の場合（PR の確かめで飛ばした）は、コメントを書かない","name":"job が success の場合（PR の確かめで飛ばした）は、コメントを書かない","status":"passed","testResultsByEnv":{"default":"2e5d3dff59d3d40b31b221687b04e4af"}}

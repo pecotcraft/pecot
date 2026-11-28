@@ -1,0 +1,1 @@
+{"id":"954f7bf17b797d9d3a0c8429ee71b97a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/field-options.test.ts#appendOptions 既存の選択肢を id・color・description ごと保持し、存在しない名前の選択肢だけを末尾に追加する","name":"既存の選択肢を id・color・description ごと保持し、存在しない名前の選択肢だけを末尾に追加する","status":"passed","testResultsByEnv":{"default":"775e33b3810f35e84a8ff5147d8ede1c"}}

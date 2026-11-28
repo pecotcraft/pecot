@@ -1,0 +1,1 @@
+{"id":"d6c863e22b07efe733a9a99293133d23.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#forkPushFixHint ローカルと remote がずれていない場合は、remote とブランチ名を付けた git push を案内する","name":"ローカルと remote がずれていない場合は、remote とブランチ名を付けた git push を案内する","status":"passed","testResultsByEnv":{"default":"2f340f2d4fa80d0fe9f2573ff444c259"}}

@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "milestone: milestone is the number of the milestone, a positive integer"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"milestone\",\"code\":\"value\",\"message\":\"milestone is the number of the milestone, a positive integer\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "milestone",
+        "code": "value",
+        "message": "milestone is the number of the milestone, a positive integer"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

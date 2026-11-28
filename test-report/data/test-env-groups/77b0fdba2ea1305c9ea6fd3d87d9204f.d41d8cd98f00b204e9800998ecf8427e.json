@@ -1,0 +1,1 @@
+{"id":"77b0fdba2ea1305c9ea6fd3d87d9204f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-delete.test.ts#branch_delete MCP の data repo が owner/repo の形でないと、kind が invalid-input の失敗を返す","name":"repo が owner/repo の形でないと、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"3be273a6c4054e5406dd5e733533b063"}}

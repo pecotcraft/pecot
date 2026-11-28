@@ -1,0 +1,1 @@
+{"id":"b9aec600e579cfc78a65108780a00bd3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#number の lax な変換（Python の実出力どおり） number に 2.0 を渡した場合は、整数 2 として読み取る","name":"number に 2.0 を渡した場合は、整数 2 として読み取る","status":"passed","testResultsByEnv":{"default":"f5f838b678fcd2e0edf9905a9b60e8c9"}}

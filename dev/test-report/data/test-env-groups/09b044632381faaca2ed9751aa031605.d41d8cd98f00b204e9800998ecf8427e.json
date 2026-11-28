@@ -1,0 +1,1 @@
+{"id":"09b044632381faaca2ed9751aa031605.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/rule-tester.test.ts#require-matching-length valid rows と items の件数が一致していると、報告しない","name":"rows と items の件数が一致していると、報告しない","status":"passed","testResultsByEnv":{"default":"d734a4e3d92882b69e7d137cbc3f202d"}}

@@ -1,0 +1,1 @@
+{"id":"691e98b4b728ed47a48fb0672af7c476.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge MCP の data PR が閉じている と、kind が pr-state の失敗を返す","name":"PR が閉じている と、kind が pr-state の失敗を返す","status":"passed","testResultsByEnv":{"default":"2eb1fccd0e2096a38e32b61e11bcf15d"}}

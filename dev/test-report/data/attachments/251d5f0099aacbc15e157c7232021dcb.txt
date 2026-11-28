@@ -1,0 +1,6 @@
+==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)
+  OK: 全 package.json の宣言と .npmrc、pecotv の scripts を確認 (28 件)
+==> check-pm-guard: 挙動確認 (隔離 install)
+  SKIP: npm 不在のため npm の挙動確認を skip
+  SKIP: yarn 不在のため yarn の挙動確認を skip
+check-pm-guard: passed

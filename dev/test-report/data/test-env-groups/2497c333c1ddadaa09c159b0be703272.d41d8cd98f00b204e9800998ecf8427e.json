@@ -1,0 +1,1 @@
+{"id":"2497c333c1ddadaa09c159b0be703272.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/repository-match.test.ts#readCurrentRepository remote の URL が手元のパスなら、unreadable-remote を返す","name":"remote の URL が手元のパスなら、unreadable-remote を返す","status":"passed","testResultsByEnv":{"default":"9fa3d2fde82176da0b67ccc0721ac946"}}

@@ -1,0 +1,1 @@
+{"id":"42bd00d7567ccf19220fe2d41f33fbd6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show reviews を付けて打つと、行のコメントが無ければ ## Line Comments の節を出さない","name":"reviews を付けて打つと、行のコメントが無ければ ## Line Comments の節を出さない","status":"passed","testResultsByEnv":{"default":"6034b145fdd884738e1910189d70bfc6"}}

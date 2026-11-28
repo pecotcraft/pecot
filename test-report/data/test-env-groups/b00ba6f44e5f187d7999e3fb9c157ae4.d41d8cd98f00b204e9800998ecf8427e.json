@@ -1,0 +1,1 @@
+{"id":"b00ba6f44e5f187d7999e3fb9c157ae4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/evidence.test.ts#evidence_create ツール spec から xlsx を生成し、CLI の --json と同形の項目を返す","name":"spec から xlsx を生成し、CLI の --json と同形の項目を返す","status":"passed","testResultsByEnv":{"default":"4df73c432f7afbb28fe9c585bf0c792a"}}

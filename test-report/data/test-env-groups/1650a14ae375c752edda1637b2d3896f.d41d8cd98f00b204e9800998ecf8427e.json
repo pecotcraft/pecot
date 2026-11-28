@@ -1,0 +1,1 @@
+{"id":"1650a14ae375c752edda1637b2d3896f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 起票先と用法 一括の Issue が別々のプロジェクトの設定に属すると、分けて確かめるよう problem にする","name":"一括の Issue が別々のプロジェクトの設定に属すると、分けて確かめるよう problem にする","status":"passed","testResultsByEnv":{"default":"05e5256e0632a0e62e75983be08b1942"}}

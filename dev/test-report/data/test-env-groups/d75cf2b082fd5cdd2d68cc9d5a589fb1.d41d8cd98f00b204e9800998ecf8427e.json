@@ -1,0 +1,1 @@
+{"id":"d75cf2b082fd5cdd2d68cc9d5a589fb1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-absolute-last.test.ts#require-absolute-last valid 複数の absolute の要素が末尾にまとまっていると、報告しない","name":"複数の absolute の要素が末尾にまとまっていると、報告しない","status":"passed","testResultsByEnv":{"default":"08fd724fca6b3184d6b013cab5f26dab"}}

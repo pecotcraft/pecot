@@ -1,0 +1,1 @@
+{"id":"cd1c15a994a74997d7974c0b3d8f9bc1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#forceLightColorScheme 自己終了タグのルート要素でも、/> を保ったまま style 属性を追加する","name":"自己終了タグのルート要素でも、/> を保ったまま style 属性を追加する","status":"passed","testResultsByEnv":{"default":"764b2649762ee3d25e50286465844158"}}

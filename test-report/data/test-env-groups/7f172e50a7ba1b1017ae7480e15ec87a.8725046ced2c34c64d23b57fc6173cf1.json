@@ -1,0 +1,1 @@
+{"id":"7f172e50a7ba1b1017ae7480e15ec87a.8725046ced2c34c64d23b57fc6173cf1","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_runs_for_text_sources","name":"plugins/pecot-visual/scripts/page-compare/tests/compare-pages.bats を変更すると、check-text が起動する","status":"passed","testResultsByEnv":{"default":"5e19c86905b80489198a703926a234af"}}

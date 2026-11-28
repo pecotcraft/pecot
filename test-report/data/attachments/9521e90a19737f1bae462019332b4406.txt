@@ -1,0 +1,1 @@
+error: use all: true in the main worktree

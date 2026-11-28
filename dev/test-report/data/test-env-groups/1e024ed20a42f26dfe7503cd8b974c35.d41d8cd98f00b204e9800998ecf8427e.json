@@ -1,0 +1,1 @@
+{"id":"1e024ed20a42f26dfe7503cd8b974c35.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh ローカルのパス とき、作業中の Issue は無いとして、出力せず記録を残さない","name":"ローカルのパス とき、作業中の Issue は無いとして、出力せず記録を残さない","status":"passed","testResultsByEnv":{"default":"f458474922cc1b8483abfc8b9bd94b8f"}}

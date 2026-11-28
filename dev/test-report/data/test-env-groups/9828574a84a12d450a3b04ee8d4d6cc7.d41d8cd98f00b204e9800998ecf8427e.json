@@ -1,0 +1,1 @@
+{"id":"9828574a84a12d450a3b04ee8d4d6cc7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql 502 のとき、GitHubAPIError が発生する","name":"502 のとき、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"67cd15bcedf3519b927298d8192cdd41"}}

@@ -1,0 +1,1 @@
+{"id":"ad28eb0a6e5158af202a09e529831dcd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/domain/tests/issue-surface.test.ts#extractIssueSurface requestBody と schema が $ref のとき、components をたどって本文の項目を読む","name":"requestBody と schema が $ref のとき、components をたどって本文の項目を読む","status":"passed","testResultsByEnv":{"default":"dde93f637691cf1661d060ce56d48d24"}}

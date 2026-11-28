@@ -1,0 +1,1 @@
+{"id":"32effbabcb92aeaaee8c42619adf2831.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_nx_style_push_moves_only_branch_and_tag_even_when_local_main_is_ahead","name":"ローカルの main が進んでいても、nx と同じ形の push はブランチとタグだけを送信する","status":"passed","testResultsByEnv":{"default":"f3be12004ba7140e7659499e518ec695"}}

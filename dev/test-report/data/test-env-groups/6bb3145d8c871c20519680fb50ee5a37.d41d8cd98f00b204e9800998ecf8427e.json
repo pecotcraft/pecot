@@ -1,0 +1,1 @@
+{"id":"6bb3145d8c871c20519680fb50ee5a37.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/issue-surface.test.ts#fetchIssueSurfaceSources SDL と指定した版の OpenAPI を取得し、本文と、取得元の URL・版・日時を返す","name":"SDL と指定した版の OpenAPI を取得し、本文と、取得元の URL・版・日時を返す","status":"passed","testResultsByEnv":{"default":"e50061e885808aaf3783a294a8c6838d"}}

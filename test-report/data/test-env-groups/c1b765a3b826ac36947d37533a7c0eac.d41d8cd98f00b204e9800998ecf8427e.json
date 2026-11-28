@@ -1,0 +1,1 @@
+{"id":"c1b765a3b826ac36947d37533a7c0eac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#validateWhitespaceWrap br タグを含み、楕円で折り返し指定のないセルには、警告を 1 件返す","name":"br タグを含み、楕円で折り返し指定のないセルには、警告を 1 件返す","status":"passed","testResultsByEnv":{"default":"60da5c41d8a3b040cb27b6798598ddc6"}}

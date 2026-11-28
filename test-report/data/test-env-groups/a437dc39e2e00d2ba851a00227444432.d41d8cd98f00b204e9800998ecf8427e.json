@@ -1,0 +1,1 @@
+{"id":"a437dc39e2e00d2ba851a00227444432.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#slide_sync の theme 指定 (移行前の talk-dir) 解釈できない theme は usage error で、何も消さない","name":"解釈できない theme は usage error で、何も消さない","status":"passed","testResultsByEnv":{"default":"eb3b1f182ebd606b176e487e02365e68"}}

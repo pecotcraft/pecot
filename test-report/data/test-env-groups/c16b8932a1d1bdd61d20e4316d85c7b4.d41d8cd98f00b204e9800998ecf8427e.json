@@ -1,0 +1,1 @@
+{"id":"c16b8932a1d1bdd61d20e4316d85c7b4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_list_test_lanes#test_stack_same_main_calls_nx_once_and_skips_lint","name":"積モードで PR の main と queue の base が同じだと、nx を 1 回だけ呼び、レーンは 0 件で lint を飛ばす","status":"passed","testResultsByEnv":{"default":"20b357ee3f4dfa40c4e65e400f91cdc7"}}

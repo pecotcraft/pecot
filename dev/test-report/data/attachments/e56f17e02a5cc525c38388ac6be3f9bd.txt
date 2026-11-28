@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "note: plugin update available: pecot-v 0.30.0 (installed: 0.29.0). Update: `claude plugin update pecot-v@pecot` (add -s project for a project-scope install)"
+  },
+  "additionalContext": "note: plugin update available: pecot-v 0.30.0 (installed: 0.29.0). Update: `claude plugin update pecot-v@pecot` (add -s project for a project-scope install)"
+}

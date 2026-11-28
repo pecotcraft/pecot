@@ -1,0 +1,1 @@
+{"id":"6302b1a45313f10803d4f5a7a7669a9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/release-check.test.ts#release check Dependabot alert を読めなくても、理由を warning の行に出して通る","name":"Dependabot alert を読めなくても、理由を warning の行に出して通る","status":"passed","testResultsByEnv":{"default":"c83f2e5a0ff21ccdf2d9df382d0d265b"}}

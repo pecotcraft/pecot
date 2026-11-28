@@ -1,0 +1,1 @@
+{"id":"8d9241775c8eae487184bd46a7e2ac2c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_dev_only_guides_release_to_dev","name":"開発版だけがある場合は、リリース版の案内のページから開発版へ誘導する","status":"passed","testResultsByEnv":{"default":"39748ed68e02e4281634e794bdb0c536"}}

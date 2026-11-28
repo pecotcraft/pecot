@@ -1,0 +1,1 @@
+{"id":"8ce9ae8cf80a90544e951ed80545a3ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/server.test.ts#createMcpServer クライアントのキャンセル [modern] クライアントがキャンセルした場合は、ハンドラの signal を中断する","name":"クライアントがキャンセルした場合は、ハンドラの signal を中断する","status":"passed","testResultsByEnv":{"default":"26a5501f04c6c3b390e687080f0c8c7b"}}

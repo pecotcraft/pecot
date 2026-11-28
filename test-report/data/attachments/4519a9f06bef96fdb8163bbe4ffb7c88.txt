@@ -1,0 +1,2 @@
+warning: cannot read the active Issue: GraphQL query error: Server error '502 Bad Gateway' for url 'http://127.0.0.1:35913/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502

@@ -1,0 +1,1 @@
+{"id":"4383a55e016ffa7272ea0d1ec58445d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link directory が git の外だと、メインの worktree を見つけられず、失敗を返す","name":"directory が git の外だと、メインの worktree を見つけられず、失敗を返す","status":"passed","testResultsByEnv":{"default":"0b7237509e78b71b63bdebd53b6e5b32"}}

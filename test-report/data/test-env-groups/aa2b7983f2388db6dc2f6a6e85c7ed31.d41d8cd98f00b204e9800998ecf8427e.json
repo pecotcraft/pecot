@@ -1,0 +1,1 @@
+{"id":"aa2b7983f2388db6dc2f6a6e85c7ed31.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight ローカルタグが複数行の出力に含まれていても、検出する","name":"ローカルタグが複数行の出力に含まれていても、検出する","status":"passed","testResultsByEnv":{"default":"b289859459838acbe08cca6c96f51952"}}

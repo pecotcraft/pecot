@@ -1,0 +1,1 @@
+{"id":"736cf5d970a6a1d423c8d572fe19f382.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/merge.test.ts#mergePptxFiles メディアファイルの名前にスライド番号を付け、rels の参照も書き換える","name":"メディアファイルの名前にスライド番号を付け、rels の参照も書き換える","status":"passed","testResultsByEnv":{"default":"50085e67444a7dfb41bb47b144a54472"}}

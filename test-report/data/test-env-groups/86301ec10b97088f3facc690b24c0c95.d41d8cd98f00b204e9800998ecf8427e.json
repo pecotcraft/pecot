@@ -1,0 +1,1 @@
+{"id":"86301ec10b97088f3facc690b24c0c95.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の update-type YAML の依存パッケージの名前が、引用符のない @scope の場合は、種類を不明として扱う","name":"YAML の依存パッケージの名前が、引用符のない @scope の場合は、種類を不明として扱う","status":"passed","testResultsByEnv":{"default":"b4bf000e1e9edced3ceef1d3f8f4cd56"}}

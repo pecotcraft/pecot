@@ -1,0 +1,1 @@
+{"id":"6de2667354952057e603fab9dac317f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project-check.test.ts#project_check fields github-ops が断る変更と、カードの値を消す変更を、changes の位置の problem にする","name":"github-ops が断る変更と、カードの値を消す変更を、changes の位置の problem にする","status":"passed","testResultsByEnv":{"default":"18a1c50a29435a05e9f84f61994e561d"}}

@@ -1,0 +1,1 @@
+{"id":"12ebd3c4342b641502a989f0926bfeb9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/workflow-template.test.ts#雛形の一覧 handoff の行は、引き継ぎのテンプレートと配置先を持ち、review と同じエージェント用の認証を必要とする","name":"handoff の行は、引き継ぎのテンプレートと配置先を持ち、review と同じエージェント用の認証を必要とする","status":"passed","testResultsByEnv":{"default":"6eb2b612717f841978273a35f2d87251"}}

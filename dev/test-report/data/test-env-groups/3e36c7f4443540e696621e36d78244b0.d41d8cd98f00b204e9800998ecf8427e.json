@@ -1,0 +1,1 @@
+{"id":"3e36c7f4443540e696621e36d78244b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight git が 0 以外で終了したら、コマンドと標準エラーを含む ReleaseError を投げる","name":"git が 0 以外で終了したら、コマンドと標準エラーを含む ReleaseError を投げる","status":"passed","testResultsByEnv":{"default":"6d76c738adbf53e22715935efac9e4a5"}}

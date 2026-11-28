@@ -1,0 +1,1 @@
+{"id":"a1e2877cbc42a2b4a7f20897beaa75d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/version-range.test.ts#doesRangeAllowMajor: 範囲表記 ハイフンで指定した範囲 9.0.0 - 10.5.0 は、メジャーバージョン 9 と 10 を許可する","name":"ハイフンで指定した範囲 9.0.0 - 10.5.0 は、メジャーバージョン 9 と 10 を許可する","status":"passed","testResultsByEnv":{"default":"495b1e9fe13f155ae2e48ab7052ba72e"}}

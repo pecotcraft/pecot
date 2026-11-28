@@ -1,0 +1,1 @@
+{"id":"a08fba8d89fe6a8531ccb6bb76c4b0e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#DROP TABLE の tools/call が kind:not-allowed を返す","name":"DROP TABLE の tools/call が kind:not-allowed を返す","status":"passed","testResultsByEnv":{"default":"a62f091a3c29869605cd21697ece1820"}}

@@ -1,0 +1,1 @@
+{"id":"aba6ea463bc1c67d697db0a8bddd35dc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#putOnBoard onlyIfEmpty を指定した場合は、入力済みのフィールドが [] のとき、空の Status だけを設定する","name":"onlyIfEmpty を指定した場合は、入力済みのフィールドが [] のとき、空の Status だけを設定する","status":"passed","testResultsByEnv":{"default":"3586b3a2a61ed3dcd210839e7949da50"}}

@@ -1,0 +1,1 @@
+{"id":"3d12f04e1d46051a6e5e061c47e1aefe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/english-only.test.ts#判定器 ソースが const a = /[\\u3040-\\u30FF]|あ/u のとき、日本語を含むリテラルを 0 件見つける","name":"ソースが const a = /[\\u3040-\\u30FF]|あ/u のとき、日本語を含むリテラルを 0 件見つける","status":"passed","testResultsByEnv":{"default":"fb071a3a0034f01275f6dbc0c1b18468"}}

@@ -1,0 +1,1 @@
+{"id":"3897af7c2ca6ce878d37e2d716c512fc.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#HEAD にリリースタグが無いと、gh を呼ばず配布ツリーも作らずに正常終了する","name":"HEAD にリリースタグが無いと、gh を呼ばず配布ツリーも作らずに正常終了する","status":"passed","testResultsByEnv":{"default":"7e99a925561414ecd065403033f82af3"}}

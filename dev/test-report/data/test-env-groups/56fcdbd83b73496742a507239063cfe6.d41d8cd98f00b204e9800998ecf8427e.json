@@ -1,0 +1,1 @@
+{"id":"56fcdbd83b73496742a507239063cfe6.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_public_invoke_function_requires_function_url","name":"公開した lambda:InvokeFunction の許可は、関数 URL 経由の呼び出しだけに限る","status":"passed","testResultsByEnv":{"default":"665329dd363cb348dd9013c5c75e9214"}}

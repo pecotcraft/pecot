@@ -1,0 +1,1 @@
+{"id":"856eade3e953d9882c5873144b71f772.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#removeWaitsForMerge 末尾に改行がない最後の行を削除した場合は、前の行の改行も削除する","name":"末尾に改行がない最後の行を削除した場合は、前の行の改行も削除する","status":"passed","testResultsByEnv":{"default":"d3e096ef869cf314c9a024fc3f235487"}}

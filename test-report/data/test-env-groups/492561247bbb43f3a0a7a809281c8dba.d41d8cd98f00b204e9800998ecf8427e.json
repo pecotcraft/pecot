@@ -1,0 +1,1 @@
+{"id":"492561247bbb43f3a0a7a809281c8dba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「letterSpacingMap 型不一致」の場合は、undefined を返す","name":"エントリが「letterSpacingMap 型不一致」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"76308f713125016a49fba4431438f43f"}}

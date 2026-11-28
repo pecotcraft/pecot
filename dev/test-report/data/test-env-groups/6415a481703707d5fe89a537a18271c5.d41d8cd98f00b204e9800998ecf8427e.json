@@ -1,0 +1,1 @@
+{"id":"6415a481703707d5fe89a537a18271c5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli ツール aws_ecr_describe_images の引数の並びは、実際の awscli が構文として受理する","name":"ツール aws_ecr_describe_images の引数の並びは、実際の awscli が構文として受理する","status":"passed","testResultsByEnv":{"default":"fb034aff42aba082c2b9bbc0098a30a8"}}

@@ -1,0 +1,1 @@
+{"id":"a04536026456fe80cefcf5352e72e6e9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_brief layout の無いページ を渡すと、空のオブジェクトを返す","name":"layout の無いページ を渡すと、空のオブジェクトを返す","status":"passed","testResultsByEnv":{"default":"ff7c2e208b6858ee0eaccfad5ee68bd1"}}

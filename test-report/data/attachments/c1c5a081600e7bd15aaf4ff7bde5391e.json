@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "added: PR #11 to merge queue of main"
+    },
+    {
+      "type": "text",
+      "text": "{\"pullRequest\":\"acme/demo/11\",\"base\":\"main\",\"status\":\"enqueued\"}"
+    }
+  ],
+  "structuredContent": {
+    "pullRequest": "acme/demo/11",
+    "base": "main",
+    "status": "enqueued"
+  }
+}

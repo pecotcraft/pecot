@@ -1,0 +1,1 @@
+{"id":"b0ac014362c2cba9cad2e2f4bd125ea1.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.test.sh#npm に --package-lock-only を渡す","name":"npm に --package-lock-only を渡す","status":"passed","testResultsByEnv":{"default":"45f44c6056dc5f58f964bf9cb6209e11"}}

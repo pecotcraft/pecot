@@ -1,0 +1,1 @@
+{"id":"a41a316659339bb3a80c94656aaf0c38.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start 着手の判定 依存関係に対応しない GHES では、判定を省いた旨の warning を出して、今までどおり開発ブランチから作る","name":"依存関係に対応しない GHES では、判定を省いた旨の warning を出して、今までどおり開発ブランチから作る","status":"passed","testResultsByEnv":{"default":"c00f33d33284faed2e74436d3b1ecb01"}}

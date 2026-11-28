@@ -1,0 +1,1 @@
+{"id":"5e9f249175e0cc2f8c491a4012ccd5ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#validateHtml font タグに対応していない属性がある場合は、警告を検出する","name":"font タグに対応していない属性がある場合は、警告を検出する","status":"passed","testResultsByEnv":{"default":"c5c1512366eb35cbc3b7ec2a433f1709"}}

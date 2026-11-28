@@ -1,0 +1,1 @@
+{"id":"26816c6baef3787639e73624eac207da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base 親 PR がマージされずに閉じた とき、PR を作らずに直し方を添えた error の行を出し、終了コード 2 で終わる","name":"親 PR がマージされずに閉じた とき、PR を作らずに直し方を添えた error の行を出し、終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"bc31a6ce7f73097b22b06214955a4bb2"}}

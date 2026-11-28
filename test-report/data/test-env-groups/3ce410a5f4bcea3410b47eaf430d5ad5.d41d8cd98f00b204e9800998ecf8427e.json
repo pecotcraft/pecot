@@ -1,0 +1,1 @@
+{"id":"3ce410a5f4bcea3410b47eaf430d5ad5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/tracker-body.test.ts#listRegion begin の直後に end が続く（間が空の）場合も、範囲を返す","name":"begin の直後に end が続く（間が空の）場合も、範囲を返す","status":"passed","testResultsByEnv":{"default":"a3857ee6557cf8cc07ce208453e4de86"}}

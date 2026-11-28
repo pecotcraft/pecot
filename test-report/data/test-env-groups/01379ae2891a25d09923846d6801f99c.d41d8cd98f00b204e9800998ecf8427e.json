@@ -1,0 +1,1 @@
+{"id":"01379ae2891a25d09923846d6801f99c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#createSymlinks リンク先がリンク切れのシンボリックリンクの場合も、skipped とし、リンク切れだと分かるメッセージにする","name":"リンク先がリンク切れのシンボリックリンクの場合も、skipped とし、リンク切れだと分かるメッセージにする","status":"passed","testResultsByEnv":{"default":"f839d78d0c1e6ba60846d26b66e9da65"}}

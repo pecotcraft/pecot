@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "cannot tell whether acme is a user or an organization\n  pass owner_type, the value given to projects_get"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"cannot tell whether acme is a user or an organization\\n  pass owner_type, the value given to projects_get\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "cannot tell whether acme is a user or an organization\n  pass owner_type, the value given to projects_get"
+  },
+  "isError": true
+}

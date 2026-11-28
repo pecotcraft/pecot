@@ -1,0 +1,1 @@
+{"id":"59b8997625306c32fcc10fdce9338407.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest manifest が「entries 欠落」の場合は、undefined を返す","name":"manifest が「entries 欠落」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"98ea7c9cddd224f790294e75247a6a1b"}}

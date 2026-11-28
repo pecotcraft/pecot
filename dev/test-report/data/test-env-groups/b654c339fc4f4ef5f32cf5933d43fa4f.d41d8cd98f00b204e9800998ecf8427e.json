@@ -1,0 +1,1 @@
+{"id":"b654c339fc4f4ef5f32cf5933d43fa4f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync 最後の push の前に merge queue から外された PR は、理由 undefined で扱う","name":"最後の push の前に merge queue から外された PR は、理由 undefined で扱う","status":"passed","testResultsByEnv":{"default":"6d866cb8a6620426acb9e2951f1853b5"}}

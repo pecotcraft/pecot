@@ -1,0 +1,1 @@
+{"id":"7b2d930bb87107fea0d1a4f6426763bf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 注記図形の導出 画像の全体を覆う box は、原点が 0 になり、画像と同じ大きさになる","name":"画像の全体を覆う box は、原点が 0 になり、画像と同じ大きさになる","status":"passed","testResultsByEnv":{"default":"b03abb06068f4d49c8a57ed678d5ceeb"}}

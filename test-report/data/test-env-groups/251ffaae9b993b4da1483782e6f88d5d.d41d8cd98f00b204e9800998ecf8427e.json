@@ -1,0 +1,1 @@
+{"id":"251ffaae9b993b4da1483782e6f88d5d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#dry-run が実行予定の gh コマンドを表示する: gh workflow run","name":"dry-run が実行予定の gh コマンドを表示する: gh workflow run","status":"passed","testResultsByEnv":{"default":"e3d55dcaa61d747cbd50f758f72ab179"}}

@@ -1,0 +1,1 @@
+{"id":"1463ca3204bd2073198aec1dcdb2886e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint テーマが node_modules に張られていないと、lint しなかったことと slide_sync の案内を返す","name":"テーマが node_modules に張られていないと、lint しなかったことと slide_sync の案内を返す","status":"passed","testResultsByEnv":{"default":"894b26a14e39a1e8ee049f42a80302b4"}}

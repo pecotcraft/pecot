@@ -1,0 +1,1 @@
+{"id":"ff9a0ef491a0e9f05d0cf6e814848021.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 等幅の並び monospace を含まない等幅の書体名（Fira Code）は、判定を省略しない","name":"monospace を含まない等幅の書体名（Fira Code）は、判定を省略しない","status":"passed","testResultsByEnv":{"default":"5f9f5da328e74c0afa03f37308586641"}}

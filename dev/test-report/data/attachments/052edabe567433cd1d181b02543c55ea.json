@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pullNumber: PR #21 is a draft: mark it ready for review first"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"pullNumber\",\"code\":\"not-mergeable\",\"message\":\"PR #21 is a draft: mark it ready for review first\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "pullNumber",
+        "code": "not-mergeable",
+        "message": "PR #21 is a draft: mark it ready for review first"
+      }
+    ]
+  }
+}

@@ -1,0 +1,3 @@
+count: Issues to close: 1
+closed: Issue #12
+warning: could not confirm that GitHub reflects the close of #12 in the readiness of #13; its column was not moved; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) later to move it

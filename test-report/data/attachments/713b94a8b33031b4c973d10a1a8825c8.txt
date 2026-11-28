@@ -1,0 +1,2 @@
+error: acme/app is not in any project config
+  available: other

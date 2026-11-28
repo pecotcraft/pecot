@@ -1,0 +1,1 @@
+{"id":"4a49717cc1166f04791217274f4a8b1c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_command_lists_config_output_clean_and_results_in_lane_order","name":"`allure generate` の引数に、設定・出力先・`--clean`・結果のディレクトリをレーンの順に並べる","status":"passed","testResultsByEnv":{"default":"28068fe70ad36b3ccc31075ac0e51db9"}}

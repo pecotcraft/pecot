@@ -1,0 +1,1 @@
+{"id":"b831642329e93f52b056914964513f5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/layer-file-placement.test.ts#layer-file-placement invalid layouts 直下に PascalCase の .vue を置くと、報告する","name":"layouts 直下に PascalCase の .vue を置くと、報告する","status":"passed","testResultsByEnv":{"default":"5044f4073a970a785b392199760185b4"}}

@@ -1,0 +1,1 @@
+{"id":"52168efb90636a73799b3ce2593ba174.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_store_stores_only_for_workflow_run_and_uploads_when_decided","name":"保管の job は、保管の step を workflow_run だけで動かし、上げるかを決めてから上げる","status":"passed","testResultsByEnv":{"default":"3061782688cd41c37960d507860f264a"}}

@@ -1,0 +1,1 @@
+https://pecotcraft.github.io/pecot/pages-version.txt: 出そろわなかった（期待した値 abc123 45981908731-1）

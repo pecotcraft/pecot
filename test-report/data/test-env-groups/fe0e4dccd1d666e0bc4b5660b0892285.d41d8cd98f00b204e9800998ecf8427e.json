@@ -1,0 +1,1 @@
+{"id":"fe0e4dccd1d666e0bc4b5660b0892285.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/session-finish-remote.test.ts#collectClosingIssueNumbers PR が次のとき（既定ブランチが無い）、閉じる Issue の番号を集める","name":"PR が次のとき（既定ブランチが無い）、閉じる Issue の番号を集める","status":"passed","testResultsByEnv":{"default":"17706613408363e32272c8a85fec3f0f"}}

@@ -1,0 +1,1 @@
+{"id":"2f2a0e01ee4cd7a4936b51c97ca0c0d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#dataDirectory の解決順 末尾のスラッシュはそのまま連結する のとき、/xdg/share//pecot/pecot-visual を返す","name":"末尾のスラッシュはそのまま連結する のとき、/xdg/share//pecot/pecot-visual を返す","status":"passed","testResultsByEnv":{"default":"00e0b39a43b4aaa541e9d0bc0545f9cc"}}

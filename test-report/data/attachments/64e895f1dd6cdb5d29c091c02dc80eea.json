@@ -1,0 +1,40 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "skipped: field pecot-status (already exists)"
+    },
+    {
+      "type": "text",
+      "text": "{\"fields\":[{\"name\":\"pecot-status\",\"change\":\"unchanged\",\"addedOptions\":[]},{\"name\":\"pecot-lane\",\"change\":\"skip\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"skip\",\"addedOptions\":[]}],\"migration\":{\"renamed\":null,\"config_moved\":null,\"pending_delete\":[],\"deleted\":[]},\"warnings\":[\"field pecot-lane is not a single select field, so no lanes were added and view Lanes was not created\\n  delete or rename that field on the board, then run again\"]}"
+    }
+  ],
+  "structuredContent": {
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "unchanged",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "skip",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "skip",
+        "addedOptions": []
+      }
+    ],
+    "migration": {
+      "renamed": null,
+      "config_moved": null,
+      "pending_delete": [],
+      "deleted": []
+    },
+    "warnings": [
+      "field pecot-lane is not a single select field, so no lanes were added and view Lanes was not created\n  delete or rename that field on the board, then run again"
+    ]
+  }
+}

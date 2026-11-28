@@ -1,0 +1,1 @@
+{"id":"712e06a0edb732f7907b9146af58cf63.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/review-workflow-template.test.ts#review のワークフローの雛形 前のレビューの確認ステップは、synchronize のときだけ動き、トークンと PR 番号を env で受け取る","name":"前のレビューの確認ステップは、synchronize のときだけ動き、トークンと PR 番号を env で受け取る","status":"passed","testResultsByEnv":{"default":"cb82457c0c8a82a08b0763432331b9c8"}}

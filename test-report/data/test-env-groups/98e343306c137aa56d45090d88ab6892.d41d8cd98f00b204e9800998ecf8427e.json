@@ -1,0 +1,1 @@
+{"id":"98e343306c137aa56d45090d88ab6892.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/lockfile-single-version.test.ts#catalogViteOutside 2 つの引数を逆にして渡すと、範囲の外と判定する","name":"2 つの引数を逆にして渡すと、範囲の外と判定する","status":"passed","testResultsByEnv":{"default":"1a6a5924f672e45723acce6ad9a7b1b9"}}

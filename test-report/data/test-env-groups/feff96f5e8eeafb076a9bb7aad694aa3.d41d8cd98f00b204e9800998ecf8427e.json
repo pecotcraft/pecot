@@ -1,0 +1,1 @@
+{"id":"feff96f5e8eeafb076a9bb7aad694aa3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/flock.test.ts#hasFlockCommand 実行環境に flock(1) があるかどうかを、真偽値で返す","name":"実行環境に flock(1) があるかどうかを、真偽値で返す","status":"passed","testResultsByEnv":{"default":"fcc8529c08100a70c88d685d3949f968"}}

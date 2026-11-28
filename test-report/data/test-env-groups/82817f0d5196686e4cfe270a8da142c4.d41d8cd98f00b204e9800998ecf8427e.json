@@ -1,0 +1,1 @@
+{"id":"82817f0d5196686e4cfe270a8da142c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる","name":"project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる","status":"passed","testResultsByEnv":{"default":"5b45ab7fc26d7269f0245b0e99b6071e"}}

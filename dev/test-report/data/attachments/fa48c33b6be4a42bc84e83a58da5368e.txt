@@ -1,0 +1,2 @@
+ERROR: 監査記録の HEAD (1111111111111111111111111111111111111111) が現在の HEAD と対応しません
+       release commit を checkout して、audit-mcp-dist.sh を再実行してください

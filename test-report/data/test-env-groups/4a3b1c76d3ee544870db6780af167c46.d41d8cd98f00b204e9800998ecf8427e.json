@@ -1,0 +1,1 @@
+{"id":"4a3b1c76d3ee544870db6780af167c46.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/work-start.test.ts#inferStackedBase 親ブランチから分かれた点を求められないと、その理由を返す","name":"親ブランチから分かれた点を求められないと、その理由を返す","status":"passed","testResultsByEnv":{"default":"573cf37c9601fb1a8131905beefe26df"}}

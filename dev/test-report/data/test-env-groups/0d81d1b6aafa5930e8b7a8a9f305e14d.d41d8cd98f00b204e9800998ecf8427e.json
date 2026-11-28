@@ -1,0 +1,1 @@
+{"id":"0d81d1b6aafa5930e8b7a8a9f305e14d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/board-sync-workflow-template.test.ts#board sync のワークフローの雛形 job の if が変数で実行を省き、Dependabot が起こした実行を除く","name":"job の if が変数で実行を省き、Dependabot が起こした実行を除く","status":"passed","testResultsByEnv":{"default":"d0ed88d22832215e8f210278abccb437"}}

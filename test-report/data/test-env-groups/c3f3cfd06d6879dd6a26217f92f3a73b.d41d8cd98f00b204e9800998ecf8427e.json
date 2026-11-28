@@ -1,0 +1,1 @@
+{"id":"c3f3cfd06d6879dd6a26217f92f3a73b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: テンプレート文字列の ${} 埋め込み式を、元のファイルの範囲を持つ Code にして、段落に入れる","name":"埋め込み式を、元のファイルの範囲を持つ Code にして、段落に入れる","status":"passed","testResultsByEnv":{"default":"c33928b2c4e9a37dbaac48241fcc2002"}}

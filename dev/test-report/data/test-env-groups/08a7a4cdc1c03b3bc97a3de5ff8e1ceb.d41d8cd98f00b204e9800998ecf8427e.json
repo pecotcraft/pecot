@@ -1,0 +1,1 @@
+{"id":"08a7a4cdc1c03b3bc97a3de5ff8e1ceb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/theme-spec.test.ts#parseThemeSpec テーマの指定が「プレリリースが空」の場合は、エラーを返す","name":"テーマの指定が「プレリリースが空」の場合は、エラーを返す","status":"passed","testResultsByEnv":{"default":"bab07ac2615726861f926122e0908d69"}}

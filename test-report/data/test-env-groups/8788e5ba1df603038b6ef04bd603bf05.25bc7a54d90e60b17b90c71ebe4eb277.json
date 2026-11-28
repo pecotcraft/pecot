@@ -1,0 +1,1 @@
+{"id":"8788e5ba1df603038b6ef04bd603bf05.25bc7a54d90e60b17b90c71ebe4eb277","fullName":".githooks.tests.test_release_workflow#test_sha_flow","name":"dry-run が false で sha が not-ancestor のとき、sha の確認の終了コードは 1 になる","status":"passed","testResultsByEnv":{"default":"a90caca6f8197261571cb7433ca760ec"}}

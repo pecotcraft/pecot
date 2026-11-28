@@ -1,0 +1,1 @@
+{"id":"ba7db0ad6a7cfcfe636a201bf96dc920.cb1d12aff5873702df7d7aa2bdec41f2","fullName":".githooks.tests.test_bats_report#test_explains_rejects_bad_value","name":"explains に 改行を含む の値を渡すと、その @test を失敗にする","status":"passed","testResultsByEnv":{"default":"629f565076a01b336c0c3dbe10eea8e0"}}

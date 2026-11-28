@@ -1,0 +1,1 @@
+{"id":"60cfaf3d8f449ec3b338663c6cf1361c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ worktree-init-state-exists を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ worktree-init-state-exists を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"7b72965c6086c2e5cd328d5942750f07"}}

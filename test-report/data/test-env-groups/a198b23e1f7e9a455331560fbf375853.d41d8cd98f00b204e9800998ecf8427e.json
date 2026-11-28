@@ -1,0 +1,1 @@
+{"id":"a198b23e1f7e9a455331560fbf375853.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — items items が 非配列 の場合は、型が一致しないものとして拒否する","name":"items が 非配列 の場合は、型が一致しないものとして拒否する","status":"passed","testResultsByEnv":{"default":"a5a33c351ef53965bc1313e1dfd73f68"}}

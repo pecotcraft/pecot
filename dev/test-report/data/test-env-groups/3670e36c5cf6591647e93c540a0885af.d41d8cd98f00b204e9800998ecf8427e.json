@@ -1,0 +1,1 @@
+{"id":"3670e36c5cf6591647e93c540a0885af.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toToolResult 成功で、結果の行と標準出力が存在しない場合は、文の text を省き、JSON の text だけを返す","name":"成功で、結果の行と標準出力が存在しない場合は、文の text を省き、JSON の text だけを返す","status":"passed","testResultsByEnv":{"default":"b6ed84aedaa2e99389d16987820480ce"}}

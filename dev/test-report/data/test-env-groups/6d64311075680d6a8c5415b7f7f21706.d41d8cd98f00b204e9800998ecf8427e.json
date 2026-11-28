@@ -1,0 +1,1 @@
+{"id":"6d64311075680d6a8c5415b7f7f21706.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#親 commit の無いリポでも、HEAD が一致しない監査記録で publish を拒否する","name":"親 commit の無いリポでも、HEAD が一致しない監査記録で publish を拒否する","status":"passed","testResultsByEnv":{"default":"6cea705d01faf999da3f9dc1d710f5be"}}

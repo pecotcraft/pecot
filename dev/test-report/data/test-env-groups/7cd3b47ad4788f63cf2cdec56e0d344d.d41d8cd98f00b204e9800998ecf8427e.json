@@ -1,0 +1,1 @@
+{"id":"7cd3b47ad4788f63cf2cdec56e0d344d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_base_unresolved_run_many_fallback","name":"base を解決できない場合は、警告を出して全 project の run-many に切り替え、完走すれば終了コード 0 で終了する","status":"passed","testResultsByEnv":{"default":"8e7829452820b1fb76ceadc7a9f466d8"}}

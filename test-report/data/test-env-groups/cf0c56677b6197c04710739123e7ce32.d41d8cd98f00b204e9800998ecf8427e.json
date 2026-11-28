@@ -1,0 +1,1 @@
+{"id":"cf0c56677b6197c04710739123e7ce32.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-finish.test.ts#session_finish MCP の data Issue の close に失敗すると、warnings に 1 つ入れる","name":"Issue の close に失敗すると、warnings に 1 つ入れる","status":"passed","testResultsByEnv":{"default":"9aa9716e027fd4555db0574de5fea1d8"}}

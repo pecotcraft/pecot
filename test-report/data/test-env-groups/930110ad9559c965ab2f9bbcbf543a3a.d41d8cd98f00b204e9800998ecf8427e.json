@@ -1,0 +1,1 @@
+{"id":"930110ad9559c965ab2f9bbcbf543a3a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface-export.test.ts#generated.json の書き出し --check は、古いファイルに対して、error・差分・run の 3 行を出力し、終了コード 1 で終わる","name":"--check は、古いファイルに対して、error・差分・run の 3 行を出力し、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"d67a35d182ef664bb4e178078dfb0f47"}}

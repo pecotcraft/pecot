@@ -1,0 +1,1 @@
+{"id":"595fa00227ee125570e7871331fce3b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#renderAutoResult run の URL が存在しない場合は、実行の記録を「分からない」と書く","name":"run の URL が存在しない場合は、実行の記録を「分からない」と書く","status":"passed","testResultsByEnv":{"default":"db743ef6703b6abb4d02968c400d4f54"}}

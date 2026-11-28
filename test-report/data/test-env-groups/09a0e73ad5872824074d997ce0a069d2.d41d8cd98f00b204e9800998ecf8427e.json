@@ -1,0 +1,1 @@
+{"id":"09a0e73ad5872824074d997ce0a069d2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface-export.test.ts#generated.json の書き出し --check は、ファイルが存在しない場合に、error と run の 2 行を出力し、終了コード 1 で終わる","name":"--check は、ファイルが存在しない場合に、error と run の 2 行を出力し、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"a50d2eba8e425cd3ae7db0d576a1ee02"}}

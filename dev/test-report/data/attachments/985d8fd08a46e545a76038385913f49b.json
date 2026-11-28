@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the result of projects_list in reads.fields is not in the shape of the official GitHub MCP server\n  fields.fields: Invalid input: expected array, received string"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-mcp-shape\",\"detail\":\"the result of projects_list in reads.fields is not in the shape of the official GitHub MCP server\\n  fields.fields: Invalid input: expected array, received string\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-mcp-shape",
+    "detail": "the result of projects_list in reads.fields is not in the shape of the official GitHub MCP server\n  fields.fields: Invalid input: expected array, received string"
+  },
+  "isError": true
+}

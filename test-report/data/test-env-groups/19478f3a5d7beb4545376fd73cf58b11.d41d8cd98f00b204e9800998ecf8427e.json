@@ -1,0 +1,1 @@
+{"id":"19478f3a5d7beb4545376fd73cf58b11.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_deploy_does_not_suggest_aws_login_for_env_keys","name":"アクセスキーの環境変数で認証している場合は、aws login を案内しない","status":"passed","testResultsByEnv":{"default":"8b7d0315fad415925a6e7569d88e3be3"}}

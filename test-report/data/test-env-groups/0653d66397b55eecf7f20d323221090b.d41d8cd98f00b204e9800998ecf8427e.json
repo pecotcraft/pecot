@@ -1,0 +1,1 @@
+{"id":"0653d66397b55eecf7f20d323221090b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: コードフェンス・インラインコード・HTML コメントのマスク（#962） 開きより長い閉じのフェンスでも、閉じたものとして扱う","name":"開きより長い閉じのフェンスでも、閉じたものとして扱う","status":"passed","testResultsByEnv":{"default":"3af01d15b43ced263261185c12062541"}}

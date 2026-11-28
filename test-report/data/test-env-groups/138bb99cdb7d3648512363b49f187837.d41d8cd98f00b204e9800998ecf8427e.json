@@ -1,0 +1,1 @@
+{"id":"138bb99cdb7d3648512363b49f187837.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add path を付けて呼ぶと、リンクと .pecot/.gitignore もその場所に作る","name":"path を付けて呼ぶと、リンクと .pecot/.gitignore もその場所に作る","status":"passed","testResultsByEnv":{"default":"8556fc1f82842b5ef2672fc3bafdea09"}}

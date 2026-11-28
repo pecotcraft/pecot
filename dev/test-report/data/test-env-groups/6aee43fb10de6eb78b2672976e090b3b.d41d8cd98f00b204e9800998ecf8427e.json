@@ -1,0 +1,1 @@
+{"id":"6aee43fb10de6eb78b2672976e090b3b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#installStdoutGuard ガードを設定した後に標準出力へ書き込まれた内容は、標準エラー出力へ移す","name":"ガードを設定した後に標準出力へ書き込まれた内容は、標準エラー出力へ移す","status":"passed","testResultsByEnv":{"default":"9edc48d6221f41aff26b93bbfd1faf1b"}}

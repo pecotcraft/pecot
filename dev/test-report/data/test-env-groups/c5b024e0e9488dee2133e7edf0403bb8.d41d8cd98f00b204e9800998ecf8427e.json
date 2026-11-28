@@ -1,0 +1,1 @@
+{"id":"c5b024e0e9488dee2133e7edf0403bb8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#autoResultOf 目印の欄が不足している場合は、undefined を返す","name":"目印の欄が不足している場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"5e4031cdd9851dac355b4747f3774fb2"}}

@@ -1,0 +1,7 @@
+devcontainer --version 
+docker pull ghcr.io/example/img:def-73537cf2fde6dea18311cb613f1efa2e5e6ddfbe
+docker image inspect --format {{index .RepoDigests 0}} ghcr.io/example/img:def-73537cf2fde6dea18311cb613f1efa2e5e6ddfbe
+devcontainer read-configuration --workspace-folder /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_only_non_empty_env_is_pas0/ws 
+sudo chown -R 1000:1000 /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_only_non_empty_env_is_pas0/ws
+devcontainer up --workspace-folder /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_only_non_empty_env_is_pas0/ws --override-config /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_only_non_empty_env_is_pas0/runner/pecot-dc/override/devcontainer.json --update-remote-user-uid-default never --remote-env PECOT_CI_IMAGE=ghcr.io/example/img:def-73537cf2fde6dea18311cb613f1efa2e5e6ddfbe@sha256:beef --remote-env FOO=1 --remote-env BAR=two 
+devcontainer exec --workspace-folder /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_only_non_empty_env_is_pas0/ws --override-config /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_only_non_empty_env_is_pas0/runner/pecot-dc/override/devcontainer.json --container-id cid123 --remote-env FOO=1 --remote-env BAR=two bash -c true 

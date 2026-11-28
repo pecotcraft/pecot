@@ -1,0 +1,1 @@
+{"id":"382fc990e24f2e417318f58dc9d201fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator shared files layout_categories の要素に未知のキーがあると、検証に失敗する","name":"layout_categories の要素に未知のキーがあると、検証に失敗する","status":"passed","testResultsByEnv":{"default":"a8629223d2c8d1eb0085ffe532efe4a7"}}

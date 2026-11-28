@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not read blocked-by of #7: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:35125/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"dependency-unreadable\",\"detail\":\"could not read blocked-by of #7: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:35125/graphql'\\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "dependency-unreadable",
+    "detail": "could not read blocked-by of #7: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:35125/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+  },
+  "isError": true
+}

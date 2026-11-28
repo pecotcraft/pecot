@@ -1,0 +1,1 @@
+{"id":"51e32f918c03bd3822c43e9da41bbd17.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 衝突を解いてから continue を付けると、スタックし直しを終えて push し、記録を書き直す","name":"衝突を解いてから continue を付けると、スタックし直しを終えて push し、記録を書き直す","status":"passed","testResultsByEnv":{"default":"9bf516d1612fab172f36fe25389aa0a7"}}

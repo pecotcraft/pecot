@@ -1,0 +1,1 @@
+{"id":"e28108c972b8955054694163579c9590.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight リモートタグが既に存在すれば、ReleaseError を投げる","name":"リモートタグが既に存在すれば、ReleaseError を投げる","status":"passed","testResultsByEnv":{"default":"56a8abb90a02f85fe04b95278224d566"}}

@@ -1,0 +1,1 @@
+{"id":"429f1e4f104561f1423a20d9f8dd269e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（失敗） name がパッケージ名として使えない場合は、pnpm の実行前に unknown で止める","name":"name がパッケージ名として使えない場合は、pnpm の実行前に unknown で止める","status":"passed","testResultsByEnv":{"default":"07a9a31ccc79ecf7b11f41f60bef2bac"}}

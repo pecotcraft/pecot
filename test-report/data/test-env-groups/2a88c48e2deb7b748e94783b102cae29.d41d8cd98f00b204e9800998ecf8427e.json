@@ -1,0 +1,1 @@
+{"id":"2a88c48e2deb7b748e94783b102cae29.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#renderRedirectHtml BOM を付けず、改行を LF にし、末尾の改行を 1 つにする","name":"BOM を付けず、改行を LF にし、末尾の改行を 1 つにする","status":"passed","testResultsByEnv":{"default":"26e699b91f51c874e08fba3ad27fe1dc"}}

@@ -1,0 +1,1 @@
+{"id":"9ff57fe1251af1fd2fc728e1170f066d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#isReleasePullRequest head が develop のブランチでない場合は、リリース PR と判定しない","name":"head が develop のブランチでない場合は、リリース PR と判定しない","status":"passed","testResultsByEnv":{"default":"190df83cb72d805b0afa3707254fdf5a"}}

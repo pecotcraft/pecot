@@ -1,0 +1,1 @@
+{"id":"eb4cecff80e27b20a1e8f7fcb3d57a74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish もし Issue の種別と状態を読めないなら、warning の行を出し、その Issue を close しない","name":"もし Issue の種別と状態を読めないなら、warning の行を出し、その Issue を close しない","status":"passed","testResultsByEnv":{"default":"0383f0f4db4bddaa86930abbf798d410"}}

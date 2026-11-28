@@ -1,0 +1,1 @@
+{"id":"c6ce27a606673f342a39e604ce5975af.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_pull_timeout_kills_puller_and_builds","name":"pull がタイムアウトすると、pull のプロセスを止め、build にフォールバックする","status":"passed","testResultsByEnv":{"default":"3490adb26677432b22ee6317bf62b7ea"}}

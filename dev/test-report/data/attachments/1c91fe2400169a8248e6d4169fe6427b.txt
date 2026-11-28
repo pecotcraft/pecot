@@ -1,0 +1,6 @@
+[OK] ../../skills/v-drawio/references/architecture/aws/DESIGN.md: errors 0 / warnings 0 / infos 2
+[OK] ../../skills/v-drawio/references/architecture/azure/DESIGN.md: errors 0 / warnings 0 / infos 2
+[OK] ../../skills/v-drawio/references/infographic/en/DESIGN.md: errors 0 / warnings 0 / infos 1
+[OK] ../../skills/v-drawio/references/infographic/ja/DESIGN.md: errors 0 / warnings 0 / infos 1
+[OK] ../../skills/v-drawio/references/poster/general/DESIGN.md: errors 0 / warnings 0 / infos 1
+[OK] ../../skills/v-drawio/references/poster/swimlane-flow/DESIGN.md: errors 0 / warnings 0 / infos 1

@@ -1,0 +1,1 @@
+To delete a remote branch, use the MCP tool branch_delete of the workflow server with repo (owner/repo) and branch.

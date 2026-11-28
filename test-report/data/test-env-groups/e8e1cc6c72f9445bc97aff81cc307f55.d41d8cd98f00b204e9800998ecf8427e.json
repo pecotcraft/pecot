@@ -1,0 +1,1 @@
+{"id":"e8e1cc6c72f9445bc97aff81cc307f55.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/caret-range.test.ts#caretRangeOutside ^7.9.9 は ^8.3.6 の範囲の外で、理由が「major 不一致」になる","name":"^7.9.9 は ^8.3.6 の範囲の外で、理由が「major 不一致」になる","status":"passed","testResultsByEnv":{"default":"c90aeb5a0e5570d18bf7f7b6ed48808a"}}

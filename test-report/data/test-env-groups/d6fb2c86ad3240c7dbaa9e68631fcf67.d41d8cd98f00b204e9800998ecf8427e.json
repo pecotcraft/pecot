@@ -1,0 +1,1 @@
+{"id":"d6fb2c86ad3240c7dbaa9e68631fcf67.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-drift.test.ts#drift.ts 未定義の引数を指定する と、usage を出力して終了コード 2 で終了し、スキーマを取得しない","name":"未定義の引数を指定する と、usage を出力して終了コード 2 で終了し、スキーマを取得しない","status":"passed","testResultsByEnv":{"default":"cfa2a54ea5c1245becb86b0faec73beb"}}

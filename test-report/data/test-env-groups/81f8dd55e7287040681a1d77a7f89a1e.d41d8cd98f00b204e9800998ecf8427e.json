@@ -1,0 +1,1 @@
+{"id":"81f8dd55e7287040681a1d77a7f89a1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge admin を付けて打つと、衝突のある PR でもマージを試みる","name":"admin を付けて打つと、衝突のある PR でもマージを試みる","status":"passed","testResultsByEnv":{"default":"77143d477f54ed5bdae3728ca2427375"}}

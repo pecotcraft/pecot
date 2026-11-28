@@ -1,0 +1,1 @@
+{"id":"894a6339c9bb5a3381ad8342980881a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#linkRepositoryToProject その他の API エラーの場合は、failed を返し、GraphQL のエラー文を detail に含める","name":"その他の API エラーの場合は、failed を返し、GraphQL のエラー文を detail に含める","status":"passed","testResultsByEnv":{"default":"b2449972385adf41e432812ee5c015bd"}}

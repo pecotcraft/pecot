@@ -1,0 +1,1 @@
+{"id":"edddfa9c37500687433fd3c9020eff13.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#--dev を付けると、version plan の探索先が無くても開発版として監査する","name":"--dev を付けると、version plan の探索先が無くても開発版として監査する","status":"passed","testResultsByEnv":{"default":"a6a2bee8848fe1dd6494124f629fbec7"}}

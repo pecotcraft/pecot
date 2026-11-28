@@ -1,0 +1,1 @@
+{"id":"edf5c63b1dcd620347849606ed72fa17.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/restack.test.ts#describeGone PR が存在すれば、その番号をメッセージに含める","name":"PR が存在すれば、その番号をメッセージに含める","status":"passed","testResultsByEnv":{"default":"2c7cf2b5163c1782ffbe97606e945075"}}

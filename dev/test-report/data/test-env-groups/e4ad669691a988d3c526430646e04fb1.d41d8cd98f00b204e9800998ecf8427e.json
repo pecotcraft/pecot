@@ -1,0 +1,1 @@
+{"id":"e4ad669691a988d3c526430646e04fb1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_root_package_manifest#test_root_is_a_private_nx_workspace","name":"root の package.json は、配布しない nx workspace として定義されている","status":"passed","testResultsByEnv":{"default":"43895acf97addb3641f8216f3f8adf58"}}

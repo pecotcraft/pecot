@@ -1,0 +1,1 @@
+{"id":"445afb7889e23e673e6496fad3561d75.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data MCP の呼び出し 列の書き込みの接続が切れる と、PR を作ったまま warnings に入れて成功を返す","name":"列の書き込みの接続が切れる と、PR を作ったまま warnings に入れて成功を返す","status":"passed","testResultsByEnv":{"default":"5631ae01eeeb1425576c785e556de512"}}

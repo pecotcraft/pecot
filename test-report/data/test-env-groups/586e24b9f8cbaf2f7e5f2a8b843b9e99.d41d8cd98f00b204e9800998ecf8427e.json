@@ -1,0 +1,1 @@
+{"id":"586e24b9f8cbaf2f7e5f2a8b843b9e99.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_23_block_only_missing_group_listed","name":"2 つの group を変更して片方だけ宣言すると、宣言のない group だけを示して失敗する","status":"passed","testResultsByEnv":{"default":"0b10db3fcad9e9e6a418520b88e350bf"}}

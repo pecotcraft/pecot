@@ -1,0 +1,1 @@
+{"id":"e637be70152b7d3e3621a3b10b2706f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#--out-dir ガードが symlink 経由でリポジトリ配下を指すパス を弾く","name":"--out-dir ガードが symlink 経由でリポジトリ配下を指すパス を弾く","status":"passed","testResultsByEnv":{"default":"1850a23490e6ccb618b3e565ac9b7ee1"}}

@@ -1,0 +1,1 @@
+{"id":"6cba918de7715ee2fdb6916cbe17990e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh の .pecot/work 配下 base の work 配下で、セッションが base のとき、base のままにする","name":"base の work 配下で、セッションが base のとき、base のままにする","status":"passed","testResultsByEnv":{"default":"01583416b0c620e381c3fefc89ec3cdb"}}

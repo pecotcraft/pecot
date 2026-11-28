@@ -1,0 +1,1 @@
+{"id":"b1400ca98f9ef79f1d9f7c7643226764.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_deploy_workflow_run_names_match_the_build_and_report_workflows","name":"pages-deploy が待つ workflow の名前は、ビルドとレポートの workflow の名前と一致する","status":"passed","testResultsByEnv":{"default":"fc6f4efee1d32c4babeb913c1a619845"}}

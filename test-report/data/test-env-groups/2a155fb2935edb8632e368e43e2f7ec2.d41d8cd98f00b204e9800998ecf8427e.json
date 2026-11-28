@@ -1,0 +1,1 @@
+{"id":"2a155fb2935edb8632e368e43e2f7ec2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: コードフェンス・インラインコード・HTML コメントのマスク（#962） チルダで囲んだコードフェンスも、検証の対象にしない","name":"チルダで囲んだコードフェンスも、検証の対象にしない","status":"passed","testResultsByEnv":{"default":"07c66dbadb9b72c5ee4c1da84d33ec87"}}

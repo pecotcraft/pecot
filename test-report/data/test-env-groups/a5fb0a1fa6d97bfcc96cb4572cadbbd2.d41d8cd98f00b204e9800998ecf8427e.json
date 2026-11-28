@@ -1,0 +1,1 @@
+{"id":"a5fb0a1fa6d97bfcc96cb4572cadbbd2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestForMerge isMergeQueueEnabled が真偽値でない場合は、GitHubAPIError を発生させる","name":"isMergeQueueEnabled が真偽値でない場合は、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"11353e1e0edb7f24378b610623463016"}}

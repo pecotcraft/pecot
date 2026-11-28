@@ -1,0 +1,1 @@
+{"id":"7d9adcf0bca0dbcf339358d5c89a1cbd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#runEvidenceCreate caption を省略した場合は、補完したファイル名を文面の確認の対象にしない","name":"caption を省略した場合は、補完したファイル名を文面の確認の対象にしない","status":"passed","testResultsByEnv":{"default":"29bad583680793c473539f210354e882"}}

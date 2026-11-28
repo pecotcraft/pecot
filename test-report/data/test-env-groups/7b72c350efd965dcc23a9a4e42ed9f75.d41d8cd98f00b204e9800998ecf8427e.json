@@ -1,0 +1,1 @@
+{"id":"7b72c350efd965dcc23a9a4e42ed9f75.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data MCP の呼び出し PR の base が既定のブランチでない とき、PR の本文を保存し直さず、relinked を返さない","name":"PR の base が既定のブランチでない とき、PR の本文を保存し直さず、relinked を返さない","status":"passed","testResultsByEnv":{"default":"347699133730e575ab9c3ebe56b0d728"}}

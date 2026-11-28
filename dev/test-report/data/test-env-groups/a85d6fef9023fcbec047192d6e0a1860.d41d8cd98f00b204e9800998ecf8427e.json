@@ -1,0 +1,1 @@
+{"id":"a85d6fef9023fcbec047192d6e0a1860.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check create・update の値 テンプレートの省略 では、本文にテンプレートの見出しの決まりを当てない","name":"テンプレートの省略 では、本文にテンプレートの見出しの決まりを当てない","status":"passed","testResultsByEnv":{"default":"c3788cf001160d7ae83db9c1e9cd636e"}}

@@ -1,0 +1,1 @@
+{"id":"d4f35aa2e5427e0eaf5a6024b91c2325.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data MCP の呼び出し message に base を渡さないと、kind が invalid-input の失敗を返す","name":"message に base を渡さないと、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"9bea321ffe66050fd69596bad63c7f61"}}

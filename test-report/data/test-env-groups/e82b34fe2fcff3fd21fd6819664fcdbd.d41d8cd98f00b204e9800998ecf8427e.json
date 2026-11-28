@@ -1,0 +1,1 @@
+{"id":"e82b34fe2fcff3fd21fd6819664fcdbd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/ears.test.ts#hasJapanese 文字列 \"English only 123\" を渡すと、hasJapanese は false を返す","name":"文字列 \"English only 123\" を渡すと、hasJapanese は false を返す","status":"passed","testResultsByEnv":{"default":"cb769d06511001c329dd921563989191"}}

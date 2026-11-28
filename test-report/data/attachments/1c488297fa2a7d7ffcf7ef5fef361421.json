@@ -1,0 +1,28 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "=== Git Remote ==="
+    },
+    {
+      "type": "text",
+      "text": "{\"remoteUrl\":\"git@ghes.example.com:acme/demo.git\",\"currentBranch\":\"feat/demo/12\",\"pushed\":true,\"pushStatus\":\"in sync with origin/feat/demo/12\",\"baseBranch\":\"origin/main\",\"gitStatus\":\"On branch feat/demo/12\\nnothing to commit, working tree clean\\n\",\"commits\":\"(no commits)\",\"diffSummary\":\"(no diff)\",\"worktree\":{\"list\":\"/tmp/pecot-parity-OT8SV3/base/demo dd06359 [feat/demo/12]\",\"directoryName\":\"demo\",\"isWorktree\":false},\"stashList\":\"(no stash)\"}"
+    }
+  ],
+  "structuredContent": {
+    "remoteUrl": "git@ghes.example.com:acme/demo.git",
+    "currentBranch": "feat/demo/12",
+    "pushed": true,
+    "pushStatus": "in sync with origin/feat/demo/12",
+    "baseBranch": "origin/main",
+    "gitStatus": "On branch feat/demo/12\nnothing to commit, working tree clean\n",
+    "commits": "(no commits)",
+    "diffSummary": "(no diff)",
+    "worktree": {
+      "list": "/tmp/pecot-parity-OT8SV3/base/demo dd06359 [feat/demo/12]",
+      "directoryName": "demo",
+      "isWorktree": false
+    },
+    "stashList": "(no stash)"
+  }
+}

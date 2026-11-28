@@ -1,0 +1,1 @@
+{"id":"aedec53ea0f69e40ab8bf820c2fdc707.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository targets.json が存在しないと、ファイルがないことを報告する","name":"targets.json が存在しないと、ファイルがないことを報告する","status":"passed","testResultsByEnv":{"default":"9f686844d49261a89bdc89d176581e3b"}}

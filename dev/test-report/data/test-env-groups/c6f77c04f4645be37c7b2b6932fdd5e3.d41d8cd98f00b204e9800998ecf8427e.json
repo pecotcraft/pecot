@@ -1,0 +1,1 @@
+{"id":"c6f77c04f4645be37c7b2b6932fdd5e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#isLabelWrittenByAutomation 人があとから書いた目印は、Bot の最後の結果として扱わない","name":"人があとから書いた目印は、Bot の最後の結果として扱わない","status":"passed","testResultsByEnv":{"default":"2fcf48600ecb8c661f99b9513795d4c7"}}

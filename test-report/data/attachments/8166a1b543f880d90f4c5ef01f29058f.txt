@@ -1,0 +1,2 @@
+WARN: nx の profile（/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_lane_mode_fails_when_prof2/repo/.pecot/tmp/nx-affected-tests/nx-profile.json）を読めないため、レーン別の所要を記録できませんでした。
+ERROR: lane-one:test-unit の task を nx の profile で見つけられません。project に target を定義したか確かめてください。

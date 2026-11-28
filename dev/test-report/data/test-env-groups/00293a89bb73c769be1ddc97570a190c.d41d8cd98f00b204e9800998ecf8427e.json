@@ -1,0 +1,1 @@
+{"id":"00293a89bb73c769be1ddc97570a190c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/issues.test.ts#issuesToFindings 値の型が違うと、実際の値の型を含めて報告する","name":"値の型が違うと、実際の値の型を含めて報告する","status":"passed","testResultsByEnv":{"default":"0d0e435fe509a1aafde41a5c3963ff7d"}}

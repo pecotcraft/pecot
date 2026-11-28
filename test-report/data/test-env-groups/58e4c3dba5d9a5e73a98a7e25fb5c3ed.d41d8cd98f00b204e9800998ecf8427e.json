@@ -1,0 +1,1 @@
+{"id":"58e4c3dba5d9a5e73a98a7e25fb5c3ed.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_single_job_runs_in_release_plan_environment","name":"リリースの workflow は、release-plan の environment で 1 つの job を実行する","status":"passed","testResultsByEnv":{"default":"ea976a1de82405962179eef14d095da9"}}

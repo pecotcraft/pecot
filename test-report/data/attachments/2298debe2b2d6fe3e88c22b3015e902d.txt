@@ -1,0 +1,5 @@
+# Session status
+
+- Branch: feat/no-number
+- Repository: acme/demo
+- Active Issue: none

@@ -1,0 +1,1 @@
+{"id":"6930d1fc8a7109155973e4d3ae1aedd3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-shared.test.ts#Issue 参照と設定 repo を基準にして、短縮形と owner/repo/N の形を区別して解釈する","name":"repo を基準にして、短縮形と owner/repo/N の形を区別して解釈する","status":"passed","testResultsByEnv":{"default":"4f821e8407f97c403c5f30dac77990a5"}}

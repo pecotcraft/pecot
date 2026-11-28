@@ -1,0 +1,1 @@
+{"id":"3d60fdff600b16d6bd9f23d6b42d3166.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#setIssueField 設定に存在しないフィールドを指定した場合は、何も送信せず false を返す","name":"設定に存在しないフィールドを指定した場合は、何も送信せず false を返す","status":"passed","testResultsByEnv":{"default":"e86a0e6bbcd239a540103ad50f8ba929"}}

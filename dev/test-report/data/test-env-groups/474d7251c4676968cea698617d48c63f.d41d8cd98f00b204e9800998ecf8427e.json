@@ -1,0 +1,1 @@
+{"id":"474d7251c4676968cea698617d48c63f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#executeMcpServe のセッションのディレクトリ 依存の組み立てに失敗したら、stderr に error: の行を出力して 1 を返す","name":"依存の組み立てに失敗したら、stderr に error: の行を出力して 1 を返す","status":"passed","testResultsByEnv":{"default":"a1be8b5c00310686117478d84189212b"}}

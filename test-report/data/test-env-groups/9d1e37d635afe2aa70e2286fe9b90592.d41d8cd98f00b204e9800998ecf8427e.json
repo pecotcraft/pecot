@@ -1,0 +1,1 @@
+{"id":"9d1e37d635afe2aa70e2286fe9b90592.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#hooks/lib/core/pecot-gitignore-ensure.sh が配布ツリーにある","name":"hooks/lib/core/pecot-gitignore-ensure.sh が配布ツリーにある","status":"passed","testResultsByEnv":{"default":"4989739b624d16b1b0dbd4a34afddacd"}}

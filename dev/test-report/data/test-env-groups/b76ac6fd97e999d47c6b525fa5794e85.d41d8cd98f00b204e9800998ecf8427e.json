@@ -1,0 +1,1 @@
+{"id":"b76ac6fd97e999d47c6b525fa5794e85.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/direct-hint-lint.test.ts#案内の文字列を止める lint テストのファイルでは、コマンドの案内を書いても報告しない","name":"テストのファイルでは、コマンドの案内を書いても報告しない","status":"passed","testResultsByEnv":{"default":"6d9bf3470f143784057c037724437fef"}}

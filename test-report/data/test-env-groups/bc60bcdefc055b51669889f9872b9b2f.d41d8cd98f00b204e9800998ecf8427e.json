@@ -1,0 +1,1 @@
+{"id":"bc60bcdefc055b51669889f9872b9b2f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#autoMarker out-of-scope の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","name":"out-of-scope の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","status":"passed","testResultsByEnv":{"default":"5de059a17b19d349f9b52e38b7183bb5"}}

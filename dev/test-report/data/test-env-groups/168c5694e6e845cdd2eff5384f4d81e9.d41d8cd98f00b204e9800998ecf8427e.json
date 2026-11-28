@@ -1,0 +1,1 @@
+{"id":"168c5694e6e845cdd2eff5384f4d81e9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#partitionStepsBySlide ステップ数の多いスライドが先頭や末尾にあっても、スライド数が足りる限り指定したグループ数にする","name":"ステップ数の多いスライドが先頭や末尾にあっても、スライド数が足りる限り指定したグループ数にする","status":"passed","testResultsByEnv":{"default":"903eee311dd46e131eaa2f44b4180a26"}}

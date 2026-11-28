@@ -1,0 +1,1 @@
+{"id":"d7c4b982cb3bbd11409ddf58ba71b44b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_side_skips_report_and_lists_missing_for_release","name":"リリース版でレポートの材料が不足すると、レポートを作らず、不足を一覧で表示する","status":"passed","testResultsByEnv":{"default":"713f11aa6d4008b14e41c0567b4718eb"}}

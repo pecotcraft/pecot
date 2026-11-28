@@ -1,0 +1,1 @@
+{"id":"ffd76c4d6f975ee960241650b7a8ff1a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/lint-distribution.test.ts#pecot-actions:lint-dist dist の外のファイルだけが変わっていると、成功する","name":"dist の外のファイルだけが変わっていると、成功する","status":"passed","testResultsByEnv":{"default":"ebdd572482df6dc9a38f5910954cddc6"}}

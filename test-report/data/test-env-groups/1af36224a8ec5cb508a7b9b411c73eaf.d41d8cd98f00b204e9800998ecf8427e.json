@@ -1,0 +1,1 @@
+{"id":"1af36224a8ec5cb508a7b9b411c73eaf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#syncProjectConfig 止まるとき ワークフローのフィールドで必須の選択肢が不足している 場合は、エラーの行を表示して止める","name":"ワークフローのフィールドで必須の選択肢が不足している 場合は、エラーの行を表示して止める","status":"passed","testResultsByEnv":{"default":"0eb8a071ad414cfd16cb54762a2f9bbd"}}

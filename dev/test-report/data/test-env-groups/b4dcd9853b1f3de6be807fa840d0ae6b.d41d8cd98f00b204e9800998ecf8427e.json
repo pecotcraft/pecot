@@ -1,0 +1,1 @@
+{"id":"b4dcd9853b1f3de6be807fa840d0ae6b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#runMcpServe 1 回の接続でサーバのインスタンスを 1 つだけ作り、終了処理の登録を重複させない","name":"1 回の接続でサーバのインスタンスを 1 つだけ作り、終了処理の登録を重複させない","status":"passed","testResultsByEnv":{"default":"73c630fcf51f800ddf238566444d0ead"}}

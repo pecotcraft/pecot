@@ -1,0 +1,1 @@
+{"id":"2a3f2f60e5d50195f15eebc9dcc6aa9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/source-hash.test.ts#source-hash 隣り合うファイルの間で内容の一部を移すと、ハッシュが変わる","name":"隣り合うファイルの間で内容の一部を移すと、ハッシュが変わる","status":"passed","testResultsByEnv":{"default":"25f6cc847e433cf1525321f6c5119203"}}

@@ -1,0 +1,1 @@
+{"id":"a342083b5e726572363a93f3487e139b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh 入力が空のとき、CLAUDE_PROJECT_DIR を使う","name":"入力が空のとき、CLAUDE_PROJECT_DIR を使う","status":"passed","testResultsByEnv":{"default":"d871148cbab537ee2802ed29c07399f5"}}

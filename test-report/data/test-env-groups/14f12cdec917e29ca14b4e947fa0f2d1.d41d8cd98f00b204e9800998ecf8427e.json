@@ -1,0 +1,1 @@
+{"id":"14f12cdec917e29ca14b4e947fa0f2d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: シェル 変数代入 の文字列に違反があると、文字列の位置に指摘を 1 件返す","name":"変数代入 の文字列に違反があると、文字列の位置に指摘を 1 件返す","status":"passed","testResultsByEnv":{"default":"2872e80ed540cdff125e5dc38b6322c8"}}

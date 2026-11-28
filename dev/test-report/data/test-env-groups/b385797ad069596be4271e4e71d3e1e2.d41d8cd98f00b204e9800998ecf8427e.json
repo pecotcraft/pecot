@@ -1,0 +1,1 @@
+{"id":"b385797ad069596be4271e4e71d3e1e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#exportEntries id は名前を大文字にし、_ を - にする","name":"id は名前を大文字にし、_ を - にする","status":"passed","testResultsByEnv":{"default":"edd9ab786238706e3ad70d6b40e5774a"}}

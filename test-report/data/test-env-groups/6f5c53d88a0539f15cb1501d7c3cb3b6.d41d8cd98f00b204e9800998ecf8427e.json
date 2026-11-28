@@ -1,0 +1,1 @@
+{"id":"6f5c53d88a0539f15cb1501d7c3cb3b6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#cli/dist の bare import がすべて配布 package.json で宣言されている","name":"cli/dist の bare import がすべて配布 package.json で宣言されている","status":"passed","testResultsByEnv":{"default":"b26c084961e49914c3f1f328d1dba773"}}

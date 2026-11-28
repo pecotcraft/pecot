@@ -1,0 +1,1 @@
+{"id":"0a86112a9b9533241cec5e34501321c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main --commit-msg scissors の行より後ろの diff を調べず、違反の行番号は、元のファイルの行番号のまま返す","name":"scissors の行より後ろの diff を調べず、違反の行番号は、元のファイルの行番号のまま返す","status":"passed","testResultsByEnv":{"default":"280740d5d2221dba77e3b6ac9202eef8"}}

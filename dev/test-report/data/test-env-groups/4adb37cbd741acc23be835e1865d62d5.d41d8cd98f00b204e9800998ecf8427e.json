@@ -1,0 +1,1 @@
+{"id":"4adb37cbd741acc23be835e1865d62d5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_real_08_block_slidev_eslint_config","name":"実際の nx で、利用者の talk-dir に写す slidev の eslint 設定の変更は、数えて失敗する","status":"passed","testResultsByEnv":{"default":"84051cd9d54db497b9f60b724820d24b"}}

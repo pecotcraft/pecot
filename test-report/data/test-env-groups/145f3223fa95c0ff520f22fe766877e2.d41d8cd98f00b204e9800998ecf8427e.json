@@ -1,0 +1,1 @@
+{"id":"145f3223fa95c0ff520f22fe766877e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data PR を作った後に応答の html_url が無いと、作った PR の値を data に残して失敗を返す","name":"PR を作った後に応答の html_url が無いと、作った PR の値を data に残して失敗を返す","status":"passed","testResultsByEnv":{"default":"8971a6fe41b32e7f67cd3f0809edeb95"}}

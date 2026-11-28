@@ -1,0 +1,1 @@
+{"id":"2a1d2cc480f7e32d2d1239185f0bb0da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#runDrawioExport --output 省略時は <input>.svg に書き出す","name":"--output 省略時は <input>.svg に書き出す","status":"passed","testResultsByEnv":{"default":"6060d3cb952902af4da1d4aafd015bb8"}}

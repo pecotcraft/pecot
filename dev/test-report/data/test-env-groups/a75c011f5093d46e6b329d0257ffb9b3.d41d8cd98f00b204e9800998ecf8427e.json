@@ -1,0 +1,1 @@
+{"id":"a75c011f5093d46e6b329d0257ffb9b3.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#永続層の high を例外リストで免除すると、免除した advisory を列挙して監査を通す","name":"永続層の high を例外リストで免除すると、免除した advisory を列挙して監査を通す","status":"passed","testResultsByEnv":{"default":"daf2802fe844ebd5172a0eb1b193cd3f"}}

@@ -1,0 +1,1 @@
+{"id":"2ca6c5d2f35e8c46973435e3560e194c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_36_strict_fails_on_unresolved_base","name":"strict では、base を解決できないと失敗し、strict でなければ飛ばす","status":"passed","testResultsByEnv":{"default":"f1518dd836508a098cdd0846d3ed84bd"}}

@@ -1,0 +1,1 @@
+{"id":"3939abd9c0fef4917b2d4bea65e5174c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け PR の URL のホスト・owner・repo・番号を指定して、GraphQL で状態と CI の結果を取得する","name":"PR の URL のホスト・owner・repo・番号を指定して、GraphQL で状態と CI の結果を取得する","status":"passed","testResultsByEnv":{"default":"72c48c70fe0d39fb25eb6926eb2bcb34"}}

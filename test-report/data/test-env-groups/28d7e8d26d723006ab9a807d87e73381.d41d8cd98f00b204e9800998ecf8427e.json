@@ -1,0 +1,1 @@
+{"id":"28d7e8d26d723006ab9a807d87e73381.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_lanes#test_slug_matches_ci_matrix","name":"レーン名から作る slug は、ci.yml の matrix の式と一致する","status":"passed","testResultsByEnv":{"default":"90a743522f6c8d39b22c4ca6537aba13"}}

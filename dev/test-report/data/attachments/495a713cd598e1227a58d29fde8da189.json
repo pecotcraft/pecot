@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the result of list_pull_requests in reads.pull_requests is not in the shape of the official GitHub MCP server\n  (root): Invalid input: expected array, received object"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-mcp-shape\",\"detail\":\"the result of list_pull_requests in reads.pull_requests is not in the shape of the official GitHub MCP server\\n  (root): Invalid input: expected array, received object\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-mcp-shape",
+    "detail": "the result of list_pull_requests in reads.pull_requests is not in the shape of the official GitHub MCP server\n  (root): Invalid input: expected array, received object"
+  },
+  "isError": true
+}

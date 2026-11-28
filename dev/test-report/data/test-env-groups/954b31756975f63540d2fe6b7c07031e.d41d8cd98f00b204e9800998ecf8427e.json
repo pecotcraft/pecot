@@ -1,0 +1,1 @@
+{"id":"954b31756975f63540d2fe6b7c07031e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check タグ・本文・名前 monorepo のリポジトリに登録の無い接頭辞のタグを渡すと、登録したパッケージのタグを候補に返す","name":"monorepo のリポジトリに登録の無い接頭辞のタグを渡すと、登録したパッケージのタグを候補に返す","status":"passed","testResultsByEnv":{"default":"b7f47b5d3ca97110b4306ade418297df"}}

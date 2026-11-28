@@ -1,0 +1,1 @@
+{"id":"80ff859e2a8feaaeae416f15987438ba.3d855f0f17458d55eb8e6064ec898bb1","fullName":".githooks.tests.test_check_test_layers#test_reports_problem_with_place","name":"どの規則にも当たらない bats のファイルがあると、hook は plugins/p/scripts/tests/h.bats: 層が決まっていない を出して 1 で終わる","status":"passed","testResultsByEnv":{"default":"861743782b2e45f9203dd7d90d35537f"}}

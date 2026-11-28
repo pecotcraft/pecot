@@ -1,0 +1,1 @@
+{"id":"02936cc655aa6e968700607dde06971e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-active の手順 ブランチ作成で止まったときは、エラーの案内を利用者に示し、エージェントの判断で先へ進めない","name":"ブランチ作成で止まったときは、エラーの案内を利用者に示し、エージェントの判断で先へ進めない","status":"passed","testResultsByEnv":{"default":"25d9e23defcf4289bb30df3d19d80350"}}

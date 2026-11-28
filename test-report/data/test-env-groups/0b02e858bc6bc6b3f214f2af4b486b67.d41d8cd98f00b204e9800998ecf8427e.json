@@ -1,0 +1,1 @@
+{"id":"0b02e858bc6bc6b3f214f2af4b486b67.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: modern) evidence_create スキーマ違反を拒否する: 必須の input_path が無い","name":"スキーマ違反を拒否する: 必須の input_path が無い","status":"passed","testResultsByEnv":{"default":"19879b936b1868848115028fb96aee3f"}}

@@ -1,0 +1,1 @@
+{"id":"5d015a98e09497451c0389d523a764b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry slides ディレクトリの pptx が 0 バイトの場合は、保存しない","name":"slides ディレクトリの pptx が 0 バイトの場合は、保存しない","status":"passed","testResultsByEnv":{"default":"0d3fb095751ec3f4c60db856ead056a6"}}

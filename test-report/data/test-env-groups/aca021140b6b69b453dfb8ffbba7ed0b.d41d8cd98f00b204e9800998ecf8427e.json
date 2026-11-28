@@ -1,0 +1,1 @@
+{"id":"aca021140b6b69b453dfb8ffbba7ed0b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree 削除した worktree の中から呼ぶと、掃除の git が作業ディレクトリを失って OsError になる","name":"削除した worktree の中から呼ぶと、掃除の git が作業ディレクトリを失って OsError になる","status":"passed","testResultsByEnv":{"default":"c907e5c76824f47bc55fcd401935c04f"}}

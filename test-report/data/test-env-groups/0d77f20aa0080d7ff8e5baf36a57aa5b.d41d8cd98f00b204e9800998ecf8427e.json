@@ -1,0 +1,1 @@
+{"id":"0d77f20aa0080d7ff8e5baf36a57aa5b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_ecr_describe_images image_ids が 101 件 の入力を、スキーマの検証で拒否する","name":"image_ids が 101 件 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"b93dece9879a49bb73e71f5ac03f2cfc"}}

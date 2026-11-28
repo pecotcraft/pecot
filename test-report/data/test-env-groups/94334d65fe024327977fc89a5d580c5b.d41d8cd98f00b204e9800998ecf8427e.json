@@ -1,0 +1,1 @@
+{"id":"94334d65fe024327977fc89a5d580c5b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_skip_section_without_log","name":"nx のログがない場合は、skip の欄を「なし」と表示する","status":"passed","testResultsByEnv":{"default":"c7b6bc46fca0a473dd4e276f1b17f08c"}}

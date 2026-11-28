@@ -1,0 +1,1 @@
+{"id":"2883d5eceba3ec43f387cf67f6a1b044.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ project-init-ok を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ project-init-ok を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"2be376c956fe2d637dbc521b6872fccc"}}

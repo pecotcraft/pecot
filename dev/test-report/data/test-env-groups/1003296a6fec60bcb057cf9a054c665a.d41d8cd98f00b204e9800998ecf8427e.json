@@ -1,0 +1,1 @@
+{"id":"1003296a6fec60bcb057cf9a054c665a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-finish.test.ts#session_finish カレントが worktree で add の記録があると、記録の wtN のブランチに切り替える","name":"カレントが worktree で add の記録があると、記録の wtN のブランチに切り替える","status":"passed","testResultsByEnv":{"default":"d5e5d0a4c7e11d0f7861a1b5cfaa6e58"}}

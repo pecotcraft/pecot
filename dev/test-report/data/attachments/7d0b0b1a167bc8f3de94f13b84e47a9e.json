@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pecot-lane: the board has no pecot-lane field; add a create change with the lanes as options: cli (color BLUE), docs (color GREEN)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"pecot-lane\",\"code\":\"missing-field\",\"message\":\"the board has no pecot-lane field; add a create change with the lanes as options: cli (color BLUE), docs (color GREEN)\",\"candidates\":[\"cli\",\"docs\"]}],\"deletable\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "pecot-lane",
+        "code": "missing-field",
+        "message": "the board has no pecot-lane field; add a create change with the lanes as options: cli (color BLUE), docs (color GREEN)",
+        "candidates": [
+          "cli",
+          "docs"
+        ]
+      }
+    ],
+    "deletable": []
+  }
+}

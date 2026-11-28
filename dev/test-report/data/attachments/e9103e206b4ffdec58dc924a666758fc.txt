@@ -1,0 +1,1 @@
+nx-cache-server: 集計に失敗: Error: ENOENT: no such file or directory, scandir '/tmp/pytest-of-vscode/pytest-0/popen-gw3/test_sigterm_exits_when_store_0/store'

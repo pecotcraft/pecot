@@ -1,0 +1,1 @@
+{"id":"65b07d8f5c242e6e7dbee04aba1e1be5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-check.test.ts#board_check ボードに無い欄の名前を渡すと、unknown-field の problem と欄の名前の候補を返す","name":"ボードに無い欄の名前を渡すと、unknown-field の problem と欄の名前の候補を返す","status":"passed","testResultsByEnv":{"default":"30a6ecbec38b9c85032cf219a156e4ab"}}

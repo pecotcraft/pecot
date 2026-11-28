@@ -1,0 +1,1 @@
+{"id":"558dface9fc2bd929e0ba0a9466da2d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#buildIssueTitle order は 2 桁に揃えて、タイトルに付ける","name":"order は 2 桁に揃えて、タイトルに付ける","status":"passed","testResultsByEnv":{"default":"622cc42d36049316c0bca0c69f3f6553"}}

@@ -1,0 +1,1 @@
+{"id":"299a7a8578fedde74c0af9bc058a8e6c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#validateInput 位置引数は、awsFlag を持っていても、先頭が - の値を拒否する","name":"位置引数は、awsFlag を持っていても、先頭が - の値を拒否する","status":"passed","testResultsByEnv":{"default":"e9d76e6c2ed45eb4b3df9b362591d4b2"}}

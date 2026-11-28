@@ -1,0 +1,1 @@
+{"id":"d7e6873a405b039712d1478653dc1935.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/errors.test.ts#継承 GitHubAuthError は GitHubAPIError を継承し、クラス名を name に持つ","name":"GitHubAuthError は GitHubAPIError を継承し、クラス名を name に持つ","status":"passed","testResultsByEnv":{"default":"0f64294ddc5fafddcd6ea56c4f06ca06"}}

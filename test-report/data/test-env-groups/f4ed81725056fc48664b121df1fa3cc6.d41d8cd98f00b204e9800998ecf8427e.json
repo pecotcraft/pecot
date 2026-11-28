@@ -1,0 +1,1 @@
+{"id":"f4ed81725056fc48664b121df1fa3cc6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/fs.test.ts#setupPublicSlides public/slides の下に images・diagrams・html を作成し、public/assets は作成しない","name":"public/slides の下に images・diagrams・html を作成し、public/assets は作成しない","status":"passed","testResultsByEnv":{"default":"65bf6138a9bd8c2700d94d144fbdaa5a"}}

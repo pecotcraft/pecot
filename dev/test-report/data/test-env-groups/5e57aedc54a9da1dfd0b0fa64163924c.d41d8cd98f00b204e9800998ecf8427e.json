@@ -1,0 +1,1 @@
+{"id":"5e57aedc54a9da1dfd0b0fa64163924c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#serializeCacheManifest 文字列にしてから読み込み直しても、内容が変わらない","name":"文字列にしてから読み込み直しても、内容が変わらない","status":"passed","testResultsByEnv":{"default":"0179b1bc593d3110de10e6d210c4c527"}}

@@ -1,0 +1,1 @@
+{"id":"d402127dd803e93225d7d262248b876a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 見本のリポジトリ constraint-name を検証すると、検証エラーの行を過不足なく決まった順で返す","name":"見本のリポジトリ constraint-name を検証すると、検証エラーの行を過不足なく決まった順で返す","status":"passed","testResultsByEnv":{"default":"f25d97a42844e04e41dde0ad80ec3a0e"}}

@@ -1,0 +1,1 @@
+{"id":"3cee983b26dc8106f335827622ee7a78.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_commit_text_ignores_comment_lines","name":"コミットメッセージの # で始まるコメント行は、確認の対象にしない","status":"passed","testResultsByEnv":{"default":"42a60f0febb2e6c78b4d164d8d7c4cfe"}}

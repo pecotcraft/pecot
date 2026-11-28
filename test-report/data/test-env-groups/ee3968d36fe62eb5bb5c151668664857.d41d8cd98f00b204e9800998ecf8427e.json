@@ -1,0 +1,1 @@
+{"id":"ee3968d36fe62eb5bb5c151668664857.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint pecot-text-lint が exit 2 で終わると、違反と言わずに調べなかったことを返す","name":"pecot-text-lint が exit 2 で終わると、違反と言わずに調べなかったことを返す","status":"passed","testResultsByEnv":{"default":"4588255c74ea59508352aa09de8603c3"}}

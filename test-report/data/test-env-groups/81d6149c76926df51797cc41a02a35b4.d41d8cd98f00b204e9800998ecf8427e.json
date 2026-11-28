@@ -1,0 +1,1 @@
+{"id":"81d6149c76926df51797cc41a02a35b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start MCP の data 前提を読めないと、ブランチを作らず、kind が dependency-unreadable の失敗を返す","name":"前提を読めないと、ブランチを作らず、kind が dependency-unreadable の失敗を返す","status":"passed","testResultsByEnv":{"default":"c95ae5af4d6f86f77da0fd9e6f8bc214"}}

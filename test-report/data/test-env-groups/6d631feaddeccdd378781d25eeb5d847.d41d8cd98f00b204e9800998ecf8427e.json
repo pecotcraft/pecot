@@ -1,0 +1,1 @@
+{"id":"6d631feaddeccdd378781d25eeb5d847.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#closeIssue 404 が返った場合は、GitHubNotFoundError が発生する","name":"404 が返った場合は、GitHubNotFoundError が発生する","status":"passed","testResultsByEnv":{"default":"80c4a41d69c85139d2f56268161e0a48"}}

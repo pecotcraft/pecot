@@ -1,0 +1,1 @@
+{"id":"6d9692e9f6e05b357b531bee680d26f1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page の成功ルート layout_categories を持たないテーマでも生成でき、category は uncategorized になる","name":"layout_categories を持たないテーマでも生成でき、category は uncategorized になる","status":"passed","testResultsByEnv":{"default":"a5841784b52d730ff08583e54c2e1ea4"}}

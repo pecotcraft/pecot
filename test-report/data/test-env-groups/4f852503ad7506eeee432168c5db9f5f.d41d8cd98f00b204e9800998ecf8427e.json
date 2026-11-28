@@ -1,0 +1,1 @@
+{"id":"4f852503ad7506eeee432168c5db9f5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create 待っている Issue 待つ Issue の読み取りの接続 に失敗すると、PR を作ったまま warning の行を出し、終了コード 0 で終わる","name":"待つ Issue の読み取りの接続 に失敗すると、PR を作ったまま warning の行を出し、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"c4254adeb3239c7125af1983eb184705"}}

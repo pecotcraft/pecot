@@ -1,0 +1,1 @@
+{"id":"13a88dc1af07ac43e7fc2920c51f527b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync GITHUB_REPOSITORY が無いと、error の行を出して step を失敗にする","name":"GITHUB_REPOSITORY が無いと、error の行を出して step を失敗にする","status":"passed","testResultsByEnv":{"default":"d324bf2b11cfd9b8a1bace710ccfb2b3"}}

@@ -1,0 +1,1 @@
+warning: mxCell id=x: unsupported <font> attribute: weight (supported: color, face, size, style)

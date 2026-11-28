@@ -1,0 +1,1 @@
+{"id":"e7b169b25dde223287dded5ce7a819e3.23ffd4e47338b1acd699764d3c1670de","fullName":".githooks.tests.test_pages_provenance#test_other_repo_pr_in_pull_requests_does_not_drop_dev_or_release","name":"push の run は、他のリポジトリの PR が含まれていても、開発版を受け付ける","status":"passed","testResultsByEnv":{"default":"60875c99892d2800b0422551720f4531"}}

@@ -1,0 +1,7 @@
+error: gh-pr-create-check: gh pr create is not allowed.
+
+  Reason: using gh pr create directly skips the automatic Issue reference, the PR template validation,
+  and the traceability record, which breaks the consistency of the workflow.
+
+  Use this instead:
+    the MCP tool pr_create of the workflow server

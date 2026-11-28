@@ -1,0 +1,41 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "1 item(s) of workflow review are missing or outdated"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-setting-missing\",\"detail\":\"1 item(s) of workflow review are missing or outdated\",\"repository\":\"acme/demo\",\"items\":[{\"name\":\".github/workflows/pecot-review.yml\",\"state\":\"ok\"},{\"name\":\"workflow template review\",\"state\":\"ok\"},{\"name\":\".github/workflows/pecot-review.yml calls the pecot actions, not npx @pecot/workflow-mcp\",\"state\":\"ok\"},{\"name\":\"secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*\",\"state\":\"missing\"},{\"name\":\"Claude GitHub App\",\"state\":\"skipped\"}],\"ready\":false}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-setting-missing",
+    "detail": "1 item(s) of workflow review are missing or outdated",
+    "repository": "acme/demo",
+    "items": [
+      {
+        "name": ".github/workflows/pecot-review.yml",
+        "state": "ok"
+      },
+      {
+        "name": "workflow template review",
+        "state": "ok"
+      },
+      {
+        "name": ".github/workflows/pecot-review.yml calls the pecot actions, not npx @pecot/workflow-mcp",
+        "state": "ok"
+      },
+      {
+        "name": "secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*",
+        "state": "missing"
+      },
+      {
+        "name": "Claude GitHub App",
+        "state": "skipped"
+      }
+    ],
+    "ready": false
+  },
+  "isError": true
+}

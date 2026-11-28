@@ -1,0 +1,1 @@
+{"id":"7acefac97d99ab692ade0faa92310f8a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page の失敗ルート includes 宣言を持たない参照でも生成でき、includes は空になる","name":"includes 宣言を持たない参照でも生成でき、includes は空になる","status":"passed","testResultsByEnv":{"default":"aeb96fc1a25d850c344fb05f7f82e1dc"}}

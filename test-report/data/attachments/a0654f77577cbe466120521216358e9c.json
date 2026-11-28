@@ -1,0 +1,34 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "preflight found warnings; fix them before creating a PR"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"preflight found warnings; fix them before creating a PR\",\"remoteUrl\":\"git@ghes.example.com:acme/demo.git\",\"currentBranch\":\"feat/demo/12\",\"pushed\":false,\"pushStatus\":\"diverged: local is 1 commits ahead, origin/feat/demo/12 is 2 ahead\",\"baseBranch\":\"origin/feat/demo/11\",\"gitStatus\":\"On branch feat/demo/12\\nYour branch and 'origin/feat/demo/12' have diverged,\\nand have 1 and 2 different commits each, respectively.\\n\\nnothing to commit, working tree clean\\n\",\"commits\":\"96c2001 change upper.txt\",\"diffSummary\":\"upper.txt | 1 +\\n 1 file changed, 1 insertion(+)\",\"worktree\":{\"list\":\"/tmp/pecot-parity-hmtyAB/base/demo 96c2001 [feat/demo/12]\",\"directoryName\":\"demo\",\"isWorktree\":false},\"stashList\":\"(no stash)\",\"warnings\":[\"Push Status: diverged: local is 1 commits ahead, origin/feat/demo/12 is 2 ahead (fix: pr_restack)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "preflight found warnings; fix them before creating a PR",
+    "remoteUrl": "git@ghes.example.com:acme/demo.git",
+    "currentBranch": "feat/demo/12",
+    "pushed": false,
+    "pushStatus": "diverged: local is 1 commits ahead, origin/feat/demo/12 is 2 ahead",
+    "baseBranch": "origin/feat/demo/11",
+    "gitStatus": "On branch feat/demo/12\nYour branch and 'origin/feat/demo/12' have diverged,\nand have 1 and 2 different commits each, respectively.\n\nnothing to commit, working tree clean\n",
+    "commits": "96c2001 change upper.txt",
+    "diffSummary": "upper.txt | 1 +\n 1 file changed, 1 insertion(+)",
+    "worktree": {
+      "list": "/tmp/pecot-parity-hmtyAB/base/demo 96c2001 [feat/demo/12]",
+      "directoryName": "demo",
+      "isWorktree": false
+    },
+    "stashList": "(no stash)",
+    "warnings": [
+      "Push Status: diverged: local is 1 commits ahead, origin/feat/demo/12 is 2 ahead (fix: pr_restack)"
+    ]
+  },
+  "isError": true
+}

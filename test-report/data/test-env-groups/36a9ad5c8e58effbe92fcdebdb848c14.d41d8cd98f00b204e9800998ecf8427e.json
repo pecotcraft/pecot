@@ -1,0 +1,1 @@
+{"id":"36a9ad5c8e58effbe92fcdebdb848c14.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#gitRemoteUrl リポジトリの外では、undefined を返す","name":"リポジトリの外では、undefined を返す","status":"passed","testResultsByEnv":{"default":"47a239ff3553f1c0b6f4f650c4f8f69c"}}

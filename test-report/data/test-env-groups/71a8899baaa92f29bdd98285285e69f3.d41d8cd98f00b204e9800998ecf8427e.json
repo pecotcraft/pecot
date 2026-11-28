@@ -1,0 +1,1 @@
+{"id":"71a8899baaa92f29bdd98285285e69f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#parseFrontmatter template を書かないコンテンツを渡すと、template は undefined になる","name":"template を書かないコンテンツを渡すと、template は undefined になる","status":"passed","testResultsByEnv":{"default":"520f58fec0bfca2c2060089dbb57efe1"}}

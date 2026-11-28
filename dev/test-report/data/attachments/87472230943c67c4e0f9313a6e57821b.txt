@@ -1,0 +1,3 @@
+stage=pre-commit|args=run --hook-stage pre-commit --all-files --show-diff-on-failure --color=never|SKIP=check-version-plan-required|PVB=unset|TO=unset|NXC=true|NXCI=1|LANE=unset|SRV=unset|NXCF=unset
+stage=pre-push|args=run --hook-stage pre-push --all-files --show-diff-on-failure --color=never|SKIP=check-version-plan-required|PVB=refs/pecot/ci-no-base|TO=124ffa555299e6d18cfdd9647bcffc2664aead37|NXC=true|NXCI=1|LANE=unset|SRV=unset|NXCF=unset
+stage=manual|args=run --hook-stage manual --all-files --show-diff-on-failure --color=never|SKIP=check-version-plan-required|PVB=refs/pecot/ci-no-base|TO=124ffa555299e6d18cfdd9647bcffc2664aead37|NXC=true|NXCI=1|LANE=unset|SRV=unset|NXCF=unset

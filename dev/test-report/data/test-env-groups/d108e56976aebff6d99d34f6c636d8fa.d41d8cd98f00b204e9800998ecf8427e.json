@@ -1,0 +1,1 @@
+{"id":"d108e56976aebff6d99d34f6c636d8fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 書体に Helvetica を明示したセルには、警告を 1 件返す","name":"書体に Helvetica を明示したセルには、警告を 1 件返す","status":"passed","testResultsByEnv":{"default":"a3453e312c786f117c6c95284fa74c68"}}

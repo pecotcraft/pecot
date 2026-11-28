@@ -1,0 +1,1 @@
+{"id":"02ce6b78774874f66c45db662bb5a241.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-extract.test.ts#extract.ts 取得先が 503 を返すと、写しを書き出さずに例外を発生させる","name":"取得先が 503 を返すと、写しを書き出さずに例外を発生させる","status":"passed","testResultsByEnv":{"default":"986cc4ae94b31c8071b13d10187b8db8"}}

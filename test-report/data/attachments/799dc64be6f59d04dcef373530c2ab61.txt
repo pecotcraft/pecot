@@ -1,0 +1,1 @@
+error: the event file (GITHUB_EVENT_PATH) is not JSON: /tmp/pecot-auto-gate-Uda2sg/broken.json

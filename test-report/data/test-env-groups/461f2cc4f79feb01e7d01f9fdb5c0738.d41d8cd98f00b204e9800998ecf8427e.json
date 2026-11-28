@@ -1,0 +1,1 @@
+{"id":"461f2cc4f79feb01e7d01f9fdb5c0738.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_errors_when_deps_cannot_be_restored","name":"依存が欠けていて pnpm install でも戻せないと、案内を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"868ef66126546a64bcf74d4decd9a196"}}

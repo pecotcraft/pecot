@@ -1,0 +1,1 @@
+{"id":"6d3b9dcebd61789ba850f523a2e2b987.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#parseScenario 形式に誤りがあると、例外が発生する: branches に文字列","name":"形式に誤りがあると、例外が発生する: branches に文字列","status":"passed","testResultsByEnv":{"default":"2f319a8140667dcaccc2345ad1d2e7d0"}}

@@ -1,0 +1,1 @@
+{"id":"e2c2c78127ea0bd030291d8f2a46b89c.2d64f50dc4c29786795bb15f92f07185","fullName":".githooks.tests.test_check_ci_result#test_lint_skip_with_skipped_matrix_job_zero_lanes","name":"lint を飛ばす設定で、checks (lint) のジョブが skipped でも、レーンが 0 件なら成功で終わる","status":"passed","testResultsByEnv":{"default":"a8703acaf5bf8209d9bb0cdfdea62fc8"}}

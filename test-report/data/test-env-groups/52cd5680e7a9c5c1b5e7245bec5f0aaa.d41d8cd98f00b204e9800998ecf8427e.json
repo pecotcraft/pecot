@@ -1,0 +1,1 @@
+{"id":"52cd5680e7a9c5c1b5e7245bec5f0aaa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#withCapturedOutput log は 64KB を超えた場合に、先頭を捨てて、切り詰めたことを冒頭に書く","name":"log は 64KB を超えた場合に、先頭を捨てて、切り詰めたことを冒頭に書く","status":"passed","testResultsByEnv":{"default":"5842058fd89aff6845bcc8ab78b94e6c"}}

@@ -1,0 +1,1 @@
+{"id":"ed348e5b316a42972b6c8e745a25aa72.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/domain/tests/issue-surface.test.ts#extractIssueSurface SDL の構文が誤っている場合は、graphql の parse の例外を送出する","name":"SDL の構文が誤っている場合は、graphql の parse の例外を送出する","status":"passed","testResultsByEnv":{"default":"0035d0e9862c9e219ecda10cd2aab745"}}

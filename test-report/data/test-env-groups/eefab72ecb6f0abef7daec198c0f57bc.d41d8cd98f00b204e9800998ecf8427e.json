@@ -1,0 +1,1 @@
+{"id":"eefab72ecb6f0abef7daec198c0f57bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#素の URL の Link ノード URL の末尾にある 閉じかぎ括弧 は、URL に含めない","name":"URL の末尾にある 閉じかぎ括弧 は、URL に含めない","status":"passed","testResultsByEnv":{"default":"ab1b99ef3607cdf0b348223245bd5f9b"}}

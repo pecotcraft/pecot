@@ -1,0 +1,1 @@
+{"id":"e7bacdaf4351dac93e5f50b9c5093feb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/workflow-template.test.ts#evaluateRequirements（board-sync） PAT の変数と secret があると、token の組の項目を ok にする","name":"PAT の変数と secret があると、token の組の項目を ok にする","status":"passed","testResultsByEnv":{"default":"40e664bc64634b019e199e0f8c0e8255"}}

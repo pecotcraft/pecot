@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not create branch feat/7 in acme/demo: resource not found: http://127.0.0.1:35771/repos/acme/demo/git/ref/heads/main"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-not-found\",\"detail\":\"could not create branch feat/7 in acme/demo: resource not found: http://127.0.0.1:35771/repos/acme/demo/git/ref/heads/main\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-not-found",
+    "detail": "could not create branch feat/7 in acme/demo: resource not found: http://127.0.0.1:35771/repos/acme/demo/git/ref/heads/main"
+  },
+  "isError": true
+}

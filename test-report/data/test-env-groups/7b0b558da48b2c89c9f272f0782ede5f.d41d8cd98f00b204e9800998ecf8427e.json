@@ -1,0 +1,1 @@
+{"id":"7b0b558da48b2c89c9f272f0782ede5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link 設定ファイルの形式が不正だと、理由を detail に入れて、kind が config-invalid の失敗を返す","name":"設定ファイルの形式が不正だと、理由を detail に入れて、kind が config-invalid の失敗を返す","status":"passed","testResultsByEnv":{"default":"a4ba227d350378412fec5ac90df6e036"}}

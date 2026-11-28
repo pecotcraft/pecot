@@ -1,0 +1,1 @@
+{"id":"dce42f79749cf1f1271202d67498be12.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate プロジェクトの番号か名前を渡すと、そのプロジェクトをアクティブにする","name":"プロジェクトの番号か名前を渡すと、そのプロジェクトをアクティブにする","status":"passed","testResultsByEnv":{"default":"c7369823d3052472571e50a504f38cf3"}}

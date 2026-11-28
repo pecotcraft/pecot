@@ -1,0 +1,1 @@
+{"id":"b55d6310bece9686dae764c07be44433.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-decorative-bar-element.test.ts#no-decorative-bar-element invalid border-radius の祖先が直接の親でなくても、報告する","name":"border-radius の祖先が直接の親でなくても、報告する","status":"passed","testResultsByEnv":{"default":"c2431c282f29327c7c77dcb994a65a0a"}}

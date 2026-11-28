@@ -1,0 +1,1 @@
+{"id":"88f838d029fd9efd780e34648421c747.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/verifies.test.ts#verifies Allure の reporter が動くレーンの中 ID を渡すと、名前が tag で、値が ID のラベルを 1 つ追加する","name":"ID を渡すと、名前が tag で、値が ID のラベルを 1 つ追加する","status":"passed","testResultsByEnv":{"default":"85ed9078405f6c83544de9c87035f315"}}

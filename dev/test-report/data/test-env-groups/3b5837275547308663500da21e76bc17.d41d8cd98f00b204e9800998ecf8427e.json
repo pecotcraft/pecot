@@ -1,0 +1,1 @@
+{"id":"3b5837275547308663500da21e76bc17.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/issues.test.ts#issuesToFindings 最上位の未知のキーは、キーごとに unknown field として報告する","name":"最上位の未知のキーは、キーごとに unknown field として報告する","status":"passed","testResultsByEnv":{"default":"ceafde1825f1ac30bbc87243d358b918"}}

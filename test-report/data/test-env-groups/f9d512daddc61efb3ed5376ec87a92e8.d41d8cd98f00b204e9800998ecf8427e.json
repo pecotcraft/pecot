@@ -1,0 +1,1 @@
+{"id":"f9d512daddc61efb3ed5376ec87a92e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_sqs_get_queue_attributes profile の書式に合わない値を渡すと、拒否する","name":"profile の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"61dc71e61a50a3228d70a4ff2f048683"}}

@@ -1,0 +1,1 @@
+{"id":"27f73ba2f51f848bb70f7e60e8d37ed5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_sync_playwright_deps#test_config_without_the_feature_stops","name":"設定に playwright-deps の feature が存在しないと、エラーで止まる","status":"passed","testResultsByEnv":{"default":"f96529636261b9b56d930eee3941ae1f"}}

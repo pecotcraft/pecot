@@ -1,0 +1,1 @@
+{"id":"3ce8894979670ff60387832279f3daef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-sync.test.ts#executeSlideSync (smoke) 移行すると、data に移行後のレイアウトの一覧と移行の情報を載せる","name":"移行すると、data に移行後のレイアウトの一覧と移行の情報を載せる","status":"passed","testResultsByEnv":{"default":"94be7da830621d88f38829344760bb9f"}}

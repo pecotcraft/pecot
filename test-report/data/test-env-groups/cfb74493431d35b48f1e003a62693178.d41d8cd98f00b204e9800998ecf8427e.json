@@ -1,0 +1,1 @@
+{"id":"cfb74493431d35b48f1e003a62693178.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#executeMcpServe 待ち受けを始める前に、子プロセスの stdin を切り離す","name":"待ち受けを始める前に、子プロセスの stdin を切り離す","status":"passed","testResultsByEnv":{"default":"ff0b9622676031d6c3fb767e21ef2282"}}

@@ -1,0 +1,1 @@
+{"id":"546b7e8021211a8d61738c48143c6c6d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-triple-hyphen-in-frontmatter.test.ts#余分な --- が無い正常な frontmatter だと、検出しない","name":"余分な --- が無い正常な frontmatter だと、検出しない","status":"passed","testResultsByEnv":{"default":"918e8526cc11a920868be5839cf7b560"}}

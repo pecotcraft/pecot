@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "base branch feat/demo/11 has no open PR\n  reopen the PR of feat/demo/11, or create a new one, then call pr_create again"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"pr-state\",\"detail\":\"base branch feat/demo/11 has no open PR\\n  reopen the PR of feat/demo/11, or create a new one, then call pr_create again\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "pr-state",
+    "detail": "base branch feat/demo/11 has no open PR\n  reopen the PR of feat/demo/11, or create a new one, then call pr_create again"
+  },
+  "isError": true
+}

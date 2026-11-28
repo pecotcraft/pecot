@@ -1,0 +1,1 @@
+{"id":"bc16f306510f07febf41d5f9953531c8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_failure_body_truncated_to_line_limit","name":"失敗したレーンの出力が 400 行を超える場合は、先頭を省略して末尾の 400 行を表示する","status":"passed","testResultsByEnv":{"default":"0b59d8dea6937d7b5f2301a8c764e214"}}

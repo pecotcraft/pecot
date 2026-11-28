@@ -1,0 +1,1 @@
+{"id":"af60a224927196d58d353af9a857ec61.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check タグ・本文・名前 v の無いタグ を渡すと、tag-name の項目と候補を返す","name":"v の無いタグ を渡すと、tag-name の項目と候補を返す","status":"passed","testResultsByEnv":{"default":"c6e0f3864f2745a607cc4ed5da1f6c2b"}}

@@ -1,0 +1,1 @@
+{"id":"fe35701353b4e4fbd060d4959b27c39a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#sanitizeCssOnlyTypefaces typeface 属性が存在しない latin、ea、cs の場合は、削除しない","name":"typeface 属性が存在しない latin、ea、cs の場合は、削除しない","status":"passed","testResultsByEnv":{"default":"7d7aedfc656de8c19ab5bbf6c9dcb26e"}}

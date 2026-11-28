@@ -1,0 +1,1 @@
+{"id":"7f172e50a7ba1b1017ae7480e15ec87a.583c1257408651cadf5f344e47658b16","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_text_runs_for_text_sources","name":"libs/text-rules/package-lock.json を変更すると、check-text が起動する","status":"passed","testResultsByEnv":{"default":"92f35aaabed83c09449739488535c583"}}

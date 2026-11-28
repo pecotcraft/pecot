@@ -1,0 +1,1 @@
+{"id":"5f35783c2314cf2350f210e7718a6658.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#renderAutoResult ラベルの名前に改行とバッククォートが含まれる場合は、空白と引用符に置き換えて、コードの中に書く","name":"ラベルの名前に改行とバッククォートが含まれる場合は、空白と引用符に置き換えて、コードの中に書く","status":"passed","testResultsByEnv":{"default":"2c9ce30f5c396f224d94cd045b6b3440"}}

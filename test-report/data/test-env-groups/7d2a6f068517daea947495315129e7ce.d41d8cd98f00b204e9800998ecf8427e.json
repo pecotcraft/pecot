@@ -1,0 +1,1 @@
+{"id":"7d2a6f068517daea947495315129e7ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/attributes.test.ts#readAttributeDefinitions GHES 向けのクエリは、Issue fields と同じ時期に追加された複数選択の型を問い合わせない","name":"GHES 向けのクエリは、Issue fields と同じ時期に追加された複数選択の型を問い合わせない","status":"passed","testResultsByEnv":{"default":"16270f2cab6030445d4dc25d1e16c526"}}

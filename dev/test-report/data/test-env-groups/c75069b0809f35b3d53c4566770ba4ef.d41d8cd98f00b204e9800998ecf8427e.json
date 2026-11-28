@@ -1,0 +1,1 @@
+{"id":"c75069b0809f35b3d53c4566770ba4ef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/plugin-manifests.test.ts#プラグインの 2 組の manifest plugin.json と mcp.json の $schema が、同じ版の Agent Plugins のスキーマを指す","name":"plugin.json と mcp.json の $schema が、同じ版の Agent Plugins のスキーマを指す","status":"passed","testResultsByEnv":{"default":"ea35b8648a8da44448067a2384d1b745"}}

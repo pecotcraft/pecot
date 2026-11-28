@@ -1,0 +1,1 @@
+{"id":"307a83651d25aa9e6ef9ec7bfa2a93c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 末尾に ; が 1 つだけあるクエリは、1 つの文として許可する","name":"末尾に ; が 1 つだけあるクエリは、1 つの文として許可する","status":"passed","testResultsByEnv":{"default":"62c8d199e9a7dc14de32daddc8c7f02c"}}

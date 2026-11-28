@@ -1,0 +1,1 @@
+{"id":"6b68f73fbf7d4bc09b36809a921bd512.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/batch-plan.test.ts#resolveBatch 数字だけのキーは、既存の Issue ではなく、ファイルのキーとして探す","name":"数字だけのキーは、既存の Issue ではなく、ファイルのキーとして探す","status":"passed","testResultsByEnv":{"default":"290dbcf97a3dd37ad6dbe8b19b020273"}}

@@ -1,0 +1,1 @@
+{"id":"ada281223d687e11fa19615bf3309c0d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueBlockingReferences その Issue を前提としている Issue の参照（別のリポジトリのものを含む）と件数を取り出す","name":"その Issue を前提としている Issue の参照（別のリポジトリのものを含む）と件数を取り出す","status":"passed","testResultsByEnv":{"default":"fd9048891f7b36e95b5336734fd37061"}}

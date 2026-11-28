@@ -1,0 +1,1 @@
+{"id":"2f9f9f3194a092016628b79d69cedc56.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#本体の runtime manifest との整合 manifest の alias の override（npm: 接頭辞）は、値を変えずに引き継ぐ","name":"manifest の alias の override（npm: 接頭辞）は、値を変えずに引き継ぐ","status":"passed","testResultsByEnv":{"default":"99057f8fc8ec61da70f239e8385dbcf7"}}

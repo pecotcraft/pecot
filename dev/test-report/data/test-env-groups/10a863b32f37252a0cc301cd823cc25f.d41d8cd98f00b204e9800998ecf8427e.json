@@ -1,0 +1,1 @@
+{"id":"10a863b32f37252a0cc301cd823cc25f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-check.test.ts#board_check 判定に関わらない列へ書くと、前提を読まずに problem の無い結果を返す","name":"判定に関わらない列へ書くと、前提を読まずに problem の無い結果を返す","status":"passed","testResultsByEnv":{"default":"c8fdb2a40799e148fb5cc7db56060fab"}}

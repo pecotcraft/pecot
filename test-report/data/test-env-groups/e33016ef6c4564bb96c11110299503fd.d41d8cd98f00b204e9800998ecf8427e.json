@@ -1,0 +1,1 @@
+{"id":"e33016ef6c4564bb96c11110299503fd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base 開発ブランチから着手した記録で打つと、記録の無い startable の判定のときと同じ出力になり、判定を読まない","name":"開発ブランチから着手した記録で打つと、記録の無い startable の判定のときと同じ出力になり、判定を読まない","status":"passed","testResultsByEnv":{"default":"9f8bfd7ef56c7b580519c39282c35bb7"}}

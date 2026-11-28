@@ -1,0 +1,1 @@
+{"id":"7c300fdf2350f9a808ab73bc8c01faf8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#findConfigFor project を指定した場合は、その名前の設定を使い、存在しない名前と対象を含まない設定を区別する","name":"project を指定した場合は、その名前の設定を使い、存在しない名前と対象を含まない設定を区別する","status":"passed","testResultsByEnv":{"default":"a236ffcdc856f16dc507240bc2d77489"}}

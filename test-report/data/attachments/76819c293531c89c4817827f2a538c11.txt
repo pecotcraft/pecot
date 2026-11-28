@@ -1,0 +1,22 @@
+
+nx exit code: 1
+=== 失敗レーン: p:test-cli ===
+::group::❌ > nx run p:test-cli  [local cache]
+
+STATIC_FAIL_BODY AssertionError: expected 1 to be 2
+ NX   Running target test for 3 projects failed
+
+Failed tasks:
+
+- p:test-cli
+
+  Run duration:      9m 59s
+  Cache:             Skipped (--skip-nx-cache)
+  Critical path:     7m 17s (4 tasks)
+  Recoverable time:  2m 42s (27% of the run)
+
+  Recommendation: Cache: drop --skip-nx-cache to restore unchanged tasks instantly.
+
+
+全出力: /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_failure_ignores_performan0/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log
+進行確認: tail -f /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_failure_ignores_performan0/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log

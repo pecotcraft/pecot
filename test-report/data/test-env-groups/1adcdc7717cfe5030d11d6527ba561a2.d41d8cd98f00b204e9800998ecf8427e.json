@@ -1,0 +1,1 @@
+{"id":"1adcdc7717cfe5030d11d6527ba561a2.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_environment_round_trips_through_properties","name":"非 ASCII の値・区切りの文字を含むキー・先頭の空白を、エスケープして書き、同じ値に読み戻す","status":"passed","testResultsByEnv":{"default":"875b6665b2b786e79e97228c8d7632f2"}}

@@ -1,0 +1,1 @@
+{"id":"398067f9f7ac395b8920b04a33e4f2e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slides-title.test.ts#sanitizeFilename 通常タイトルはそのまま（入力 \"My Slides\"）の場合は、ファイル名として使える文字列を返す","name":"通常タイトルはそのまま（入力 \"My Slides\"）の場合は、ファイル名として使える文字列を返す","status":"passed","testResultsByEnv":{"default":"335584b6bc4d5f78bdc82b9ca341e33c"}}

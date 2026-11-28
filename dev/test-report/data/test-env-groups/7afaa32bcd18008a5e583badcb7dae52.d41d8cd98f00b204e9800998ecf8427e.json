@@ -1,0 +1,1 @@
+{"id":"7afaa32bcd18008a5e583badcb7dae52.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateClosedHeadings（テンプレに無い ## / ### 見出し #1330） 同じ見出しは 1 回だけ返す","name":"同じ見出しは 1 回だけ返す","status":"passed","testResultsByEnv":{"default":"d451f762666c3d9ab5be70398b437559"}}

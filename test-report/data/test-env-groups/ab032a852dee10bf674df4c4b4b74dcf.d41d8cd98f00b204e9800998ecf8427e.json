@@ -1,0 +1,1 @@
+{"id":"ab032a852dee10bf674df4c4b4b74dcf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show Stack の節 記録が無い作業ディレクトリ 判定が startable ときは、Stack の節を出さない","name":"判定が startable ときは、Stack の節を出さない","status":"passed","testResultsByEnv":{"default":"680d17eb68e0e3dffae03530b591652a"}}

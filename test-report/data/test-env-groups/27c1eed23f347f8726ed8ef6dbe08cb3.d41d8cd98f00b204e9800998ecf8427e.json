@@ -1,0 +1,1 @@
+{"id":"27c1eed23f347f8726ed8ef6dbe08cb3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#Python reads Python のソースに a parenthesized import があると、名前を解決できない行を 1 件返し、名前は返さない","name":"Python のソースに a parenthesized import があると、名前を解決できない行を 1 件返し、名前は返さない","status":"passed","testResultsByEnv":{"default":"4138a250bc8a0cec5e63654585c56c44"}}

@@ -1,0 +1,1 @@
+{"id":"072a5ff9ef1569d0cb8368f65e9da670.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 親 PR がマージ済みで、remote の子ブランチが書き換わっていないと、開発ブランチへスタックし直して push する","name":"親 PR がマージ済みで、remote の子ブランチが書き換わっていないと、開発ブランチへスタックし直して push する","status":"passed","testResultsByEnv":{"default":"2b7514b1fbe59632ead5155ef966f657"}}

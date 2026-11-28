@@ -1,0 +1,1 @@
+{"id":"fa1b8646d9b7febd238ee8389449d15b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init-detection.test.ts#検知スクリプトを呼ぶエントリの静的ガード pre-tool-use-skill.sh の CORE_DIR の配下は、変数経由でだけ参照する","name":"pre-tool-use-skill.sh の CORE_DIR の配下は、変数経由でだけ参照する","status":"passed","testResultsByEnv":{"default":"1c365dd51fa91010e2ff8ffe8ec4ff39"}}

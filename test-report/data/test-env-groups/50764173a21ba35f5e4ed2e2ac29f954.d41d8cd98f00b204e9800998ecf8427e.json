@@ -1,0 +1,1 @@
+{"id":"50764173a21ba35f5e4ed2e2ac29f954.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#本体の runtime manifest との整合 slidev の中核パッケージは、cli・client・parser が同じ固定の版でインストールされる","name":"slidev の中核パッケージは、cli・client・parser が同じ固定の版でインストールされる","status":"passed","testResultsByEnv":{"default":"85566c27e863bee674859da8f9de09bb"}}

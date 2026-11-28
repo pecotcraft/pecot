@@ -1,0 +1,1 @@
+{"id":"8ca5f58c4e190eed1b8eccd2a2b9934a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge MCP の data マージが失敗すると、data に reason と detail だけを入れて失敗を返す","name":"マージが失敗すると、data に reason と detail だけを入れて失敗を返す","status":"passed","testResultsByEnv":{"default":"db19eb6e363ad44c97dca98c198c5429"}}

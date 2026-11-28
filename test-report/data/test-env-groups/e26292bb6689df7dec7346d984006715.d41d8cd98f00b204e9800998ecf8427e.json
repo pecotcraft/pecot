@@ -1,0 +1,1 @@
+{"id":"e26292bb6689df7dec7346d984006715.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slideConvertDefaultDependencies 既定の依存は、infra の実装（in-process の pipeline）を組み立てて返す","name":"既定の依存は、infra の実装（in-process の pipeline）を組み立てて返す","status":"passed","testResultsByEnv":{"default":"77381a844c79a0b5114762aa4fe21e20"}}

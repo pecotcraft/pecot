@@ -1,0 +1,1 @@
+{"id":"7440176241a9ea0d408073786dd904c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data MCP の呼び出し スタックし直しが衝突すると、continue・abort の案内を detail に入れ、途中の記録を書く","name":"スタックし直しが衝突すると、continue・abort の案内を detail に入れ、途中の記録を書く","status":"passed","testResultsByEnv":{"default":"fc7ada413a9079418e6d2b555f93d88f"}}

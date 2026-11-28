@@ -1,0 +1,1 @@
+{"id":"22467653f6eb1f9dd5d63a02257ea2e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#configSourcePath loadConfig で読み込んだ設定は、元のファイルの実パスを返す","name":"loadConfig で読み込んだ設定は、元のファイルの実パスを返す","status":"passed","testResultsByEnv":{"default":"ac3aa1c94a950282bdd739866ad4354c"}}

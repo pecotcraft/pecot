@@ -1,0 +1,1 @@
+{"id":"629bd8d16b3c4cf9f5538bec06f22841.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_list_test_lanes#test_affected_mode_keeps_only_lane_tasks","name":"affected のモードでは、タスクのうちレーンのものだけを残して出力する","status":"passed","testResultsByEnv":{"default":"150ea3b298223f29c707a9e6f90ca879"}}

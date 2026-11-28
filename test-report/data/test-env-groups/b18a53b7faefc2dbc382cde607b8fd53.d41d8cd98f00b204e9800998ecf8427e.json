@@ -1,0 +1,1 @@
+{"id":"b18a53b7faefc2dbc382cde607b8fd53.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_triggers_are_push_to_main_and_dispatch_only","name":"test-report は、main への push と手動の起動だけで動く","status":"passed","testResultsByEnv":{"default":"80ec63d6391b7ef330da04929b5c3583"}}

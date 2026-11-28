@@ -1,0 +1,1 @@
+{"id":"d4b4fdea7309fa0faa5167faa73f4224.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateSections（必須セクション検証: 見出しレベル・em-dash サマリ） 必須の見出しが不足していると、レベルを付けて返す","name":"必須の見出しが不足していると、レベルを付けて返す","status":"passed","testResultsByEnv":{"default":"b3d6e6e80deee26ae74d91f5eb93d6e7"}}

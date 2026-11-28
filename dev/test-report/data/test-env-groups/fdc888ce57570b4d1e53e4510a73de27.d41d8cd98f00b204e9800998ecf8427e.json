@@ -1,0 +1,1 @@
+{"id":"fdc888ce57570b4d1e53e4510a73de27.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync auto-merge が無く、検証が 25 時間たっても終わらない PR は、理由 no auto-merge で扱う","name":"auto-merge が無く、検証が 25 時間たっても終わらない PR は、理由 no auto-merge で扱う","status":"passed","testResultsByEnv":{"default":"e522206a516067d041c812e469724d6b"}}

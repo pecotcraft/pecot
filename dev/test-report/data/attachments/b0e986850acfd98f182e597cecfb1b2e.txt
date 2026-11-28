@@ -1,0 +1,1 @@
+WARN: dependabot-plans.js が見つからないため version plan check を skip

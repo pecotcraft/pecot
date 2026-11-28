@@ -1,0 +1,1 @@
+{"id":"f509dcbbc21270be92b36543eb3d37bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: YAML 二重引用符 の値に違反があると、値の位置に指摘を 1 件返す","name":"二重引用符 の値に違反があると、値の位置に指摘を 1 件返す","status":"passed","testResultsByEnv":{"default":"97e48742e251dcd45dcf14649cdd3cf3"}}

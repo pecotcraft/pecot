@@ -1,0 +1,1 @@
+{"id":"b39971b57688d0eb8ffbf38ee784b07c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#兄弟 PDF 出力先を省略すると、`<input>.svg` の兄弟の `<input>.pdf` に書き出す","name":"出力先を省略すると、`<input>.svg` の兄弟の `<input>.pdf` に書き出す","status":"passed","testResultsByEnv":{"default":"cad1e4c7cd383dae21ac7b5dd4e020a5"}}

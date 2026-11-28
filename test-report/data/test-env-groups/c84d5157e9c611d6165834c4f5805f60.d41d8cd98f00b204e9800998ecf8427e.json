@@ -1,0 +1,1 @@
+{"id":"c84d5157e9c611d6165834c4f5805f60.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base 作成の応答が PR 番号を持たないと、スタックへ登録せずに warning の行を出し、URL を出す","name":"作成の応答が PR 番号を持たないと、スタックへ登録せずに warning の行を出し、URL を出す","status":"passed","testResultsByEnv":{"default":"ad327f56b47d300a24254cd0753dfaf6"}}

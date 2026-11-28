@@ -1,0 +1,1 @@
+{"id":"9102da85ae94f7ad4d016083f87c4522.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — 正常系 同じパスの画像を 2 件並べても、重複を除かず、項目ごとに連番で格納する","name":"同じパスの画像を 2 件並べても、重複を除かず、項目ごとに連番で格納する","status":"passed","testResultsByEnv":{"default":"cd810e8d541b4aa69d7350800b9bf730"}}

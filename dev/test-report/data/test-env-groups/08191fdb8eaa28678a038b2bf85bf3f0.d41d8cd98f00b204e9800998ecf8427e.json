@@ -1,0 +1,1 @@
+{"id":"08191fdb8eaa28678a038b2bf85bf3f0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate 同期した中身が既存の設定ファイルと同じだと、書き換えずに change を unchanged にし、アクティブにする","name":"同期した中身が既存の設定ファイルと同じだと、書き換えずに change を unchanged にし、アクティブにする","status":"passed","testResultsByEnv":{"default":"df00f0d84888eb1a0f8e0243ca245cc3"}}

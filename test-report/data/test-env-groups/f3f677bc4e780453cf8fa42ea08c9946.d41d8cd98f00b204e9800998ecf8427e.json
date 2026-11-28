@@ -1,0 +1,1 @@
+{"id":"f3f677bc4e780453cf8fa42ea08c9946.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/integration.test.ts#統合: エントリ Copilot CLI のエントリでコマンドが pecot pr create ./x.md のとき、何も出力しない","name":"Copilot CLI のエントリでコマンドが pecot pr create ./x.md のとき、何も出力しない","status":"passed","testResultsByEnv":{"default":"5d7b5bb3b8576770e1ea748e127ccd04"}}

@@ -1,0 +1,1 @@
+{"id":"df34e6be3ce717a4021bc66038dbedd9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-finish.test.ts#auto finish job の様子から結果を決める 結果のファイルがあれば、job が失敗でも、frontmatter の result と本文をそのまま書く","name":"結果のファイルがあれば、job が失敗でも、frontmatter の result と本文をそのまま書く","status":"passed","testResultsByEnv":{"default":"1875de94c9d1cf6f87e363405c4c6569"}}

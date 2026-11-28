@@ -1,0 +1,1 @@
+{"id":"8884dbfd23d0af29c87fe6038b8bdceb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の状態 検証の停滞は、auto-merge が有効な PR にだけ当てはめる","name":"検証の停滞は、auto-merge が有効な PR にだけ当てはめる","status":"passed","testResultsByEnv":{"default":"43c960427135d4f408316cd79cdc2245"}}

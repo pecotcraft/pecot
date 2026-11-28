@@ -1,0 +1,1 @@
+{"id":"913bb042d26141557d367067b85fd03b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 定型の clone を許可する 末尾のスラッシュと名前のドットがあっても、exit 10 を返す","name":"末尾のスラッシュと名前のドットがあっても、exit 10 を返す","status":"passed","testResultsByEnv":{"default":"0cfcbaf037f11896429d801be2344cbd"}}

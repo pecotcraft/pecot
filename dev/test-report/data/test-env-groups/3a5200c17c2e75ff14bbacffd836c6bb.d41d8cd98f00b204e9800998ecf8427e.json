@@ -1,0 +1,1 @@
+{"id":"3a5200c17c2e75ff14bbacffd836c6bb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: 文字列の本文のエスケープ 単引用符の文字列の \\n\\n で段落を分け、文の長さの指摘を出さない","name":"単引用符の文字列の \\n\\n で段落を分け、文の長さの指摘を出さない","status":"passed","testResultsByEnv":{"default":"4cb55f29bafda4b5f17588ac6782e358"}}

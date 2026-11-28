@@ -1,0 +1,1 @@
+{"id":"7d66035f45aabc80f3ba5a9898871f70.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 既定のポートがすべて使用中なら spawn せず失敗を返す","name":"既定のポートがすべて使用中なら spawn せず失敗を返す","status":"passed","testResultsByEnv":{"default":"e52d3144a14312cb229e3666557fd3d3"}}

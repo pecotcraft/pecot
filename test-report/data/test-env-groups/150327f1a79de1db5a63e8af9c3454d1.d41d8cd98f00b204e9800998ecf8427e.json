@@ -1,0 +1,1 @@
+{"id":"150327f1a79de1db5a63e8af9c3454d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/body-extractor.test.ts#開始行に空白があるか空行を含む frontmatter だと、共有の抽出器と同じ終端行で判定する","name":"開始行に空白があるか空行を含む frontmatter だと、共有の抽出器と同じ終端行で判定する","status":"passed","testResultsByEnv":{"default":"a1e821c7e778d1f2db77795d311631a5"}}

@@ -1,0 +1,1 @@
+{"id":"afbe8a9c97cded83bad7073766d4591d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check MCP の data nx のリポジトリに package を渡した と、kind が invalid-input の失敗を返す","name":"nx のリポジトリに package を渡した と、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"ce23a7f2745ae1cf929cf651ff8feebd"}}

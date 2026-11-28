@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "not a talk-dir (no slides.md): /tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing; specify a talk-dir created by slide_create"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.lint.error\",\"kind\":\"not-talk-dir\",\"detail\":\"not a talk-dir (no slides.md): /tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing; specify a talk-dir created by slide_create\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.lint.error",
+    "kind": "not-talk-dir",
+    "detail": "not a talk-dir (no slides.md): /tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing; specify a talk-dir created by slide_create"
+  },
+  "isError": true
+}

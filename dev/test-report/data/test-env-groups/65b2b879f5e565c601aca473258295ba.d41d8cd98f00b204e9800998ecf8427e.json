@@ -1,0 +1,1 @@
+{"id":"65b2b879f5e565c601aca473258295ba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator props validation same_length_as の値が文字列でないと、検証に失敗する","name":"same_length_as の値が文字列でないと、検証に失敗する","status":"passed","testResultsByEnv":{"default":"0811045a0af2e9b838d019cbc3b10e08"}}

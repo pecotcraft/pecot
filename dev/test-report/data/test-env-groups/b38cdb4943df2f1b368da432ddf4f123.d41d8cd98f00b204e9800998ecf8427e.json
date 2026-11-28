@@ -1,0 +1,1 @@
+{"id":"b38cdb4943df2f1b368da432ddf4f123.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#parseProjectConfig（検証エラー） 配列の要素がオブジェクトではない場合は、クラス名を含む model_type の検証エラーを返す","name":"配列の要素がオブジェクトではない場合は、クラス名を含む model_type の検証エラーを返す","status":"passed","testResultsByEnv":{"default":"bc46297716b4ec74554977c2c5dadb74"}}

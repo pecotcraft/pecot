@@ -1,0 +1,6 @@
+warning: multiple open Trackers; using #9 (lowest number) and leaving #12 open
+count: open dependabot PRs: 0
+count: PRs awaiting a decision: 0
+count: PRs awaiting a decision without check results: 0
+removed: PR #1 from Tracker #9
+closed: Tracker #9

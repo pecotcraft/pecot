@@ -1,0 +1,1 @@
+{"id":"77e937d6ec00c6a2511ed052368ac7e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 定型の外 コマンドが定型の外（clone 先に .. を含む）のとき、許可せず何も出力しない","name":"コマンドが定型の外（clone 先に .. を含む）のとき、許可せず何も出力しない","status":"passed","testResultsByEnv":{"default":"9277299f925ef938c843f49967dfe892"}}

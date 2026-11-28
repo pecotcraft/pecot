@@ -1,0 +1,1 @@
+{"id":"af38a359790ba89b5d6583cd857813ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create もし release_branch を設定していないなら、設定コマンドを案内する error の行を標準エラーに出す","name":"もし release_branch を設定していないなら、設定コマンドを案内する error の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"fe9c9d6ba4f0fc1aee60c9182e270879"}}

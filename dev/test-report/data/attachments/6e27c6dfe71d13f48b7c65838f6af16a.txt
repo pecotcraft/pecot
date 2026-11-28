@@ -1,0 +1,2 @@
+error: invalid input: ✖ Invalid option: expected one of "dependabot"|"security"|"issue-surface"
+  → at source

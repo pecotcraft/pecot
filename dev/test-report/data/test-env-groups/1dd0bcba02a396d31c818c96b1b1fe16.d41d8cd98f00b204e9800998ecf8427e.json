@@ -1,0 +1,1 @@
+{"id":"1dd0bcba02a396d31c818c96b1b1fe16.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry ready にならないまま待ち時間が過ぎると、dev-server-timeout を返して子を止める","name":"ready にならないまま待ち時間が過ぎると、dev-server-timeout を返して子を止める","status":"passed","testResultsByEnv":{"default":"caca61d9b4ad19e3f28a4782c5c8d7ff"}}

@@ -1,0 +1,1 @@
+{"id":"22676b6a71b4437d676aadf9bbd79223.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#executeMcpServe Error でない値で失敗しても、文字列にして通知する","name":"Error でない値で失敗しても、文字列にして通知する","status":"passed","testResultsByEnv":{"default":"99dce636f445d95e11f6314cc29e7f2d"}}

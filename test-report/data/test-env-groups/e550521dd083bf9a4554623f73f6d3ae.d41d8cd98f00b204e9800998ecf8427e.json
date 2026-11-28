@@ -1,0 +1,1 @@
+{"id":"e550521dd083bf9a4554623f73f6d3ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#validateText max_chars の範囲に収まる文字列だと、エラーを返さない","name":"max_chars の範囲に収まる文字列だと、エラーを返さない","status":"passed","testResultsByEnv":{"default":"51ba3cff23a1d93fc56e7da6ddfaa095"}}

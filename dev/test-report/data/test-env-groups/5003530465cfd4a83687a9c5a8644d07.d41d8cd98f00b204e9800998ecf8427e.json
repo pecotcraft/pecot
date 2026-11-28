@@ -1,0 +1,1 @@
+{"id":"5003530465cfd4a83687a9c5a8644d07.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/diff.test.ts#diffGenerated 値の型が変わると、変更前と変更後の値を含む差の行を返す","name":"値の型が変わると、変更前と変更後の値を含む差の行を返す","status":"passed","testResultsByEnv":{"default":"183d3bcf1d3d4281d808435e8db9d4b3"}}

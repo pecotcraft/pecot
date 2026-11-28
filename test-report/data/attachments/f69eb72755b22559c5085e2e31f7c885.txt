@@ -1,0 +1,1 @@
+{"event":"slide.convert.error","reason":"project-not-found","detail":"directory not found: /tmp/pecotv-slide-convert-j6T7QF/no-such-dir","warnings":[],"errors":[]}

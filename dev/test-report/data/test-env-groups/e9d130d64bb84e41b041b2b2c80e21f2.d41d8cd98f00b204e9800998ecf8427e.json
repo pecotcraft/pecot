@@ -1,0 +1,1 @@
+{"id":"e9d130d64bb84e41b041b2b2c80e21f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#gitCurrentBranch detached HEAD の場合は、HEAD を返す","name":"detached HEAD の場合は、HEAD を返す","status":"passed","testResultsByEnv":{"default":"dece95f2f818b13ed917625404c4b5fe"}}

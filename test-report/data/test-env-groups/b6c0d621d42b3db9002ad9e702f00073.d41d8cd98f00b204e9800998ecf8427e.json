@@ -1,0 +1,1 @@
+{"id":"b6c0d621d42b3db9002ad9e702f00073.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#ディレクトリ 設定ディレクトリは .pecot/config、プロジェクト設定ディレクトリはその下の projects を返す","name":"設定ディレクトリは .pecot/config、プロジェクト設定ディレクトリはその下の projects を返す","status":"passed","testResultsByEnv":{"default":"1e38f31f24128fc826a647230e1b3bcb"}}

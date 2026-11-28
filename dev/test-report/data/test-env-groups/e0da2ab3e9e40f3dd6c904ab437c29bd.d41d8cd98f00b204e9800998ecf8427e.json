@@ -1,0 +1,1 @@
+{"id":"e0da2ab3e9e40f3dd6c904ab437c29bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-surface-tracker.test.ts#renderTrackerBody 既存の本文がある場合は、list-begin と list-end の間だけを書き換え、外側の文を残す","name":"既存の本文がある場合は、list-begin と list-end の間だけを書き換え、外側の文を残す","status":"passed","testResultsByEnv":{"default":"7de0b4c377e3ff2532dc155a3e0622c1"}}

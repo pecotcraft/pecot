@@ -1,0 +1,1 @@
+{"id":"48ec1ec98d0c94d37a350d98a3db3228.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine replaceWithXml は、要素を XML として展開して置き換え、テキストとしてエスケープしない","name":"replaceWithXml は、要素を XML として展開して置き換え、テキストとしてエスケープしない","status":"passed","testResultsByEnv":{"default":"560928f5d1ec0ea18c1ef2b8e401f4f0"}}

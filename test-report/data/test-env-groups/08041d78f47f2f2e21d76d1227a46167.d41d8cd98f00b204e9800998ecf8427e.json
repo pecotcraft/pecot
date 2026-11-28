@@ -1,0 +1,1 @@
+{"id":"08041d78f47f2f2e21d76d1227a46167.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/review-finish.test.ts#review finish GITHUB_RUN_ID が無いと、目印を付けず、PR のコメントを読まない","name":"GITHUB_RUN_ID が無いと、目印を付けず、PR のコメントを読まない","status":"passed","testResultsByEnv":{"default":"7c116d994000bbd5ce2cabe6c296c4ad"}}

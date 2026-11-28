@@ -1,0 +1,1 @@
+{"id":"8e191fc06979f692d192d08a837f96a1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_runs_an_existing_script_and_adds_devcontainer_json","name":"dependabot-commit.yml は、存在するスクリプトを実行し、devcontainer.json もコミットに加える","status":"passed","testResultsByEnv":{"default":"6b76246065c11a82b620b108bb531779"}}

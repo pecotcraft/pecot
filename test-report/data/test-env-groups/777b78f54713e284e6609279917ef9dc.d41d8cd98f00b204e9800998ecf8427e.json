@@ -1,0 +1,1 @@
+{"id":"777b78f54713e284e6609279917ef9dc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 参照クエリ \"EXPLAIN SELECT 1\" は、許可する","name":"参照クエリ \"EXPLAIN SELECT 1\" は、許可する","status":"passed","testResultsByEnv":{"default":"78d4f96a73a630fbc716620414b6e091"}}

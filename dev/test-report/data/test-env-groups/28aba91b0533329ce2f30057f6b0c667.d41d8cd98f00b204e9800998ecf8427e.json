@@ -1,0 +1,1 @@
+{"id":"28aba91b0533329ce2f30057f6b0c667.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#hasReadinessChanged・describeReadinessChange 変化を示す文字列は、blocked では理由を付けず、stackable ではスタック先を付ける","name":"変化を示す文字列は、blocked では理由を付けず、stackable ではスタック先を付ける","status":"passed","testResultsByEnv":{"default":"0348b34d8e73c8d33cb52f412672c82e"}}

@@ -1,0 +1,1 @@
+{"id":"6b7a245db36853cfe195ba8e03540fab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-setup.test.ts#runSetupCommand 標準入力は閉じているため、入力を待つコマンドでも止まらずに終了する","name":"標準入力は閉じているため、入力を待つコマンドでも止まらずに終了する","status":"passed","testResultsByEnv":{"default":"102ccf8c2a8670d75d84c5b2c38d68f4"}}

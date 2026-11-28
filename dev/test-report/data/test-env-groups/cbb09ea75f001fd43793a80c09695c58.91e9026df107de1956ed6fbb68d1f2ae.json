@@ -1,0 +1,1 @@
+{"id":"cbb09ea75f001fd43793a80c09695c58.91e9026df107de1956ed6fbb68d1f2ae","fullName":".githooks.tests.test_pecot_rc#test_keeps_permission_mode_given_by_caller","name":"呼び出し側が ['--permission-mode', 'plan'] を指定すると、既定の `--permission-mode auto` を追加しない","status":"passed","testResultsByEnv":{"default":"0ab07594711862104a19cecc26d2e98b"}}

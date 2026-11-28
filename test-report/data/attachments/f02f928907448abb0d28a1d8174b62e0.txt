@@ -1,0 +1,1 @@
+ERROR: libs/text-rules が無いため文章規則を適用できません。root で pnpm install --frozen-lockfile を実行してください

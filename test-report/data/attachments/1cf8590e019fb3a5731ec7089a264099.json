@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "comment_id: add_issue_comment creates a new comment and takes no comment_id; use method update to rewrite a comment"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"comment_id\",\"code\":\"unexpected\",\"message\":\"add_issue_comment creates a new comment and takes no comment_id; use method update to rewrite a comment\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "comment_id",
+        "code": "unexpected",
+        "message": "add_issue_comment creates a new comment and takes no comment_id; use method update to rewrite a comment"
+      }
+    ]
+  }
+}

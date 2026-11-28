@@ -1,0 +1,1 @@
+{"id":"ba2435524f51afb2a8236a14b6daadd1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/raster.test.ts#ppmToPng 画素のデータが寸法に対して不足している場合は、寸法を含むメッセージで例外が発生する","name":"画素のデータが寸法に対して不足している場合は、寸法を含むメッセージで例外が発生する","status":"passed","testResultsByEnv":{"default":"ae82f76cfabcee38767a15d1b98290e6"}}

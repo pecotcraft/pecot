@@ -1,0 +1,1 @@
+{"id":"07fee5de09d355fa204e8ae91eed0dad.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_extract_uses_the_given_check","name":"`extract` は、渡された確認の関数を使い、指摘があれば展開しない","status":"passed","testResultsByEnv":{"default":"ffdbbbccde3db3af6040eb907155493e"}}

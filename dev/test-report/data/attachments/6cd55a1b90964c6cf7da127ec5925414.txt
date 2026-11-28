@@ -1,0 +1,21 @@
+
+==========================================
+❌ version plan の形式違反があります:
+==========================================
+  - /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_stale_group_key_fails0/plans/227-stale-key.md: frontmatter のキー 'pecot' は nx.json の release.groups にありません。有効なキー: pecot-workflow,pecot-visual,pecot-tools,text-rules,workflow-core,pecot-actions
+
+📋 plan 本文ルール（CHANGELOG bullet として転記される 1 文）:
+  - 1 段落の短文（空行なし）
+  - 各行 ≤ 100 chars（PR refs が行末に付く余白）
+  - 非空行数 ≤ 3（WHAT のみ。WHY/HOW は PR description に書く）
+  - 総文字数 ≤ 200 chars
+  - '- ' 箇条書き禁止（Nx が bullet で包むため）
+  - '#' 見出し禁止（Nx が自動付与するため）
+
+📋 ファイル名規則: <番号>-<slug>.md（例: 227-version-plan-naming.md）
+  - <番号>: 紐づく Issue 番号を優先、Issue が無い場合は PR 番号
+  - <slug>: kebab-case 英字＋数字（連続ハイフン・末尾ハイフン・大文字不可）
+
+テンプレート: .nx/nx-release/version-plan-template.md
+==========================================
+

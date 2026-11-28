@@ -1,0 +1,1 @@
+{"id":"1a118d68324fd0e5d57f798c8631f586.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/launch.test.ts#launchChromium headless で起動したブラウザをそのまま返す","name":"headless で起動したブラウザをそのまま返す","status":"passed","testResultsByEnv":{"default":"1a5964eb4f0b441c1f2d462d607f5031"}}

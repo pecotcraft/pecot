@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool file_validate: cwd: Invalid input: expected string, received boolean"
+    }
+  ],
+  "isError": true
+}

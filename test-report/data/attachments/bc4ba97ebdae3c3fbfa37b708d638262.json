@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "acme/demo is not in any project config\n  available: (none)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-not-in-project\",\"detail\":\"acme/demo is not in any project config\\n  available: (none)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-not-in-project",
+    "detail": "acme/demo is not in any project config\n  available: (none)"
+  },
+  "isError": true
+}

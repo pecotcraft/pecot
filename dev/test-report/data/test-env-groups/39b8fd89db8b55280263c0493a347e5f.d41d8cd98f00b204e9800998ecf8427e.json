@@ -1,0 +1,1 @@
+{"id":"39b8fd89db8b55280263c0493a347e5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#引数の組み立て ECR のイメージ取得で tag_status を指定すると、shorthand 形式の --filter にまとめて実行する","name":"ECR のイメージ取得で tag_status を指定すると、shorthand 形式の --filter にまとめて実行する","status":"passed","testResultsByEnv":{"default":"02e38982d2b88faccef7b3790ca98e0a"}}

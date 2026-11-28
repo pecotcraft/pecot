@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid input: key: Invalid input: expected \"aggregation_repo\""
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid input: key: Invalid input: expected \\\"aggregation_repo\\\"\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: key: Invalid input: expected \"aggregation_repo\""
+  },
+  "isError": true
+}

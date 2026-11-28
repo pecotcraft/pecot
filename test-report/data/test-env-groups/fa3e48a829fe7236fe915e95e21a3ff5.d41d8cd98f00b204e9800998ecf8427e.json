@@ -1,0 +1,1 @@
+{"id":"fa3e48a829fe7236fe915e95e21a3ff5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/batch-plan.test.ts#resolveBatch 前提が循環している場合は、エラーを返す","name":"前提が循環している場合は、エラーを返す","status":"passed","testResultsByEnv":{"default":"818fcaa977c9e4b8756de1e2658556de"}}

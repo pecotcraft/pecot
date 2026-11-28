@@ -1,0 +1,1 @@
+{"id":"1fa837a83b425e047680575634896849.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_pull_request_with_other_repo_pr_still_narrows_to_one","name":"他のリポジトリの PR が含まれていても、このリポジトリの PR が 1 件なら、その PR で受け付ける","status":"passed","testResultsByEnv":{"default":"e3af4bbafd13f813ca94891493d23a9f"}}

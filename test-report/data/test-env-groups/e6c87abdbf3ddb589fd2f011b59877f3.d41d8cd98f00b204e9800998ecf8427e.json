@@ -1,0 +1,1 @@
+{"id":"e6c87abdbf3ddb589fd2f011b59877f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show 子 PR fork の PR しか無ければ、子 PR が無いものとして Stack の節を出さない","name":"fork の PR しか無ければ、子 PR が無いものとして Stack の節を出さない","status":"passed","testResultsByEnv":{"default":"2e7fe71f7e384de676dc837e02d35a37"}}

@@ -1,0 +1,1 @@
+{"id":"10fef23b7796d8fd87150480c85b4490.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/concurrency.test.ts#runWithConcurrency 同時実行数 1 で最初のタスクが失敗しても、後続のタスクを実行して結果を返す","name":"同時実行数 1 で最初のタスクが失敗しても、後続のタスクを実行して結果を返す","status":"passed","testResultsByEnv":{"default":"a674c5fa587af7e2a49fdfef3ed8e51e"}}

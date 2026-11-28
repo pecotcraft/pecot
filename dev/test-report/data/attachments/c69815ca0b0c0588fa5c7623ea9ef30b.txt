@@ -1,0 +1,8 @@
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "pecotv: Node.js 0.0.0 は起動しません。\nnote: `.pecotv/.gitignore` is not tracked. Adding it with `git add -f .pecotv/.gitignore` and committing keeps the generated files under `.pecotv/` from showing as untracked in new clones and CI. Switching to a branch that does not track the file deletes it; the file is rewritten at the next session start."
+  },
+  "additionalContext": "pecotv: Node.js 0.0.0 は起動しません。\nnote: `.pecotv/.gitignore` is not tracked. Adding it with `git add -f .pecotv/.gitignore` and committing keeps the generated files under `.pecotv/` from showing as untracked in new clones and CI. Switching to a branch that does not track the file deletes it; the file is rewritten at the next session start.",
+  "systemMessage": "pecotv: Node.js 0.0.0 は起動しません。"
+}

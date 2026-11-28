@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: worktree wt1 at /tmp/pecot-cli-OsyXiV/workspaces/wt1/demo (branch wt1 from develop)"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt1\",\"path\":\"/tmp/pecot-cli-OsyXiV/workspaces/wt1/demo\",\"branch\":\"wt1\",\"base\":\"develop\",\"setupFailed\":true,\"warnings\":[\"setup command timed out: sleep 20\\n  err: timeout after 1 seconds\"]}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt1",
+    "path": "/tmp/pecot-cli-OsyXiV/workspaces/wt1/demo",
+    "branch": "wt1",
+    "base": "develop",
+    "setupFailed": true,
+    "warnings": [
+      "setup command timed out: sleep 20\n  err: timeout after 1 seconds"
+    ]
+  }
+}

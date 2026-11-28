@@ -1,0 +1,1 @@
+{"id":"5b47b12c05109aa0bc3b4fafca54dc8f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/review-workflow-template.test.ts#review のワークフローの雛形 PR の確認ステップは、起動用のコメントより後のコミットが head の場合は通さない","name":"PR の確認ステップは、起動用のコメントより後のコミットが head の場合は通さない","status":"passed","testResultsByEnv":{"default":"2589322e7f853317732d2ac6f0e2fd9b"}}

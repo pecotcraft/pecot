@@ -1,0 +1,1 @@
+{"id":"8a2c3929d445afd90066ca904879d078.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#manifest の読み書き manifest.json の内容が不正な場合は、存在しない場合と区別して status が invalid になる","name":"manifest.json の内容が不正な場合は、存在しない場合と区別して status が invalid になる","status":"passed","testResultsByEnv":{"default":"3b51f78fc9b9efdb8e3691cd0edf2dc6"}}

@@ -1,0 +1,1 @@
+{"id":"fa0ad77f07d00131a0269e8a4978a3b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/english-only.test.ts#判定器 ソースが const a = `ひらがな ${x}` のとき、日本語を含むリテラルを 1 件見つける","name":"ソースが const a = `ひらがな ${x}` のとき、日本語を含むリテラルを 1 件見つける","status":"passed","testResultsByEnv":{"default":"45013bcf78c3899591f2b0ce7ec1a6e6"}}

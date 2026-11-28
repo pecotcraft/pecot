@@ -1,0 +1,1 @@
+{"id":"f0c94dd60d1c93dd939d8e2e8dae29a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init confirm_delete を付けて打つと、設定ファイルを同期した後に 2 つのフィールドを消し、deleted の行を出す","name":"confirm_delete を付けて打つと、設定ファイルを同期した後に 2 つのフィールドを消し、deleted の行を出す","status":"passed","testResultsByEnv":{"default":"24e7adc3988dbbd0a748e2bf3f5aea92"}}

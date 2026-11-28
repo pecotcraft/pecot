@@ -1,0 +1,1 @@
+ERROR: 監査記録を読めません: /tmp/bats-run-c8L97U/test/19/audit-record.json

@@ -1,0 +1,19 @@
+
+[7m[1m[36m NX [39m[22m[27m  [36mRunning target [1mlint-src[22m for project lane-lint:[39m
+
+[2m-[22m lane-lint
+
+[2m[36m[39m[22m
+
+[2m> [22m[2mnx run[22m lane-lint:lint-src
+
+
+[2m[32m[39m[22m
+
+[7m[1m[32m NX [39m[22m[27m  [32mSuccessfully ran target [1mlint-src[22m for project lane-lint[39m
+
+
+  Run duration:      32ms
+  Cache:             0/1 hit (0%)
+  Critical path:     12ms (1 task)
+  Recoverable time:  <1ms

@@ -1,0 +1,1 @@
+{"id":"99b5f8db773f8135ad6e886abb1593a0.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_ci_result#test_zero_lanes_with_tests_not_skipped","name":"レーンが 0 件でも tests が skipped でなければ、失敗で終わる","status":"passed","testResultsByEnv":{"default":"6c1a474146bde0676c7c271e2304629e"}}

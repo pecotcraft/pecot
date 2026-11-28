@@ -1,0 +1,1 @@
+{"id":"9a85e885e32998ca4fba82bdd7f3dc2e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack remote に子ブランチが無いと、スタックし直すだけで push しない","name":"remote に子ブランチが無いと、スタックし直すだけで push しない","status":"passed","testResultsByEnv":{"default":"1d36b82886fd6d0c0d74d911cec5801f"}}

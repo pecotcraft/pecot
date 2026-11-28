@@ -1,0 +1,1 @@
+{"id":"ce4661b9436b2877cb20840f21b3bcd4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/failure.test.ts#kindOfFailure 例外 [GitHubAuthError: a] は、原因の種類 github-auth に分類される","name":"例外 [GitHubAuthError: a] は、原因の種類 github-auth に分類される","status":"passed","testResultsByEnv":{"default":"9be8ba2849ac3c8d168837fba731cebb"}}

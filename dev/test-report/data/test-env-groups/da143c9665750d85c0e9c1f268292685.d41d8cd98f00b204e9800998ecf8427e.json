@@ -1,0 +1,1 @@
+{"id":"da143c9665750d85c0e9c1f268292685.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#autoMarker ci-fix-pushed の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","name":"ci-fix-pushed の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","status":"passed","testResultsByEnv":{"default":"b693219ec97a5bda38eaeae49a977842"}}

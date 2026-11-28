@@ -1,0 +1,1 @@
+{"id":"e97a8f4f3082225167f1f965cce4c0f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base スタックした base の記録の形が誤っていると、ファイルの投稿 でも終了コード 1 で終わる","name":"スタックした base の記録の形が誤っていると、ファイルの投稿 でも終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"96c0281ff0488279789a9a7bfa6d035d"}}

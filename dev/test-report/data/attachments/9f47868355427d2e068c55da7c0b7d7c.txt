@@ -1,0 +1,3 @@
+POST /-/npm/v1/security/advisories/bulk
+POST /-/npm/v1/security/advisories/bulk
+POST /-/npm/v1/security/advisories/bulk

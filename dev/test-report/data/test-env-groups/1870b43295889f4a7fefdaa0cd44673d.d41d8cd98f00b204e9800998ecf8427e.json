@@ -1,0 +1,1 @@
+{"id":"1870b43295889f4a7fefdaa0cd44673d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#upsertWaitsForMerge の改行 LF の本文に \\r\\n の行が含まれていても、追加位置の隣の行の改行で追加する","name":"LF の本文に \\r\\n の行が含まれていても、追加位置の隣の行の改行で追加する","status":"passed","testResultsByEnv":{"default":"eb70b01c7a8511045c4c4a658161ee50"}}

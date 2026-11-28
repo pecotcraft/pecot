@@ -1,0 +1,8 @@
+:iface-id: PA-AUTO-GATE
+:iface-plugin: pecot-actions
+:iface-kind: Action
+
+auto gate
+==================
+
+.. iface-defs:: pecot-actions PA-AUTO-GATE

@@ -1,0 +1,1 @@
+{"id":"5e57cf02b2e8ec211553b76e9756346e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree と番号の記録（実 git） 番号の記録が存在しなくても、wtN のブランチを使っている worktree はその番号を使用中にする","name":"番号の記録が存在しなくても、wtN のブランチを使っている worktree はその番号を使用中にする","status":"passed","testResultsByEnv":{"default":"56a97e80bc8e77c726564b12b66ebf16"}}

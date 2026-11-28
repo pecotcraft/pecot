@@ -1,0 +1,1 @@
+{"id":"4036654d76f5b508bcc996b66ce5937f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ project-unset-state を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ project-unset-state を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"c619ad2898662e12575effd5168bc8a5"}}

@@ -1,0 +1,1 @@
+{"id":"ca6ce0fdef2bb2fed1b017308c267a1a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/merge-hook-outputs.test.ts#merge-hook-outputs.sh permissionDecision が混在するとき、deny を優先する","name":"permissionDecision が混在するとき、deny を優先する","status":"passed","testResultsByEnv":{"default":"d40d05ee3b0ff7bd3c65048cafdcd7fa"}}

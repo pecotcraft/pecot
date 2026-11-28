@@ -1,0 +1,1 @@
+待ち受けを続けられません: PR の URL ではありません（https://github.com/pecotcraft/pecot-sandbox/issues/12）

@@ -1,0 +1,1 @@
+{"id":"b4f1d5ef22e0f16e4d7d1070bdb737f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath スラッシュで書いた WSL 以外の UNC パスも、変換できないものとして扱う","name":"スラッシュで書いた WSL 以外の UNC パスも、変換できないものとして扱う","status":"passed","testResultsByEnv":{"default":"b9d63e27f735b8a8bcdc19541fa83ca3"}}

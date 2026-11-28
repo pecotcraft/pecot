@@ -1,0 +1,1 @@
+{"id":"33e2068c1ed78f2825ac717b8c6325b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#readIssueOf state が closed の Issue は closed にし、本文をそのまま写す","name":"state が closed の Issue は closed にし、本文をそのまま写す","status":"passed","testResultsByEnv":{"default":"0a832b74b915b843934c0d7bb3c385ed"}}

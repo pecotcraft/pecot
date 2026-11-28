@@ -1,0 +1,1 @@
+{"id":"00a11235c96bd09979f768454ffe29cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/queue.test.ts#createExecutionQueue タスクが失敗した後に追加したタスクも実行される","name":"タスクが失敗した後に追加したタスクも実行される","status":"passed","testResultsByEnv":{"default":"97c0be96c013558d9b57c08ae4cd29f3"}}

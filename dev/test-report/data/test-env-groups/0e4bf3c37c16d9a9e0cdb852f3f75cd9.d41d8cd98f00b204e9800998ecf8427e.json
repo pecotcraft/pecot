@@ -1,0 +1,1 @@
+{"id":"0e4bf3c37c16d9a9e0cdb852f3f75cd9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#getPngDimensions PNG のシグネチャが一致しない場合は、undefined を返す","name":"PNG のシグネチャが一致しない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"0ac8644a855880d27824b7c90da9a240"}}

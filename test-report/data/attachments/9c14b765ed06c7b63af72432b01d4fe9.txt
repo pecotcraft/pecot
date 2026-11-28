@@ -1,0 +1,1 @@
+モード: 全レーン（nx run-many -t test-cli,test-hooks,test-unit）

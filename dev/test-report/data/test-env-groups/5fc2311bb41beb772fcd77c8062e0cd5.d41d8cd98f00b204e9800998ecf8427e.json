@@ -1,0 +1,1 @@
+{"id":"5fc2311bb41beb772fcd77c8062e0cd5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-finish.test.ts#auto finish GitHub の読み書きの失敗 コメントの一覧を読めないと、書かずにその理由で止まる","name":"コメントの一覧を読めないと、書かずにその理由で止まる","status":"passed","testResultsByEnv":{"default":"1ad22ac8d361647eddadb64199f4f51b"}}

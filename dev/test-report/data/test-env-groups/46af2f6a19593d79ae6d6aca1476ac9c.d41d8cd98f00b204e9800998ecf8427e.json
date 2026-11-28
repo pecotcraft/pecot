@@ -1,0 +1,1 @@
+{"id":"46af2f6a19593d79ae6d6aca1476ac9c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#resolveTalkDirectoryNodeModules 引数の依存ルートを優先し、プラグインルートは見ない","name":"引数の依存ルートを優先し、プラグインルートは見ない","status":"passed","testResultsByEnv":{"default":"a4abae69d77dc5f5c42361bc380a8d14"}}

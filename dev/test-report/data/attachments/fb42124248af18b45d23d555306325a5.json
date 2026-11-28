@@ -1,0 +1,13 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": ""
+  },
+  "isError": true
+}

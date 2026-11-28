@@ -1,0 +1,1 @@
+{"id":"9c0730aa011ad15a445917ff08b099b3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/session-start-common.test.ts#session-start-common.sh .pecot が無いプロジェクトでは、.pecot を作らない","name":".pecot が無いプロジェクトでは、.pecot を作らない","status":"passed","testResultsByEnv":{"default":"b87fe7d64db88d4180fd637e189db392"}}

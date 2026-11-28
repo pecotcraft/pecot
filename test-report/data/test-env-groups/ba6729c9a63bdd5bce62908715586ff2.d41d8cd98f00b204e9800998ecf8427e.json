@@ -1,0 +1,1 @@
+{"id":"ba6729c9a63bdd5bce62908715586ff2.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/npm-cache-opt-in.test.sh#publish opt-in: 指定ディレクトリを npm cache にする","name":"publish opt-in: 指定ディレクトリを npm cache にする","status":"passed","testResultsByEnv":{"default":"c5f5b35528130d94b922bbf2f0a05516"}}

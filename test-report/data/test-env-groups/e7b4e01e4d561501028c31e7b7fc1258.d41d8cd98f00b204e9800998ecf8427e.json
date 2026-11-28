@@ -1,0 +1,1 @@
+{"id":"e7b4e01e4d561501028c31e7b7fc1258.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slide-url.test.ts#buildPrintUrl baseUrl の末尾にスラッシュがある場合も、スラッシュが重ならない URL を作成する","name":"baseUrl の末尾にスラッシュがある場合も、スラッシュが重ならない URL を作成する","status":"passed","testResultsByEnv":{"default":"ae1ecb37f689f5662b67d115491d8de7"}}

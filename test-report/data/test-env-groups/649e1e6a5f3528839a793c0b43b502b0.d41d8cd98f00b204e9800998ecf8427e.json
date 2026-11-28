@@ -1,0 +1,1 @@
+{"id":"649e1e6a5f3528839a793c0b43b502b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ board-add-auth を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ board-add-auth を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"c0285c3545484e412533273f00d4e79d"}}

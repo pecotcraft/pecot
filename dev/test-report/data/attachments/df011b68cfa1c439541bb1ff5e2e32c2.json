@@ -1,0 +1,30 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "params.sha: there are no commits from v0.1.0 to sha; there is nothing to release"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"params.sha\",\"code\":\"no-commits\",\"message\":\"there are no commits from v0.1.0 to sha; there is nothing to release\"}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\",\"commitCount\":0}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "params.sha",
+        "code": "no-commits",
+        "message": "there are no commits from v0.1.0 to sha; there is nothing to release"
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B",
+    "commitCount": 0
+  }
+}

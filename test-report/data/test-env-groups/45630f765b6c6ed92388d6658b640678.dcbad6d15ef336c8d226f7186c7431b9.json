@@ -1,0 +1,1 @@
+{"id":"45630f765b6c6ed92388d6658b640678.dcbad6d15ef336c8d226f7186c7431b9","fullName":".githooks.tests.test_check_pytest_titles#test_reports_missing_title_or_docstring","name":"docstring が改行で始まるテストを、場所と理由を添えて止める","status":"passed","testResultsByEnv":{"default":"c50193b9665463072b7556c3bf415ae1"}}

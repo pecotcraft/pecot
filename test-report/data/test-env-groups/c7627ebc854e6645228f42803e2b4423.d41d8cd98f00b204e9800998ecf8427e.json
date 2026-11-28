@@ -1,0 +1,1 @@
+{"id":"c7627ebc854e6645228f42803e2b4423.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateClosedHeadings（テンプレに無い ## / ### 見出し #1330） テンプレートの見出しは、エラーにしない","name":"テンプレートの見出しは、エラーにしない","status":"passed","testResultsByEnv":{"default":"6e4f263ee5f535278d9286ae7dd04703"}}

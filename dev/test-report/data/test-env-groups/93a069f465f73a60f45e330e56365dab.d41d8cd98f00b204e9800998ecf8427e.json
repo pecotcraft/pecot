@@ -1,0 +1,1 @@
+{"id":"93a069f465f73a60f45e330e56365dab.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.bats#nx の引数の形の --dryRun=true を渡すと、未対応の引数として終了コード 1 で止まる","name":"nx の引数の形の --dryRun=true を渡すと、未対応の引数として終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"66f5f60a7d783f3e9540c9d7e39f381c"}}

@@ -1,0 +1,1 @@
+{"id":"c7a50bfe784c94a79cadd3ce07c8c312.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_dev_report_is_compared_with_the_stored_report_only","name":"開発版のレポートの新旧は、保管済みのレポートとだけ比べ、定義書の新旧とは関係なく扱う","status":"passed","testResultsByEnv":{"default":"e503357c0532420adf067df811c73dff"}}

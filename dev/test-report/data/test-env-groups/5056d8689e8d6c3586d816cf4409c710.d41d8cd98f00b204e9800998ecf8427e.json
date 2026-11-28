@@ -1,0 +1,1 @@
+{"id":"5056d8689e8d6c3586d816cf4409c710.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: テンプレート文字列の ${} 埋め込み式で始まり、埋め込み式で終わるテンプレート文字列も読む","name":"埋め込み式で始まり、埋め込み式で終わるテンプレート文字列も読む","status":"passed","testResultsByEnv":{"default":"91db491ae900459827422de038750810"}}

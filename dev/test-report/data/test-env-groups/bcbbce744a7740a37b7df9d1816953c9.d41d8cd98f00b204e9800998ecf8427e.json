@@ -1,0 +1,1 @@
+{"id":"bcbbce744a7740a37b7df9d1816953c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185） 途中に文末記号 ？ があっても、2 文として扱いエラーにする","name":"途中に文末記号 ？ があっても、2 文として扱いエラーにする","status":"passed","testResultsByEnv":{"default":"3e3e5770eb919458ddfb9afce3631101"}}

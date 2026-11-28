@@ -1,0 +1,1 @@
+{"id":"0784862c193418cbccaef42bca43f97a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/launch.test.ts#launchChromium ライブラリ名を含まない枠付きの失敗も、ライブラリ名なしで runtime_setup を案内する","name":"ライブラリ名を含まない枠付きの失敗も、ライブラリ名なしで runtime_setup を案内する","status":"passed","testResultsByEnv":{"default":"35b99a0d46afbc5d04dc70aca7bbb441"}}

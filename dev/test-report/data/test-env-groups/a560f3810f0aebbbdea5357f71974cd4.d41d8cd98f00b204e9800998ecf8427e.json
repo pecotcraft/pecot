@@ -1,0 +1,1 @@
+{"id":"a560f3810f0aebbbdea5357f71974cd4.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_action_output_has_the_log_and_the_outputs_and_no_exit_code","name":"action の出力は、ログと action の outputs を表示し、終了コードを表示しない","status":"passed","testResultsByEnv":{"default":"443757da7720b605fc1edaf76539e8b4"}}

@@ -1,0 +1,1 @@
+{"id":"fbf9a6137c780ac669adf8bff02e1991.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/branch-name.test.ts#extractIssueNumberFromBranch ブランチ fix/bug-fix/123 の場合は、末尾の番号 123 を返す","name":"ブランチ fix/bug-fix/123 の場合は、末尾の番号 123 を返す","status":"passed","testResultsByEnv":{"default":"806958589c8295eb378dde37195f5b07"}}

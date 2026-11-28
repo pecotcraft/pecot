@@ -1,0 +1,1 @@
+reason=merge-tree が失敗（衝突または commit なし）

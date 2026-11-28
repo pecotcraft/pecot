@@ -1,0 +1,1 @@
+{"id":"5cad20b1e8b1e5e698f412883d033bd8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/server.test.ts#startServer クエリ文字列が付いた URL でも、クエリを除いてファイルを返す","name":"クエリ文字列が付いた URL でも、クエリを除いてファイルを返す","status":"passed","testResultsByEnv":{"default":"690bb11c54ce8e31dad1cf053124dd29"}}

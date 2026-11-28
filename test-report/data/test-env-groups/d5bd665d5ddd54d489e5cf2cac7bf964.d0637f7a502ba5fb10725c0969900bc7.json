@@ -1,0 +1,1 @@
+{"id":"d5bd665d5ddd54d489e5cf2cac7bf964.d0637f7a502ba5fb10725c0969900bc7","fullName":".githooks.tests.test_nx_affected_mapping#test_plugin_source_affects_own_projects","name":"actions/src/entry.ts を変更すると、そのソースを持つ project が affected になる","status":"passed","testResultsByEnv":{"default":"63dbc74e11b3b4c4f838c448c34de5bd"}}

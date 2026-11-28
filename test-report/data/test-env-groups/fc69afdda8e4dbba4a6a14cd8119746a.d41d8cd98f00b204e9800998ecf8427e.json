@@ -1,0 +1,1 @@
+{"id":"fc69afdda8e4dbba4a6a14cd8119746a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-no-verify-check.sh 有効にしてコマンドが git status --short | head -n 5 のとき、何も出力せず通す","name":"有効にしてコマンドが git status --short | head -n 5 のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"ecce20d1358f7b6fcc45217341d228e9"}}

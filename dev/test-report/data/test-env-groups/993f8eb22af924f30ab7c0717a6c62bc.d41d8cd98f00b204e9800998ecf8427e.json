@@ -1,0 +1,1 @@
+{"id":"993f8eb22af924f30ab7c0717a6c62bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-stop.test.ts#requireActiveConfig アクティブなプロジェクトが存在しない場合は、activate の案内を表示して終了コード 1 で止める","name":"アクティブなプロジェクトが存在しない場合は、activate の案内を表示して終了コード 1 で止める","status":"passed","testResultsByEnv":{"default":"046503110c78394d610d2f340af75b66"}}

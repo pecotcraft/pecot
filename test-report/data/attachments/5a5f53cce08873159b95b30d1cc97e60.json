@@ -1,0 +1,6 @@
+[
+  "pecot:install",
+  "text-rules:build",
+  "text-rules:install",
+  "text-rules:test-unit"
+]

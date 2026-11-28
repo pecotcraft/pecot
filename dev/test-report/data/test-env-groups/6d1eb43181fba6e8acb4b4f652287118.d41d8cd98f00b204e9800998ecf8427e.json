@@ -1,0 +1,1 @@
+{"id":"6d1eb43181fba6e8acb4b4f652287118.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_init アクティブなプロジェクトに aggregation_repo があると、共有する 3 つのリンクをそのリポジトリに向ける","name":"アクティブなプロジェクトに aggregation_repo があると、共有する 3 つのリンクをそのリポジトリに向ける","status":"passed","testResultsByEnv":{"default":"2fd6896137d10254c1b2fe48c0140ef1"}}

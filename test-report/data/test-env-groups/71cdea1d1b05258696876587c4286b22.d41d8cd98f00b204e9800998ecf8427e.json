@@ -1,0 +1,1 @@
+{"id":"71cdea1d1b05258696876587c4286b22.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#isChromiumInstalled ブラウザの置き場そのものが存在しない場合は、未取得と判定する","name":"ブラウザの置き場そのものが存在しない場合は、未取得と判定する","status":"passed","testResultsByEnv":{"default":"e1990385189df3b89a3a9bfc277bae12"}}

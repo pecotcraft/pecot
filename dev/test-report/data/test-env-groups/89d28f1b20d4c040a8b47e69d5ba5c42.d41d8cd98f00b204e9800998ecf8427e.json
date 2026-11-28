@@ -1,0 +1,1 @@
+{"id":"89d28f1b20d4c040a8b47e69d5ba5c42.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#create / sync 末尾の自動 deck lint slide_sync の nodeModulesOnly でも deck lint の要約を載せる","name":"slide_sync の nodeModulesOnly でも deck lint の要約を載せる","status":"passed","testResultsByEnv":{"default":"a59ee8fb853ba09f0c983c1b637d739f"}}

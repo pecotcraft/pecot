@@ -1,0 +1,6 @@
+warning: could not move #1: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:44653/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+moved: #4 Blocked -> Ready (startable)
+count: GraphQL points used: 30
+count: GraphQL points remaining: 4870
+error: could not write 1 Issue to the board

@@ -1,0 +1,2 @@
+error: release_branch is not set for acme/demo
+  set it with: project_link with repo: "acme/demo", release_branch: <branch>

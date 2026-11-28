@@ -1,0 +1,1 @@
+{"id":"194fa396191d5653dbaf130ee6be79fa.12e66ca6a1529d54b198551ac25b60fb","fullName":".githooks.tests.test_run_affected_lint#test_graph_unavailable_fail_closed","name":"STUB_NX_GRAPH_FAIL が指定されると、nx affected を起動せずエラーで止める","status":"passed","testResultsByEnv":{"default":"01e439dea6654aedcbcec9d9f24da24f"}}

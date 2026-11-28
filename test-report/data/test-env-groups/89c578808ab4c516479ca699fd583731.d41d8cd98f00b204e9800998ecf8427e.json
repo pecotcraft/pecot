@@ -1,0 +1,1 @@
+{"id":"89c578808ab4c516479ca699fd583731.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-state-guard.test.ts#pecot-state-guard.sh CLAUDE_PROJECT_DIR が未設定のとき、失敗し、何も作らない","name":"CLAUDE_PROJECT_DIR が未設定のとき、失敗し、何も作らない","status":"passed","testResultsByEnv":{"default":"1546ff2f10959ade04527978719329c2"}}

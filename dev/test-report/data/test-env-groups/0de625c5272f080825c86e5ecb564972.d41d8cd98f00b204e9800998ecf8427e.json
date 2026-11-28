@@ -1,0 +1,1 @@
+{"id":"0de625c5272f080825c86e5ecb564972.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#linkNodeModules (依存ルートの項目) node_modules を実ディレクトリにし、各項目を物理パスへ解決する相対 symlink で張る","name":"node_modules を実ディレクトリにし、各項目を物理パスへ解決する相対 symlink で張る","status":"passed","testResultsByEnv":{"default":"6df29adfecbeca89367bfe5434e603be"}}

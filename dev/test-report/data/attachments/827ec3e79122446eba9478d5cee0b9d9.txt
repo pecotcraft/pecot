@@ -1,0 +1,6 @@
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PostToolUse",
+    "additionalContext": "<!-- mode: shared -->\nnote: **Plan comment update** — if the approved plan differs from the posted one, fix the posted file.\nThen check it with the MCP tool issue_comment_check of the workflow server.\nRewrite the comment of its comment_id with update_issue_comment of the official GitHub MCP server.\nWhether or not you updated the comment, go on to implement the plan in the same turn. Approval is the signal to start, so do not stop to ask."
+  }
+}

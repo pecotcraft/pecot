@@ -1,0 +1,1 @@
+{"id":"10164a6117f8f9568c887f6597d4e007.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#本体の runtime manifest との整合 ワークスペースの package.json は、URL を直接指定する依存を含まない","name":"ワークスペースの package.json は、URL を直接指定する依存を含まない","status":"passed","testResultsByEnv":{"default":"e85054f5c35883829d957d172b72dfe5"}}

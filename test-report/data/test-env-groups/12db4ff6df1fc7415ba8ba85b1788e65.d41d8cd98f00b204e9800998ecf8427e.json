@@ -1,0 +1,1 @@
+{"id":"12db4ff6df1fc7415ba8ba85b1788e65.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create 待っている Issue 待つ Issue が無ければ、ボードを読まない","name":"待つ Issue が無ければ、ボードを読まない","status":"passed","testResultsByEnv":{"default":"8f58bea3c42c3ae9d9d64abfad1aded1"}}

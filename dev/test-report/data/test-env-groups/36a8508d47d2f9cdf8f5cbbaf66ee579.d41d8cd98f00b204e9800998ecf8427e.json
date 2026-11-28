@@ -1,0 +1,1 @@
+{"id":"36a8508d47d2f9cdf8f5cbbaf66ee579.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-onboarding Step 4 のボード URL の取得 .active が存在しないと、終了コード 1 で止まる","name":".active が存在しないと、終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"553ccecf155fc1460b716f3b04e232bd"}}

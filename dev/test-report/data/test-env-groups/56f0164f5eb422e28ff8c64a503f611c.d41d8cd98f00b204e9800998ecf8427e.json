@@ -1,0 +1,1 @@
+{"id":"56f0164f5eb422e28ff8c64a503f611c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/source-hash.test.ts#source-hash 同じソースから 2 回求めると、同じハッシュになる","name":"同じソースから 2 回求めると、同じハッシュになる","status":"passed","testResultsByEnv":{"default":"ea1e2a3f68a75e03aea2d4c104b5f86f"}}

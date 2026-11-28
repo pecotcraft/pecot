@@ -1,0 +1,1 @@
+PECOT_RESULT {"operation":"stack-register","request_id":"req-1","ok":false,"error":{"kind":"order-conflict","message":"PR #20 is not the top of stack #5 (top: PR #22)"}}

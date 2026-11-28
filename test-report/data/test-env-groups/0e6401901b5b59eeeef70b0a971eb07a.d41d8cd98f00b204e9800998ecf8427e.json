@@ -1,0 +1,1 @@
+{"id":"0e6401901b5b59eeeef70b0a971eb07a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#resolveCommit と mergeBase ref の SHA を返し、存在しない ref は undefined を返す","name":"ref の SHA を返し、存在しない ref は undefined を返す","status":"passed","testResultsByEnv":{"default":"052437c91a9a8bed6c1a6d9da917f046"}}

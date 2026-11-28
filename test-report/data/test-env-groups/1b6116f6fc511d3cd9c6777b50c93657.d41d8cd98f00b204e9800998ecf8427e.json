@@ -1,0 +1,1 @@
+{"id":"1b6116f6fc511d3cd9c6777b50c93657.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（git の段の子プロセス失敗） 子プロセスが時間切れになった場合は、時間切れであることを案内する","name":"子プロセスが時間切れになった場合は、時間切れであることを案内する","status":"passed","testResultsByEnv":{"default":"5b35894a6c96fb7048274328597d4a68"}}

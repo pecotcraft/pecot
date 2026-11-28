@@ -1,0 +1,1 @@
+{"id":"937fdf85a1f84ed1da68c6e47c8eeda1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/error-reason.test.ts#themeErrorReason テーマに関係しない例外は、reason が存在せず、テーマのエラーとして扱わない","name":"テーマに関係しない例外は、reason が存在せず、テーマのエラーとして扱わない","status":"passed","testResultsByEnv":{"default":"42c39375fdabfc5b7516bb68dc8a5e77"}}

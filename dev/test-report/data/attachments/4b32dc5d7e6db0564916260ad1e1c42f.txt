@@ -1,0 +1,18 @@
+
+ RUN  v5.1.2 /workspaces/base/pecot/libs/interface-spec/tests/fixtures/report-labels
+
+ ❯ before-all.fixture.ts (1 test | 1 skipped) 12ms
+   ↓ beforeAll の後に動く
+ ❯ outcomes.fixture.ts (5 tests | 1 failed | 1 skipped) 42ms
+   ❯ 結果 (5)
+     ✓ 通る 3ms
+     × 落ちる 6ms
+     ↓ 本体で skip する 0ms
+     ✓ COMMON の ID の後に項目の ID を持つ 28ms
+     ✓ テストに段階を書く 1ms
+
+ Test Files  2 failed (2)
+      Tests  1 failed | 3 passed | 2 skipped (6)
+   Start at  12:03:27
+   Duration  297ms (setup 33%, transform 28%, tests 19%, import 11%, worker 9%)
+

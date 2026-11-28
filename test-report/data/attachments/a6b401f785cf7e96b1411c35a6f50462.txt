@@ -1,0 +1,4 @@
+created: Tracker "[Tracker] security alert — 2026-11-09"
+added: dependabot #1 to new Tracker
+error: Tracker: GraphQL query error: Server error '502 Bad Gateway' for url 'http://127.0.0.1:33917/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/502

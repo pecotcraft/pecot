@@ -1,0 +1,107 @@
+{
+  "dev": {
+    "run_id": "46143024786",
+    "sha": "6113ac2ee041d6c0f91396e746667339e70f4409",
+    "stored_at": "2026-11-28T12:15:45Z"
+  },
+  "pr": {
+    "230": {
+      "run_id": "45862499728",
+      "sha": "63f5908fede7bf10fdc16556c67f040b828758b8",
+      "stored_at": "2026-11-26T16:55:22Z"
+    },
+    "232": {
+      "run_id": "45862606492",
+      "sha": "ddf4e19aedb74a7609033b75c73c3587fb0d4bc3",
+      "stored_at": "2026-11-26T16:57:20Z"
+    },
+    "681": {
+      "run_id": "46014014649",
+      "sha": "6f4ebb205ebcd3fe537c2c0ef358ba68e3af5f69",
+      "stored_at": "2026-11-27T14:24:39Z"
+    },
+    "927": {
+      "run_id": "46143232254",
+      "sha": "d9522944a53bf7a145cf5425171ead08741dc287",
+      "stored_at": "2026-11-28T12:20:55Z"
+    }
+  },
+  "release": {
+    "run_id": "46038787595",
+    "sha": "06fe2c3bd6471c401145467e357136c905e05ef8",
+    "sources": {
+      "commits": {
+        "pecot-tools": "06fe2c3bd6471c401145467e357136c905e05ef8",
+        "pecot-visual": "06fe2c3bd6471c401145467e357136c905e05ef8",
+        "pecot-workflow": "06fe2c3bd6471c401145467e357136c905e05ef8"
+      },
+      "skeleton": "06fe2c3bd6471c401145467e357136c905e05ef8",
+      "tags": {
+        "pecot-tools": "pecot-tools-v4.0.2",
+        "pecot-visual": "pecot-visual-v4.0.2",
+        "pecot-workflow": "pecot-workflow-v12.0.0"
+      }
+    },
+    "stored_at": "2026-11-27T17:06:00Z"
+  },
+  "reports": {
+    "dev": {
+      "run_id": "46143024766",
+      "sha": "6113ac2ee041d6c0f91396e746667339e70f4409",
+      "stored_at": "2026-11-28T12:17:28Z"
+    },
+    "release": {
+      "run_id": "46038791524",
+      "sha": "06fe2c3bd6471c401145467e357136c905e05ef8",
+      "sources": {
+        "missing": [],
+        "runs": [
+          {
+            "commit": "06fe2c3bd6471c401145467e357136c905e05ef8",
+            "lanes": [
+              "pecot-tools:test-cli",
+              "pecot-tools:test-release"
+            ]
+          },
+          {
+            "commit": "06fe2c3bd6471c401145467e357136c905e05ef8",
+            "lanes": [
+              "pecot-visual:test-cli",
+              "pecot-visual:test-compare",
+              "pecot-visual:test-hooks",
+              "pecot-visual:test-release",
+              "pecot-visual:test-skills",
+              "pecot-visual:test-slidev"
+            ]
+          },
+          {
+            "commit": "06fe2c3bd6471c401145467e357136c905e05ef8",
+            "lanes": [
+              "pecot-workflow:test-cli",
+              "pecot-workflow:test-hooks",
+              "pecot-workflow:test-release",
+              "pecot-workflow:test-skills"
+            ]
+          },
+          {
+            "commit": "06fe2c3bd6471c401145467e357136c905e05ef8",
+            "lanes": [
+              "actions:test-unit",
+              "githooks:test-checks",
+              "githooks:test-ci",
+              "githooks:test-nx-affected",
+              "githooks:test-nx-cache",
+              "interface-spec:test-site",
+              "interface-spec:test-unit",
+              "nx-release:test-unit",
+              "text-rules:test-unit",
+              "workflow-core:test-unit"
+            ]
+          }
+        ],
+        "side": "release"
+      },
+      "stored_at": "2026-11-27T17:11:40Z"
+    }
+  }
+}

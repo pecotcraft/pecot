@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "slides.md not found: /tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing/slides.md"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.convert.error\",\"warnings\":[],\"errors\":[],\"kind\":\"project-not-found\",\"detail\":\"slides.md not found: /tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing/slides.md\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.convert.error",
+    "warnings": [],
+    "errors": [],
+    "kind": "project-not-found",
+    "detail": "slides.md not found: /tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing/slides.md"
+  },
+  "isError": true
+}

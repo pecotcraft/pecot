@@ -1,0 +1,1 @@
+{"id":"8dc9962f0b3684753a99a0a59395dd21.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#markerBranch PR を開いたブランチが Development に登録されていなくても、開いた PR の head を選ぶ","name":"PR を開いたブランチが Development に登録されていなくても、開いた PR の head を選ぶ","status":"passed","testResultsByEnv":{"default":"fdd3900e98df4d92810c3052f56e4fb7"}}

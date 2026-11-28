@@ -1,0 +1,1 @@
+{"id":"7dd2ff025f25559ab92fa67205b7beef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の札 作業の跡がある場合は、札を書き込まない","name":"作業の跡がある場合は、札を書き込まない","status":"passed","testResultsByEnv":{"default":"b894e47dc0b53e70ec7d82771d1bff67"}}

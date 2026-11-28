@@ -1,0 +1,1 @@
+{"id":"fdc888b0fe22dc16a6680986ed10590f.f7c166eb9b839ebf2650012c0c4ab0a4","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_only_the_lanes_the_change_reaches","name":".githooks/scripts/attach-mcp-tgz.sh を変更すると、その変更が届くテストのレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"ad524a84b6e950593c3701d955366e92"}}

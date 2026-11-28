@@ -1,0 +1,1 @@
+{"id":"50a5a6425fe1cf51ac3ffae0ea7fdc0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites 部分エラー path を持たない errors の場合は、例外が発生する","name":"path を持たない errors の場合は、例外が発生する","status":"passed","testResultsByEnv":{"default":"867b2a715150808729706fc65365e289"}}

@@ -1,0 +1,1 @@
+{"id":"dc755908978ef192a016a161c09c9506.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#jsonStrings 行コメントの中は読まない のとき、引用符を含まない本文だけを切り出す","name":"行コメントの中は読まない のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"43695187411890de21017c6048762f27"}}

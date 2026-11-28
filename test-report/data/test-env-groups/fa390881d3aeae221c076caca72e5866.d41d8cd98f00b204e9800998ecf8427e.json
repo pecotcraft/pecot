@@ -1,0 +1,1 @@
+{"id":"fa390881d3aeae221c076caca72e5866.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) runtime_setup が引数を取らず、破壊的かつ外部到達として宣言されている","name":"runtime_setup が引数を取らず、破壊的かつ外部到達として宣言されている","status":"passed","testResultsByEnv":{"default":"931a3131e1b1d7aca95a5a0afea79d48"}}

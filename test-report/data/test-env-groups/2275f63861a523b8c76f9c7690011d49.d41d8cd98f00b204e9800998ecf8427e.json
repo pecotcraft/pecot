@@ -1,0 +1,1 @@
+{"id":"2275f63861a523b8c76f9c7690011d49.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_scheduler_list_schedules state が enum 外 の入力を、スキーマの検証で拒否する","name":"state が enum 外 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"0794f8b5cc611698768fdbaa10a2546b"}}

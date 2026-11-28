@@ -1,0 +1,1 @@
+{"id":"5e8b58e3359b9fb29252580885f66662.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#stripCommitComments コミットメッセージを整えるとき、feat(x)!: の type・scope・印を外す","name":"コミットメッセージを整えるとき、feat(x)!: の type・scope・印を外す","status":"passed","testResultsByEnv":{"default":"670940c55431ea88f0726e2459a38101"}}

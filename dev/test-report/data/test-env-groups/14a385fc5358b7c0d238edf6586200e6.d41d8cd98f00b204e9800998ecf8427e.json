@@ -1,0 +1,1 @@
+{"id":"14a385fc5358b7c0d238edf6586200e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project-check.test.ts#project_check fields 旧い名前の進行の欄だけがあると、pecot-status への rename を案内する","name":"旧い名前の進行の欄だけがあると、pecot-status への rename を案内する","status":"passed","testResultsByEnv":{"default":"04a61f63d7c6f4e270e9d3d3ef441911"}}

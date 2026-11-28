@@ -1,0 +1,1 @@
+{"id":"a932dbf888da2991c56515fac058fc5b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-scaled-drawio.test.ts#layout が constructor だと、prototype の値を拾わない","name":"layout が constructor だと、prototype の値を拾わない","status":"passed","testResultsByEnv":{"default":"500d4ad15391dffe44c35d309d2c050e"}}

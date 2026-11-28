@@ -1,0 +1,1 @@
+{"id":"bb529e714bc66a0c1f37d06e6ed1a7e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/setup.test.ts#createSandbox 一時ディレクトリがリポジトリの中にあっても、親のディレクトリをたどって実際のリポジトリを参照しない","name":"一時ディレクトリがリポジトリの中にあっても、親のディレクトリをたどって実際のリポジトリを参照しない","status":"passed","testResultsByEnv":{"default":"eb339ee23872122c83cb406a93a0bcec"}}

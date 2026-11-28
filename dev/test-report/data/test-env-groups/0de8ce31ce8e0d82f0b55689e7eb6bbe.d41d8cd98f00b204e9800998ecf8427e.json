@@ -1,0 +1,1 @@
+{"id":"0de8ce31ce8e0d82f0b55689e7eb6bbe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface-export.test.ts#generated.json の書き出し --check と --write 以外の引数を指定すると、使い方の行を出力し、終了コード 2 で終わる","name":"--check と --write 以外の引数を指定すると、使い方の行を出力し、終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"90f0dbac72008f2e41265c3651b1c685"}}

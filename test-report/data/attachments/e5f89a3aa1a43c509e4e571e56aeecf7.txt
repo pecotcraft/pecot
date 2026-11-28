@@ -1,0 +1,3 @@
+warning: could not move #7: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}
+  hint: if the board options were recreated, call project_activate with project: <PROJECT> to read their IDs again
+warning: could not move #8: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}

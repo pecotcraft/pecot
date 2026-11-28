@@ -1,0 +1,1 @@
+{"id":"bdeb34013e7d4b4c6e81bdffab1a5fe4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#ensureEnvironmentFile スコープを持つホストでは、取得先とスコープを書いた .env を設定ディレクトリに新しく作成する","name":"スコープを持つホストでは、取得先とスコープを書いた .env を設定ディレクトリに新しく作成する","status":"passed","testResultsByEnv":{"default":"e242f9b3543607f3a172501ae79d5fbd"}}

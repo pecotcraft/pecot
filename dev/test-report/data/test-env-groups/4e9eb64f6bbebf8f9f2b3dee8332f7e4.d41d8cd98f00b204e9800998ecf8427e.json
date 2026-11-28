@@ -1,0 +1,1 @@
+{"id":"4e9eb64f6bbebf8f9f2b3dee8332f7e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#validateWhitespaceWrap 半角英数字だけの value には、警告を返さない","name":"半角英数字だけの value には、警告を返さない","status":"passed","testResultsByEnv":{"default":"c5647ef30b84a243789e519c94a85cea"}}

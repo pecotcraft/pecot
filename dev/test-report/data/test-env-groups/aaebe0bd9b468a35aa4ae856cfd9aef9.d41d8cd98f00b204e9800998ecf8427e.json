@@ -1,0 +1,1 @@
+{"id":"aaebe0bd9b468a35aa4ae856cfd9aef9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「letterSpacingMap 欠落」の場合は、undefined を返す","name":"エントリが「letterSpacingMap 欠落」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"494a2c5d28725c5e1c61982cb1b45254"}}

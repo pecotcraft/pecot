@@ -1,0 +1,1 @@
+{"id":"ae69dd71921a8b9f393f44c8880e366a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_node_unresolved_fail_closed","name":"node を解決できない場合は、復旧手順を添えたエラーを出して終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"a1660660890f47c292c8cddd966a5eea"}}

@@ -1,0 +1,1 @@
+{"id":"7f658344743560568ee5b15581d276a6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#例外クラス ChangelogError は PecotError の一種で、渡したメッセージを持つ","name":"ChangelogError は PecotError の一種で、渡したメッセージを持つ","status":"passed","testResultsByEnv":{"default":"a3be867bb8da1fba11735eeef7bb9fec"}}

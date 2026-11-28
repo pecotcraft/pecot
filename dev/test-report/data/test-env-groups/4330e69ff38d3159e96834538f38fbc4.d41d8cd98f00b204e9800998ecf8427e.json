@@ -1,0 +1,1 @@
+{"id":"4330e69ff38d3159e96834538f38fbc4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender.test.ts#restorePrerenderElements 復元後も要素が残っている場合は、復元が完了していない旨の警告を出力する","name":"復元後も要素が残っている場合は、復元が完了していない旨の警告を出力する","status":"passed","testResultsByEnv":{"default":"5f5958eacc6305bbe3f4a4beffe57b31"}}

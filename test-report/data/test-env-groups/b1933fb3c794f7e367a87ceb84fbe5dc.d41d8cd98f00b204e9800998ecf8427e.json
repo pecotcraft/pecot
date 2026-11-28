@@ -1,0 +1,1 @@
+{"id":"b1933fb3c794f7e367a87ceb84fbe5dc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ worktree-add-state-no-config を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ worktree-add-state-no-config を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"c55eb9d40162fe8b00a17fef6b8deb94"}}

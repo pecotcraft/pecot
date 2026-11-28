@@ -1,0 +1,1 @@
+{"id":"2a6ea044c46b127619f856c94ea053fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter parent_epic だけを渡すと、order を undefined にして返す","name":"parent_epic だけを渡すと、order を undefined にして返す","status":"passed","testResultsByEnv":{"default":"b0983621f02d7eefeaebac25a5f49697"}}

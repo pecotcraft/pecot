@@ -1,0 +1,1 @@
+{"id":"cc1ef0e7de80e9569d17e45d9ae14dcc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#judgeReadiness の順 merged の PR と open の PR を 1 本ずつ持つ前提は、open の PR にスタックする","name":"merged の PR と open の PR を 1 本ずつ持つ前提は、open の PR にスタックする","status":"passed","testResultsByEnv":{"default":"a1e96d062f730aec2e4caeb99c7480d2"}}

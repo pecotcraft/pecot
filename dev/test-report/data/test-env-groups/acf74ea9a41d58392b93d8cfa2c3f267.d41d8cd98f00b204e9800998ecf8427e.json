@@ -1,0 +1,1 @@
+{"id":"acf74ea9a41d58392b93d8cfa2c3f267.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/validate-clicks.test.ts#validate-clicks invalid count で clicks が無いと、missingClicksCount を報告する","name":"count で clicks が無いと、missingClicksCount を報告する","status":"passed","testResultsByEnv":{"default":"4aef76ef600ac02d2a50580b744db89d"}}

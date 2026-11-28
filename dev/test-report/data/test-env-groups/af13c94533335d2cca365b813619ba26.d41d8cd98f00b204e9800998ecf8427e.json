@@ -1,0 +1,1 @@
+{"id":"af13c94533335d2cca365b813619ba26.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack スタックし直し済みの判断 開発ブランチを merge で取り込んだ後に check を付けると、needs restack の行を出す","name":"開発ブランチを merge で取り込んだ後に check を付けると、needs restack の行を出す","status":"passed","testResultsByEnv":{"default":"387dad58ab0b9c0ebc1096011cbebc85"}}

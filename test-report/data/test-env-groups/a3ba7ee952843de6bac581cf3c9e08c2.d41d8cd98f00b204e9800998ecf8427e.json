@@ -1,0 +1,1 @@
+{"id":"a3ba7ee952843de6bac581cf3c9e08c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/git-output.test.ts#gitReasonOf error の行がある場合は、その行以降を続く行も含めて返す","name":"error の行がある場合は、その行以降を続く行も含めて返す","status":"passed","testResultsByEnv":{"default":"8de034bdcc50aaa82770d812c2d1c5d2"}}

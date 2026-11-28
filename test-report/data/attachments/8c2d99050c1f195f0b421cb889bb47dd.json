@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "branch 'wt1' already exists and its upstream differs from the expected one (current: (unset), expected: origin/develop): pass allow_existing_branch: true to reuse it"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"branch 'wt1' already exists and its upstream differs from the expected one (current: (unset), expected: origin/develop): pass allow_existing_branch: true to reuse it\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "branch 'wt1' already exists and its upstream differs from the expected one (current: (unset), expected: origin/develop): pass allow_existing_branch: true to reuse it"
+  },
+  "isError": true
+}

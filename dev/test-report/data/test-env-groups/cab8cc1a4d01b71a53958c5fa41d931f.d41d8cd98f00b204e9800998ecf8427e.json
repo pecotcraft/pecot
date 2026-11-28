@@ -1,0 +1,1 @@
+{"id":"cab8cc1a4d01b71a53958c5fa41d931f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_lane_summary_artifact_name_prefers_checks_slug","name":"環境変数 `CHECKS_SLUG` があれば artifact の名前に使い、なければ記号を `-` に置き換える","status":"passed","testResultsByEnv":{"default":"eaa4fd0e2eff37200b92c8d2da8b0e4f"}}

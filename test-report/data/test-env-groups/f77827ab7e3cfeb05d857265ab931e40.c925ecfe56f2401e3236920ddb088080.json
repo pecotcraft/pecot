@@ -1,0 +1,1 @@
+{"id":"f77827ab7e3cfeb05d857265ab931e40.c925ecfe56f2401e3236920ddb088080","fullName":".githooks.tests.test_pecot_open_rc#test_existing_session_gets_no_rc","name":"pecot-open.sh に --rc を指定しても、既存のセッションには `pecot-rc.sh` を送らず、警告を表示する","status":"passed","testResultsByEnv":{"default":"3b94c8acb1fab8744474769f7a570876"}}

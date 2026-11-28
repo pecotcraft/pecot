@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "base: give base main (the develop branch); without it, link-branch starts from the default branch of the repository"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"base\",\"code\":\"required\",\"message\":\"give base main (the develop branch); without it, link-branch starts from the default branch of the repository\",\"candidates\":[\"main\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "base",
+        "code": "required",
+        "message": "give base main (the develop branch); without it, link-branch starts from the default branch of the repository",
+        "candidates": [
+          "main"
+        ]
+      }
+    ]
+  }
+}

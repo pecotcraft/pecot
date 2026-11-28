@@ -1,0 +1,8 @@
+{
+  "hookSpecificOutput": {
+    "additionalContext": "note: synced the branch with the remote (branch: feat/x/1253)",
+    "sessionTitle": "#1253 題名",
+    "hookEventName": "SessionStart"
+  },
+  "additionalContext": "note: synced the branch with the remote (branch: feat/x/1253)"
+}

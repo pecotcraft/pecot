@@ -1,0 +1,1 @@
+{"id":"d7b7063b13265c31480df09c4d282544.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/release-pr-body-examples.test.ts#release-multi.md の docs PR の例 pr_create の入力名が、ツールの入力に実在する","name":"pr_create の入力名が、ツールの入力に実在する","status":"passed","testResultsByEnv":{"default":"6127906b44a7c09b3f1ca2e8315dd6a6"}}

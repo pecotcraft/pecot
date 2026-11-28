@@ -1,0 +1,7 @@
+--dir
+plugins/pecot-workflow/cli
+exec
+tsx
+scripts/github-surface/drift.ts
+--repo
+owner/repo

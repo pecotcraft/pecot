@@ -1,0 +1,1 @@
+{"id":"d31e3f6d60ebfe7bcd66e621366c18c8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/deck-lint-rules.test.ts#REFERENCE_FREE_RULE_IDS 設定を読まない規則の一覧は、全 15 個から設定を読む 6 個を除いたものと一致する","name":"設定を読まない規則の一覧は、全 15 個から設定を読む 6 個を除いたものと一致する","status":"passed","testResultsByEnv":{"default":"5c2b49242ceea0848b1a1ed9821048ba"}}

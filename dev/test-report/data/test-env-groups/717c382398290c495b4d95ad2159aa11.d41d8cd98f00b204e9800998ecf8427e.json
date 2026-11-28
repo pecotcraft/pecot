@@ -1,0 +1,1 @@
+{"id":"717c382398290c495b4d95ad2159aa11.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/input-schema.test.ts#normalizeInput properties が無いスキーマは、引数の無い入力として扱う","name":"properties が無いスキーマは、引数の無い入力として扱う","status":"passed","testResultsByEnv":{"default":"873db665c0ff8d55ad47e21d3291bcce"}}

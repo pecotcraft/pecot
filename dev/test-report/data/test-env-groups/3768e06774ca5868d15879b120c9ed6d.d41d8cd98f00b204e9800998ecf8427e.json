@@ -1,0 +1,1 @@
+{"id":"3768e06774ca5868d15879b120c9ed6d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#installStdoutGuard 標準出力への書き込みが失敗したときは、標準エラー出力へ 1 行出力し、終了コードを 1 にする","name":"標準出力への書き込みが失敗したときは、標準エラー出力へ 1 行出力し、終了コードを 1 にする","status":"passed","testResultsByEnv":{"default":"81b764d09860d839f39638c44c2be42e"}}

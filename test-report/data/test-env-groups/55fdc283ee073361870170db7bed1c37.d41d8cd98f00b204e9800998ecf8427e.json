@@ -1,0 +1,1 @@
+{"id":"55fdc283ee073361870170db7bed1c37.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move MCP の呼び出し Issue の参照が不正なとき、kind が invalid-input の失敗を返す","name":"Issue の参照が不正なとき、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"c07b424fc728dcdcf6186e0c6120be7a"}}

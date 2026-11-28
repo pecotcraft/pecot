@@ -1,0 +1,1 @@
+{"id":"bb445e96c07c74e939d4660dcc011ec9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/failure-kinds-definition.test.ts#定義書の exit_status と FAILURE_KINDS CLI だけで使う失敗の名前は、`FAILURE_KINDS` と重ならない","name":"CLI だけで使う失敗の名前は、`FAILURE_KINDS` と重ならない","status":"passed","testResultsByEnv":{"default":"1247ba5ef0488d060ce434452fa70722"}}

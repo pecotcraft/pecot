@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the command finished, but its data does not match the output schema: name: Invalid input: expected string, received undefined; the operation may already be done, so do not call it again"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"the command finished, but its data does not match the output schema: name: Invalid input: expected string, received undefined; the operation may already be done, so do not call it again\",\"count\":1,\"warnings\":[\"slow API\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "the command finished, but its data does not match the output schema: name: Invalid input: expected string, received undefined; the operation may already be done, so do not call it again",
+    "count": 1,
+    "warnings": [
+      "slow API"
+    ]
+  },
+  "isError": true
+}

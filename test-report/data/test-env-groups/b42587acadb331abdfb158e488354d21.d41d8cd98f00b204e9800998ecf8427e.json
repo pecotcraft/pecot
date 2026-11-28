@@ -1,0 +1,1 @@
+{"id":"b42587acadb331abdfb158e488354d21.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-start.test.ts#auto start RUNNER_TEMP が無いと、何も読まずに止まる","name":"RUNNER_TEMP が無いと、何も読まずに止まる","status":"passed","testResultsByEnv":{"default":"7c5fcdd26e0cb2da75ac4421af039e57"}}

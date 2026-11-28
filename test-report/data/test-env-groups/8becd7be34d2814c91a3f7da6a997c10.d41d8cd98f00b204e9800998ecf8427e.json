@@ -1,0 +1,1 @@
+{"id":"8becd7be34d2814c91a3f7da6a997c10.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_release_sources_do_not_check_ancestry","name":"リリース版の材料では、コミットが HEAD の祖先かを確認しない","status":"passed","testResultsByEnv":{"default":"520b0e28d5447d1781267d8fd890d9e9"}}

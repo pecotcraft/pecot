@@ -1,0 +1,1 @@
+{"id":"78171616459fb1c3452ab6a7bc5e2315.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#requestAsyncMerge 200（キューの中）が返ると、本文の status と details.message を返す","name":"200（キューの中）が返ると、本文の status と details.message を返す","status":"passed","testResultsByEnv":{"default":"8f27cc44025de38f36d9e532a2d20793"}}

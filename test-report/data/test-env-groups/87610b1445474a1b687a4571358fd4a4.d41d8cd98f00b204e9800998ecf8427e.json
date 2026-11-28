@@ -1,0 +1,1 @@
+{"id":"87610b1445474a1b687a4571358fd4a4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#aggregation_repo aggregation_repo が \"owner/repo/extra\" の場合は、検証エラーを返す","name":"aggregation_repo が \"owner/repo/extra\" の場合は、検証エラーを返す","status":"passed","testResultsByEnv":{"default":"4c4d02f581cf170157064f545cf48eae"}}

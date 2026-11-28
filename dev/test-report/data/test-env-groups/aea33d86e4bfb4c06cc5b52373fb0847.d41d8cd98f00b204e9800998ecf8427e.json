@@ -1,0 +1,1 @@
+{"id":"aea33d86e4bfb4c06cc5b52373fb0847.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getUntrackedFiles git の管理外（gitignored）のファイルを、相対パスで返す","name":"git の管理外（gitignored）のファイルを、相対パスで返す","status":"passed","testResultsByEnv":{"default":"086f9e939f685938026840b2996895d9"}}

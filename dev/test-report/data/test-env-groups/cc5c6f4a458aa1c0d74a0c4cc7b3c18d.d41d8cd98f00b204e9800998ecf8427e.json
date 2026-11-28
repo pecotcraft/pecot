@@ -1,0 +1,1 @@
+{"id":"cc5c6f4a458aa1c0d74a0c4cc7b3c18d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 見本のリポジトリ targets-invalid を検証すると、検証エラーの行を過不足なく決まった順で返す","name":"見本のリポジトリ targets-invalid を検証すると、検証エラーの行を過不足なく決まった順で返す","status":"passed","testResultsByEnv":{"default":"b837fa727e934deded94c2b4c97bfca2"}}

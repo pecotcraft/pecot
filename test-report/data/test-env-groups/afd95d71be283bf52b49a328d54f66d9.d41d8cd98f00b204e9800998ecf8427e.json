@@ -1,0 +1,1 @@
+{"id":"afd95d71be283bf52b49a328d54f66d9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_format#test_text_rules_group_key_passes","name":"text-rules の release group をキーにした version plan は、成功で終わる","status":"passed","testResultsByEnv":{"default":"f73061505a9de5e90298f19a722f94fe"}}

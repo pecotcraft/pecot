@@ -1,0 +1,1 @@
+{"id":"467d0202a785f623e527643b995dfec9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish 閉じた Epic があると、Epic として skipped の行を出す","name":"閉じた Epic があると、Epic として skipped の行を出す","status":"passed","testResultsByEnv":{"default":"cb5a81fc9fb51fd08f153322c45dfcb3"}}

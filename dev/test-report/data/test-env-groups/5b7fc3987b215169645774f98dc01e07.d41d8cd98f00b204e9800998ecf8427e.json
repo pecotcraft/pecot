@@ -1,0 +1,1 @@
+{"id":"5b7fc3987b215169645774f98dc01e07.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#結果の項目 失敗で項目がスキーマに合わないと、kind と detail を保ってツールの項目を除き、報告先にも通知する","name":"失敗で項目がスキーマに合わないと、kind と detail を保ってツールの項目を除き、報告先にも通知する","status":"passed","testResultsByEnv":{"default":"7c47661724f09a78f7b7c417f43dfaea"}}

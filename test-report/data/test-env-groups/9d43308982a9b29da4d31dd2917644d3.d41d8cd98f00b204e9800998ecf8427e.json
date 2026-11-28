@@ -1,0 +1,1 @@
+{"id":"9d43308982a9b29da4d31dd2917644d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start Status を active にすると、set の行を標準エラーに出す","name":"Status を active にすると、set の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"99ac248a1656ad85cfc3a3100a017be3"}}

@@ -1,0 +1,8 @@
+skipped: field pecot-status (already exists)
+skipped: field pecot-lane (no lanes given)
+warning: field pecot-lane was not created because no lanes were given
+  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes
+unchanged: option Blocked in field pecot-status
+warning: could not add option Needs Attention to field Status: GraphQL query error: {'message': 'Variable $options of type [ProjectV2SingleSelectFieldOptionInput!]! was provided invalid value for 0.id (Field is not defined on ProjectV2SingleSelectFieldOptionInput)'}
+created: config file /tmp/pecot-repo-3FjFcM/.pecot/config/projects/ghes.example.com_acme_1.json
+set: active project to ghes.example.com_acme_1

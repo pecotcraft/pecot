@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated: config file /tmp/pecot-repo-ihmzwG/.pecot/config/projects/ghes.example.com_acme_1.json"
+    },
+    {
+      "type": "text",
+      "text": "{\"project\":\"ghes.example.com_acme_1\",\"configPath\":\"/tmp/pecot-repo-ihmzwG/.pecot/config/projects/ghes.example.com_acme_1.json\",\"change\":\"update\",\"config_moved\":null,\"warnings\":[\"host: \\\"github.com\\\" differs from the config file host (ghes.example.com)\\n  using the config file host\"]}"
+    }
+  ],
+  "structuredContent": {
+    "project": "ghes.example.com_acme_1",
+    "configPath": "/tmp/pecot-repo-ihmzwG/.pecot/config/projects/ghes.example.com_acme_1.json",
+    "change": "update",
+    "config_moved": null,
+    "warnings": [
+      "host: \"github.com\" differs from the config file host (ghes.example.com)\n  using the config file host"
+    ]
+  }
+}

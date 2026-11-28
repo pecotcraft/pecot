@@ -1,0 +1,1 @@
+{"id":"635e2fc169f2cf90fa4787a09e44a061.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/compare-junit.test.ts#compareJunit 同じ結果なら、差を返さない","name":"同じ結果なら、差を返さない","status":"passed","testResultsByEnv":{"default":"fb7c608b527547e59cef7f69ac17f781"}}

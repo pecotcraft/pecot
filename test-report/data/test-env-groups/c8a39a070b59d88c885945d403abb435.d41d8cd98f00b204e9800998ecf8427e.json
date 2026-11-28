@@ -1,0 +1,1 @@
+{"id":"c8a39a070b59d88c885945d403abb435.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/text-file.test.ts#readTextFile UTF-8 のファイルを読み込むと、内容を文字列として返す","name":"UTF-8 のファイルを読み込むと、内容を文字列として返す","status":"passed","testResultsByEnv":{"default":"3ab5067d007fc56cdcddd899446c8ea4"}}

@@ -1,0 +1,1 @@
+{"id":"86daab142799636fbd804d5ae1fbf463.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） setup_command setup_command が 0 以外で終了しても例外を投げず、結果と警告を残す","name":"setup_command が 0 以外で終了しても例外を投げず、結果と警告を残す","status":"passed","testResultsByEnv":{"default":"c0ab794480052ed5913fec70b02c5cab"}}

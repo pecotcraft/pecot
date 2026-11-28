@@ -1,0 +1,1 @@
+{"id":"47e6abe47be933875b726f24b739d6e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/index.test.ts#GitHubClient isRepositoryInProject に RepositoryMembership として渡せる","name":"isRepositoryInProject に RepositoryMembership として渡せる","status":"passed","testResultsByEnv":{"default":"46d371ebb8630f74a8efd017dee4bdb5"}}

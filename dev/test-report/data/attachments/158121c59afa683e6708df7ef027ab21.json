@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "read the board with projects_get (method get_project, owner acme, project_number 1) and pass its result as reads.project"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"read the board with projects_get (method get_project, owner acme, project_number 1) and pass its result as reads.project\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "read the board with projects_get (method get_project, owner acme, project_number 1) and pass its result as reads.project"
+  },
+  "isError": true
+}

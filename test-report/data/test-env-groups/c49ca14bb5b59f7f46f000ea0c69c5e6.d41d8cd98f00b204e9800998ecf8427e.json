@@ -1,0 +1,1 @@
+{"id":"c49ca14bb5b59f7f46f000ea0c69c5e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations Point / Rect box で x 欠落 の場合は、拒否する","name":"box で x 欠落 の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"3dddf6fb0fedf5f35b1f9b0983671658"}}

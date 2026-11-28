@@ -1,0 +1,1 @@
+{"id":"b90645ef2535e38b4108b54d8c8a4d51.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/web-fonts.test.ts#webFontsFor 書体ごとに太さ 400 から 700 の family を指定し、preload を書体と太さの順に並べる","name":"書体ごとに太さ 400 から 700 の family を指定し、preload を書体と太さの順に並べる","status":"passed","testResultsByEnv":{"default":"5a693aad34621acd2bd6c50a09ec0e90"}}

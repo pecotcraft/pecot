@@ -1,0 +1,1 @@
+{"id":"928f14f8b696082dc00baf9720749b98.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/tool-names.test.ts#pecot の起動のランチャー スキルと hooks のテンプレートに、ランチャー変数（PECOT=... と $PECOT）を書かない","name":"スキルと hooks のテンプレートに、ランチャー変数（PECOT=... と $PECOT）を書かない","status":"passed","testResultsByEnv":{"default":"a215b7ba186118ab4facaf849351aea9"}}

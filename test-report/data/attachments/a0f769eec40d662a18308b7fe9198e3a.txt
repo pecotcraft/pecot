@@ -1,0 +1,7 @@
+skipped: field pecot-status (already exists)
+skipped: field pecot-lane (already exists)
+unchanged: option cli in field pecot-lane
+unchanged: option skills in field pecot-lane
+unchanged: option Blocked in field pecot-status
+skipped: field Status (not found)
+error: could not initialize project fields (status 500): GitHub API error: 500

@@ -1,0 +1,1 @@
+{"id":"c0607432414eb399015ccdf1f333af08.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/references-path-existence.bats#実在しないパスを混ぜた fixture では、そのパスを 1 件検出する","name":"実在しないパスを混ぜた fixture では、そのパスを 1 件検出する","status":"passed","testResultsByEnv":{"default":"035447038a1a82c63201c0f24291809f"}}

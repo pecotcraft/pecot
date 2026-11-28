@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "must be an absolute path: project_dir=no-such-dir-980/probe"
+    },
+    {
+      "type": "text",
+      "text": "{\"invalidPaths\":[\"project_dir=no-such-dir-980/probe\"],\"convertedPaths\":{\"spacing_json_path\":{\"from\":\"C:\\\\pecotv-1094\\\\missing\",\"to\":\"/tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing\"}},\"kind\":\"invalid-path\",\"detail\":\"must be an absolute path: project_dir=no-such-dir-980/probe\"}"
+    }
+  ],
+  "structuredContent": {
+    "invalidPaths": [
+      "project_dir=no-such-dir-980/probe"
+    ],
+    "convertedPaths": {
+      "spacing_json_path": {
+        "from": "C:\\pecotv-1094\\missing",
+        "to": "/tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing"
+      }
+    },
+    "kind": "invalid-path",
+    "detail": "must be an absolute path: project_dir=no-such-dir-980/probe"
+  },
+  "isError": true
+}

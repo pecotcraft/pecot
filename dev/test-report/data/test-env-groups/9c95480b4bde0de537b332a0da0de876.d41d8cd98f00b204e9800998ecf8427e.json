@@ -1,0 +1,1 @@
+{"id":"9c95480b4bde0de537b332a0da0de876.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/baseline-scripts.test.ts#baseline.json の hooks.scripts 間接に動くスクリプトの呼び出し元が、そのスクリプトを実際に名指ししている","name":"間接に動くスクリプトの呼び出し元が、そのスクリプトを実際に名指ししている","status":"passed","testResultsByEnv":{"default":"85b2346e561d5e3190006bb200d12378"}}

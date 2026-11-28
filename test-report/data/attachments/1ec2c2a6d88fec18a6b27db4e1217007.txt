@@ -1,0 +1,1 @@
+/tmp/pecot-hooks-jYQBXj/entry/entry.sh: line 2: /tmp/pecot-hooks-jYQBXj/scripts/nonexistent.sh: No such file or directory

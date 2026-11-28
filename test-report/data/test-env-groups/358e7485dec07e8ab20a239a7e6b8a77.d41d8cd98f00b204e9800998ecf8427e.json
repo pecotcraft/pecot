@@ -1,0 +1,1 @@
+{"id":"358e7485dec07e8ab20a239a7e6b8a77.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_allure_failure_is_returned","name":"`allure generate` が失敗すると、その終了コードを返し、エラーを表示する","status":"passed","testResultsByEnv":{"default":"d8eea42b7afac27141afdb8bbd6d7e73"}}

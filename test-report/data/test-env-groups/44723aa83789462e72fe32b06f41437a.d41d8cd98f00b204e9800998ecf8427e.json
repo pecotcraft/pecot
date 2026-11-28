@@ -1,0 +1,1 @@
+{"id":"44723aa83789462e72fe32b06f41437a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_logs_describe_log_streams descending が文字列 の入力を、スキーマの検証で拒否する","name":"descending が文字列 の入力を、スキーマの検証で拒否する","status":"passed","testResultsByEnv":{"default":"b546a812977cf228f687bb885305dd26"}}

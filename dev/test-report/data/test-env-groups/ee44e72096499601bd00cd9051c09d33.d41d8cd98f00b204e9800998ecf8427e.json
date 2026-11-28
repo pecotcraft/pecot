@@ -1,0 +1,1 @@
+{"id":"ee44e72096499601bd00cd9051c09d33.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats#非決定差 xmlns-order は、生の相違 3 件として出て、正規化後は 0 件になる","name":"非決定差 xmlns-order は、生の相違 3 件として出て、正規化後は 0 件になる","status":"passed","testResultsByEnv":{"default":"d9e263573eae4f97dcb88055d6eb0a31"}}

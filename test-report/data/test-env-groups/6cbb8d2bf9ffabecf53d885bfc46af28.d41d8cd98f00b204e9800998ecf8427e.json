@@ -1,0 +1,1 @@
+{"id":"6cbb8d2bf9ffabecf53d885bfc46af28.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#withCapturedOutput 失敗のときに出力が空の場合は、log を追加しない","name":"失敗のときに出力が空の場合は、log を追加しない","status":"passed","testResultsByEnv":{"default":"540eccf81c32be4bc040430fefff69c9"}}

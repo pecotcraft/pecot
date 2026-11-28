@@ -1,0 +1,1 @@
+{"id":"8a62673c81d67199eac016b627fccac4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#buildPicMediaMap pic が複数ある場合は、縦の位置、横の位置の順に並べ替える","name":"pic が複数ある場合は、縦の位置、横の位置の順に並べ替える","status":"passed","testResultsByEnv":{"default":"f3ac0f1a1ed31fe65751d67c94bc6427"}}

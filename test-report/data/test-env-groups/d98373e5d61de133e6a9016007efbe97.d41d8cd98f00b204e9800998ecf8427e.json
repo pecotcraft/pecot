@@ -1,0 +1,1 @@
+{"id":"d98373e5d61de133e6a9016007efbe97.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#listOpenDependabotPullRequests 次のページは、endCursor を after に指定して取得する","name":"次のページは、endCursor を after に指定して取得する","status":"passed","testResultsByEnv":{"default":"85ee8b699adc0d53f2042daa836bbf1b"}}

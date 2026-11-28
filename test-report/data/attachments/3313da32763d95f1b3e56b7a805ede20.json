@@ -1,0 +1,62 @@
+{
+  "tools": [
+    {
+      "name": "echo",
+      "title": "Test tool",
+      "description": "入力を返す",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "flag": {
+            "type": "boolean"
+          },
+          "repo": {
+            "description": "Target repository, given explicitly as 'owner/repo'",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Failure kind (failure only)"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+          },
+          "log": {
+            "type": "string",
+            "description": "Raw output of a child process (failure only; omitted when not captured)"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false
+      }
+    }
+  ]
+}

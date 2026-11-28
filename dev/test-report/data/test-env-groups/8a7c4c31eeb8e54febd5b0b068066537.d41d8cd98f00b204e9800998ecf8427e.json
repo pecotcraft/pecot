@@ -1,0 +1,1 @@
+{"id":"8a7c4c31eeb8e54febd5b0b068066537.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate 要る読み取りを reads に渡していないと、読み方を添えて終了コード 1 で終わる","name":"要る読み取りを reads に渡していないと、読み方を添えて終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"eb1e4a0a59b1d1deaec2f3e40cb424e9"}}

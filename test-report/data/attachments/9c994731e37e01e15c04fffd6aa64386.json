@@ -1,0 +1,117 @@
+{
+  "name": "project_activate",
+  "title": "Activate project",
+  "description": "Activate an initialized project",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "project": {
+        "type": "string",
+        "description": "Project number or name, or config file path/file name (list the candidates with project_search)"
+      },
+      "owner": {
+        "description": "Project owner (defaults to the authenticated user)",
+        "type": "string"
+      },
+      "host": {
+        "description": "GitHub host",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "project"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "project": {
+        "description": "Name of the project config that was made active",
+        "type": "string"
+      },
+      "configPath": {
+        "type": "string",
+        "description": "Path of the project config file"
+      },
+      "change": {
+        "type": "string",
+        "enum": [
+          "create",
+          "update",
+          "unchanged"
+        ],
+        "description": "What happened to the config file"
+      },
+      "config_moved": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "description": "File name of the old project config"
+              },
+              "to": {
+                "type": "string",
+                "description": "File name the project config was moved to"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "The old project config file that was moved to the new name (null when none)"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "configPath",
+          "change",
+          "config_moved"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

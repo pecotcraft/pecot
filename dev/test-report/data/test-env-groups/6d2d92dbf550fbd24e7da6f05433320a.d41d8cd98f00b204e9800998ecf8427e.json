@@ -1,0 +1,1 @@
+{"id":"6d2d92dbf550fbd24e7da6f05433320a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#detectProjectRoot wt1 から呼んでも、main_wt が base/<repo> なら同じ root を返す","name":"wt1 から呼んでも、main_wt が base/<repo> なら同じ root を返す","status":"passed","testResultsByEnv":{"default":"001fbabace545eb476287dd66bde770e"}}

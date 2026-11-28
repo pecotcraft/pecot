@@ -1,0 +1,176 @@
+{
+  "name": "branch_check",
+  "title": "Check Issue branch",
+  "description": "Check the params for the link-branch operation of pecot-github-ops against the pecot rules before creating the branch: the Issue is open and its prerequisites allow starting, the base is the stack branch or the develop branch, the branch name ends with the Issue number, and the working directory is in the repository of the Issue. Reads and writes nothing on GitHub; pass the results of the official reads in reads.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "owner": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Owner of the repository of the Issue, where the link-branch operation runs"
+      },
+      "repo": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Name of the repository of the Issue"
+      },
+      "issue": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991,
+        "description": "Same as params.issue of link-branch: number of the work Issue"
+      },
+      "branch": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Same as params.branch of link-branch: the full branch name, ending with /<Issue number>"
+      },
+      "base": {
+        "description": "Same as params.base of link-branch: the branch to start from",
+        "type": "string",
+        "minLength": 1
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "reads": {
+        "description": "Results of the official GitHub MCP reads the check needs",
+        "type": "object",
+        "properties": {
+          "issues": {
+            "description": "Results of issue_read with method get (the structuredContent, { issue: ... }): the work Issue and each prerequisite",
+            "type": "array",
+            "items": {}
+          },
+          "blocked_by": {
+            "description": "Results of issue_dependency_read with method get_blocked_by: the work Issue",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "type": "string",
+                  "description": "The Issue whose blocked-by was read (owner/repo/N)"
+                },
+                "result": {
+                  "description": "Result of issue_dependency_read with method get_blocked_by"
+                }
+              },
+              "required": [
+                "issue",
+                "result"
+              ]
+            }
+          },
+          "pull_requests": {
+            "description": "Results of pull_request_read with method get: each open pull request that closes a prerequisite (closed_by_pull_requests of issue_read), and those its base branch stacks on; they decide whether the Issue can stack",
+            "type": "array",
+            "items": {}
+          },
+          "project_items": {
+            "description": "Results of projects_list with method list_project_items (optional): the cards of the prerequisites, to tell a prerequisite in Pending",
+            "type": "array",
+            "items": {}
+          },
+          "project_fields": {
+            "description": "Result of projects_list with method list_project_fields (optional, with project_items)"
+          }
+        }
+      }
+    },
+    "required": [
+      "owner",
+      "repo",
+      "issue",
+      "branch"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "problems": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "description": "Issue the problem belongs to: a batch key or owner/repo/N (omitted when the check covers one target)",
+              "type": "string"
+            },
+            "field": {
+              "type": "string",
+              "description": "Name of the argument that breaks the rule (title, body, issue_fields.<name>, blocked_by.<i>, ...)"
+            },
+            "code": {
+              "type": "string",
+              "description": "Kind of the problem (missing-section, extra-heading, cycle, ...)"
+            },
+            "message": {
+              "type": "string",
+              "description": "What is wrong and how to fix it, with the expected value when there is one"
+            },
+            "candidates": {
+              "description": "Values that would be accepted (omitted when there is no fixed set)",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "field",
+            "code",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Rules the arguments break; when empty, the arguments can be passed to the write tool as they are"
+      },
+      "stacked_on": {
+        "description": "Prerequisite Issue the branch stacks on (owner/repo/N); pass it to session_start. Omitted when the branch starts from the develop branch",
+        "type": "string"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "problems"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": false
+  }
+}

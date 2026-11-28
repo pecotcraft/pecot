@@ -1,0 +1,1 @@
+{"id":"b7869d385934d02eeb27750d4d653d40.d62157318001b5ce7792221719ead935","fullName":".githooks.tests.test_report_generate#test_real_allure_reads_what_generate_passes_as_readable","name":"履歴が読める形（blank-line）のとき、本物の allure でも履歴を維持して追記する","status":"passed","testResultsByEnv":{"default":"3f7066e058802eb5e14b02497a986989"}}

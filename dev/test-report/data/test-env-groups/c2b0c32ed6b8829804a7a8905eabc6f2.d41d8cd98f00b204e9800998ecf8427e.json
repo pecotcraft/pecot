@@ -1,0 +1,1 @@
+{"id":"c2b0c32ed6b8829804a7a8905eabc6f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main 複数の指摘をまとめる message は出力せず、個別の指摘だけを 1 行ずつ出力する","name":"複数の指摘をまとめる message は出力せず、個別の指摘だけを 1 行ずつ出力する","status":"passed","testResultsByEnv":{"default":"0cccfa6cf80895e2beee81fe8cc8bb5d"}}

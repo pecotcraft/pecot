@@ -1,0 +1,1 @@
+{"id":"2faafb2bb8e6cbc9bb62b1eba0bb2691.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 起票先と用法 update に issue_number が無いと、issue_number の problem にする","name":"update に issue_number が無いと、issue_number の problem にする","status":"passed","testResultsByEnv":{"default":"0a772ce1ca2aa5c1174e5afbd1e5e0af"}}

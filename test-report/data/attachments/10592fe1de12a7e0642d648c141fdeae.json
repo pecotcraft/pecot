@@ -1,0 +1,28 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "unchanged: Issue #12 (already closed)"
+    },
+    {
+      "type": "text",
+      "text": "{\"closedIssues\":[],\"skippedIssues\":[{\"number\":12,\"reason\":\"already-closed\"}],\"deletedBranches\":[],\"readinessChanges\":[],\"restack\":[],\"currentBranch\":\"main\",\"warnings\":[\"deleting local branch feat/demo/12 failed: Command ['git', 'branch', '-D', 'feat/demo/12'] returned non-zero exit status 1.\"]}"
+    }
+  ],
+  "structuredContent": {
+    "closedIssues": [],
+    "skippedIssues": [
+      {
+        "number": 12,
+        "reason": "already-closed"
+      }
+    ],
+    "deletedBranches": [],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "main",
+    "warnings": [
+      "deleting local branch feat/demo/12 failed: Command ['git', 'branch', '-D', 'feat/demo/12'] returned non-zero exit status 1."
+    ]
+  }
+}

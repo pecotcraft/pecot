@@ -1,0 +1,1 @@
+{"id":"d2c148863e77ad3980d9b83585f7f29a.432d93772facca707b1ca78b8fd33782","fullName":".githooks.tests.test_githooks_lanes#test_command_names_the_full_path_of_each_test","name":"test-ci の command は、各テストを .githooks/tests からのパスで指定する","status":"passed","testResultsByEnv":{"default":"7a7a4c55fc5a3fc93dd577718e8f1c63"}}

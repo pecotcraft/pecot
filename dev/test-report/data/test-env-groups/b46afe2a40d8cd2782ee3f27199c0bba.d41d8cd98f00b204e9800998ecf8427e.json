@@ -1,0 +1,1 @@
+{"id":"b46afe2a40d8cd2782ee3f27199c0bba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-hint.test.ts#hintedTextOf 例外の hintedText が案内の文の場合は、その文を返し、それ以外の場合は undefined を返す","name":"例外の hintedText が案内の文の場合は、その文を返し、それ以外の場合は undefined を返す","status":"passed","testResultsByEnv":{"default":"5e42730c5181cbb6360213b590a3629c"}}

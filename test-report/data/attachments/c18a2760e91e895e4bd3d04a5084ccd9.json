@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "slide_dev: reusing the running server http://localhost:46029"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.dev.reused\",\"dir\":\"/tmp/pecotv-test-e2e-RwAbtu/dev-talk\",\"url\":\"http://localhost:46029\",\"port\":46029,\"reused\":true,\"pid\":7355}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.dev.reused",
+    "dir": "/tmp/pecotv-test-e2e-RwAbtu/dev-talk",
+    "url": "http://localhost:46029",
+    "port": 46029,
+    "reused": true,
+    "pid": 7355
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"904a4e1b56402abfb17d5f6eb7468164.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry SIGTERM で終了しない子には、続けて SIGKILL を送る","name":"SIGTERM で終了しない子には、続けて SIGKILL を送る","status":"passed","testResultsByEnv":{"default":"1a13166320de6ec8b2b42d65f39f8920"}}

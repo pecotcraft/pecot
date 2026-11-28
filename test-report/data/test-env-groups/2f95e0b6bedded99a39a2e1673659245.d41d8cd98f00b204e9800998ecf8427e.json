@@ -1,0 +1,1 @@
+{"id":"2f95e0b6bedded99a39a2e1673659245.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName wtN のセットが存在しなければ wt1 を返す","name":"wtN のセットが存在しなければ wt1 を返す","status":"passed","testResultsByEnv":{"default":"b40f68cc02b6658f2a39a3296c18f872"}}

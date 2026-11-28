@@ -1,0 +1,1 @@
+{"id":"86e3566f59ab501634ec2b6d310c52dc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#本体の runtime manifest との整合 pnpm-lock.yaml は、tarball を直接取得する解決を含まない","name":"pnpm-lock.yaml は、tarball を直接取得する解決を含まない","status":"passed","testResultsByEnv":{"default":"71b0fb2c8fed85c535e81e122b60702e"}}

@@ -1,0 +1,1 @@
+{"id":"a1a5cc556262dccfec13f5e6ce9bcfdc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 出力が空のときは、空の行の配列を返す","name":"出力が空のときは、空の行の配列を返す","status":"passed","testResultsByEnv":{"default":"2a8f93b662109d73b57ded01c964bf2e"}}

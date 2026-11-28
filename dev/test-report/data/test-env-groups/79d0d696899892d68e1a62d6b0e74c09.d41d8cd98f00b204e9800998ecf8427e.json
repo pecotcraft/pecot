@@ -1,0 +1,1 @@
+{"id":"79d0d696899892d68e1a62d6b0e74c09.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/output/output.test.ts#reportAborted Aborted. を標準エラーに出力し、終了コード 1 を返す","name":"Aborted. を標準エラーに出力し、終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"325028db9e2f7159896e79d284ba4442"}}

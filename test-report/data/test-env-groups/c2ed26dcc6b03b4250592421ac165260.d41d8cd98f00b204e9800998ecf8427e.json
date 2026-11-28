@@ -1,0 +1,1 @@
+{"id":"c2ed26dcc6b03b4250592421ac165260.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/caret-range.test.ts#caretRangeViolation: 入力と下限 major が 1 以上なら、minor が下限より大きくても範囲に含まれる","name":"major が 1 以上なら、minor が下限より大きくても範囲に含まれる","status":"passed","testResultsByEnv":{"default":"f988729ee3aa2865bd660a09eee5a1db"}}

@@ -1,0 +1,1 @@
+{"id":"cc3e57123f8da6f387c93a08338efe1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#アクティブ設定 存在しないファイルをアクティブな設定に指定すると、ConfigError を発生させる","name":"存在しないファイルをアクティブな設定に指定すると、ConfigError を発生させる","status":"passed","testResultsByEnv":{"default":"995d64873cde0a45ad3afd73b13dd41f"}}

@@ -1,0 +1,1 @@
+{"id":"e420b2768464d79f0a1092aba5b964a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#フラグ名の文字列を止める lint src/infra/git.ts のパス new の引数の文字列 にフラグ名を書くと、lint の違反になる","name":"new の引数の文字列 にフラグ名を書くと、lint の違反になる","status":"passed","testResultsByEnv":{"default":"ef9e46826723c936f78b5586c1541c21"}}

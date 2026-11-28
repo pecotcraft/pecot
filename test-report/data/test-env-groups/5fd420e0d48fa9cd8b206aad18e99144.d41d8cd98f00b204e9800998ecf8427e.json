@@ -1,0 +1,1 @@
+{"id":"5fd420e0d48fa9cd8b206aad18e99144.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#executeMcpServe のセッションのディレクトリ ディレクトリを決められなくても起動し、tools/list は変えず、どのツールも理由を返してコマンドを呼ばない","name":"ディレクトリを決められなくても起動し、tools/list は変えず、どのツールも理由を返してコマンドを呼ばない","status":"passed","testResultsByEnv":{"default":"17e1bcb15bdc22453b335e6037e41fe2"}}

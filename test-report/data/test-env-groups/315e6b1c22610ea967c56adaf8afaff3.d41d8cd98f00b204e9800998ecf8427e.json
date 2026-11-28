@@ -1,0 +1,1 @@
+{"id":"315e6b1c22610ea967c56adaf8afaff3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor もしモデルの認証の secret も 4 つの変数のそろった組も無いなら、その項目を missing にして失敗を返す","name":"もしモデルの認証の secret も 4 つの変数のそろった組も無いなら、その項目を missing にして失敗を返す","status":"passed","testResultsByEnv":{"default":"a6bcb1233f1f187ed9f5a25441bdaf63"}}

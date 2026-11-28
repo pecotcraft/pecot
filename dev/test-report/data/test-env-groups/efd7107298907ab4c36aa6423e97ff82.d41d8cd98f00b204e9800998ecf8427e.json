@@ -1,0 +1,1 @@
+{"id":"efd7107298907ab4c36aa6423e97ff82.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/official-reads.test.ts#referenceFromUrl URL でない文字列 を渡すと、undefined を返す","name":"URL でない文字列 を渡すと、undefined を返す","status":"passed","testResultsByEnv":{"default":"f31f33516a860c6710d7e6a44ecfa5cc"}}

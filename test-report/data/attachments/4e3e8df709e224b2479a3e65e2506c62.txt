@@ -1,0 +1,2 @@
+ERROR: --pr-main と --queue-base は組で指定します。
+使い方: list-test-lanes.sh [--pr-main=<sha> --queue-base=<sha>] <base> <head>

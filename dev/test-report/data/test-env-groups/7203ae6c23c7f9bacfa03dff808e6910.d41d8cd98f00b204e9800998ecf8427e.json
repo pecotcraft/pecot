@@ -1,0 +1,1 @@
+{"id":"7203ae6c23c7f9bacfa03dff808e6910.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#ルートの解決 インストール済みの印（install stamp）は永続層の直下に置き、場所を決められなければ undefined を返す","name":"インストール済みの印（install stamp）は永続層の直下に置き、場所を決められなければ undefined を返す","status":"passed","testResultsByEnv":{"default":"ac7324fb3a1c8caf2a3858f52d3aa206"}}

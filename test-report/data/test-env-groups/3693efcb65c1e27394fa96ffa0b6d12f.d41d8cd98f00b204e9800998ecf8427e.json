@@ -1,0 +1,1 @@
+{"id":"3693efcb65c1e27394fa96ffa0b6d12f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_ruleset_main#test_pull_request_has_required_keys","name":"pull_request の規則は、必須の項目を持ち、承認数 0 と squash だけを指定する","status":"passed","testResultsByEnv":{"default":"5ff62bb2c08d43da5835f76a0fd70643"}}

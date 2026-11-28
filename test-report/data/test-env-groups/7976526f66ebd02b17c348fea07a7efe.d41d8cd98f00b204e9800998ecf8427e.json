@@ -1,0 +1,1 @@
+{"id":"7976526f66ebd02b17c348fea07a7efe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/template-sections.test.ts#readTemplateSections ファイルとして読めないパス（ディレクトリ）を指定した場合は、空の一覧を返す","name":"ファイルとして読めないパス（ディレクトリ）を指定した場合は、空の一覧を返す","status":"passed","testResultsByEnv":{"default":"8437df449dd925d96fe99cc9f9c9155a"}}

@@ -1,0 +1,1 @@
+{"id":"bf0fa8bceb27893c64839b91e4c93ba8.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#引数なし起動 で tools/list の先頭が TOOLS の順になる","name":"引数なし起動 で tools/list の先頭が TOOLS の順になる","status":"passed","testResultsByEnv":{"default":"1eeed91a49fc79695b9d48efae648be8"}}

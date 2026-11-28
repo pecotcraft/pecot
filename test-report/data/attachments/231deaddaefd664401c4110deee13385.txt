@@ -1,0 +1,20 @@
+## Release plan
+
+案の作成に失敗しました。各ログを確かめてください。
+
+### preflight warnings
+
+```text
+warning: w
+  detail
+```
+
+<details><summary>preflight</summary>
+
+```text
+warning: w
+  detail
+error: x
+```
+
+</details>

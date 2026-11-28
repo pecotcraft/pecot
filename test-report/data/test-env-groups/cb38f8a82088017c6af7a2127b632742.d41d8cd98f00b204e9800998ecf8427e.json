@@ -1,0 +1,1 @@
+{"id":"cb38f8a82088017c6af7a2127b632742.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree worktree とブランチを削除し、空になった <root>/<name>/ も削除する","name":"worktree とブランチを削除し、空になった <root>/<name>/ も削除する","status":"passed","testResultsByEnv":{"default":"5d741d6d161e30000aebabf9fa3932e1"}}

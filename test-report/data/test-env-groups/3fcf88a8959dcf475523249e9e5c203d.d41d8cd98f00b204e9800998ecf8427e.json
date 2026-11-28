@@ -1,0 +1,1 @@
+{"id":"3fcf88a8959dcf475523249e9e5c203d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/direct-hint-lint.test.ts#フラグ名の文字列を止める lint src/domain/issue-surface.ts のパス テンプレートの中の三項演算子の文字列 にフラグ名を書くと、lint が 1 件報告する","name":"テンプレートの中の三項演算子の文字列 にフラグ名を書くと、lint が 1 件報告する","status":"passed","testResultsByEnv":{"default":"51aac73e689498ffb4c2c0fe1e4809c0"}}

@@ -1,0 +1,1 @@
+{"id":"00e511e8187f45b369dbb1ffc8aae4a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の style とその他 空のファイルは段落を取り出さず、BOM 付きのファイルは BOM を除いた位置で指摘を返す","name":"空のファイルは段落を取り出さず、BOM 付きのファイルは BOM を除いた位置で指摘を返す","status":"passed","testResultsByEnv":{"default":"443fe7290d57c916dafa0ed00ef9010b"}}

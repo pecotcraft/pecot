@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "main is a protected branch\n  protected: main"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"guard-blocked\",\"detail\":\"main is a protected branch\\n  protected: main\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "guard-blocked",
+    "detail": "main is a protected branch\n  protected: main"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"a3f49d3cf0f73af6c138e6cad1b099d4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#runAwscli awscli が PATH に存在しないときは、ENOENT を spawnErrorCode に設定する","name":"awscli が PATH に存在しないときは、ENOENT を spawnErrorCode に設定する","status":"passed","testResultsByEnv":{"default":"e6e8466bbecd8c59339bc437125b4ac3"}}

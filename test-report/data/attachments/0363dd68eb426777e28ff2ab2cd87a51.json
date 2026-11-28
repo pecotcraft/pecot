@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-not-in-project\",\"detail\":\"acme/demo is not in any project config\\n  available: ghes.example.com_acme_board_acme\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-not-in-project",
+    "detail": "acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme"
+  },
+  "isError": true
+}

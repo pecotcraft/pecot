@@ -1,0 +1,1 @@
+{"id":"96a305465e784a32a4fe526ea97aab92.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_failure_reports_only_current_nx_run","name":"複数の tip で失敗した場合は、失敗した nx の実行分だけを表示し、先に成功した実行の同名レーンを混ぜない","status":"passed","testResultsByEnv":{"default":"f7e442d858cae8789948b9dd26409fdf"}}

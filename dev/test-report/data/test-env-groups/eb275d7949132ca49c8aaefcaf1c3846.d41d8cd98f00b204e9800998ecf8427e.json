@@ -1,0 +1,1 @@
+{"id":"eb275d7949132ca49c8aaefcaf1c3846.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#applyPrerenderImageReplace meta が配列の場合は、その entry を飛ばす","name":"meta が配列の場合は、その entry を飛ばす","status":"passed","testResultsByEnv":{"default":"85611746fcbef25471bca71b277ee9a5"}}

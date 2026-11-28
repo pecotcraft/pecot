@@ -1,0 +1,1 @@
+{"id":"77681025e62f6003bf845b27dce00969.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#監査時 HEAD が現在の HEAD とも親とも一致しない記録 で publish を拒否する","name":"監査時 HEAD が現在の HEAD とも親とも一致しない記録 で publish を拒否する","status":"passed","testResultsByEnv":{"default":"6caafff01321104071d9da808a1cfc9d"}}

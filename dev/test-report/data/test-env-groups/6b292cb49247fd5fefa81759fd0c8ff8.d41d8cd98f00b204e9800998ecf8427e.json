@@ -1,0 +1,1 @@
+{"id":"6b292cb49247fd5fefa81759fd0c8ff8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/version-range.test.ts#doesRangeAllowMajor: 範囲表記 9 || 10 は、メジャーバージョン 9 と 10 の両方を許可する","name":"9 || 10 は、メジャーバージョン 9 と 10 の両方を許可する","status":"passed","testResultsByEnv":{"default":"b738e3c5d27fd31e3dac163c6e58779b"}}

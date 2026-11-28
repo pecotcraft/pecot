@@ -1,0 +1,1 @@
+{"id":"3888757486de4bf21337c7af6d94a52e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#getSecretScanningStatus secret_scanning.status が enabled の場合は、その値を返す","name":"secret_scanning.status が enabled の場合は、その値を返す","status":"passed","testResultsByEnv":{"default":"9fdaf5ca2359bc0d4054f60e4612535b"}}

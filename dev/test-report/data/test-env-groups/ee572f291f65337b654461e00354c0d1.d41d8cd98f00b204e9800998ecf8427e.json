@@ -1,0 +1,1 @@
+{"id":"ee572f291f65337b654461e00354c0d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh origin が無ければ、最初の remote の URL で判定する","name":"origin が無ければ、最初の remote の URL で判定する","status":"passed","testResultsByEnv":{"default":"34ab29c6c78880a829551432ebf01700"}}

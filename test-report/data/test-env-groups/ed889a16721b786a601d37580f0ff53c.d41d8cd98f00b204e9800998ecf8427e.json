@@ -1,0 +1,1 @@
+{"id":"ed889a16721b786a601d37580f0ff53c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/flag-hint.test.ts#入力の誤りの文の入力名 project_link の package に区切りが無い とき、入力名で案内して止める","name":"project_link の package に区切りが無い とき、入力名で案内して止める","status":"passed","testResultsByEnv":{"default":"d2afd844465d50a39f60d3413664691b"}}

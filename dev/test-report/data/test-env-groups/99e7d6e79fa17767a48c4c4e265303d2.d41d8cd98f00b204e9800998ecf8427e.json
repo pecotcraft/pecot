@@ -1,0 +1,1 @@
+{"id":"99e7d6e79fa17767a48c4c4e265303d2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/drawio-embed-handshake-race.test.ts#exportViaEmbed の handshake handshake の設置が遅れても、先に届いた init を取りこぼさず SVG を返す","name":"handshake の設置が遅れても、先に届いた init を取りこぼさず SVG を返す","status":"passed","testResultsByEnv":{"default":"52caa13ffe68436e04c86068a18d3c27"}}

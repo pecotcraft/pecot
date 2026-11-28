@@ -1,0 +1,1 @@
+{"id":"c5086135ef696dcf1b2bde7fd64bf044.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/issue-surface.test.ts#extractIssueSurface 対象の型と Mutation が SDL に存在しない場合は、エラーにせず、その型の項目を出力しない","name":"対象の型と Mutation が SDL に存在しない場合は、エラーにせず、その型の項目を出力しない","status":"passed","testResultsByEnv":{"default":"62f1e4dff5c0725314e853dda5cb74b2"}}

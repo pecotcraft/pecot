@@ -1,0 +1,1 @@
+{"id":"bba5662c82f79cbc3e370d764036f0cc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_commit_text_errors_when_deps_cannot_be_restored","name":"依存が欠けていて pnpm install でも戻せないと、コミットメッセージの確認は案内を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"2d7658e3c17fdbf8ce438ebfe1a4d426"}}

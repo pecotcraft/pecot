@@ -1,0 +1,1 @@
+{"id":"35f05f78d9d1e0dc2b7c2063d74f9168.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_preview_status_sets_pages_preview_on_the_verified_head","name":"検証した head のコミットに、pages / preview のステータスを付ける","status":"passed","testResultsByEnv":{"default":"dffabc8e6de4ce2ff43e00c74c30543d"}}

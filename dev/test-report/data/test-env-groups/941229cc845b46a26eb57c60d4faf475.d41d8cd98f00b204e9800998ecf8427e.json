@@ -1,0 +1,1 @@
+{"id":"941229cc845b46a26eb57c60d4faf475.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data MCP の呼び出し project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる","name":"project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる","status":"passed","testResultsByEnv":{"default":"20c7b12cf0809c263c97cc562259f224"}}

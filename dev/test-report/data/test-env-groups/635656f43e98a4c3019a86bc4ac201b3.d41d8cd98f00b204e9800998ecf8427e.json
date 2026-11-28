@@ -1,0 +1,1 @@
+{"id":"635656f43e98a4c3019a86bc4ac201b3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_missing_profile_warns_and_keeps_exit_code","name":"profile が存在しない場合は、警告を出すが終了コード 0 のままにして、レーン 0 と表示する","status":"passed","testResultsByEnv":{"default":"1140dfbee02ad7de87ef3a8e7e5c89dc"}}

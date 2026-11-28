@@ -1,0 +1,1 @@
+{"id":"4aa63691c3f11291e1ef28cd47af4798.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#gh の呼び出しが 3 回（view / upload / workflow run）","name":"gh の呼び出しが 3 回（view / upload / workflow run）","status":"passed","testResultsByEnv":{"default":"fbdf8781012f9413b2ff23fb9e8f5d00"}}

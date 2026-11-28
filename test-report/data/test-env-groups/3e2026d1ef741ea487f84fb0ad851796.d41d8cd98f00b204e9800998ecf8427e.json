@@ -1,0 +1,1 @@
+{"id":"3e2026d1ef741ea487f84fb0ad851796.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ session-start-state-repo-mismatch を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ session-start-state-repo-mismatch を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"f042dfdf3add66e8d960b4eeff4b28ed"}}

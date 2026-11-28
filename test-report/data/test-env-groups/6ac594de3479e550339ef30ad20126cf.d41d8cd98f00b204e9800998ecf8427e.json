@@ -1,0 +1,1 @@
+{"id":"6ac594de3479e550339ef30ad20126cf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/github-ops/branch-and-stack.test.ts#github ops stack-register で 親がスタックに無い とき、子の PR をスタックへ登録し、登録後のスタックを返す","name":"stack-register で 親がスタックに無い とき、子の PR をスタックへ登録し、登録後のスタックを返す","status":"passed","testResultsByEnv":{"default":"a4ecd8f3b4f798ca9915cfce8b86b649"}}

@@ -1,0 +1,1 @@
+{"id":"bf76d0a91cd4e69d29aa7ce8bee1d15c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 比較するキーが存在しないと、error を表示して終了コード 2 で止まる: ボードの fields が無い","name":"比較するキーが存在しないと、error を表示して終了コード 2 で止まる: ボードの fields が無い","status":"passed","testResultsByEnv":{"default":"3f41890d6e3b2f55d78ba6b5c1d83bef"}}

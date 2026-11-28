@@ -1,0 +1,1 @@
+{"id":"bb623c4267417188d93e897e3dc1da43.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_dev_sources#test_fetch_fails_when_the_artifact_lacks_the_lane","name":"fetch は、artifact にレーンの結果が無いと、レーンと artifact の名前を示す例外が発生する","status":"passed","testResultsByEnv":{"default":"55335aa19383bdeffa8e552a4573bcc8"}}

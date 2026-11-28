@@ -1,0 +1,1 @@
+{"id":"d16156436eb49376f556cae51a4a82ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/visibility-helpers.test.ts#waitForDataWaitfor 待機対象が描画されないまま上限の時間を過ぎた場合は、警告を出力して処理を続ける","name":"待機対象が描画されないまま上限の時間を過ぎた場合は、警告を出力して処理を続ける","status":"passed","testResultsByEnv":{"default":"a2e63bd5e143ccda9ac67b327e131c09"}}

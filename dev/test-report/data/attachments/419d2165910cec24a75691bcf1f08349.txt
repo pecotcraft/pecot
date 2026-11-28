@@ -1,0 +1,5 @@
+warning: An executable named `gitlint` is not provided by package `gitlint` but is available via the dependency `gitlint-core`. Consider using `uvx --from gitlint-core gitlint` instead.
+1: UC1 コミットメッセージの説明部分に日本語を含めてください。
+理由: このプロジェクトではコミット履歴の可読性のため、コミットメッセージを日本語で記述するルールです。
+Conventional Commitsプレフィックス（type(scope):）の後に日本語で記述します。
+例: feat(hooks): フックメッセージを改善 / fix(cli): バリデーションを修正

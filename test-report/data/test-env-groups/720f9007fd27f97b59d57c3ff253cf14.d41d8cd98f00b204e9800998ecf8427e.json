@@ -1,0 +1,1 @@
+{"id":"720f9007fd27f97b59d57c3ff253cf14.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#serializeCacheManifest キーの挿入順が違っても、同じ文字列を出力する","name":"キーの挿入順が違っても、同じ文字列を出力する","status":"passed","testResultsByEnv":{"default":"a0f1a82220b80b660a3de8417ab7712c"}}

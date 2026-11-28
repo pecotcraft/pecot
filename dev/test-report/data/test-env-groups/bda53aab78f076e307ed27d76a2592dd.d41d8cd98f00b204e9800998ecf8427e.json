@@ -1,0 +1,1 @@
+{"id":"bda53aab78f076e307ed27d76a2592dd.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release .githooks/scripts/tests/attach-mcp-tgz.bats#引数が不正だと、非ゼロ終了になる","name":"引数が不正だと、非ゼロ終了になる","status":"passed","testResultsByEnv":{"default":"9b85a84506fd4df9997215fa8110e5fd"}}

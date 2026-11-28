@@ -1,0 +1,1 @@
+{"id":"9889fc24a18bced073e9d732985f9b1c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#shorthand-list の項目値 空の配列を指定した場合は、そのオプションを付けずに実行する","name":"空の配列を指定した場合は、そのオプションを付けずに実行する","status":"passed","testResultsByEnv":{"default":"10d6b4afc7bd4876e797b8fc7ccd6e52"}}

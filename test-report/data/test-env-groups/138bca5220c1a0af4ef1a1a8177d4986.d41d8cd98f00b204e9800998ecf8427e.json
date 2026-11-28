@@ -1,0 +1,1 @@
+{"id":"138bca5220c1a0af4ef1a1a8177d4986.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyJapaneseFontFix 英数字だけのテキストの場合は、変更しない","name":"英数字だけのテキストの場合は、変更しない","status":"passed","testResultsByEnv":{"default":"1d583363aa2b95a8931ddf65d07b3081"}}

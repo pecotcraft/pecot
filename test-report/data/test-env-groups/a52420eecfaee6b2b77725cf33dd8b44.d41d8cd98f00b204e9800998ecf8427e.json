@@ -1,0 +1,1 @@
+{"id":"a52420eecfaee6b2b77725cf33dd8b44.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board.test.ts#board_show MCP の data json を true にしても、同じ data を返す","name":"json を true にしても、同じ data を返す","status":"passed","testResultsByEnv":{"default":"0c6fc32fbb966f805085e716819b85db"}}

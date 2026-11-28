@@ -1,0 +1,1 @@
+{"id":"feb9f974479f58a749c2e01da2f25051.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/workflow-template.test.ts#pecot の action の参照 npx で @pecot/workflow-mcp を呼ぶ行を返し、コメントの行は返さない","name":"npx で @pecot/workflow-mcp を呼ぶ行を返し、コメントの行は返さない","status":"passed","testResultsByEnv":{"default":"685ec10e6fea87423685b7dd84b51579"}}

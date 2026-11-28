@@ -1,0 +1,1 @@
+{"id":"07b2484293810ba0f19adbaaf65f38f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge 対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる","name":"対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"ff58d6bf3e06d92ec093c319b53ddb77"}}

@@ -1,0 +1,1 @@
+{"id":"bf2d039d842959390b06ad81f9a39364.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 定型の外 コマンドが定型の外（コマンド置換を含む）のとき、許可せず何も出力しない","name":"コマンドが定型の外（コマンド置換を含む）のとき、許可せず何も出力しない","status":"passed","testResultsByEnv":{"default":"a0f5f43719d8b32688f10db819eb6e05"}}

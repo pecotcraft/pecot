@@ -1,0 +1,8 @@
+:iface-id: PW-PR-SHOW
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Get PR details
+============================
+
+.. iface-defs:: pecot-workflow PW-PR-SHOW

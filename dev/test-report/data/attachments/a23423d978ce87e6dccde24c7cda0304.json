@@ -1,0 +1,25 @@
+{
+  "project": "githooks",
+  "target": "test-nx-cache",
+  "runtime": [
+    "dpkg-query -W -f='${Package}=${Version}\\n'",
+    "git --version",
+    "git hash-object pnpm-lock.yaml",
+    "git ls-files -- plugins/pecot-visual/assets/slidev/deck-lint.config.js plugins/pecot-visual/assets/slidev/deck-lint.env.config.js plugins/pecot-visual/assets/slidev/scripts/eslint/slidev-pages-lint/index.ts plugins/pecot-visual/assets/slidev/scripts/eslint/validate-references/index.ts plugins/pecot-visual/assets/slidev/scripts/eslint/validate-references/lib/schema-validator.ts plugins/pecot-visual/cli/tests/fixtures/themes/with-declaration/references/plain.yaml | git hash-object --stdin",
+    "jq --version",
+    "node --version",
+    "node -p \"require('nx/package.json').version\"",
+    "uv --version",
+    "uv python find --no-project --show-version 3.12"
+  ],
+  "environment": [
+    "HOME",
+    "NODE_OPTIONS",
+    "NODE_V8_COVERAGE",
+    "NX_CLOUD_ENCRYPTION_KEY",
+    "PECOT_REPORT_SITE_URL"
+  ],
+  "external": [
+    "AllExternalDependencies"
+  ]
+}

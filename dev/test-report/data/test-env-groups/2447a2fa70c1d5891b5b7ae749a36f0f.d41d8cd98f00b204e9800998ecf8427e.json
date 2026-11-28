@@ -1,0 +1,1 @@
+{"id":"2447a2fa70c1d5891b5b7ae749a36f0f.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#node で npm_execpath を run して自分を呼ぶ script があると、違反として返す","name":"node で npm_execpath を run して自分を呼ぶ script があると、違反として返す","status":"passed","testResultsByEnv":{"default":"3076dafa4a3c17bf3b9537b97af399a5"}}

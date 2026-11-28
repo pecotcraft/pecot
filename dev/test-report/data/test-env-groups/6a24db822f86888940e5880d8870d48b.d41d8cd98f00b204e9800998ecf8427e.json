@@ -1,0 +1,1 @@
+{"id":"6a24db822f86888940e5880d8870d48b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） .active が存在しなくても、remote のリポジトリを含む設定で作成する","name":".active が存在しなくても、remote のリポジトリを含む設定で作成する","status":"passed","testResultsByEnv":{"default":"d56b862e734d7eae37c16c1d56bc5641"}}

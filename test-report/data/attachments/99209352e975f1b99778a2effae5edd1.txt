@@ -1,0 +1,2 @@
+error: .pecot-base records feat/demo/11 at 15dcc2b, which is not in the history of feat/demo/12
+  call pr_create on the branch the record was written for, or pass head: "feat/demo/12" to create the PR without the record

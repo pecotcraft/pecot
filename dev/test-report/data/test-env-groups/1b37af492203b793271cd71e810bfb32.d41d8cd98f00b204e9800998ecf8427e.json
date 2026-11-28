@@ -1,0 +1,1 @@
+{"id":"1b37af492203b793271cd71e810bfb32.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/e2e/mcp-stdio.test.ts#pecot-tools-mcp (stdio) client.close() を呼ぶと、SIGTERM を待たずにサーバが自力で終了する","name":"client.close() を呼ぶと、SIGTERM を待たずにサーバが自力で終了する","status":"passed","testResultsByEnv":{"default":"20491c5742c9776560559e1825f71929"}}

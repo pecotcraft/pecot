@@ -1,0 +1,1 @@
+{"id":"cb8cbfee107a4803ffbd61d0c065b8b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh の .pecot/work 配下 work 配下に clone した入れ子のリポは、そのリポの toplevel に解決する","name":"work 配下に clone した入れ子のリポは、そのリポの toplevel に解決する","status":"passed","testResultsByEnv":{"default":"173fa8698eed17c854f13ca8be48259d"}}

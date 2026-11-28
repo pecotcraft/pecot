@@ -1,0 +1,1 @@
+{"id":"a536a74aee27e944c041bc3ba406dbe3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree wtN の形でない名前のブランチを渡すと、その worktree とブランチを削除する","name":"wtN の形でない名前のブランチを渡すと、その worktree とブランチを削除する","status":"passed","testResultsByEnv":{"default":"e5762993c094e7136bdfdbee0f9dd05d"}}

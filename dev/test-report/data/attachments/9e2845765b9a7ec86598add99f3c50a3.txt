@@ -1,0 +1,4 @@
+既存セッション 'pecot-base-parallel-a:wt1-pecot' を再利用します
+既存セッション 'pecot-base-parallel-a:wt2-pecot' を再利用します
+既存セッション 'pecot-base-parallel-a:wt3-pecot' を再利用します
+既存セッション 'pecot-base-parallel-a:wt4-pecot' を再利用します

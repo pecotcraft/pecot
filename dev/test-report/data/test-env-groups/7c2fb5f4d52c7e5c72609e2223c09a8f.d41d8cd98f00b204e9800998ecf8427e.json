@@ -1,0 +1,1 @@
+{"id":"7c2fb5f4d52c7e5c72609e2223c09a8f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter parent_epic と order を両方渡すと、検証を通して両方の値を返す","name":"parent_epic と order を両方渡すと、検証を通して両方の値を返す","status":"passed","testResultsByEnv":{"default":"ddab1ce050ff1f9cebde1f2be97629f7"}}

@@ -1,0 +1,1 @@
+{"id":"85c22d3007eba985f8b04103d7219777.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show Stack の節 open の PR が無ければ fork でない最新の PR を、PR が無ければ no PR を出す","name":"open の PR が無ければ fork でない最新の PR を、PR が無ければ no PR を出す","status":"passed","testResultsByEnv":{"default":"340155a707c7aa321bcc3316527bd27c"}}

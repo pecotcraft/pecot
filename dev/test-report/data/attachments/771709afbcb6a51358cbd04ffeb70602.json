@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: {{issue:first}} is only for a batch create; write the Issue number"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"placeholder\",\"message\":\"{{issue:first}} is only for a batch create; write the Issue number\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "placeholder",
+        "message": "{{issue:first}} is only for a batch create; write the Issue number"
+      }
+    ]
+  }
+}

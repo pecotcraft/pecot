@@ -1,0 +1,1 @@
+{"id":"20eb1beb5073bd7983d2fa2417dd3fd4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/chromium-guard.test.ts#ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する Chromium を取得していない場合は取得し、成功すれば処理を続ける","name":"Chromium を取得していない場合は取得し、成功すれば処理を続ける","status":"passed","testResultsByEnv":{"default":"ddad209572ef7743e3adaf55dfc04b9b"}}

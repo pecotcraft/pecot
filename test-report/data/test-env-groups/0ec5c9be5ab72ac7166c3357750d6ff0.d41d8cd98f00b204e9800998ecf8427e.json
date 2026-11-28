@@ -1,0 +1,1 @@
+{"id":"0ec5c9be5ab72ac7166c3357750d6ff0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#parseOwnerRepository（成功） \"owner.io/my-repo\" を渡すと、owner と repository に分ける","name":"\"owner.io/my-repo\" を渡すと、owner と repository に分ける","status":"passed","testResultsByEnv":{"default":"0b530df320407baeb6ed19ac517b973f"}}

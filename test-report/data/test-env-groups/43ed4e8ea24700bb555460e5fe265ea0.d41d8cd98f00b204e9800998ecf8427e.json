@@ -1,0 +1,1 @@
+{"id":"43ed4e8ea24700bb555460e5fe265ea0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ worktree-link-state-main-worktree を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ worktree-link-state-main-worktree を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"831e0c5f5c92ced434dbc2da853fc87e"}}

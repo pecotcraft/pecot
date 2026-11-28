@@ -1,0 +1,1 @@
+{"id":"c479f35d5465c705f0671f3af03a91ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show ブランチ名を読めないとき、Branch の行に unknown を出して続ける","name":"ブランチ名を読めないとき、Branch の行に unknown を出して続ける","status":"passed","testResultsByEnv":{"default":"f859083d5a74f095cdcde59dc29f6095"}}

@@ -1,0 +1,1 @@
+{"id":"974f8cf4edde5f7d1af130ea9d4cfac4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#isChromiumInstalled 別のリビジョンの chromium が取得済みでも、必要なリビジョンが存在しない場合は、未取得と判定する","name":"別のリビジョンの chromium が取得済みでも、必要なリビジョンが存在しない場合は、未取得と判定する","status":"passed","testResultsByEnv":{"default":"d378e78e7a5498844480eff431fe05cc"}}

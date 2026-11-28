@@ -1,0 +1,1 @@
+{"id":"4727b21818a18ccdeefe71e69938ecf2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 宣言ごとの許す書体 (T051) 和文を含むセルの書体の並びに和文用の書体がなければ、警告を返し、案内にその書体を含める","name":"和文を含むセルの書体の並びに和文用の書体がなければ、警告を返し、案内にその書体を含める","status":"passed","testResultsByEnv":{"default":"94cdc00d6618508705a2b953f3451dfe"}}

@@ -1,0 +1,87 @@
+{
+  "name": "aws_sso_login",
+  "title": "Start SSO login",
+  "description": "Starts AWS SSO device authorization and returns the verification URL and code immediately. It does not wait for completion, so check with aws_sso_login_status after the user approves",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "profile": {
+        "description": "AWS profile name. If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[\\w.-]+$"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "state": {
+        "description": "State of the device authorization. Returned on success and on failed / timed-out",
+        "type": "string",
+        "enum": [
+          "pending",
+          "completed",
+          "failed",
+          "timed-out"
+        ]
+      },
+      "verificationUrl": {
+        "description": "URL to open in a browser to approve (success only, once awscli has printed it)",
+        "type": "string"
+      },
+      "verificationUrlComplete": {
+        "description": "URL with the code filled in; no code entry is needed (success only, once awscli has printed it)",
+        "type": "string"
+      },
+      "userCode": {
+        "description": "Code to enter at verificationUrl (success only, once awscli has printed it)",
+        "type": "string"
+      },
+      "profile": {
+        "description": "Profile being authenticated. Empty when the awscli default resolution applies. Returned on success and on failed / timed-out",
+        "type": "string"
+      },
+      "kind": {
+        "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+        "type": "string"
+      },
+      "detail": {
+        "description": "Full text of the failure and how to recover (failure only)",
+        "type": "string"
+      },
+      "log": {
+        "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+        "type": "string"
+      },
+      "warnings": {
+        "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "state",
+          "profile"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": true
+  }
+}

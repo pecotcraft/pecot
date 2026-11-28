@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "merge_method: merge_method must be squash (given: none, which merges with a merge commit): a PR to the develop branch is squashed into one commit"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"merge_method\",\"code\":\"merge-method\",\"message\":\"merge_method must be squash (given: none, which merges with a merge commit): a PR to the develop branch is squashed into one commit\",\"candidates\":[\"squash\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "merge_method",
+        "code": "merge-method",
+        "message": "merge_method must be squash (given: none, which merges with a merge commit): a PR to the develop branch is squashed into one commit",
+        "candidates": [
+          "squash"
+        ]
+      }
+    ]
+  }
+}

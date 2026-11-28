@@ -1,0 +1,1 @@
+{"id":"ec5acc26b8fc8e21175eb43eab079ecb.a178c277b1c9460adeee39bf6bdea808","fullName":".githooks.tests.test_pages_release#test_build_stops_on_host_or_install_or_site_failure","name":"リリース版の build は、pnpm install のコマンドが失敗すると、そこで止まって終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"841a68bb2baae6cc7279f9d5d3cf093e"}}

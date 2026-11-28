@@ -1,0 +1,1 @@
+{"id":"1e1d55b552c3a2e158f2dcbe1969e93a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations annotations の要素がオブジェクトでない場合は、拒否する","name":"annotations の要素がオブジェクトでない場合は、拒否する","status":"passed","testResultsByEnv":{"default":"6e09c09b8e9e1de53f0db8412e9b2332"}}

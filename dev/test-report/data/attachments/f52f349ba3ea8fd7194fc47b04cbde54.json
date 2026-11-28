@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid config file: /tmp/pecot-config-ZrzGKa/.pecot/config/projects/broken.json: Unexpected token 'o', \"not json\" is not valid JSON"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"config-invalid\",\"detail\":\"invalid config file: /tmp/pecot-config-ZrzGKa/.pecot/config/projects/broken.json: Unexpected token 'o', \\\"not json\\\" is not valid JSON\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "config-invalid",
+    "detail": "invalid config file: /tmp/pecot-config-ZrzGKa/.pecot/config/projects/broken.json: Unexpected token 'o', \"not json\" is not valid JSON"
+  },
+  "isError": true
+}

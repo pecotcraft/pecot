@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"links\":[{\"path\":\"/tmp/pecot-cli-D7QI0A/workspaces/wt1/demo/blocked/inner\",\"destination\":\"/tmp/pecot-cli-D7QI0A/workspaces/base/demo/second.md\",\"change\":\"error\",\"reason\":\"[Errno 17] File exists: '/tmp/pecot-cli-D7QI0A/workspaces/wt1/demo/blocked'\"},{\"path\":\"/tmp/pecot-cli-D7QI0A/workspaces/wt1/demo/CLAUDE.local.md\",\"destination\":\"/tmp/pecot-cli-D7QI0A/workspaces/base/demo/CLAUDE.local.md\",\"change\":\"create\"}],\"warnings\":[\"failed to create the symlink: /tmp/pecot-cli-D7QI0A/workspaces/wt1/demo/blocked/inner -> ../../../base/demo/second.md: [Errno 17] File exists: '/tmp/pecot-cli-D7QI0A/workspaces/wt1/demo/blocked'\"]}"
+    }
+  ],
+  "structuredContent": {
+    "links": [
+      {
+        "path": "/tmp/pecot-cli-D7QI0A/workspaces/wt1/demo/blocked/inner",
+        "destination": "/tmp/pecot-cli-D7QI0A/workspaces/base/demo/second.md",
+        "change": "error",
+        "reason": "[Errno 17] File exists: '/tmp/pecot-cli-D7QI0A/workspaces/wt1/demo/blocked'"
+      },
+      {
+        "path": "/tmp/pecot-cli-D7QI0A/workspaces/wt1/demo/CLAUDE.local.md",
+        "destination": "/tmp/pecot-cli-D7QI0A/workspaces/base/demo/CLAUDE.local.md",
+        "change": "create"
+      }
+    ],
+    "warnings": [
+      "failed to create the symlink: /tmp/pecot-cli-D7QI0A/workspaces/wt1/demo/blocked/inner -> ../../../base/demo/second.md: [Errno 17] File exists: '/tmp/pecot-cli-D7QI0A/workspaces/wt1/demo/blocked'"
+    ]
+  }
+}

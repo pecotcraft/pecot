@@ -1,0 +1,1 @@
+{"id":"552e2ace9e59c9788951663677f38b79.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/lockfile-single-version.test.ts#catalogViteOutside 下限が同じなら、範囲に収まると判定する","name":"下限が同じなら、範囲に収まると判定する","status":"passed","testResultsByEnv":{"default":"ff7a72bc6458953401fccc6c61cf06de"}}

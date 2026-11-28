@@ -1,0 +1,1 @@
+{"id":"72145d68474005ccb0baf385be505917.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#fullWidthEquivalent 全角だけの文字列を渡すと、文字数をそのまま返す","name":"全角だけの文字列を渡すと、文字数をそのまま返す","status":"passed","testResultsByEnv":{"default":"80ad13fb32d0ec781cae98ccba473cd1"}}

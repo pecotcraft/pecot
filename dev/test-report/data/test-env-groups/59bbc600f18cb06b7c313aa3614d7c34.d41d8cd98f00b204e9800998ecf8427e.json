@@ -1,0 +1,1 @@
+{"id":"59bbc600f18cb06b7c313aa3614d7c34.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_summary_goes_to_file_when_set","name":"`PECOT_CI_SUMMARY` を指定すると、親ディレクトリを作ってファイルに上書きし、標準出力には表示しない","status":"passed","testResultsByEnv":{"default":"d1e1571ccc21683bfe3dbea6cb871e54"}}

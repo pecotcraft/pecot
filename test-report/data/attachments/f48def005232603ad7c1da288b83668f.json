@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "develop_branch is not set for repository acme/demo\n    add develop_branch to repositories in the project config file\n    or pass base explicitly"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-setting-missing\",\"detail\":\"develop_branch is not set for repository acme/demo\\n    add develop_branch to repositories in the project config file\\n    or pass base explicitly\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-setting-missing",
+    "detail": "develop_branch is not set for repository acme/demo\n    add develop_branch to repositories in the project config file\n    or pass base explicitly"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"460aaab73aeb377764701668b18c5bd1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toToolResult 失敗で子プロセスの出力があれば、log に置く","name":"失敗で子プロセスの出力があれば、log に置く","status":"passed","testResultsByEnv":{"default":"030b8ee3237caf4f9ef050963d672a17"}}

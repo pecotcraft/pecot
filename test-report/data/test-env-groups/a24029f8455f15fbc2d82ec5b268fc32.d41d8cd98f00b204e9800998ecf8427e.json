@@ -1,0 +1,1 @@
+{"id":"a24029f8455f15fbc2d82ec5b268fc32.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init MCP の data 選択肢を足せないと、warnings に入れて続け、成功を返す","name":"選択肢を足せないと、warnings に入れて続け、成功を返す","status":"passed","testResultsByEnv":{"default":"33f1def669328ec1d5a8ccca7e3870e8"}}

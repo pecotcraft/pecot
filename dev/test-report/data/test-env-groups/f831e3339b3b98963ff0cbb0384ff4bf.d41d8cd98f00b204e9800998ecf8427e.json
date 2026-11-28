@@ -1,0 +1,1 @@
+{"id":"f831e3339b3b98963ff0cbb0384ff4bf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/session-finish.test.ts#session finish 待っている Issue dry-run では、閉じる前の Issue を済んだものとして判定し、列を書かずに予定の行と判定の変化を出す","name":"dry-run では、閉じる前の Issue を済んだものとして判定し、列を書かずに予定の行と判定の変化を出す","status":"passed","testResultsByEnv":{"default":"f5e59d7404f52836002e845eb74dd526"}}

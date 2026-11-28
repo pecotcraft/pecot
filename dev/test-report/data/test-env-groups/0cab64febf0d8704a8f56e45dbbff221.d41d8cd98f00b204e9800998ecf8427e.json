@@ -1,0 +1,1 @@
+{"id":"0cab64febf0d8704a8f56e45dbbff221.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/handoff-workflow-template.test.ts#handoff のワークフローの雛形 job の if は、マージされた・同じリポの head・bot でない PR だけを通す","name":"job の if は、マージされた・同じリポの head・bot でない PR だけを通す","status":"passed","testResultsByEnv":{"default":"7ac3658ebbad0ad3d90e0ae8802d8f7d"}}

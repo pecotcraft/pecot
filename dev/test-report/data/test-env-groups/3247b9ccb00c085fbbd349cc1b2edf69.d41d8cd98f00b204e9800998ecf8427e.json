@@ -1,0 +1,1 @@
+{"id":"3247b9ccb00c085fbbd349cc1b2edf69.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_failure_section_ignores_log_from_earlier_run","name":"この run で書かれていない古いログの失敗は、失敗の欄に表示しない","status":"passed","testResultsByEnv":{"default":"2c6831a8c354f77db2a472f4a8caf188"}}

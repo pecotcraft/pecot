@@ -1,0 +1,1 @@
+{"id":"1f31e2729edb05d34317c08711ffc4a4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/json.test.ts#isJsonObject 配列・null・文字列などを渡すと false、プレーンなオブジェクトを渡すと true を返す","name":"配列・null・文字列などを渡すと false、プレーンなオブジェクトを渡すと true を返す","status":"passed","testResultsByEnv":{"default":"c40c5c13be07ff86e5568ce68b05b8bc"}}

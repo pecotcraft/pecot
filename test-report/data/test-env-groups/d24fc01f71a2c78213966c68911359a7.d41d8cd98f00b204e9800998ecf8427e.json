@@ -1,0 +1,1 @@
+{"id":"d24fc01f71a2c78213966c68911359a7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestSlim レビューの投稿者が null の場合は null、login が空の場合は空文字のまま返す","name":"レビューの投稿者が null の場合は null、login が空の場合は空文字のまま返す","status":"passed","testResultsByEnv":{"default":"48d3cb422a728834ecef254ef980183d"}}

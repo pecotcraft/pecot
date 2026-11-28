@@ -1,0 +1,1 @@
+{"id":"0c79f838e18e3026bac633155f4f2d96.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#runGit git が存在しない場合は、OSError と同じ文の例外を発生させる","name":"git が存在しない場合は、OSError と同じ文の例外を発生させる","status":"passed","testResultsByEnv":{"default":"f274bc563c7258cd29f76fad05ab9db1"}}

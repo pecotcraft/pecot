@@ -1,0 +1,1 @@
+{"id":"94ec0ffef41d9bf007570ab31dea527b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync 最後の push が 31 分前で競合している PR は、理由 conflict で扱う","name":"最後の push が 31 分前で競合している PR は、理由 conflict で扱う","status":"passed","testResultsByEnv":{"default":"65d59d04dd5191c2ee07dd56e378855e"}}

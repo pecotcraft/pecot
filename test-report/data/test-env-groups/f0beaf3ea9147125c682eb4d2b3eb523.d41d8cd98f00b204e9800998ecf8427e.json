@@ -1,0 +1,1 @@
+{"id":"f0beaf3ea9147125c682eb4d2b3eb523.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/pecotv-run-output.test.ts#stdoutTail 古い行があり、最後の行も上限を超える場合は、先頭と末尾の両方に省略の印を付ける","name":"古い行があり、最後の行も上限を超える場合は、先頭と末尾の両方に省略の印を付ける","status":"passed","testResultsByEnv":{"default":"15ec84fbfea07030975bd4bb8f31a85f"}}

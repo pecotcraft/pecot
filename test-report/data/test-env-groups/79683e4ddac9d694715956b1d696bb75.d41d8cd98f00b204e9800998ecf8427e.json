@@ -1,0 +1,1 @@
+{"id":"79683e4ddac9d694715956b1d696bb75.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 定型の clone を許可する オプションが無いとき、exit 10 を返す","name":"オプションが無いとき、exit 10 を返す","status":"passed","testResultsByEnv":{"default":"9ecafa2769e97047828fb531b19b6d0e"}}

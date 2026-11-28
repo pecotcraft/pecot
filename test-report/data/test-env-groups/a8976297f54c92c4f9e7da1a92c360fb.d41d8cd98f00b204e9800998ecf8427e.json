@@ -1,0 +1,1 @@
+{"id":"a8976297f54c92c4f9e7da1a92c360fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#getRepositoryDefaultBranch default_branch が master の場合は、その値を返す","name":"default_branch が master の場合は、その値を返す","status":"passed","testResultsByEnv":{"default":"7b4c2d528c0f8ed18e7055306ff605ba"}}

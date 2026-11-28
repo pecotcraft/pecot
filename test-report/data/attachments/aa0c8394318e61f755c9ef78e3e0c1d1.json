@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "set: Issue acme/demo/7 status in_review"
+    },
+    {
+      "type": "text",
+      "text": "{\"issue\":\"acme/demo/7\",\"status\":\"in_review\"}"
+    }
+  ],
+  "structuredContent": {
+    "issue": "acme/demo/7",
+    "status": "in_review"
+  }
+}

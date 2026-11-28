@@ -1,0 +1,1 @@
+{"id":"61f2883a06c2e7246e011a6c1f89818b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 未編集プレースホルダの検出と正当な `<...>` の通過（#962） 型・メタ表記は素で書くと落ちる（バッククォートで囲む運用）","name":"型・メタ表記は素で書くと落ちる（バッククォートで囲む運用）","status":"passed","testResultsByEnv":{"default":"827f4dafe2582303b34b50344e900ff7"}}

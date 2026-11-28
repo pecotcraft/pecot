@@ -1,0 +1,1 @@
+{"id":"82de9c48740afd67acc6151f38a7da48.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli 資格情報がない呼び出しは、終了コード 253 で終了し、auth-missing と判定する","name":"資格情報がない呼び出しは、終了コード 253 で終了し、auth-missing と判定する","status":"passed","testResultsByEnv":{"default":"2d0f74831a6f85d1c90c78a70eaae9ba"}}

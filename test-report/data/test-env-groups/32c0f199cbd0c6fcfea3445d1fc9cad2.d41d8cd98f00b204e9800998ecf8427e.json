@@ -1,0 +1,1 @@
+{"id":"32c0f199cbd0c6fcfea3445d1fc9cad2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#withSpawnOutput 成功のときは、log を追加せず、warning だけを warnings に入れる","name":"成功のときは、log を追加せず、warning だけを warnings に入れる","status":"passed","testResultsByEnv":{"default":"84ce4b996ab2defb0c4a648454228e76"}}

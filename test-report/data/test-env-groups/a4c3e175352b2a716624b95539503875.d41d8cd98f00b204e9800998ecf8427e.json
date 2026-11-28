@@ -1,0 +1,1 @@
+{"id":"a4c3e175352b2a716624b95539503875.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-finish.test.ts#session_finish MCP の data ローカルの head ブランチが既に無いと、warnings に 1 つ入れる","name":"ローカルの head ブランチが既に無いと、warnings に 1 つ入れる","status":"passed","testResultsByEnv":{"default":"0171f5f24cbc48ab26c6cc6b617de9e2"}}

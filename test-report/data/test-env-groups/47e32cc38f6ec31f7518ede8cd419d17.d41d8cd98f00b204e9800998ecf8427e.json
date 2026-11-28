@@ -1,0 +1,1 @@
+{"id":"47e32cc38f6ec31f7518ede8cd419d17.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 起動済みの talk-dir へ別のポートを指定したら、既存を止めて指定のポートで開き直す","name":"起動済みの talk-dir へ別のポートを指定したら、既存を止めて指定のポートで開き直す","status":"passed","testResultsByEnv":{"default":"a1a74b1cb964a1c72f2ff8d9d3056792"}}

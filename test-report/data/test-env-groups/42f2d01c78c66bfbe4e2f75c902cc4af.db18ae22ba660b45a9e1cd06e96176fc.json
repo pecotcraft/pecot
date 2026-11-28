@@ -1,0 +1,1 @@
+{"id":"42f2d01c78c66bfbe4e2f75c902cc4af.db18ae22ba660b45a9e1cd06e96176fc","fullName":".githooks.tests.test_pages_served#test_fetch_turns_transport_errors_into_none","name":"fetch は、IncompleteRead の通信の失敗を status の無い結果にする","status":"passed","testResultsByEnv":{"default":"5d70757959f0c15a7a032285f458b506"}}

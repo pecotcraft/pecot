@@ -1,0 +1,1 @@
+ERROR: 監査未実施のため中止: 配布ツリー: 例外リストに同じ advisory と package の組が 2 度あります: GHSA-w3rx-r6r6-pgpr image-size

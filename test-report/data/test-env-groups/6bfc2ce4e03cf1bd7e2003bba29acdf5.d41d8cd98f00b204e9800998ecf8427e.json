@@ -1,0 +1,1 @@
+{"id":"6bfc2ce4e03cf1bd7e2003bba29acdf5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/rule-tester.test.ts#no-unknown-props invalid トップレベルに未知のキーがあると、unknownProp を 1 行目で報告する","name":"トップレベルに未知のキーがあると、unknownProp を 1 行目で報告する","status":"passed","testResultsByEnv":{"default":"e9056e798ddd5295afd852f7010639c9"}}

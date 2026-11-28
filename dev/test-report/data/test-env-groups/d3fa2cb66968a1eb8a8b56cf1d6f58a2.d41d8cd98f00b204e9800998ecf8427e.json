@@ -1,0 +1,1 @@
+{"id":"d3fa2cb66968a1eb8a8b56cf1d6f58a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validatePullRequestFrontmatter screenshot は前後の空白を除き、空文字・null・未指定の場合は undefined にする","name":"screenshot は前後の空白を除き、空文字・null・未指定の場合は undefined にする","status":"passed","testResultsByEnv":{"default":"30f58caa6d3307e3c6a16246be788053"}}

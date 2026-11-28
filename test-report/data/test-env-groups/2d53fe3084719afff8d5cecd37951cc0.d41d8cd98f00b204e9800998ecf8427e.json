@@ -1,0 +1,1 @@
+{"id":"2d53fe3084719afff8d5cecd37951cc0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-page.test.ts#slide_page のテーマの失敗 宣言に未知の lint ルールがあると、theme-unknown-rule のエラーを返す","name":"宣言に未知の lint ルールがあると、theme-unknown-rule のエラーを返す","status":"passed","testResultsByEnv":{"default":"402a2716c383b99a8787dff11cf0d7f3"}}

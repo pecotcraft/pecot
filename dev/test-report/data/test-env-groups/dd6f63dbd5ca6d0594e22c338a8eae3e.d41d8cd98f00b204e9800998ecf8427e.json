@@ -1,0 +1,1 @@
+{"id":"dd6f63dbd5ca6d0594e22c338a8eae3e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order template・parent_epic・order に null を渡すと、未指定として扱う","name":"template・parent_epic・order に null を渡すと、未指定として扱う","status":"passed","testResultsByEnv":{"default":"0eb07d111708effe2a502f1042192a66"}}

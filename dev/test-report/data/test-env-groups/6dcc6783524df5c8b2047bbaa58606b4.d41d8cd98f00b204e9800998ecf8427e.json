@@ -1,0 +1,1 @@
+{"id":"6dcc6783524df5c8b2047bbaa58606b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/issue-surface.test.ts#extractIssueSurface OpenAPI の $ref の先が存在しない 場合は、REST の項目を出力しない","name":"OpenAPI の $ref の先が存在しない 場合は、REST の項目を出力しない","status":"passed","testResultsByEnv":{"default":"ca4b4d10069bfa05e50c7c72cfe6093b"}}

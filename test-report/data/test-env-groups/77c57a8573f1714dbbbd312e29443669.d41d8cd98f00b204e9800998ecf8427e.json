@@ -1,0 +1,1 @@
+{"id":"77c57a8573f1714dbbbd312e29443669.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create head で今と別のブランチを指すと、そのブランチの push を確かめる","name":"head で今と別のブランチを指すと、そのブランチの push を確かめる","status":"passed","testResultsByEnv":{"default":"a40f13520f0387a839c7aee49729805d"}}

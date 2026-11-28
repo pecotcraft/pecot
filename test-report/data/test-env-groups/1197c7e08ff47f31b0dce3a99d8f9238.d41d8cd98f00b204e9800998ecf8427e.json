@@ -1,0 +1,1 @@
+{"id":"1197c7e08ff47f31b0dce3a99d8f9238.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/compare-junit.test.ts#main 1 つ目の JUnit が存在しなければ、理由を出力して 0 以外を返す","name":"1 つ目の JUnit が存在しなければ、理由を出力して 0 以外を返す","status":"passed","testResultsByEnv":{"default":"3de63f924e63aa11f4d4a087bc0b2064"}}

@@ -1,0 +1,1 @@
+{"id":"e3912ce2568d1184fcb3acb412c49dbd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と Issue field update でボードの欄を読まずに欄を書くと、欄の名前か ID のまま読み取りを案内する","name":"update でボードの欄を読まずに欄を書くと、欄の名前か ID のまま読み取りを案内する","status":"passed","testResultsByEnv":{"default":"f2c39546ed2c54b15bac78f52efc3943"}}

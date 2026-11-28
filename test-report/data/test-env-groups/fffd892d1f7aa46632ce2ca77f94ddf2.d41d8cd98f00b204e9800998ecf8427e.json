@@ -1,0 +1,1 @@
+{"id":"fffd892d1f7aa46632ce2ca77f94ddf2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — items imagePath 欠落 の場合は、items[0].imagePath のエラーとして拒否する","name":"imagePath 欠落 の場合は、items[0].imagePath のエラーとして拒否する","status":"passed","testResultsByEnv":{"default":"69ba0a83aa48d3d609cc879ec7bb7065"}}

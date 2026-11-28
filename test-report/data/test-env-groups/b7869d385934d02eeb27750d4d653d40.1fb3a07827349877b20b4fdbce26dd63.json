@@ -1,0 +1,1 @@
+{"id":"b7869d385934d02eeb27750d4d653d40.1fb3a07827349877b20b4fdbce26dd63","fullName":".githooks.tests.test_report_generate#test_real_allure_reads_what_generate_passes_as_readable","name":"履歴が読める形（crlf）のとき、本物の allure でも履歴を維持して追記する","status":"passed","testResultsByEnv":{"default":"49edbb9a98a3f514147caec9845f0e6e"}}

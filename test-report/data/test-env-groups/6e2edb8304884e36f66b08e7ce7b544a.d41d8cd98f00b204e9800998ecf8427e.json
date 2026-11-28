@@ -1,0 +1,1 @@
+{"id":"6e2edb8304884e36f66b08e7ce7b544a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_lint#test_lint_failure_propagates","name":"nx が失敗すると、終了コード 1 で終了してコミットを止める","status":"passed","testResultsByEnv":{"default":"ffabd5d2336a63192ecccf2ab37efd1e"}}

@@ -1,0 +1,1 @@
+{"id":"f1f6ca63e5f7971e83aa99d4506d6320.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ board-add-usage を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ board-add-usage を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"879ca148ee544e37bbbe45794c177302"}}

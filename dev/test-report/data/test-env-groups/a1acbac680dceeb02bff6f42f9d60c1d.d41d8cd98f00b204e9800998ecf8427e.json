@@ -1,0 +1,1 @@
+{"id":"a1acbac680dceeb02bff6f42f9d60c1d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql errors の文字列の repr は引用符を切り替える のとき、GitHubAPIError が発生する","name":"errors の文字列の repr は引用符を切り替える のとき、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"fa1ffbd5180c889ba18c54c4e479dfa5"}}

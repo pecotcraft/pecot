@@ -1,0 +1,1 @@
+{"id":"92253923af7020e050db93492fd6903f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_path_with_dot_dot_is_normalized","name":"run.sh に .. を含むパスでファイルを渡しても、parentSuite はリポのルートからの正規のパスになる","status":"passed","testResultsByEnv":{"default":"6ca60d748ba30adc62668a2fd01d1c67"}}

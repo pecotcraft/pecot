@@ -1,0 +1,14 @@
+
+ NX   Running target tgt for project p did not complete
+
+Tasks not run because their dependencies failed, --nx-bail=true, or their batch ended before reaching them:
+
+- p:tgt
+
+Hint: run the command with --verbose for more details.
+
+
+ NX   Failed to send request: error sending request for url (http://127.0.0.1:39351/v1/cache/6670340529605405725)
+
+Pass --verbose to see the stacktrace.
+

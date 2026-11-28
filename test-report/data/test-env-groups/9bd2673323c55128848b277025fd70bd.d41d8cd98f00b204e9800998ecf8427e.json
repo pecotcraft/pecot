@@ -1,0 +1,1 @@
+{"id":"9bd2673323c55128848b277025fd70bd.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_dead_pull_process_falls_back_to_build_immediately","name":"pull のプロセスが結果を残さず終了していると、待たずに build へフォールバックする","status":"passed","testResultsByEnv":{"default":"e5026e5cb95671f352adadc9a3e25f22"}}

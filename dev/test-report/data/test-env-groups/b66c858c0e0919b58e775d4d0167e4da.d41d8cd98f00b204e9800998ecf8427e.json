@@ -1,0 +1,1 @@
+{"id":"b66c858c0e0919b58e775d4d0167e4da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#remoteOnlyChanges GitHub が書き換えた子ブランチのコミットと、親ブランチ・開発ブランチのコミットは、一覧に含めない","name":"GitHub が書き換えた子ブランチのコミットと、親ブランチ・開発ブランチのコミットは、一覧に含めない","status":"passed","testResultsByEnv":{"default":"712e16b2114d3f5ba1e92e20fc8967c7"}}

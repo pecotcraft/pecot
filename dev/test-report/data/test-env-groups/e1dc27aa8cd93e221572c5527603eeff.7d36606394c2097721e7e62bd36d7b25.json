@@ -1,0 +1,1 @@
+{"id":"e1dc27aa8cd93e221572c5527603eeff.7d36606394c2097721e7e62bd36d7b25","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_the_githooks_lanes_that_read_the_change","name":".claude/rules/repo-root-layout.md を変更すると、それを読む githooks のレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"c148b5d299fc3b5b6795cee0ad8c9adc"}}

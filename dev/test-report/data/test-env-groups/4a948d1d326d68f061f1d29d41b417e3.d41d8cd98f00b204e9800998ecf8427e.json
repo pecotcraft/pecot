@@ -1,0 +1,1 @@
+{"id":"4a948d1d326d68f061f1d29d41b417e3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_merge_group_base_with_slash","name":"merge_group の base のブランチ名にスラッシュを含んでも、PR 番号を取り出す","status":"passed","testResultsByEnv":{"default":"be8c8cb35aecdc05f55b5848f74d9e6d"}}

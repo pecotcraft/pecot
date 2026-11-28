@@ -1,0 +1,1 @@
+{"id":"d574380162ad321bc47152584f57a05e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_store_writes_version_marker","name":"保管の job は、上げる中身に pages-store のコミットと run の番号の目印を書く","status":"passed","testResultsByEnv":{"default":"b2a4bdad7477eac0170344ac01036f4e"}}

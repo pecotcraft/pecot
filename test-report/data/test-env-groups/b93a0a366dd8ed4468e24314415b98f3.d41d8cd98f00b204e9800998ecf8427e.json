@@ -1,0 +1,1 @@
+{"id":"b93a0a366dd8ed4468e24314415b98f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/sso-output.test.ts#parseSsoLoginOutput 累積した出力にコードの行が含まれないときは、undefined を返す","name":"累積した出力にコードの行が含まれないときは、undefined を返す","status":"passed","testResultsByEnv":{"default":"ab06bc52a701cd883374ae39e58618d4"}}

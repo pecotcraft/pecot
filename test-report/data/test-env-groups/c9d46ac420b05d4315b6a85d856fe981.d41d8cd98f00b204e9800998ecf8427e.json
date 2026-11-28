@@ -1,0 +1,1 @@
+{"id":"c9d46ac420b05d4315b6a85d856fe981.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-tools.test.ts#MCP のツール (stdio) `drawio_create` を `out_path` つきで呼ぶと、表示用の HTML を実際のファイルに書き出す","name":"`drawio_create` を `out_path` つきで呼ぶと、表示用の HTML を実際のファイルに書き出す","status":"passed","testResultsByEnv":{"default":"138f0f8805311f5a1ed32bf265e148c2"}}

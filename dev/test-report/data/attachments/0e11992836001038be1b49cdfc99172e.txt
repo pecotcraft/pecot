@@ -1,0 +1,4 @@
+ずれは 1 件
+workflows / pecot-board-sync.yml
+  このリポ: blob 1d568951167a、2 行目: on: workflow_dispatch
+  検証用: blob 59bcb488e685、2 行目: on: push

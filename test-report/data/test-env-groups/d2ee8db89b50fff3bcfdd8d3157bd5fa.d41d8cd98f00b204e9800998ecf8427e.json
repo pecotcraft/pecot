@@ -1,0 +1,1 @@
+{"id":"d2ee8db89b50fff3bcfdd8d3157bd5fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#コマンドの実体 .textlintignore 除外に当たるファイルを 絶対パス で渡すと、終了コード 0 を返す","name":"除外に当たるファイルを 絶対パス で渡すと、終了コード 0 を返す","status":"passed","testResultsByEnv":{"default":"2e4099e9d07aeed00029a8babc855f1c"}}

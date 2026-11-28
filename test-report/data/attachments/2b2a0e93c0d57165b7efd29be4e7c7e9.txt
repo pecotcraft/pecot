@@ -1,0 +1,2 @@
+warning: this board uses the old field name pecot-workflow-acme
+  call project_init with owner: "acme", name: <name>, host: "ghes.example.com"

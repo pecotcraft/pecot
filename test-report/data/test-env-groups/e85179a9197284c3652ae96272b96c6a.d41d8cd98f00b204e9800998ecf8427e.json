@@ -1,0 +1,1 @@
+{"id":"e85179a9197284c3652ae96272b96c6a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestSlim Refs は番号の昇順で返し、ほかのリポジトリへの参照は除く","name":"Refs は番号の昇順で返し、ほかのリポジトリへの参照は除く","status":"passed","testResultsByEnv":{"default":"e7627112f26f40fc6c2ca55e533d85f4"}}

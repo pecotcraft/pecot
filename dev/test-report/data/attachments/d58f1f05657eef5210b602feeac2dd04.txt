@@ -1,0 +1,2 @@
+error: this repository has packages set
+  call with clear_packages: true before switching to changelog_file

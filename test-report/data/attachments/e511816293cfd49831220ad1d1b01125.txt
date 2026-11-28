@@ -1,0 +1,6 @@
+count: open Dependabot alerts: 0
+error: code scanning has 1 open alert
+  #10
+  → https://ghes.example.com/acme/demo/security/code-scanning
+  close them (fixed, or dismissed with a reason) and run the check again
+count: open secret scanning alerts: 0

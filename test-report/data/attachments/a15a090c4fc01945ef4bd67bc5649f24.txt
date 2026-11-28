@@ -1,0 +1,3 @@
+created: branch feat/7 in acme/demo from main
+set: Issue acme/demo/7 status active
+created: work directory .pecot/work/7/

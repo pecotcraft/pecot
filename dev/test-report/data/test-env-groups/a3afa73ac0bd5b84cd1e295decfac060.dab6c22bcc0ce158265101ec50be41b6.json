@@ -1,0 +1,1 @@
+{"id":"a3afa73ac0bd5b84cd1e295decfac060.dab6c22bcc0ce158265101ec50be41b6","fullName":".githooks.tests.test_pre_commit_config_wiring#test_entry_wrapped_with_timing","name":"hook check-text の entry は、with-timing.sh で元のスクリプトを包んでいる","status":"passed","testResultsByEnv":{"default":"96faa08cf38cce7356e43e1db2cb4754"}}

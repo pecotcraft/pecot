@@ -1,0 +1,1 @@
+{"id":"d35689281073b1bc6aabf19b50507adc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#readIssueReadinessIfSupported 依存関係に対応していない GHES の場合は、理由を通知して undefined を返す","name":"依存関係に対応していない GHES の場合は、理由を通知して undefined を返す","status":"passed","testResultsByEnv":{"default":"2b8ec85338f7831606f70376713cf5d3"}}

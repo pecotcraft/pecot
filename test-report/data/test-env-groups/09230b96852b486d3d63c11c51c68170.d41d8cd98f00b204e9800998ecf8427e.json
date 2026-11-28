@@ -1,0 +1,1 @@
+{"id":"09230b96852b486d3d63c11c51c68170.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#getTagCommitSha 注釈付きのタグは、git/tags で commit まで辿る","name":"注釈付きのタグは、git/tags で commit まで辿る","status":"passed","testResultsByEnv":{"default":"e86d35054da032bc1709e798f5665932"}}

@@ -1,0 +1,1 @@
+{"id":"8c72a99d1641945772d4105bec586f91.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check sha release のブランチが remote に無いと、sha-mismatch の項目を返す","name":"release のブランチが remote に無いと、sha-mismatch の項目を返す","status":"passed","testResultsByEnv":{"default":"1a47dc9b2f73b7859a7ba104c83819c4"}}

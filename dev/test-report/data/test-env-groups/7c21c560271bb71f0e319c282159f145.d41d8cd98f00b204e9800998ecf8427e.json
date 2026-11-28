@@ -1,0 +1,1 @@
+{"id":"7c21c560271bb71f0e319c282159f145.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add MCP の data worktree を作ると、名前・パス・ブランチ・base・setupFailed を返す","name":"worktree を作ると、名前・パス・ブランチ・base・setupFailed を返す","status":"passed","testResultsByEnv":{"default":"8a6a344715e55daad823736cc4d670ad"}}

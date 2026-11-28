@@ -1,0 +1,2 @@
+removed: label pecot-auto from Issue acme/demo/7
+skipped: auto result comment on Issue acme/demo/7 (this run already posted one)

@@ -1,0 +1,1 @@
+{"id":"66a31dc6565dd7e75f4a138e98b7fb99.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-alerts.test.ts#fetchSecretScanningStatus secret scanning の取得元を呼び、一覧の URL を返す","name":"secret scanning の取得元を呼び、一覧の URL を返す","status":"passed","testResultsByEnv":{"default":"329f9e739baf9ca36d10dd5b077dbde4"}}

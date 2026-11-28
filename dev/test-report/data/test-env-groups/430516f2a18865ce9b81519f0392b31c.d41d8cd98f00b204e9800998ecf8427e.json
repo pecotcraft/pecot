@@ -1,0 +1,1 @@
+{"id":"430516f2a18865ce9b81519f0392b31c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#parseUpdateMetadata 依存が 1 つなら、その名前と update-type を返す","name":"依存が 1 つなら、その名前と update-type を返す","status":"passed","testResultsByEnv":{"default":"6df5b51df84145629c03922e43b6acd8"}}

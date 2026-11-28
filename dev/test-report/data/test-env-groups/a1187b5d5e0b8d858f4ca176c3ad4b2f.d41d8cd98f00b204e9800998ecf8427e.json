@@ -1,0 +1,1 @@
+{"id":"a1187b5d5e0b8d858f4ca176c3ad4b2f.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_build_assembles_each_unit_at_its_root","name":"リリース版の build は、targets.json の root を持つ単位を、その root の場所で差し替える","status":"passed","testResultsByEnv":{"default":"ada0c9f15a8507d3e186fab26950e4b6"}}

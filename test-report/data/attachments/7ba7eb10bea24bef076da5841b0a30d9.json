@@ -1,0 +1,13 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "owner/repoA (origin)"
+    },
+    {
+      "type": "text",
+      "text": "{}"
+    }
+  ],
+  "structuredContent": {}
+}

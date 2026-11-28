@@ -1,0 +1,1 @@
+{"id":"273d36596f55d775700df8af2f9cf52b.6d552c1f07a2f24af1494ea13db713e8","fullName":".githooks.tests.test_github_ops_workflow_copy#test_no_step_runs_the_npm_package","name":"actions/templates/pecot-github-ops.yml は、npm のパッケージを呼ぶ step を持たない","status":"passed","testResultsByEnv":{"default":"c48e291b0ae555acdc78e19f661759ec"}}

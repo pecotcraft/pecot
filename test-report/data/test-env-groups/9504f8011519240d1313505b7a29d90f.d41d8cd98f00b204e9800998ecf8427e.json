@@ -1,0 +1,1 @@
+{"id":"9504f8011519240d1313505b7a29d90f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/launch.test.ts#launchChromium 起動前の依存確認が枠付きで返すライブラリの不足も、runtime_setup を案内するエラーに包み直す","name":"起動前の依存確認が枠付きで返すライブラリの不足も、runtime_setup を案内するエラーに包み直す","status":"passed","testResultsByEnv":{"default":"e92ff01e255792218009d15365dc7dfc"}}

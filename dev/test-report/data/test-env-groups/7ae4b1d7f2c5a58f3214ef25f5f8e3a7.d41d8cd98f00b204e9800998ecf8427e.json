@@ -1,0 +1,1 @@
+{"id":"7ae4b1d7f2c5a58f3214ef25f5f8e3a7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/tool-names.test.ts#pecot の起動のランチャー スキルの本文に、Claude Code だけで動く ${CLAUDE_PLUGIN_ROOT}/bin/pecot を書かない","name":"スキルの本文に、Claude Code だけで動く ${CLAUDE_PLUGIN_ROOT}/bin/pecot を書かない","status":"passed","testResultsByEnv":{"default":"b572036c2599e223851e35b97748c5ee"}}

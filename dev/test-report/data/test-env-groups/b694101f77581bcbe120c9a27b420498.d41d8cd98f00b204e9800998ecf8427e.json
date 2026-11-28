@@ -1,0 +1,1 @@
+{"id":"b694101f77581bcbe120c9a27b420498.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_release_group_changelog#test_all_groups_satisfied_passes","name":"すべての release group の CHANGELOG が存在し、空でなく、末尾に改行があれば、成功で終わる","status":"passed","testResultsByEnv":{"default":"f34dfefd3b19aeaecde0de592c89667f"}}

@@ -1,0 +1,1 @@
+{"id":"f23d5f94719d7430aab00ddd8dffb7ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の update-type 署名が null の場合は、種類を不明として扱う","name":"署名が null の場合は、種類を不明として扱う","status":"passed","testResultsByEnv":{"default":"ffe5229636584d21b2de2563796cbfbb"}}

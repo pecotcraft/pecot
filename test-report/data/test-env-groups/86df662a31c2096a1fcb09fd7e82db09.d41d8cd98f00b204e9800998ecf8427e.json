@@ -1,0 +1,1 @@
+{"id":"86df662a31c2096a1fcb09fd7e82db09.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#loadConfig / saveConfig setup_command を保存して読み込める。指定しない場合は、JSON に出力しない","name":"setup_command を保存して読み込める。指定しない場合は、JSON に出力しない","status":"passed","testResultsByEnv":{"default":"b996909c365113b802c0bf4907c13736"}}

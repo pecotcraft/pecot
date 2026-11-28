@@ -1,0 +1,1 @@
+{"id":"b89a30af26479a82d88bbbd2e933b4e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#convertStepsSinglePass 従来の worker でも失敗したステップは、rejected として返す","name":"従来の worker でも失敗したステップは、rejected として返す","status":"passed","testResultsByEnv":{"default":"14a35ae4cfd9019b8d101a4e6b26d235"}}

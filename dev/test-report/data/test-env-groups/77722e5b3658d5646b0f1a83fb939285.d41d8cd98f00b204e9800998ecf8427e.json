@@ -1,0 +1,1 @@
+{"id":"77722e5b3658d5646b0f1a83fb939285.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#buildPicMediaMap off の x が数値として読めない場合は、0 として記録する","name":"off の x が数値として読めない場合は、0 として記録する","status":"passed","testResultsByEnv":{"default":"f6c06339f07f9b8823dfaef3c5789b6b"}}

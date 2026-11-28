@@ -1,0 +1,1 @@
+{"id":"ec646e336f260ff640b8b4f3eaabfff8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#executeSlideSync の入力エラー 相対パスの dir は relative-dir になる","name":"相対パスの dir は relative-dir になる","status":"passed","testResultsByEnv":{"default":"361eaaf2db0ca13c9515003e040cdf3d"}}

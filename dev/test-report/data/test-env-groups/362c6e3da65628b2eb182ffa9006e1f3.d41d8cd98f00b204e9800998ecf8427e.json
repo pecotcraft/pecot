@@ -1,0 +1,1 @@
+{"id":"362c6e3da65628b2eb182ffa9006e1f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（git の例外） プラグイン本体の依存ルートに node_modules が存在しない場合も、警告を表示せずに取得できる","name":"プラグイン本体の依存ルートに node_modules が存在しない場合も、警告を表示せずに取得できる","status":"passed","testResultsByEnv":{"default":"2dae34e40d73427fc2f160b35c99001a"}}

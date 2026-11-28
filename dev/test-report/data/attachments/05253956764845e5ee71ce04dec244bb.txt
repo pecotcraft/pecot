@@ -1,0 +1,2 @@
+install cache=/tmp/tmp.tNdpFFpDbY prefer_offline=unset offline=unset cwd=dist-unset
+pack cache=unset prefer_offline=unset offline=unset cwd=dist-unset

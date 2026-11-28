@@ -1,0 +1,1 @@
+PECOT_RESULT {"operation":"repo-settings","request_id":"req-1","ok":false,"error":{"kind":"invalid-input","message":"params is not JSON"}}

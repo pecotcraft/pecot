@@ -1,0 +1,1 @@
+{"id":"4c0285ff0718c7814f7ac5c064723266.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create message で repo を省くと、設定のリポジトリが 2 つあっても git remote のリポジトリで PR を作る","name":"message で repo を省くと、設定のリポジトリが 2 つあっても git remote のリポジトリで PR を作る","status":"passed","testResultsByEnv":{"default":"6b471e450a047c5e9eeffd59a5057697"}}

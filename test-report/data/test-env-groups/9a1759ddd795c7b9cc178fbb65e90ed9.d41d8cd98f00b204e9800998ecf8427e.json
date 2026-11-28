@@ -1,0 +1,1 @@
+{"id":"9a1759ddd795c7b9cc178fbb65e90ed9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyJapaneseFontFix 日本語テキストの rPr に既存の a:ea があれば typeface を上書きする","name":"日本語テキストの rPr に既存の a:ea があれば typeface を上書きする","status":"passed","testResultsByEnv":{"default":"5651253050c2f9bc69b4a2c4262b3b7e"}}

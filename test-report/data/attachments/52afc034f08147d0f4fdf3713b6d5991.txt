@@ -1,0 +1,14 @@
+# Session status
+
+- Branch: feat/demo/7
+- Repository: acme/demo
+- Active Issue: acme/demo#7
+
+## Active Issue
+
+#7 t (OPEN)
+
+## Stack
+- base: feat/3 (#3, PR #30 CLOSED)
+- readiness: blocked by #3 (not in review: #3 (not started))
+- stacked above: PR #40 (feat/demo/8)

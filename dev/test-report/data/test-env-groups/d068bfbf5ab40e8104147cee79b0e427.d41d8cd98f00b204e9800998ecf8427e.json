@@ -1,0 +1,1 @@
+{"id":"d068bfbf5ab40e8104147cee79b0e427.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 宣言したキーだけを残し、取り除いたキーの名前を warnings に 1 行で入れる","name":"宣言したキーだけを残し、取り除いたキーの名前を warnings に 1 行で入れる","status":"passed","testResultsByEnv":{"default":"e79d991049326c83e7aa5df2c0f64b68"}}

@@ -1,0 +1,6 @@
+=== stage: pre-commit (通常) ===
+=== stage: pre-commit 終了 exit=0 ===
+=== stage: pre-push (通常) ===
+=== stage: pre-push 終了 exit=0 ===
+=== stage: manual (通常) ===
+=== stage: manual 終了 exit=0 ===

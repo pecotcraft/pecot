@@ -1,0 +1,1 @@
+{"id":"633bf6ece56ce07aa61e2086c0132a04.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-no-verify-check.sh 有効にしてコマンドが git log --no-merges のとき、何も出力せず通す","name":"有効にしてコマンドが git log --no-merges のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"5b43430078dbe4f4c4fcebac228da250"}}

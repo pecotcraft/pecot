@@ -1,0 +1,1 @@
+{"id":"8ad6a42cd9b83e68cc747d331c4c8a85.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/mcp/tools-list.test.ts#入力の検証の誤り CLI だけの入力 dry_run を渡すと、コマンドを呼ばずに、dry_run を名指しして isError で返す","name":"CLI だけの入力 dry_run を渡すと、コマンドを呼ばずに、dry_run を名指しして isError で返す","status":"passed","testResultsByEnv":{"default":"4c083195d098168216ef85ade397603b"}}

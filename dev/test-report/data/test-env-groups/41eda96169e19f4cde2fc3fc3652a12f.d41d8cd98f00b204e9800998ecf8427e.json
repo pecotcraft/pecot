@@ -1,0 +1,1 @@
+{"id":"41eda96169e19f4cde2fc3fc3652a12f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh 保護ブランチで git push するとき、止めて、リモートのブランチの削除をリポの設定に任せるよう案内する","name":"保護ブランチで git push するとき、止めて、リモートのブランチの削除をリポの設定に任せるよう案内する","status":"passed","testResultsByEnv":{"default":"097cb30b5b1b0c4eb154c4e2d347077f"}}

@@ -1,0 +1,1 @@
+{"id":"09a163e694399313a317829fd7724f0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine getAttr に prefix のない名前を指定しても、prefix 付きの属性には一致しない","name":"getAttr に prefix のない名前を指定しても、prefix 付きの属性には一致しない","status":"passed","testResultsByEnv":{"default":"d1755069631b3c2bb9e1fc8b52d7e899"}}

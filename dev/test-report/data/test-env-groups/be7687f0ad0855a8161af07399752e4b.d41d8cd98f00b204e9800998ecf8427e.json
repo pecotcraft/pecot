@@ -1,0 +1,1 @@
+{"id":"be7687f0ad0855a8161af07399752e4b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 実際に採取した失敗のフィクスチャ sso-token-expired は、auth-expired と判定する","name":"実際に採取した失敗のフィクスチャ sso-token-expired は、auth-expired と判定する","status":"passed","testResultsByEnv":{"default":"9f7b93f5bc31e65546b585bf5afc63af"}}

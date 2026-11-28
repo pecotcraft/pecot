@@ -1,0 +1,1 @@
+{"id":"6f4edc345e676552b31d2fa590f5e29f.4ad5604d8ae1ba2e55f89e06ae329293","fullName":".githooks.tests.test_allure_report_labels#test_severity_written_in_test_is_kept","name":"関数とクラスに @allure.severity を付けたテストは、libs/interface-spec/docs/tests/conftest.py の conftest が付ける minor でなく、書いた段階を持つ","status":"passed","testResultsByEnv":{"default":"7b21c355130b7d644908a6f0ac072872"}}

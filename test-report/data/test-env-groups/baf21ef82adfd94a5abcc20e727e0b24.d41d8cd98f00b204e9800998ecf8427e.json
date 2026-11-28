@@ -1,0 +1,1 @@
+{"id":"baf21ef82adfd94a5abcc20e727e0b24.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-sweep.test.ts#sandbox-sweep.sh 引数と読めない場合 読み取りの呼び出しが失敗すると、書き換える前に終了コード 2 で止まる","name":"読み取りの呼び出しが失敗すると、書き換える前に終了コード 2 で止まる","status":"passed","testResultsByEnv":{"default":"47497606acbf44e52d9cdf4a5e13fb0f"}}

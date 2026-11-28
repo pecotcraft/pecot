@@ -1,0 +1,1 @@
+{"id":"b6c83d758ef8acdd53c368e3f44b24f7.b54ad802df229c32d79590638f157d20","fullName":".githooks.tests.test_pages_release#test_latest_tags_fail_for_plugin_without_tag","name":"単位にリリースのタグが存在しないと、最新のタグの選択で、その単位のタグの形を示す例外が発生する","status":"passed","testResultsByEnv":{"default":"4b949b05e35e1f8d7976c4262587b984"}}

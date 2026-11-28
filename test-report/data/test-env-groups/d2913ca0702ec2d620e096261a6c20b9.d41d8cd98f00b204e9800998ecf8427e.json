@@ -1,0 +1,1 @@
+{"id":"d2913ca0702ec2d620e096261a6c20b9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish dry-run に true・false 以外を渡すと、GitHub を読まず、入力の誤りとして終了コード 2 を返す","name":"dry-run に true・false 以外を渡すと、GitHub を読まず、入力の誤りとして終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"30aa96a3a1437be060c2c832abd047ba"}}

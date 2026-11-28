@@ -1,0 +1,1 @@
+{"id":"466df4963a4bf40565e7c4b878fe8e32.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#runSlideLint の talk-dir 検証 talk-dir が存在しない場合は、理由が dir-not-found の例外を発生させる","name":"talk-dir が存在しない場合は、理由が dir-not-found の例外を発生させる","status":"passed","testResultsByEnv":{"default":"a2d8c5da1802d459abd37da2cf41a710"}}

@@ -1,0 +1,8 @@
+:iface-id: PV-FILE-LINT
+:iface-plugin: pecot-visual
+:iface-kind: MCP
+
+Lint edited file
+================================
+
+.. iface-defs:: pecot-visual PV-FILE-LINT

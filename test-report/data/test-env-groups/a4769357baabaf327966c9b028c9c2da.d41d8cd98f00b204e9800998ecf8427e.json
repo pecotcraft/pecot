@@ -1,0 +1,1 @@
+{"id":"a4769357baabaf327966c9b028c9c2da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator layout files category が空文字列だと、検証に失敗する","name":"category が空文字列だと、検証に失敗する","status":"passed","testResultsByEnv":{"default":"d243a4a5fbe0f043e3800d326ec55fc1"}}

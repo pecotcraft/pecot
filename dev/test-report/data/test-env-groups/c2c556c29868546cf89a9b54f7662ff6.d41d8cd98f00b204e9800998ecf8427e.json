@@ -1,0 +1,1 @@
+{"id":"c2c556c29868546cf89a9b54f7662ff6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の style とその他 複数行のコメントの行頭の * を本文に含めず、続きの行を同じ段落にする","name":"複数行のコメントの行頭の * を本文に含めず、続きの行を同じ段落にする","status":"passed","testResultsByEnv":{"default":"a67c3eea91de17773fc5cf2ac95759a7"}}

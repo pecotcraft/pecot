@@ -1,0 +1,1 @@
+{"id":"5149cb328eb81fb02ab781c1415fbb6f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/failure-kinds-definition.test.ts#FAILURE_KINDS pecot-workflow と actions の定義書の exit_status に出る kind の集合と一致する","name":"pecot-workflow と actions の定義書の exit_status に出る kind の集合と一致する","status":"passed","testResultsByEnv":{"default":"3d8e3fc5a782656cdd5074c63e9963db"}}

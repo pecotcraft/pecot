@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-SSO-LOGIN-STATUS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+Get SSO login status
+========================================
+
+.. iface-defs:: pecot-tools PT-AWS-SSO-LOGIN-STATUS

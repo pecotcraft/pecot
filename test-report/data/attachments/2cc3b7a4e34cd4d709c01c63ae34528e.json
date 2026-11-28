@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "slide_page: generated (/tmp/pecotv-test-e2e-RwAbtu/page-talk/pages/e2e-link.md); fill in the content following props / text_constraints in reference, then register \"src: ./pages/e2e-link.md\" in slides.md separately"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.page.done\",\"layout\":\"link\",\"category\":\"text\",\"deprecated\":false,\"path\":\"/tmp/pecotv-test-e2e-RwAbtu/page-talk/pages/e2e-link.md\",\"skeleton\":\"---\\nlayout: link\\nheading: 関連リソース\\ncards:\\n  - title: 仕様\\n    description: 仕様へのリンク\\n    url: https://example.com\\n---\\n\",\"reference\":\"layout: 'link'\\ndescription: '見出しと、リンク付きのカードを縦に並べる。参考資料や関連 URL をまとめる場面に使う。'\\ncategory: 'text'\\n\\nincludes:\\n  - _common\\n\\nprops:\\n  heading:\\n    type: 'String'\\n    required: true\\n    description: '見出し'\\n  cards:\\n    type: 'Array'\\n    default: '[]'\\n    description: 'リンクのカードの配列'\\n    items:\\n      title:\\n        type: 'String'\\n        required: true\\n        description: 'リンクの表示名'\\n      description:\\n        type: 'String'\\n        default: \\\"''\\\"\\n        description: 'リンク先の説明'\\n      url:\\n        type: 'String'\\n        required: true\\n        description: 'リンク先の URL'\\n\\ntext_constraints:\\n  'heading':\\n    min_chars: 2\\n    max_chars: 20\\n  'cards[].title':\\n    min_chars: 2\\n    max_chars: 28\\n  'cards[].description':\\n    min_chars: 0\\n    max_chars: 60\\n  'cards[].url':\\n    min_chars: 3\\n    max_chars: 59\\n\\nexamples:\\n  - name: 基本\\n    frontmatter: |\\n      ---\\n      layout: link\\n      heading: 関連リソース\\n      cards:\\n        - title: 仕様\\n          description: 仕様へのリンク\\n          url: https://example.com\\n      ---\\n\\nclicks:\\n  supported: false\\n\\nbest_practices:\\n  - '実際のリンク先を書く'\\n\\nanti_patterns:\\n  - '本編の内容をリンクの一覧に置き換える'\\n\",\"includes\":{\"_common\":\"# Shared Reference: _common\\ndescription: 'テスト用テーマの共通の宣言。'\\n\\nlayout_categories:\\n  - id: 'text'\\n    label: '文章'\\n    question: '文章で見せる'\\n  - id: 'figure'\\n    label: '図'\\n    question: '図で見せる'\\n\"}}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.page.done",
+    "layout": "link",
+    "category": "text",
+    "deprecated": false,
+    "path": "/tmp/pecotv-test-e2e-RwAbtu/page-talk/pages/e2e-link.md",
+    "skeleton": "---\nlayout: link\nheading: 関連リソース\ncards:\n  - title: 仕様\n    description: 仕様へのリンク\n    url: https://example.com\n---\n",
+    "reference": "layout: 'link'\ndescription: '見出しと、リンク付きのカードを縦に並べる。参考資料や関連 URL をまとめる場面に使う。'\ncategory: 'text'\n\nincludes:\n  - _common\n\nprops:\n  heading:\n    type: 'String'\n    required: true\n    description: '見出し'\n  cards:\n    type: 'Array'\n    default: '[]'\n    description: 'リンクのカードの配列'\n    items:\n      title:\n        type: 'String'\n        required: true\n        description: 'リンクの表示名'\n      description:\n        type: 'String'\n        default: \"''\"\n        description: 'リンク先の説明'\n      url:\n        type: 'String'\n        required: true\n        description: 'リンク先の URL'\n\ntext_constraints:\n  'heading':\n    min_chars: 2\n    max_chars: 20\n  'cards[].title':\n    min_chars: 2\n    max_chars: 28\n  'cards[].description':\n    min_chars: 0\n    max_chars: 60\n  'cards[].url':\n    min_chars: 3\n    max_chars: 59\n\nexamples:\n  - name: 基本\n    frontmatter: |\n      ---\n      layout: link\n      heading: 関連リソース\n      cards:\n        - title: 仕様\n          description: 仕様へのリンク\n          url: https://example.com\n      ---\n\nclicks:\n  supported: false\n\nbest_practices:\n  - '実際のリンク先を書く'\n\nanti_patterns:\n  - '本編の内容をリンクの一覧に置き換える'\n",
+    "includes": {
+      "_common": "# Shared Reference: _common\ndescription: 'テスト用テーマの共通の宣言。'\n\nlayout_categories:\n  - id: 'text'\n    label: '文章'\n    question: '文章で見せる'\n  - id: 'figure'\n    label: '図'\n    question: '図で見せる'\n"
+    }
+  }
+}

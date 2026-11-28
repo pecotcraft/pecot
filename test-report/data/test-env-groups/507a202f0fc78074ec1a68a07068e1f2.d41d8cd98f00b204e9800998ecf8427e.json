@@ -1,0 +1,1 @@
+{"id":"507a202f0fc78074ec1a68a07068e1f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#本体の runtime manifest との整合 image-size の override は、workspace と manifest で一致する","name":"image-size の override は、workspace と manifest で一致する","status":"passed","testResultsByEnv":{"default":"9644a4423fb76bbd9840f7f958fccc6d"}}

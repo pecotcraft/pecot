@@ -1,0 +1,1 @@
+{"id":"c58c9ef3f0e9d5c55c69465bed7b0ec2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#引数の組み立て Athena のクエリ開始で database などを指定しない場合は、shorthand 形式のオプションを付けずに実行する","name":"Athena のクエリ開始で database などを指定しない場合は、shorthand 形式のオプションを付けずに実行する","status":"passed","testResultsByEnv":{"default":"341577bc62061976bbf621cec3cfaa33"}}

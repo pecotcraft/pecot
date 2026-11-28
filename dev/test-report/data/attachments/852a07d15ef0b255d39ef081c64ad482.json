@@ -1,0 +1,41 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ok"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[],\"plan\":[{\"key\":\"first\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"},{\"key\":\"second\",\"order\":3,\"blockedBy\":[{\"issue\":\"first\",\"wait\":\"stack\"}],\"approach\":\"stack\",\"stackOn\":\"first\"}],\"stackableChains\":[[\"first\",\"second\"]]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [],
+    "plan": [
+      {
+        "key": "first",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      },
+      {
+        "key": "second",
+        "order": 3,
+        "blockedBy": [
+          {
+            "issue": "first",
+            "wait": "stack"
+          }
+        ],
+        "approach": "stack",
+        "stackOn": "first"
+      }
+    ],
+    "stackableChains": [
+      [
+        "first",
+        "second"
+      ]
+    ]
+  }
+}

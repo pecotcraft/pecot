@@ -1,0 +1,1 @@
+{"id":"de65b90c5988233475663e937d1bedec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#pythonTypeName JSON の値 {\"a\": 1} を渡すと、Python の型名 dict を返す","name":"JSON の値 {\"a\": 1} を渡すと、Python の型名 dict を返す","status":"passed","testResultsByEnv":{"default":"85d8a665d7a6a2ebced31f115c603416"}}

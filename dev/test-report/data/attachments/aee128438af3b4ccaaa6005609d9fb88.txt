@@ -1,0 +1,2 @@
+aws: [ERROR]: Token has expired
+ERROR: AWS の認証情報を得られません

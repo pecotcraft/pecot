@@ -1,0 +1,1 @@
+{"id":"18bb1f4e8425dfbd4b7fde5396697c0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/merge.test.ts#mergePptxFiles slideNumber が 1 から N までの連番でない場合は、欠番を検出して例外が発生する","name":"slideNumber が 1 から N までの連番でない場合は、欠番を検出して例外が発生する","status":"passed","testResultsByEnv":{"default":"2642c56e70f2eb65fc8626f21de854db"}}

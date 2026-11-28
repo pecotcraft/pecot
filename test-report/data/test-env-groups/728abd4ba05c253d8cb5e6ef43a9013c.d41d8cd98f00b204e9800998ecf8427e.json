@@ -1,0 +1,1 @@
+{"id":"728abd4ba05c253d8cb5e6ef43a9013c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/eslint-runner.test.ts#resolveEslintBin バージョンが数字で始まらない場合も、例外が発生する","name":"バージョンが数字で始まらない場合も、例外が発生する","status":"passed","testResultsByEnv":{"default":"c07293d46d8772a3a9aaa678bec00aaf"}}

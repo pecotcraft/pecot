@@ -1,0 +1,1 @@
+{"id":"48907c0f020919261c200e05e5f0ccb1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#createResolvedRepository 解決元が explicit で remoteName を指定すると、例外が発生する","name":"解決元が explicit で remoteName を指定すると、例外が発生する","status":"passed","testResultsByEnv":{"default":"b02e371019bfa97beafae329184539e9"}}

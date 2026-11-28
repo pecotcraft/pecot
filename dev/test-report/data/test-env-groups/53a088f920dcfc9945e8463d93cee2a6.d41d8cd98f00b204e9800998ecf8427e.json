@@ -1,0 +1,1 @@
+{"id":"53a088f920dcfc9945e8463d93cee2a6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#runMcpServe トランスポートに接続し、クライアントから serverInfo を取得できる","name":"トランスポートに接続し、クライアントから serverInfo を取得できる","status":"passed","testResultsByEnv":{"default":"6f52c08fbe5d58beb05594b7887d1f95"}}

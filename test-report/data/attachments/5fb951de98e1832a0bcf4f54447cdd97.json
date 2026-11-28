@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "package and clear_packages: true cannot be used together"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"package and clear_packages: true cannot be used together\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "package and clear_packages: true cannot be used together"
+  },
+  "isError": true
+}

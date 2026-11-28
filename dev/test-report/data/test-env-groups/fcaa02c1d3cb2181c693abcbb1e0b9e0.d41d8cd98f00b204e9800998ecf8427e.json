@@ -1,0 +1,1 @@
+{"id":"fcaa02c1d3cb2181c693abcbb1e0b9e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck CHANGELOG が無いと、error を出して失敗にする","name":"CHANGELOG が無いと、error を出して失敗にする","status":"passed","testResultsByEnv":{"default":"85f6d4ec4892f8a157849f8bc7b05354"}}

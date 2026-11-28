@@ -1,0 +1,1 @@
+{"id":"25234c01be13f865065e349fa55138e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh GIT_DIR が export されていても、漏らさない","name":"GIT_DIR が export されていても、漏らさない","status":"passed","testResultsByEnv":{"default":"9139aeab400de0e3d9d6982c708703fc"}}

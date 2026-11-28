@@ -1,0 +1,1 @@
+{"id":"4c6f31c5945877bfa47ff7181dd99562.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: legacy) evidence_create スキーマ違反を拒否する: out_path が真偽値","name":"スキーマ違反を拒否する: out_path が真偽値","status":"passed","testResultsByEnv":{"default":"4390684be8580d6bf84e969e3156836f"}}

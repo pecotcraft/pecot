@@ -1,0 +1,1 @@
+{"id":"500b636d0a1378c2d38ec84cc5a503d8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_inputs_default_to_dry_run","name":"手動の起動で dry-run の指定を省略すると、dry-run で実行する","status":"passed","testResultsByEnv":{"default":"1c9639708babd4e9e2c8fe5e16578957"}}

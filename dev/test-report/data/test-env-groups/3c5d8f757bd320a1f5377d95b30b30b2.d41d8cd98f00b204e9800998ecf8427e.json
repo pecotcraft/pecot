@@ -1,0 +1,1 @@
+{"id":"3c5d8f757bd320a1f5377d95b30b30b2.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_ruleset_main#test_required_contexts_are_ci_and_codeql_jobs","name":"必須のステータスチェックは、ci.yml の 2 つの job と、codeql.yml の言語ごとの解析だけにする","status":"passed","testResultsByEnv":{"default":"9e32b7b1c5d06b3135101504fb399361"}}

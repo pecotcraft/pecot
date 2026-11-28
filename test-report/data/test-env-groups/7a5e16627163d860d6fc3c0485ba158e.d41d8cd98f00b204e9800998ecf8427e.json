@@ -1,0 +1,1 @@
+{"id":"7a5e16627163d860d6fc3c0485ba158e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start 対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる","name":"対象のリポを含む設定が無いと、error を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"0ffd3c1b604a063bc5fc8714a0c31af9"}}

@@ -1,0 +1,1 @@
+{"id":"e4b8ed19af926379198fb0a24c515f8c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#runGit cwd を指定しない場合は、呼び出し元の作業ディレクトリで git を実行する","name":"cwd を指定しない場合は、呼び出し元の作業ディレクトリで git を実行する","status":"passed","testResultsByEnv":{"default":"a1f9c7f0dd6753ff34c68606a98a0935"}}

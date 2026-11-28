@@ -1,0 +1,1 @@
+{"id":"95c6412e9107638b1cc05ec0eb041d6a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh コマンドが git\\tcommit -m x のとき、タブや連続空白の区切りでも保護ブランチなら止める","name":"コマンドが git\\tcommit -m x のとき、タブや連続空白の区切りでも保護ブランチなら止める","status":"passed","testResultsByEnv":{"default":"59b14c6c7b785116d08f91aa44fc56f4"}}

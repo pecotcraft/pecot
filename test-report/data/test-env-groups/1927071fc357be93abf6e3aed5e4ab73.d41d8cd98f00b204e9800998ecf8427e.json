@@ -1,0 +1,1 @@
+{"id":"1927071fc357be93abf6e3aed5e4ab73.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_land_without_release_commit_only_deletes_branch","name":"リリースのコミットが存在しないとき、`release-land.sh` はブランチを削除するだけにする","status":"passed","testResultsByEnv":{"default":"0aa196dedf9644220328297d53d42308"}}

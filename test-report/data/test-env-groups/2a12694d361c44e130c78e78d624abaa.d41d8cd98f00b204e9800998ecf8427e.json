@@ -1,0 +1,1 @@
+{"id":"2a12694d361c44e130c78e78d624abaa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 見本のリポジトリ resource-missing を検証すると、検証エラーの行を過不足なく決まった順で返す","name":"見本のリポジトリ resource-missing を検証すると、検証エラーの行を過不足なく決まった順で返す","status":"passed","testResultsByEnv":{"default":"f8d530b11c9a67b455446d2ce25d04f7"}}

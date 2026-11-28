@@ -1,0 +1,1 @@
+{"id":"ff404bf49ae67a423d965cf76f11fda9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/pre-tool-use-temporary-path-warner.test.ts#tmp-path-warner.sh env の後ろが ls のとき、前置きを飛ばして許可リストを当てるので何も出力しない","name":"env の後ろが ls のとき、前置きを飛ばして許可リストを当てるので何も出力しない","status":"passed","testResultsByEnv":{"default":"1ba7595d0c43db3b26417e5cbad86550"}}

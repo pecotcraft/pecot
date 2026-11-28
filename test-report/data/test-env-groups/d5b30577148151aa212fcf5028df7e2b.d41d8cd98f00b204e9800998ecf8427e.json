@@ -1,0 +1,1 @@
+{"id":"d5b30577148151aa212fcf5028df7e2b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_affected_mapping#test_representative_files_list_matches_the_parametrized_ones","name":"代表ファイルの一覧は、このファイルの parametrize の代表ファイルと一致する","status":"passed","testResultsByEnv":{"default":"4e7d9dd748a4ea18b4936ac46b0c5818"}}

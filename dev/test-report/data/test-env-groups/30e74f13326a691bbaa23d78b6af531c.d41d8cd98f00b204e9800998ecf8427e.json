@@ -1,0 +1,1 @@
+{"id":"30e74f13326a691bbaa23d78b6af531c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-theme.test.ts#executeSlideTheme（宣言のあるテーマ） talk-dir の references に同名のレイアウト宣言があると、テーマ側の宣言より優先する","name":"talk-dir の references に同名のレイアウト宣言があると、テーマ側の宣言より優先する","status":"passed","testResultsByEnv":{"default":"7be12487cd4ed1732a758cb18e3f9a73"}}

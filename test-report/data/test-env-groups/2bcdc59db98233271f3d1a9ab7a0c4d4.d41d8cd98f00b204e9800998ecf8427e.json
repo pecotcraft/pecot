@@ -1,0 +1,1 @@
+{"id":"2bcdc59db98233271f3d1a9ab7a0c4d4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start MCP の data 作業ディレクトリがすでにあっても、そのパスを workDirectory に入れる","name":"作業ディレクトリがすでにあっても、そのパスを workDirectory に入れる","status":"passed","testResultsByEnv":{"default":"f962142235e0e9f67c7e72d2cd6e24f9"}}

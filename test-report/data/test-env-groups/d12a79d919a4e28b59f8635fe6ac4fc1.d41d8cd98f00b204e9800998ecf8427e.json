@@ -1,0 +1,1 @@
+{"id":"d12a79d919a4e28b59f8635fe6ac4fc1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/declaration.test.ts#parseThemeDeclaration スライドの寸法が正の数でない場合は、理由 invalid-shape のエラーを返す","name":"スライドの寸法が正の数でない場合は、理由 invalid-shape のエラーを返す","status":"passed","testResultsByEnv":{"default":"6ea45e7b99343222b029df5cd8c8656c"}}

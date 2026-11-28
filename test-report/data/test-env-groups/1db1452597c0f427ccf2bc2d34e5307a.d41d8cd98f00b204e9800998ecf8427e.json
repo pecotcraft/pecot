@@ -1,0 +1,1 @@
+{"id":"1db1452597c0f427ccf2bc2d34e5307a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-drift.test.ts#drift.ts --dry-run で差がなくなったときは、書き込まずに更新と閉じる予定の行を出力する","name":"--dry-run で差がなくなったときは、書き込まずに更新と閉じる予定の行を出力する","status":"passed","testResultsByEnv":{"default":"d36de3798ea43c6cff7c283d491aa02c"}}

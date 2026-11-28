@@ -1,0 +1,1 @@
+{"id":"187196ca75db48984c46610ff9ebca78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate MCP の data 旧い名前の設定ファイルを新しい名前に移すと、移した元と先を config_moved に返す","name":"旧い名前の設定ファイルを新しい名前に移すと、移した元と先を config_moved に返す","status":"passed","testResultsByEnv":{"default":"7fe60a607eb4e969a26e0e81bcb15a6b"}}

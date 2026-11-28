@@ -1,0 +1,25 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "base: the branch stacks on #5: base must be feat/5, not main"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"base\",\"code\":\"base-mismatch\",\"message\":\"the branch stacks on #5: base must be feat/5, not main\",\"candidates\":[\"feat/5\"]}],\"stacked_on\":\"acme/demo/5\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "base",
+        "code": "base-mismatch",
+        "message": "the branch stacks on #5: base must be feat/5, not main",
+        "candidates": [
+          "feat/5"
+        ]
+      }
+    ],
+    "stacked_on": "acme/demo/5"
+  }
+}

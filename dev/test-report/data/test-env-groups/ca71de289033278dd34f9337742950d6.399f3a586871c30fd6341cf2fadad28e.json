@@ -1,0 +1,1 @@
+{"id":"ca71de289033278dd34f9337742950d6.399f3a586871c30fd6341cf2fadad28e","fullName":".githooks.tests.test_report_workflow#test_release_test_report_trigger_reads_land_log","name":"land.log が no-log のとき、レポートの run を起動するかを決める","status":"passed","testResultsByEnv":{"default":"81c3c9d2e2ff3af91d5ec6808de66bcd"}}

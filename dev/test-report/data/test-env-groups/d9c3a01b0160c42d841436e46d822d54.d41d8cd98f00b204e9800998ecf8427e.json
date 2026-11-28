@@ -1,0 +1,1 @@
+{"id":"d9c3a01b0160c42d841436e46d822d54.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#入力の検証の誤り 必須の入力が存在しないと、入力の名前を添えて拒否する","name":"必須の入力が存在しないと、入力の名前を添えて拒否する","status":"passed","testResultsByEnv":{"default":"377046b327d5cdc62c7204b261cf019c"}}

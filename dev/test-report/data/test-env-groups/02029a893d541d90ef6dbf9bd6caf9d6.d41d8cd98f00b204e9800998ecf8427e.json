@@ -1,0 +1,1 @@
+{"id":"02029a893d541d90ef6dbf9bd6caf9d6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-finish.test.ts#auto finish GITHUB_RUN_ID が無いと、目印を付けずに書き、コメントを読まない","name":"GITHUB_RUN_ID が無いと、目印を付けずに書き、コメントを読まない","status":"passed","testResultsByEnv":{"default":"7be2ab2e3a97f0683446eba1a4363c79"}}

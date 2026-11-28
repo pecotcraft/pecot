@@ -1,0 +1,1 @@
+{"id":"4f457eca612d92c46e76f7a2dff04ef2.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_17i_group_empty_array_counts_readme","name":"group が空の配列を書くと、何も除外せず、README.md だけの変更でも失敗する","status":"passed","testResultsByEnv":{"default":"ae5f939244212f3702ef27d810a1a60c"}}

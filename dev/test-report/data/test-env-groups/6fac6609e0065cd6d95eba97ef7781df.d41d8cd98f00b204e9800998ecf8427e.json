@@ -1,0 +1,1 @@
+{"id":"6fac6609e0065cd6d95eba97ef7781df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185） 日本語の文字種として数える: 々（noma）","name":"日本語の文字種として数える: 々（noma）","status":"passed","testResultsByEnv":{"default":"79c391dac536f6cfe9a9810d65734cd8"}}

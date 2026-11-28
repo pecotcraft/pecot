@@ -1,0 +1,1 @@
+{"id":"df1023196c362818e80309ad6766a7b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け URL が PR を指さない だと、gh を呼ばずに終了コード 1 で止まる","name":"URL が PR を指さない だと、gh を呼ばずに終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"5a80f9fb60cf0e4a839183b0110a796a"}}

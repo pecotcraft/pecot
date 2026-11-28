@@ -1,0 +1,1 @@
+{"id":"a6ca94c9c77b230da99dbc205fe490e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#isLabelWrittenByAutomation 最後の Bot の結果が setup-missing の場合は、前に待ちの結果があっても false を返す","name":"最後の Bot の結果が setup-missing の場合は、前に待ちの結果があっても false を返す","status":"passed","testResultsByEnv":{"default":"8524b1fb4e6a6e185cc30deab60d29e1"}}

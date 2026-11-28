@@ -1,0 +1,1 @@
+{"id":"4bf42e299ee382d006bfd480c517a2ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-hint-lint.test.ts#案内の文字列を止める lint グループ pr の案内を書くと、lint の違反になる","name":"グループ pr の案内を書くと、lint の違反になる","status":"passed","testResultsByEnv":{"default":"4f6d84b91f13c1dbd414cc4a3cdb10f1"}}

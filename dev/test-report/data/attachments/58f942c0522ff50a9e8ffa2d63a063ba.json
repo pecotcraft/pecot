@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool slide_convert: morph_option: Invalid option: expected one of \"byObject\"|\"byWord\"|\"byChar\""
+    }
+  ],
+  "isError": true
+}

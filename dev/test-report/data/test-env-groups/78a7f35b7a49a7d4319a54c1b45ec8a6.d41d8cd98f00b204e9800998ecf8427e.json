@@ -1,0 +1,1 @@
+{"id":"78a7f35b7a49a7d4319a54c1b45ec8a6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository MCP の面の決まった値 MCP の面を持つ項目の diagnostics に決まった値以外を書くと、決まった値と書き先を示す検証エラーにする","name":"MCP の面を持つ項目の diagnostics に決まった値以外を書くと、決まった値と書き先を示す検証エラーにする","status":"passed","testResultsByEnv":{"default":"75267ea5e73065a1ae67a588f68d7ff5"}}

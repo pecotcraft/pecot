@@ -1,0 +1,1 @@
+{"id":"ff44d7b7d83c991dbca966f0ba4c8f74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-no-verify-check.sh 有効にしてコマンドが git config user.name x のとき、何も出力せず通す","name":"有効にしてコマンドが git config user.name x のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"7f5d28758593282188fd0ddcfaa790c3"}}

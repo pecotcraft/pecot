@@ -1,0 +1,1 @@
+{"id":"31899b1ddf68313372892b64987e702e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_history_get_runs_only_for_release_reports","name":"history-get の job は、リリース版のレポートを作るときだけ動く","status":"passed","testResultsByEnv":{"default":"c7b713e37bbcf0915815cb4f3d43b953"}}

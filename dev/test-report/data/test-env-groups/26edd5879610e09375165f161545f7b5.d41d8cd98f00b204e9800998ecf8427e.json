@@ -1,0 +1,1 @@
+{"id":"26edd5879610e09375165f161545f7b5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/tests/node-runtime.test.ts#最低版の記述の整合 ../../../package.json の engines.node は、最低版の表と同じ境界を宣言する","name":"../../../package.json の engines.node は、最低版の表と同じ境界を宣言する","status":"passed","testResultsByEnv":{"default":"1736b837a258542298f8741854e1535d"}}

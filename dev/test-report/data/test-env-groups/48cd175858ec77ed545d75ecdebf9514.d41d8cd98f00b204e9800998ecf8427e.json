@@ -1,0 +1,1 @@
+{"id":"48cd175858ec77ed545d75ecdebf9514.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#listOpenDependabotPullRequests 次のページがあるのに endCursor が無い の場合は、GitHubAPIError を発生させる","name":"次のページがあるのに endCursor が無い の場合は、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"3b27607316b62b7ab9a27595cbb16fee"}}

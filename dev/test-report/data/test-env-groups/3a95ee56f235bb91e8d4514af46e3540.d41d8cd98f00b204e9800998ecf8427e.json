@@ -1,0 +1,1 @@
+{"id":"3a95ee56f235bb91e8d4514af46e3540.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 段落の中の改行（GitHub は改行のまま表示する） 行末のインラインコード の中の改行は、エラーにする","name":"行末のインラインコード の中の改行は、エラーにする","status":"passed","testResultsByEnv":{"default":"ad206acfb10286e929acfb9105547a4a"}}

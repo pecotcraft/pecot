@@ -1,0 +1,4 @@
+To /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_run_cmd_production_lands_0/origin.git
+ * [new branch]      release/run-1-1 -> release/run-1-1
+ * [new tag]         v1.0.0 -> v1.0.0
+landed: c9c9f85ce8a16f84efdaaac717dfcaa113c8c803 (fast-forward)

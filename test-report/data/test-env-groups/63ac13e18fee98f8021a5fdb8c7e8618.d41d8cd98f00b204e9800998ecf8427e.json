@@ -1,0 +1,1 @@
+{"id":"63ac13e18fee98f8021a5fdb8c7e8618.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr のプレビューの配信 port が abc だと、配信を立てられない旨を出力して終了コード 1 で止まる","name":"port が abc だと、配信を立てられない旨を出力して終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"3fd78567f61cc9fe3b2009702d2f3b24"}}

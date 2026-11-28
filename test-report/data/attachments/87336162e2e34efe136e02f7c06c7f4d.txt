@@ -1,0 +1,2 @@
+error: develop_branch is not set for acme/demo
+  set it with: project_link with repo: "acme/demo", develop_branch: "develop"

@@ -1,0 +1,1 @@
+{"id":"68808a27e5181ade1835ee0c3d252a93.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_gitlint_japanese_rule#test_non_dependabot_english_title_fails","name":"Dependabot ではない英語のタイトルは、日本語の規則に違反する","status":"passed","testResultsByEnv":{"default":"2e0b6f5ac579066e916801260081f835"}}

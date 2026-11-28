@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "merged: PR acme/demo/31 (develop -> release, merge commit)"
+    },
+    {
+      "type": "text",
+      "text": "{\"pullRequest\":\"acme/demo/31\",\"head\":\"develop\",\"base\":\"release\",\"deletedBranch\":true}"
+    }
+  ],
+  "structuredContent": {
+    "pullRequest": "acme/demo/31",
+    "head": "develop",
+    "base": "release",
+    "deletedBranch": true
+  }
+}

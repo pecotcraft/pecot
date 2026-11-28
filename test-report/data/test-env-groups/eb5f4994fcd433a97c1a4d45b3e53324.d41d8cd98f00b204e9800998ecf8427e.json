@@ -1,0 +1,1 @@
+{"id":"eb5f4994fcd433a97c1a4d45b3e53324.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_passes_clean_file","name":"違反のないファイルを渡すと、何も出力せず成功で終わる","status":"passed","testResultsByEnv":{"default":"2c44443d309c90e4bb6196086179bce3"}}

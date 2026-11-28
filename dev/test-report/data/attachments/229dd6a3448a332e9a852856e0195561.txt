@@ -1,0 +1,4 @@
+/workspaces/base/pecot	install --frozen-lockfile	unset
+/workspaces/base/pecot	--filter @pecot/text-rules-src run build	unset
+/workspaces/base/pecot/plugins/pecot-visual	--filter @pecot/pecotv-cli run build	unset
+/workspaces/base/pecot/plugins/pecot-visual	--filter @pecot/slidev-assets-dev run build	1

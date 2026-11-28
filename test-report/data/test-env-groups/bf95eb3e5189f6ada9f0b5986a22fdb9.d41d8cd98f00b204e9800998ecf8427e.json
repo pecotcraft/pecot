@@ -1,0 +1,1 @@
+{"id":"bf95eb3e5189f6ada9f0b5986a22fdb9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_release_group_changelog#test_missing_file_fails_with_group_and_seed_hint","name":"CHANGELOG が存在しない group があると、group 名と作成の手順を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"1ee7205154a3ba76e0c4c9e69285dd9e"}}

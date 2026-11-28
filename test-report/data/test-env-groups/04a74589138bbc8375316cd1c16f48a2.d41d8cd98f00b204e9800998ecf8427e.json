@@ -1,0 +1,1 @@
+{"id":"04a74589138bbc8375316cd1c16f48a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#create / sync 末尾の自動 deck lint slide_create は slide.create.done に lint 要約を載せる","name":"slide_create は slide.create.done に lint 要約を載せる","status":"passed","testResultsByEnv":{"default":"71480e45175f1137b02b22ef576f937a"}}

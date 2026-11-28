@@ -1,0 +1,1 @@
+{"id":"9cc22bec42c047c7fc343b49e83f006e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/linked-theme.test.ts#ensureTalkThemeLinked タグが指定されていない git の指定は、取得の指定の誤りとして ThemeSpecError で終わる","name":"タグが指定されていない git の指定は、取得の指定の誤りとして ThemeSpecError で終わる","status":"passed","testResultsByEnv":{"default":"df49983c6cfa0fcca223559f33e6643d"}}

@@ -1,0 +1,1 @@
+{"id":"00416c0dc4b84f471431f2ccf5c72856.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check タグ・本文・名前 monorepo でタグと同じ名前 を渡すと、release-name の項目と期待する名前を返す","name":"monorepo でタグと同じ名前 を渡すと、release-name の項目と期待する名前を返す","status":"passed","testResultsByEnv":{"default":"21695f664dec9d8015ba7415cedadfe2"}}

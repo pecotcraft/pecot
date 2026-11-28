@@ -1,0 +1,1 @@
+{"id":"0809c20cb12bc7c870c82d0e8bd3c89a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/rule-tester.test.ts#textlint invalid 冗長な表現を含む値があると、見つかった数だけ textlint を報告する","name":"冗長な表現を含む値があると、見つかった数だけ textlint を報告する","status":"passed","testResultsByEnv":{"default":"8b5997547b126e60b4b961408458cbe9"}}

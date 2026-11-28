@@ -1,0 +1,1 @@
+{"id":"fe3dea843f341315c412b04cb3246f3f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/tool-names.test.ts#本文のツール名 スキルの allowed-tools は、Agent Skills の仕様どおり空白で区切り、カンマを使わない","name":"スキルの allowed-tools は、Agent Skills の仕様どおり空白で区切り、カンマを使わない","status":"passed","testResultsByEnv":{"default":"4b8a519a9ac28ec72874daeb4cdd279a"}}

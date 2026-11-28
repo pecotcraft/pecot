@@ -1,0 +1,1 @@
+{"id":"8cb90872b6ca0f2a9660414dd441e522.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_targets_falls_back_to_all_when_before_is_unreachable","name":"push の前のコミットに到達できないと、すべてのプラグインを対象にする","status":"passed","testResultsByEnv":{"default":"c027ed5ef5b929f6ecebc57e5cc88d53"}}

@@ -1,0 +1,1 @@
+{"id":"4a382ecbf9113b3ef39222659288a191.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — PNG PNG は、width が 0 の場合は、読み取れないものとして扱う","name":"PNG は、width が 0 の場合は、読み取れないものとして扱う","status":"passed","testResultsByEnv":{"default":"6837c3b9ac625f08592fdb7bc0c87726"}}

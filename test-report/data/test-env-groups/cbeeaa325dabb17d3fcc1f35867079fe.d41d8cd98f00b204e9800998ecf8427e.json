@@ -1,0 +1,1 @@
+{"id":"cbeeaa325dabb17d3fcc1f35867079fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateFoldBalance（折りたたみ <details> の開閉の対応 #1330） details が入れ子で、すべて閉じられているとき、空配列を返す","name":"details が入れ子で、すべて閉じられているとき、空配列を返す","status":"passed","testResultsByEnv":{"default":"2f1faed1180b6d6bf57f10c81531ff28"}}

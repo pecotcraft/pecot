@@ -1,0 +1,1 @@
+{"id":"318ac171715cf83cb5ba8a65ffa86969.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-setup-exit.test.ts#runSetupCommand（終了の理由が揃わない場合） 終了の理由が何も無い場合は、終了コードを -1 にする","name":"終了の理由が何も無い場合は、終了コードを -1 にする","status":"passed","testResultsByEnv":{"default":"5e175eb9249108c5878c972d8cd4d1de"}}

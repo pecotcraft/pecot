@@ -1,0 +1,1 @@
+{"id":"0612399dfc5618fbf1eb933b4cd96f13.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#列幅換算 Excel の逆換算の式でピクセルに戻した場合は、宣言したピクセル数になる","name":"Excel の逆換算の式でピクセルに戻した場合は、宣言したピクセル数になる","status":"passed","testResultsByEnv":{"default":"ce65cf97bfa8fbd68d1b9abd0c746c13"}}

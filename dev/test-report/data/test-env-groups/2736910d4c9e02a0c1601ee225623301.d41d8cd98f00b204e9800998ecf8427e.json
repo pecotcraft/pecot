@@ -1,0 +1,1 @@
+{"id":"2736910d4c9e02a0c1601ee225623301.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/tests/node-runtime.test.ts#checkNodeRuntime Node.js のバージョンが 26.12.0 の場合は、起動を止める","name":"Node.js のバージョンが 26.12.0 の場合は、起動を止める","status":"passed","testResultsByEnv":{"default":"a427a52a3215638092478b2cd1cda04c"}}

@@ -1,0 +1,1 @@
+{"id":"53da1ed5b093eb5032fcddd98e050f74.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_verify_reads_the_run_from_main_and_keeps_artifact_outside_the_tree","name":"検証の job は、main を checkout して run を読み、artifact をツリーの外に置く","status":"passed","testResultsByEnv":{"default":"4bc257a83c72bf4ea2b1311e45c56a91"}}

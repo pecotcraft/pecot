@@ -1,0 +1,1 @@
+{"id":"f22019f496499def9f9a64fd375eca10.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator props validation props に note のキーがあると、検証を通す","name":"props に note のキーがあると、検証を通す","status":"passed","testResultsByEnv":{"default":"50bc43069f15ce79c1a5a10fbeeb4dca"}}

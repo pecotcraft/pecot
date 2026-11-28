@@ -1,0 +1,1 @@
+{"id":"8f94f6f46b938083604414854f10ef33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-gate.test.ts#auto gate 読めないイベントと GitHub の失敗 issues のイベントに repository.name が無いと、何も読まずに入力の誤りで止まる","name":"issues のイベントに repository.name が無いと、何も読まずに入力の誤りで止まる","status":"passed","testResultsByEnv":{"default":"32177359609ab0733cbc023eedeba558"}}

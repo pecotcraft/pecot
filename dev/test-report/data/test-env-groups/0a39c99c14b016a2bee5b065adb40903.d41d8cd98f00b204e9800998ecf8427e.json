@@ -1,0 +1,1 @@
+{"id":"0a39c99c14b016a2bee5b065adb40903.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ worktree-add-ok-python-state を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ worktree-add-ok-python-state を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"0e997519b7428d9e3fae1bd08178d650"}}

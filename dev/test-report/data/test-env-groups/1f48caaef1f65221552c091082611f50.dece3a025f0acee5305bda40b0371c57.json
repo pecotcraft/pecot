@@ -1,0 +1,1 @@
+{"id":"1f48caaef1f65221552c091082611f50.dece3a025f0acee5305bda40b0371c57","fullName":".githooks.tests.test_pages_verify#test_check_side_lets_dev_and_release_link_to_their_report","name":"release の定義書が、テストレポートへのリンクを含むとき、検証の結果は True になる","status":"passed","testResultsByEnv":{"default":"09b13f451c16539b150e47aff56b289a"}}

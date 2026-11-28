@@ -1,0 +1,1 @@
+{"id":"05fb44f8e2e20b033a97d1731cf6c851.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create PR を作ると、関連 Issue のボードの status を In Review にする","name":"PR を作ると、関連 Issue のボードの status を In Review にする","status":"passed","testResultsByEnv":{"default":"50a9eff78cf9d5cad45dfd6e26446f3e"}}

@@ -1,0 +1,1 @@
+{"id":"4e5b8eb1a22b1531e5efacc08750d50c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/gitignore-spec.test.ts#patternToRegex バックスラッシュは括弧式の中でも文字として扱う","name":"バックスラッシュは括弧式の中でも文字として扱う","status":"passed","testResultsByEnv":{"default":"5e424af4809bc6a8686a250f2005529e"}}

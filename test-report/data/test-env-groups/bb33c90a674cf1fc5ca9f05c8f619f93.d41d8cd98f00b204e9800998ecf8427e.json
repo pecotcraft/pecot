@@ -1,0 +1,1 @@
+{"id":"bb33c90a674cf1fc5ca9f05c8f619f93.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#シナリオの網羅 tools.ts の 30 個のツールの名前が、本番の登録（TOOLS）からチェックのツールを除いた名前と同じ順で一致する","name":"tools.ts の 30 個のツールの名前が、本番の登録（TOOLS）からチェックのツールを除いた名前と同じ順で一致する","status":"passed","testResultsByEnv":{"default":"46ca1017c839952fd585ab7f61b1c79e"}}

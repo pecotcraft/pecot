@@ -1,0 +1,1 @@
+{"id":"5404d6a16eee693fde7c0f707338872e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link worktree にリンクを作ると、作った数を worktree ごとの count の行で標準エラーに出す","name":"worktree にリンクを作ると、作った数を worktree ごとの count の行で標準エラーに出す","status":"passed","testResultsByEnv":{"default":"096a749dfe4645d36cabde11b9ff7f20"}}

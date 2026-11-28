@@ -1,0 +1,1 @@
+{"id":"35f0944e161520c51d6996f3beb05566.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/layer-file-placement.test.ts#layer-file-placement invalid components 直下に kebab-case の .vue を置くと、報告する","name":"components 直下に kebab-case の .vue を置くと、報告する","status":"passed","testResultsByEnv":{"default":"cc9fcd6c7eee8287f009f76dcc303d6b"}}

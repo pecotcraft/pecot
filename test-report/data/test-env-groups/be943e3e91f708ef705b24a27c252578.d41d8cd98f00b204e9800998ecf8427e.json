@@ -1,0 +1,1 @@
+{"id":"be943e3e91f708ef705b24a27c252578.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show MCP の data reviews を付けると、json reviews と同じく、レビューの本文と行のコメントも返す","name":"reviews を付けると、json reviews と同じく、レビューの本文と行のコメントも返す","status":"passed","testResultsByEnv":{"default":"98bb36e623fbff3e74d2a544b6bb53e0"}}

@@ -1,0 +1,1 @@
+{"id":"f023369c6b6fea4d225bc02849b0e3a5.9e31726d5596ad35dee7d4b990b7c26c","fullName":".githooks.tests.test_report_generate#test_bad_latest_stops_with_a_message","name":"材料の latest の形式が excluded のとき、レーンの名前とメッセージを表示して失敗する","status":"passed","testResultsByEnv":{"default":"18956cf5a5a00c3d54de937599c04d92"}}

@@ -1,0 +1,1 @@
+{"id":"8d2c82ee9f1c4a5a6d2ff0b4b61dd7e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: コードフェンス・インラインコード・HTML コメントのマスク（#962） 二重のバッククォートで囲んだコードは、検証の対象にしない","name":"二重のバッククォートで囲んだコードは、検証の対象にしない","status":"passed","testResultsByEnv":{"default":"816e94bbb1160a69cc022696e08ee0a7"}}

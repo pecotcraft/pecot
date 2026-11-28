@@ -1,0 +1,1 @@
+{"id":"e737dfe507370e3108cbe6a9bd1e3164.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites 対象のボードに登録されていない Issue は、ボードの値を空にする","name":"対象のボードに登録されていない Issue は、ボードの値を空にする","status":"passed","testResultsByEnv":{"default":"fd61dd25317c3e8d2d9e88351f2bddb4"}}

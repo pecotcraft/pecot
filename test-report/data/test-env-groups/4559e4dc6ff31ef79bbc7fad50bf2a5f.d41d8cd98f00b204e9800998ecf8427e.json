@@ -1,0 +1,1 @@
+{"id":"4559e4dc6ff31ef79bbc7fad50bf2a5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/attributes.test.ts#builtinDefinitions Issue type を取得できない環境では、type の定義を含めない","name":"Issue type を取得できない環境では、type の定義を含めない","status":"passed","testResultsByEnv":{"default":"7ae2525294a0218793c11798d54f60b6"}}

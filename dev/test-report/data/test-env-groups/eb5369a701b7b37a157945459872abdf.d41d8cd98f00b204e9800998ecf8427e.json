@@ -1,0 +1,1 @@
+{"id":"eb5369a701b7b37a157945459872abdf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh の .pecot/work 配下 cwd が base の work 直下 のとき、セッションの worktree に解決する","name":"cwd が base の work 直下 のとき、セッションの worktree に解決する","status":"passed","testResultsByEnv":{"default":"b6feab33d6a39557cbe6cb02f5f37d57"}}

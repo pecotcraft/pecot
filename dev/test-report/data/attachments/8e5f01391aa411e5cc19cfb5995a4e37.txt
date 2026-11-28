@@ -1,0 +1,2 @@
+install cache=/tmp/bats-run-QjOI5D/test/2/persistent-npm-cache prefer_offline=true offline=unset cwd=dist-optin
+pack cache=unset prefer_offline=unset offline=unset cwd=dist-optin

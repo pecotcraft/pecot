@@ -1,0 +1,1 @@
+{"id":"2e6263c03ccea6a8fcde8a7a7cec2906.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyTransition 既存の transition がある場合は、削除した上で新しいものを追加する","name":"既存の transition がある場合は、削除した上で新しいものを追加する","status":"passed","testResultsByEnv":{"default":"1f4b5f7e3a25fde9cd699617a6a598db"}}

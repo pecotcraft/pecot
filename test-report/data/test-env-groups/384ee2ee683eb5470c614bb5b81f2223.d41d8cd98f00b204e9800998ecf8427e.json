@@ -1,0 +1,1 @@
+{"id":"384ee2ee683eb5470c614bb5b81f2223.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-setup.test.ts#runSetupCommand 時間制限が 0 の場合は、すぐに時間切れにする（Python と同じ動作）","name":"時間制限が 0 の場合は、すぐに時間切れにする（Python と同じ動作）","status":"passed","testResultsByEnv":{"default":"9a7e573c2fc48559ef89a648da2f543e"}}

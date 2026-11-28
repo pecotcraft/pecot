@@ -1,0 +1,1 @@
+{"id":"18133fac65aec4bd6c825acaf9b10f6b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree 別の worktree のディレクトリが消えていても、wt1 を削除できる","name":"別の worktree のディレクトリが消えていても、wt1 を削除できる","status":"passed","testResultsByEnv":{"default":"16dc364839c3ce5b7758c2f35543f3e0"}}

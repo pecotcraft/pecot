@@ -1,0 +1,1 @@
+{"id":"ed9145e6a8bb81cda9eba8c5b3a2141e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_sts_get_caller_identity profile の書式に合わない値を渡すと、拒否する","name":"profile の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"44471b92dc0a742b8424686e5c93076b"}}

@@ -1,0 +1,1 @@
+{"id":"be0aa9d86210e607ee482d57569f1c4c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_marks_commit_for_dependabot_rebase","name":"dependabot-commit.yml のコミットには、Dependabot の rebase を許す印を付ける","status":"passed","testResultsByEnv":{"default":"a17e03ed8a86d5abbad19f8397ce6135"}}

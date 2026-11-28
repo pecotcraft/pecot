@@ -1,0 +1,1 @@
+{"id":"07a2f07b6ae34bbb1871396f20424591.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: Python 文字列の中の # を、コメントの開始として扱わない","name":"文字列の中の # を、コメントの開始として扱わない","status":"passed","testResultsByEnv":{"default":"578507073f1797dc5f30dd8c7ba1cffa"}}

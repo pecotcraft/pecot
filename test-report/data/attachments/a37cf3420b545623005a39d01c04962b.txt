@@ -1,0 +1,4 @@
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_failure_in_subshell_is_co0/suite/sample.test.sh
+FAIL: 中で落ちる — 理由
+
+PASS: 0 / FAIL: 1 / SKIP: 0

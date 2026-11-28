@@ -1,0 +1,1 @@
+{"id":"d15f91ba151aee75b8df1e8040ffbf54.c45963eaa40a6a14f85e2f43c6d13256","fullName":".githooks.tests.test_bats_report#test_severity_defaults_by_lane","name":"pecot-visual:test-hooks のレーンの結果には、場所から決めた段階の severity を 1 つ付ける","status":"passed","testResultsByEnv":{"default":"abad7a59bf1d522bc4b292726cfb8f63"}}

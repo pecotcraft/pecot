@@ -1,0 +1,1 @@
+{"id":"504d0efc44e2fa8311cea1e3ad5a7cde.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#createProjectField フィールドの作成で projectV2Field が null の場合は、GitHubAPIError が発生する","name":"フィールドの作成で projectV2Field が null の場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"17c2f4470345bf5a7d5cef71fc10e4fd"}}

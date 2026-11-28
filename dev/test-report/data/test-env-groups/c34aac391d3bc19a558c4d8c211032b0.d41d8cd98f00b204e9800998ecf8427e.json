@@ -1,0 +1,1 @@
+{"id":"c34aac391d3bc19a558c4d8c211032b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/slidev-to-pptx-hash-router.test.ts#Issue #971 — routerMode: hash デッキの PPTX 変換 `onlySteps` を指定すると、指定したスライドだけを hash の URL で変換する","name":"`onlySteps` を指定すると、指定したスライドだけを hash の URL で変換する","status":"passed","testResultsByEnv":{"default":"8cf6f099c13f104ed278512fdb8eabe0"}}

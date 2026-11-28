@@ -1,0 +1,1 @@
+{"id":"d7d626110e8c6ba66eaa60a5a327fd32.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate MCP の data 要る読み取りが無いか、欄の一覧に続きのページがあると、kind が invalid-input の失敗を返す","name":"要る読み取りが無いか、欄の一覧に続きのページがあると、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"46d982c6a20201dcb8a34b61ac4c4ef2"}}

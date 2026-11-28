@@ -1,0 +1,1 @@
+{"id":"5093471d46501f162fcc4a181f9b74ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 定型の外 コマンドが定型の外（Issue 番号が数字でない）のとき、許可せず何も出力しない","name":"コマンドが定型の外（Issue 番号が数字でない）のとき、許可せず何も出力しない","status":"passed","testResultsByEnv":{"default":"f7f99082da657a6f9e5f550261f0cf3c"}}

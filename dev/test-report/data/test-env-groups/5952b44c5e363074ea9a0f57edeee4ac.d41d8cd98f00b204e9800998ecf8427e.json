@@ -1,0 +1,1 @@
+{"id":"5952b44c5e363074ea9a0f57edeee4ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter 必須のフィールドだけを渡すと、labels を空配列、parent_epic を undefined にして返す","name":"必須のフィールドだけを渡すと、labels を空配列、parent_epic を undefined にして返す","status":"passed","testResultsByEnv":{"default":"4adbda96dbe6ff58a84a29f1400355d7"}}

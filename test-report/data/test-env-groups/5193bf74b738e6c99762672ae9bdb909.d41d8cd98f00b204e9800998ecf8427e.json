@@ -1,0 +1,1 @@
+{"id":"5193bf74b738e6c99762672ae9bdb909.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/fs-sync.test.ts#syncGeneratedFiles 存在しないファイルは作成し、start.mjs には実行権限を付ける","name":"存在しないファイルは作成し、start.mjs には実行権限を付ける","status":"passed","testResultsByEnv":{"default":"49831998d3729aa07068b16e002828d6"}}

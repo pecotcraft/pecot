@@ -1,0 +1,1 @@
+{"id":"c3668af11913865b5ddcfcfe8ebbfbcc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/server.test.ts#startServer `..` を含む要求には、dist の外のファイルを返さず 404 を返す","name":"`..` を含む要求には、dist の外のファイルを返さず 404 を返す","status":"passed","testResultsByEnv":{"default":"cd9a1329e5d86a7fd205b45e5836813d"}}

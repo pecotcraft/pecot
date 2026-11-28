@@ -1,0 +1,1 @@
+{"id":"dea31b7c4375985886f83f6417b45736.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/work-start.test.ts#inferStackedBase 判定が stackable で、HEAD が親ブランチの変更を持つと、親ブランチにスタックした記録を返す","name":"判定が stackable で、HEAD が親ブランチの変更を持つと、親ブランチにスタックした記録を返す","status":"passed","testResultsByEnv":{"default":"74158d44aa29ed8d78869b42ccd0c891"}}

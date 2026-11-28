@@ -1,0 +1,5 @@
+  remote: no delete        
+  To /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_land_shows_branch_delete_0/origin.git
+   ! [remote rejected] release/run-1-1 (pre-receive hook declined)
+  error: failed to push some refs to '/tmp/pytest-of-vscode/pytest-0/popen-gw1/test_land_shows_branch_delete_0/origin.git'
+error: failed to delete the temporary branch (branch: release/run-1-1)

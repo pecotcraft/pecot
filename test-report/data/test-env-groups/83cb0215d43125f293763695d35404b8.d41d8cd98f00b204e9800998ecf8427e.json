@@ -1,0 +1,1 @@
+{"id":"83cb0215d43125f293763695d35404b8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_merge_group_fork_pr","name":"merge_group で PR が fork のものだと、fork の PR の理由を出力する","status":"passed","testResultsByEnv":{"default":"778a80f5f5da31462eb3ff60a6d7abc8"}}

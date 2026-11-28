@@ -1,0 +1,1 @@
+{"id":"bdb253381ea215c091da092da25242ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/process-run.test.ts#runProcess killRunningProcesses を呼ぶと、実行中の子プロセスのグループへ SIGTERM を送信する","name":"killRunningProcesses を呼ぶと、実行中の子プロセスのグループへ SIGTERM を送信する","status":"passed","testResultsByEnv":{"default":"411ac43ed922da5b75fe58afe2572394"}}

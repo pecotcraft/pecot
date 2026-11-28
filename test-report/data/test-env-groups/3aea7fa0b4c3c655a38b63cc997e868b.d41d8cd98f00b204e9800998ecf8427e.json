@@ -1,0 +1,1 @@
+{"id":"3aea7fa0b4c3c655a38b63cc997e868b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bash_test_lib#test_broken_has_the_tail_of_stderr","name":"ファイルが途中で止まると、broken の結果の trace に stderr の末尾を含め、stderr もそのまま出力する","status":"passed","testResultsByEnv":{"default":"9fc463cf82ade52e518569caed15f8ff"}}

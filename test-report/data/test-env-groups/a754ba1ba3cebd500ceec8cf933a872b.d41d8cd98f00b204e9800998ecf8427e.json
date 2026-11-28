@@ -1,0 +1,1 @@
+{"id":"a754ba1ba3cebd500ceec8cf933a872b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/tool-result-fields.test.ts#ツールの結果の入れ物 スキルは、失敗の読み方（isError・structuredContent・kind・detail）を説明しない","name":"スキルは、失敗の読み方（isError・structuredContent・kind・detail）を説明しない","status":"passed","testResultsByEnv":{"default":"f9d7c6b8991519e403fb214962041760"}}

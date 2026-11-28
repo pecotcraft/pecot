@@ -1,0 +1,1 @@
+{"id":"7980d7f888c1d1726568accd7051a87b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/scanner.test.ts#scanSlideSteps page.evaluate が使えないページでも、URL の変化を見て走査する","name":"page.evaluate が使えないページでも、URL の変化を見て走査する","status":"passed","testResultsByEnv":{"default":"2b7885a5e0783a89188bcdc6384b474f"}}

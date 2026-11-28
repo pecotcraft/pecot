@@ -1,0 +1,1 @@
+{"id":"fc23840d4b38fa6d902d1a9714060040.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_side_check_rejects_broken_internal_links","name":"側の中のリンクの先が存在しない場合は、リンクごとに指摘する","status":"passed","testResultsByEnv":{"default":"cb515f2d1ea579928bcc94c6020545de"}}

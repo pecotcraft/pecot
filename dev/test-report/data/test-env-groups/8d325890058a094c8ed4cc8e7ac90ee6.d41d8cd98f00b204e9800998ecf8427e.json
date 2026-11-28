@@ -1,0 +1,1 @@
+{"id":"8d325890058a094c8ed4cc8e7ac90ee6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） setup_command 標準出力と標準エラー出力が両方あれば、警告に out と err の行を続ける","name":"標準出力と標準エラー出力が両方あれば、警告に out と err の行を続ける","status":"passed","testResultsByEnv":{"default":"eabfbbf9e510f3755e2b404b2831ae39"}}

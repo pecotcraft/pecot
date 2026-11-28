@@ -1,0 +1,1 @@
+{"id":"68851e0808ac05903db51464b70deb0b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight tagPrefix を指定すると、タグ名は <prefix>-v<ver> の形になり、タグの検索にも prefix を使う","name":"tagPrefix を指定すると、タグ名は <prefix>-v<ver> の形になり、タグの検索にも prefix を使う","status":"passed","testResultsByEnv":{"default":"f29bbd261887c7bc10a18ed750cb7b5a"}}

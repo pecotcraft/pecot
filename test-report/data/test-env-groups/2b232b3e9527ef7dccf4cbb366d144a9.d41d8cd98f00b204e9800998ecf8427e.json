@@ -1,0 +1,1 @@
+{"id":"2b232b3e9527ef7dccf4cbb366d144a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#isLabelWrittenByAutomation Bot のコメントの目印が先頭に存在しない場合は、false を返す","name":"Bot のコメントの目印が先頭に存在しない場合は、false を返す","status":"passed","testResultsByEnv":{"default":"9c1d33dc930e837a63f6eaa2e10ba8e4"}}

@@ -1,0 +1,1 @@
+{"id":"8b45f0232fbcd276abf170be4426c14e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_creates_version_plans_before_commit","name":"dependabot-commit.yml は、コミットの前に version plan を作る","status":"passed","testResultsByEnv":{"default":"6ff6015f11a581afcf4f254da3f20670"}}

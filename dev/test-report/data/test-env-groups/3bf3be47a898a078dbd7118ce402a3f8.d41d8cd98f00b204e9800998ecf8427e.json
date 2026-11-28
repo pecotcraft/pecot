@@ -1,0 +1,1 @@
+{"id":"3bf3be47a898a078dbd7118ce402a3f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide targetSelector に一致する要素が存在しない場合は、セレクタを含むエラーで失敗する","name":"targetSelector に一致する要素が存在しない場合は、セレクタを含むエラーで失敗する","status":"passed","testResultsByEnv":{"default":"aa233894da81c88f505ea2220ab77293"}}

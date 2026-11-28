@@ -1,0 +1,1 @@
+{"id":"be31cccd41079e277fd2ff92399571fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#FontPolicy の省略 linkColor を指定しない場合は、ハイパーリンクに変換せず、スライドと rels を変更しない","name":"linkColor を指定しない場合は、ハイパーリンクに変換せず、スライドと rels を変更しない","status":"passed","testResultsByEnv":{"default":"3ccccf30e297225bc89989df38f71d85"}}

@@ -1,0 +1,1 @@
+{"id":"79a545af4f16873fcf39d21ab35c672b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/process-run.test.ts#runProcess 終了コード 0 で終了した後、孫プロセスがパイプを保持している間に取り消されても、成功の結果を返す","name":"終了コード 0 で終了した後、孫プロセスがパイプを保持している間に取り消されても、成功の結果を返す","status":"passed","testResultsByEnv":{"default":"2d30be8a71b983ae9d7f7f3a40bb7818"}}

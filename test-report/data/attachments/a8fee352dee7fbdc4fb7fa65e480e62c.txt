@@ -1,0 +1,1 @@
+/tmp/pecot-hooks-MO5jLM/my-plugin/hooks

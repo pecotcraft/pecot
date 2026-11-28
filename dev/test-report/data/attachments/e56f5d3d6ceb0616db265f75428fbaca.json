@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_ecr_describe_images: tag_status: Invalid option: expected one of \"TAGGED\"|\"UNTAGGED\"|\"ANY\""
+    }
+  ],
+  "isError": true
+}

@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project: fields needs project, the number of the board"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"project\",\"code\":\"required\",\"message\":\"fields needs project, the number of the board\"},{\"field\":\"title\",\"code\":\"unexpected\",\"message\":\"title and owner_type are for method create\"},{\"field\":\"reads.fields\",\"code\":\"read-required\",\"message\":\"read the fields of the board with projects_list (method list_project_fields, owner acme, project_number <N>) and pass its result as reads.fields\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "project",
+        "code": "required",
+        "message": "fields needs project, the number of the board"
+      },
+      {
+        "field": "title",
+        "code": "unexpected",
+        "message": "title and owner_type are for method create"
+      },
+      {
+        "field": "reads.fields",
+        "code": "read-required",
+        "message": "read the fields of the board with projects_list (method list_project_fields, owner acme, project_number <N>) and pass its result as reads.fields"
+      }
+    ]
+  }
+}

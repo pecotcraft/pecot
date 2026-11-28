@@ -1,0 +1,1 @@
+{"id":"ec726a1ec333a92ec9dd35f4ea35cf09.5084b81371eddae36194e5f444927dae","fullName":".githooks.tests.test_pre_commit_config_wiring#test_plugin_validate_skips_unrelated_paths","name":"README.md を変更しても、plugin-validate は起動しない","status":"passed","testResultsByEnv":{"default":"a976d1419c05c79c714d2484b1aa6338"}}

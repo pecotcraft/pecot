@@ -1,0 +1,1 @@
+{"id":"730d7fc207f8c3628b8f2b3c541b43b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/field-options.test.ts#copyOption id を持つ選択肢は id ごと複製し、id を持たない選択肢には id を追加しない","name":"id を持つ選択肢は id ごと複製し、id を持たない選択肢には id を追加しない","status":"passed","testResultsByEnv":{"default":"c4367887d8d237a12f2c853d13ded1a3"}}

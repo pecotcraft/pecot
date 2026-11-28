@@ -1,0 +1,1 @@
+{"id":"8063a1d0ebd25fb8d349c0416491bc15.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/talk-theme.test.ts#resolveTalkTheme の上位の node_modules talk-dir の直下と上位の両方に存在する場合は、直下を使う（linked: true）","name":"talk-dir の直下と上位の両方に存在する場合は、直下を使う（linked: true）","status":"passed","testResultsByEnv":{"default":"958fab6e434c21f647db93302a153bfa"}}

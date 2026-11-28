@@ -1,0 +1,1 @@
+{"id":"0365461814b1348d0d971e6a5f5cc619.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#drawioExportDefaultDependencies 既定の `removeFile` は、存在しないファイルでも成功する","name":"既定の `removeFile` は、存在しないファイルでも成功する","status":"passed","testResultsByEnv":{"default":"ec1ca8a496fc93746eac3e1dc7ba1d65"}}

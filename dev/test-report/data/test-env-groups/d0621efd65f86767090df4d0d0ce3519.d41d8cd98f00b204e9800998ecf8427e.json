@@ -1,0 +1,1 @@
+{"id":"d0621efd65f86767090df4d0d0ce3519.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#changedFiles（実 git） git が存在しない場合は、undefined を返す","name":"git が存在しない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"e114747b1cf6de51d4b24a00cfe2f86e"}}

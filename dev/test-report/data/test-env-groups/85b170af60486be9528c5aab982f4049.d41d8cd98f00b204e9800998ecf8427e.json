@@ -1,0 +1,1 @@
+{"id":"85b170af60486be9528c5aab982f4049.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_attach#test_without_alluredir_nothing_is_written","name":"--alluredir を指定しないと、何も添付せず結果をそのまま返す","status":"passed","testResultsByEnv":{"default":"32670a4d5d7a2d44c73650319c025c2b"}}

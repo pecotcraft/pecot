@@ -1,0 +1,1 @@
+{"id":"788e30856bfe0f9d6205d64c65a28b8f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#main の --check 定義書を読めないとき JSON でなければ、cannot read の行を出して 1 を返す","name":"JSON でなければ、cannot read の行を出して 1 を返す","status":"passed","testResultsByEnv":{"default":"3e830db12d24e6f6dbdf45a21837846c"}}

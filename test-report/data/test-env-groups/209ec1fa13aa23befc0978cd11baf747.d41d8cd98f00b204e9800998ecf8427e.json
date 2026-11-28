@@ -1,0 +1,1 @@
+{"id":"209ec1fa13aa23befc0978cd11baf747.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#extractReferencesIssueNumbers # と owner/repo のどちらも付いていない番号は、取り出さない","name":"# と owner/repo のどちらも付いていない番号は、取り出さない","status":"passed","testResultsByEnv":{"default":"c54436ed8dee84843322767a70f748c6"}}

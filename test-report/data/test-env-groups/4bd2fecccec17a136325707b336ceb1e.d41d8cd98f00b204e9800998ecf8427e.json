@@ -1,0 +1,1 @@
+{"id":"4bd2fecccec17a136325707b336ceb1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#extractReferencesIssueNumbers Refs が存在しなければ、空を返す","name":"Refs が存在しなければ、空を返す","status":"passed","testResultsByEnv":{"default":"880fa9a25a79619d466bc3cfe5441f1a"}}

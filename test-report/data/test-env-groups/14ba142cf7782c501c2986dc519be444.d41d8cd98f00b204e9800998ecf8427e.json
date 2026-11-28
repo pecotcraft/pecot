@@ -1,0 +1,1 @@
+{"id":"14ba142cf7782c501c2986dc519be444.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/max-chars-rule.test.ts#note の無い制約で件数が範囲を外れると、note と区切りを付けないメッセージにする","name":"note の無い制約で件数が範囲を外れると、note と区切りを付けないメッセージにする","status":"passed","testResultsByEnv":{"default":"701516f1570465743ba44b2bdeca96ec"}}

@@ -1,0 +1,1 @@
+{"id":"d9a49332ecfae72e58070e13322aa291.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#validateInput s3-list-uri の入力は、s3:// で始まる値だけを受け付ける","name":"s3-list-uri の入力は、s3:// で始まる値だけを受け付ける","status":"passed","testResultsByEnv":{"default":"fb383c5a66e9492a08fe1e0b140846a9"}}

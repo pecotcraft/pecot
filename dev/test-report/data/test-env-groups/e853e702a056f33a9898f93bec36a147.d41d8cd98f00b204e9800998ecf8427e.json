@@ -1,0 +1,1 @@
+{"id":"e853e702a056f33a9898f93bec36a147.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/failure-kinds-definition.test.ts#項目ごとの exit_status 例外から決まらない名前は、ツールがどこかで返す","name":"例外から決まらない名前は、ツールがどこかで返す","status":"passed","testResultsByEnv":{"default":"d2e9fc169211146cd8f691878e8163ab"}}

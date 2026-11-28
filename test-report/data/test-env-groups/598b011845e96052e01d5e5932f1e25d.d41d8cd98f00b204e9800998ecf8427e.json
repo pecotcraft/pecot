@@ -1,0 +1,1 @@
+{"id":"598b011845e96052e01d5e5932f1e25d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 1 行に 2 つの heredoc のとき、引用符を含まない本文だけを切り出す","name":"1 行に 2 つの heredoc のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"b6ffb297516c1e5c5f3147874d3af161"}}

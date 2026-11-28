@@ -1,0 +1,2 @@
+count: symlinks created in /tmp/pecot-cli-h2Pq3P/workspaces/wt1/demo: 0
+skipped: symlink /tmp/pecot-cli-h2Pq3P/workspaces/wt1/demo/CLAUDE.local.md (a real file exists: /tmp/pecot-cli-h2Pq3P/workspaces/wt1/demo/CLAUDE.local.md)

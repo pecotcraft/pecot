@@ -1,0 +1,1 @@
+{"id":"c0674b04a63037998e91aee27ef75533.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create head ブランチ名の末尾の番号の Issue が Epic のときにファイルで作ると、番号の空いた Closes # の行を消す","name":"head ブランチ名の末尾の番号の Issue が Epic のときにファイルで作ると、番号の空いた Closes # の行を消す","status":"passed","testResultsByEnv":{"default":"0a93e34bafd37a0ab58a67f201c5d31e"}}

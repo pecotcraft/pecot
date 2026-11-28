@@ -1,0 +1,1 @@
+{"id":"f0a739a64d0c224b6313afe42373de81.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#1 番目は gh release view（-R の値は origin の owner/name）","name":"1 番目は gh release view（-R の値は origin の owner/name）","status":"passed","testResultsByEnv":{"default":"be4436727902d77f0da18e0b914d7a0a"}}

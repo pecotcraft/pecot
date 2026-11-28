@@ -1,0 +1,1 @@
+{"id":"14fbb325e6eb03002bee3b0edd3f5696.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#buildPicMediaMap 画像ファイルの PNG が不正な場合は、幅と高さを 0 として記録する","name":"画像ファイルの PNG が不正な場合は、幅と高さを 0 として記録する","status":"passed","testResultsByEnv":{"default":"6ad7d87cbfef694dca8ec92cef5876f4"}}

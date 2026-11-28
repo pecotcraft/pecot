@@ -1,0 +1,1 @@
+{"id":"c8eb6dee70150557694631f2db78710f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 記録が無く、判定が startable なら、fetch してから判定を読み、スタックし直さずに up to date と出す","name":"記録が無く、判定が startable なら、fetch してから判定を読み、スタックし直さずに up to date と出す","status":"passed","testResultsByEnv":{"default":"bf205dcbab029d48d579b1abfc4fd93d"}}

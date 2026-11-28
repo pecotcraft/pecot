@@ -1,0 +1,1 @@
+{"id":"1536b518aac365b16a919f02cc15a11b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ release-merge-ok を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ release-merge-ok を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"536b57d26b562074703deac63d5d4c52"}}

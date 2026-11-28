@@ -1,0 +1,1 @@
+{"id":"0612a1cbd50c8aeb161381746ccb0714.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#writeFlag / readFlag 読み込むときは、改行を LF に統一する","name":"読み込むときは、改行を LF に統一する","status":"passed","testResultsByEnv":{"default":"0c001b62b16a59a303a95155454cb34c"}}

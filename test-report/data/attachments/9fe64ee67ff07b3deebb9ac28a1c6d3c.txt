@@ -1,0 +1,1 @@
+.githooks/scripts/test_report/dev_sources.py fetch --sources /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_report_fetches_latest_res0/test-report/report-sources.json --repo o/r --root .

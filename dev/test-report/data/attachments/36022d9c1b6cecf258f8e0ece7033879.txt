@@ -1,0 +1,8 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_run_attached_attaches_out0/suite/sample.bats
+1..1
+# pecot-description: 出力を添付するテストです。
+# pecot-attachment: bddba294-14d6-4291-b053-77990966cc4a-attachment.txt text/plain bash -c echo out; echo err >&2; exit 3（終了コード 3） stdout
+# pecot-attachment: 40591eca-3132-4b4b-b4d1-abd10aa36873-attachment.txt text/plain bash -c echo out; echo err >&2（終了コード 0） stdout
+# pecot-attachment: ae637352-3986-4cc3-b071-4feecfb53fdb-attachment.txt text/plain bash -c echo out; echo err >&2（終了コード 0） stderr
+# pecot-attachment: e79f3ce7-ce1b-46da-8f8c-be99df89279f-attachment.txt text/plain true（終了コード 0） stdout
+ok 1 添付する # in 227 ms

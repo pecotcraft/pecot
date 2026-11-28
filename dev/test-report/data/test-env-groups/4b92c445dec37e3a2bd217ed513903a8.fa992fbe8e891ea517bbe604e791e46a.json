@@ -1,0 +1,1 @@
+{"id":"4b92c445dec37e3a2bd217ed513903a8.fa992fbe8e891ea517bbe604e791e46a","fullName":".githooks.tests.test_pages_store#test_report_removes_the_stored_history","name":"dev のレポートを保管すると、前の保管に残る `history.jsonl` を消す","status":"passed","testResultsByEnv":{"default":"15411bc6154582e488dab186d7d08bba"}}

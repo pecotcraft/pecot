@@ -1,0 +1,4 @@
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_layer_label_from_project_1/plugins/p/tests/sample.test.sh
+PASS: 通る
+
+PASS: 1 / FAIL: 0 / SKIP: 0

@@ -1,0 +1,1 @@
+{"id":"01d28cc1c038e58c01d63eeabb642e66.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/entry-point-library-references.test.ts#hooks のスクリプトの参照先 抽出器の自己テスト .sh 以外の拡張子を持つ値もディレクトリ変数として登録しない","name":".sh 以外の拡張子を持つ値もディレクトリ変数として登録しない","status":"passed","testResultsByEnv":{"default":"de20f14f6fe53b009dff9a0f9edd36e8"}}

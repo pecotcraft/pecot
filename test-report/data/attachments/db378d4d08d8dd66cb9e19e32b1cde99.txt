@@ -1,0 +1,2 @@
+side=release
+site_url=https://pecotcraft.github.io/pecot/

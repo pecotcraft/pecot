@@ -1,0 +1,1 @@
+{"id":"500fb77beaf2ce769dda7b958824bcaa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#失敗の原因の名前 session_finish にマージしていない PR を渡すと、kind を pr-state にする","name":"session_finish にマージしていない PR を渡すと、kind を pr-state にする","status":"passed","testResultsByEnv":{"default":"96357d65e58f0e716ca26ffc3f93c025"}}

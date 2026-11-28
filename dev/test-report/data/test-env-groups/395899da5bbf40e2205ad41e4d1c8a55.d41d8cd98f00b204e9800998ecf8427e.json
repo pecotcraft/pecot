@@ -1,0 +1,1 @@
+{"id":"395899da5bbf40e2205ad41e4d1c8a55.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide convert の差分キャッシュ pipeline が記録した warnings を、done イベントに含める（#929）","name":"pipeline が記録した warnings を、done イベントに含める（#929）","status":"passed","testResultsByEnv":{"default":"e18832f321668b3cf9c2f16f77c7e637"}}

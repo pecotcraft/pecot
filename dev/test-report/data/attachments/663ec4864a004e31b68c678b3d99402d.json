@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "issue: #7 is closed: reopen it before starting work"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"issue\",\"code\":\"issue-closed\",\"message\":\"#7 is closed: reopen it before starting work\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "issue",
+        "code": "issue-closed",
+        "message": "#7 is closed: reopen it before starting work"
+      }
+    ]
+  }
+}

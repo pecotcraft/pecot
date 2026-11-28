@@ -1,0 +1,1 @@
+{"id":"f6fbd8cb071f286d8c7002680c6ef47c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyJapaneseFontFix 日本語のテキストに a:ea が存在しない場合は、新しく追加する","name":"日本語のテキストに a:ea が存在しない場合は、新しく追加する","status":"passed","testResultsByEnv":{"default":"0a69462dfe35f4d67cc4729bf4e89579"}}

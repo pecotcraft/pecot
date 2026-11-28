@@ -1,0 +1,1 @@
+{"id":"c539490e11184e63604a1793f5af2bfb.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_find_pr_ci_base#test_only_run_of_other_pr_gives_reason","name":"別の PR の run しか存在しないと、run に PR が含まれない理由を出力する","status":"passed","testResultsByEnv":{"default":"a14bd720c581d442e5e4c449b5e82583"}}

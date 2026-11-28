@@ -1,0 +1,1 @@
+{"id":"8a2417f2579b5e46469925dc6df84317.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#runSlideSync (移行前の talk-dir に --theme を付ける) 生成ファイルの書き込みに失敗した場合も、migrate-failed のエラーに包む","name":"生成ファイルの書き込みに失敗した場合も、migrate-failed のエラーに包む","status":"passed","testResultsByEnv":{"default":"5bc9ffb8fc10116069c982045ffbe431"}}

@@ -1,0 +1,1 @@
+{"id":"8ee6c3a3a38abafac83f25844a927966.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け ci の待ちで、CI の結果より先にマージされた なら、MERGED を 1 行出力して終了コード 0 で終了する","name":"ci の待ちで、CI の結果より先にマージされた なら、MERGED を 1 行出力して終了コード 0 で終了する","status":"passed","testResultsByEnv":{"default":"e9efceb5d55fd694e25d468a848334ac"}}

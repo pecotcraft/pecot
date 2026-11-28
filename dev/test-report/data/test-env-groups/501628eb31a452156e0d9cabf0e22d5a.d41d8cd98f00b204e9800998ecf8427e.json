@@ -1,0 +1,1 @@
+{"id":"501628eb31a452156e0d9cabf0e22d5a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 入れ子の font タグの face は内側の文字にだけ適用し、閉じた後の文字は外側の書体で判定する","name":"入れ子の font タグの face は内側の文字にだけ適用し、閉じた後の文字は外側の書体で判定する","status":"passed","testResultsByEnv":{"default":"c4421b6dc76ecabbfb59140667516a2a"}}

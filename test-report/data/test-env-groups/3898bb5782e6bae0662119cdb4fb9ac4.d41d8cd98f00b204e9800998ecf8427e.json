@@ -1,0 +1,1 @@
+{"id":"3898bb5782e6bae0662119cdb4fb9ac4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#aggregationRepositoryReference 集約先のリポジトリが未設定の場合は undefined、設定済みの場合は owner と名前の参照を返す","name":"集約先のリポジトリが未設定の場合は undefined、設定済みの場合は owner と名前の参照を返す","status":"passed","testResultsByEnv":{"default":"a9cd87042474fe7a73b0a7070d15c8ee"}}

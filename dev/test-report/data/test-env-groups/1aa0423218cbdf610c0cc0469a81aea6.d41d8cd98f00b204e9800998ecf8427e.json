@@ -1,0 +1,1 @@
+{"id":"1aa0423218cbdf610c0cc0469a81aea6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: Python 100 文字を超える文字列は、文の長さの指摘として 1 件返す","name":"100 文字を超える文字列は、文の長さの指摘として 1 件返す","status":"passed","testResultsByEnv":{"default":"eb1a4b493961e0d634f551bba7f1edb1"}}

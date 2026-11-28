@@ -1,0 +1,1 @@
+{"id":"6dbb27b3de0d736a1e0b944dbc41b1f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — 正常系 拡張子が実際の形式と異なる画像は、判定した形式の拡張子で格納する","name":"拡張子が実際の形式と異なる画像は、判定した形式の拡張子で格納する","status":"passed","testResultsByEnv":{"default":"ff22f15fccafad626d9a51dabd66c0ea"}}

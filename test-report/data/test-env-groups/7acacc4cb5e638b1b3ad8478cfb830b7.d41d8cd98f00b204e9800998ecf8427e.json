@@ -1,0 +1,1 @@
+{"id":"7acacc4cb5e638b1b3ad8478cfb830b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/hooks-config-disable.test.ts#撤廃したキー 撤廃した 18 キーを true で残しても、SessionStart はエラーと警告を出さない","name":"撤廃した 18 キーを true で残しても、SessionStart はエラーと警告を出さない","status":"passed","testResultsByEnv":{"default":"b596ac93dc1bd5800c243f9522a9b744"}}

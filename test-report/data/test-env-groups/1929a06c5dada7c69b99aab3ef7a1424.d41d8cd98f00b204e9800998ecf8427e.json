@@ -1,0 +1,1 @@
+{"id":"1929a06c5dada7c69b99aab3ef7a1424.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_handoff_workflow_copy#test_workflow_is_a_copy_of_the_template","name":"引き継ぎのワークフローは、action の版を除いて雛形と一致する","status":"passed","testResultsByEnv":{"default":"ff33a366bbe0ce92cae7f5af689777f5"}}

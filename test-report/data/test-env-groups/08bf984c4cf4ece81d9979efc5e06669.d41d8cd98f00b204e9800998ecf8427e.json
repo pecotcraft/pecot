@@ -1,0 +1,1 @@
+{"id":"08bf984c4cf4ece81d9979efc5e06669.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#icons_dir を明示すると既定より優先される","name":"icons_dir を明示すると既定より優先される","status":"passed","testResultsByEnv":{"default":"af477689ace8b1c0a45daf43ae36433a"}}

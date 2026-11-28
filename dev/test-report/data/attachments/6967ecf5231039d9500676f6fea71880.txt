@@ -1,0 +1,6 @@
+--yes
+pnpm@12.15.0
+--dir
+/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_npx_branch_passes_pinned_0/work
+install
+/

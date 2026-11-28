@@ -1,0 +1,18 @@
+## Release plan
+
+
+<details><summary>preflight</summary>
+
+```text
+ok
+```
+
+</details>
+
+<details><summary>nx</summary>
+
+```text
+plan
+```
+
+</details>

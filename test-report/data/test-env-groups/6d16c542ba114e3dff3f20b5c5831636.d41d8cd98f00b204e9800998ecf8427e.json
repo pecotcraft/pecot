@@ -1,0 +1,1 @@
+{"id":"6d16c542ba114e3dff3f20b5c5831636.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine nsMap を省略すると、名前空間なしの XPath で一致する 2 件のノードを返す","name":"nsMap を省略すると、名前空間なしの XPath で一致する 2 件のノードを返す","status":"passed","testResultsByEnv":{"default":"367a0e1a1311099a4d9cc0124f56dba9"}}

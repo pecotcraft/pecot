@@ -1,0 +1,1 @@
+{"id":"36afb159037ea31f6cdf2bec609615d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/scanner.test.ts#buildOnlySteps スライドが DOM に存在しない場合は、例外が発生する","name":"スライドが DOM に存在しない場合は、例外が発生する","status":"passed","testResultsByEnv":{"default":"f504d1e3ad62fdc152d8b207b0bd4d76"}}

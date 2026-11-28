@@ -1,0 +1,1 @@
+{"id":"9bead2bd0e0ff7e015b9e24cc435828b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#installStdoutGuard 保護を設定した後の標準出力への書き込みは、標準エラー出力へ振り替える","name":"保護を設定した後の標準出力への書き込みは、標準エラー出力へ振り替える","status":"passed","testResultsByEnv":{"default":"423e62eaa892835e423c9b0276e5a80e"}}

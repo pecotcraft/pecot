@@ -1,0 +1,1 @@
+{"id":"fb85e92e625cb6563d5051c0d581daee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#addIssueComment の失敗 存在しない Issue にコメントを追加した場合は、GitHubNotFoundError が発生する","name":"存在しない Issue にコメントを追加した場合は、GitHubNotFoundError が発生する","status":"passed","testResultsByEnv":{"default":"c486d1bb31be7e4f5fc0c8eaac738986"}}

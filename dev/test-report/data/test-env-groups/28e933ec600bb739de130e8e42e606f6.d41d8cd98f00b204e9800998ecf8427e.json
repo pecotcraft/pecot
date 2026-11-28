@@ -1,0 +1,1 @@
+{"id":"28e933ec600bb739de130e8e42e606f6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getStackOfPullRequest pull_request で絞って GET し、その PR を含むスタックの番号と、下から順の PR 番号を返す","name":"pull_request で絞って GET し、その PR を含むスタックの番号と、下から順の PR 番号を返す","status":"passed","testResultsByEnv":{"default":"be54d970fc734ed8e6247ad1fa8a0f40"}}

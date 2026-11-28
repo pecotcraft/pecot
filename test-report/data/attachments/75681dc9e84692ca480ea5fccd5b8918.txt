@@ -1,0 +1,2 @@
+error: acme/demo is a monorepo
+  specify package (available: core, cli)

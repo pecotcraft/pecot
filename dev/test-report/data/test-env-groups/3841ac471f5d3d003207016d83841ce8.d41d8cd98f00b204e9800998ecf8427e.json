@@ -1,0 +1,1 @@
+{"id":"3841ac471f5d3d003207016d83841ce8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/bash-guard-responses.test.ts#pre-tool-use-bash.sh の応答形式 Claude Code の入力でコマンドが gh pr merge 999999 のとき、何も返さない","name":"Claude Code の入力でコマンドが gh pr merge 999999 のとき、何も返さない","status":"passed","testResultsByEnv":{"default":"37d01b6932d4d45873d12e77f40a1f4e"}}

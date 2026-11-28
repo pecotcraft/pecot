@@ -1,0 +1,1 @@
+{"id":"4a27a1e50726347fa717e516c22917ab.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_pushes_even_when_sync_fails_and_fails_at_the_end","name":"dependabot-commit.yml は、同期に失敗しても push し、最後に失敗で終わる","status":"passed","testResultsByEnv":{"default":"1603f0c990ad10c62e4d1197c29bdd84"}}

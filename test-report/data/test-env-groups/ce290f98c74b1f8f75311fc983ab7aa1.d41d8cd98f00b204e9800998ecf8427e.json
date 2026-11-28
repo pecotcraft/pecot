@@ -1,0 +1,1 @@
+{"id":"ce290f98c74b1f8f75311fc983ab7aa1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#resolveIconsInStyle 解決関数が undefined を返した場合は、icon:// の参照を残す","name":"解決関数が undefined を返した場合は、icon:// の参照を残す","status":"passed","testResultsByEnv":{"default":"01b68484580600870fe0bb61ad2c29f4"}}

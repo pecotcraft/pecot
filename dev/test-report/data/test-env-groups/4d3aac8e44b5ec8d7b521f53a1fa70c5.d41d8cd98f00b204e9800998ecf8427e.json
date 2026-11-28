@@ -1,0 +1,1 @@
+{"id":"4d3aac8e44b5ec8d7b521f53a1fa70c5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#素の URL の Link ノード コメントを調べる plugin だけで処理する .ts のコメントでも、URL を文の長さに含めない","name":"コメントを調べる plugin だけで処理する .ts のコメントでも、URL を文の長さに含めない","status":"passed","testResultsByEnv":{"default":"931ca828020771503e137e2f5d77fec4"}}

@@ -1,0 +1,3 @@
+/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_file_stopped_before_finis1/suite/sample.test.sh: line 5: UNDEFINED_IN_TEST: unbound variable
+FAILED: 1 本のテストが失敗しました:
+  /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_file_stopped_before_finis1/suite/sample.test.sh (exit 1)

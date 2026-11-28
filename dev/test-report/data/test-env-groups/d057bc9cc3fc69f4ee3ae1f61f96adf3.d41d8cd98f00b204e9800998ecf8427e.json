@@ -1,0 +1,1 @@
+{"id":"d057bc9cc3fc69f4ee3ae1f61f96adf3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueLinkedBranches Issue の Node ID と、Issue のリポにあるつながったブランチの名前だけを返す","name":"Issue の Node ID と、Issue のリポにあるつながったブランチの名前だけを返す","status":"passed","testResultsByEnv":{"default":"4aa76a17dee00d4d08d1ce8eb186ae11"}}

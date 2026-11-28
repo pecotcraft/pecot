@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not read the active config: invalid config file: /tmp/pecot-cli-W6PmRW/.pecot/config/projects/github.com_acme_1.json: host: Input should be a valid string; owner: Field required; project: Field required"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"config-invalid\",\"detail\":\"could not read the active config: invalid config file: /tmp/pecot-cli-W6PmRW/.pecot/config/projects/github.com_acme_1.json: host: Input should be a valid string; owner: Field required; project: Field required\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "config-invalid",
+    "detail": "could not read the active config: invalid config file: /tmp/pecot-cli-W6PmRW/.pecot/config/projects/github.com_acme_1.json: host: Input should be a valid string; owner: Field required; project: Field required"
+  },
+  "isError": true
+}

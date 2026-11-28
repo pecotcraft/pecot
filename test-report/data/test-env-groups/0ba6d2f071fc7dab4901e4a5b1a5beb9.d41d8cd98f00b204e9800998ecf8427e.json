@@ -1,0 +1,1 @@
+{"id":"0ba6d2f071fc7dab4901e4a5b1a5beb9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_first_time_creates_orphan_commit","name":"初めての保管では、親のない commit を作って push し、結果の概要を返す","status":"passed","testResultsByEnv":{"default":"402378d7b8e5d5a93ba53d06a8293450"}}

@@ -1,0 +1,1 @@
+{"id":"ed7aa13919fd7d21aed0a9284dcb4fe9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-add.test.ts#board_add Issue のリポジトリがプロジェクトに登録されていないとき、終了コード 1 で終わる","name":"Issue のリポジトリがプロジェクトに登録されていないとき、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"f4b1bd2e18f3c4476b5bda5dcf362bb2"}}

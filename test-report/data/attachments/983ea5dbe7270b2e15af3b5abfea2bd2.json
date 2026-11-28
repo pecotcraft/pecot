@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "slide_lint: succeeded (/tmp/pecotv-test-e2e-RwAbtu/page-talk); 12 files linted"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.lint.done\",\"dir\":\"/tmp/pecotv-test-e2e-RwAbtu/page-talk\",\"outcome\":\"clean\",\"lintedFileCount\":12,\"errorCount\":0,\"warningCount\":0,\"violations\":[],\"skippedSymlinkDirectories\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.lint.done",
+    "dir": "/tmp/pecotv-test-e2e-RwAbtu/page-talk",
+    "outcome": "clean",
+    "lintedFileCount": 12,
+    "errorCount": 0,
+    "warningCount": 0,
+    "violations": [],
+    "skippedSymlinkDirectories": []
+  }
+}

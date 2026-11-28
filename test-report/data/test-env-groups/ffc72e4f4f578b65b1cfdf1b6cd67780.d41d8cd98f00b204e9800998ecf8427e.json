@@ -1,0 +1,1 @@
+{"id":"ffc72e4f4f578b65b1cfdf1b6cd67780.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#placeProjectConfig 同じボードを指す旧い名前の設定ファイルが 1 つの場合は、移動元にする","name":"同じボードを指す旧い名前の設定ファイルが 1 つの場合は、移動元にする","status":"passed","testResultsByEnv":{"default":"05d72a7f7dfa7da13d4e393eb7f1ab1d"}}

@@ -1,0 +1,1 @@
+{"id":"a2ae0f663a777686d1678f60774f5c57.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_07_pass_origin_head_over_develop_pecot","name":"別の origin ブランチが残っていても、origin/HEAD の main を基準に判定する","status":"passed","testResultsByEnv":{"default":"c2d126bf0f84c92dc241dbbd6f455d14"}}

@@ -1,0 +1,1 @@
+{"id":"86de3f1061853b95fc7b7e6872a5a56a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#collectPreflightWarnings 問題がない場合は、空の配列を返す","name":"問題がない場合は、空の配列を返す","status":"passed","testResultsByEnv":{"default":"1097412339edeb9e3769222a4a77fe2d"}}

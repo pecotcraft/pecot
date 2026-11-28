@@ -1,0 +1,1 @@
+{"id":"4c123cf59915de8ee31fcc97bd1a5358.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/command-stop.test.ts#requireConfigFor 指定した project の設定が存在しない場合は、project-not-found で止める","name":"指定した project の設定が存在しない場合は、project-not-found で止める","status":"passed","testResultsByEnv":{"default":"e1a0b13cfe013661e3f19b986ce06411"}}

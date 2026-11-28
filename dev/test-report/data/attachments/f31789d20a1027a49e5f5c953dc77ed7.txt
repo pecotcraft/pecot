@@ -1,0 +1,1 @@
+==> pytest /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_run_sh_in_nx_lane_passes_0/.githooks/tests

@@ -1,0 +1,1 @@
+{"id":"68424d0181918ec45cbc6a3cdee18364.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/console-logger.test.ts#createLogger level と sink を省略した場合も、ロガーを作成できる","name":"level と sink を省略した場合も、ロガーを作成できる","status":"passed","testResultsByEnv":{"default":"dca715d70ce736d85c95bf74103092dc"}}

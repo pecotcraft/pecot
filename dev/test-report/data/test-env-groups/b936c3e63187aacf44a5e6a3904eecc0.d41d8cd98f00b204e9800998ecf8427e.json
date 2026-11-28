@@ -1,0 +1,1 @@
+{"id":"b936c3e63187aacf44a5e6a3904eecc0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#ensureWorkDirectory 末尾が番号ではない参照の場合は、undefined を返し、作業ディレクトリを作成しない","name":"末尾が番号ではない参照の場合は、undefined を返し、作業ディレクトリを作成しない","status":"passed","testResultsByEnv":{"default":"a81c0d9fadefbd7dc38b4c081f262872"}}

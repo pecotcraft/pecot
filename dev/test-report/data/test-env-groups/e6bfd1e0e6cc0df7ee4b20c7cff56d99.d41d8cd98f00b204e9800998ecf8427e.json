@@ -1,0 +1,1 @@
+{"id":"e6bfd1e0e6cc0df7ee4b20c7cff56d99.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations Point / Rect box で w が NaN の場合は、拒否する","name":"box で w が NaN の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"978b233c2e22eb3981096812d9edf450"}}

@@ -1,0 +1,1 @@
+{"id":"6d4f268a69a29bfd92eb7facb6e0be4a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments 末尾に付ける profile も、先頭が - の値なら --profile=値 の 1 つの引数にする","name":"末尾に付ける profile も、先頭が - の値なら --profile=値 の 1 つの引数にする","status":"passed","testResultsByEnv":{"default":"b869c07077750a148ed783e17d9e3f62"}}

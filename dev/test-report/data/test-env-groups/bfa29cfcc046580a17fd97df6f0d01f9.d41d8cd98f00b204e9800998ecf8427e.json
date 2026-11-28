@@ -1,0 +1,1 @@
+{"id":"bfa29cfcc046580a17fd97df6f0d01f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#applyPrerenderImageReplace meta に selector がある場合も、位置と大きさによる対応付けの結果は変わらない","name":"meta に selector がある場合も、位置と大きさによる対応付けの結果は変わらない","status":"passed","testResultsByEnv":{"default":"cc5cf5c19c9aa3c3e6e0d367d72e2482"}}

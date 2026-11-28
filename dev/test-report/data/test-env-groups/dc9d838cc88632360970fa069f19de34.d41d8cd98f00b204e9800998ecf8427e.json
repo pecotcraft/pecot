@@ -1,0 +1,1 @@
+{"id":"dc9d838cc88632360970fa069f19de34.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: Python エスケープを解かない YAML の単引用符の文字列では、エスケープした改行を改行として扱わない","name":"エスケープを解かない YAML の単引用符の文字列では、エスケープした改行を改行として扱わない","status":"passed","testResultsByEnv":{"default":"3fbd3e8bc2de0e8c8816352daf809e3f"}}

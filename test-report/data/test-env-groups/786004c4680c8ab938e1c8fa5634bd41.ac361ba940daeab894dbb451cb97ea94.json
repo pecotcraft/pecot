@@ -1,0 +1,1 @@
+{"id":"786004c4680c8ab938e1c8fa5634bd41.ac361ba940daeab894dbb451cb97ea94","fullName":".githooks.tests.test_pages_store#test_publish_report_option_errors","name":"レポートの `publish` に不正なオプション {'side': 'release'} を渡すと、--sources に関する例外が発生する","status":"passed","testResultsByEnv":{"default":"fe6c0a2b837d8d78c5fec43fb5629935"}}

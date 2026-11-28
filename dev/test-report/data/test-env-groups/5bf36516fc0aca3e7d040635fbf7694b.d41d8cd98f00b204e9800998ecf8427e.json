@@ -1,0 +1,1 @@
+{"id":"5bf36516fc0aca3e7d040635fbf7694b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う","name":"project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う","status":"passed","testResultsByEnv":{"default":"2417bfb8ba40a4a8320b5d0d4c993670"}}

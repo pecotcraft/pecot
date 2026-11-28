@@ -1,0 +1,1 @@
+{"id":"da3f0d8d29a7a553f921f930d772ec1b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 起票先と用法 owner がリポジトリ名の形でないと、その引数の value の problem にする","name":"owner がリポジトリ名の形でないと、その引数の value の problem にする","status":"passed","testResultsByEnv":{"default":"0fda9975fc542f86196c3063d2d604a8"}}

@@ -1,0 +1,1 @@
+{"id":"aa9be95b19dde6fbde3c435b80044e31.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/release-check.test.ts#release check Nx のリポで alert が 0 件なら、3 種の件数を count の行で出し、CHANGELOG とタグを確かめずに通る","name":"Nx のリポで alert が 0 件なら、3 種の件数を count の行で出し、CHANGELOG とタグを確かめずに通る","status":"passed","testResultsByEnv":{"default":"0832b073509c1da6858fcdfb286b6c7e"}}

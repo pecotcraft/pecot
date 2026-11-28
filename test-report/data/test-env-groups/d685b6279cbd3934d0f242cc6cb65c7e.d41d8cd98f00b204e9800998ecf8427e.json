@@ -1,0 +1,1 @@
+{"id":"d685b6279cbd3934d0f242cc6cb65c7e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_dispatch_with_release_artifact_is_release","name":"手動実行の run は、リリース版の artifact を持つと、リリース版として受け付ける","status":"passed","testResultsByEnv":{"default":"5a7a4726414d4a5ed9ef429301418f04"}}

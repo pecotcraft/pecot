@@ -1,0 +1,1 @@
+{"id":"0beb330f424265f2c46dc25ccb57aa9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 gh が空白だけを出力した場合も、GitHubAuthError が発生する","name":"gh が空白だけを出力した場合も、GitHubAuthError が発生する","status":"passed","testResultsByEnv":{"default":"cf840e9ebfd6c8fca3e3f234d8ff3f74"}}

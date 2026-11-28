@@ -1,0 +1,1 @@
+{"id":"384f6e4cef804bb4cc793a66d536ef8a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#buildIssueTitle 接頭辞を持たない種類の場合は、番号だけをタイトルに付ける","name":"接頭辞を持たない種類の場合は、番号だけをタイトルに付ける","status":"passed","testResultsByEnv":{"default":"e1d9b8d23f8cb29ab6e51344c52475ad"}}

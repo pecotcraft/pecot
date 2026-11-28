@@ -1,0 +1,1 @@
+{"id":"ab60d783591a98914b1340b7b6c4bd29.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/chromium-guard.test.ts#ensureChromium: 既定は取得せず runtime_setup ツールを案内する Chromium を取得していない場合は、取得を試みずに、失敗の結果を返す","name":"Chromium を取得していない場合は、取得を試みずに、失敗の結果を返す","status":"passed","testResultsByEnv":{"default":"720f5ab847e7b2b21b60628871e2af58"}}

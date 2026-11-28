@@ -1,0 +1,1 @@
+{"id":"101e0c0e2e83aa96c470e69f023cc3bb.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_keeps_app_token_out_of_git_config_while_pr_code_runs","name":"dependabot-commit.yml は、PR の依存のコードが動く間、git の設定に App のトークンを置かない","status":"passed","testResultsByEnv":{"default":"231ad944248d120b1d8779ee31f43ed2"}}

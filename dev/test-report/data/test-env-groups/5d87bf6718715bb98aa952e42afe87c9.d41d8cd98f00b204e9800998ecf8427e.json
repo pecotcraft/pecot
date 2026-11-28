@@ -1,0 +1,1 @@
+{"id":"5d87bf6718715bb98aa952e42afe87c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#validateInput フラグで渡す string の入力は、先頭が - の値を受け付ける","name":"フラグで渡す string の入力は、先頭が - の値を受け付ける","status":"passed","testResultsByEnv":{"default":"79170937a72f12a726c186cb69c9f557"}}

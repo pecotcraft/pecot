@@ -1,0 +1,1 @@
+{"id":"8963a4b00fda7694b75b48fef3109a33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — ルートの検証 title が数値 の場合は、拒否する","name":"title が数値 の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"e1c2984156d270db818c516435e7ae9c"}}

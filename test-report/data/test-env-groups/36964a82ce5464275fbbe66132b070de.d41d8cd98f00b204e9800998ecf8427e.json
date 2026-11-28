@@ -1,0 +1,1 @@
+{"id":"36964a82ce5464275fbbe66132b070de.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-key.test.ts#slides.md の構成変更と slideHash 途中のスライドを削除した場合は、削除位置より前のハッシュは変わらず、後ろはすべて変わる","name":"途中のスライドを削除した場合は、削除位置より前のハッシュは変わらず、後ろはすべて変わる","status":"passed","testResultsByEnv":{"default":"302f91a0228f7a0749ac544056434954"}}

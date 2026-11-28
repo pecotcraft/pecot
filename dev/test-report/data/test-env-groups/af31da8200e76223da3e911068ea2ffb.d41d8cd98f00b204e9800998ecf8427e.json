@@ -1,0 +1,1 @@
+{"id":"af31da8200e76223da3e911068ea2ffb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#decidePullRequestBase 記録が無い の場合は、渡された base をそのまま使い、スタックに登録しない","name":"記録が無い の場合は、渡された base をそのまま使い、スタックに登録しない","status":"passed","testResultsByEnv":{"default":"1bec841db49303bb7582b7021f910a75"}}

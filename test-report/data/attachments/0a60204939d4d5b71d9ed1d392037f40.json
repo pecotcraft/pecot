@@ -1,0 +1,194 @@
+{
+  "name": "session_finish",
+  "title": "Clean up after merge",
+  "description": "Clean up after a merged PR (close related Issues, delete branches, local cleanup)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pr_ref": {
+        "type": "string",
+        "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+      },
+      "delete_branch": {
+        "default": false,
+        "description": "Delete the branch",
+        "type": "boolean"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "pr_ref"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "closedIssues": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "description": "Issue numbers this command closed; usually empty for a PR to the default branch, since GitHub closes them on merge"
+      },
+      "skippedIssues": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "number": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Issue number"
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "epic",
+                "already-closed",
+                "not-found",
+                "failed"
+              ],
+              "description": "Why it was not closed: epic (protected), already-closed (including Issues GitHub closed on merge), not-found, or failed (see warnings)"
+            }
+          },
+          "required": [
+            "number",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Closing Issues of the PR that this command did not close"
+      },
+      "deletedBranches": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "branch": {
+              "type": "string",
+              "description": "Name of the branch"
+            },
+            "location": {
+              "type": "string",
+              "enum": [
+                "remote",
+                "local"
+              ],
+              "description": "Whether the remote or the local branch was deleted"
+            }
+          },
+          "required": [
+            "branch",
+            "location"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Branches deleted"
+      },
+      "readinessChanges": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "type": "string",
+              "description": "Issue waiting for a closed Issue (#N, or owner/repo#N in another repository)"
+            },
+            "from": {
+              "type": "string",
+              "description": "Readiness before the merge (blocked, startable, or stackable on #N)"
+            },
+            "to": {
+              "type": "string",
+              "description": "Readiness after the merge (blocked, startable, or stackable on #N)"
+            }
+          },
+          "required": [
+            "issue",
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Issues waiting for the closed Issues whose readiness changed by the merge"
+      },
+      "restack": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "type": "string",
+              "description": "Started Issue stacked on a closed Issue (#N, or owner/repo#N in another repository)"
+            },
+            "branch": {
+              "description": "Branch linked to that Issue, to restack in its working directory (omitted when none)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "issue"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Upper stacked Issues to restack with pr_restack in their working directories"
+      },
+      "currentBranch": {
+        "description": "Current branch after the local cleanup (omitted when the local cleanup was skipped)",
+        "type": "string"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "closedIssues",
+          "skippedIssues",
+          "deletedBranches",
+          "readinessChanges",
+          "restack"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

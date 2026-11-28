@@ -1,0 +1,1 @@
+{"id":"746beea1ffaf060c65588b4f9852d574.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/tests/version.test.ts#loadVersionFromPluginJson 存在しないファイルを渡すと、undefined を返す","name":"存在しないファイルを渡すと、undefined を返す","status":"passed","testResultsByEnv":{"default":"c5a41850ddc7c7d653df381d315905cc"}}

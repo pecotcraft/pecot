@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "version and package cannot be used when release_type is nx\n  call the tool without them (Nx Release decides the version)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"version and package cannot be used when release_type is nx\\n  call the tool without them (Nx Release decides the version)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "version and package cannot be used when release_type is nx\n  call the tool without them (Nx Release decides the version)"
+  },
+  "isError": true
+}

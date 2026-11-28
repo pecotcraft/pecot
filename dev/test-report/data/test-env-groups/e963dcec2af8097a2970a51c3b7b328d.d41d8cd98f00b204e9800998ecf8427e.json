@@ -1,0 +1,1 @@
+{"id":"e963dcec2af8097a2970a51c3b7b328d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/drawio.test.ts#drawio_export CLAUDE_PLUGIN_ROOT を別ルートへ向けても、既定の icons root は同梱のまま","name":"CLAUDE_PLUGIN_ROOT を別ルートへ向けても、既定の icons root は同梱のまま","status":"passed","testResultsByEnv":{"default":"ada8192a28bf8d7cde93185e326df5f7"}}

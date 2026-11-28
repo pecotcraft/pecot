@@ -1,0 +1,1 @@
+{"id":"4385eb74f78ba8da0863840b91a689c2.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_outside_lane_writes_no_attachments","name":"結果のディレクトリを渡さないと、外から添付の置き場所を渡しても添付のファイルを書かない","status":"passed","testResultsByEnv":{"default":"3fbe3ea6e48f257908a2b6b42e12e522"}}

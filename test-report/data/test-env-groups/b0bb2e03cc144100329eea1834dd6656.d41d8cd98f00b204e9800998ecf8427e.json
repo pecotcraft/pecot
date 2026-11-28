@@ -1,0 +1,1 @@
+{"id":"b0bb2e03cc144100329eea1834dd6656.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/cli.test.ts#validate-references の起動 --dir を渡さないと、usage を出して exit 1 で終わる","name":"--dir を渡さないと、usage を出して exit 1 で終わる","status":"passed","testResultsByEnv":{"default":"ca777541b0d3a551b2b16ff3f1f3f0e6"}}

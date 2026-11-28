@@ -1,0 +1,1 @@
+{"id":"59abff22ee04917e8478e0e204264491.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_preflight_runs_release_check_action_before_the_container","name":"preflight は、App のトークンと checkout の後、コンテナを起こす前に、release-check の action で動く","status":"passed","testResultsByEnv":{"default":"3c87831c604b2d1d0f45f1bb330e30f8"}}

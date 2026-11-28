@@ -1,0 +1,1 @@
+{"id":"2fc51032e4e6bc199cde8bff84c617ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#Python reads interface-env: none と書くと、環境変数を読まないものとして扱う","name":"interface-env: none と書くと、環境変数を読まないものとして扱う","status":"passed","testResultsByEnv":{"default":"5204c36c601bfea115b03b47fea6059e"}}

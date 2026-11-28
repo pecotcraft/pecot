@@ -1,0 +1,1 @@
+{"id":"27d9544d4be0a679c2ad489358a07bcf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/redact.test.ts#redactSecrets 先頭が大文字のヘッダ名 X-Amz-Security-Token も、値の部分を伏せ字にする","name":"先頭が大文字のヘッダ名 X-Amz-Security-Token も、値の部分を伏せ字にする","status":"passed","testResultsByEnv":{"default":"d1e93f3a69b1e544ee781c2955a2bc6f"}}

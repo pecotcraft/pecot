@@ -1,0 +1,1 @@
+{"id":"33918d96b0f3a24aa1a0c7c86a0f3126.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#パスで指定した pnpm を起動する script があると、違反として返す","name":"パスで指定した pnpm を起動する script があると、違反として返す","status":"passed","testResultsByEnv":{"default":"b960af06e8ff66eceb571ce9e31b51f6"}}

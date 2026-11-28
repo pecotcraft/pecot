@@ -1,0 +1,1 @@
+{"id":"dfe44dd50a0af929bf1a5b8c9cbe0f4e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-pr の手順 Step 5 は、委譲するときに複数の w-implementer の並列起動を既定にし、直列の理由を書かせる","name":"Step 5 は、委譲するときに複数の w-implementer の並列起動を既定にし、直列の理由を書かせる","status":"passed","testResultsByEnv":{"default":"7c60408208737744ab3dd122662331af"}}

@@ -1,0 +1,1 @@
+{"id":"9033a80b3ca02f961993cf430f2fb2a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/project-stop.test.ts#project_activate のパス ファイルの下を指すパス（ENOTDIR）は設定ファイルとみなさず、host の案内で終わる","name":"ファイルの下を指すパス（ENOTDIR）は設定ファイルとみなさず、host の案内で終わる","status":"passed","testResultsByEnv":{"default":"de599d3f9649969dcaf1852ac4f90636"}}

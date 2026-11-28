@@ -1,0 +1,4 @@
+created: branch feat/7 in acme/demo from main
+warning: could not set Issue acme/demo/7 status active: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:43443/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+created: work directory .pecot/work/7/

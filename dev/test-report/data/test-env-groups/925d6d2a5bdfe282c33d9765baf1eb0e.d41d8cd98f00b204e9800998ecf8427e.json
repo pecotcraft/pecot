@@ -1,0 +1,1 @@
+{"id":"925d6d2a5bdfe282c33d9765baf1eb0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 gh が時間切れになった場合は、gh が失敗した場合と同じ GitHubAuthError が発生する","name":"gh が時間切れになった場合は、gh が失敗した場合と同じ GitHubAuthError が発生する","status":"passed","testResultsByEnv":{"default":"ec9c73890337daa4d0963f3567bbf0dc"}}

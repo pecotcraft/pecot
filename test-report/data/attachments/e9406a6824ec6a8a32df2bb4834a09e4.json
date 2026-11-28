@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "export failed"
+    },
+    {
+      "type": "text",
+      "text": "{\"file\":\"/tmp/out.png\",\"log\":\"error: export failed\",\"kind\":\"export-failed\",\"detail\":\"export failed\"}"
+    }
+  ],
+  "structuredContent": {
+    "file": "/tmp/out.png",
+    "log": "error: export failed",
+    "kind": "export-failed",
+    "detail": "export failed"
+  },
+  "isError": true
+}

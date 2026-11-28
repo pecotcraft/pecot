@@ -1,0 +1,1 @@
+{"id":"72a56f37c8cb4ff4ddaf6f71da1eba99.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 引用符が閉じていない のとき、引用符を含まない本文だけを切り出す","name":"引用符が閉じていない のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"4c382029dd059e917ebc052051f4bc45"}}

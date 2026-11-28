@@ -1,0 +1,1 @@
+{"id":"0596aa0af3c94c54ef7b219c954b52f5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#formatTableRow repository と number のどちらも存在しない場合は、Ref を - にする","name":"repository と number のどちらも存在しない場合は、Ref を - にする","status":"passed","testResultsByEnv":{"default":"5dd4ab6e63fdab8a70a8c8b7b4457e0d"}}

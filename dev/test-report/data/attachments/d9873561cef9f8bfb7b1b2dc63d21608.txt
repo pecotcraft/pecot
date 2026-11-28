@@ -1,0 +1,9 @@
+PASS: plugins/pecot-workflow/hooks/pre-tool-use-bash.sh
+PASS: plugins/pecot-workflow/hooks/pre-tool-use-skill.sh
+PASS: plugins/pecot-workflow/hooks/post-tool-use-exit-plan-mode.sh
+PASS: plugins/pecot-workflow/hooks/user-prompt-submit.sh
+PASS: plugins/pecot-workflow/hooks/user-prompt-submit-title.sh
+PASS: plugins/pecot-workflow/hooks/session-start.sh
+PASS: plugins/pecot-workflow/hooks/session-start-worktree-setup.sh
+=== Summary ===
+0 files with violations, 7 files clean

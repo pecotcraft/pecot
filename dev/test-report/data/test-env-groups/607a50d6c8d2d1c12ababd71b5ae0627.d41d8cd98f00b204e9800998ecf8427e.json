@@ -1,0 +1,1 @@
+{"id":"607a50d6c8d2d1c12ababd71b5ae0627.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け merge の待ちでは、CI が通っても、CI が無くても抜けずに待ち続ける","name":"merge の待ちでは、CI が通っても、CI が無くても抜けずに待ち続ける","status":"passed","testResultsByEnv":{"default":"863c8f950d6e5e017dbc71d3c92d2d8e"}}

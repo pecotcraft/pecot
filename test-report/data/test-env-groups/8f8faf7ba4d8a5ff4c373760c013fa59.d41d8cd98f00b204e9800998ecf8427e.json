@@ -1,0 +1,1 @@
+{"id":"8f8faf7ba4d8a5ff4c373760c013fa59.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge MCP の data release_branch を設定していないと、設定の仕方を案内する文を detail に入れる","name":"release_branch を設定していないと、設定の仕方を案内する文を detail に入れる","status":"passed","testResultsByEnv":{"default":"5d8682fca3da5b56b12cf439155dc681"}}

@@ -1,0 +1,33 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "issues: the Issues belong to different project configs: first (/tmp/pecot-project-EmyizU/.pecot/config/projects/ghes.example.com_acme_board_acme.json), second (/tmp/pecot-project-EmyizU/.pecot/config/projects/ghes.example.com_acme_board_tools.json); check them separately"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"issues\",\"code\":\"project\",\"message\":\"the Issues belong to different project configs: first (/tmp/pecot-project-EmyizU/.pecot/config/projects/ghes.example.com_acme_board_acme.json), second (/tmp/pecot-project-EmyizU/.pecot/config/projects/ghes.example.com_acme_board_tools.json); check them separately\"}],\"plan\":[{\"key\":\"first\",\"blockedBy\":[],\"approach\":\"alone\"},{\"key\":\"second\",\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "issues",
+        "code": "project",
+        "message": "the Issues belong to different project configs: first (/tmp/pecot-project-EmyizU/.pecot/config/projects/ghes.example.com_acme_board_acme.json), second (/tmp/pecot-project-EmyizU/.pecot/config/projects/ghes.example.com_acme_board_tools.json); check them separately"
+      }
+    ],
+    "plan": [
+      {
+        "key": "first",
+        "blockedBy": [],
+        "approach": "alone"
+      },
+      {
+        "key": "second",
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

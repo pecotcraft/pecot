@@ -1,0 +1,1 @@
+{"id":"d963144f572ed18f999a831a778968eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#getLatestVersion 全角数字のバージョンも、変更履歴から読み取る","name":"全角数字のバージョンも、変更履歴から読み取る","status":"passed","testResultsByEnv":{"default":"83687220681715966b5857496d1a1589"}}

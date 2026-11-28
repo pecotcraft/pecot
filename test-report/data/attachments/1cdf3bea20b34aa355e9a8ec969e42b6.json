@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": ".github/workflows/pecot-review.yml is missing\n  update it with: workflow_install with name: \"review\""
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"not-ready\",\"detail\":\".github/workflows/pecot-review.yml is missing\\n  update it with: workflow_install with name: \\\"review\\\"\",\"path\":\".github/workflows/pecot-review.yml\",\"version\":10,\"written\":false,\"upToDate\":false}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "not-ready",
+    "detail": ".github/workflows/pecot-review.yml is missing\n  update it with: workflow_install with name: \"review\"",
+    "path": ".github/workflows/pecot-review.yml",
+    "version": 10,
+    "written": false,
+    "upToDate": false
+  },
+  "isError": true
+}

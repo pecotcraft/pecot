@@ -1,0 +1,1 @@
+{"id":"b809c941099bd7bd1fbc6af4f9cf5da9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_build_triggers","name":"pages-build は、main への push・PR の更新・手動の起動で動き、手動の起動では側を選べる","status":"passed","testResultsByEnv":{"default":"952081452047d61050b4256b22f45ef1"}}

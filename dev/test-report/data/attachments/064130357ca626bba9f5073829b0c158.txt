@@ -1,0 +1,2 @@
+install cache=/tmp/bats-run-Mvjqnl/test/3/persistent-npm-cache prefer_offline=true offline=unset cwd=dist-optin2
+pack cache=unset prefer_offline=unset offline=unset cwd=dist-optin2

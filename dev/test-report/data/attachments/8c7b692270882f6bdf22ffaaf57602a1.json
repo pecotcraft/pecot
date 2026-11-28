@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-visual",
+      "version": "4.0.2"
+    }
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "spy"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"spy\",\"input\":\"/spy\",\"output\":\"/spy.pptx\",\"durationMs\":0,\"errors\":[],\"animationTimingRemovedSlides\":0}"
+    }
+  ],
+  "structuredContent": {
+    "event": "spy",
+    "input": "/spy",
+    "output": "/spy.pptx",
+    "durationMs": 0,
+    "errors": [],
+    "animationTimingRemovedSlides": 0
+  }
+}

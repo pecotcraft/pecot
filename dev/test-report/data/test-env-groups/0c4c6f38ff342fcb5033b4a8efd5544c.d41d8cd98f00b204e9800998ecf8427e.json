@@ -1,0 +1,1 @@
+{"id":"0c4c6f38ff342fcb5033b4a8efd5544c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/declaration.test.ts#parseThemeDeclaration 未対応の lint の規則名を指定した場合は、理由 unknown-rule のエラーに規則名を含める","name":"未対応の lint の規則名を指定した場合は、理由 unknown-rule のエラーに規則名を含める","status":"passed","testResultsByEnv":{"default":"a6dc99779af96fa0410c08688bd41fae"}}

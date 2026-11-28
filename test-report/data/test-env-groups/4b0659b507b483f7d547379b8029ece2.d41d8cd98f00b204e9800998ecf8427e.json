@@ -1,0 +1,1 @@
+{"id":"4b0659b507b483f7d547379b8029ece2.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_plain_failure_uses_failed_command","name":"bats-assert を使わずに失敗した @test は、失敗したコマンドの行を理由にする","status":"passed","testResultsByEnv":{"default":"46c20ea78935c1d5603404501e016c94"}}

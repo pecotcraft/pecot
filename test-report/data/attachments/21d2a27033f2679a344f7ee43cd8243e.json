@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"links\":[{\"path\":\"/tmp/pecot-parity-HVkVqp/wt1/demo/CLAUDE.local.md\",\"destination\":\"/tmp/pecot-parity-HVkVqp/base/demo/CLAUDE.local.md\",\"change\":\"update\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "links": [
+      {
+        "path": "/tmp/pecot-parity-HVkVqp/wt1/demo/CLAUDE.local.md",
+        "destination": "/tmp/pecot-parity-HVkVqp/base/demo/CLAUDE.local.md",
+        "change": "update"
+      }
+    ]
+  }
+}

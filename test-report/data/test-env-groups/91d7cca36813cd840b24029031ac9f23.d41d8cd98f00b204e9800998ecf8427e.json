@@ -1,0 +1,1 @@
+{"id":"91d7cca36813cd840b24029031ac9f23.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#assumePullRequestState 対象でない前提と、ほかの PR は変えない","name":"対象でない前提と、ほかの PR は変えない","status":"passed","testResultsByEnv":{"default":"ff6459cc1b2bee57f06d377fc3606b6d"}}

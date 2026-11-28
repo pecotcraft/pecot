@@ -1,0 +1,1 @@
+{"id":"cf7d43695b4753dbb04d0d0cc9ad2fe9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 宣言ごとの許す書体 (T051) 末尾に sans-serif を加えた書体の並びは、先頭の書体と和文用の書体の確認を満たす","name":"末尾に sans-serif を加えた書体の並びは、先頭の書体と和文用の書体の確認を満たす","status":"passed","testResultsByEnv":{"default":"d5fbedd092fc3fb7c2b5f099781dc116"}}

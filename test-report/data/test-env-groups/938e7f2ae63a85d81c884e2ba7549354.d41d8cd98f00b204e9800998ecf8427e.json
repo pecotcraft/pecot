@@ -1,0 +1,1 @@
+{"id":"938e7f2ae63a85d81c884e2ba7549354.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/command-definition.test.ts#hasOwnRepo hasOwnRepo を指定しないツールの input に repo が存在すると、ツールを定義できない","name":"hasOwnRepo を指定しないツールの input に repo が存在すると、ツールを定義できない","status":"passed","testResultsByEnv":{"default":"e471618de5e4a44bd08f7ff9996de969"}}

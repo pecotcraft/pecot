@@ -1,0 +1,1 @@
+{"id":"5ef7bd01bdd851dcc96ff9eb5fb53440.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#mergePullRequest マージ方法 squash は merge_method=squash で PUT する","name":"マージ方法 squash は merge_method=squash で PUT する","status":"passed","testResultsByEnv":{"default":"031e31dd06d91fa2d4f5bc76746957ee"}}

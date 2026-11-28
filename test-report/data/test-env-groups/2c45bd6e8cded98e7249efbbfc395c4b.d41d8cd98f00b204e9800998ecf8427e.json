@@ -1,0 +1,1 @@
+{"id":"2c45bd6e8cded98e7249efbbfc395c4b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/asset-path/tests/require-resolve-asset-path.test.ts#require-resolve-asset-path invalid fetch に変数を渡すと、報告する","name":"fetch に変数を渡すと、報告する","status":"passed","testResultsByEnv":{"default":"b472a2a902144db6753f2315ff381dbf"}}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not list projects: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:34417/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-api\",\"detail\":\"could not list projects: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:34417/graphql'\\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "could not list projects: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:34417/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+  },
+  "isError": true
+}

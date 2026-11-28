@@ -1,0 +1,1 @@
+{"id":"9b5cc484980191e52da293c58dc4aad2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/attributes.test.ts#validateAttributes single_select に配列 を渡すと、取りうる値を示して invalid_value にする","name":"single_select に配列 を渡すと、取りうる値を示して invalid_value にする","status":"passed","testResultsByEnv":{"default":"b1ee96c900fae0445be1f095d067f1ca"}}

@@ -1,0 +1,1 @@
+{"id":"ecd99bf53a51ca75daf5fbafccee5fe3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/golden-path-errors.test.ts#CUJ 3: エラーパス + Python フリー `slide create` が起動するプロセスの中で、Python 関連のコマンドを起動しない","name":"`slide create` が起動するプロセスの中で、Python 関連のコマンドを起動しない","status":"passed","testResultsByEnv":{"default":"3118a5f502a61d4eeeaa1c861710f38a"}}

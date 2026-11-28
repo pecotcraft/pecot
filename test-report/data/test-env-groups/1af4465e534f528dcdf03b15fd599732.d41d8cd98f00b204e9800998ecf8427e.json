@@ -1,0 +1,1 @@
+{"id":"1af4465e534f528dcdf03b15fd599732.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#ensureChromiumHostDependencies Linux 以外の OS では、起動の確認もせずに ok を返す","name":"Linux 以外の OS では、起動の確認もせずに ok を返す","status":"passed","testResultsByEnv":{"default":"4e0bdb739ab040e88de57c537ce5c4d9"}}

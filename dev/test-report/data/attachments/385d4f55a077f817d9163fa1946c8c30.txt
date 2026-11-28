@@ -1,0 +1,63 @@
+[
+  {
+    "result": {
+      "supportedVersions": [
+        "2026-07-28"
+      ],
+      "capabilities": {
+        "tools": {
+          "listChanged": true
+        }
+      },
+      "resultType": "complete",
+      "ttlMs": 0,
+      "cacheScope": "private",
+      "_meta": {
+        "io.modelcontextprotocol/serverInfo": {
+          "name": "pecot-visual",
+          "version": "4.0.2"
+        }
+      }
+    },
+    "jsonrpc": "2.0",
+    "id": 1
+  },
+  {
+    "result": {
+      "protocolVersion": "2025-11-25",
+      "capabilities": {
+        "tools": {
+          "listChanged": true
+        }
+      },
+      "serverInfo": {
+        "name": "pecot-visual",
+        "version": "4.0.2"
+      }
+    },
+    "jsonrpc": "2.0",
+    "id": 2
+  },
+  {
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "directory not found: /workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-1228"
+        },
+        {
+          "type": "text",
+          "text": "{\"event\":\"slide.lint.error\",\"kind\":\"dir-not-found\",\"detail\":\"directory not found: /workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-1228\"}"
+        }
+      ],
+      "structuredContent": {
+        "event": "slide.lint.error",
+        "kind": "dir-not-found",
+        "detail": "directory not found: /workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-1228"
+      },
+      "isError": true
+    },
+    "jsonrpc": "2.0",
+    "id": 3
+  }
+]

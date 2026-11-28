@@ -1,0 +1,1 @@
+{"id":"670be362e53f54a761390d0cbbe3e787.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/branch-delete.test.ts#branch_delete MCP の data project を渡すと、対象のリポを含む設定が 2 つあってもその設定で削除する","name":"project を渡すと、対象のリポを含む設定が 2 つあってもその設定で削除する","status":"passed","testResultsByEnv":{"default":"2b6a2faa5ef8776784f0dce291fe516f"}}

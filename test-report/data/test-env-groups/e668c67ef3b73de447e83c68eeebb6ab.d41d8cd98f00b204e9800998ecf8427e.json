@@ -1,0 +1,1 @@
+{"id":"e668c67ef3b73de447e83c68eeebb6ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync Archived の項目を削除できなかったなら、warning の行を出して続け、error の行を出して終了コード 1 で終わる","name":"Archived の項目を削除できなかったなら、warning の行を出して続け、error の行を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"808a340423d9a9a34c015762cf4f7348"}}

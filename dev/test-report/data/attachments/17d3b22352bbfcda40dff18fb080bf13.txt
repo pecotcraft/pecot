@@ -1,0 +1,292 @@
+# pecot-workflow-template: auto 4
+#
+# Place this file at .github/workflows/pecot-auto.yml in your repository.
+# `workflow_install` (name: auto) places it and pins the pecot actions to a commit SHA.
+#
+# This workflow runs the pecot w-auto skill on an issue with claude-code-action.
+# It starts when the trigger label is added to an issue. The default label is "pecot-auto".
+# Comments, edits, and new issues never start it.
+# The gate job decides with a pecot action alone whether to go on. It starts no agent.
+# Then the run job posts a plan, fixes the issue, runs the tests, and opens a pull request.
+# It ends with a result comment on the issue and removes the trigger label.
+# When the fix needs a decision, it asks in the result comment and stops.
+# Answer in a comment and add the label again to go on.
+# Only people with write access can start it. Labels added by bots are skipped.
+# It never merges, closes, or releases.
+#
+# Create your own GitHub App and install it on the repository.
+# Give the App these permissions. The workflow narrows its token to what each job needs.
+#   Repository: Contents: write, Issues: write, Pull requests: write, Actions: read.
+#   Organization: Projects: write. Boards owned by a user are not supported.
+# The Fix step also runs the official GitHub MCP server ghcr.io/github/github-mcp-server in Docker.
+# Its name in the MCP config is github-official. The runner needs Docker.
+# With the App token, the server reads issues, pull requests and the board.
+# It also comments on issues, opens pull requests, and moves board items.
+# Then set these in Settings > Secrets and variables > Actions.
+#   Variable PECOT_AGENT_APP_CLIENT_ID, the client ID of the App.
+#   Secret PECOT_AGENT_APP_PRIVATE_KEY, a private key of the App.
+# When the variable is empty, the gate job is skipped.
+# When the App token cannot be made, the gate job decides nothing.
+# In both cases, the setup job only comments on the issue with what is missing.
+# Set one model credential too.
+#   Claude subscription (default).
+#     Set secret CLAUDE_CODE_OAUTH_TOKEN, made with `claude setup-token`.
+#   Claude Platform with Workload Identity Federation.
+#     Leave secret CLAUDE_CODE_OAUTH_TOKEN unset.
+#     Set variable PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID.
+#     Set variable PECOT_AGENT_ANTHROPIC_ORGANIZATION_ID.
+#     Set variable PECOT_AGENT_ANTHROPIC_SERVICE_ACCOUNT_ID.
+#     Set variable PECOT_AGENT_ANTHROPIC_WORKSPACE_ID.
+#     The id-token permission of the run job is used only for this.
+# The default branch must hold the pecot project config under .pecot/config/projects.
+#
+# Protect the default branch with a ruleset that requires a pull request.
+# The tool rules below are not a boundary.
+# The ruleset and the App permissions keep the agent from pushing to the default branch.
+#
+# Optional variables. Each one falls back to its default when unset.
+#   PECOT_AUTO_LABEL names the trigger label. The default is "pecot-auto".
+#   PECOT_AUTO_MAX_TURNS limits the turns of the main agent. The default is 80.
+#   PECOT_AUTO_TIMEOUT_MINUTES limits the run job time in minutes. The default is 30.
+#     Keep it under 60, because the App token expires after 1 hour.
+#   PECOT_AUTO_MAX_CI_ATTEMPTS limits the CI fixes on one branch. The default is 3.
+#   PECOT_AUTO_PROJECT names the pecot project config to use. The default is unset.
+#     Set it when the repository is in two or more configs under .pecot/config/projects.
+#     Write the file name without .json.
+#
+# The pecot actions are pinned to a commit SHA, with the release tag in the comment after it.
+# Dependabot can update them when .github/dependabot.yml has the github-actions ecosystem.
+#
+# Keep your own lines between the pecot-auto:*:begin and :end markers.
+# Add the commands that your tests need to the allowed-tools lines, for example Bash(npm test:*).
+# `workflow_install` with `force: true` shows them before it overwrites this file.
+name: pecot auto
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  gate:
+    # A job-level if cannot read env, so the default label is written next to the variable.
+    if: >-
+      ${{
+        vars.PECOT_AGENT_APP_CLIENT_ID != '' &&
+        github.event.label.name == (vars.PECOT_AUTO_LABEL || 'pecot-auto')
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      proceed: ${{ steps.decide.outputs.proceed }}
+      kind: ${{ steps.decide.outputs.kind }}
+      issue: ${{ steps.decide.outputs.issue }}
+      number: ${{ steps.decide.outputs.number }}
+      branch: ${{ steps.decide.outputs.branch }}
+      # The setup job reports a token that could not be made, such as one missing a permission.
+      token-failed: ${{ steps.token.outcome == 'failure' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Generate GitHub App token
+        id: token
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.PECOT_AGENT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_AGENT_APP_PRIVATE_KEY }}
+          permission-issues: write
+          permission-actions: read
+          permission-organization-projects: write
+          permission-contents: read
+          permission-pull-requests: read
+
+      - name: Decide
+        id: decide
+        if: ${{ steps.token.outcome == 'success' }}
+        uses: pecotcraft/pecot/actions/auto-gate@c0ffee0000000000000000000000000000000000 # pecot-actions/v1.1.0
+        env:
+          PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
+        with:
+          token: ${{ steps.token.outputs.token }}
+          max-ci-attempts: ${{ vars.PECOT_AUTO_MAX_CI_ATTEMPTS || '3' }}
+          project: ${{ vars.PECOT_AUTO_PROJECT }}
+
+  run:
+    needs: gate
+    if: ${{ needs.gate.outputs.proceed == 'true' }}
+    runs-on: ubuntu-latest
+    # Variables are strings, and timeout-minutes needs a number.
+    timeout-minutes: ${{ fromJSON(vars.PECOT_AUTO_TIMEOUT_MINUTES || '30') }}
+    concurrency:
+      group: pecot-auto-${{ needs.gate.outputs.number }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # The official GitHub MCP server reads issues, pull requests and the board.
+      # It also comments on issues, opens pull requests, and moves board items.
+      # Claude Code expands ${PECOT_GITHUB_COM_TOKEN} from the step env.
+      PECOT_AUTO_GITHUB_MCP: '{"mcpServers":{"github-official":{"type":"stdio","command":"docker","args":["run","-i","--rm","-e","GITHUB_PERSONAL_ACCESS_TOKEN","-e","GITHUB_HOST","-e","GITHUB_TOOLS","-e","GITHUB_FEATURES","ghcr.io/github/github-mcp-server:v2.3.0@sha256:f8ee4dedc7d5c8cb32854ab91cc92a31c55a8a5510708cf8742e9f9427588ca6"],"env":{"GITHUB_PERSONAL_ACCESS_TOKEN":"${PECOT_GITHUB_COM_TOKEN}","GITHUB_HOST":"${{ github.server_url }}","GITHUB_TOOLS":"issue_read,issue_dependency_read,add_issue_comment,update_issue_comment,pull_request_read,list_pull_requests,create_pull_request,projects_list,projects_write","GITHUB_FEATURES":"issue_dependencies"}}}}'
+      # pecot-auto:allowed-tools:begin
+      # Tools that your tests and preparation steps need, separated by commas.
+      PECOT_AUTO_EXTRA_ALLOWED_TOOLS: ""
+      # pecot-auto:allowed-tools:end
+    steps:
+      # The action sets up git with the App token, so the checkout keeps no credentials.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.22.1"
+          # This job holds secrets, so the npm cache is neither restored nor saved.
+          package-manager-cache: false
+
+      - name: Generate GitHub App token
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.PECOT_AGENT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_AGENT_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
+          permission-actions: read
+          permission-organization-projects: write
+
+      # Writes the context of the issue to a file under RUNNER_TEMP for the skill.
+      - name: Start
+        id: start
+        uses: pecotcraft/pecot/actions/auto-start@c0ffee0000000000000000000000000000000000 # pecot-actions/v1.1.0
+        with:
+          token: ${{ steps.token.outputs.token }}
+          issue: ${{ needs.gate.outputs.issue }}
+          project: ${{ vars.PECOT_AUTO_PROJECT }}
+
+      # pecot-auto:prepare:begin
+      # Add steps that the fix and the tests need, such as installing dependencies.
+      # pecot-auto:prepare:end
+
+      - name: Fix
+        id: claude
+        if: ${{ success() && steps.start.outcome == 'success' }}
+        uses: anthropics/claude-code-action@cc98b3ae241b0fcfb6a42a2690751afffecb4452 # v1.0.278
+        env:
+          PECOT_GITHUB_COM_TOKEN: ${{ steps.token.outputs.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The action takes either a token or Workload Identity Federation, not both.
+          anthropic_federation_rule_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_FEDERATION_RULE_ID || '' }}
+          anthropic_organization_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_ORGANIZATION_ID || '' }}
+          anthropic_service_account_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_SERVICE_ACCOUNT_ID || '' }}
+          anthropic_workspace_id: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && vars.PECOT_AGENT_ANTHROPIC_WORKSPACE_ID || '' }}
+          github_token: ${{ steps.token.outputs.token }}
+          plugin_marketplaces: https://github.com/pecotcraft/pecot.git
+          plugins: pecot-w@pecot
+          # Pushes made with the App token come back as runs started by the App.
+          allowed_bots: ${{ steps.token.outputs.app-slug }}
+          prompt: /pecot-w:w-auto ${{ needs.gate.outputs.kind }} ${{ needs.gate.outputs.issue }} context=${{ steps.start.outputs.context-file }} result=${{ runner.temp }}/pecot-auto/result.md${{ vars.PECOT_AUTO_PROJECT != '' && format(' project={0}', vars.PECOT_AUTO_PROJECT) || '' }}
+          # The skill reads the context file and writes the result file in this directory.
+          claude_args: >-
+            --permission-mode default
+            --max-turns ${{ vars.PECOT_AUTO_MAX_TURNS || '80' }}
+            --mcp-config '${{ env.PECOT_AUTO_GITHUB_MCP }}'
+            --add-dir "${{ runner.temp }}/pecot-auto"
+            --allowedTools "Read,Glob,Grep,Edit,Write,mcp__plugin_pecot-w_pecot-workflow__issue_comment_check,mcp__plugin_pecot-w_pecot-workflow__pr_check,mcp__plugin_pecot-w_pecot-workflow__board_check,mcp__plugin_pecot-w_pecot-workflow__project_list,mcp__github-official__issue_read,mcp__github-official__issue_dependency_read,mcp__github-official__add_issue_comment,mcp__github-official__update_issue_comment,mcp__github-official__pull_request_read,mcp__github-official__list_pull_requests,mcp__github-official__create_pull_request,mcp__github-official__projects_list,mcp__github-official__projects_write,Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git fetch:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr checks:*),Bash(gh run view:*)${{ env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS != '' && format(',{0}', env.PECOT_AUTO_EXTRA_ALLOWED_TOOLS) || '' }}"
+            --disallowedTools "Agent,AskUserQuestion,WebFetch,WebSearch,Bash(git clone:*),Read(//proc/**)"
+
+      # Writes the result comment from the result file of the skill, or from how the job ended.
+      - name: Finish
+        if: ${{ always() }}
+        uses: pecotcraft/pecot/actions/auto-finish@c0ffee0000000000000000000000000000000000 # pecot-actions/v1.1.0
+        env:
+          PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
+        with:
+          token: ${{ steps.token.outputs.token }}
+          issue: ${{ needs.gate.outputs.issue }}
+          job-status: ${{ job.status }}
+          start-outcome: ${{ steps.start.outcome }}
+          result-file: ${{ runner.temp }}/pecot-auto/result.md
+          execution-file: ${{ steps.claude.outputs.execution_file }}
+          project: ${{ vars.PECOT_AUTO_PROJECT }}
+
+  # Without the App or its token, tell the issue what is missing. The run token writes the comment.
+  setup:
+    needs: gate
+    # always() lets this job run after the gate job is skipped.
+    if: >-
+      ${{
+        always() &&
+        github.event.label.name == (vars.PECOT_AUTO_LABEL || 'pecot-auto') &&
+        (vars.PECOT_AGENT_APP_CLIENT_ID == '' || needs.gate.outputs.token-failed == 'true')
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Like the gate job, write nothing for a bot or for someone without write access.
+      - name: Check
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SENDER: ${{ github.event.sender.login }}
+          NO_APP: ${{ vars.PECOT_AGENT_APP_CLIENT_ID == '' }}
+          BODY_NO_APP: |
+            変数 `PECOT_AGENT_APP_CLIENT_ID` が空なので、自動処理を始めなかった。
+
+            自動処理には、自前の GitHub App の次の 2 つが要る。Settings > Secrets and variables > Actions に置く。
+
+            - 変数 `PECOT_AGENT_APP_CLIENT_ID` — App の Client ID
+            - secret `PECOT_AGENT_APP_PRIVATE_KEY` — App の秘密鍵
+
+            置いた後に、pecot-workflow の MCP ツール `workflow_doctor`（`name` は `auto`）で、足りない設定が無いことを確かめる。
+          BODY_NO_TOKEN: |
+            自前の GitHub App のトークンを作れなかったので、自動処理を始めなかった。
+
+            次を確かめる。失敗の理由は、この run の `gate` の job の記録に出ている。
+
+            - 変数 `PECOT_AGENT_APP_CLIENT_ID` が App の Client ID で、secret `PECOT_AGENT_APP_PRIVATE_KEY` がその App の秘密鍵か
+            - App がこのリポに入っているか
+            - App が、Repository の Contents: write・Issues: write・Pull requests: write・Actions: read を持つか
+            - App が、Organization の Projects: write を持つか
+
+            直した後に、起動ラベルを付け直す。
+        run: |
+          case "$SENDER" in *"[bot]") exit 0 ;; esac
+          role=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$SENDER/permission" --jq .permission) || exit 0
+          case "$role" in admin|write) ;; *) exit 0 ;; esac
+          body_file="$RUNNER_TEMP/pecot-auto-setup.md"
+          if [ "$NO_APP" = true ]; then body=$BODY_NO_APP; else body=$BODY_NO_TOKEN; fi
+          printf '%s' "$body" > "$body_file"
+          {
+            echo "ok=true"
+            echo "body-file=$body_file"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Report
+        if: ${{ steps.check.outputs.ok == 'true' }}
+        uses: pecotcraft/pecot/actions/auto-finish@c0ffee0000000000000000000000000000000000 # pecot-actions/v1.1.0
+        env:
+          PECOT_AUTO_LABEL: ${{ vars.PECOT_AUTO_LABEL || 'pecot-auto' }}
+        with:
+          token: ${{ github.token }}
+          issue: ${{ github.event.issue.number }}
+          result: setup-missing
+          body-file: ${{ steps.check.outputs.body-file }}
+          project: ${{ vars.PECOT_AUTO_PROJECT }}

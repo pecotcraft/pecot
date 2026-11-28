@@ -1,0 +1,1 @@
+{"id":"0df771871c068e70ece2756a8aad0c62.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-triple-hyphen-in-frontmatter.test.ts#frontmatter が閉じていない（--- が 1 つだけ）と、検出しない","name":"frontmatter が閉じていない（--- が 1 つだけ）と、検出しない","status":"passed","testResultsByEnv":{"default":"94f079eac3fe8fa88271d2a652ec146a"}}

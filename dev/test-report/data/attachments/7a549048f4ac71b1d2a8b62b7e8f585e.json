@@ -1,0 +1,304 @@
+{
+  "name": "board_show",
+  "title": "Show board dashboard",
+  "description": "Show the open items of the project board by column, the readiness of the Ready and Blocked Issues whose prerequisites were read, and the Issues per pecot-lane value. Reads and writes nothing on GitHub; pass the results of the official reads in reads.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "json": {
+        "default": false,
+        "description": "Output as JSON",
+        "type": "boolean"
+      },
+      "repo": {
+        "description": "Show only the items of this repository (owner/repo)",
+        "type": "string"
+      },
+      "reads": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "minItems": 1,
+            "type": "array",
+            "items": {},
+            "description": "Results of projects_list with method list_project_items, every page: pass the field IDs of pecot-status, Status and pecot-lane in fields"
+          },
+          "fields": {
+            "description": "Result of projects_list with method list_project_fields"
+          },
+          "issues": {
+            "description": "Results of issue_read with method get (the structuredContent, { issue: ... }): the Ready and Blocked Issues to judge, and their prerequisites",
+            "type": "array",
+            "items": {}
+          },
+          "blocked_by": {
+            "description": "Results of issue_dependency_read with method get_blocked_by: the Ready and Blocked Issues to judge; only these get a readiness",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "type": "string",
+                  "description": "The Issue whose blocked-by was read (owner/repo/N)"
+                },
+                "result": {
+                  "description": "Result of issue_dependency_read with method get_blocked_by"
+                }
+              },
+              "required": [
+                "issue",
+                "result"
+              ]
+            }
+          },
+          "pull_requests": {
+            "description": "Results of pull_request_read with method get: each open pull request that closes a prerequisite (closed_by_pull_requests of issue_read), and those its base branch stacks on; they decide whether the Issue can stack",
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "items",
+          "fields"
+        ],
+        "description": "Results of the official GitHub MCP reads"
+      }
+    },
+    "required": [
+      "reads"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "board": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "description": "Project item ID"
+                },
+                "workflow": {
+                  "description": "Column (workflow field value) of the item",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "lane": {
+                  "description": "Value of the pecot-lane field (null when the item has none or the board has no pecot-lane field)",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "title": {
+                  "description": "Title of the Issue or PR"
+                },
+                "updatedAt": {
+                  "description": "Last update time of the item"
+                },
+                "content": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "description": "Issue or PR number"
+                    },
+                    "state": {
+                      "description": "State of the Issue or PR (OPEN etc.)"
+                    },
+                    "url": {
+                      "description": "URL of the Issue or PR"
+                    },
+                    "labels": {
+                      "description": "Label names",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "repository": {
+                      "description": "Repository (owner/repo)",
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "description": "Issue or PR on the card"
+                },
+                "readiness": {
+                  "description": "Readiness of a Ready or Blocked Issue (null for other items; omitted when the server does not support issue dependencies)",
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "startable",
+                            "stackable",
+                            "blocked",
+                            "unknown"
+                          ],
+                          "description": "Readiness judgment (unknown when the prerequisites could not be read)"
+                        },
+                        "stackOn": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "number": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991,
+                                  "description": "Issue number to stack on"
+                                },
+                                "repository": {
+                                  "type": "string",
+                                  "description": "Repository of that Issue (owner/repo)"
+                                },
+                                "branch": {
+                                  "type": "string",
+                                  "description": "Branch to stack on"
+                                }
+                              },
+                              "required": [
+                                "number",
+                                "repository",
+                                "branch"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "Prerequisite to stack on (null unless stackable)"
+                        },
+                        "reason": {
+                          "description": "Code of the reason for blocked (null unless blocked)",
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "text": {
+                          "type": "string",
+                          "description": "Readiness as shown in the Readiness column"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "stackOn",
+                        "reason",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "content"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Open items in Backlog, Pending, Blocked, Ready, Active and In Review"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false,
+        "description": "Board status"
+      },
+      "lanes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "Value of the pecot-lane field (null for the Issues without a value)",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "count": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Number of open Issues with this value"
+            },
+            "startable": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Number of those Issues in Ready whose readiness is startable"
+            }
+          },
+          "required": [
+            "name",
+            "count",
+            "startable"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Open Issues of the board items counted per pecot-lane value, in the order of the field options (values without Issues count 0; Issues without a value come last). Empty when the board has no pecot-lane field"
+      },
+      "mismatches": {
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991,
+        "description": "Number of Ready or Blocked Issues whose column or Status may not match the judgment (data only)"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "board",
+          "lanes",
+          "mismatches"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": false
+  }
+}

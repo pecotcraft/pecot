@@ -1,0 +1,1 @@
+{"id":"7393c6b9fcc055de6ad595be0b7355ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 進行の欄が旧い名前のボードでも、同じ Issue を動かし、旧い名前の警告と project_init の案内を出す","name":"進行の欄が旧い名前のボードでも、同じ Issue を動かし、旧い名前の警告と project_init の案内を出す","status":"passed","testResultsByEnv":{"default":"5080d2c40723755cfbcb5549efd7fb07"}}

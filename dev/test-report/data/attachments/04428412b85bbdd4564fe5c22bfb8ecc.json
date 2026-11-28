@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "release_type must be one of ['multi', 'nx', 'single'] (got: 'bogus')"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"release_type must be one of ['multi', 'nx', 'single'] (got: 'bogus')\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "release_type must be one of ['multi', 'nx', 'single'] (got: 'bogus')"
+  },
+  "isError": true
+}

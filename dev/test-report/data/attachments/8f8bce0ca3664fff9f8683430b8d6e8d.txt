@@ -1,0 +1,1 @@
+stage=manual|args=run --hook-stage manual --from-ref de39552a2bf84bfd87a53189fc5b75af6670023c --to-ref 8583f865fcdb5b3d94fae7bf2580726440a9feb4 --show-diff-on-failure --color=never|SKIP=check-version-plan-required|PVB=de39552a2bf84bfd87a53189fc5b75af6670023c|TO=unset|NXC=true|NXCI=1|LANE=pecot-visual:test-cli|SRV=unset|NXCF=unset

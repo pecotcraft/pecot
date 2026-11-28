@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pecot-status field is missing options: Pending, Ready, Active, In Review, Archived\n  required options: Backlog / Pending / Ready / Active / In Review / Archived"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"not-initialized\",\"detail\":\"pecot-status field is missing options: Pending, Ready, Active, In Review, Archived\\n  required options: Backlog / Pending / Ready / Active / In Review / Archived\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "not-initialized",
+    "detail": "pecot-status field is missing options: Pending, Ready, Active, In Review, Archived\n  required options: Backlog / Pending / Ready / Active / In Review / Archived"
+  },
+  "isError": true
+}

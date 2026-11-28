@@ -1,0 +1,1 @@
+{"id":"615c1bb149d2cf8b2ae73fe9b0d668d9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/attach.test.ts#attach Allure の reporter が動くレーンの中 attachText に文字列を渡すと、待たずにその文字列を拡張子の型で残す","name":"attachText に文字列を渡すと、待たずにその文字列を拡張子の型で残す","status":"passed","testResultsByEnv":{"default":"a551aedcef449d4314832f1d39a5ccce"}}

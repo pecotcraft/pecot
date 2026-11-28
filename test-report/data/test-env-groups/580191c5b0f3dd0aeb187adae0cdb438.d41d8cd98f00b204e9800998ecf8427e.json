@@ -1,0 +1,1 @@
+{"id":"580191c5b0f3dd0aeb187adae0cdb438.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create リリースを作ると、リリースの URL を標準出力に出す","name":"リリースを作ると、リリースの URL を標準出力に出す","status":"passed","testResultsByEnv":{"default":"4f35e886ef6d051be2eb4b48081f3589"}}

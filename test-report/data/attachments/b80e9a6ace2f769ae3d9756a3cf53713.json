@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: worktree config /tmp/pecot-cli-t8cGqL/workspaces/base/demo/.pecot/config/worktree-config.json"
+    },
+    {
+      "type": "text",
+      "text": "{\"configFile\":\"/tmp/pecot-cli-t8cGqL/workspaces/base/demo/.pecot/config/worktree-config.json\",\"ignoreFile\":\"/tmp/pecot-cli-t8cGqL/workspaces/base/demo/.pecot/config/.worktreeignore\"}"
+    }
+  ],
+  "structuredContent": {
+    "configFile": "/tmp/pecot-cli-t8cGqL/workspaces/base/demo/.pecot/config/worktree-config.json",
+    "ignoreFile": "/tmp/pecot-cli-t8cGqL/workspaces/base/demo/.pecot/config/.worktreeignore"
+  }
+}

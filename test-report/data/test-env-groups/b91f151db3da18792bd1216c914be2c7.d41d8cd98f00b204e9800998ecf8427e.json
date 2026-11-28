@@ -1,0 +1,1 @@
+{"id":"b91f151db3da18792bd1216c914be2c7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_brief テーマが node_modules に張られていないと、空のオブジェクトを返す","name":"テーマが node_modules に張られていないと、空のオブジェクトを返す","status":"passed","testResultsByEnv":{"default":"2f71e5b8c3772e957718a829a4b15838"}}

@@ -1,0 +1,1 @@
+{"id":"92beaa69e6f622841221a048c14a5d02.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#gh-command-check.sh コマンドが gh stack view のとき、何も出力せず通す","name":"コマンドが gh stack view のとき、何も出力せず通す","status":"passed","testResultsByEnv":{"default":"9a926224c9f5ebead495103017ee86cb"}}

@@ -1,0 +1,1 @@
+{"id":"41b42f83edf5f837f51c33f96cba0376.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#decidePullRequestBase 記録の base でも開発ブランチでもない base は、そのまま返し、内容の検証に任せる","name":"記録の base でも開発ブランチでもない base は、そのまま返し、内容の検証に任せる","status":"passed","testResultsByEnv":{"default":"e4988914237ddbd2ed0e609f716fd859"}}

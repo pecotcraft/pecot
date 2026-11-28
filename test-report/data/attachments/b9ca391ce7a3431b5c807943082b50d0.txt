@@ -1,0 +1,3 @@
+error: project "board" has no pecot-status field
+  required field: pecot-status (Backlog/Pending/Ready/Active/In Review/Archived)
+  call project_init with owner: "acme", name: "board", host: "github.com"

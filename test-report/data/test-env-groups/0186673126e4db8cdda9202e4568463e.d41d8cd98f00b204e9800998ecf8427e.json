@@ -1,0 +1,1 @@
+{"id":"0186673126e4db8cdda9202e4568463e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/_helpers/fake-executables.test.ts#偽の実行ファイル gh auth token は token を出力し、それ以外のコマンドは終了コード 1 になる","name":"gh auth token は token を出力し、それ以外のコマンドは終了コード 1 になる","status":"passed","testResultsByEnv":{"default":"32dbae8692e671f15bba8ab1d80916e8"}}

@@ -1,0 +1,1 @@
+{"id":"da20e05cf3b49b7b2638364935a23240.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#コマンドの実体 .textlintignore 除外に当たるファイルを リンクを通った作業ディレクトリの絶対パス で渡すと、終了コード 0 を返す","name":"除外に当たるファイルを リンクを通った作業ディレクトリの絶対パス で渡すと、終了コード 0 を返す","status":"passed","testResultsByEnv":{"default":"85c4093d1008a137e6a3332f0ac9c773"}}

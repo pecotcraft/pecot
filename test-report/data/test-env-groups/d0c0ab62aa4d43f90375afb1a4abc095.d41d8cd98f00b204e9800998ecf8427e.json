@@ -1,0 +1,1 @@
+{"id":"d0c0ab62aa4d43f90375afb1a4abc095.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/_helpers/fake-executables.test.ts#env の隔離 setEnvironment で設定した値は次のテストに残らない（1 つ目）","name":"setEnvironment で設定した値は次のテストに残らない（1 つ目）","status":"passed","testResultsByEnv":{"default":"331932c935682d6f301ee944beccd04a"}}

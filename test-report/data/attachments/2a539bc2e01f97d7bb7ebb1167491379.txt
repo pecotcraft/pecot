@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "additionalContext": "warning: the worktree setup command timed out after 1 seconds: sleep 5\n  it runs again at the next session start\n  log: /tmp/pecot-hooks-dhZ5Ee/main/.git/worktrees/bold-oak/pecot-worktree-setup.log",
+    "hookEventName": "SessionStart"
+  },
+  "additionalContext": "warning: the worktree setup command timed out after 1 seconds: sleep 5\n  it runs again at the next session start\n  log: /tmp/pecot-hooks-dhZ5Ee/main/.git/worktrees/bold-oak/pecot-worktree-setup.log"
+}

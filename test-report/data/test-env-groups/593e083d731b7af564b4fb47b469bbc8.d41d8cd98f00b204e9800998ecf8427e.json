@@ -1,0 +1,1 @@
+{"id":"593e083d731b7af564b4fb47b469bbc8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_ecr_describe_images 必須の入力だけを渡すと受け付け、既定値を補って handler へ渡す","name":"必須の入力だけを渡すと受け付け、既定値を補って handler へ渡す","status":"passed","testResultsByEnv":{"default":"3afcd5ca6b94a6db07edb3cb39738fda"}}

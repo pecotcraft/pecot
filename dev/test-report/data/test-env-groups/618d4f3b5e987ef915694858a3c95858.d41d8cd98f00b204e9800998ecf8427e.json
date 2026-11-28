@@ -1,0 +1,1 @@
+{"id":"618d4f3b5e987ef915694858a3c95858.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#number の lax な変換（Python の実出力どおり） number に \"-7\" を渡した場合は、整数 -7 として読み取る","name":"number に \"-7\" を渡した場合は、整数 -7 として読み取る","status":"passed","testResultsByEnv":{"default":"4e4b87727fcd7d66010962664fc45224"}}

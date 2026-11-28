@@ -1,0 +1,1 @@
+{"id":"11fe345548f1e5c104788c538a7948b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start 設定に workflow の active が無いと、Status を変えずに warning の行を標準エラーに出す","name":"設定に workflow の active が無いと、Status を変えずに warning の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"79b34afc2eb19ff89bbc387de26ac834"}}

@@ -1,0 +1,1 @@
+{"id":"50b646037c5a4fc81c8ea1b92a08e65a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_build_failure_exits_1_with_failure_image","name":"up で pull と build の両方に失敗すると、失敗を示すイメージを出力して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"9a0a0126f26f366c9a04e017e0094f7b"}}

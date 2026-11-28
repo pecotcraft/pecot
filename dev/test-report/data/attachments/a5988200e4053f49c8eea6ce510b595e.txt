@@ -1,0 +1,1 @@
+使い方: run-pr-checks.sh [--part=<lint|tests>] [--lane=<project>:<target>] <base> <head>

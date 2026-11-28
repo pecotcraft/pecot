@@ -1,0 +1,1 @@
+{"id":"7585dd280ed7dc708804f625a49f9101.f44cf2d9c7cdbd42a3bc67ffb3c6e657","fullName":".githooks.tests.test_allure_report_labels#test_alluredir_adds_python_label","name":"--alluredir を指定すると、.githooks/tests/conftest.py の conftest はどの結果にも Python の版のラベルを 1 つ付け、パラメータは付けない","status":"passed","testResultsByEnv":{"default":"ae036943a295afa0db5db5fd090fe14a"}}

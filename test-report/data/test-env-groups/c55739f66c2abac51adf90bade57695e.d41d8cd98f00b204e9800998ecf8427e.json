@@ -1,0 +1,1 @@
+{"id":"c55739f66c2abac51adf90bade57695e.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#package.json に scripts キーが無い","name":"package.json に scripts キーが無い","status":"passed","testResultsByEnv":{"default":"7f4c4aab6b5bc00c87aa6ecccc7f0586"}}

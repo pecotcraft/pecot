@@ -1,0 +1,1 @@
+{"id":"c8223978ce80b7e88c9f7d11b803555c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#matchPrerenderToMedia pngWidth が 0 の候補の場合は、大きさの判定で除外する","name":"pngWidth が 0 の候補の場合は、大きさの判定で除外する","status":"passed","testResultsByEnv":{"default":"ae4ff1dae471ba40f2c52a16e288d048"}}

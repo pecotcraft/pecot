@@ -1,0 +1,1 @@
+error: surface-file /tmp/pecot-action-B0tIL9/missing.json is not an issue surface: Expected property name or '}' in JSON at position 1 (line 1 column 2)

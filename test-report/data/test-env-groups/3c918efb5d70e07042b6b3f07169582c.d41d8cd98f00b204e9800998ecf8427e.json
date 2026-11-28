@@ -1,0 +1,1 @@
+{"id":"3c918efb5d70e07042b6b3f07169582c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/scanner.test.ts#buildOnlySteps click が null でページを渡さない場合は、1 ステップだけを返す","name":"click が null でページを渡さない場合は、1 ステップだけを返す","status":"passed","testResultsByEnv":{"default":"77de5d425eae4be0850bada3094cdc5f"}}

@@ -1,0 +1,1 @@
+{"id":"6e7747be0b661c3fd1295975b634fb83.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_empty_profile_reports_zero_lanes_without_warn","name":"affected の対象が 0 件で profile が空の場合は、レーン 0 と表示し、警告を出さない","status":"passed","testResultsByEnv":{"default":"f31bcc6f41d78b10df8ab6389f1ce5f6"}}

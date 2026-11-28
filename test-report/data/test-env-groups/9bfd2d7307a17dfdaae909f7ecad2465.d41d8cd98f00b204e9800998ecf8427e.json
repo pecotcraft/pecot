@@ -1,0 +1,1 @@
+{"id":"9bfd2d7307a17dfdaae909f7ecad2465.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/process-run.test.ts#runProcess SIGTERM を無視する子プロセスは、猶予時間の後に SIGKILL で停止する","name":"SIGTERM を無視する子プロセスは、猶予時間の後に SIGKILL で停止する","status":"passed","testResultsByEnv":{"default":"6e98dbedec33cc0976d8217182043602"}}

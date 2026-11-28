@@ -1,0 +1,1 @@
+{"id":"26602144f7ac5048eedd3f29fc5534d3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_32_block_dependabot_and_human","name":"dependabot の PR に人が commit を足すと、失敗する","status":"passed","testResultsByEnv":{"default":"e5effea55bea403c7508fbeea7c38882"}}

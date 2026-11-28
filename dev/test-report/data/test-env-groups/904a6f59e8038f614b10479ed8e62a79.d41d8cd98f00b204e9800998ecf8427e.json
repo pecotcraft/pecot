@@ -1,0 +1,1 @@
+{"id":"904a6f59e8038f614b10479ed8e62a79.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#isLabelWrittenByAutomation 最後の Bot の結果が ci-fix-pushed の場合は、前に待ちの結果があっても false を返す","name":"最後の Bot の結果が ci-fix-pushed の場合は、前に待ちの結果があっても false を返す","status":"passed","testResultsByEnv":{"default":"b0511657380e973f9f250210037edcd3"}}

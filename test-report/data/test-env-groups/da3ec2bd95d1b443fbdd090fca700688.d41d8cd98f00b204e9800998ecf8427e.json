@@ -1,0 +1,1 @@
+{"id":"da3ec2bd95d1b443fbdd090fca700688.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board.test.ts#board_show pecot-lane lane の値を持たない Issue が存在しなければ、name が null の組を入れない","name":"lane の値を持たない Issue が存在しなければ、name が null の組を入れない","status":"passed","testResultsByEnv":{"default":"a76b471c4532f57ea8659ac93316a793"}}

@@ -1,0 +1,1 @@
+{"id":"1b1c8b23e38d5777f1ffcbaa6ccd8bfe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toRejectedResult 入力エラーの結果は、kind を invalid-input にし、断りの文を detail と text にする","name":"入力エラーの結果は、kind を invalid-input にし、断りの文を detail と text にする","status":"passed","testResultsByEnv":{"default":"b6ce13d3087648d3bccf8d103aca91ad"}}

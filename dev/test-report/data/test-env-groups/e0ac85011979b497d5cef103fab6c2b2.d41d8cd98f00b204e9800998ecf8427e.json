@@ -1,0 +1,1 @@
+{"id":"e0ac85011979b497d5cef103fab6c2b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#resolveTalkDirectoryNodeModules どの候補でも代表のパッケージを解決できなければ、undefined を返す","name":"どの候補でも代表のパッケージを解決できなければ、undefined を返す","status":"passed","testResultsByEnv":{"default":"ef2722b16f5b44c6401d95e67a58bc81"}}

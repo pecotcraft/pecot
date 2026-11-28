@@ -1,0 +1,1 @@
+{"id":"843aefe3e55be758fae411655f8d088d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync auto-merge が無く、最後の push が 29 分前 PR は、理由 undefined で扱う","name":"auto-merge が無く、最後の push が 29 分前 PR は、理由 undefined で扱う","status":"passed","testResultsByEnv":{"default":"fdaa85959140ba4369f058aa1257faa1"}}

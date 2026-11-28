@@ -1,0 +1,1 @@
+ERROR: /tmp/bats-run-IHNnqy/test/8/bit16/b/1.png: bit depth 16 には対応していません（8 のみ）

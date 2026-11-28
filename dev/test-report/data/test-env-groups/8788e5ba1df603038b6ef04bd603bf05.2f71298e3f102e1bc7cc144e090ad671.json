@@ -1,0 +1,1 @@
+{"id":"8788e5ba1df603038b6ef04bd603bf05.2f71298e3f102e1bc7cc144e090ad671","fullName":".githooks.tests.test_release_workflow#test_sha_flow","name":"dry-run が false で sha が branch-name のとき、sha の確認の終了コードは 1 になる","status":"passed","testResultsByEnv":{"default":"13eec76daaf1a4c5c99660f7ef5682b4"}}

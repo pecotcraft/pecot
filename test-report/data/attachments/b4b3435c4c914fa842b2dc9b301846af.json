@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid input: lanes.0: Too small: expected string to have >=1 characters"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid input: lanes.0: Too small: expected string to have >=1 characters\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: lanes.0: Too small: expected string to have >=1 characters"
+  },
+  "isError": true
+}

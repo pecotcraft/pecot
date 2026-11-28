@@ -1,0 +1,1 @@
+{"id":"30158d4137122e51604ea29d9d3e6030.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#pruneCache すべての stepIndex が生存している場合は、何も削除しない","name":"すべての stepIndex が生存している場合は、何も削除しない","status":"passed","testResultsByEnv":{"default":"f6ce88fe38d91473cd0e098a8aefbe6d"}}

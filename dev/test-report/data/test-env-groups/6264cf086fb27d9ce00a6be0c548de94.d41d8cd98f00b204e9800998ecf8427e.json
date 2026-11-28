@@ -1,0 +1,1 @@
+{"id":"6264cf086fb27d9ce00a6be0c548de94.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-judgment.test.ts#applyJudgedMoves dry-run の場合は、列を更新せず、移動の予定だけを表示する","name":"dry-run の場合は、列を更新せず、移動の予定だけを表示する","status":"passed","testResultsByEnv":{"default":"70f67572fc7727a3467727757071bbbc"}}

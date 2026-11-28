@@ -1,0 +1,1 @@
+{"id":"fa28c6a674a1b529ef7de4157ca42e66.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_lint#test_no_changed_files_skips_nx","name":"変更ファイルが存在しないと、nx を起動せずに終了コード 0 で終了する","status":"passed","testResultsByEnv":{"default":"0f0c1e06dc4c73acefbbaf4d6ef87b0b"}}

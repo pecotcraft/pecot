@@ -1,0 +1,1 @@
+{"id":"bb8df743d8681b66018369fe7900a5a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の札 作業の跡が存在せず要見直しで、札の値が Needs Attention の場合は、書き込まない","name":"作業の跡が存在せず要見直しで、札の値が Needs Attention の場合は、書き込まない","status":"passed","testResultsByEnv":{"default":"4cd134c22f5fd5c0fb662656ed6ec6dd"}}

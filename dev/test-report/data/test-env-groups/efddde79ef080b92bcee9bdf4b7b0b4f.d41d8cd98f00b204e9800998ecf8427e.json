@@ -1,0 +1,1 @@
+{"id":"efddde79ef080b92bcee9bdf4b7b0b4f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/server.test.ts#startServer ポートに 0 を指定した場合は、OS が割り当てた実際のポートで配信し、address() から取得できる","name":"ポートに 0 を指定した場合は、OS が割り当てた実際のポートで配信し、address() から取得できる","status":"passed","testResultsByEnv":{"default":"c11f979aefdee2a6a65f0135679ef2af"}}

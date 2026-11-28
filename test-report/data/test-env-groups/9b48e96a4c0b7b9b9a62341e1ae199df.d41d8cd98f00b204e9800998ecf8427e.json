@@ -1,0 +1,1 @@
+{"id":"9b48e96a4c0b7b9b9a62341e1ae199df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/tool-names.test.ts#pecot の起動のランチャー ランチャー変数の正規表現は、代入と参照に一致し、PECOT_HOME のような別の名前に一致しない","name":"ランチャー変数の正規表現は、代入と参照に一致し、PECOT_HOME のような別の名前に一致しない","status":"passed","testResultsByEnv":{"default":"17b0593a63c929ee6dfa5cf93212cec9"}}

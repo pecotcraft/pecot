@@ -1,0 +1,1 @@
+{"id":"90447a9d06eec54e4535970bb5e369e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ branch-delete-ok を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ branch-delete-ok を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"a27db16e512f574757fbbe70c9c16429"}}

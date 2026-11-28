@@ -1,0 +1,1 @@
+{"id":"48034481b0b70e696ff24249cd5573dc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator layout files examples の要素に name が無いと、検証に失敗する","name":"examples の要素に name が無いと、検証に失敗する","status":"passed","testResultsByEnv":{"default":"64b6e472dc18c047cdb828400c3c1f16"}}

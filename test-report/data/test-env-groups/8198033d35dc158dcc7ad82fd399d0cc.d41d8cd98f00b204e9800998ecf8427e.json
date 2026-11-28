@@ -1,0 +1,1 @@
+{"id":"8198033d35dc158dcc7ad82fd399d0cc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board.test.ts#board_add MCP の data Issue を追加すると、追加した Issue・設定した Status を返す","name":"Issue を追加すると、追加した Issue・設定した Status を返す","status":"passed","testResultsByEnv":{"default":"bfc2c8f0be379bab14785978bdd60422"}}

@@ -1,0 +1,1 @@
+{"id":"4d8133510c43586219dd9b057a5d9122.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-stdio.test.ts#MCP サーバ (stdio) `initialize` が成功し、サーバー情報に `pecotv` の名前と `plugin.json` の版を返す","name":"`initialize` が成功し、サーバー情報に `pecotv` の名前と `plugin.json` の版を返す","status":"passed","testResultsByEnv":{"default":"e3a3cc37ecec8ed70db2095bf5fd7deb"}}

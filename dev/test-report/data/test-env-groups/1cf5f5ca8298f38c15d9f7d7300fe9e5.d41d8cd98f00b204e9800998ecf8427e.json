@@ -1,0 +1,1 @@
+{"id":"1cf5f5ca8298f38c15d9f7d7300fe9e5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#MCP の表示名と使用例 MCP の面を持つ項目に mcp.title がないと、検証エラーにする","name":"MCP の面を持つ項目に mcp.title がないと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"23a61f578872ebc32aff0444bb805ca4"}}

@@ -1,0 +1,1 @@
+{"id":"36a505c154bd94317a2c721d84239d36.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move MCP の呼び出し ボードの項目の読み出しに GitHub API がエラーを返した とき、失敗を返す","name":"ボードの項目の読み出しに GitHub API がエラーを返した とき、失敗を返す","status":"passed","testResultsByEnv":{"default":"f3a9383bdc9e44c98b5ec4dce68e8158"}}

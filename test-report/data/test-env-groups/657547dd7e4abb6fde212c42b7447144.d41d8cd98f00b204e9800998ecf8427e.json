@@ -1,0 +1,1 @@
+{"id":"657547dd7e4abb6fde212c42b7447144.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/plugin-manifests.test.ts#プラグインの 2 組の manifest plugin.json と mcp.json の $schema が、同じ版の Agent Plugins のスキーマを指す","name":"plugin.json と mcp.json の $schema が、同じ版の Agent Plugins のスキーマを指す","status":"passed","testResultsByEnv":{"default":"958aa160b67ef158491c19ce97659358"}}

@@ -1,0 +1,1 @@
+{"id":"beb5f68c75ec74133eb49d2486faf3de.01e74124bb4290e6022e45d64e70ad68","fullName":".githooks.tests.test_check_release_group_changelog#test_interpolated_changelog_file_warns_and_skips","name":"CHANGELOG のパスに補間のトークン（{projectRoot}/CHANGELOG.md）があると、警告を出して確認を飛ばす","status":"passed","testResultsByEnv":{"default":"655d6b1d99e9ff4482bf4e66c8fef7d9"}}

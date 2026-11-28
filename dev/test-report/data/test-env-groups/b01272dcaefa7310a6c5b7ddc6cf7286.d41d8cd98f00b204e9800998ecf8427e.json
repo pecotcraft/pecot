@@ -1,0 +1,1 @@
+{"id":"b01272dcaefa7310a6c5b7ddc6cf7286.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/hook-input.test.ts#hook-input.sh session_title が 名前あり のとき、source を読み、セッション名は #1 a になる","name":"session_title が 名前あり のとき、source を読み、セッション名は #1 a になる","status":"passed","testResultsByEnv":{"default":"26b829c064f939d12128bca534111275"}}

@@ -1,0 +1,1 @@
+{"id":"b02b03ed1491a96a198510ac0da20c6c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/text-lint.test.ts#defaultLintText 違反のある断片を渡すと、規則名と指摘の文を返す","name":"違反のある断片を渡すと、規則名と指摘の文を返す","status":"passed","testResultsByEnv":{"default":"179af56de7f54e815166c3bcbbd09b30"}}

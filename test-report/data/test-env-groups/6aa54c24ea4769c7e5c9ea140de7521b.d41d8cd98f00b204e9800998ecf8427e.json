@@ -1,0 +1,1 @@
+{"id":"6aa54c24ea4769c7e5c9ea140de7521b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/entry-point-library-references.test.ts#hooks のスクリプトの参照先 テンプレ参照抽出器の自己テスト hooks/templates/x.md のような深い相対パスも対象に入る","name":"hooks/templates/x.md のような深い相対パスも対象に入る","status":"passed","testResultsByEnv":{"default":"8de0c116e7eb843e4ad418a58392b436"}}

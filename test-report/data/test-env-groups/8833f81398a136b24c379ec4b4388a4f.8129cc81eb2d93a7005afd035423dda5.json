@@ -1,0 +1,1 @@
+{"id":"8833f81398a136b24c379ec4b4388a4f.8129cc81eb2d93a7005afd035423dda5","fullName":".githooks.tests.test_nx_task_cache#test_non_cacheable_target_says_cache_false","name":"pecot-visual:build-slidev は、cache を false と明示している","status":"passed","testResultsByEnv":{"default":"3cc6b2e88363f4c40629ec0ad8252743"}}

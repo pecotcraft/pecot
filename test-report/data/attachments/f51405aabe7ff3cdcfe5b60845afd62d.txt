@@ -1,0 +1,2 @@
+error: release_branch is not set
+  set it with: project_link with repo: "owner/repo", release_branch: "main"

@@ -1,0 +1,1 @@
+{"id":"1a04a870bc48e3d899ab7ad1cdeebe17.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base 今のブランチから release のテンプレートで呼ぶと、形の誤った記録があっても読まずに PR を作る","name":"今のブランチから release のテンプレートで呼ぶと、形の誤った記録があっても読まずに PR を作る","status":"passed","testResultsByEnv":{"default":"33f540a497595db2c8473f11f2ef6e63"}}

@@ -1,0 +1,1 @@
+{"id":"2b690c81485c0c6a528d560f75cb549b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry 保存が中断された場合も、既存のキャッシュを保ち、書きかけのファイルを残さない","name":"保存が中断された場合も、既存のキャッシュを保ち、書きかけのファイルを残さない","status":"passed","testResultsByEnv":{"default":"106e13ba60549938306d5cb2d3675709"}}

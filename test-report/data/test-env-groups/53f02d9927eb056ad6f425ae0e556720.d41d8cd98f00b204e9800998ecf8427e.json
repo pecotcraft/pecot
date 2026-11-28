@@ -1,0 +1,1 @@
+{"id":"53f02d9927eb056ad6f425ae0e556720.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_17e_pass_other_group_inherits_root_glob","name":"ほかの group は、ルートの glob を引き継ぐため、README.md だけの変更で成功する","status":"passed","testResultsByEnv":{"default":"27b970718db0bb2132809467b89ca4de"}}

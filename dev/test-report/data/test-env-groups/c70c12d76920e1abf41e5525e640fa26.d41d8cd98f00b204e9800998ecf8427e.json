@@ -1,0 +1,1 @@
+{"id":"c70c12d76920e1abf41e5525e640fa26.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main の除外 除外の対象ではないファイルは、除外の対象のファイルと一緒に渡しても、違反を返す","name":"除外の対象ではないファイルは、除外の対象のファイルと一緒に渡しても、違反を返す","status":"passed","testResultsByEnv":{"default":"b316d5694f271d265e16338643d94aec"}}

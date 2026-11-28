@@ -1,0 +1,1 @@
+{"id":"dbac95820ced2549e44f6263c7e7bcac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues sub-issue を持つ場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","name":"sub-issue を持つ場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","status":"passed","testResultsByEnv":{"default":"9916e0d03db76d897af57fd21bd1c15f"}}

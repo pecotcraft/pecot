@@ -1,0 +1,1 @@
+ERROR: 監査未実施のため中止: 永続層: 例外リストの GHSA-w3rx-r6r6-pgpr は lodash に登録されていますが、監査結果では image-size の advisory です（例外の陳腐化）

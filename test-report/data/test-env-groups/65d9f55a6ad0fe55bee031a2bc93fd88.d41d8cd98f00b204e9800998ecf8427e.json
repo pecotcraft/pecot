@@ -1,0 +1,1 @@
+{"id":"65d9f55a6ad0fe55bee031a2bc93fd88.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/chromium-guard.test.ts#ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する ロックの待ち時間が上限を超えた場合は、別のプロセスが取得中であることを返す","name":"ロックの待ち時間が上限を超えた場合は、別のプロセスが取得中であることを返す","status":"passed","testResultsByEnv":{"default":"5592b96e4e8e6419cea4b4facd4e711f"}}

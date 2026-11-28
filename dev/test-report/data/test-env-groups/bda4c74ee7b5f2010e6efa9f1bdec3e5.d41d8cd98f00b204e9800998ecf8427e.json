@@ -1,0 +1,1 @@
+{"id":"bda4c74ee7b5f2010e6efa9f1bdec3e5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphqlTolerating 許容しない道筋の errors が 1 つでもある場合は、executeGraphql と同じ例外が発生する","name":"許容しない道筋の errors が 1 つでもある場合は、executeGraphql と同じ例外が発生する","status":"passed","testResultsByEnv":{"default":"90c95b6a3fbbe4b642412386addc38cf"}}

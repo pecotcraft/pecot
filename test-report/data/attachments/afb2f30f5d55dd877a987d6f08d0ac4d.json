@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "unknown workflow template: deploy\n  available: board-sync, review, handoff, auto, github-ops"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"unknown workflow template: deploy\\n  available: board-sync, review, handoff, auto, github-ops\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "unknown workflow template: deploy\n  available: board-sync, review, handoff, auto, github-ops"
+  },
+  "isError": true
+}

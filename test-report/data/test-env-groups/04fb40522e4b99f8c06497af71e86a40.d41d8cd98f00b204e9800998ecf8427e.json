@@ -1,0 +1,1 @@
+{"id":"04fb40522e4b99f8c06497af71e86a40.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start ブランチを作ると、ボード上の Issue の Status を active にする","name":"ブランチを作ると、ボード上の Issue の Status を active にする","status":"passed","testResultsByEnv":{"default":"9e36943dc0906d72abc6df7d7ea505c3"}}

@@ -1,0 +1,6 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_missing_description_fails0/suite/sample.bats
+1..2
+ok 1 説明が無い # in 100 ms
+not ok 2 説明が無く失敗する # in 93 ms
+# (in test file suite/sample.bats, line 10)
+#   `false' failed

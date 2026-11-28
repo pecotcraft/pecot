@@ -1,0 +1,1 @@
+{"id":"34dd5e4452af7e5f1bf774e09723e088.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-create.test.ts#slide create の失敗 (FR-013) 宣言に未知の規則名がある場合は、theme-unknown-rule として、規則名を示す","name":"宣言に未知の規則名がある場合は、theme-unknown-rule として、規則名を示す","status":"passed","testResultsByEnv":{"default":"bcd799215092f48efafc24af3f571e76"}}

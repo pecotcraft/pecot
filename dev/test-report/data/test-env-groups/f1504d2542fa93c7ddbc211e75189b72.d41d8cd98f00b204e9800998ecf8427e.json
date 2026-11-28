@@ -1,0 +1,1 @@
+{"id":"f1504d2542fa93c7ddbc211e75189b72.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/release-pr-body-examples.test.ts#release-single.md の docs PR の例 pr_check の例から、body を取り出せる","name":"pr_check の例から、body を取り出せる","status":"passed","testResultsByEnv":{"default":"baf943cb6a95c1c06f2a548143a819f6"}}

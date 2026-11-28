@@ -1,0 +1,2 @@
+FAILED: 1 本のテストが失敗しました:
+  /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_multiline_expected_and_ac0/suite/sample.bats (exit 1)

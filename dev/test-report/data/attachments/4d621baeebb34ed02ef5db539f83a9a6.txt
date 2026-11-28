@@ -1,0 +1,4 @@
+ずれは 1 件
+config-options / status
+  このリポ: ["in_progress","needs_attention","todo"]
+  検証用: ["needs_attention","todo"]

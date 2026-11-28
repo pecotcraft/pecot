@@ -1,0 +1,2 @@
+removed: worktree wt1
+deleted: local branch wt1

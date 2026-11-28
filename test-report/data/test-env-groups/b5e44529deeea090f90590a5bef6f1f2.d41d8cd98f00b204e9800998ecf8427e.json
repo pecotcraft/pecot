@@ -1,0 +1,1 @@
+{"id":"b5e44529deeea090f90590a5bef6f1f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board.test.ts#board_show pecot-lane 前提の無い Ready の Issue が親 Issue を持つと、前提を問い合わせずに startable と判定する","name":"前提の無い Ready の Issue が親 Issue を持つと、前提を問い合わせずに startable と判定する","status":"passed","testResultsByEnv":{"default":"8588aa3e3f07bd927a1e8b1aa1b2f3d6"}}

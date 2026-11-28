@@ -1,0 +1,1 @@
+{"id":"90e61188beb438e8d5563397319f4dba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/server.test.ts#resolveBoundPort address() がポートを含む場合は、そのポートを返す","name":"address() がポートを含む場合は、そのポートを返す","status":"passed","testResultsByEnv":{"default":"59ca120f9fa88a50b678a0ce7f9689ee"}}

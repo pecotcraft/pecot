@@ -1,0 +1,1 @@
+ERROR: /tmp/bats-run-IHNnqy/test/9/broken/a/1.png: PNG の署名ではありません

@@ -1,0 +1,1 @@
+{"id":"59025c9fff9da289e8c08856f728695d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#slide convert のスライド構成変更 (T012) 途中にスライドを挿入した場合は、挿入位置以降がキャッシュに一致せず、出力の並びが新しい構成に従う","name":"途中にスライドを挿入した場合は、挿入位置以降がキャッシュに一致せず、出力の並びが新しい構成に従う","status":"passed","testResultsByEnv":{"default":"63041be21a782bda2fe89e3d7f2c0185"}}

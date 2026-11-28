@@ -1,0 +1,1 @@
+{"id":"99a291af37c34805ddcd28c506aa751d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_tests_part_with_nx_cache_uses_remote_cache","name":"tests の part で保存先を指定すると、サーバを起動してキャッシュを使い、失敗の再生はしない","status":"passed","testResultsByEnv":{"default":"c67080720c2e9508d622143326b28296"}}

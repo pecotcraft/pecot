@@ -1,0 +1,1 @@
+{"id":"996a66a49d2813ea1d67f05b35ff9d3e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_sync_playwright_deps#test_missing_lock_stops_with_one_line_message","name":"pnpm-lock.yaml が存在しないと、1 行のメッセージで止まる","status":"passed","testResultsByEnv":{"default":"e1d4c7f6417d7c28f06341735e9e90fb"}}

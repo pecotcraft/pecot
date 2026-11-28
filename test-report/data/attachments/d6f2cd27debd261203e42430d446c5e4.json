@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_sts_get_caller_identity succeeded"
+    },
+    {
+      "type": "text",
+      "text": "{\"UserId\":\"AIDAEXAMPLEUSERID\",\"Account\":\"123456789012\",\"Arn\":\"arn:aws:iam::123456789012:user/dev\",\"warnings\":[\"Dropped undeclared top-level keys: FutureField\"]}"
+    }
+  ],
+  "structuredContent": {
+    "UserId": "AIDAEXAMPLEUSERID",
+    "Account": "123456789012",
+    "Arn": "arn:aws:iam::123456789012:user/dev",
+    "warnings": [
+      "Dropped undeclared top-level keys: FutureField"
+    ]
+  }
+}

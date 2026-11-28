@@ -1,0 +1,1 @@
+{"id":"e3125c94adadf2e83b7a42fc54bf148c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#createWarningCollector 文の合計が 64KB を超えた場合は、超えた warning を省き、省いたことを知らせる","name":"文の合計が 64KB を超えた場合は、超えた warning を省き、省いたことを知らせる","status":"passed","testResultsByEnv":{"default":"dfe4795fafbd2f164e65241763df34a9"}}

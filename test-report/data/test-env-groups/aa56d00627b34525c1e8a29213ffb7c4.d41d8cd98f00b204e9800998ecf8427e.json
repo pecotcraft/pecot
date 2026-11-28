@@ -1,0 +1,1 @@
+{"id":"aa56d00627b34525c1e8a29213ffb7c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/mcp/resources.test.ts#resources/read comment の review-resolution を読むと、配布するテンプレートのファイルと同じ中身を返す","name":"comment の review-resolution を読むと、配布するテンプレートのファイルと同じ中身を返す","status":"passed","testResultsByEnv":{"default":"b8228df6b0dcb9945622898229df4f39"}}

@@ -1,0 +1,4 @@
+warning: readiness is not checked: this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required
+created: branch feat/7 in acme/demo from main
+set: Issue acme/demo/7 status active
+created: work directory .pecot/work/7/

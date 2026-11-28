@@ -1,0 +1,17 @@
+==> 監査スキップのリリース（pecot-visual 非対象）のため突合を省略
+==> @pecot/visual-mcp 配布ツリーを構築 (version=4.0.2 / dry-run=true)
+specifier 書き換え: 16 ファイル
+manifest 生成: @pecot/visual-mcp@4.0.2 / deps 23 件
+==> npm-shrinkwrap.json を生成
+==> npm レジストリへ依存を解決中
+==> 配布ツリーの指紋: dc6ccd9a456cb651e89d11ea22eac9e9f62447b620982be63ca2209308e55729
+==> 配布ツリー: /tmp/bats-run-Mvjqnl/test/3/dist-optin2 (12M)
+==> npm pack
+==> tgz: stub-1.0.0.tgz
+==> tgz の中身（1 ファイル）
+    package.json
+==> dry-run のため gh は実行しません。次を実行します:
+    gh release view pecot-visual-v4.0.2 -R pecotcraft/pecot
+    gh release upload pecot-visual-v4.0.2 stub-1.0.0.tgz --clobber -R pecotcraft/pecot
+    gh workflow run publish-npm.yml -f tag=pecot-visual-v4.0.2 --ref pecot-visual-v4.0.2 -R pecotcraft/pecot
+    (注: 版は version の段階より前の値です。本実行では、nx が上げた版のタグになります)

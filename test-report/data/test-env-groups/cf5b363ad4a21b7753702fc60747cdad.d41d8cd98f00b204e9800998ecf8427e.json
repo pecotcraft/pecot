@@ -1,0 +1,1 @@
+{"id":"cf5b363ad4a21b7753702fc60747cdad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/slidev-runner.test.ts#ChildProcessSlidevRunner 成功した場合は、終了コード 0 と標準出力を取得する","name":"成功した場合は、終了コード 0 と標準出力を取得する","status":"passed","testResultsByEnv":{"default":"ec25082f3b1661051896ec361b70b346"}}

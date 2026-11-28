@@ -1,0 +1,1 @@
+{"id":"7065f18c8290f54ec22554ece7e6ef0f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#runMcpServe transport へ接続すると、クライアントから serverInfo を確認できる","name":"transport へ接続すると、クライアントから serverInfo を確認できる","status":"passed","testResultsByEnv":{"default":"39b3f703d312625b6604fb0df99de6f7"}}

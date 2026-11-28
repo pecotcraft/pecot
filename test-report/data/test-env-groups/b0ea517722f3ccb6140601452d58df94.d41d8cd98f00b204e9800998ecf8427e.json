@@ -1,0 +1,1 @@
+{"id":"b0ea517722f3ccb6140601452d58df94.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/generated-files.test.ts#viteConfigSource の theme の public/ テーマのパスに glob の特殊文字を含む場合も、ファイルを配る","name":"テーマのパスに glob の特殊文字を含む場合も、ファイルを配る","status":"passed","testResultsByEnv":{"default":"78195185ae2b3d3f12aa8908db475095"}}

@@ -1,0 +1,1 @@
+{"id":"ae823fcdccb6b7489974e75dfbaf6c89.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-table-key.test.ts#table-key invalid suite の表の題も、キーの直後に文字が続けば止める","name":"suite の表の題も、キーの直後に文字が続けば止める","status":"passed","testResultsByEnv":{"default":"6f82713b0c352eed85211363b1a03fce"}}

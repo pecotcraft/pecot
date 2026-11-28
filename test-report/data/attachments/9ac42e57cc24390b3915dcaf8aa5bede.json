@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Output validation error: Invalid structured content for tool aws_athena_get_query_results: data must NOT have additional properties"
+    }
+  ],
+  "isError": true
+}

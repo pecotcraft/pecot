@@ -1,0 +1,1 @@
+{"id":"9798f9c1584d4182d16638a71235b58d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/release-check.test.ts#release check CHANGELOG の末尾にリンク定義があると、本文が使う定義だけを加えたリリースノートを標準出力に出す","name":"CHANGELOG の末尾にリンク定義があると、本文が使う定義だけを加えたリリースノートを標準出力に出す","status":"passed","testResultsByEnv":{"default":"4188b84b273628bf8ef52412bc403051"}}

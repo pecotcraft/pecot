@@ -1,0 +1,1 @@
+{"id":"abb6da583dc35cb6a7869205da106bb1.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#build を伴う dry-run が、本体ツリーの eslint プラグインの dist に触らない","name":"build を伴う dry-run が、本体ツリーの eslint プラグインの dist に触らない","status":"passed","testResultsByEnv":{"default":"8115c4dcb048b7b332c522f0466daa72"}}

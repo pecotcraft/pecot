@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "related_issue_number: more than 200 Issues in the blocked-by chain; the cycle could not be checked"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"related_issue_number\",\"code\":\"unverifiable\",\"message\":\"more than 200 Issues in the blocked-by chain; the cycle could not be checked\"}],\"expected_status\":\"Blocked\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "related_issue_number",
+        "code": "unverifiable",
+        "message": "more than 200 Issues in the blocked-by chain; the cycle could not be checked"
+      }
+    ],
+    "expected_status": "Blocked"
+  }
+}

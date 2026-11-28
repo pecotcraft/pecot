@@ -1,0 +1,1 @@
+{"id":"cae6c1dc05e543f52b1f1de1d24c791b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_03_pass_doc_only_readme","name":"README.md だけを変更した場合は、version plan が存在しなくても成功する","status":"passed","testResultsByEnv":{"default":"f26900ec844707f05b288c5125b0d4ae"}}

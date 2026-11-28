@@ -1,0 +1,1 @@
+{"id":"ac0a085cabaf1dd9a5dacaadd4156733.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#Processor postProcess は、messages と filePath をそのまま返し、filePath が存在しなければ空文字にする","name":"postProcess は、messages と filePath をそのまま返し、filePath が存在しなければ空文字にする","status":"passed","testResultsByEnv":{"default":"1cfb9ed228b6fa8fe03651acd5051623"}}

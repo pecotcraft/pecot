@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+// MCP サーバの起動ファイル。引数は読まない（`pecot-visual-mcp mcp` の登録もサーバになる）。SDK は版の確認の後に読む。
+import { realpathSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+import { createDiagnostics } from './diagnostics.js';
+import { nodeRuntimeGuidance } from './node-runtime.js';
+// eslint-disable-next-line unicorn/no-exports-in-scripts -- entry.test.ts が import する
+export async function main(nodeVersion = process.versions.node) {
+    const runtimeError = nodeRuntimeGuidance(nodeVersion);
+    if (runtimeError !== undefined) {
+        createDiagnostics(process.stderr).error(runtimeError);
+        process.exitCode = 1;
+        return;
+    }
+    const { executeMcpServe, mcpServeDefaultDependencies } = await import('./mcp/serve.js');
+    executeMcpServe(mcpServeDefaultDependencies);
+}
+/* v8 ignore start -- 直接起動時にだけ通る。tests/e2e/mcp-stdio.test.ts で担保 */
+if (process.argv[1] !== undefined) {
+    // import.meta.url は実体パスなので argv[1] も realpath に揃える。npx は node_modules/.bin の symlink から起動するため。
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- 起動された自分自身のパス
+    const selfUrl = pathToFileURL(realpathSync(process.argv[1])).href;
+    if (import.meta.url === selfUrl) {
+        await main();
+    }
+}
+/* v8 ignore stop */
+//# sourceMappingURL=main.js.map

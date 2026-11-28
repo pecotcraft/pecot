@@ -1,0 +1,12 @@
+file:///workspaces/base/pecot/plugins/pecot-visual/scripts/release/dist-fingerprint.mjs:39
+    throw new Error('shrinkwrap に packages がありません（lockfileVersion 3 の shrinkwrap ではない疑い）')
+          ^
+
+Error: shrinkwrap に packages がありません（lockfileVersion 3 の shrinkwrap ではない疑い）
+    at distFingerprint (file:///workspaces/base/pecot/plugins/pecot-visual/scripts/release/dist-fingerprint.mjs:39:11)
+    at file:///workspaces/base/pecot/plugins/pecot-visual/scripts/release/dist-fingerprint.mjs:56:24
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.1

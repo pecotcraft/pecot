@@ -1,0 +1,4 @@
+created: Tracker "[Tracker] security alert — 2026-11-09"
+added: dependabot #1 to new Tracker
+added: code-scanning #10 to new Tracker
+added: secret-scanning #11 to new Tracker

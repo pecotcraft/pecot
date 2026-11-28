@@ -1,0 +1,1 @@
+{"id":"ee78e01a1227f3c45aec6e1ea60308fd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath ディストリビューションのルートだけを指す UNC パスは、/ に変換する","name":"ディストリビューションのルートだけを指す UNC パスは、/ に変換する","status":"passed","testResultsByEnv":{"default":"756681201f8b6e557e5080c72e822e2f"}}

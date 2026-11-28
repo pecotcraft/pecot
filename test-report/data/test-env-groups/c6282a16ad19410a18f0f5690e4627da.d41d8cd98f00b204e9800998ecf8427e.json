@@ -1,0 +1,1 @@
+{"id":"c6282a16ad19410a18f0f5690e4627da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-drift.test.ts#drift.ts --repo が owner/repo の形式でない と、usage を出力して終了コード 2 で終了し、スキーマを取得しない","name":"--repo が owner/repo の形式でない と、usage を出力して終了コード 2 で終了し、スキーマを取得しない","status":"passed","testResultsByEnv":{"default":"8f6eb38636c8308cfe22a1500ea8fc39"}}

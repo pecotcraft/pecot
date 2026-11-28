@@ -1,0 +1,1 @@
+{"id":"75c57f29ece751bc539783f9b5c94a31.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#createRepositoryReference owner と repository の両方が不正なら、2 件のエラーを 1 つのメッセージにまとめる","name":"owner と repository の両方が不正なら、2 件のエラーを 1 つのメッセージにまとめる","status":"passed","testResultsByEnv":{"default":"9f39606c36e8d445c4b2b5dd7ccf0bcc"}}

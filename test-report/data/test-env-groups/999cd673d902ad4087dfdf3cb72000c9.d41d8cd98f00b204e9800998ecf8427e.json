@@ -1,0 +1,1 @@
+{"id":"999cd673d902ad4087dfdf3cb72000c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: テンプレート文字列の ${} 埋め込み式を挟んで括弧が閉じる文を、途中で分けずに 1 つの文として読む","name":"埋め込み式を挟んで括弧が閉じる文を、途中で分けずに 1 つの文として読む","status":"passed","testResultsByEnv":{"default":"619bc256a0b4ca98c378264dd8f90674"}}

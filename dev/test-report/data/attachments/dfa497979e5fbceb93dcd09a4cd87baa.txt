@@ -1,0 +1,1 @@
+WARN: nx.json が見つからないため release group CHANGELOG check を skip

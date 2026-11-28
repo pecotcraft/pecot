@@ -1,0 +1,1 @@
+{"id":"456db0b68bf340086786ef732ba95cb1.ea3c5962617e7ca8e02b0dca64ab2b6a","fullName":".githooks.tests.test_run_pr_checks#test_failed_stage_does_not_stop_later_stages","name":"pre-commit の stage が失敗しても、後ろの stage を実行し、最後に終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"a064e3b1b95117d33fb07856b5f1832f"}}

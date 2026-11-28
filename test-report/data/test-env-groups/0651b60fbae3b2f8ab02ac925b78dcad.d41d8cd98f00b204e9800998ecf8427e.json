@@ -1,0 +1,1 @@
+{"id":"0651b60fbae3b2f8ab02ac925b78dcad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#gitRunnerFor と resolveRepository（実 git） origin が存在しない場合は、先頭の remote を使って解決する","name":"origin が存在しない場合は、先頭の remote を使って解決する","status":"passed","testResultsByEnv":{"default":"a1f51e51e37ed0a302181a4a7d37a68c"}}

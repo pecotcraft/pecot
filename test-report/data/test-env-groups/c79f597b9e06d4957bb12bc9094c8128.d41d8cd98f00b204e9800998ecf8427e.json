@@ -1,0 +1,1 @@
+{"id":"c79f597b9e06d4957bb12bc9094c8128.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_build_pull_request_run_is_pr_side","name":"pull_request の run は、PR 版として受け付ける","status":"passed","testResultsByEnv":{"default":"191339f8afce7e38d8491d1a40799cbb"}}

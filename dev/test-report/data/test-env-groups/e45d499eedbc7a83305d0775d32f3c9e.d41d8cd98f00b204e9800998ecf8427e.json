@@ -1,0 +1,1 @@
+{"id":"e45d499eedbc7a83305d0775d32f3c9e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/version-range.test.ts#doesRangeAllowMajor: 比較子なし / ワイルドカード 9・9.x・9.17.0 などの、比較子がない表記は、メジャーバージョン 9 だけを許可する","name":"9・9.x・9.17.0 などの、比較子がない表記は、メジャーバージョン 9 だけを許可する","status":"passed","testResultsByEnv":{"default":"214cca9f4d4350ffd79161776b0506c3"}}

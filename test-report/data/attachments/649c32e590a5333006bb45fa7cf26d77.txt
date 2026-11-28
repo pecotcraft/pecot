@@ -1,0 +1,2 @@
+warning: PDF export failed: boom
+warning: cannot remove the previous PDF: /tmp/pecotv-drawio-export-dEbUEJ/out.pdf: EACCES

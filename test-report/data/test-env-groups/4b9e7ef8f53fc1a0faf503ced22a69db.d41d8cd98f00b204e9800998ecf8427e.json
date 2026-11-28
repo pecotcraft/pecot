@@ -1,0 +1,1 @@
+{"id":"4b9e7ef8f53fc1a0faf503ced22a69db.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init MCP の data 足す選択肢が既にあると、書き込まずに、その欄の change を unchanged にする","name":"足す選択肢が既にあると、書き込まずに、その欄の change を unchanged にする","status":"passed","testResultsByEnv":{"default":"e9babf02ec055e0ad717ec4b5f807c27"}}

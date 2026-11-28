@@ -1,0 +1,1 @@
+{"id":"d6126d718e4e2ce375ff5cee260ca253.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#失敗種別 awscli が導入されていない場合は、失敗の種類を awscli-missing と判定する","name":"awscli が導入されていない場合は、失敗の種類を awscli-missing と判定する","status":"passed","testResultsByEnv":{"default":"bf727abd96230c082b13eea2a8d21943"}}

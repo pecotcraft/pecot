@@ -1,0 +1,1 @@
+{"id":"192d524a9099faaf2459cdb3825b842b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#doesContainJapanese 引数を渡さない場合でも、false を返す","name":"引数を渡さない場合でも、false を返す","status":"passed","testResultsByEnv":{"default":"ff60555c5b6140de8583f9abee07e9ee"}}

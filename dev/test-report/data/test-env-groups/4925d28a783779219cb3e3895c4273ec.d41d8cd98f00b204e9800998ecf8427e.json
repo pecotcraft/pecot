@@ -1,0 +1,1 @@
+{"id":"4925d28a783779219cb3e3895c4273ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool 動いていないサーバへの stop は失敗にしない","name":"動いていないサーバへの stop は失敗にしない","status":"passed","testResultsByEnv":{"default":"95b295301f82f2f6e0aa60b5470c3306"}}

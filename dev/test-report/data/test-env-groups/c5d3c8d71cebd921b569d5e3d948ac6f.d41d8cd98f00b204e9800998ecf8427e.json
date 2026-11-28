@@ -1,0 +1,1 @@
+{"id":"c5d3c8d71cebd921b569d5e3d948ac6f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-kind.test.ts#isEpicIssue Issue Type の大文字と小文字を区別せずに判定する","name":"Issue Type の大文字と小文字を区別せずに判定する","status":"passed","testResultsByEnv":{"default":"5740c4c39df96d2f7b73e1c6842ec6c8"}}

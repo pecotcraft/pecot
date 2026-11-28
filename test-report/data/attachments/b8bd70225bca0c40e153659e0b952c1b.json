@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ルートがありません"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"ルートがありません\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "ルートがありません"
+  },
+  "isError": true
+}

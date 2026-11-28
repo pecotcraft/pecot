@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "repo: owner and repo are required: write an Epic to aggregation_repo acme/hub"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"repo\",\"code\":\"required\",\"message\":\"owner and repo are required: write an Epic to aggregation_repo acme/hub\",\"candidates\":[\"acme/hub\"]},{\"field\":\"project_fields.pecot-status\",\"code\":\"required\",\"message\":\"write the column pecot-status: Backlog\",\"candidates\":[\"Backlog\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "repo",
+        "code": "required",
+        "message": "owner and repo are required: write an Epic to aggregation_repo acme/hub",
+        "candidates": [
+          "acme/hub"
+        ]
+      },
+      {
+        "field": "project_fields.pecot-status",
+        "code": "required",
+        "message": "write the column pecot-status: Backlog",
+        "candidates": [
+          "Backlog"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"148b6d222e994384c0683754c76f246c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/data-directory.test.ts#dataDirectory XDG_DATA_HOME が絶対パス とき、/xdg/pecot/pecot-workflow を返す","name":"XDG_DATA_HOME が絶対パス とき、/xdg/pecot/pecot-workflow を返す","status":"passed","testResultsByEnv":{"default":"debfe398a78f55543727d7fb6d358c21"}}

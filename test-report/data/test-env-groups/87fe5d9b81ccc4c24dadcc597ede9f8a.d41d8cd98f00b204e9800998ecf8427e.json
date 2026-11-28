@@ -1,0 +1,1 @@
+{"id":"87fe5d9b81ccc4c24dadcc597ede9f8a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/direct-output-lint.test.ts#直接の出力を止める lint src/infra/git.ts のパス ファイルに process.stderr.write(\"x\") を書くと、lint の違反になる","name":"ファイルに process.stderr.write(\"x\") を書くと、lint の違反になる","status":"passed","testResultsByEnv":{"default":"e3f47e66f020f0c0cbba419714278282"}}

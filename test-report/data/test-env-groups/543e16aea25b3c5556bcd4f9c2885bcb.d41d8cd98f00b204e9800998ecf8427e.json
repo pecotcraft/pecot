@@ -1,0 +1,1 @@
+{"id":"543e16aea25b3c5556bcd4f9c2885bcb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check develop_branch が設定に無いと、終了コード 1 で終わる","name":"develop_branch が設定に無いと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"83488969a6e49a05d008d9b74628f675"}}

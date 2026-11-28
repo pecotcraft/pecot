@@ -1,0 +1,1 @@
+{"id":"0e5d2df67e6d7343a13558c93bea3b25.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateClosedHeadings（テンプレに無い ## / ### 見出し #1330） テンプレートにない見出しは、レベルを付けて返す","name":"テンプレートにない見出しは、レベルを付けて返す","status":"passed","testResultsByEnv":{"default":"79b8efd59532f05da311eb070acca9fe"}}

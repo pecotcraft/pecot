@@ -1,0 +1,1 @@
+{"id":"9fb46cbd462ea3f41e6eecb66b4c3d09.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#applyPrerenderImageReplace entries が空の場合は、何も変更せず replaced を 0 にする","name":"entries が空の場合は、何も変更せず replaced を 0 にする","status":"passed","testResultsByEnv":{"default":"a1ef456a8219df064559090fd945b16f"}}

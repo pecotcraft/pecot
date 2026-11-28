@@ -1,0 +1,1 @@
+{"id":"e6cb6e31547bf7b9ae970baff8179933.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh 2 つの token を渡すと、このリポの先にはこのリポの token を、検証用とボードには検証用の token を使う","name":"2 つの token を渡すと、このリポの先にはこのリポの token を、検証用とボードには検証用の token を使う","status":"passed","testResultsByEnv":{"default":"72a17fff5b55384470240a29cf22c28a"}}

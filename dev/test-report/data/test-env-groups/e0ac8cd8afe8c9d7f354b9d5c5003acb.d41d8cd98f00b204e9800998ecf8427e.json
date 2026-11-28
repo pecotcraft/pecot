@@ -1,0 +1,1 @@
+{"id":"e0ac8cd8afe8c9d7f354b9d5c5003acb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry prerender の判定は区切りまで含めるため、スライド 5 と 50 を取り違えない","name":"prerender の判定は区切りまで含めるため、スライド 5 と 50 を取り違えない","status":"passed","testResultsByEnv":{"default":"1cada04ea62a9aef4a52c16271e7b969"}}

@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Output validation error: Invalid structured content for tool aws_ecr_describe_images: data must NOT have additional properties"
+    }
+  ],
+  "isError": true
+}

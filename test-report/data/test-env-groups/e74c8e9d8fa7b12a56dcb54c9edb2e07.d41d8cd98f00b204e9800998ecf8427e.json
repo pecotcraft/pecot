@@ -1,0 +1,1 @@
+{"id":"e74c8e9d8fa7b12a56dcb54c9edb2e07.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#README の bash -lc の差し替え例が --prefix=/ を付ける","name":"README の bash -lc の差し替え例が --prefix=/ を付ける","status":"passed","testResultsByEnv":{"default":"fab83226156456a567622acd99607c03"}}

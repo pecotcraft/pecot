@@ -1,0 +1,1 @@
+{"id":"f4668b6e4fe83b22735bd27456fcfd29.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#getLinkedRepositories organization のクエリがエラーになる場合は、GitHubAPIError が発生する","name":"organization のクエリがエラーになる場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"560dde64a564c07cfef31297502c0b19"}}

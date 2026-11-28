@@ -1,0 +1,1 @@
+{"id":"91b48dd40cc4d4d2a49df4d2f3efb643.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 YAML として読めると、gate・run・setup の 3 つの job を持つ","name":"YAML として読めると、gate・run・setup の 3 つの job を持つ","status":"passed","testResultsByEnv":{"default":"4a0a9f3321a6cddb0758b227f90e63d6"}}

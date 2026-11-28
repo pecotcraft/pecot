@@ -1,0 +1,1 @@
+{"id":"4c8704e19caa27535b27750708219710.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#abortRebase と continueRebase 衝突の後に abortRebase を呼ぶと、スタックし直す前の位置に戻る","name":"衝突の後に abortRebase を呼ぶと、スタックし直す前の位置に戻る","status":"passed","testResultsByEnv":{"default":"3c35e8c11cb38bf6714907811a8f9c0d"}}

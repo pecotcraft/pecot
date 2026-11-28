@@ -1,0 +1,1 @@
+{"id":"8f0f8c4bdeb2c762930906c92556101b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_store_writes_with_the_pages_store_app_from_environment_only","name":"保管の job は、environment の GitHub App のトークンだけで書き込む","status":"passed","testResultsByEnv":{"default":"91c441f2fa7d88eee3a7b5fb34ebc1c2"}}

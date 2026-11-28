@@ -1,0 +1,1 @@
+{"id":"e5b5834f16e67d66b38cf7877f57fc7e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template 補間 {{ }} の中の文字列 に違反があると、元のファイルの行と桁で指摘を返す","name":"補間 {{ }} の中の文字列 に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"64c80ebd9fbd95e60996d0c8bca65a1c"}}

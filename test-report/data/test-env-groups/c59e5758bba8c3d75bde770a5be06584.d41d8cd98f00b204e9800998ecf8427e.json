@@ -1,0 +1,1 @@
+{"id":"c59e5758bba8c3d75bde770a5be06584.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#judgeMove 前提が無ければ、startable と判定し、スタックの決めを求めない","name":"前提が無ければ、startable と判定し、スタックの決めを求めない","status":"passed","testResultsByEnv":{"default":"740c989ea0daa8a38e7c01f9f23d9f68"}}

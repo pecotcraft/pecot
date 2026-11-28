@@ -1,0 +1,1 @@
+{"id":"b02b765afced412046f8ceb7a35d68d9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync GITHUB_REPOSITORY が owner だけ だと、error の行を出して step を失敗にする","name":"GITHUB_REPOSITORY が owner だけ だと、error の行を出して step を失敗にする","status":"passed","testResultsByEnv":{"default":"158fe6128be0c42f438c9c1da75d8f1f"}}

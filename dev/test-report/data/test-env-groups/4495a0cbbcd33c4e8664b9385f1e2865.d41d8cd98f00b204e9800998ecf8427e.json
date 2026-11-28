@@ -1,0 +1,1 @@
+{"id":"4495a0cbbcd33c4e8664b9385f1e2865.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/server.test.ts#createMcpServer の progress ハートビート 周期を指定しない場合は、既定の 10 秒ごとに進捗を通知する","name":"周期を指定しない場合は、既定の 10 秒ごとに進捗を通知する","status":"passed","testResultsByEnv":{"default":"415d1d03d23fdad3d295f37ca0f53e42"}}

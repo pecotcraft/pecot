@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "list_project_fields in reads.fields has a next page; read it with per_page 50, or with after, and pass all the fields"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"list_project_fields in reads.fields has a next page; read it with per_page 50, or with after, and pass all the fields\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "list_project_fields in reads.fields has a next page; read it with per_page 50, or with after, and pass all the fields"
+  },
+  "isError": true
+}

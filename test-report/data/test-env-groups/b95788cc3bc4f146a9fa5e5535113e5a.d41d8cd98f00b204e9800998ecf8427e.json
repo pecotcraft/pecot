@@ -1,0 +1,1 @@
+{"id":"b95788cc3bc4f146a9fa5e5535113e5a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 打つと、alert の結果の行を標準エラーに出す","name":"打つと、alert の結果の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"8d2641e6051cd90e325ddef647c882e8"}}

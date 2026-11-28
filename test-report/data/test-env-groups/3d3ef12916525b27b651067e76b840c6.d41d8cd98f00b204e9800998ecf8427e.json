@@ -1,0 +1,1 @@
+{"id":"3d3ef12916525b27b651067e76b840c6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueKind Phase1 のクエリで Issue が存在しない場合は、GitHubNotFoundError が発生する","name":"Phase1 のクエリで Issue が存在しない場合は、GitHubNotFoundError が発生する","status":"passed","testResultsByEnv":{"default":"63aaefd798683c61f66fdf96cf216cf5"}}

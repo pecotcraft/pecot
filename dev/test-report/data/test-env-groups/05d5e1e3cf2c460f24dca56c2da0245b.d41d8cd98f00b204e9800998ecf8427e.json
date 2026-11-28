@@ -1,0 +1,1 @@
+{"id":"05d5e1e3cf2c460f24dca56c2da0245b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 水平線（#1185） 普通の引用・リスト行は通る: \"- -- の扱い\"","name":"普通の引用・リスト行は通る: \"- -- の扱い\"","status":"passed","testResultsByEnv":{"default":"9035ef87fc912878326c470d4e3085ba"}}

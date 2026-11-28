@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.issue: the body closes no Issue: read acme/demo#12 with issue_read (method get) and pass its result as reads.issue; it decides whether the body must close it"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.issue\",\"code\":\"read-required\",\"message\":\"the body closes no Issue: read acme/demo#12 with issue_read (method get) and pass its result as reads.issue; it decides whether the body must close it\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.issue",
+        "code": "read-required",
+        "message": "the body closes no Issue: read acme/demo#12 with issue_read (method get) and pass its result as reads.issue; it decides whether the body must close it"
+      }
+    ]
+  }
+}

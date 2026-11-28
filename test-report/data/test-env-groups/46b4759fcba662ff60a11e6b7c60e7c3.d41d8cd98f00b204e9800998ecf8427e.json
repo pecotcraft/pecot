@@ -1,0 +1,1 @@
+{"id":"46b4759fcba662ff60a11e6b7c60e7c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest manifest が「schemaVersion 欠落」の場合は、undefined を返す","name":"manifest が「schemaVersion 欠落」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"6be41d035220d31fd3f0291d2c79d70b"}}

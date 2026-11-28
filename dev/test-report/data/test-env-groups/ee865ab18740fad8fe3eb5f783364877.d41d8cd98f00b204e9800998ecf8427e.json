@@ -1,0 +1,1 @@
+{"id":"ee865ab18740fad8fe3eb5f783364877.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parsePullRequestReference N だけと基準リポジトリを渡すと、基準リポジトリの番号として返す","name":"N だけと基準リポジトリを渡すと、基準リポジトリの番号として返す","status":"passed","testResultsByEnv":{"default":"0010c579557f6230cf39b57a46fb4ed8"}}

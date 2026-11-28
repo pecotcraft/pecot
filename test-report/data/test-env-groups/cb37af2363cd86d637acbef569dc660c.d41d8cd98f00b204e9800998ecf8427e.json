@@ -1,0 +1,1 @@
+{"id":"cb37af2363cd86d637acbef569dc660c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#yamlStrings ブロックスカラーは指示子の行を除く のとき、引用符を含まない本文だけを切り出す","name":"ブロックスカラーは指示子の行を除く のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"90674f244f3548ce516b609c610413f1"}}

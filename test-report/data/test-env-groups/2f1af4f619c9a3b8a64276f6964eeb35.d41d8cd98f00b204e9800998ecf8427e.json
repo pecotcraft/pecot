@@ -1,0 +1,1 @@
+{"id":"2f1af4f619c9a3b8a64276f6964eeb35.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/drawio-icons.test.ts#createIconResolver iconRoot の外を指すパスを指定すると、undefined を返し、warn を呼び出す","name":"iconRoot の外を指すパスを指定すると、undefined を返し、warn を呼び出す","status":"passed","testResultsByEnv":{"default":"2431e2025fcddaf6825e0ad4ceaffa8b"}}

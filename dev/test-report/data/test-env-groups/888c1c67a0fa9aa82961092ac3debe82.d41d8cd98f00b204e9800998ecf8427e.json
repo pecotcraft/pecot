@@ -1,0 +1,1 @@
+{"id":"888c1c67a0fa9aa82961092ac3debe82.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 縮小と EMU キャプションの行と画像の間に、空行を 1 行入れる","name":"キャプションの行と画像の間に、空行を 1 行入れる","status":"passed","testResultsByEnv":{"default":"4796521dba944856899f0080b03dbf35"}}

@@ -1,0 +1,1 @@
+{"id":"2e34e6baf9fbede20808455c92265f15.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_get MCP の data key を省くと、project と repositories に要約を返す","name":"key を省くと、project と repositories に要約を返す","status":"passed","testResultsByEnv":{"default":"fe8ebae31c84c71e095d350d67dc1cff"}}

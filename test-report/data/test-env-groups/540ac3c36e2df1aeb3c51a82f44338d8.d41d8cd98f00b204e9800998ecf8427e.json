@@ -1,0 +1,1 @@
+{"id":"540ac3c36e2df1aeb3c51a82f44338d8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_size_warning","name":"保管の大きさが上限を超えると、警告を返す","status":"passed","testResultsByEnv":{"default":"ced6415d1ccec7e4f5cc973d7ccb08c3"}}

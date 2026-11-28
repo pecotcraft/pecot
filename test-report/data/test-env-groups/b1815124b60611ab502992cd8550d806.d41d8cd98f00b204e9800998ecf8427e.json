@@ -1,0 +1,1 @@
+{"id":"b1815124b60611ab502992cd8550d806.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#exportResources テンプレートの resource を、URI・名前・題・説明・MIME 型の形で、登録の順に返す","name":"テンプレートの resource を、URI・名前・題・説明・MIME 型の形で、登録の順に返す","status":"passed","testResultsByEnv":{"default":"c7942029d9db9cdca217dfd83418d074"}}

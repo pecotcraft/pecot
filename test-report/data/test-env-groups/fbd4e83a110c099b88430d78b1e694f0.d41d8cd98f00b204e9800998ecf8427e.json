@@ -1,0 +1,1 @@
+{"id":"fbd4e83a110c099b88430d78b1e694f0.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_task_cache#test_cli_test_inputs_take_the_deck_lint_files_but_not_the_layouts","name":"pecot-visual:test-cli の inputs は、deck の lint の設定と plugin のソースだけを含む","status":"passed","testResultsByEnv":{"default":"d60aa0961beedb6ca1931beb5e9c01f7"}}

@@ -1,0 +1,1 @@
+{"id":"e3038329da35f66777a7e882ee14a6bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#describePrerequisiteState open の前提は、PR が存在すれば in review、存在しなければ not started と示す","name":"open の前提は、PR が存在すれば in review、存在しなければ not started と示す","status":"passed","testResultsByEnv":{"default":"02cff3fb2da9b3912c185bf920556d2d"}}

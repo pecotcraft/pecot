@@ -1,0 +1,1 @@
+{"id":"b26be6fe4b28027b00fed0f0aca591f6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/work-start.test.ts#inferStackedBase 親ブランチの追跡参照が手元に無いと、git fetch の案内を添えた理由を返す","name":"親ブランチの追跡参照が手元に無いと、git fetch の案内を添えた理由を返す","status":"passed","testResultsByEnv":{"default":"e469776e2018a00057123b7927742294"}}

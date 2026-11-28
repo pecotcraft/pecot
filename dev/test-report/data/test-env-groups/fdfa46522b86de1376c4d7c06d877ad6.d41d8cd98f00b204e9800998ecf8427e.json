@@ -1,0 +1,1 @@
+{"id":"fdfa46522b86de1376c4d7c06d877ad6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted awscli が導入されていないときは、awscli-missing と判定する","name":"awscli が導入されていないときは、awscli-missing と判定する","status":"passed","testResultsByEnv":{"default":"763c988bdfc5cd036737d4ef72fa8ca3"}}

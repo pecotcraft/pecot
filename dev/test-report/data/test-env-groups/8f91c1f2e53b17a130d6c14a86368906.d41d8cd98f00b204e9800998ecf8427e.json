@@ -1,0 +1,1 @@
+{"id":"8f91c1f2e53b17a130d6c14a86368906.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry kill が失敗しても、停止の要求は例外を発生させずに結果を返す","name":"kill が失敗しても、停止の要求は例外を発生させずに結果を返す","status":"passed","testResultsByEnv":{"default":"2aeec191d57f8b9251589705658190bf"}}

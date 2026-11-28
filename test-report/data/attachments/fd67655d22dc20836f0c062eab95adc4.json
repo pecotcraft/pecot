@@ -1,0 +1,40 @@
+{
+  "project": "pecot-visual",
+  "target": "test-compare",
+  "runtime": [
+    "dpkg-query -W -f='${Package}=${Version}\\n'",
+    "git --version",
+    "git hash-object pnpm-lock.yaml",
+    "jq --version",
+    "node --version"
+  ],
+  "environment": [
+    "CLAUDE_CONFIG_DIR",
+    "CLAUDE_PLUGIN_ROOT",
+    "HOME",
+    "NODE_OPTIONS",
+    "NODE_V8_COVERAGE",
+    "NX_CLOUD_ENCRYPTION_KEY",
+    "PECOTV_AUTO_INSTALL_BROWSER",
+    "PECOTV_CACHE_IDENTITY_A",
+    "PECOTV_CACHE_IDENTITY_B",
+    "PECOTV_CLI_DIST",
+    "PECOTV_DECK_LINT",
+    "PECOTV_E2E_CEILING_SCALE",
+    "PECOTV_FORCE_PDF_FAIL",
+    "PECOTV_FORCE_PNG_FAIL",
+    "PECOTV_FORCE_SVG_FAIL",
+    "PECOTV_HOOKS_CONFIG_PATH",
+    "PECOTV_PLAYWRIGHT_AVAILABLE",
+    "PECOTV_SINGLE_PASS",
+    "PECOTV_SINGLE_PASS_CONCURRENCY",
+    "PECOTV_WSL_MOUNT_ROOT",
+    "PECOT_REPORT_SITE_URL",
+    "PLAYWRIGHT_BROWSERS_PATH",
+    "SLIDEV_PORT",
+    "WSL_DISTRO_NAME"
+  ],
+  "external": [
+    "AllExternalDependencies"
+  ]
+}

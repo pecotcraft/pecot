@@ -1,0 +1,1 @@
+{"id":"28f7793e1faeb3663102bf5b8b036590.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/error-utils.test.ts#errorMessage Error のサブクラスを渡した場合も、message を返す","name":"Error のサブクラスを渡した場合も、message を返す","status":"passed","testResultsByEnv":{"default":"7b149288d05b6c3e851c9562d6de9af6"}}

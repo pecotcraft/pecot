@@ -1,0 +1,1 @@
+{"id":"aaa6fb828f34267f227dadb8520c17de.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_pages_artifact_is_uploaded_in_an_earlier_job_than_deploy","name":"Pages の artifact は、deploy より前の job でアップロードする","status":"passed","testResultsByEnv":{"default":"e202f22032c10042f098dfa13ea766d4"}}

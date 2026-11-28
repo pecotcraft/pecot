@@ -1,0 +1,12 @@
+worktree /tmp/pecot-parity-aRmhw5/base/demo
+HEAD dd063592e23c78e3c4df9f719c4b0abbf8aee335
+branch refs/heads/main
+
+worktree /tmp/pecot-parity-aRmhw5/wt1/demo
+HEAD dd063592e23c78e3c4df9f719c4b0abbf8aee335
+branch refs/heads/wt1
+
+worktree /tmp/pecot-parity-aRmhw5/wt2/demo
+HEAD dd063592e23c78e3c4df9f719c4b0abbf8aee335
+branch refs/heads/feat/x
+

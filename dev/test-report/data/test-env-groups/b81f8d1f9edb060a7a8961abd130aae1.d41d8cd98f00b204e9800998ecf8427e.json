@@ -1,0 +1,1 @@
+{"id":"b81f8d1f9edb060a7a8961abd130aae1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/export.test.ts#resolveIconsForExport すべての icon:// を data URI に置き換え、置き換えた件数が元の XML の参照の件数と一致する","name":"すべての icon:// を data URI に置き換え、置き換えた件数が元の XML の参照の件数と一致する","status":"passed","testResultsByEnv":{"default":"e429d71b417072f006555a3092882495"}}

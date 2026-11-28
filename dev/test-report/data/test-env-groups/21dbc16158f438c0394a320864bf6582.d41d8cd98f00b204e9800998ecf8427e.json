@@ -1,0 +1,1 @@
+{"id":"21dbc16158f438c0394a320864bf6582.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#assertTalkDirectory dir に slides.md が存在しない場合は、理由 not-talk-dir の実行エラーを返す","name":"dir に slides.md が存在しない場合は、理由 not-talk-dir の実行エラーを返す","status":"passed","testResultsByEnv":{"default":"2b1f43af36b23f2272f4effab12df139"}}

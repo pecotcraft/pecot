@@ -1,0 +1,1 @@
+{"id":"a8f20f96d3e22694774585b9745a2828.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slide-url.test.ts#parseSlideUrl 複数桁のスライド番号と clicks も、解析できる","name":"複数桁のスライド番号と clicks も、解析できる","status":"passed","testResultsByEnv":{"default":"eb3d1a67740dd5abb224db97bfb15a82"}}

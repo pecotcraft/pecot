@@ -1,0 +1,44 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "renamed: field pecot-workflow-acme to pecot-status"
+    },
+    {
+      "type": "text",
+      "text": "{\"fields\":[{\"name\":\"pecot-status\",\"change\":\"rename\",\"addedOptions\":[]},{\"name\":\"pecot-lane\",\"change\":\"skip\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"skip\",\"addedOptions\":[]}],\"migration\":{\"renamed\":\"pecot-workflow-acme\",\"config_moved\":{\"from\":\"ghes.example.com_acme_board_acme.json\",\"to\":\"ghes.example.com_acme_1.json\"},\"pending_delete\":[],\"deleted\":[]},\"warnings\":[\"field pecot-lane was not created because no lanes were given\\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes\",\"the project config is now named ghes.example.com_acme_1\\n  use this name for the project input and the PECOT_REVIEW_PROJECT variable\"]}"
+    }
+  ],
+  "structuredContent": {
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "rename",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "skip",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "skip",
+        "addedOptions": []
+      }
+    ],
+    "migration": {
+      "renamed": "pecot-workflow-acme",
+      "config_moved": {
+        "from": "ghes.example.com_acme_board_acme.json",
+        "to": "ghes.example.com_acme_1.json"
+      },
+      "pending_delete": [],
+      "deleted": []
+    },
+    "warnings": [
+      "field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes",
+      "the project config is now named ghes.example.com_acme_1\n  use this name for the project input and the PECOT_REVIEW_PROJECT variable"
+    ]
+  }
+}

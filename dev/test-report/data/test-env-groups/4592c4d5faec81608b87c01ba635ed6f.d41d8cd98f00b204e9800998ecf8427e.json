@@ -1,0 +1,1 @@
+{"id":"4592c4d5faec81608b87c01ba635ed6f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#gitToplevel git に実行権限がない場合は、undefined を返さず例外を発生させる","name":"git に実行権限がない場合は、undefined を返さず例外を発生させる","status":"passed","testResultsByEnv":{"default":"01f1320315b892643de0cdacd539a8f6"}}

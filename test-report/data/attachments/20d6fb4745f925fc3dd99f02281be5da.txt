@@ -1,0 +1,1 @@
+error: 未対応の引数: extra (使用可能: --issue <番号> | --dry-run)

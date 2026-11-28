@@ -1,0 +1,1 @@
+{"id":"72df750ca3fc4c9c751977d1b4571c1d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/registry.test.ts#ツールの一覧 worktree_init の output は、入力の向きと出力の向きで JSON Schema が同じになる","name":"worktree_init の output は、入力の向きと出力の向きで JSON Schema が同じになる","status":"passed","testResultsByEnv":{"default":"40efbd2815c5b707b6fba4fee1a525a7"}}

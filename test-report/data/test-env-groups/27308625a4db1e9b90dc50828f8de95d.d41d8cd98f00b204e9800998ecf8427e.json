@@ -1,0 +1,1 @@
+{"id":"27308625a4db1e9b90dc50828f8de95d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 action の step は、App のトークンだけを env で受ける","name":"action の step は、App のトークンだけを env で受ける","status":"passed","testResultsByEnv":{"default":"8512dcf3f91591bb07bf13a18a7f53cb"}}

@@ -1,0 +1,1 @@
+{"id":"f93f96f1e20bcb56eaf41065ad8cd822.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/no-python-runtime.test.ts#Phase 4 acceptance: Python ランタイム痕跡ゼロ件 plugins/pecot-visual に uv.lock が存在しない","name":"plugins/pecot-visual に uv.lock が存在しない","status":"passed","testResultsByEnv":{"default":"1908099f42d312d66be383b41283d28e"}}

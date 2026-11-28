@@ -1,0 +1,1 @@
+{"id":"5ae46c800229d08206becd724709b309.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites PR は、リンクされたブランチと、Issue を閉じる PR の参照の 2 つから取り出す","name":"PR は、リンクされたブランチと、Issue を閉じる PR の参照の 2 つから取り出す","status":"passed","testResultsByEnv":{"default":"0b2b12cb01b2a32168a7ef0d58c19071"}}

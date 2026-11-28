@@ -1,0 +1,1 @@
+{"id":"4a434b164731eb7b2d15c696ee366802.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh コマンドが git push のとき、タブや連続空白の区切りでも保護ブランチなら止める","name":"コマンドが git push のとき、タブや連続空白の区切りでも保護ブランチなら止める","status":"passed","testResultsByEnv":{"default":"49428747be0f863ba517097db85493e0"}}

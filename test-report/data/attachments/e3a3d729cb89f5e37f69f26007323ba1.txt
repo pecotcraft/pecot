@@ -1,0 +1,15 @@
+
+[2m> [22m[2mnx run[22m p:tgt
+
+[2m> [22mtouch ran-the-task
+
+
+[2m[32m[39m[22m
+
+[7m[1m[32m NX [39m[22m[27m  [32mSuccessfully ran target [1mtgt[22m for project p[39m
+
+
+  Run duration:      24ms
+  Cache:             Skipped (--skip-nx-cache)
+  Critical path:     21ms (1 task)
+  Recoverable time:  <1ms

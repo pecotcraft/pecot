@@ -1,0 +1,1 @@
+{"id":"c9e1cb5a8246dcab261cd62ffd5b7413.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_dev_is_newer","name":"`dev_is_newer` は、保管済みの開発版が祖先でなければ新しいと判定しない","status":"passed","testResultsByEnv":{"default":"89f6c7bf3dc7f258632ab70a000e8697"}}

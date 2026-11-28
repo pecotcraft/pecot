@@ -1,0 +1,1 @@
+{"id":"901ed0fd2d524313c7d95fd76aef9a63.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url-theme.test.ts#talk-dir の外 theme にテーマの talk-dir を渡すと、その宣言で書体とサイズを確かめる","name":"theme にテーマの talk-dir を渡すと、その宣言で書体とサイズを確かめる","status":"passed","testResultsByEnv":{"default":"9e308c76aeae211c3dedb4d1733d5d75"}}

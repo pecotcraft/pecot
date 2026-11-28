@@ -1,0 +1,1 @@
+{"id":"cae7fb385a0f4e5424b57715324601ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql 403 で errors に rate limit のとき、GitHubRateLimitError が発生する","name":"403 で errors に rate limit のとき、GitHubRateLimitError が発生する","status":"passed","testResultsByEnv":{"default":"ce996889afc3091e0ec91b2fd214819a"}}

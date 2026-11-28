@@ -1,0 +1,1 @@
+{"id":"43e06ef382cbf1b7072eb0823c8b1995.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations 注記で type 欠落 の場合は、拒否する","name":"注記で type 欠落 の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"2eb9065ccc83f5f648ce278347238533"}}

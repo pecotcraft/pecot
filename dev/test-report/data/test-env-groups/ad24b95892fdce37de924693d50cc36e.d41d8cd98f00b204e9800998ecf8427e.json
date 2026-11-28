@@ -1,0 +1,1 @@
+{"id":"ad24b95892fdce37de924693d50cc36e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check 対象のリポジトリと設定 project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う","name":"project で設定の名前を渡すと、対象のリポを含む設定が 2 つ以上あっても、その設定を使う","status":"passed","testResultsByEnv":{"default":"d85d766bbd088356189714984010f5d6"}}

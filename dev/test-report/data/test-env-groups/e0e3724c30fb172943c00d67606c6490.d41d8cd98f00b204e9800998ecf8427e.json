@@ -1,0 +1,1 @@
+{"id":"e0e3724c30fb172943c00d67606c6490.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/state.test.ts#formatSessionTitle 切った位置が空白なら末尾の空白を落とす","name":"切った位置が空白なら末尾の空白を落とす","status":"passed","testResultsByEnv":{"default":"9fb487f30f46afa6842cc9668ee753cc"}}

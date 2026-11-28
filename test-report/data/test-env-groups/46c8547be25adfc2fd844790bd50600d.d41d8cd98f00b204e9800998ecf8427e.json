@@ -1,0 +1,1 @@
+{"id":"46c8547be25adfc2fd844790bd50600d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 出力が JSON として解析できないときは、行の配列として返す","name":"出力が JSON として解析できないときは、行の配列として返す","status":"passed","testResultsByEnv":{"default":"17740829c3990374b7c9ae9207749b42"}}

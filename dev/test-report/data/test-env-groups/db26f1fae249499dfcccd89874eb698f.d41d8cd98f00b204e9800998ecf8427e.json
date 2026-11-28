@@ -1,0 +1,1 @@
+{"id":"db26f1fae249499dfcccd89874eb698f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-tools.test.ts#MCP のツール (stdio) `drawio_export` を `out_path` つきで呼ぶと、SVG と同じ名前の PDF のパスを返す","name":"`drawio_export` を `out_path` つきで呼ぶと、SVG と同じ名前の PDF のパスを返す","status":"passed","testResultsByEnv":{"default":"e7032c7d8e7f609983c8dec2f3825a1c"}}

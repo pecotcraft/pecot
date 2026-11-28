@@ -1,0 +1,1 @@
+{"id":"75a685d56d4e19841265bcb892b65251.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#ルートの解決 同梱の依存ルートは、プラグインルートと同じ場所を返す","name":"同梱の依存ルートは、プラグインルートと同じ場所を返す","status":"passed","testResultsByEnv":{"default":"ffb92b00f77a5c01ac05e149c08b5565"}}

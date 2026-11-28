@@ -1,0 +1,1 @@
+{"id":"ef67561ae69ddbdce7a3f597dfcdbea1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_actionlint_ignores_queue_for_pages_deploy","name":"actionlint は、pages-deploy の `queue` を publish-npm と同じ設定で除外する","status":"passed","testResultsByEnv":{"default":"6c4879b436b7c47437e7f3bc8d5ffbff"}}

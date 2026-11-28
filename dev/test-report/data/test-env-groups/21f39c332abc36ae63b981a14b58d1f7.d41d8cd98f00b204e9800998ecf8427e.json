@@ -1,0 +1,1 @@
+{"id":"21f39c332abc36ae63b981a14b58d1f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/deck-lint-rules.test.ts#REFERENCE_FREE_RULE_IDS 設定を読まない規則のうち textlint を除く 8 個は、実装でも設定の項目を読み込まない","name":"設定を読まない規則のうち textlint を除く 8 個は、実装でも設定の項目を読み込まない","status":"passed","testResultsByEnv":{"default":"554e33af46cc6207291293bd019abe58"}}

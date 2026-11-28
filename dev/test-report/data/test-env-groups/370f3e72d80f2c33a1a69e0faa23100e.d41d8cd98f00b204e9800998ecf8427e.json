@@ -1,0 +1,1 @@
+{"id":"370f3e72d80f2c33a1a69e0faa23100e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_cache_inputs_use_dash_without_sources","name":"取り込んだ `tested-tree.txt` と lock が存在しない場合は、キャッシュの入力に `-` を表示する","status":"passed","testResultsByEnv":{"default":"11f1fc778e9df680caf824da67a62a07"}}

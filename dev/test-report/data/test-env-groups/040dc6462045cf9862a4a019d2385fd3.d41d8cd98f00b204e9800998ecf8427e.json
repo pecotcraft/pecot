@@ -1,0 +1,1 @@
+{"id":"040dc6462045cf9862a4a019d2385fd3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript .cts の文字列に違反があると、元のファイルの行と桁で指摘を返す","name":".cts の文字列に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"d041fba8694a1024b7a4b05aeb69e1fb"}}

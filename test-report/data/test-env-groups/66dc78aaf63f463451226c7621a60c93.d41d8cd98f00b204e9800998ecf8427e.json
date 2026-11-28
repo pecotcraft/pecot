@@ -1,0 +1,1 @@
+{"id":"66dc78aaf63f463451226c7621a60c93.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#renameProjectField 改名後のフィールドを返し、fieldId と name だけを送信して選択肢は送信しない","name":"改名後のフィールドを返し、fieldId と name だけを送信して選択肢は送信しない","status":"passed","testResultsByEnv":{"default":"70d87fe489b1bdc28f22d832212bce16"}}

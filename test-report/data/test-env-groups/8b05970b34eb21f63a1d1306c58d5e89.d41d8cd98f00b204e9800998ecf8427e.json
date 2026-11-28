@@ -1,0 +1,1 @@
+{"id":"8b05970b34eb21f63a1d1306c58d5e89.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/gitignore-spec.test.ts#patternToRegex パターン \"\" は、どのファイルにも一致しないため undefined を返す","name":"パターン \"\" は、どのファイルにも一致しないため undefined を返す","status":"passed","testResultsByEnv":{"default":"faf5f3f688311dadb3ee4da5ed17e5e7"}}

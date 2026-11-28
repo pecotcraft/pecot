@@ -1,0 +1,1 @@
+{"id":"666320bc80b1842da2b4f581d10d8879.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add コピーできなかったファイルがあると、そのファイルごとの文を warnings に入れる","name":"コピーできなかったファイルがあると、そのファイルごとの文を warnings に入れる","status":"passed","testResultsByEnv":{"default":"57a6360e7edfedec4ba2f4a3d6db58e0"}}

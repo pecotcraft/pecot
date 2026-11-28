@@ -1,0 +1,1 @@
+{"id":"72654937304992d7aa28c5a579998240.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#getLatestVersion 見出し記号とバージョンの間の \" \" は、Python の \\s と同じく空白として扱う","name":"見出し記号とバージョンの間の \" \" は、Python の \\s と同じく空白として扱う","status":"passed","testResultsByEnv":{"default":"9418be8797cb9dd9ed75378db5d27923"}}

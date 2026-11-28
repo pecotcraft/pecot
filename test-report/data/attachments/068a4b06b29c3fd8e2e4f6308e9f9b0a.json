@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: references schema violations: 10 files checked, 3 error(s) found.\\n  This is the validation result for the whole references directory (edited file: /tmp/pecotv-test-file-tools-IjbT7z/no-category/talk/node_modules/slidev-theme-pecotv-test-declared/references/plain.yaml).\\n\\n  Validating: /tmp/pecotv-test-file-tools-IjbT7z/no-category/talk-theme/references\\n\\n    ✓ _common.yaml\\n    ✓ cover.yaml\\n    ✓ end.yaml\\n    ✓ legacy-panel.yaml\\n    ✓ link.yaml\\n    ✓ marked.yaml\\n    ✓ panel.yaml\\n    ✗ plain.yaml\\n      [#/then/else/required] must have required property 'category'\\n      [#/then/if] must match \\\"else\\\" schema\\n      [#/if] must match \\\"then\\\" schema\\n    ✓ scratch.yaml\\n    ✓ section.yaml\\n\\n  10 files checked, 3 error(s) found.\\n\\n  The output above lists the schema violations.\\n  A layout yaml without `category` takes an id from `layout_categories` in `_common.yaml`. Right after a theme update, relinking node_modules with slide_sync (node_modules_only: true) refreshes that vocabulary.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: references schema violations: 10 files checked, 3 error(s) found.\n  This is the validation result for the whole references directory (edited file: /tmp/pecotv-test-file-tools-IjbT7z/no-category/talk/node_modules/slidev-theme-pecotv-test-declared/references/plain.yaml).\n\n  Validating: /tmp/pecotv-test-file-tools-IjbT7z/no-category/talk-theme/references\n\n    ✓ _common.yaml\n    ✓ cover.yaml\n    ✓ end.yaml\n    ✓ legacy-panel.yaml\n    ✓ link.yaml\n    ✓ marked.yaml\n    ✓ panel.yaml\n    ✗ plain.yaml\n      [#/then/else/required] must have required property 'category'\n      [#/then/if] must match \"else\" schema\n      [#/if] must match \"then\" schema\n    ✓ scratch.yaml\n    ✓ section.yaml\n\n  10 files checked, 3 error(s) found.\n\n  The output above lists the schema violations.\n  A layout yaml without `category` takes an id from `layout_categories` in `_common.yaml`. Right after a theme update, relinking node_modules with slide_sync (node_modules_only: true) refreshes that vocabulary."
+    }
+  }
+}

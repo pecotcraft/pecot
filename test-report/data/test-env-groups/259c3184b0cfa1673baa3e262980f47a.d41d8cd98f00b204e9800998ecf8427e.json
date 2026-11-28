@@ -1,0 +1,1 @@
+{"id":"259c3184b0cfa1673baa3e262980f47a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#validateWhitespaceWrap 和文を含んでいても、線（edgeStyle を指定したセル）には、警告を返さない","name":"和文を含んでいても、線（edgeStyle を指定したセル）には、警告を返さない","status":"passed","testResultsByEnv":{"default":"8a098cc611f2c64d3d81731a9c4f4395"}}

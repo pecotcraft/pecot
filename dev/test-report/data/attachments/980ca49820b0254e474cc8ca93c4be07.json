@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "image_ids element must have at least one of image_tag / image_digest"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"image_ids element must have at least one of image_tag / image_digest\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "image_ids element must have at least one of image_tag / image_digest"
+  },
+  "isError": true
+}

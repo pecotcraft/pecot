@@ -1,0 +1,1 @@
+{"id":"6e1c9262ac382ef5464fa684473d452b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/validate-clicks.test.ts#空文字列を渡すと、パース結果は null になる","name":"空文字列を渡すと、パース結果は null になる","status":"passed","testResultsByEnv":{"default":"09307e5275132d71868693d3efa37f38"}}

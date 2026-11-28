@@ -1,0 +1,1 @@
+{"id":"d0e6d72d57c2516c3af11f696c1d05f1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory CLAUDE_PLUGIN_ROOT が存在しない場合と空の場合は、cwd のままにする","name":"CLAUDE_PLUGIN_ROOT が存在しない場合と空の場合は、cwd のままにする","status":"passed","testResultsByEnv":{"default":"d45ee26a0282954a681ed73347c5ce62"}}

@@ -1,0 +1,1 @@
+{"id":"f711d78ba46f0c60b12ab667ebb0e4fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator props validation props に children のキーがあると、検証に失敗する","name":"props に children のキーがあると、検証に失敗する","status":"passed","testResultsByEnv":{"default":"bc28048e001d2b1d66fa91e61c04dac4"}}

@@ -1,0 +1,1 @@
+{"id":"0f0e6cb28b58bc26244dcd3df5af441d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: YAML 文字列に埋め込んだ frontmatter の値に違反があると、その値の元のファイルの位置で指摘を返す","name":"文字列に埋め込んだ frontmatter の値に違反があると、その値の元のファイルの位置で指摘を返す","status":"passed","testResultsByEnv":{"default":"9903050b1dcc17baedd06d110ed463ca"}}

@@ -1,0 +1,3 @@
+==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)
+  NG: engines に node 以外のキーがある（npm）: plugins/pecot-visual/cli/package.json
+check-pm-guard: 静的確認 FAILED (1 件)

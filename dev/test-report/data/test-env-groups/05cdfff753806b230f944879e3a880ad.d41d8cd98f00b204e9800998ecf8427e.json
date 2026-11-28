@@ -1,0 +1,1 @@
+{"id":"05cdfff753806b230f944879e3a880ad.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/sso-output.test.ts#parseSsoLoginOutput verificationUrl には、末尾の自動入力用の URL ではなく、マーカー直後の URL を使う","name":"verificationUrl には、末尾の自動入力用の URL ではなく、マーカー直後の URL を使う","status":"passed","testResultsByEnv":{"default":"a0684651c4edfb4976aa79f904dc0b5f"}}

@@ -1,0 +1,6 @@
+{
+  "hookSpecificOutput": {
+    "additionalContext": "ctx",
+    "hookEventName": "PreToolUse"
+  }
+}

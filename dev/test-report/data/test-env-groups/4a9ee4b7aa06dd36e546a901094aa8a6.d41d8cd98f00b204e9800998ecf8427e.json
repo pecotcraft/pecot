@@ -1,0 +1,1 @@
+{"id":"4a9ee4b7aa06dd36e546a901094aa8a6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 複数項目の行送り 項目の間に ITEM_GAP_ROWS の空行を入れ、通し番号を 1 から順に付ける","name":"項目の間に ITEM_GAP_ROWS の空行を入れ、通し番号を 1 から順に付ける","status":"passed","testResultsByEnv":{"default":"f8e631713b0c0b399a5aaceaf49b151f"}}

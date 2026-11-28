@@ -1,0 +1,1 @@
+{"id":"0e8a6b421643335837dbaf00c4a39467.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185） 要約が 2 文なら、複数の文を示すエラーを返す","name":"要約が 2 文なら、複数の文を示すエラーを返す","status":"passed","testResultsByEnv":{"default":"f095263d8436a2e6952c4de4e4859858"}}

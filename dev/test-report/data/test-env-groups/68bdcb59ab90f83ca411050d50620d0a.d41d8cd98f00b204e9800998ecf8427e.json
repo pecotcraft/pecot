@@ -1,0 +1,1 @@
+{"id":"68bdcb59ab90f83ca411050d50620d0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#pickPrimaryRemote remote が [] のとき、undefined を選ぶ","name":"remote が [] のとき、undefined を選ぶ","status":"passed","testResultsByEnv":{"default":"d1526e5382673dafd9da6d7bd505a160"}}

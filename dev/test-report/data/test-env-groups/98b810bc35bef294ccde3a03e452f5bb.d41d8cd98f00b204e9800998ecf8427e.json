@@ -1,0 +1,1 @@
+{"id":"98b810bc35bef294ccde3a03e452f5bb.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_35_pass_squash_commit_without_pr_env","name":"dependabot の squash commit は、PR の情報の環境変数が存在しなくても成功する","status":"passed","testResultsByEnv":{"default":"265cc0f99489c58be624034c0743738b"}}

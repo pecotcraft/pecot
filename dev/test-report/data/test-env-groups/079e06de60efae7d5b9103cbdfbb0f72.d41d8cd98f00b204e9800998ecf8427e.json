@@ -1,0 +1,1 @@
+{"id":"079e06de60efae7d5b9103cbdfbb0f72.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_list 設定ファイルがあると、ファイル名の順に 1 行ずつ出す","name":"設定ファイルがあると、ファイル名の順に 1 行ずつ出す","status":"passed","testResultsByEnv":{"default":"da5e1ee9b36ce60994a41810856f1a5e"}}

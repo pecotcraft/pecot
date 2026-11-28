@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "issues: update checks one Issue at a time"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"issues\",\"code\":\"update-one\",\"message\":\"update checks one Issue at a time\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "issues",
+        "code": "update-one",
+        "message": "update checks one Issue at a time"
+      }
+    ]
+  }
+}

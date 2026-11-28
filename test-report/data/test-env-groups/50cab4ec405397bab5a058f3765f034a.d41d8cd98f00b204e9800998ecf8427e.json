@@ -1,0 +1,1 @@
+{"id":"50cab4ec405397bab5a058f3765f034a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor 呼ぶと、確かめた項目を name と state の組で items に入れる","name":"呼ぶと、確かめた項目を name と state の組で items に入れる","status":"passed","testResultsByEnv":{"default":"5afabb58fa367dc882d6c5b5a8ba4b28"}}

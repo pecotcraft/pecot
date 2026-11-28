@@ -1,0 +1,1 @@
+{"id":"f076ce6a61e1ce381c70d868c57015f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/errors.test.ts#独自例外は PecotError を継承する AmbiguousRepositoryError は PecotError を継承する","name":"AmbiguousRepositoryError は PecotError を継承する","status":"passed","testResultsByEnv":{"default":"c25caca8359d9514c3c8e00009f5c250"}}

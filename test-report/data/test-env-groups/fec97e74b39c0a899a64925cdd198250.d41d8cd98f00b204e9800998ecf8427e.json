@@ -1,0 +1,1 @@
+{"id":"fec97e74b39c0a899a64925cdd198250.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_set MCP の data 同じ値だと change を unchanged にする","name":"同じ値だと change を unchanged にする","status":"passed","testResultsByEnv":{"default":"9b0af6c574cb3a7fe31c7b91c2f45bde"}}

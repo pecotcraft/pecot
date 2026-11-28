@@ -1,0 +1,1 @@
+{"id":"89e2b71f4fe79359d0e27899af64bdf6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#handleHttpError 429 は GitHubRateLimitError（本文は問わない）","name":"429 は GitHubRateLimitError（本文は問わない）","status":"passed","testResultsByEnv":{"default":"766daf1e13e53645b0439ce158cd5b8f"}}

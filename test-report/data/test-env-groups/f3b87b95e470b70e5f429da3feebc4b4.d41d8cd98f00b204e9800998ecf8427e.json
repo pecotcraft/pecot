@@ -1,0 +1,1 @@
+{"id":"f3b87b95e470b70e5f429da3feebc4b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#例外で葉の advisory が消えると伝播先も消える","name":"例外で葉の advisory が消えると伝播先も消える","status":"passed","testResultsByEnv":{"default":"fd279537f1c785308a9165008304f3b7"}}

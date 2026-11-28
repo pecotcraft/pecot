@@ -1,0 +1,1 @@
+{"id":"18a1d09975886532385901cf48e56a62.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_pages_store_ruleset_lets_only_the_pages_store_app_write","name":"pages-store の ruleset は、専用の GitHub App だけに書き込みを許す","status":"passed","testResultsByEnv":{"default":"21b5b829214c51068308a77ad127460a"}}

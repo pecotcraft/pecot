@@ -1,0 +1,1 @@
+{"id":"5ec519534af2d9c10f7f04f8046f3afe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の parallel と order template に空文字列を渡すと、未指定として扱う","name":"template に空文字列を渡すと、未指定として扱う","status":"passed","testResultsByEnv":{"default":"b9957361c2971acb4d8dd0aa0edfdb68"}}

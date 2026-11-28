@@ -1,0 +1,1 @@
+{"id":"3456b74a4231ef02d2980fb0b92045fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185） 半角 . は文末に数えない（v1.2 のような表記があるため）","name":"半角 . は文末に数えない（v1.2 のような表記があるため）","status":"passed","testResultsByEnv":{"default":"bc2ef0a011f4a05d67b47ecd69bb6464"}}

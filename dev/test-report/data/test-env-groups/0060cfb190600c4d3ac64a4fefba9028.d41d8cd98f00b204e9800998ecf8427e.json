@@ -1,0 +1,1 @@
+{"id":"0060cfb190600c4d3ac64a4fefba9028.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory どちらの変数も存在しなければ（空文字を含む）、cwd を含めた理由で決められない","name":"どちらの変数も存在しなければ（空文字を含む）、cwd を含めた理由で決められない","status":"passed","testResultsByEnv":{"default":"fc584985191286080e3a0a199262332d"}}

@@ -1,0 +1,1 @@
+{"id":"46c50d2efbb8b4c3d4b170b8091bf8d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 水平線（#1185） 4 スペース以上のインデントは CommonMark では水平線にならない","name":"4 スペース以上のインデントは CommonMark では水平線にならない","status":"passed","testResultsByEnv":{"default":"be888d23a8648d468d0d966f3544eb2a"}}

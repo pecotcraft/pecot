@@ -1,0 +1,1 @@
+{"id":"395b90a571dbeccdc293a9ea35803253.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings 入力末尾で閉じていない文字列 のとき、引用符を含まない本文だけを切り出す","name":"入力末尾で閉じていない文字列 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"5b1ec8c487bc6b46223d8d65687d09f3"}}

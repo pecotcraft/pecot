@@ -1,0 +1,1 @@
+{"id":"5d40f9595990b5080d7186f58b12b547.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#resolveNx リポジトリ内に nx が存在しない場合は、PATH 上の nx を使う","name":"リポジトリ内に nx が存在しない場合は、PATH 上の nx を使う","status":"passed","testResultsByEnv":{"default":"c8ebeb961fabe7f598be3962c6d6ac03"}}

@@ -1,0 +1,8 @@
+:iface-id: PA-BOARD-SYNC
+:iface-plugin: pecot-actions
+:iface-kind: Action
+
+board sync
+====================
+
+.. iface-defs:: pecot-actions PA-BOARD-SYNC

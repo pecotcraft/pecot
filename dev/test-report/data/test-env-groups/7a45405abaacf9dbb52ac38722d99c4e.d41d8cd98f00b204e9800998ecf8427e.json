@@ -1,0 +1,1 @@
+{"id":"7a45405abaacf9dbb52ac38722d99c4e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#parseUpdateMetadata 版が 1.2.3 から 2.0.0 に変わると、種類は major になる","name":"版が 1.2.3 から 2.0.0 に変わると、種類は major になる","status":"passed","testResultsByEnv":{"default":"c2a1057cf5c0338a9b19c8a4bdbc6359"}}

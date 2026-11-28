@@ -1,0 +1,1 @@
+{"id":"aa6f07e989bf33b22240920ff3c9dcaf.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_common_env_is_only_what_every_plugin_reads","name":"共通の env には、すべてのプラグインが読む変数だけを置く","status":"passed","testResultsByEnv":{"default":"29865535de2e8b926ad3cc3ff830f948"}}

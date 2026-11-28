@@ -1,0 +1,1 @@
+{"id":"b29651275b30d6dade779ce1e0d37314.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_success_prints_one_summary_line","name":"成功した場合は、標準出力に合計の 1 行だけを表示する","status":"passed","testResultsByEnv":{"default":"c1e404bdbae87ca189cb9e0677773dad"}}

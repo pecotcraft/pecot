@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "the repository is ambiguous\n  could not read the repository from the URL of the Git remote origin\n  give repo: <owner/repo>"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\"the repository is ambiguous\\n  could not read the repository from the URL of the Git remote origin\\n  give repo: <owner/repo>\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": "the repository is ambiguous\n  could not read the repository from the URL of the Git remote origin\n  give repo: <owner/repo>"
+  },
+  "isError": true
+}

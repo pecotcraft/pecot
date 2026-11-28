@@ -1,0 +1,1 @@
+{"id":"c57e1e7be28f5b3d5d27c6d8bb7a2b45.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_create プロジェクトを作ると、created の行を標準エラーに出す","name":"プロジェクトを作ると、created の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"c2a6b72b6062efdbd79b9c38e121f387"}}

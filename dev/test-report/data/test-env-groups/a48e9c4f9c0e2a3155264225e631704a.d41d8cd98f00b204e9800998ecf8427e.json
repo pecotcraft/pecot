@@ -1,0 +1,1 @@
+{"id":"a48e9c4f9c0e2a3155264225e631704a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#prose（人が書く欄の言語） prose が ja と en 以外の値だと、検証エラーにする","name":"prose が ja と en 以外の値だと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"7a8b4bd30c0e52b71ffd6c51a5508d3e"}}

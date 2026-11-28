@@ -1,0 +1,1 @@
+{"id":"08e3dac2eecf8f0b496a85443f329a8b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/references.test.ts#buildLayoutCatalog category が未設定または未対応の場合は、uncategorized に分類し、末尾に分類を追加して警告する","name":"category が未設定または未対応の場合は、uncategorized に分類し、末尾に分類を追加して警告する","status":"passed","testResultsByEnv":{"default":"e2ea490af28d6ec337313d47881dc27c"}}

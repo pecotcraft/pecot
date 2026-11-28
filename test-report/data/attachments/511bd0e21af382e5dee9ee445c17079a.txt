@@ -1,0 +1,2 @@
+created: config file /tmp/pecot-repo-QwQGKd/.pecot/config/projects/ghes.example.com_acme_1.json
+set: active project to ghes.example.com_acme_1

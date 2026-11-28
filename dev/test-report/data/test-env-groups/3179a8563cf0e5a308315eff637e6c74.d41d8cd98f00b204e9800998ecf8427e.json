@@ -1,0 +1,1 @@
+{"id":"3179a8563cf0e5a308315eff637e6c74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:tests/errors.test.ts#独自例外は PecotError を継承する ReferenceParseError は PecotError を継承する","name":"ReferenceParseError は PecotError を継承する","status":"passed","testResultsByEnv":{"default":"f8f74a06b922a451c5897ff936b6d719"}}

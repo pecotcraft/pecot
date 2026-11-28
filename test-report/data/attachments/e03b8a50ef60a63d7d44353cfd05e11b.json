@@ -1,0 +1,113 @@
+{
+  "name": "project_link",
+  "title": "Link repository to project",
+  "description": "Add or update a repository in the project config",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repo": {
+        "type": "string",
+        "description": "Repository name in owner/repo form"
+      },
+      "develop_branch": {
+        "description": "Development branch name",
+        "type": "string"
+      },
+      "release_branch": {
+        "description": "Release branch name",
+        "type": "string"
+      },
+      "changelog_file": {
+        "description": "CHANGELOG file name",
+        "type": "string"
+      },
+      "package": {
+        "description": "Monorepo package to register, as NAME:PATH. Example: pecot:plugins/pecot-workflow/CHANGELOG.md",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "clear_packages": {
+        "default": false,
+        "description": "Clear the existing packages setting. After clearing, the CHANGELOG falls back to `changelog_file` or the default CHANGELOG.md",
+        "type": "boolean"
+      },
+      "release_type": {
+        "description": "Declare the release method explicitly; the w-release skill picks its procedure from it. single (1 CHANGELOG) / multi (packages) / nx (Nx Release). When omitted, it is inferred from the packages (with packages: multi, without: single)",
+        "type": "string"
+      }
+    },
+    "required": [
+      "repo"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "repository": {
+        "type": "string",
+        "description": "Repository in owner/repo form"
+      },
+      "projectNumber": {
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991,
+        "description": "Number of the active project"
+      },
+      "change": {
+        "type": "string",
+        "enum": [
+          "create",
+          "update"
+        ],
+        "description": "create: the repository was added to the config; update: its entry was changed"
+      },
+      "configPath": {
+        "type": "string",
+        "description": "Path of the project config file"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "repository",
+          "projectNumber",
+          "change",
+          "configPath"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

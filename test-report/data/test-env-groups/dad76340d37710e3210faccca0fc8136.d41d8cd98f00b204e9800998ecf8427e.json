@@ -1,0 +1,1 @@
+{"id":"dad76340d37710e3210faccca0fc8136.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check チェックが通ると、version・tag の行とリリースノートを標準出力に出す","name":"チェックが通ると、version・tag の行とリリースノートを標準出力に出す","status":"passed","testResultsByEnv":{"default":"74169b087ad2e55df896f268f2643742"}}

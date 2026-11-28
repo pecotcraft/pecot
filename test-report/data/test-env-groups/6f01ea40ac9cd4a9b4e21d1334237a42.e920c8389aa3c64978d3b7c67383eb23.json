@@ -1,0 +1,1 @@
+{"id":"6f01ea40ac9cd4a9b4e21d1334237a42.e920c8389aa3c64978d3b7c67383eb23","fullName":".githooks.tests.test_issue_surface_workflow#test_compare_step_passes_repo_and_dry_run_only_when_true","name":"DRY_RUN が true のとき、比較の step は --repo を渡し、--dry-run は true の場合だけ渡す","status":"passed","testResultsByEnv":{"default":"94be3c373f0d23fa304670efda88bf5b"}}

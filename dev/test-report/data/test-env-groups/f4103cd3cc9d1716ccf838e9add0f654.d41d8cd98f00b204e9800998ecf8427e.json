@@ -1,0 +1,1 @@
+{"id":"f4103cd3cc9d1716ccf838e9add0f654.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings $' ではバックスラッシュが引用符をエスケープする のとき、引用符を含まない本文だけを切り出す","name":"$' ではバックスラッシュが引用符をエスケープする のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"856d0fa57a083823ce24510a037fae59"}}

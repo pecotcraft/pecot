@@ -1,0 +1,1 @@
+error: start-outcome is required without result

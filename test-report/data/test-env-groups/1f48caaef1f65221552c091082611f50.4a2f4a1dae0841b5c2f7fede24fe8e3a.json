@@ -1,0 +1,1 @@
+{"id":"1f48caaef1f65221552c091082611f50.4a2f4a1dae0841b5c2f7fede24fe8e3a","fullName":".githooks.tests.test_pages_verify#test_check_side_lets_dev_and_release_link_to_their_report","name":"pr の定義書が、テストレポートへのリンクを含むとき、検証の結果は False になる","status":"passed","testResultsByEnv":{"default":"9f406fe1ff95b95ea0bdb0c2a3183ed6"}}

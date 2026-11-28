@@ -1,0 +1,1 @@
+{"id":"9bf74400897a32fb88db291e54f043e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-test-description.test.ts#test-description invalid await の無い説明は先頭の並びと見なさず、止める","name":"await の無い説明は先頭の並びと見なさず、止める","status":"passed","testResultsByEnv":{"default":"1ae9ac43755e35870693952db0201d3b"}}

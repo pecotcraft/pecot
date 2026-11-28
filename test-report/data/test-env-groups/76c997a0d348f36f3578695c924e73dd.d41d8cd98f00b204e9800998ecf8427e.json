@@ -1,0 +1,1 @@
+{"id":"76c997a0d348f36f3578695c924e73dd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create 待っている Issue 待つ Issue の判定に作った PR が出ていなければ、1 回だけ読み直してから動かす","name":"待つ Issue の判定に作った PR が出ていなければ、1 回だけ読み直してから動かす","status":"passed","testResultsByEnv":{"default":"fa19eee7789426b3de26b80bcc6463aa"}}

@@ -1,0 +1,1 @@
+{"id":"fe2fa500e5e72e5ec6ebba6304596cfb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 変更系クエリ \"VALUES (1), (2)\" は、理由を not-read-only として拒否する","name":"変更系クエリ \"VALUES (1), (2)\" は、理由を not-read-only として拒否する","status":"passed","testResultsByEnv":{"default":"3d699cc264cee047b8c2311add8b3f68"}}

@@ -1,0 +1,1 @@
+{"id":"8156196282717a252855995d4e553963.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#allowlistedTool responseShape が共通の項目の名前 detail を持つときは、定義を作らず例外を発生させる","name":"responseShape が共通の項目の名前 detail を持つときは、定義を作らず例外を発生させる","status":"passed","testResultsByEnv":{"default":"c8f472bb1a8df213440f5d3cf0542846"}}

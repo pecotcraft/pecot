@@ -1,0 +1,25 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "template: pecot-template://pr/unknown is not a bundled PR template; use one of the candidates, or the path or URL of a replaced template"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"template\",\"code\":\"unknown-template\",\"message\":\"pecot-template://pr/unknown is not a bundled PR template; use one of the candidates, or the path or URL of a replaced template\",\"candidates\":[\"pecot-template://pr/create\",\"pecot-template://pr/release\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "template",
+        "code": "unknown-template",
+        "message": "pecot-template://pr/unknown is not a bundled PR template; use one of the candidates, or the path or URL of a replaced template",
+        "candidates": [
+          "pecot-template://pr/create",
+          "pecot-template://pr/release"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "title: order 1 under acme/demo/3 is used by #9 (#3-01: 先の子); the next free order is 2"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"title\",\"code\":\"order-conflict\",\"message\":\"order 1 under acme/demo/3 is used by #9 (#3-01: 先の子); the next free order is 2\",\"candidates\":[\"[Task] #3-02: 一覧に状態を出す\"]}],\"plan\":[{\"key\":\"issues[0]\",\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "title",
+        "code": "order-conflict",
+        "message": "order 1 under acme/demo/3 is used by #9 (#3-01: 先の子); the next free order is 2",
+        "candidates": [
+          "[Task] #3-02: 一覧に状態を出す"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

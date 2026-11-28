@@ -1,0 +1,86 @@
+{
+  "name": "board_add",
+  "title": "Add Issue to board",
+  "description": "Add an Issue to the project board with a GraphQL mutation (for an Issue created outside pecot)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "issue_ref": {
+        "type": "string",
+        "description": "Issue reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+      },
+      "status": {
+        "default": "ready",
+        "description": "Initial status (backlog/pending/blocked/ready/active/in_review/archived)",
+        "type": "string"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "issue_ref"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "issue": {
+        "type": "string",
+        "description": "Issue (owner/repo/N)"
+      },
+      "added": {
+        "type": "boolean",
+        "description": "true when the Issue is on the board"
+      },
+      "status": {
+        "description": "Status set on the board (omitted when status is empty)",
+        "type": "string"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "issue",
+          "added"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

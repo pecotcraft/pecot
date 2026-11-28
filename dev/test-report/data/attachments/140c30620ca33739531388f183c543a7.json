@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: github.com_acme_1, github.com_acme_2"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"no-active-project\",\"detail\":\"acme/demo is in 2 project configs\\n  choose one with project: <NAME>\\n  available: github.com_acme_1, github.com_acme_2\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "no-active-project",
+    "detail": "acme/demo is in 2 project configs\n  choose one with project: <NAME>\n  available: github.com_acme_1, github.com_acme_2"
+  },
+  "isError": true
+}

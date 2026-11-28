@@ -1,0 +1,1 @@
+{"id":"95bb2c98d4566f1026ae1b1e3748ebcb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/evidence-workbook-writer.test.ts#writeEvidenceWorkbook — skip 分類 ディレクトリを指定すると、除外理由 unreadable として除外する","name":"ディレクトリを指定すると、除外理由 unreadable として除外する","status":"passed","testResultsByEnv":{"default":"57407cdd205f170c90a0adb2d6197320"}}

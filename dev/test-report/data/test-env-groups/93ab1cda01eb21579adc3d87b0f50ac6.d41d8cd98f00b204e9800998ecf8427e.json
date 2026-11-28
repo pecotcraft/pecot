@@ -1,0 +1,1 @@
+{"id":"93ab1cda01eb21579adc3d87b0f50ac6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/slidev-runner.test.ts#ChildProcessSlidevRunner 標準出力と標準エラーの転送先を指定すると、出力を転送する","name":"標準出力と標準エラーの転送先を指定すると、出力を転送する","status":"passed","testResultsByEnv":{"default":"6da22770a202a8b1621ef2b8ee12e94f"}}

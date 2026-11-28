@@ -1,0 +1,1 @@
+{"id":"6663dec909c782b0f3c67f97d0257901.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-font-sizes.test.ts#validateSlideFontSizes 文字サイズを指定していないセルは、draw.io の既定の 11px として扱い、警告を 1 件返す","name":"文字サイズを指定していないセルは、draw.io の既定の 11px として扱い、警告を 1 件返す","status":"passed","testResultsByEnv":{"default":"7e04017be2c8f5d7fb7f9822a93505f7"}}

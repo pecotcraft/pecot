@@ -1,0 +1,1 @@
+{"id":"08dfca46cdb81b2e1a2bff976e5ae7c9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create スタックした base 親 PR がスタックの一番上に無いと、追加を呼ばずに warning の行を出し、PR を残す","name":"親 PR がスタックの一番上に無いと、追加を呼ばずに warning の行を出し、PR を残す","status":"passed","testResultsByEnv":{"default":"c9a4850c9368fe93b32c743d42df23ca"}}

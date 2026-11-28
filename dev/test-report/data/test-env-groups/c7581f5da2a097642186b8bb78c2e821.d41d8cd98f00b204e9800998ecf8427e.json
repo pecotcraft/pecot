@@ -1,0 +1,1 @@
+{"id":"c7581f5da2a097642186b8bb78c2e821.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli ツール aws_sts_get_caller_identity の引数の並びは、実際の awscli が構文として受理する","name":"ツール aws_sts_get_caller_identity の引数の並びは、実際の awscli が構文として受理する","status":"passed","testResultsByEnv":{"default":"d1ca6bde5282c717cac52a642a853ffa"}}

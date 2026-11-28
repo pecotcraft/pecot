@@ -1,0 +1,1 @@
+{"id":"d8f773d3f79f2d3e68ded9da08f72b05.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/review-finish.test.ts#review finish Claude Code が動かずに step が落ち、起動した人が write の権限を持つと、failed のコメントを書く","name":"Claude Code が動かずに step が落ち、起動した人が write の権限を持つと、failed のコメントを書く","status":"passed","testResultsByEnv":{"default":"5aeaf62f03dbd856cb4274fcbe3a4c01"}}

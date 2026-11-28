@@ -1,0 +1,1 @@
+{"id":"067a3698e871cefe93ec99a3d65c6d27.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_root_entries#test_untracked_unlisted_name_is_ignored","name":"Git が追跡していないディレクトリは、許可の一覧に存在しなくても対象にしない","status":"passed","testResultsByEnv":{"default":"127976d8e2cf71acbc6ac6c01fabc370"}}

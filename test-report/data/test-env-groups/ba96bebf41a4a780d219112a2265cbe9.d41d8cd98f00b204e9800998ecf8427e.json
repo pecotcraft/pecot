@@ -1,0 +1,1 @@
+{"id":"ba96bebf41a4a780d219112a2265cbe9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_other_event","name":"対象外のイベントでは、対象外の event の理由を出力する","status":"passed","testResultsByEnv":{"default":"81529c137118e62dadeb3fc6e1946654"}}

@@ -1,0 +1,1 @@
+{"id":"93bb51664dcb6e710e3da33505720abe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#loadConfig 必須の項目が不足している設定ファイルを読み込むと、不足している項目を含む ConfigError を発生させる","name":"必須の項目が不足している設定ファイルを読み込むと、不足している項目を含む ConfigError を発生させる","status":"passed","testResultsByEnv":{"default":"711cb8319f9d15785badafc2445585d6"}}

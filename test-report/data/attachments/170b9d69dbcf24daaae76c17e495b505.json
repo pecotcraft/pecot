@@ -1,0 +1,53 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "skipped: field pecot-status (already exists)"
+    },
+    {
+      "type": "text",
+      "text": "{\"fields\":[{\"name\":\"pecot-status\",\"change\":\"unchanged\",\"addedOptions\":[]},{\"name\":\"pecot-lane\",\"change\":\"skip\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"skip\",\"addedOptions\":[]},{\"name\":\"pecot-priority\",\"change\":\"delete\",\"addedOptions\":[]},{\"name\":\"pecot-size\",\"change\":\"delete\",\"addedOptions\":[]}],\"migration\":{\"renamed\":null,\"config_moved\":null,\"pending_delete\":[],\"deleted\":[\"pecot-priority\",\"pecot-size\"]},\"warnings\":[\"field pecot-lane was not created because no lanes were given\\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes\"]}"
+    }
+  ],
+  "structuredContent": {
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "unchanged",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "skip",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "skip",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-priority",
+        "change": "delete",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-size",
+        "change": "delete",
+        "addedOptions": []
+      }
+    ],
+    "migration": {
+      "renamed": null,
+      "config_moved": null,
+      "pending_delete": [],
+      "deleted": [
+        "pecot-priority",
+        "pecot-size"
+      ]
+    },
+    "warnings": [
+      "field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes"
+    ]
+  }
+}

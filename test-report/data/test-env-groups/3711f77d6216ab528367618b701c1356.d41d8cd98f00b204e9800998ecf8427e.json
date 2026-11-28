@@ -1,0 +1,1 @@
+{"id":"3711f77d6216ab528367618b701c1356.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_pr_candidates_filter_base_repo_and_head_sha","name":"PR の候補は、base のリポジトリと head の commit が一致するものだけに絞る","status":"passed","testResultsByEnv":{"default":"c5ecc4b878930d6054def10a91f77b95"}}

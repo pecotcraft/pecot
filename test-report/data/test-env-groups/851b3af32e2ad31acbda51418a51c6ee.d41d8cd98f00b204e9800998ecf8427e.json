@@ -1,0 +1,1 @@
+{"id":"851b3af32e2ad31acbda51418a51c6ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-dependency-check.test.ts#issue_dependency_check 輪と前提の追加の細かい場合 すでにある前提を別の待ち方で付けると、本文の節だけを変えるよう案内し、直した本文を返す","name":"すでにある前提を別の待ち方で付けると、本文の節だけを変えるよう案内し、直した本文を返す","status":"passed","testResultsByEnv":{"default":"dac462b0c24a7e7e5a52ab25c0abefde"}}

@@ -1,0 +1,1 @@
+{"id":"8d3feb730f52255ed749bc2afe27a853.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#hasReadinessChanged・describeReadinessChange 区分かスタック先のブランチが違えば変化とし、理由だけの違いは変化としない","name":"区分かスタック先のブランチが違えば変化とし、理由だけの違いは変化としない","status":"passed","testResultsByEnv":{"default":"a7910bab7ff90e4c8d2bbc32f94abf85"}}

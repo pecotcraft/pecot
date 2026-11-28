@@ -1,0 +1,1 @@
+{"id":"ee42934639141d948f1b0e7a4ff12627.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/reviewer-clone-allow.test.ts#reviewer-clone-allow.sh core: 定型の clone を許可する https の URL を渡すと、exit 10 で自動許可の文言を返す","name":"https の URL を渡すと、exit 10 で自動許可の文言を返す","status":"passed","testResultsByEnv":{"default":"fb9fc649a6e9dff335be98d098015212"}}

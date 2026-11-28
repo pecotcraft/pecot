@@ -1,0 +1,1 @@
+{"id":"4e4ac1699a08ec6f76d19771a3c5f980.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueBlockingReferences blocking が null の場合は、read-failed にする","name":"blocking が null の場合は、read-failed にする","status":"passed","testResultsByEnv":{"default":"5b0cee9ea0b474d90b78bfef5e3d2d0c"}}

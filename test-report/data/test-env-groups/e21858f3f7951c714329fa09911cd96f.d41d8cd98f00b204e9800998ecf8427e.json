@@ -1,0 +1,1 @@
+{"id":"e21858f3f7951c714329fa09911cd96f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/screenshot.test.ts#capturePng / exportViaEmbed 時間切れの診断 完了した段階には経過した秒数を、完了していない段階には「未完了」だけを書く","name":"完了した段階には経過した秒数を、完了していない段階には「未完了」だけを書く","status":"passed","testResultsByEnv":{"default":"598bfbe9e0fbae619acf0492eeb8b190"}}

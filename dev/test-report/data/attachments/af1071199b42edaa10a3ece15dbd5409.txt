@@ -1,0 +1,1 @@
+ERROR: ディレクトリを読めません: /tmp/bats-run-IHNnqy/test/11/no-such-dir（ENOENT）

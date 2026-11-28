@@ -1,0 +1,33 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "type: Bug is not an Issue type of the repository"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"type\",\"code\":\"value\",\"message\":\"Bug is not an Issue type of the repository\",\"candidates\":[\"Task\",\"Feature\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "type",
+        "code": "value",
+        "message": "Bug is not an Issue type of the repository",
+        "candidates": [
+          "Task",
+          "Feature"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

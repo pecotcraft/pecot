@@ -1,0 +1,1 @@
+{"id":"468824e3f5a75727225c239c18ff891e.4e77d0773bccd36720a68858214d38ca","fullName":".githooks.tests.test_pages_provenance#test_path_head_repository_and_conclusion_must_match","name":"workflow_dispatch の run は、path・head のリポジトリ・結論のいずれかが条件に合わないと、{'conclusion': 'failure'} の場合に破棄する","status":"passed","testResultsByEnv":{"default":"fd9e4f677126adc4c0edfdeb13ec7d51"}}

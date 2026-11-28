@@ -1,0 +1,1 @@
+usage: dist-manifest.mjs <pecotv-plugin-root> <version> <repo-root>

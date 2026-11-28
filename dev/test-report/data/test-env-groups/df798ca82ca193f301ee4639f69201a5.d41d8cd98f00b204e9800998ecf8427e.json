@@ -1,0 +1,1 @@
+{"id":"df798ca82ca193f301ee4639f69201a5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インライン HTML の Html ノード Html とその前後の Str に、元のファイルの範囲と位置を持たせる","name":"Html とその前後の Str に、元のファイルの範囲と位置を持たせる","status":"passed","testResultsByEnv":{"default":"1c2c790b648c91c842213cd777b7e1e2"}}

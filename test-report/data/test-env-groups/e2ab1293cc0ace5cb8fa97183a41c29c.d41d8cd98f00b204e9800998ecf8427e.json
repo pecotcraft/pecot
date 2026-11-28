@@ -1,0 +1,1 @@
+{"id":"e2ab1293cc0ace5cb8fa97183a41c29c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-gate.test.ts#auto gate 読めないイベントと GitHub の失敗 CI のブランチがもう無いと、proceed を偽にする","name":"CI のブランチがもう無いと、proceed を偽にする","status":"passed","testResultsByEnv":{"default":"ad022ad66ce5d3a9e6d381798687ed9b"}}

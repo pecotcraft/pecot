@@ -1,0 +1,1 @@
+{"id":"8269e4a6d29f08104e394dbf905ac5aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 列が Pending の場合は、どの判定でも動かさない","name":"列が Pending の場合は、どの判定でも動かさない","status":"passed","testResultsByEnv":{"default":"dbce990fb4ae68564975d4dd95e73403"}}

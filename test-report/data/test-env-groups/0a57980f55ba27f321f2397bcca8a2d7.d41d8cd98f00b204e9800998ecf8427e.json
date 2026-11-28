@@ -1,0 +1,1 @@
+{"id":"0a57980f55ba27f321f2397bcca8a2d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight バージョンを省略すると、CHANGELOG から検出する","name":"バージョンを省略すると、CHANGELOG から検出する","status":"passed","testResultsByEnv":{"default":"e2d79d74ac6ca6a820c08b56ef4e5baa"}}

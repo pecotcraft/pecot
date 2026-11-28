@@ -1,0 +1,14 @@
+[
+  "interface-spec:install",
+  "interface-spec:lint-defs",
+  "pecot-actions:build",
+  "pecot-actions:install",
+  "pecot-actions:lint",
+  "pecot-actions:lint-dist",
+  "pecot-workflow:install",
+  "pecot-workflow:lint-cli",
+  "pecot:install",
+  "workflow-core:build",
+  "workflow-core:install",
+  "workflow-core:lint"
+]

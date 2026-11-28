@@ -1,0 +1,1 @@
+{"id":"dd6a33abf50ae0bee27d7be36d314736.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/semantic-validator.test.ts#semantic-validator text-constraints/bold-required bold_required が無いと、太字の検証をしない","name":"bold_required が無いと、太字の検証をしない","status":"passed","testResultsByEnv":{"default":"ab09e33e9fa2c6b1cd0912f294c94cac"}}

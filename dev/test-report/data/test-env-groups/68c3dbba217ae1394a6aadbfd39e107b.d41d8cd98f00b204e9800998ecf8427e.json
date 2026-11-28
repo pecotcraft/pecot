@@ -1,0 +1,1 @@
+{"id":"68c3dbba217ae1394a6aadbfd39e107b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の blocked_by 次の指定をすると、検証の誤りにする: Epic の blocked_by","name":"次の指定をすると、検証の誤りにする: Epic の blocked_by","status":"passed","testResultsByEnv":{"default":"cdba2a43a8374fba3137db52f420935e"}}

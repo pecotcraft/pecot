@@ -1,0 +1,1 @@
+{"id":"d056f18c65c90aa80767621695e4b7e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#兄弟 PDF 拡張子だけのファイル名（`-o .svg`）は置き換えず、`.svg.pdf` として書き出す","name":"拡張子だけのファイル名（`-o .svg`）は置き換えず、`.svg.pdf` として書き出す","status":"passed","testResultsByEnv":{"default":"bb578c54d69fffeda9ce0e64336fa662"}}

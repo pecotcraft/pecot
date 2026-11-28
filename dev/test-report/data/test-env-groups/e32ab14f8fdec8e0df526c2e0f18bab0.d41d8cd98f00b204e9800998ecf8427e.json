@@ -1,0 +1,1 @@
+{"id":"e32ab14f8fdec8e0df526c2e0f18bab0.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#CLAUDE_PLUGIN_ROOT が別の場所を指しても、既定の icons root が配布ツリーを指す","name":"CLAUDE_PLUGIN_ROOT が別の場所を指しても、既定の icons root が配布ツリーを指す","status":"passed","testResultsByEnv":{"default":"542097cac3bc1a0399e4a3e4af51e887"}}

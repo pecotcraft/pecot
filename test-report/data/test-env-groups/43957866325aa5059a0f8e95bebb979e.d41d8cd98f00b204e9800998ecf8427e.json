@@ -1,0 +1,1 @@
+{"id":"43957866325aa5059a0f8e95bebb979e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#loadEnvironmentFile 読み取れない場合（ディレクトリ）は、Python の OSError と同じ文の OsError が発生する","name":"読み取れない場合（ディレクトリ）は、Python の OSError と同じ文の OsError が発生する","status":"passed","testResultsByEnv":{"default":"fc7a76d8780aedb253efaf71013d1b42"}}

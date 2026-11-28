@@ -1,0 +1,1 @@
+{"id":"046e4a0ebfb31f890cd2f58511cf2a55.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-create.test.ts#slide create の失敗 (FR-013) pnpm install などの失敗は、theme-install として、取得側の文言をそのまま返す","name":"pnpm install などの失敗は、theme-install として、取得側の文言をそのまま返す","status":"passed","testResultsByEnv":{"default":"c3cd3ee3ec78c520959ff8865ba72737"}}

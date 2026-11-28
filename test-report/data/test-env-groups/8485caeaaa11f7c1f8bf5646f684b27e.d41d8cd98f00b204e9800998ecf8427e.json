@@ -1,0 +1,1 @@
+{"id":"8485caeaaa11f7c1f8bf5646f684b27e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/plugin-manifests.test.ts#プラグインの 2 組の manifest plugin.json は 1.0 の閉じたスキーマに無いキーを持たず、description を持つ","name":"plugin.json は 1.0 の閉じたスキーマに無いキーを持たず、description を持つ","status":"passed","testResultsByEnv":{"default":"8c81c5aa2a6da25fdb208c670ae94f82"}}

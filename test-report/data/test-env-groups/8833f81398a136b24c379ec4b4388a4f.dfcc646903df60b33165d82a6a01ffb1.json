@@ -1,0 +1,1 @@
+{"id":"8833f81398a136b24c379ec4b4388a4f.dfcc646903df60b33165d82a6a01ffb1","fullName":".githooks.tests.test_nx_task_cache#test_non_cacheable_target_says_cache_false","name":"text-rules:build は、cache を false と明示している","status":"passed","testResultsByEnv":{"default":"f62fb4e566ec0db5079e9d49c2331f63"}}

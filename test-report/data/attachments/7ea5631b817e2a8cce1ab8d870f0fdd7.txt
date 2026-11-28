@@ -1,0 +1,2 @@
+created: config file /tmp/pecot-cli-fNGtyv/.pecot/config/projects/github.com_acme_1.json
+set: active project to github.com_acme_1

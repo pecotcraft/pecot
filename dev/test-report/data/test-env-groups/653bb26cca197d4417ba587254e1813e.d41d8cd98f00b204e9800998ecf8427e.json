@@ -1,0 +1,1 @@
+{"id":"653bb26cca197d4417ba587254e1813e.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#ルートの onFail が download でないと、静的確認が落ちる","name":"ルートの onFail が download でないと、静的確認が落ちる","status":"passed","testResultsByEnv":{"default":"90c429cf4d679d13ff37d7afbdfa73f3"}}

@@ -1,0 +1,1 @@
+{"id":"9bb43b1012a0e18dc679144b7d8794bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 失敗したときの structuredContent も、outputSchema に適合する","name":"失敗したときの structuredContent も、outputSchema に適合する","status":"passed","testResultsByEnv":{"default":"e384a41be7746642ce5304a23e9e64ea"}}

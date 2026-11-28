@@ -1,0 +1,1 @@
+{"id":"1df7ef11aa6f0db40978cb0879b1968e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_release_group_changelog#test_empty_file_fails","name":"CHANGELOG が空ファイルだと、失敗で終わる","status":"passed","testResultsByEnv":{"default":"f53ee3d5a36529bbae58f00a0b463474"}}

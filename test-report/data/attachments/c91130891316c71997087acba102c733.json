@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "workflow template auto is outdated (installed 0, bundled 3)\n  update it with: workflow_install with name: \"auto\", force: true"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"not-ready\",\"detail\":\"workflow template auto is outdated (installed 0, bundled 3)\\n  update it with: workflow_install with name: \\\"auto\\\", force: true\",\"path\":\".github/workflows/pecot-auto.yml\",\"version\":3,\"installedVersion\":0,\"written\":false,\"upToDate\":false}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "not-ready",
+    "detail": "workflow template auto is outdated (installed 0, bundled 3)\n  update it with: workflow_install with name: \"auto\", force: true",
+    "path": ".github/workflows/pecot-auto.yml",
+    "version": 3,
+    "installedVersion": 0,
+    "written": false,
+    "upToDate": false
+  },
+  "isError": true
+}

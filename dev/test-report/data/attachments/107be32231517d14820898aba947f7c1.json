@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "no restack in progress\n  to restack the branch, call pr_restack"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"no restack in progress\\n  to restack the branch, call pr_restack\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "no restack in progress\n  to restack the branch, call pr_restack"
+  },
+  "isError": true
+}

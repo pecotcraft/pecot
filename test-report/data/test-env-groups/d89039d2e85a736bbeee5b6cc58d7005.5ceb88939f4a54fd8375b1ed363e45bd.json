@@ -1,0 +1,1 @@
+{"id":"d89039d2e85a736bbeee5b6cc58d7005.5ceb88939f4a54fd8375b1ed363e45bd","fullName":".githooks.tests.test_check_pytest_titles#test_passes_when_title_and_docstring_exist","name":"題と 1 段落の docstring を持つテストは止めない","status":"passed","testResultsByEnv":{"default":"5a987d2513fc53f832992f65104750c1"}}

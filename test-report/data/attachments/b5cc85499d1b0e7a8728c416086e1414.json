@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "template must be 'default' or 'release' (given: invalid)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"template must be 'default' or 'release' (given: invalid)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "template must be 'default' or 'release' (given: invalid)"
+  },
+  "isError": true
+}

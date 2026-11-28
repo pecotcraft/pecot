@@ -1,0 +1,1 @@
+{"id":"ef0071f6af291a8b21a3917838d9daed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: chromium browsers root を特定できなくても例外を出さずに返す","name":"browsers root を特定できなくても例外を出さずに返す","status":"passed","testResultsByEnv":{"default":"d7da4519292db5eaec9f16e6933048e6"}}

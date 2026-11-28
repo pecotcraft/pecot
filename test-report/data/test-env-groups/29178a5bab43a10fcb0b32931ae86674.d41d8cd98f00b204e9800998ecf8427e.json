@@ -1,0 +1,1 @@
+{"id":"29178a5bab43a10fcb0b32931ae86674.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/config.test.ts#PipelineConfig 型 必須の項目をすべて指定した設定は、presDir と onlySlide が指定した値のままになる","name":"必須の項目をすべて指定した設定は、presDir と onlySlide が指定した値のままになる","status":"passed","testResultsByEnv":{"default":"7865621cabf2d178eb3c2473ff60e2c1"}}

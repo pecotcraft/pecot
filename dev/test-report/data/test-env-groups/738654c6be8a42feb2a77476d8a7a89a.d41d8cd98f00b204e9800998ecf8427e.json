@@ -1,0 +1,1 @@
+{"id":"738654c6be8a42feb2a77476d8a7a89a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool 実行時依存を失っていても stop は通る","name":"実行時依存を失っていても stop は通る","status":"passed","testResultsByEnv":{"default":"a5f25126e480a73f75d3c348d549a4e2"}}

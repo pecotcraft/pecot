@@ -1,0 +1,1 @@
+{"id":"26e28ca552af1e3ea17006aa8d67e66d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine addNextSiblingXml は、自身の直後に挿入し、最後の子の場合は末尾に追加する","name":"addNextSiblingXml は、自身の直後に挿入し、最後の子の場合は末尾に追加する","status":"passed","testResultsByEnv":{"default":"f4005ec9c2cdab77c6fff4690f5af1fd"}}

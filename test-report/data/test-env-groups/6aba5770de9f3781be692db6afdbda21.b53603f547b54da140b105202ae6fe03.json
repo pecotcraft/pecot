@@ -1,0 +1,1 @@
+{"id":"6aba5770de9f3781be692db6afdbda21.b53603f547b54da140b105202ae6fe03","fullName":".githooks.tests.test_nx_task_cache#test_cacheable_target_declares_runtime_and_env","name":"nx-release:lint-types は、キャッシュを有効にし、runtime と環境変数を入力に宣言する","status":"passed","testResultsByEnv":{"default":"4969422a276ebef5a62fbb09780ddf88"}}

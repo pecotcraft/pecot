@@ -1,0 +1,2 @@
+warning: this board uses the old field name pecot-workflow-acme and still has fields pecot does not use: pecot-priority, pecot-size
+  call project_init with owner: "acme", name: <name>, host: "github.com"

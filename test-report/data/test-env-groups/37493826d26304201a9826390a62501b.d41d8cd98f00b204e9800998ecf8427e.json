@@ -1,0 +1,1 @@
+{"id":"37493826d26304201a9826390a62501b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_real_04_pass_project_json_with_own_plan","name":"実際の nx で、project.json の変更は、ほかの project が affected になっても、自分の group の宣言だけで成功する","status":"passed","testResultsByEnv":{"default":"cf8d8605e02fa76b905ee9fdd99d8b76"}}

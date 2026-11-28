@@ -1,0 +1,1 @@
+{"id":"8b6347e51517d587194737e10ac794fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/lint-distribution.test.ts#pecot-actions:lint-dist commit した古い dist が build の前の削除で消えていると、そのファイルを出して失敗する","name":"commit した古い dist が build の前の削除で消えていると、そのファイルを出して失敗する","status":"passed","testResultsByEnv":{"default":"7462d84b34a52fe5035937fe20a3824a"}}

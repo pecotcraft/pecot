@@ -1,0 +1,1 @@
+{"id":"05183317b6015bb756eaeb81ed2e1ff7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#アイテムの追加・更新・削除 deleteProjectItem は、削除したアイテムの ID を返す","name":"deleteProjectItem は、削除したアイテムの ID を返す","status":"passed","testResultsByEnv":{"default":"e0805d242d25a1b3bea71fd53f22d1d0"}}

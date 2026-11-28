@@ -1,0 +1,1 @@
+{"issue":"acme/demo/7","number":7,"kind":"","proceed":false,"reason":"the run is not for the head of feat/fix-x/7","branch":"","pr":0,"ci_attempts":0}

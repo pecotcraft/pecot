@@ -1,0 +1,1 @@
+{"id":"a306e295c32e222fc27f64ffa7c11354.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 縮小と EMU 幅が 960 以下の画像は、拡大せず、原寸のまま配置する","name":"幅が 960 以下の画像は、拡大せず、原寸のまま配置する","status":"passed","testResultsByEnv":{"default":"98dbd0d08e758c23357051f0b65b111a"}}

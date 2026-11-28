@@ -1,0 +1,1 @@
+{"id":"14b01734a0f70204e5bcff8a4556d0b9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_local_hook_entry_scripts_exist","name":"local hook の entry のスクリプトは、すべて実在する","status":"passed","testResultsByEnv":{"default":"b50dbf57e3b2dac59e2ce7d1257a6265"}}

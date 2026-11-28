@@ -1,0 +1,1 @@
+{"id":"a709648f22774ee9d3fb9edaafe77343.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_search MCP の data タイトルが 38 文字を超えても、projects の title は切り詰めない","name":"タイトルが 38 文字を超えても、projects の title は切り詰めない","status":"passed","testResultsByEnv":{"default":"c1fb095b4e1123da5e217504d1b002c3"}}

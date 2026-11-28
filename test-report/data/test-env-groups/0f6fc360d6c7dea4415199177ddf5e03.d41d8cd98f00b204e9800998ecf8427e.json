@@ -1,0 +1,1 @@
+{"id":"0f6fc360d6c7dea4415199177ddf5e03.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init pecot-lane と Lanes のビュー pecot-lane を作っても、設定ファイルに pecot-lane の欄と選択肢を書かない","name":"pecot-lane を作っても、設定ファイルに pecot-lane の欄と選択肢を書かない","status":"passed","testResultsByEnv":{"default":"253d28b853953b344729af4f131a7c10"}}

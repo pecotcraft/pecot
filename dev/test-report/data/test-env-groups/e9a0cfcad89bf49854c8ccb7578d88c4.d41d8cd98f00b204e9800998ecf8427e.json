@@ -1,0 +1,1 @@
+{"id":"e9a0cfcad89bf49854c8ccb7578d88c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository mcp_output MCP の面を持つ項目が mcp_output を書いていないと、書くことを求める検証エラーにする","name":"MCP の面を持つ項目が mcp_output を書いていないと、書くことを求める検証エラーにする","status":"passed","testResultsByEnv":{"default":"ae91ebddb9a0d7b6cd06a1da550e3283"}}

@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "cannot start the Slidev dev server: port 34155 is in use; tell the user that port 34155 is in use, ask which port to use, then call again"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.dev.error\",\"dir\":\"/tmp/pecotv-test-e2e-RwAbtu/dev-talk\",\"kind\":\"dev-server-port-in-use\",\"detail\":\"cannot start the Slidev dev server: port 34155 is in use; tell the user that port 34155 is in use, ask which port to use, then call again\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.dev.error",
+    "dir": "/tmp/pecotv-test-e2e-RwAbtu/dev-talk",
+    "kind": "dev-server-port-in-use",
+    "detail": "cannot start the Slidev dev server: port 34155 is in use; tell the user that port 34155 is in use, ask which port to use, then call again"
+  },
+  "isError": true
+}

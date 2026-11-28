@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-STS-GET-CALLER-IDENTITY
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+Get caller identity
+======================================
+
+.. iface-defs:: pecot-tools PT-AWS-STS-GET-CALLER-IDENTITY

@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "spy"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"spy\",\"dir\":\"/spy\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "spy",
+    "dir": "/spy"
+  }
+}

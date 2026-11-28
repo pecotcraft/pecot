@@ -1,0 +1,1 @@
+{"id":"4cfafdeb13b6e33d575ceaaf67c17af7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/process-run.test.ts#runProcess 呼び出し元が SIGHUP を受けると、子プロセスのグループへ SIGHUP を送信してから、自分にも再送する","name":"呼び出し元が SIGHUP を受けると、子プロセスのグループへ SIGHUP を送信してから、自分にも再送する","status":"passed","testResultsByEnv":{"default":"e741db42a61ffa4de92a13cf24cbfb0f"}}

@@ -1,0 +1,1 @@
+{"id":"275279b05537ca5ea5f2c7438d64495f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#nxProjects 処理を取り消した場合は、nx を停止して CancelledError を送出し、graph ファイルを削除する","name":"処理を取り消した場合は、nx を停止して CancelledError を送出し、graph ファイルを削除する","status":"passed","testResultsByEnv":{"default":"e9d691802ea0437505b1ef530a1fcdf9"}}

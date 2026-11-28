@@ -1,0 +1,1 @@
+{"id":"5890ecb1005b714b625767a4231692f9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/arguments.test.ts#buildArguments 位置引数が指定されていないときは、その位置の引数を含めない","name":"位置引数が指定されていないときは、その位置の引数を含めない","status":"passed","testResultsByEnv":{"default":"a2b5c43870999929331bf45926e9bb86"}}

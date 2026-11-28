@@ -1,0 +1,1 @@
+{"id":"7f42daf6fe642991d42bc0d6f1443c92.c1de90839ff4d17e1e1d836cbf56248e","fullName":".githooks.tests.test_report_generate#test_real_allure_builds_from_empty_history_after_unreadable_lines","name":"履歴に読めない行(u2028)があると、本物の allure でも空の履歴からレポートを作る","status":"passed","testResultsByEnv":{"default":"d5246ab3766338870dbfa047421a0b49"}}

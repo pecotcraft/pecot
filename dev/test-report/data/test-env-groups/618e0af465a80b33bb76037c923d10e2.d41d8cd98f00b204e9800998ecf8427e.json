@@ -1,0 +1,1 @@
+{"id":"618e0af465a80b33bb76037c923d10e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#hasBoldEmphasis 複数の <strong> で全文を覆っても、false を返す","name":"複数の <strong> で全文を覆っても、false を返す","status":"passed","testResultsByEnv":{"default":"bae9f32d5dc3885f91acbd637911b6c3"}}

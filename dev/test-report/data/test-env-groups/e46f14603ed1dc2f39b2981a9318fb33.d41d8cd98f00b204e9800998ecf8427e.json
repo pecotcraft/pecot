@@ -1,0 +1,1 @@
+{"id":"e46f14603ed1dc2f39b2981a9318fb33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#共通スキーマ 全ツールの outputSchema に並べる共通の項目は、kind、detail、log、warnings の 4 つになる","name":"全ツールの outputSchema に並べる共通の項目は、kind、detail、log、warnings の 4 つになる","status":"passed","testResultsByEnv":{"default":"bb9e8b3cd494b7e5576a2f7f8be4aec8"}}

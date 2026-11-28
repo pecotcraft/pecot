@@ -1,0 +1,1 @@
+{"id":"828cbf6ce6b5d3bea7ffbb6c177cac79.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#Python reads Python のソースに items() があると、名前を解決できない行を 1 件返し、名前は返さない","name":"Python のソースに items() があると、名前を解決できない行を 1 件返し、名前は返さない","status":"passed","testResultsByEnv":{"default":"ab44440de8c38c1c1fd4e3a89806581d"}}

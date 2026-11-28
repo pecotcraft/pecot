@@ -1,0 +1,1 @@
+{"id":"23a2be03f721223e8eb424484508512b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/sso.test.ts#ssoTools 状態が pending のときの状態確認は、state、URL、コードだけを返す","name":"状態が pending のときの状態確認は、state、URL、コードだけを返す","status":"passed","testResultsByEnv":{"default":"665e4326a82c8d954039db9f571a7b39"}}

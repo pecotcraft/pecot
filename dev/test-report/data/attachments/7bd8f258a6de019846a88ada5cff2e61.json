@@ -1,0 +1,5 @@
+{
+  "image": "pecot-ci-local",
+  "workspaceFolder": "/workspaces/pecot",
+  "workspaceMount": "source=x,target=/workspaces/pecot,type=bind"
+}

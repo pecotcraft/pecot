@@ -1,0 +1,1 @@
+{"id":"2f10e98df1e41a257413c0fb5939c6fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#judgeMove base が別の PR の head を経て開発ブランチに届けば、届かない PR の base だけを理由にする","name":"base が別の PR の head を経て開発ブランチに届けば、届かない PR の base だけを理由にする","status":"passed","testResultsByEnv":{"default":"bf26fef1905250f80cd2c153aa381ff4"}}

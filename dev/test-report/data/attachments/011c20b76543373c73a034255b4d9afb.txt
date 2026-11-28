@@ -1,0 +1,4 @@
+ずれは 1 件
+workflows / pecot-handoff.yml
+  このリポ: blob d72f4d703f20、6 行目:       - uses: anthropics/claude-code-action@0
+  検証用: blob 647d39388ec8、6 行目:       - uses: anthropics/claude-code-action@1

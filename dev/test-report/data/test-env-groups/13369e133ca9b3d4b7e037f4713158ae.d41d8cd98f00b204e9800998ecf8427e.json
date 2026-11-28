@@ -1,0 +1,1 @@
+{"id":"13369e133ca9b3d4b7e037f4713158ae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#executeSlideLint 本文とノートの違反をファイル行付きで slide.lint.violations に載せる","name":"本文とノートの違反をファイル行付きで slide.lint.violations に載せる","status":"passed","testResultsByEnv":{"default":"d4b7e257ce9c5ee8f8f11a9761fceab6"}}

@@ -1,0 +1,1 @@
+{"id":"922da18f2d1c30efddf680ec86d377f1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-tools.test.ts#MCP のツール (stdio) エラーを返した呼び出しの後も、同じプロセスが次の呼び出しに応答する","name":"エラーを返した呼び出しの後も、同じプロセスが次の呼び出しに応答する","status":"passed","testResultsByEnv":{"default":"b7de83f45727d1f2990cf35a29bbedf7"}}

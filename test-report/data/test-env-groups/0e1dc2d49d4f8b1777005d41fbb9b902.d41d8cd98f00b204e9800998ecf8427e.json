@@ -1,0 +1,1 @@
+{"id":"0e1dc2d49d4f8b1777005d41fbb9b902.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/common.test.ts#対象を決めないツールで repo を省くと、カレントの git の origin remote のリポジトリを対象にする","name":"対象を決めないツールで repo を省くと、カレントの git の origin remote のリポジトリを対象にする","status":"passed","testResultsByEnv":{"default":"0ae52c02d934d68e2270ca2019bb1116"}}

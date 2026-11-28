@@ -1,0 +1,1 @@
+{"id":"567f8ab536e8b25b0d31ab2fd66ae20d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/_shared/tests/drawio-geometry.test.ts#drawioGeometry: セル解決 複数のレイヤに図形があると、すべて解決して外接矩形に含める","name":"複数のレイヤに図形があると、すべて解決して外接矩形に含める","status":"passed","testResultsByEnv":{"default":"777d1ab752d985f1d17a6e80fbe1f91a"}}

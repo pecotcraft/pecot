@@ -1,0 +1,1 @@
+{"id":"2ca4f85e6becfbd66936fa05662b5b9a.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#例外リストが空だと、永続層の high で中止し、監査記録を残さない","name":"例外リストが空だと、永続層の high で中止し、監査記録を残さない","status":"passed","testResultsByEnv":{"default":"495a268a8d07daa50aeb904f75eb262f"}}

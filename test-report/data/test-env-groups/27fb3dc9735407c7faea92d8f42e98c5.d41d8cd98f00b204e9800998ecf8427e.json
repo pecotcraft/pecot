@@ -1,0 +1,1 @@
+{"id":"27fb3dc9735407c7faea92d8f42e98c5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript バッククォートで囲んだテンプレート文字列にも、違反があれば指摘を返す","name":"バッククォートで囲んだテンプレート文字列にも、違反があれば指摘を返す","status":"passed","testResultsByEnv":{"default":"980f91fe7898c9ef43616ccfa4e7fa47"}}

@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: worktree wt1 at /tmp/pecot-parity-cM9oiw/wt1/demo (branch wt1 from main)"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt1\",\"path\":\"/tmp/pecot-parity-cM9oiw/wt1/demo\",\"branch\":\"wt1\",\"base\":\"main\",\"setupFailed\":true,\"warnings\":[\"symlink creation skipped because the path is tracked by git: /tmp/pecot-parity-cM9oiw/wt1/demo/CLAUDE.local.md\",\"setup command failed (exit 3): echo hi; echo oops >&2; exit 3\\n  out: hi\\n  err: oops\"]}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt1",
+    "path": "/tmp/pecot-parity-cM9oiw/wt1/demo",
+    "branch": "wt1",
+    "base": "main",
+    "setupFailed": true,
+    "warnings": [
+      "symlink creation skipped because the path is tracked by git: /tmp/pecot-parity-cM9oiw/wt1/demo/CLAUDE.local.md",
+      "setup command failed (exit 3): echo hi; echo oops >&2; exit 3\n  out: hi\n  err: oops"
+    ]
+  }
+}

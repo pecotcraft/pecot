@@ -1,0 +1,8 @@
+:iface-id: PA-GITHUB-OPS
+:iface-plugin: pecot-actions
+:iface-kind: Action
+
+github ops
+====================
+
+.. iface-defs:: pecot-actions PA-GITHUB-OPS

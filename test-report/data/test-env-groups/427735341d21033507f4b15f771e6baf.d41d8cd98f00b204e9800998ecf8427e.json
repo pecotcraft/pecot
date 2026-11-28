@@ -1,0 +1,1 @@
+{"id":"427735341d21033507f4b15f771e6baf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start 作業対象を記録できないと、warning の行を標準エラーに出して終了コード 0 で終わる","name":"作業対象を記録できないと、warning の行を標準エラーに出して終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"b8a5356752195301336d9d96ac433c1e"}}

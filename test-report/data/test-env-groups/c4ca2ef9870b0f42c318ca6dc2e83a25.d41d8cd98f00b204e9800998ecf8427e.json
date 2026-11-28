@@ -1,0 +1,1 @@
+{"id":"c4ca2ef9870b0f42c318ca6dc2e83a25.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#judgeReadiness の順 順 7: 列が Pending の前提 は pending として not-in-review になる","name":"順 7: 列が Pending の前提 は pending として not-in-review になる","status":"passed","testResultsByEnv":{"default":"d047d60f1b966dd6a58286e963485258"}}

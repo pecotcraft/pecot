@@ -1,0 +1,1 @@
+{"id":"66755c7bf2c2459d7efe376a32f0ec66.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/max-chars-rule.test.ts#要素の数が max_items を超えると、要素に違反が無ければ maxItems だけを報告する","name":"要素の数が max_items を超えると、要素に違反が無ければ maxItems だけを報告する","status":"passed","testResultsByEnv":{"default":"4e69dc118e14492d92827d4681867202"}}

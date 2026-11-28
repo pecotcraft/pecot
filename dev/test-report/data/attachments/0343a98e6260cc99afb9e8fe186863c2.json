@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ok"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[],\"deletable\":[\"pecot-priority\",\"pecot-size\",\"pecot-workflow-acme\"]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [],
+    "deletable": [
+      "pecot-priority",
+      "pecot-size",
+      "pecot-workflow-acme"
+    ]
+  }
+}

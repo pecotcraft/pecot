@@ -1,0 +1,1 @@
+{"id":"e9623a4a6c59a45425a52466f715062c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory シンボリックリンク越しのプラグインのルートでも、実体で比較して中と判定する","name":"シンボリックリンク越しのプラグインのルートでも、実体で比較して中と判定する","status":"passed","testResultsByEnv":{"default":"d0ac1fa1721b87b28c38288de1352e38"}}

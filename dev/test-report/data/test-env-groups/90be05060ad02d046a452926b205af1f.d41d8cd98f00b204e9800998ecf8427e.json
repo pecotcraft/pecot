@@ -1,0 +1,1 @@
+{"id":"90be05060ad02d046a452926b205af1f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings 入力が空 のとき、引用符を含まない本文だけを切り出す","name":"入力が空 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"5eac50c85a2c79121b36b0071acf5141"}}

@@ -1,0 +1,1 @@
+{"id":"ca969695a851cc74dc748fc5eb6f6f2b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#isReleasePullRequest develop から release のブランチへの PR は、リリース PR と判定する","name":"develop から release のブランチへの PR は、リリース PR と判定する","status":"passed","testResultsByEnv":{"default":"44a382715aae12ff830def00f579a433"}}

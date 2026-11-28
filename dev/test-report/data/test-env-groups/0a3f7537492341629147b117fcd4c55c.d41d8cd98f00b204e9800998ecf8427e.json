@@ -1,0 +1,1 @@
+{"id":"0a3f7537492341629147b117fcd4c55c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#引数の組み立て aws_logs_filter_log_events に文字列の一覧を渡すと、1 要素ごとに 1 つの引数として並べて実行する","name":"aws_logs_filter_log_events に文字列の一覧を渡すと、1 要素ごとに 1 つの引数として並べて実行する","status":"passed","testResultsByEnv":{"default":"f2cf2909581ee6453c8df528d73a5ea6"}}

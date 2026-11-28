@@ -1,0 +1,1 @@
+{"id":"beae718fafd5d4f17f944c13db10e12b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show 子 PR アクティブな Issue を読めないとき、子 PR を読まない","name":"アクティブな Issue を読めないとき、子 PR を読まない","status":"passed","testResultsByEnv":{"default":"227b86e2ba2a0a80b40e1d8ac713f54d"}}

@@ -1,0 +1,19 @@
+[
+  "githooks:test-checks",
+  "githooks:test-ci",
+  "githooks:test-nx-affected",
+  "githooks:test-nx-cache",
+  "interface-spec:install",
+  "interface-spec:test-site",
+  "interface-spec:test-unit",
+  "pecot-workflow:build-cli",
+  "pecot-workflow:install",
+  "pecot-workflow:test-cli",
+  "pecot:install",
+  "text-rules:build",
+  "text-rules:install",
+  "text-rules:test-unit",
+  "workflow-core:build",
+  "workflow-core:install",
+  "workflow-core:test-unit"
+]

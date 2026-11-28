@@ -1,0 +1,1 @@
+{"id":"dfafaa8b437ac7b99f1fc8dd14d0244f.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.test.sh#release group が空の出力 で中止したとき監査記録を残さない","name":"release group が空の出力 で中止したとき監査記録を残さない","status":"passed","testResultsByEnv":{"default":"2edeaacf109ee95d6215e2a7e7e6f536"}}

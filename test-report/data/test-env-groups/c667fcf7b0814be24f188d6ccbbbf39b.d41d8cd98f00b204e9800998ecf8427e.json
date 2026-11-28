@@ -1,0 +1,1 @@
+{"id":"c667fcf7b0814be24f188d6ccbbbf39b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#本体の runtime manifest との整合 manifest の overrides は、永続層のインストール計画へ引き継ぐ","name":"manifest の overrides は、永続層のインストール計画へ引き継ぐ","status":"passed","testResultsByEnv":{"default":"f83d6f69ead0aeb974b07d8418219467"}}

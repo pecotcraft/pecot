@@ -1,0 +1,1 @@
+{"id":"67e62c7c1a967a073d5833670ed85b04.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-sweep.test.ts#sandbox-sweep.sh 契約の 6 つの場合 --dry-run を指定すると、書き換えずに一覧だけを表示する","name":"--dry-run を指定すると、書き換えずに一覧だけを表示する","status":"passed","testResultsByEnv":{"default":"f973bc9ad4675f969f3f9583fff6b9d4"}}

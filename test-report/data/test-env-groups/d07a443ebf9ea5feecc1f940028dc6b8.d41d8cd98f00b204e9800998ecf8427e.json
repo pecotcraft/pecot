@@ -1,0 +1,1 @@
+{"id":"d07a443ebf9ea5feecc1f940028dc6b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#extractReferencesIssueNumbers 同じリポジトリを owner/repo#N や owner/repo/N で書くと、番号を返す","name":"同じリポジトリを owner/repo#N や owner/repo/N で書くと、番号を返す","status":"passed","testResultsByEnv":{"default":"67d68d8ea751859a29a36a08e5bd2ff6"}}

@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "merge_method: merge_method must be merge (given: squash): a release PR keeps the history of the develop branch"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"merge_method\",\"code\":\"merge-method\",\"message\":\"merge_method must be merge (given: squash): a release PR keeps the history of the develop branch\",\"candidates\":[\"merge\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "merge_method",
+        "code": "merge-method",
+        "message": "merge_method must be merge (given: squash): a release PR keeps the history of the develop branch",
+        "candidates": [
+          "merge"
+        ]
+      }
+    ]
+  }
+}

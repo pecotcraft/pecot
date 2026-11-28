@@ -1,0 +1,1 @@
+{"id":"99106ab2c8cdf2b9b16a9357c231acd8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 着手の跡の無い Active と In Review の Issue を、判定に合った列へ戻す","name":"着手の跡の無い Active と In Review の Issue を、判定に合った列へ戻す","status":"passed","testResultsByEnv":{"default":"825fc1e2a682ef9990099d6e377c5d25"}}

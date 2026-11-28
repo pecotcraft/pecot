@@ -1,0 +1,1 @@
+{"id":"f840b1f1828ec8d1c0c9c0f4a11d879c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-state-guard.test.ts#pecot-state-guard.sh .pecot があり .gitignore が無いとき、.gitignore を生成してからディレクトリを作る","name":".pecot があり .gitignore が無いとき、.gitignore を生成してからディレクトリを作る","status":"passed","testResultsByEnv":{"default":"57ae744031e893b360616f30f90a49b6"}}

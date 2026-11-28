@@ -1,0 +1,1 @@
+{"id":"0cb9999bbce697f7141586e3b01e9dbe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#formatValidationError 入力値の repr が 50 文字ちょうどの場合は、省略しない","name":"入力値の repr が 50 文字ちょうどの場合は、省略しない","status":"passed","testResultsByEnv":{"default":"d542db68b69cc53d0ce4e78afa624d11"}}

@@ -1,0 +1,1 @@
+{"id":"0753dedc74d6e2b1bc6e96c9c4844def.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/server.test.ts#createMcpServer クライアントのキャンセル [modern] 実行中のツールをキャンセルしても、直後に呼び出した別のツールが完了する","name":"実行中のツールをキャンセルしても、直後に呼び出した別のツールが完了する","status":"passed","testResultsByEnv":{"default":"0d5513793a6b976941528d9d5af69d91"}}

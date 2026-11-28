@@ -1,0 +1,1 @@
+{"id":"bdff8071edd0a11401d61c801bb0fdf2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/entry-point-linter.test.ts#check-entry-point-logic.sh ロジック（mkdir・touch・rm）を含むとき、VIOLATION を報告する","name":"ロジック（mkdir・touch・rm）を含むとき、VIOLATION を報告する","status":"passed","testResultsByEnv":{"default":"8d5ae80e900118d1abac0aa428be11a2"}}

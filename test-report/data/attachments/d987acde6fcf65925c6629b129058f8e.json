@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid input: directory: Directory '/tmp/pecot-project-ob2fmg/locked' is not readable."
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid input: directory: Directory '/tmp/pecot-project-ob2fmg/locked' is not readable.\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: directory: Directory '/tmp/pecot-project-ob2fmg/locked' is not readable."
+  },
+  "isError": true
+}

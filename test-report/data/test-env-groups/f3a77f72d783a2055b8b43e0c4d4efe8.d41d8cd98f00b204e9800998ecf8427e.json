@@ -1,0 +1,1 @@
+{"id":"f3a77f72d783a2055b8b43e0c4d4efe8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#runSlideSync エラー伝播 リンクの張り直し中に使い方エラーが発生した場合は、別のエラーに包まずそのまま返す","name":"リンクの張り直し中に使い方エラーが発生した場合は、別のエラーに包まずそのまま返す","status":"passed","testResultsByEnv":{"default":"c6d3f74b7c1baf6f6b2b2254da941271"}}

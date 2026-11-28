@@ -1,0 +1,10 @@
+[
+  "pecot-workflow:build-cli",
+  "pecot-workflow:install",
+  "pecot-workflow:test-cli",
+  "pecot-workflow:test-hooks",
+  "pecot-workflow:test-release",
+  "pecot:install",
+  "workflow-core:build",
+  "workflow-core:install"
+]

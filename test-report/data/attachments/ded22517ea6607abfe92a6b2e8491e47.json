@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: worktree wt1 at /tmp/pecot-cli-F9iCCm/workspaces/wt1/demo (branch wt1 from develop)"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt1\",\"path\":\"/tmp/pecot-cli-F9iCCm/workspaces/wt1/demo\",\"branch\":\"wt1\",\"base\":\"develop\",\"setupFailed\":false,\"warnings\":[\"target does not exist: /tmp/pecot-cli-F9iCCm/workspaces/base/demo/CLAUDE.local.md\"]}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt1",
+    "path": "/tmp/pecot-cli-F9iCCm/workspaces/wt1/demo",
+    "branch": "wt1",
+    "base": "develop",
+    "setupFailed": false,
+    "warnings": [
+      "target does not exist: /tmp/pecot-cli-F9iCCm/workspaces/base/demo/CLAUDE.local.md"
+    ]
+  }
+}

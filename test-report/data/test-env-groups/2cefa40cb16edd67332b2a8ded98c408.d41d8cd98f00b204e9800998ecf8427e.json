@@ -1,0 +1,1 @@
+{"id":"2cefa40cb16edd67332b2a8ded98c408.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/text-violation.test.ts#SC-002 止める場所ごとの規則名の一致 pecot-text-lint（bin）の .ts の文字列 のとき、ほかの止める場所と同じ 3 つの規則名を返す","name":"pecot-text-lint（bin）の .ts の文字列 のとき、ほかの止める場所と同じ 3 つの規則名を返す","status":"passed","testResultsByEnv":{"default":"6820d8288e4dacfc095255f9fa78352d"}}

@@ -1,0 +1,1 @@
+{"id":"0f89bf6a888198d3e4499551f4f331fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-table-cell-background.test.ts#require-table-cell-background valid 表を包む外側の要素に背景があると、報告しない","name":"表を包む外側の要素に背景があると、報告しない","status":"passed","testResultsByEnv":{"default":"f42f2a838e1ad9f89f15ed32d74d6ca8"}}

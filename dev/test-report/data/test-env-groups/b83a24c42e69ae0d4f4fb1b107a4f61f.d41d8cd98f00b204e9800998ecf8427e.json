@@ -1,0 +1,1 @@
+{"id":"b83a24c42e69ae0d4f4fb1b107a4f61f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#cacheDirectoryOf 出力ディレクトリを渡した場合は、その配下の cache ディレクトリを返す","name":"出力ディレクトリを渡した場合は、その配下の cache ディレクトリを返す","status":"passed","testResultsByEnv":{"default":"cd4b3dc9ec362c010837f570fa126b35"}}

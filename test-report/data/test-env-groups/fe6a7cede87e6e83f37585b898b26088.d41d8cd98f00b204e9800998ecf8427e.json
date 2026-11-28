@@ -1,0 +1,1 @@
+{"id":"fe6a7cede87e6e83f37585b898b26088.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 開き直しの指定先が使用中なら、既存を止めずに失敗を返す","name":"開き直しの指定先が使用中なら、既存を止めずに失敗を返す","status":"passed","testResultsByEnv":{"default":"dce77cc1a2b64e90549ae9cd03ed5b88"}}

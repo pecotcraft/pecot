@@ -1,0 +1,38 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ok"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[{\"issue\":\"#5\",\"wait\":\"stack\"}],\"approach\":\"stack\",\"stackOn\":\"#5\"}],\"stackableChains\":[[\"#5\",\"issues[0]\"]],\"warnings\":[\"whether the Issue can stack on its prerequisites is not decided: pass the result of pull_request_read (method get) for acme/demo#11 in reads.pull_requests to decide it; Ready and Blocked are both accepted\"]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [
+          {
+            "issue": "#5",
+            "wait": "stack"
+          }
+        ],
+        "approach": "stack",
+        "stackOn": "#5"
+      }
+    ],
+    "stackableChains": [
+      [
+        "#5",
+        "issues[0]"
+      ]
+    ],
+    "warnings": [
+      "whether the Issue can stack on its prerequisites is not decided: pass the result of pull_request_read (method get) for acme/demo#11 in reads.pull_requests to decide it; Ready and Blocked are both accepted"
+    ]
+  }
+}

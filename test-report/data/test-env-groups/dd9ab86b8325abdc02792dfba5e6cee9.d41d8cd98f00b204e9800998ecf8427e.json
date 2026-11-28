@@ -1,0 +1,1 @@
+{"id":"dd9ab86b8325abdc02792dfba5e6cee9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_store_passes_the_report_tar_and_sources_for_a_report","name":"保管の job は、種類に応じて渡す tar と材料のファイルを切り替える","status":"passed","testResultsByEnv":{"default":"24da924b59840f67e5b5c066ee4300af"}}

@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "allow",
+    "permissionDecisionReason": "note: reviewer-clone-allow: allowed automatically because this is a standard git clone into .pecot/work/<Issue number>/reviewer/"
+  }
+}

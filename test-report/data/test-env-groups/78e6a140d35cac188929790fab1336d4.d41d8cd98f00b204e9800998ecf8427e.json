@@ -1,0 +1,1 @@
+{"id":"78e6a140d35cac188929790fab1336d4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight 差分は git の fetch や rev-list ではなく、渡した数え方で release から develop へ数える","name":"差分は git の fetch や rev-list ではなく、渡した数え方で release から develop へ数える","status":"passed","testResultsByEnv":{"default":"3915f8ad1005548780139dce3bfefa34"}}

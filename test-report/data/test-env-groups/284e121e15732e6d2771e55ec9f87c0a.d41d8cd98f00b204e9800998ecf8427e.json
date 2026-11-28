@@ -1,0 +1,1 @@
+{"id":"284e121e15732e6d2771e55ec9f87c0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-lint-reason.test.ts#errorToReason 例外 ThemeResolveError: x に対して、reason theme-none を返す","name":"例外 ThemeResolveError: x に対して、reason theme-none を返す","status":"passed","testResultsByEnv":{"default":"e290ccb7b39ba3ea62f078321b43f2dc"}}

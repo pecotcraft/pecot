@@ -1,0 +1,1 @@
+{"id":"4f5fdf98dfa28cc75b7bba81647786e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/tests/node-runtime.test.ts#最低版の記述の整合 ../../../package.json の engines.node が最低版の表と同じ境界を宣言する","name":"../../../package.json の engines.node が最低版の表と同じ境界を宣言する","status":"passed","testResultsByEnv":{"default":"6fe25b5b97adcc59881ed00ad4f6f9f3"}}

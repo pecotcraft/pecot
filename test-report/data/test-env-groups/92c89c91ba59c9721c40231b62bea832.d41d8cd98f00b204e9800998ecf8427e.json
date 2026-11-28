@@ -1,0 +1,1 @@
+{"id":"92c89c91ba59c9721c40231b62bea832.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/os-error.test.ts#toOsError errno の対応表に存在しない code の場合は、元の message をそのまま使う","name":"errno の対応表に存在しない code の場合は、元の message をそのまま使う","status":"passed","testResultsByEnv":{"default":"dc49558c8b8a493f7bb644c04e56358c"}}

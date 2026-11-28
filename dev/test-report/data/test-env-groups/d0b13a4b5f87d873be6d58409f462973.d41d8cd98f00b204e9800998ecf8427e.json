@@ -1,0 +1,1 @@
+{"id":"d0b13a4b5f87d873be6d58409f462973.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator shared files layout_categories が配列でないと、検証に失敗する","name":"layout_categories が配列でないと、検証に失敗する","status":"passed","testResultsByEnv":{"default":"e567ff1e8120f4b0bdc0aa087be11cd8"}}

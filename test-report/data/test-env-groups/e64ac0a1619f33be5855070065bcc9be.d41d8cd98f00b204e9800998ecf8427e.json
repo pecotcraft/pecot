@@ -1,0 +1,1 @@
+{"id":"e64ac0a1619f33be5855070065bcc9be.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#runMcpServe プロセスが終了する場合にも、開発用サーバーを停止する","name":"プロセスが終了する場合にも、開発用サーバーを停止する","status":"passed","testResultsByEnv":{"default":"c56dd9b5b134ff171a17a237e59ac11d"}}

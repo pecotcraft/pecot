@@ -1,0 +1,1 @@
+{"id":"04f15782e7239467665e308353a36bcc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/links.test.ts#scanBehaviorIds 桁が多い ID や、前後に文字が付いた ID は、拾わない","name":"桁が多い ID や、前後に文字が付いた ID は、拾わない","status":"passed","testResultsByEnv":{"default":"a1ed6b2101ae45b470019aba6de0f2d3"}}

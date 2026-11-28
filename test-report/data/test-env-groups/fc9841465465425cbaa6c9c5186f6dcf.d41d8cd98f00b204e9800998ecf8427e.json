@@ -1,0 +1,1 @@
+{"id":"fc9841465465425cbaa6c9c5186f6dcf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/names.test.ts#読むだけの動詞と effects read_only の語を含む名前の項目に write の effects があると、authored.yaml の検証エラーにする","name":"read_only の語を含む名前の項目に write の effects があると、authored.yaml の検証エラーにする","status":"passed","testResultsByEnv":{"default":"4b4e78b72be6e251805646f1aaaee803"}}

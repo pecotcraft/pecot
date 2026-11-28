@@ -1,0 +1,3 @@
+aws: [ERROR]: Your session has expired. Please reauthenticate using 'aws login'.
+ERROR: AWS の認証情報を得られません。ログインが切れていれば、別の端末で次を打ってから、打ち直してください
+  aws login --remote --profile pecot --region ap-southeast-2

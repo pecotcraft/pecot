@@ -1,0 +1,1 @@
+{"id":"d012fde2e77914bffb65f687a2055f2c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-ready の手順 w-ready の完了報告は、ボードに足せなかったときや列を書けなかったときに、その理由を伝える","name":"w-ready の完了報告は、ボードに足せなかったときや列を書けなかったときに、その理由を伝える","status":"passed","testResultsByEnv":{"default":"7955b21b9c66ceff303f7dc1ac36ee30"}}

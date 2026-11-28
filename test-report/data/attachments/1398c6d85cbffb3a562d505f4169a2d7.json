@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "push was rejected: To ghes.example.com:acme/demo.git\n   ! [remote rejected] feat/demo/12 -> feat/demo/12 (pre-receive hook declined)\n  error: failed to push some refs to 'ghes.example.com:acme/demo.git'\n  feat/demo/12 is restacked locally and the base record is unchanged\n  call pr_restack again"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\"push was rejected: To ghes.example.com:acme/demo.git\\n   ! [remote rejected] feat/demo/12 -> feat/demo/12 (pre-receive hook declined)\\n  error: failed to push some refs to 'ghes.example.com:acme/demo.git'\\n  feat/demo/12 is restacked locally and the base record is unchanged\\n  call pr_restack again\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": "push was rejected: To ghes.example.com:acme/demo.git\n   ! [remote rejected] feat/demo/12 -> feat/demo/12 (pre-receive hook declined)\n  error: failed to push some refs to 'ghes.example.com:acme/demo.git'\n  feat/demo/12 is restacked locally and the base record is unchanged\n  call pr_restack again"
+  },
+  "isError": true
+}

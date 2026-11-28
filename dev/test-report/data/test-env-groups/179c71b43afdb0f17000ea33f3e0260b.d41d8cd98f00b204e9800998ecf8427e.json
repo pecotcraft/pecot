@@ -1,0 +1,1 @@
+{"id":"179c71b43afdb0f17000ea33f3e0260b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#allowlistedTool responseShape が共通の項目の名前 kind を持つときは、定義を作らず例外を発生させる","name":"responseShape が共通の項目の名前 kind を持つときは、定義を作らず例外を発生させる","status":"passed","testResultsByEnv":{"default":"e585cc513fb8f0f12b04227af75cb9f2"}}

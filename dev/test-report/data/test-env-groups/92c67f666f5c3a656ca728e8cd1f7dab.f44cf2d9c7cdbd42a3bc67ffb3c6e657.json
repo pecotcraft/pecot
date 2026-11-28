@@ -1,0 +1,1 @@
+{"id":"92c67f666f5c3a656ca728e8cd1f7dab.f44cf2d9c7cdbd42a3bc67ffb3c6e657","fullName":".githooks.tests.test_allure_report_labels#test_alluredir_keeps_existing_environment_properties","name":"environment.properties が既にあると、.githooks/tests/conftest.py の conftest はファイルを書き換えない","status":"passed","testResultsByEnv":{"default":"ad72ef98137b6dc371c1d91694ab37db"}}

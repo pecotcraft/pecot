@@ -1,0 +1,1 @@
+{"id":"18030e93b6a2f2c7293fd4292999e2b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#listPullRequestsByBase リポジトリが存在しない場合は、GitHubNotFoundError を発生させる","name":"リポジトリが存在しない場合は、GitHubNotFoundError を発生させる","status":"passed","testResultsByEnv":{"default":"bc0fbf99db1fe222c1e955725efac5aa"}}

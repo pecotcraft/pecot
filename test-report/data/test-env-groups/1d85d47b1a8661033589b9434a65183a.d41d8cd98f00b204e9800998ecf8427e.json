@@ -1,0 +1,1 @@
+{"id":"1d85d47b1a8661033589b9434a65183a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — JPEG JPEG は、末尾が 0xFF で終わっている場合は、読み取れないものとして扱う","name":"JPEG は、末尾が 0xFF で終わっている場合は、読み取れないものとして扱う","status":"passed","testResultsByEnv":{"default":"c34c6664be5944a696ea553fb2caa2e8"}}

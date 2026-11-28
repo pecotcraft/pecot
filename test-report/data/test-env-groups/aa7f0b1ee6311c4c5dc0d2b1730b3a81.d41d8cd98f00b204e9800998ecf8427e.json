@@ -1,0 +1,1 @@
+{"id":"aa7f0b1ee6311c4c5dc0d2b1730b3a81.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#振る舞いの項目のつなぎ collectVerifiedIds 桁が続く ID は、前の桁までの ID として数えない","name":"桁が続く ID は、前の桁までの ID として数えない","status":"passed","testResultsByEnv":{"default":"e6cab2fdb88827685b497a8bacb9259f"}}

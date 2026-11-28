@@ -1,0 +1,1 @@
+{"id":"af6d4cfae3d41e66d18c34ec948d064b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#extractVersionReleaseNotes 存在しないバージョンを指定した場合は、バージョンを含めた VersionNotFoundError を投げる","name":"存在しないバージョンを指定した場合は、バージョンを含めた VersionNotFoundError を投げる","status":"passed","testResultsByEnv":{"default":"de7fa38c3a195b322b1ce55d73a40638"}}

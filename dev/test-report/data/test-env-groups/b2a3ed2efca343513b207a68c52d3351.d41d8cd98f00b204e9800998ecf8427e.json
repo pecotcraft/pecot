@@ -1,0 +1,1 @@
+{"id":"b2a3ed2efca343513b207a68c52d3351.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/drawio.test.ts#drawio_export icons_dir が空文字なら、invalid-path で弾き、missing-icons-root は返さない","name":"icons_dir が空文字なら、invalid-path で弾き、missing-icons-root は返さない","status":"passed","testResultsByEnv":{"default":"cd1166cfdcf0c1ac8f43f968ce831c9f"}}

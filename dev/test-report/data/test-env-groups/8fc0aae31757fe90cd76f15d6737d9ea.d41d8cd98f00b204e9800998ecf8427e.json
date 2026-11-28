@@ -1,0 +1,1 @@
+{"id":"8fc0aae31757fe90cd76f15d6737d9ea.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_lint#test_changed_files_run_affected_lint","name":"変更ファイルを渡すと、lint のレーンを列挙した `nx affected` をそのファイルで実行する","status":"passed","testResultsByEnv":{"default":"edced9a69b6e8eec2bf81fa7e896a057"}}

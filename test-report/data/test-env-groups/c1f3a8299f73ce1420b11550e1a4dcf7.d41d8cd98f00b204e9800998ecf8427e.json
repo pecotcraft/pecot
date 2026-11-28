@@ -1,0 +1,1 @@
+{"id":"c1f3a8299f73ce1420b11550e1a4dcf7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#isRuntimeLayerInstalled: 永続層の版判定 インストール済みの印が一致すれば、インストール済みとして扱う","name":"インストール済みの印が一致すれば、インストール済みとして扱う","status":"passed","testResultsByEnv":{"default":"c1f86dd100f81d3c07b95bf6021101fe"}}

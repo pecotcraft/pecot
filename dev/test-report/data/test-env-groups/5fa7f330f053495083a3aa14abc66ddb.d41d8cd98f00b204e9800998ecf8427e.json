@@ -1,0 +1,1 @@
+{"id":"5fa7f330f053495083a3aa14abc66ddb.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_rebuilds_actions_dist_before_plans_without_nx","name":"dependabot-commit.yml は、plan を作る前に nx を使わずに actions の dist を作り直す","status":"passed","testResultsByEnv":{"default":"8e2594261413ffe1f563c6d6cc11f484"}}

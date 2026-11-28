@@ -1,0 +1,1 @@
+{"id":"10ce64e7742b8783b7c5936aac170626.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/pnpm.test.ts#resolvePnpmCommand コマンドの有無の確認を省略した場合は、PATH から探し、この環境にある pnpm を使う","name":"コマンドの有無の確認を省略した場合は、PATH から探し、この環境にある pnpm を使う","status":"passed","testResultsByEnv":{"default":"87106fc82a65921342770d756eed003a"}}

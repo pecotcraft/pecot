@@ -1,0 +1,1 @@
+{"id":"d628c4ec2f6149bb694ff52d42372199.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_lane_mode_skip_tip_still_runs_lane_without_guard","name":"lane モードでは、ブランチ削除の push でもレーンを 1 回実行し、pm-guard の環境変数は設定しない","status":"passed","testResultsByEnv":{"default":"6cc191917bbb603b30bcefc1abc64bd7"}}

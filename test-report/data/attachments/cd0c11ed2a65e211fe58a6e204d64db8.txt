@@ -1,0 +1,39 @@
+=== stage: manual (通常) ===
+=== stage: manual 終了 exit=0 ===
+## 検証の結果（tests: @scope/pkg:test-cli）
+
+### 範囲
+
+- base: `8f6c6651d105b67ba74f59ad4197ec58fbdef79d`
+- head: `3ef64f3ced6c0cd11cf04b923afd427c029c60e0`（PR では head は merge commit）
+- モード: 通常
+
+| stage | 成否 |
+|---|---|
+| manual | 成功 |
+
+全体: 成功
+
+### レーン
+
+対象なし（成功）
+
+### 失敗
+
+- proj-a:test-cli
+- proj-b:test-unit
+
+ログは artifact `ci-logs-tests-custom-slug` と、`Run checks` の step のログの `=== 失敗レーン: ... ===` を見る。
+
+### skip
+
+| レーン | skip |
+|---|---|
+| proj-a:test-cli | 0 |
+
+### 環境
+
+- イメージ: -
+- node: v24.22.1
+- aws: aws-cli/2.39.4 Python/3.14.8 Linux/7.0.0-1020-azure exe/x86_64.ubuntu.26
+- actionlint: 1.7.12

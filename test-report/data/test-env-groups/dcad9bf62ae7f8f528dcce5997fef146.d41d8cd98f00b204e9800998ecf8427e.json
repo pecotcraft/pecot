@@ -1,0 +1,1 @@
+{"id":"dcad9bf62ae7f8f528dcce5997fef146.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#captureCommandOutput 片方だけが上限を超えた場合は、つないだ結果が上限内でも、切り詰めの表示を冒頭に残す","name":"片方だけが上限を超えた場合は、つないだ結果が上限内でも、切り詰めの表示を冒頭に残す","status":"passed","testResultsByEnv":{"default":"b28a309b58bdeb814cb669b230aa04e9"}}

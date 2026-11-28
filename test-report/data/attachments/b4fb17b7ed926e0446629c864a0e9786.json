@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "GraphQL authentication error: Client error '401 Unauthorized' for url 'http://127.0.0.1:39831/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-auth\",\"detail\":\"GraphQL authentication error: Client error '401 Unauthorized' for url 'http://127.0.0.1:39831/graphql'\\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-auth",
+    "detail": "GraphQL authentication error: Client error '401 Unauthorized' for url 'http://127.0.0.1:39831/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+  },
+  "isError": true
+}

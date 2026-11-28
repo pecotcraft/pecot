@@ -1,0 +1,1 @@
+{"id":"b1e31de82dafa626fe345fe9fed3bd08.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 宣言と同じ行の文字列は読む のとき、引用符を含まない本文だけを切り出す","name":"宣言と同じ行の文字列は読む のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"720206556349e6da00cd43b35688e154"}}

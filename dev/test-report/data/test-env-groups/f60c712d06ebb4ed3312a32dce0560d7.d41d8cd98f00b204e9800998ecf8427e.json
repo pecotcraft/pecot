@@ -1,0 +1,1 @@
+{"id":"f60c712d06ebb4ed3312a32dce0560d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/slide-worker-flow.test.ts#convertSingleSlideWithRetry clickStep が null の場合も 3 の場合も、ステップの情報をそのまま結果に含める","name":"clickStep が null の場合も 3 の場合も、ステップの情報をそのまま結果に含める","status":"passed","testResultsByEnv":{"default":"8205ac71f4c4a581235cd4920ba464c3"}}

@@ -1,0 +1,128 @@
+{
+  "name": "session_start",
+  "title": "Start Issue branch",
+  "description": "Create a branch linked to an Issue (shown in the Development section of the Issue)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "issue_ref": {
+        "type": "string",
+        "description": "Issue reference (owner/repo/123)"
+      },
+      "branch": {
+        "type": "string",
+        "description": "Name of the branch to create"
+      },
+      "base": {
+        "description": "Base branch (default: chosen by readiness, else develop_branch from the config)",
+        "type": "string"
+      },
+      "checkout": {
+        "default": true,
+        "description": "Kept for compatibility; has no effect",
+        "type": "boolean"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "issue_ref",
+      "branch"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "branch": {
+        "type": "string",
+        "description": "Branch created (or to be created), with the Issue number appended"
+      },
+      "repository": {
+        "type": "string",
+        "description": "Repository of the branch (owner/repo)"
+      },
+      "base": {
+        "type": "string",
+        "description": "Base branch the branch starts from"
+      },
+      "stackedOn": {
+        "description": "Issue number whose branch this one is stacked on (omitted when not stacked)",
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      },
+      "issue": {
+        "type": "string",
+        "description": "Work Issue (owner/repo/N)"
+      },
+      "workDirectory": {
+        "description": "Absolute path of the work directory (omitted when it could not be created)",
+        "type": "string"
+      },
+      "leftovers": {
+        "description": "Earlier merged PRs whose local cleanup is left undone (omitted when there is none)",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pullRequest": {
+              "type": "string",
+              "description": "Merged PR of the current branch whose local cleanup with session_finish is left (owner/repo/N)"
+            }
+          },
+          "required": [
+            "pullRequest"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "branch",
+          "repository",
+          "base",
+          "issue"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

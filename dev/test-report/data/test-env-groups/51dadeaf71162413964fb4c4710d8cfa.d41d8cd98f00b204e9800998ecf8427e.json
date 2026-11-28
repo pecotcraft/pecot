@@ -1,0 +1,1 @@
+{"id":"51dadeaf71162413964fb4c4710d8cfa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings 閉じていない単一行の文字列は行末で止まる のとき、引用符を含まない本文だけを切り出す","name":"閉じていない単一行の文字列は行末で止まる のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"4b452af2ec1b9f57681700f26f161531"}}

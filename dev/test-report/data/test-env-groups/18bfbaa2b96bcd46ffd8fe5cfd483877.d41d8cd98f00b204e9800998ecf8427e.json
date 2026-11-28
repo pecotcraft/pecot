@@ -1,0 +1,1 @@
+{"id":"18bfbaa2b96bcd46ffd8fe5cfd483877.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine ノードに対する appendChildXml は、自身の子として末尾に新しい要素を追加する","name":"ノードに対する appendChildXml は、自身の子として末尾に新しい要素を追加する","status":"passed","testResultsByEnv":{"default":"bdf399d46dfbcba3f7a66aeb8078db68"}}

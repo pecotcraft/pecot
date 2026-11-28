@@ -1,0 +1,1 @@
+{"id":"605079bef30f10b42ad9f10f174f33a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#listProjectItems Archived でないアイテムが途中に挟まる場合は、連続の数が 0 に戻り、打ち切らずに最後まで読み取る","name":"Archived でないアイテムが途中に挟まる場合は、連続の数が 0 に戻り、打ち切らずに最後まで読み取る","status":"passed","testResultsByEnv":{"default":"384de4b0af9c89c8f57a9f66db1c2286"}}

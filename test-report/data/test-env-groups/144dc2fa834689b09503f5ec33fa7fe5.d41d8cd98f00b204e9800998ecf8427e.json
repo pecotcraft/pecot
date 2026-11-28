@@ -1,0 +1,1 @@
+{"id":"144dc2fa834689b09503f5ec33fa7fe5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_affected_mapping#test_lockfile_only_commit_affects_nothing_via_base_head","name":"lockfile だけを変更したコミットは、base と head の指定でも、どの project も affected にしない","status":"passed","testResultsByEnv":{"default":"7cfe1c01ac162faae47340fd0bb59a83"}}

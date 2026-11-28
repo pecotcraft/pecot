@@ -1,0 +1,1 @@
+{"id":"280bd8405e9b62464e6e6ed839b0f450.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/entry-point-library-references.test.ts#hooks のスクリプトの参照先 抽出器の自己テスト 行頭と行末のコメント内の .sh は両系統とも 0 件になる","name":"行頭と行末のコメント内の .sh は両系統とも 0 件になる","status":"passed","testResultsByEnv":{"default":"7bb7868afc3e8dbcc9dddb8c6129f157"}}

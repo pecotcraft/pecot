@@ -1,0 +1,1 @@
+{"id":"f9cbfc3aee240fec1975906dfce73c80.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#serializeProjectConfig 保存した内容を読み直した場合は、元と同じ設定になる","name":"保存した内容を読み直した場合は、元と同じ設定になる","status":"passed","testResultsByEnv":{"default":"b002568b7225dc8ff1d020770b0e6694"}}

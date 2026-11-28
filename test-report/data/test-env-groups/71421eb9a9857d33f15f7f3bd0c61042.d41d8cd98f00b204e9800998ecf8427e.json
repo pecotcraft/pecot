@@ -1,0 +1,1 @@
+{"id":"71421eb9a9857d33f15f7f3bd0c61042.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [legacy] aws_lambda_list_functions の region region の書式に合わない値を渡すと、拒否する","name":"region の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"281f73865f9d1b7e274721f85e70fc6f"}}

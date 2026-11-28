@@ -1,0 +1,1 @@
+{"id":"ea2884308ca3025a9c4df461db9d2452.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr のプレビューの配信 port が 70000 だと、配信を立てられない旨を出力して終了コード 1 で止まる","name":"port が 70000 だと、配信を立てられない旨を出力して終了コード 1 で止まる","status":"passed","testResultsByEnv":{"default":"d62a18d62899745216981383616f431c"}}

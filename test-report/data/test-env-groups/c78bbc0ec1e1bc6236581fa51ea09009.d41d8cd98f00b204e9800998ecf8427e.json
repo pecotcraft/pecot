@@ -1,0 +1,1 @@
+{"id":"c78bbc0ec1e1bc6236581fa51ea09009.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_publish_fails_on_a_private_repository_before_publishing","name":"開発版の publish は、private のリポジトリでは publish の前に失敗する","status":"passed","testResultsByEnv":{"default":"5068b74b214b6b08069c653d5fe10eea"}}

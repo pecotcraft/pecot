@@ -1,0 +1,1 @@
+{"id":"05fa67f645d61a9e5a880bcac3da42b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#runEvidenceCreate writeWorkbook が EvidenceWorkbookError で失敗した場合は、同じ例外をそのまま送出する","name":"writeWorkbook が EvidenceWorkbookError で失敗した場合は、同じ例外をそのまま送出する","status":"passed","testResultsByEnv":{"default":"b292e19137817e9497e78b9056007617"}}

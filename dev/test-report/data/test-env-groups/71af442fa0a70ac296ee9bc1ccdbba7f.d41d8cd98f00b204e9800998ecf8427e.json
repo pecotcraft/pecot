@@ -1,0 +1,1 @@
+{"id":"71af442fa0a70ac296ee9bc1ccdbba7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show 呼ぶと、GitHub を読まずに、ブランチ・リポジトリ・作業中の Issue・worktree を返す","name":"呼ぶと、GitHub を読まずに、ブランチ・リポジトリ・作業中の Issue・worktree を返す","status":"passed","testResultsByEnv":{"default":"5a061b99e1e9f9e66c3f9c3e075c7514"}}

@@ -1,0 +1,1 @@
+{"id":"d35d72f5cb928ed54fd773fbb4d007a4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_link MCP の data package の NAME が重なる と、kind が invalid-input の失敗を返す","name":"package の NAME が重なる と、kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"e0bc6f8a5948eb141f2f54c189a36536"}}

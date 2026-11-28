@@ -1,0 +1,1 @@
+{"id":"874a5d29c3d25b296c87101cfe0b2dc1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#readIssueSnapshot 前提の一覧が部分的なエラーで取得できない場合は、その理由を返す","name":"前提の一覧が部分的なエラーで取得できない場合は、その理由を返す","status":"passed","testResultsByEnv":{"default":"2034e3a7b724664bff0eccf37a23af16"}}

@@ -1,0 +1,1 @@
+{"id":"e23039c33e541d40ab3794f487532734.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/payload.test.ts#stringOrNull / numberOrNull 型が合えばそのまま、合わなければ null","name":"型が合えばそのまま、合わなければ null","status":"passed","testResultsByEnv":{"default":"6800f4a9fea39954aff9b74bb1d8e116"}}

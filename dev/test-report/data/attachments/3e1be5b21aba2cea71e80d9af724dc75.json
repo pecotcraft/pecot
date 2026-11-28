@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pullNumber: update needs pullNumber, the number of the PR to rewrite"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"pullNumber\",\"code\":\"required\",\"message\":\"update needs pullNumber, the number of the PR to rewrite\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "pullNumber",
+        "code": "required",
+        "message": "update needs pullNumber, the number of the PR to rewrite"
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Only read-only queries (SELECT / WITH / SHOW / DESCRIBE / EXPLAIN) can be executed"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"not-allowed\",\"detail\":\"Only read-only queries (SELECT / WITH / SHOW / DESCRIBE / EXPLAIN) can be executed\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "not-allowed",
+    "detail": "Only read-only queries (SELECT / WITH / SHOW / DESCRIBE / EXPLAIN) can be executed"
+  },
+  "isError": true
+}

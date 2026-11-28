@@ -1,0 +1,1 @@
+{"id":"7249227f840756f5d771ed9ffec2cca7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/user-prompt-submit-features.test.ts#user-prompt-submit.sh プロンプトが /pecot-w:w-active のとき、何も出さず、起票待ちのフラグを作らない","name":"プロンプトが /pecot-w:w-active のとき、何も出さず、起票待ちのフラグを作らない","status":"passed","testResultsByEnv":{"default":"2f35ae3b2c5b5eb187c95bb12a3f7bc2"}}

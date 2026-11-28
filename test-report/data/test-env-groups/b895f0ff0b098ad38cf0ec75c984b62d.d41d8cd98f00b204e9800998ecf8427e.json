@@ -1,0 +1,1 @@
+{"id":"b895f0ff0b098ad38cf0ec75c984b62d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate host が渡した設定ファイルの host と違うと、設定ファイルの host で同期する","name":"host が渡した設定ファイルの host と違うと、設定ファイルの host で同期する","status":"passed","testResultsByEnv":{"default":"9b589b9d7e694de07bed125ddb2c7239"}}

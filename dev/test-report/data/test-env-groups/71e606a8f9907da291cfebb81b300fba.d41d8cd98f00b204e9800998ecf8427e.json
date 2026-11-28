@@ -1,0 +1,1 @@
+{"id":"71e606a8f9907da291cfebb81b300fba.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_cache_server#test_aborted_put_leaves_no_temp_file","name":"PUT の途中で接続を切っても、一時ファイルを残さない","status":"passed","testResultsByEnv":{"default":"f73475ef8861a7f27cea6b60a8c795ef"}}

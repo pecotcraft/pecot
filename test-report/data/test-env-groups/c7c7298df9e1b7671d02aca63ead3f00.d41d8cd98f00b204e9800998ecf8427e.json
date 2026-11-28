@@ -1,0 +1,1 @@
+{"id":"c7c7298df9e1b7671d02aca63ead3f00.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-triple-hyphen-in-frontmatter.test.ts#末尾にスペースが付いた \"--- \" でも、検出する","name":"末尾にスペースが付いた \"--- \" でも、検出する","status":"passed","testResultsByEnv":{"default":"71b82c1eb8069417f37c3a31f531872e"}}

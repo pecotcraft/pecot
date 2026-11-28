@@ -1,0 +1,1 @@
+cp: not writing through dangling symlink '/tmp/pecot-hooks-uj6f5E/repo/.pecot/README.md'

@@ -1,0 +1,1 @@
+{"id":"4bc9b874e776c13e5607646a1cbcfe61.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/drawio-pdf-chromium.test.ts#CUJ: drawio export が実 chromium で SVG と兄弟 PDF を書き出す 日本語ラベルは Noto Sans CJK JP を埋め込んで描かれる","name":"日本語ラベルは Noto Sans CJK JP を埋め込んで描かれる","status":"passed","testResultsByEnv":{"default":"191dfc03c118ba494fcad09f8af24088"}}

@@ -1,0 +1,1 @@
+{"id":"89429f48d7fb520c0b4a1e5b56887fb0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 注記図形の導出 注記がない項目の場合は、空の配列を返す","name":"注記がない項目の場合は、空の配列を返す","status":"passed","testResultsByEnv":{"default":"43eadb18976cebce966386db91b9b6ab"}}

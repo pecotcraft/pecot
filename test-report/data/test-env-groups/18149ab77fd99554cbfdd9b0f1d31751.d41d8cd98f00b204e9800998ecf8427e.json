@@ -1,0 +1,1 @@
+{"id":"18149ab77fd99554cbfdd9b0f1d31751.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main の除外 除外の判定に失敗すると、ファイル名と理由を標準エラーへ出力し、終了コード 2 を返す","name":"除外の判定に失敗すると、ファイル名と理由を標準エラーへ出力し、終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"b463a8466e6d2853670be71e3f4b68e8"}}

@@ -1,0 +1,1 @@
+{"id":"235d89a46662e3da656fb5149e87a6e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「letterSpacingMap の値がオブジェクトでない」の場合は、undefined を返す","name":"エントリが「letterSpacingMap の値がオブジェクトでない」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"05834213c58a7fd6aeb52b86551db71a"}}

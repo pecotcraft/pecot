@@ -1,0 +1,1 @@
+{"id":"f9b101304d34ead2a25209a5b34fc1a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#remoteRepository URL の形式が不正な場合は、undefined を返す","name":"URL の形式が不正な場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"ba302e373f69344d128d001a505fb126"}}

@@ -1,0 +1,1 @@
+devcontainer build --workspace-folder /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_publish_latest_builds_eve0/ws --image-name ghcr.io/example/img:def-73537cf2fde6dea18311cb613f1efa2e5e6ddfbe --cache-from ghcr.io/example/img:latest --image-name ghcr.io/example/img:latest --output type=registry\,compression=zstd\,force-compression=true\,oci-mediatypes=true 

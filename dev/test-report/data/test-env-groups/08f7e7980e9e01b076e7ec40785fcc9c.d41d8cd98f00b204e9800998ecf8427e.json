@@ -1,0 +1,1 @@
+{"id":"08f7e7980e9e01b076e7ec40785fcc9c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#transformItems Item に lane の値がある場合は、その名前を lane に設定する","name":"Item に lane の値がある場合は、その名前を lane に設定する","status":"passed","testResultsByEnv":{"default":"232c80152c08d3bebd9c68b8e738c4a3"}}

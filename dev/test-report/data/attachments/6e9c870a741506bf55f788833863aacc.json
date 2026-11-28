@@ -1,0 +1,29 @@
+{
+  "head": "c7e03619b867f9fe49cfe624ab3b14908e756449",
+  "registry": "http://pecotv-release-test.invalid/",
+  "createdAt": "2026-11-28T06:19:14.389Z",
+  "dist": {
+    "fingerprint": "891865a8c50c5f5f32310bad3916636e377937439cf04c7e0f41e1467995ea8f",
+    "total": 1,
+    "vulnerabilities": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 0,
+      "low": 0,
+      "info": 0
+    },
+    "excepted": []
+  },
+  "runtime": {
+    "fingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
+    "total": 1,
+    "vulnerabilities": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 0,
+      "low": 0,
+      "info": 0
+    },
+    "excepted": []
+  }
+}

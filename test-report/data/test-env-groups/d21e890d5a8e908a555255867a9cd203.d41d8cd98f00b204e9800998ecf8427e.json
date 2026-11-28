@@ -1,0 +1,1 @@
+{"id":"d21e890d5a8e908a555255867a9cd203.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-font-sizes.test.ts#validateSlideFontSizes 宣言ごとの 5 段 (T051) 文字サイズを指定していないセルは、11px を含む宣言であれば警告を返さない","name":"文字サイズを指定していないセルは、11px を含む宣言であれば警告を返さない","status":"passed","testResultsByEnv":{"default":"adfaa16f9757a0914493afa55f38916e"}}

@@ -1,0 +1,1 @@
+{"id":"17336bf9f401d8f62588f00c4c51ef22.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_root_package_manifest#test_root_does_not_distribute","name":"root の package.json には、配布用の項目を定義しない","status":"passed","testResultsByEnv":{"default":"269f7d6411c30ccaa8d70aa80270ddc0"}}

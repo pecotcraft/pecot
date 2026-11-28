@@ -1,0 +1,1 @@
+{"id":"75364bc5705d8b71d39479177a754a07.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_board_sync#test_public_invoke_function_url_is_auth_none_only","name":"公開した lambda:InvokeFunctionUrl の許可は、認証なし（NONE）の 1 件だけにする","status":"passed","testResultsByEnv":{"default":"8d3c33696e2222bbbe3a4a6fbd49faf4"}}

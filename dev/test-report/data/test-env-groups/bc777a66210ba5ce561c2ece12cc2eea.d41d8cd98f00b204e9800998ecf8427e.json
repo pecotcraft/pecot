@@ -1,0 +1,1 @@
+{"id":"bc777a66210ba5ce561c2ece12cc2eea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#URL のパスの符号化 ブランチ名を、セグメントごとに URL エンコードし、スラッシュはそのまま残す","name":"ブランチ名を、セグメントごとに URL エンコードし、スラッシュはそのまま残す","status":"passed","testResultsByEnv":{"default":"54e514f1354ee239b7ea5e2b506909d1"}}

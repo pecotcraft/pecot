@@ -1,0 +1,1 @@
+{"id":"4c802ebbdba1e3447a0d79fae81c07d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/index.test.ts#InProcessSlidevPptxPipeline 進捗が 1 件もない状態で中断された場合は、lastProgress が undefined になる","name":"進捗が 1 件もない状態で中断された場合は、lastProgress が undefined になる","status":"passed","testResultsByEnv":{"default":"79c7e516c177238d34f8e6ddb595df3b"}}

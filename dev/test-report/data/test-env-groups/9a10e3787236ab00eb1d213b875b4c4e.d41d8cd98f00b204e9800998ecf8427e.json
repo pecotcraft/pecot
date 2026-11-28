@@ -1,0 +1,1 @@
+{"id":"9a10e3787236ab00eb1d213b875b4c4e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-key.test.ts#computeSlideHash デッキ内の位置（スライド番号）が変わった場合は、ハッシュも変わる","name":"デッキ内の位置（スライド番号）が変わった場合は、ハッシュも変わる","status":"passed","testResultsByEnv":{"default":"37af5d71eadeda230f8994b8638efc7f"}}

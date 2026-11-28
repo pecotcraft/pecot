@@ -1,0 +1,1 @@
+{"id":"716be2337fb24de3c74e15a011c16f18.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_labels_and_times","name":"結果にはレーン・ファイルのパス・機能の階層・枠組みのラベルを付け、時刻はミリ秒で持つ","status":"passed","testResultsByEnv":{"default":"85be4afc5df69c9ad6741e8531097b33"}}

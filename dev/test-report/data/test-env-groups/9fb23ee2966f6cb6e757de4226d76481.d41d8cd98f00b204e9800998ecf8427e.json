@@ -1,0 +1,1 @@
+{"id":"9fb23ee2966f6cb6e757de4226d76481.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-finish.test.ts#auto finish job の様子から結果を決める 結果のファイルの本文が空なら、本文を足さずに frontmatter の result を書く","name":"結果のファイルの本文が空なら、本文を足さずに frontmatter の result を書く","status":"passed","testResultsByEnv":{"default":"7c9a5e84715a5e1103cf1bba67339603"}}

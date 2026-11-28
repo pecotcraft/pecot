@@ -1,0 +1,1 @@
+{"id":"eb8eabf744ab31c1abaf4c550daaf547.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: legacy) slide_create スキーマ違反を拒否する: 必須の theme が無い","name":"スキーマ違反を拒否する: 必須の theme が無い","status":"passed","testResultsByEnv":{"default":"fb453824c299c5d351b809471f79d9a3"}}

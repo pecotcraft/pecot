@@ -1,0 +1,1 @@
+{"id":"3f070018a486e41f25d28261e7af6f70.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.bats#Release が無いと、理由を出して、upload とワークフローの起動へ進まずに非ゼロ終了する","name":"Release が無いと、理由を出して、upload とワークフローの起動へ進まずに非ゼロ終了する","status":"passed","testResultsByEnv":{"default":"fad5fb3f2d0a3b0018e93995fbb2d009"}}

@@ -1,0 +1,1 @@
+{"id":"4e5a560969561e915b9dc895007e2d69.64edf7b4f2130a375bdbda6a954fce12","fullName":".githooks.tests.test_run_pr_checks#test_lane_without_tests_part_exit_2","name":"`--lane` を ('--part=lint', '--lane=a:test-b') のように `--part=tests` なしで指定すると、使い方を表示して終了コード 2 で終了する","status":"passed","testResultsByEnv":{"default":"e4f756a5ad59615c544da1b97289219f"}}

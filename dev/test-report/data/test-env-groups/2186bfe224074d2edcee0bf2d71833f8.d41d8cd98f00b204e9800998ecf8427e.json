@@ -1,0 +1,1 @@
+{"id":"2186bfe224074d2edcee0bf2d71833f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#loadConfig 有効な設定ファイルを読み込むと、設定の内容を返す","name":"有効な設定ファイルを読み込むと、設定の内容を返す","status":"passed","testResultsByEnv":{"default":"315b29b0226cc1057551bb0ddb6cd743"}}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid input: repo: must be in 'owner/repo' form: invalid owner/repo form: 'invalid-format' (expected: 'owner/repo')"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid input: repo: must be in 'owner/repo' form: invalid owner/repo form: 'invalid-format' (expected: 'owner/repo')\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: repo: must be in 'owner/repo' form: invalid owner/repo form: 'invalid-format' (expected: 'owner/repo')"
+  },
+  "isError": true
+}

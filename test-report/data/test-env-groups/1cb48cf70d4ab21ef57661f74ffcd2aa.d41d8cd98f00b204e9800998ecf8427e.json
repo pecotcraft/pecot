@@ -1,0 +1,1 @@
+{"id":"1cb48cf70d4ab21ef57661f74ffcd2aa.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_release_main_dev_and_branch_runs_queue_in_separate_groups","name":"リリース・main の開発版・ブランチの開発版は、別のグループで順番に実行する","status":"passed","testResultsByEnv":{"default":"8ae02c75065475cb52630ca61232ae67"}}

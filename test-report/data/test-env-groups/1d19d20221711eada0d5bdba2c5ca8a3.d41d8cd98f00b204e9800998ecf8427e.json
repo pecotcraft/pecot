@@ -1,0 +1,1 @@
+{"id":"1d19d20221711eada0d5bdba2c5ca8a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — extraHeaders extraHeaders が配列でない場合は、拒否する","name":"extraHeaders が配列でない場合は、拒否する","status":"passed","testResultsByEnv":{"default":"30a03b7567fb90405c3aceab7b9a2324"}}

@@ -1,0 +1,7 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw3/test_timeout_is_broken0/suite/sample.bats
+1..1
+# pecot-description: 長いテストです。
+not ok 1 長い # in 1041 ms # timeout after 1 s
+# (in test file suite/sample.bats, line 7)
+#   `sleep 5' failed due to timeout
+# Terminated                 sleep 5

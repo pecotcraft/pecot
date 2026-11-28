@@ -1,0 +1,1 @@
+{"id":"572f717fb91ad8b4fca6e52776d79a80.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: 実行時依存 (永続層) 取得に失敗したら runtime-install-failed として返し、chromium は続行する","name":"取得に失敗したら runtime-install-failed として返し、chromium は続行する","status":"passed","testResultsByEnv":{"default":"0f9c8243e2d3eb0efa8cbe54938593d4"}}

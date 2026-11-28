@@ -1,0 +1,1 @@
+{"id":"eeab52a03b95837067b5bdb5cb9b1b8f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-check.test.ts#board_check 欄の ID の形で選択肢の名前を渡すと、unknown-option の problem と選択肢の ID の候補を返す","name":"欄の ID の形で選択肢の名前を渡すと、unknown-option の problem と選択肢の ID の候補を返す","status":"passed","testResultsByEnv":{"default":"6bf358457aea029cb3be532dc72b76ca"}}

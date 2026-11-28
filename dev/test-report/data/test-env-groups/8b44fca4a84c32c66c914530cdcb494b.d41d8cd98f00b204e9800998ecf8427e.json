@@ -1,0 +1,1 @@
+{"id":"8b44fca4a84c32c66c914530cdcb494b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync 設定の解決 project の設定 \"../x\" が無いと、使える設定の名前を出して終了コード 1 で終わる","name":"project の設定 \"../x\" が無いと、使える設定の名前を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"a8755391f9aae2cbb467bf6f749c8696"}}

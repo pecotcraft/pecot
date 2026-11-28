@@ -1,0 +1,1 @@
+{"id":"5130dcbccafe2d731065c273f8cce547.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create owner:branch の head のブランチが owner の fork に push 済みなら、その head で PR を作る","name":"owner:branch の head のブランチが owner の fork に push 済みなら、その head で PR を作る","status":"passed","testResultsByEnv":{"default":"4dbde90da832be69363f5703724c7901"}}

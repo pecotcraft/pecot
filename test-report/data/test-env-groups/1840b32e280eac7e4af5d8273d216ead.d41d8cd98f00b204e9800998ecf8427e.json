@@ -1,0 +1,1 @@
+{"id":"1840b32e280eac7e4af5d8273d216ead.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/domain/tests/issue-surface.test.ts#checkIssueCoverage excluded に handler がある 場合は、id を示した問題を返す","name":"excluded に handler がある 場合は、id を示した問題を返す","status":"passed","testResultsByEnv":{"default":"6baddd69f7209f77422578189ddbe514"}}

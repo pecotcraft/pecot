@@ -1,0 +1,1 @@
+{"id":"3a8ac0312584a4e6805b408eb1080a2e.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#advisory を返さない監査先は、カナリアで見分けて監査未実施として中止する","name":"advisory を返さない監査先は、カナリアで見分けて監査未実施として中止する","status":"passed","testResultsByEnv":{"default":"261d5ac1413ac61287302a7ffc946a58"}}

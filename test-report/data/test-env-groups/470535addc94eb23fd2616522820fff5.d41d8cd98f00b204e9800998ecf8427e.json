@@ -1,0 +1,1 @@
+{"id":"470535addc94eb23fd2616522820fff5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#assertTalkDirectory talk-dir の指定が絶対パスでない場合は、理由 relative-dir の使い方エラーを返す","name":"talk-dir の指定が絶対パスでない場合は、理由 relative-dir の使い方エラーを返す","status":"passed","testResultsByEnv":{"default":"3edb733b5a54a77891d53820592fabef"}}

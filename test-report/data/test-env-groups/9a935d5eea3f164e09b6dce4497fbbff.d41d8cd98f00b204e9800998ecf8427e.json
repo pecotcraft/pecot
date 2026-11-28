@@ -1,0 +1,1 @@
+{"id":"9a935d5eea3f164e09b6dce4497fbbff.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_05a_explicit_base_override_block","name":"PECOT_VERSION_PLAN_BASE で base を指定すると、その ref で判定して失敗する","status":"passed","testResultsByEnv":{"default":"00a99a6138d9394ff47118e75c220f5c"}}

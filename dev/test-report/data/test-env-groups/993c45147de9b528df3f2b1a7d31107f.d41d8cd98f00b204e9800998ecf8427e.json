@@ -1,0 +1,1 @@
+{"id":"993c45147de9b528df3f2b1a7d31107f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 文言のテーマ名 警告のメッセージは、テーマ名を渡すとテーマの書体、渡さなければ既定の書体として表現する","name":"警告のメッセージは、テーマ名を渡すとテーマの書体、渡さなければ既定の書体として表現する","status":"passed","testResultsByEnv":{"default":"b068551bb8a4b0890141dd4a64d0fa91"}}

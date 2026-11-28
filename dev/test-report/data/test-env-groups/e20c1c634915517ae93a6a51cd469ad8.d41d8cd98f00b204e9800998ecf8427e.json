@@ -1,0 +1,1 @@
+{"id":"e20c1c634915517ae93a6a51cd469ad8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#isLabelWrittenByAutomation 札が Needs Attention で、最後の Bot の結果が limit の場合は、true を返す","name":"札が Needs Attention で、最後の Bot の結果が limit の場合は、true を返す","status":"passed","testResultsByEnv":{"default":"317cb4d6d710113258d9fa691a617629"}}

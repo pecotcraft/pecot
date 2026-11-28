@@ -1,0 +1,1 @@
+{"id":"481670576216b93593090184a042fb5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/failure-kinds-definition.test.ts#定義書の exit_status と実装 aws_sso_login の exit_status は、返しうる種類と一致する","name":"aws_sso_login の exit_status は、返しうる種類と一致する","status":"passed","testResultsByEnv":{"default":"76ec57c6254ee8246e18de39c13223dc"}}

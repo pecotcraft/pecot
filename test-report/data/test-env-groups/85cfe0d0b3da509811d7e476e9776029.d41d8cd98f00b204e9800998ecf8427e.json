@@ -1,0 +1,1 @@
+{"id":"85cfe0d0b3da509811d7e476e9776029.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-table-key.test.ts#table-key valid 根が it・test・describe・suite でない表は見ない","name":"根が it・test・describe・suite でない表は見ない","status":"passed","testResultsByEnv":{"default":"d56d722f6f983bee22ea3920fb1554cf"}}

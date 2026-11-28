@@ -1,0 +1,1 @@
+{"id":"3eb734d28848cfcbc695a1a8ac8bb360.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/allure-reporter.test.ts#osName /etc/os-release があると、そのファイルだけを読み、PRETTY_NAME の値を返す","name":"/etc/os-release があると、そのファイルだけを読み、PRETTY_NAME の値を返す","status":"passed","testResultsByEnv":{"default":"824016f7c1bb094d8e192f90f8745f84"}}

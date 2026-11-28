@@ -1,0 +1,1 @@
+{"id":"ea5517673a06eabe572aaa94146f63c8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#buildIssueTitle Issue の種類 bug とタイトル x に接頭辞を付けると、[Bug] x になる","name":"Issue の種類 bug とタイトル x に接頭辞を付けると、[Bug] x になる","status":"passed","testResultsByEnv":{"default":"272b80bf314100176a60f690c4451e44"}}

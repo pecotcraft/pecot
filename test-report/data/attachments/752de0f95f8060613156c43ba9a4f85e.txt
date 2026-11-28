@@ -1,0 +1,5 @@
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf has-session -t =pecot-base-parallel-a_wt1-pecot
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf has-session -t =pecot-base-parallel-a_wt2-pecot
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf has-session -t =pecot-base-parallel-a_wt3-pecot
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf has-session -t =pecot-base-parallel-a_wt4-pecot
+-f /workspaces/base/pecot/.devcontainer/tmux/tmux.conf attach-session -t =pecot-base-parallel-a_wt1-pecot

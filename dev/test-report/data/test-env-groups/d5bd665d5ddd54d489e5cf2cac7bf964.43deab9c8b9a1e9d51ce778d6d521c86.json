@@ -1,0 +1,1 @@
+{"id":"d5bd665d5ddd54d489e5cf2cac7bf964.43deab9c8b9a1e9d51ce778d6d521c86","fullName":".githooks.tests.test_nx_affected_mapping#test_plugin_source_affects_own_projects","name":"plugins/pecot-visual/cli/src/main.ts を変更すると、そのソースを持つ project が affected になる","status":"passed","testResultsByEnv":{"default":"43a0a03bac0432122b943f2b8649c81a"}}

@@ -1,0 +1,1 @@
+{"id":"b40b1ec2c2e1c715de8286d6561ac4df.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_checkout_refs_come_from_github_not_step_outputs","name":"checkout の参照は、step の出力ではなく github のコンテキストから取得する","status":"passed","testResultsByEnv":{"default":"57c7f61f7ac1f5b62faa27abc98c144d"}}

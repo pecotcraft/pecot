@@ -1,0 +1,1 @@
+["pecot","githooks","interface-spec","nx-release","pecot-actions","pecot-workflow","pecot-tools","pecot-visual","text-rules","workflow-core"]

@@ -1,0 +1,1 @@
+{"id":"ee0fb2cdd078db9912d598e7f50f8397.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bats_report#test_outside_lane_writes_nothing","name":"結果のディレクトリを渡さないと、結果を書かず、説明の抜けでも止めない","status":"passed","testResultsByEnv":{"default":"813e353ee367585bae6a552ad87ec870"}}

@@ -1,0 +1,1 @@
+{"id":"98be35d3b9b9c0cc859a3e4ff3cd57ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/page-compare/tests/compare-pages.bats#1 画素だけ違うページは、FAIL と判定し、差分の座標を表に出す","name":"1 画素だけ違うページは、FAIL と判定し、差分の座標を表に出す","status":"passed","testResultsByEnv":{"default":"684392e109b0a265723585573e0284f3"}}

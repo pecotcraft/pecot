@@ -1,0 +1,1 @@
+{"id":"89125e25977f583703da96a7f87472d6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/lint-text.test.ts#lintText 指摘の対象にならない入力 \" \\n\" は、どのモードでも空の配列を返す","name":"指摘の対象にならない入力 \" \\n\" は、どのモードでも空の配列を返す","status":"passed","testResultsByEnv":{"default":"63ff37f9b15131df7b5c47df288c1510"}}

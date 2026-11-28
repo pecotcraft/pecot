@@ -1,0 +1,1 @@
+{"id":"9f870512436e94debee541ab6ab3320e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/pecotv-run-output.test.ts#stdoutTail 標準出力が長さの上限に収まる場合は、省略の印を付けず、末尾の改行だけ取り除いて返す","name":"標準出力が長さの上限に収まる場合は、省略の印を付けず、末尾の改行だけ取り除いて返す","status":"passed","testResultsByEnv":{"default":"c2140e908bca59460b6373e3402296eb"}}

@@ -1,0 +1,1 @@
+{"id":"3abe465e5b085b42f07659356ae2eecf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/attach.test.ts#attach Allure の reporter が動くレーンの中 対応表にない拡張子のファイルを渡すと、拡張子を含むメッセージで例外が発生する","name":"対応表にない拡張子のファイルを渡すと、拡張子を含むメッセージで例外が発生する","status":"passed","testResultsByEnv":{"default":"67657697ca86ae2904bd481935ebd4aa"}}

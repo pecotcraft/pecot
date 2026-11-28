@@ -1,0 +1,1 @@
+{"id":"58dd44d64baeb5b0bffabf96856de0d1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#stripHtmlTags <span> タグを含む文字列を渡すと、タグを除いた文字列を返す","name":"<span> タグを含む文字列を渡すと、タグを除いた文字列を返す","status":"passed","testResultsByEnv":{"default":"a4eb6120e3a3b48163c6046c47db43c5"}}

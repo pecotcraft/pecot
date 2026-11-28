@@ -1,0 +1,1 @@
+{"id":"234f0708e98c23ebdd0088f7c6692362.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/fs.test.ts#listSkippedSymlinkPageDirectories リンク先が存在しない symlink は、報告しない","name":"リンク先が存在しない symlink は、報告しない","status":"passed","testResultsByEnv":{"default":"97870780258da6f28fbb8dc64cf4478a"}}

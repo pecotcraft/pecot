@@ -1,0 +1,1 @@
+{"id":"6dcc374fe6e801718c40dfc5a84064bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/asset-path/tests/require-resolve-asset-path.test.ts#require-resolve-asset-path valid fetch 以外の関数に絶対パスを渡すと、報告しない","name":"fetch 以外の関数に絶対パスを渡すと、報告しない","status":"passed","testResultsByEnv":{"default":"09f583707d22553bb1cb880092d7db89"}}

@@ -1,0 +1,223 @@
+{
+  "name": "session_finish",
+  "title": "Clean up after merge",
+  "description": "Clean up the local side after a merged PR: check out the develop branch (or the worktree branch), pull it, delete the local head branch and remove the work records. Also returns the readiness changes of the Issues waiting for the closed Issues and the stacked Issues to restack. It closes no Issue and moves no card; pecot-board-sync does it on the merge. Reads nothing on GitHub; pass the results of the official reads in reads.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pr_ref": {
+        "type": "string",
+        "description": "PR reference (`owner/repo/N`, or the short form `N` in the repository of `repo`, or else of the git remote of the current directory)"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "reads": {
+        "type": "object",
+        "properties": {
+          "pull_request": {
+            "description": "Result of pull_request_read with method get for the PR; it must be merged"
+          },
+          "blocking": {
+            "description": "Results of issue_dependency_read with method get_blocking ({ issue, result }): each Issue the PR closes (the Closes keywords of the body and the number that ends the head branch)",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "type": "string",
+                  "description": "The Issue whose blocked-by was read (owner/repo/N)"
+                },
+                "result": {
+                  "description": "Result of issue_dependency_read with method get_blocked_by"
+                }
+              },
+              "required": [
+                "issue",
+                "result"
+              ]
+            }
+          },
+          "children": {
+            "description": "Result of list_pull_requests with base <head branch of the PR> and state open: the PRs stacked on the merged branch"
+          },
+          "issues": {
+            "description": "Results of issue_read with method get: each open Issue in blocking and its prerequisites, to judge their readiness",
+            "type": "array",
+            "items": {}
+          },
+          "blocked_by": {
+            "description": "Results of issue_dependency_read with method get_blocked_by ({ issue, result }): each open Issue in blocking",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issue": {
+                  "type": "string",
+                  "description": "The Issue whose blocked-by was read (owner/repo/N)"
+                },
+                "result": {
+                  "description": "Result of issue_dependency_read with method get_blocked_by"
+                }
+              },
+              "required": [
+                "issue",
+                "result"
+              ]
+            }
+          },
+          "pull_requests": {
+            "description": "Results of pull_request_read with method get: each open pull request that closes a prerequisite (closed_by_pull_requests of issue_read), and those its base branch stacks on; they decide whether the Issue can stack",
+            "type": "array",
+            "items": {}
+          },
+          "project_items": {
+            "description": "Results of projects_list with method list_project_items (every page): the cards of the waiting Issues and their prerequisites",
+            "type": "array",
+            "items": {}
+          },
+          "project_fields": {
+            "description": "Result of projects_list with method list_project_fields"
+          }
+        },
+        "required": [
+          "pull_request"
+        ],
+        "description": "Results of the official GitHub MCP reads"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "pr_ref",
+      "reads"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "deletedBranches": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "branch": {
+              "type": "string",
+              "description": "Name of the local branch deleted"
+            },
+            "location": {
+              "type": "string",
+              "enum": [
+                "local"
+              ],
+              "description": "Always local: the remote branch is deleted on GitHub by the merge settings"
+            }
+          },
+          "required": [
+            "branch",
+            "location"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Local branches deleted"
+      },
+      "readinessChanges": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "type": "string",
+              "description": "Issue waiting for a closed Issue (#N, or owner/repo#N in another repository)"
+            },
+            "from": {
+              "type": "string",
+              "description": "Readiness before the merge (blocked, startable, or stackable on #N)"
+            },
+            "to": {
+              "type": "string",
+              "description": "Readiness after the merge (blocked, startable, or stackable on #N)"
+            }
+          },
+          "required": [
+            "issue",
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Issues waiting for the closed Issues whose readiness changed by the merge"
+      },
+      "restack": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "type": "string",
+              "description": "Started Issue stacked on the merged branch (#N, or owner/repo#N in another repository)"
+            },
+            "branch": {
+              "description": "Branch of that Issue, to restack in its working directory (omitted when unknown)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "issue"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Upper stacked Issues to restack with pr_restack in their working directories"
+      },
+      "currentBranch": {
+        "description": "Current branch after the local cleanup (omitted when the local cleanup was skipped)",
+        "type": "string"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "deletedBranches",
+          "readinessChanges",
+          "restack"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": true
+  }
+}

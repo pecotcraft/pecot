@@ -1,0 +1,1 @@
+{"id":"2efbf053e12dc083ff97b2f39d4a212a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/entry-point-linter.test.ts#check-entry-point-logic.sh 実在するクリーンなエントリポイントは、PASS を返す","name":"実在するクリーンなエントリポイントは、PASS を返す","status":"passed","testResultsByEnv":{"default":"55975a722e3311678fbc93d514c3ec53"}}

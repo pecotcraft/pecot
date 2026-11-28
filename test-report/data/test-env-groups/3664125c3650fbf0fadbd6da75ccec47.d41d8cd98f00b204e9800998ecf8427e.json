@@ -1,0 +1,1 @@
+{"id":"3664125c3650fbf0fadbd6da75ccec47.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh HOOK_COMMAND が未設定のとき、終了コード 2 を返す","name":"HOOK_COMMAND が未設定のとき、終了コード 2 を返す","status":"passed","testResultsByEnv":{"default":"ccea219e29b3fd21b4113dfd997c923d"}}

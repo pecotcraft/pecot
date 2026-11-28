@@ -1,0 +1,1 @@
+{"id":"9d91bb9e3c589061ba99bd6424f50d4c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/dom-converter-playwright.test.ts#convertSlide letter-spacing の項目が 5 件を超える場合は、詳細を debug ログに出力する","name":"letter-spacing の項目が 5 件を超える場合は、詳細を debug ログに出力する","status":"passed","testResultsByEnv":{"default":"c9e2c3fd138c58f7911f1caa227c0bc2"}}

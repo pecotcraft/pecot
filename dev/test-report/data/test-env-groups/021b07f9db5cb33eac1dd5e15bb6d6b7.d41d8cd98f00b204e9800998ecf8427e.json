@@ -1,0 +1,1 @@
+{"id":"021b07f9db5cb33eac1dd5e15bb6d6b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.bats#npm キャッシュの opt-in が無ければ通る","name":"npm キャッシュの opt-in が無ければ通る","status":"passed","testResultsByEnv":{"default":"cc6b0a2a05294323d12d2607836ca4d4"}}

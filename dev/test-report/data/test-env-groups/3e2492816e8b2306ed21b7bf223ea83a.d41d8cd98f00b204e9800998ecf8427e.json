@@ -1,0 +1,1 @@
+{"id":"3e2492816e8b2306ed21b7bf223ea83a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_refuses_broken_cross_links","name":"側の間のリンクの先が存在しない場合は、終了コード 1 で終了し、push しない","status":"passed","testResultsByEnv":{"default":"b1b96e77d3a3d5c73ff088b0dd8b4b82"}}

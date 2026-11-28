@@ -1,0 +1,1 @@
+{"id":"ac9ac3755d682bc5ee82777b3ca83eb9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#installStdoutGuard 返した Writable への書き込みだけが元の stdout へ届く","name":"返した Writable への書き込みだけが元の stdout へ届く","status":"passed","testResultsByEnv":{"default":"eab1c3ea58640ae4203449a4e0d70f0d"}}

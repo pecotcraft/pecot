@@ -1,0 +1,33 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pecot-status: pecot-status lacks options: Blocked (color GRAY, description \"Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.\") after Backlog; add a set-options change that lists the existing options in their order with these"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"pecot-status\",\"code\":\"missing-option\",\"message\":\"pecot-status lacks options: Blocked (color GRAY, description \\\"Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.\\\") after Backlog; add a set-options change that lists the existing options in their order with these\",\"candidates\":[\"Blocked\"]},{\"field\":\"Status\",\"code\":\"missing-option\",\"message\":\"Status lacks the option Needs Attention (color RED, description \\\"Waiting for a human decision or action.\\\") at the end; add a set-options change that lists the existing options in their order with it\",\"candidates\":[\"Needs Attention\"]}],\"deletable\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "pecot-status",
+        "code": "missing-option",
+        "message": "pecot-status lacks options: Blocked (color GRAY, description \"Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.\") after Backlog; add a set-options change that lists the existing options in their order with these",
+        "candidates": [
+          "Blocked"
+        ]
+      },
+      {
+        "field": "Status",
+        "code": "missing-option",
+        "message": "Status lacks the option Needs Attention (color RED, description \"Waiting for a human decision or action.\") at the end; add a set-options change that lists the existing options in their order with it",
+        "candidates": [
+          "Needs Attention"
+        ]
+      }
+    ],
+    "deletable": []
+  }
+}

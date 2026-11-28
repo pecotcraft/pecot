@@ -1,0 +1,1 @@
+{"id":"53abb887b9dda22053c7156a747eff33.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 起票先と用法 担当を 11 人渡すと、assignees の上限の problem にする","name":"担当を 11 人渡すと、assignees の上限の problem にする","status":"passed","testResultsByEnv":{"default":"345b564e43c5be030a8af0d546e9b150"}}

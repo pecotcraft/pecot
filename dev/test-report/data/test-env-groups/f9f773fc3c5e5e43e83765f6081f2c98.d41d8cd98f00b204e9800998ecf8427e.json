@@ -1,0 +1,1 @@
+{"id":"f9f773fc3c5e5e43e83765f6081f2c98.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/direct-output-lint.test.ts#直接の出力を止める lint 共通の規則（enum 禁止）は src/main.ts のパスでも止まる","name":"共通の規則（enum 禁止）は src/main.ts のパスでも止まる","status":"passed","testResultsByEnv":{"default":"2886010b3963641f0a8a86d70ae120ba"}}

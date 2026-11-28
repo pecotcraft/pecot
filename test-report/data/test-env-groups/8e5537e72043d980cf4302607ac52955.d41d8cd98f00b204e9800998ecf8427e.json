@@ -1,0 +1,1 @@
+{"id":"8e5537e72043d980cf4302607ac52955.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create ボードの status を In Review にできないと、warning の行を標準エラーに出す","name":"ボードの status を In Review にできないと、warning の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"8fcbd921b2fba52196a9b84a29da79b3"}}

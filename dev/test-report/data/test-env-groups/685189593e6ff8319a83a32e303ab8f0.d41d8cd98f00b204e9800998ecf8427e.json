@@ -1,0 +1,1 @@
+{"id":"685189593e6ff8319a83a32e303ab8f0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/web-fonts.test.ts#webFontsFor 書体名に & や # が含まれる場合は、URL の区切りとして解釈されないように変換する","name":"書体名に & や # が含まれる場合は、URL の区切りとして解釈されないように変換する","status":"passed","testResultsByEnv":{"default":"dafd92dd68158afcdf42db2ea6e13226"}}

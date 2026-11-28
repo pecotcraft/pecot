@@ -1,0 +1,1 @@
+{"id":"7145e088a036277dbd6b98bc4e803809.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck Nx でないリポで通ると、コミット数を出し、バージョン・タグ・リリースノートを標準出力に出す","name":"Nx でないリポで通ると、コミット数を出し、バージョン・タグ・リリースノートを標準出力に出す","status":"passed","testResultsByEnv":{"default":"aedf5e18174243c2a7a368e43996d655"}}

@@ -1,0 +1,1 @@
+{"id":"4ea976878974d21376ede383aae84c2c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-create.test.ts#executeSlideCreate の結果と失敗 既存ディレクトリ + force=false は dest-exists の reason と文言を返す","name":"既存ディレクトリ + force=false は dest-exists の reason と文言を返す","status":"passed","testResultsByEnv":{"default":"4dcf445e26592c0c975a987c4b536e72"}}

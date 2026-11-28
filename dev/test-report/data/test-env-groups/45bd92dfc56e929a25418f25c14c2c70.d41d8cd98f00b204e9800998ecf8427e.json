@@ -1,0 +1,1 @@
+{"id":"45bd92dfc56e929a25418f25c14c2c70.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#runSlideLint 集計 lint の対象のファイルが 0 件でも、見つけたシンボリックリンクのディレクトリを結果に載せる","name":"lint の対象のファイルが 0 件でも、見つけたシンボリックリンクのディレクトリを結果に載せる","status":"passed","testResultsByEnv":{"default":"b5673f086f3f58ee27040ee25be8805c"}}

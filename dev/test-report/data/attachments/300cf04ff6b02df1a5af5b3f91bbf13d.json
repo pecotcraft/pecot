@@ -1,0 +1,186 @@
+{
+  "name": "pr_check",
+  "title": "Check pull request",
+  "description": "Check the arguments for create_pull_request, update_pull_request or merge_pull_request against the pecot rules before writing: the bundled PR template the body follows, the Issue the body closes, the base branch of a stacked branch, the title scope, unpushed or uncommitted work (create), and with merge, the state, head, stack position and merge method of the PR. Reads and writes nothing on GitHub; pass the results of the official reads in reads.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "method": {
+        "type": "string",
+        "enum": [
+          "create",
+          "update",
+          "merge"
+        ],
+        "description": "create before create_pull_request, update before update_pull_request, merge before merge_pull_request"
+      },
+      "owner": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Owner of the repository of the PR"
+      },
+      "repo": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Name of the repository of the PR"
+      },
+      "title": {
+        "description": "With create and update: title of the PR, as passed to the write tool",
+        "type": "string"
+      },
+      "head": {
+        "description": "With create: branch of the PR (owner:branch for a branch of a fork)",
+        "type": "string"
+      },
+      "base": {
+        "description": "With create and update: base branch of the PR",
+        "type": "string"
+      },
+      "draft": {
+        "description": "With create: whether the PR is a draft",
+        "type": "boolean"
+      },
+      "body": {
+        "description": "With create and update: body of the PR, as passed to the write tool",
+        "type": "string"
+      },
+      "pullNumber": {
+        "description": "With update and merge: number of the PR",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 9007199254740991
+      },
+      "merge_method": {
+        "description": "With merge: merge method, as passed to merge_pull_request",
+        "type": "string",
+        "enum": [
+          "merge",
+          "squash",
+          "rebase"
+        ]
+      },
+      "expectedHeadSha": {
+        "description": "With merge: head commit of the PR the merge is for, as passed to merge_pull_request",
+        "type": "string"
+      },
+      "template": {
+        "description": "Template the body follows: pecot-template://pr/<name> for a bundled one (its rules are checked); a replaced template's path or URL is accepted without checking the body",
+        "type": "string"
+      },
+      "template_text": {
+        "description": "Text of a replaced template; the body is not checked against it",
+        "type": "string"
+      },
+      "screenshot": {
+        "description": "With the bundled create template: reason to leave the image out of Summary",
+        "type": "string"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "reads": {
+        "description": "Results of the official GitHub MCP reads the check needs",
+        "type": "object",
+        "properties": {
+          "pull_request": {
+            "description": "With update and merge: the result of pull_request_read with method get for the PR"
+          },
+          "pull_requests": {
+            "description": "The result of list_pull_requests (head owner:<branch>) for the branch the PR is stacked on: with create and update, the base recorded for the head (state all); with merge, the base of the PR (state open)"
+          },
+          "issue": {
+            "description": "With create and update: the result of issue_read with method get for the Issue in the head branch name"
+          }
+        }
+      }
+    },
+    "required": [
+      "method",
+      "owner",
+      "repo"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "problems": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "issue": {
+              "description": "Issue the problem belongs to: a batch key or owner/repo/N (omitted when the check covers one target)",
+              "type": "string"
+            },
+            "field": {
+              "type": "string",
+              "description": "Name of the argument that breaks the rule (title, body, issue_fields.<name>, blocked_by.<i>, ...)"
+            },
+            "code": {
+              "type": "string",
+              "description": "Kind of the problem (missing-section, extra-heading, cycle, ...)"
+            },
+            "message": {
+              "type": "string",
+              "description": "What is wrong and how to fix it, with the expected value when there is one"
+            },
+            "candidates": {
+              "description": "Values that would be accepted (omitted when there is no fixed set)",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "field",
+            "code",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "description": "Rules the arguments break; when empty, the arguments can be passed to the write tool as they are"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "problems"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "openWorldHint": false
+  }
+}

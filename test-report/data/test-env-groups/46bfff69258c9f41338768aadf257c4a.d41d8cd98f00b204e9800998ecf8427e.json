@@ -1,0 +1,1 @@
+{"id":"46bfff69258c9f41338768aadf257c4a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_17g_ignore_unresolved_skips","name":"nx 配下の ignore を解決できないと、専用の警告を出力して成功する","status":"passed","testResultsByEnv":{"default":"135423c4210bb1ed8d0aaafafb5ce399"}}

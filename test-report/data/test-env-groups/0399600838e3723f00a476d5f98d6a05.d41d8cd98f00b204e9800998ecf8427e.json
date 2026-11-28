@@ -1,0 +1,1 @@
+{"id":"0399600838e3723f00a476d5f98d6a05.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_check_cross_links_ignores_git_dir","name":"側の間のリンクの確認では、`.git` の中のファイルは対象にしない","status":"passed","testResultsByEnv":{"default":"aceda5f0dad6a46d0de653a38e769fd5"}}

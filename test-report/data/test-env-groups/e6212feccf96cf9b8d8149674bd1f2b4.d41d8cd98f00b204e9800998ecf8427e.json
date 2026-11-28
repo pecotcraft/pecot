@@ -1,0 +1,1 @@
+{"id":"e6212feccf96cf9b8d8149674bd1f2b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack remote の子ブランチにだけあるコミットがあると、スタックし直さずに終了コード 1 で終わる","name":"remote の子ブランチにだけあるコミットがあると、スタックし直さずに終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"a63aee09dc538e8a0fff0d2527f69b37"}}

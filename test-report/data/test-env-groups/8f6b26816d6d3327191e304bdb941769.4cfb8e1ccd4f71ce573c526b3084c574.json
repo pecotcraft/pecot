@@ -1,0 +1,1 @@
+{"id":"8f6b26816d6d3327191e304bdb941769.4cfb8e1ccd4f71ce573c526b3084c574","fullName":".githooks.tests.test_allure_report_labels#test_layer_label_is_not_added","name":"no-match-libs/interface-spec/docs/tests/conftest.py の conftest は、どの規則にも当たらないときに layer のラベルを足さない","status":"passed","testResultsByEnv":{"default":"9f048c1cd90880aa60c384f5bf694ae2"}}

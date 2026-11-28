@@ -1,0 +1,1 @@
+{"id":"f21d2404178c814d5398f55f8cb87e05.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/generated-files.test.ts#viteConfigSource の theme の public/ node_modules にテーマが存在しない場合も、設定を読み込める","name":"node_modules にテーマが存在しない場合も、設定を読み込める","status":"passed","testResultsByEnv":{"default":"8b6b7a2d496caba68fec48b8e2a02ce2"}}

@@ -1,0 +1,1 @@
+{"id":"8678281fdd2c73cb41b16526cf5a34ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 点数を読めなくても、その行を省いて続ける","name":"点数を読めなくても、その行を省いて続ける","status":"passed","testResultsByEnv":{"default":"4a2f1d1401893ede49256498a57db429"}}

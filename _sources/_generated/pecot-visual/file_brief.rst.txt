@@ -1,0 +1,8 @@
+:iface-id: PV-FILE-BRIEF
+:iface-plugin: pecot-visual
+:iface-kind: MCP
+
+Brief layout conventions
+================================================
+
+.. iface-defs:: pecot-visual PV-FILE-BRIEF

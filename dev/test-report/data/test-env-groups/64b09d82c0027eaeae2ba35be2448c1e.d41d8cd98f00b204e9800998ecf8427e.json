@@ -1,0 +1,1 @@
+{"id":"64b09d82c0027eaeae2ba35be2448c1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/drawio-icons.test.ts#createIconResolver SVG ファイルを解決すると、中身を data URI に変換して返す","name":"SVG ファイルを解決すると、中身を data URI に変換して返す","status":"passed","testResultsByEnv":{"default":"7355b3090c042c38af6e29836023d9da"}}

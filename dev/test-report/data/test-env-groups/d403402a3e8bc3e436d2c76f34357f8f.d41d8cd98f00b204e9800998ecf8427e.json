@@ -1,0 +1,1 @@
+{"id":"d403402a3e8bc3e436d2c76f34357f8f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#本体の runtime manifest との整合 puppeteer の alias の override の版は、dom-to-pptx の宣言する範囲に収まる","name":"puppeteer の alias の override の版は、dom-to-pptx の宣言する範囲に収まる","status":"passed","testResultsByEnv":{"default":"35706fb194eae2bb9b96a0b44f5a5296"}}

@@ -1,0 +1,1 @@
+{"id":"29b749ce534e2b1cb85410ee5db7e4f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_rds_describe_db_clusters profile の書式に合わない値を渡すと、拒否する","name":"profile の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"0fae958fbb607386d863d9c721d87247"}}

@@ -1,0 +1,1 @@
+{"id":"43697765fd1931636f3ecfc287bfd9da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#createSymlinks ルート直下のパスは、2 段上を指す相対リンクにする","name":"ルート直下のパスは、2 段上を指す相対リンクにする","status":"passed","testResultsByEnv":{"default":"feba62aa2008f371ed457ed0bd6d4294"}}

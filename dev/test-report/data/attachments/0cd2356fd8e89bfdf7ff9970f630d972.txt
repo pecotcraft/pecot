@@ -1,0 +1,1 @@
+- `index.html`: `gone.html` の先がありません

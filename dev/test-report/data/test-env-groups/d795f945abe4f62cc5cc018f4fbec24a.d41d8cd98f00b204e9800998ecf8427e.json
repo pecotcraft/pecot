@@ -1,0 +1,1 @@
+{"id":"d795f945abe4f62cc5cc018f4fbec24a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_summary_release_failure_messages","name":"リリースの step が失敗したとき、サマリーは本番と dry-run でメッセージを分ける","status":"passed","testResultsByEnv":{"default":"469b75d076ef4fa9c776e88f927ae86d"}}

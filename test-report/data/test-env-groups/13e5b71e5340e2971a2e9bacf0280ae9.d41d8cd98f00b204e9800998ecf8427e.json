@@ -1,0 +1,1 @@
+{"id":"13e5b71e5340e2971a2e9bacf0280ae9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-view.test.ts#collectAlertStatuses リポジトリごとの状態を登録した順に返し、取得に失敗したリポジトリはエラーの文字列で返す","name":"リポジトリごとの状態を登録した順に返し、取得に失敗したリポジトリはエラーの文字列で返す","status":"passed","testResultsByEnv":{"default":"02edff416ac7c1153cb8ac30df62dd68"}}

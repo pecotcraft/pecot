@@ -1,0 +1,1 @@
+{"id":"ca3a3a2aa839f7398ff9b5967c6838f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#autoMarker pr-created の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","name":"pr-created の目印を本文の先頭に置いた場合は、autoResultOf が同じ結果を読み取る","status":"passed","testResultsByEnv":{"default":"600adc2de41974debba75f2de1988362"}}

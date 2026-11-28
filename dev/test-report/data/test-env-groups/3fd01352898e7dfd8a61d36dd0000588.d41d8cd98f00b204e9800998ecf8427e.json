@@ -1,0 +1,1 @@
+{"id":"3fd01352898e7dfd8a61d36dd0000588.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_relative_output_is_resolved_from_the_working_directory","name":"出力先を相対パスで指定すると、作業ディレクトリを基準にした絶対パスで渡す","status":"passed","testResultsByEnv":{"default":"d2b24504b87f6f2c110f56af1d35244e"}}

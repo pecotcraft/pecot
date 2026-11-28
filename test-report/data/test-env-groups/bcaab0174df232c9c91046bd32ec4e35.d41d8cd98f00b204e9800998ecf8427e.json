@@ -1,0 +1,1 @@
+{"id":"bcaab0174df232c9c91046bd32ec4e35.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-table-cell-background.test.ts#require-table-cell-background valid table 自身に背景があると、報告しない","name":"table 自身に背景があると、報告しない","status":"passed","testResultsByEnv":{"default":"3314b8e98c6bb2eeef24e49d2cec8243"}}

@@ -1,0 +1,2 @@
+error: no active project
+  call project_activate with project: <PROJECT>

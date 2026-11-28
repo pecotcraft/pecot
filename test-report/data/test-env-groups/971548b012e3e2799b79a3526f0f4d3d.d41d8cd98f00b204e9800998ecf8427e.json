@@ -1,0 +1,1 @@
+{"id":"971548b012e3e2799b79a3526f0f4d3d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show 子 PR スタックの記録もあるとき、base と readiness の行の後に stacked above の行を並べる","name":"スタックの記録もあるとき、base と readiness の行の後に stacked above の行を並べる","status":"passed","testResultsByEnv":{"default":"43433dadebffab798fae8c404366c2e1"}}

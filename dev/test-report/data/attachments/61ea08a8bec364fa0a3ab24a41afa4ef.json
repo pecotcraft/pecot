@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "related_issue_number: #7 is not blocked by #5"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"related_issue_number\",\"code\":\"not-linked\",\"message\":\"#7 is not blocked by #5\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "related_issue_number",
+        "code": "not-linked",
+        "message": "#7 is not blocked by #5"
+      }
+    ]
+  }
+}

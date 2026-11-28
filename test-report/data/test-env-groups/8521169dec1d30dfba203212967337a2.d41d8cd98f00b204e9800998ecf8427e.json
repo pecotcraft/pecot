@@ -1,0 +1,1 @@
+{"id":"8521169dec1d30dfba203212967337a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/layer-file-placement.test.ts#layer-file-placement valid layouts 直下に kebab-case の .vue を置くと、報告しない","name":"layouts 直下に kebab-case の .vue を置くと、報告しない","status":"passed","testResultsByEnv":{"default":"989bc2e2af0a22c613aaac536bf55d6e"}}

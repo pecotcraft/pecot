@@ -1,0 +1,1 @@
+{"id":"7fccb025071e2e3effeb31f1c4b6b3e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（git の例外） 取得中に無効な置き場が先に作成されていた場合は、削除して置き直す","name":"取得中に無効な置き場が先に作成されていた場合は、削除して置き直す","status":"passed","testResultsByEnv":{"default":"2fd3a157e1b469f63472a4b1a17c962a"}}

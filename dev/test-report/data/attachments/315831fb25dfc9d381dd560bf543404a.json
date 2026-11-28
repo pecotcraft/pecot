@@ -1,0 +1,136 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{"
+    },
+    {
+      "type": "text",
+      "text": "{\"board\":{\"items\":[{\"id\":1001,\"workflow\":\"Backlog\",\"lane\":\"cli\",\"title\":\"Item 1\",\"updatedAt\":\"2026-11-01T00:00:00Z\",\"content\":{\"number\":1,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/demo/issues/1\",\"labels\":[],\"repository\":\"acme/demo\"},\"readiness\":null},{\"id\":1007,\"workflow\":\"Ready\",\"lane\":\"cli\",\"title\":\"Item 7\",\"updatedAt\":\"2026-11-01T00:00:00Z\",\"content\":{\"number\":7,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/demo/issues/7\",\"labels\":[],\"repository\":\"acme/demo\"},\"readiness\":{\"kind\":\"startable\",\"stackOn\":null,\"reason\":null,\"text\":\"startable\"}},{\"id\":1008,\"workflow\":\"Blocked\",\"lane\":null,\"title\":\"Item 8\",\"updatedAt\":\"2026-11-01T00:00:00Z\",\"content\":{\"number\":8,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/demo/issues/8\",\"labels\":[],\"repository\":\"acme/demo\"},\"readiness\":{\"kind\":\"blocked\",\"stackOn\":null,\"reason\":\"not-in-review\",\"text\":\"blocked by #5 (not in review: #5 (not started))\"}},{\"id\":1009,\"workflow\":\"Ready\",\"lane\":null,\"title\":\"Item 9\",\"updatedAt\":\"2026-11-01T00:00:00Z\",\"content\":{\"number\":9,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/demo/issues/9\",\"labels\":[],\"repository\":\"acme/demo\"},\"readiness\":null},{\"id\":1020,\"workflow\":\"In Review\",\"lane\":\"cli\",\"title\":\"Item 20\",\"updatedAt\":\"2026-11-01T00:00:00Z\",\"content\":{\"number\":20,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/demo/pull/20\",\"labels\":[],\"repository\":\"acme/demo\"},\"readiness\":null},{\"id\":1003,\"workflow\":\"Active\",\"lane\":\"docs\",\"title\":\"Item 3\",\"updatedAt\":\"2026-11-01T00:00:00Z\",\"content\":{\"number\":3,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/other/issues/3\",\"labels\":[],\"repository\":\"acme/other\"},\"readiness\":null}]},\"lanes\":[{\"name\":\"cli\",\"count\":2,\"startable\":1},{\"name\":\"docs\",\"count\":1,\"startable\":0},{\"name\":null,\"count\":2,\"startable\":0}],\"mismatches\":0}"
+    }
+  ],
+  "structuredContent": {
+    "board": {
+      "items": [
+        {
+          "id": 1001,
+          "workflow": "Backlog",
+          "lane": "cli",
+          "title": "Item 1",
+          "updatedAt": "2026-11-01T00:00:00Z",
+          "content": {
+            "number": 1,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/issues/1",
+            "labels": [],
+            "repository": "acme/demo"
+          },
+          "readiness": null
+        },
+        {
+          "id": 1007,
+          "workflow": "Ready",
+          "lane": "cli",
+          "title": "Item 7",
+          "updatedAt": "2026-11-01T00:00:00Z",
+          "content": {
+            "number": 7,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/issues/7",
+            "labels": [],
+            "repository": "acme/demo"
+          },
+          "readiness": {
+            "kind": "startable",
+            "stackOn": null,
+            "reason": null,
+            "text": "startable"
+          }
+        },
+        {
+          "id": 1008,
+          "workflow": "Blocked",
+          "lane": null,
+          "title": "Item 8",
+          "updatedAt": "2026-11-01T00:00:00Z",
+          "content": {
+            "number": 8,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/issues/8",
+            "labels": [],
+            "repository": "acme/demo"
+          },
+          "readiness": {
+            "kind": "blocked",
+            "stackOn": null,
+            "reason": "not-in-review",
+            "text": "blocked by #5 (not in review: #5 (not started))"
+          }
+        },
+        {
+          "id": 1009,
+          "workflow": "Ready",
+          "lane": null,
+          "title": "Item 9",
+          "updatedAt": "2026-11-01T00:00:00Z",
+          "content": {
+            "number": 9,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/issues/9",
+            "labels": [],
+            "repository": "acme/demo"
+          },
+          "readiness": null
+        },
+        {
+          "id": 1020,
+          "workflow": "In Review",
+          "lane": "cli",
+          "title": "Item 20",
+          "updatedAt": "2026-11-01T00:00:00Z",
+          "content": {
+            "number": 20,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/pull/20",
+            "labels": [],
+            "repository": "acme/demo"
+          },
+          "readiness": null
+        },
+        {
+          "id": 1003,
+          "workflow": "Active",
+          "lane": "docs",
+          "title": "Item 3",
+          "updatedAt": "2026-11-01T00:00:00Z",
+          "content": {
+            "number": 3,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/other/issues/3",
+            "labels": [],
+            "repository": "acme/other"
+          },
+          "readiness": null
+        }
+      ]
+    },
+    "lanes": [
+      {
+        "name": "cli",
+        "count": 2,
+        "startable": 1
+      },
+      {
+        "name": "docs",
+        "count": 1,
+        "startable": 0
+      },
+      {
+        "name": null,
+        "count": 2,
+        "startable": 0
+      }
+    ],
+    "mismatches": 0
+  }
+}

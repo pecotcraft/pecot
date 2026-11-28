@@ -1,0 +1,1 @@
+{"id":"6106d1ff75d2f373a4c5cff2b12f2d61.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check リリースの種類 nx でないリポジトリで params を省くと、required の項目と alert の結果を返す","name":"nx でないリポジトリで params を省くと、required の項目と alert の結果を返す","status":"passed","testResultsByEnv":{"default":"82d27a844d1222084a39133c5ba5bdbe"}}

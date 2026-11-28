@@ -1,0 +1,1 @@
+{"id":"4f1e7d0ad372f365c27fc4973c6a6b56.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check もし secret scanning の状態を判定できないなら、終了コード 1 で終わる","name":"もし secret scanning の状態を判定できないなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"93252b17308cf9bb0b009d28d88018cd"}}

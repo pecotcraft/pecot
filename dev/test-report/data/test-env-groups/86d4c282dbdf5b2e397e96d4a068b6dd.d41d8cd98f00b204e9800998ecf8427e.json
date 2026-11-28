@@ -1,0 +1,1 @@
+{"id":"86d4c282dbdf5b2e397e96d4a068b6dd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-test-description.test.ts#test-description valid skipIf で修飾したテストも、説明があれば止めない","name":"skipIf で修飾したテストも、説明があれば止めない","status":"passed","testResultsByEnv":{"default":"f58ea2c9693f348588dda77ba98fcaa0"}}

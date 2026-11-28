@@ -1,0 +1,1 @@
+{"id":"382435ec3fdbcaf13bc7bbb1ade5a801.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/chromium-guard.test.ts#ensureChromium: PECOTV_AUTO_INSTALL_BROWSER=1 で自動取得する 終了コードが 0 でも、Chromium が配置されていない場合は、失敗として扱う","name":"終了コードが 0 でも、Chromium が配置されていない場合は、失敗として扱う","status":"passed","testResultsByEnv":{"default":"36345864f12fdde20d5a3f508c57e31d"}}

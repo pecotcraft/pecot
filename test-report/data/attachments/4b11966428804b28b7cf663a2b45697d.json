@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "=== Git Remote ==="
+    },
+    {
+      "type": "text",
+      "text": "{\"remoteUrl\":\"git@ghes.example.com:acme/demo.git\",\"currentBranch\":\"feat/demo/12\",\"pushed\":true,\"pushStatus\":\"in sync with origin/feat/demo/12\",\"baseBranch\":\"origin/main\",\"gitStatus\":\"On branch feat/demo/12\\nnothing to commit, working tree clean\\n\",\"commits\":\"(no commits)\",\"diffSummary\":\"(no diff)\",\"worktree\":{\"list\":\"/tmp/pecot-parity-tIQxCq/base/demo dd06359 [feat/demo/12]\",\"directoryName\":\"demo\",\"isWorktree\":false},\"stashList\":\"(no stash)\",\"warnings\":[\"base branch feat/demo/11 is on origin, but origin/feat/demo/11 is not fetched; compared with the develop branch\\n  run: git fetch origin feat/demo/11\"]}"
+    }
+  ],
+  "structuredContent": {
+    "remoteUrl": "git@ghes.example.com:acme/demo.git",
+    "currentBranch": "feat/demo/12",
+    "pushed": true,
+    "pushStatus": "in sync with origin/feat/demo/12",
+    "baseBranch": "origin/main",
+    "gitStatus": "On branch feat/demo/12\nnothing to commit, working tree clean\n",
+    "commits": "(no commits)",
+    "diffSummary": "(no diff)",
+    "worktree": {
+      "list": "/tmp/pecot-parity-tIQxCq/base/demo dd06359 [feat/demo/12]",
+      "directoryName": "demo",
+      "isWorktree": false
+    },
+    "stashList": "(no stash)",
+    "warnings": [
+      "base branch feat/demo/11 is on origin, but origin/feat/demo/11 is not fetched; compared with the develop branch\n  run: git fetch origin feat/demo/11"
+    ]
+  }
+}

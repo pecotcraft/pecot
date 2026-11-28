@@ -1,0 +1,1 @@
+{"id":"34f4a6b900315bdad7c3f04bfb9426a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/image-dimensions.test.ts#readImageDimensions — JPEG JPEG は、セグメントの長さが 2 未満の場合は、読み取れないものとして扱う","name":"JPEG は、セグメントの長さが 2 未満の場合は、読み取れないものとして扱う","status":"passed","testResultsByEnv":{"default":"c5c2d8c4d0ed53679af5c8cbeb026243"}}

@@ -1,0 +1,1 @@
+{"id":"a3af2fde53145b69d8510f732496314b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/server.test.ts#createMcpServer サーバ名は、.mcp.json に登録したキーと一致する","name":"サーバ名は、.mcp.json に登録したキーと一致する","status":"passed","testResultsByEnv":{"default":"2110ca63c26d32aefeb86d75bb6a3db5"}}

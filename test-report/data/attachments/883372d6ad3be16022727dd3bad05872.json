@@ -1,0 +1,79 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Project info"
+    },
+    {
+      "type": "text",
+      "text": "{\"project\":{\"name\":\"ghes.example.com_acme_1\",\"host\":\"ghes.example.com\",\"owner\":\"acme\",\"number\":1,\"aggregation_repo\":\"acme/roadmap\"},\"repositories\":[{\"full_name\":\"acme/demo\",\"owner\":\"acme\",\"name\":\"demo\",\"develop_branch\":\"main\",\"release_branch\":null,\"dependabot_alerts\":{\"enabled\":true,\"open_count\":2,\"max_severity\":\"high\",\"alerts_url\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"release_type\":\"single\",\"packages\":[]}],\"board\":{\"items\":[{\"id\":\"PVTI_1\",\"workflow\":\"Ready\",\"lane\":null,\"title\":\"課題1\",\"updatedAt\":\"2026-01-02T03:04:05Z\",\"content\":{\"number\":1,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/demo/issues/1\",\"labels\":[],\"repository\":\"acme/demo\"},\"readiness\":{\"kind\":\"startable\",\"stackOn\":null,\"reason\":null,\"text\":\"startable\"}},{\"id\":\"PVTI_2\",\"workflow\":\"Active\",\"lane\":null,\"title\":\"課題2\",\"updatedAt\":\"2026-01-02T03:04:05Z\",\"content\":{\"number\":2,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/demo/issues/2\",\"labels\":[],\"repository\":\"acme/demo\"},\"readiness\":null}]},\"lanes\":[],\"mismatches\":0}"
+    }
+  ],
+  "structuredContent": {
+    "project": {
+      "name": "ghes.example.com_acme_1",
+      "host": "ghes.example.com",
+      "owner": "acme",
+      "number": 1,
+      "aggregation_repo": "acme/roadmap"
+    },
+    "repositories": [
+      {
+        "full_name": "acme/demo",
+        "owner": "acme",
+        "name": "demo",
+        "develop_branch": "main",
+        "release_branch": null,
+        "dependabot_alerts": {
+          "enabled": true,
+          "open_count": 2,
+          "max_severity": "high",
+          "alerts_url": "https://ghes.example.com/acme/demo/security/dependabot"
+        },
+        "release_type": "single",
+        "packages": []
+      }
+    ],
+    "board": {
+      "items": [
+        {
+          "id": "PVTI_1",
+          "workflow": "Ready",
+          "lane": null,
+          "title": "課題1",
+          "updatedAt": "2026-01-02T03:04:05Z",
+          "content": {
+            "number": 1,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/issues/1",
+            "labels": [],
+            "repository": "acme/demo"
+          },
+          "readiness": {
+            "kind": "startable",
+            "stackOn": null,
+            "reason": null,
+            "text": "startable"
+          }
+        },
+        {
+          "id": "PVTI_2",
+          "workflow": "Active",
+          "lane": null,
+          "title": "課題2",
+          "updatedAt": "2026-01-02T03:04:05Z",
+          "content": {
+            "number": 2,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/demo/issues/2",
+            "labels": [],
+            "repository": "acme/demo"
+          },
+          "readiness": null
+        }
+      ]
+    },
+    "lanes": [],
+    "mismatches": 0
+  }
+}

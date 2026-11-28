@@ -1,0 +1,1 @@
+{"id":"f50524a3c1391fc4d04889859c3ecd5e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/errors.test.ts#PipelineTimeoutError options.errors を渡した場合は、errors として保持する","name":"options.errors を渡した場合は、errors として保持する","status":"passed","testResultsByEnv":{"default":"22d7c9eaf2cdb0880bc801ba4100979d"}}

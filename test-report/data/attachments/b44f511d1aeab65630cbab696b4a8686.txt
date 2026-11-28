@@ -1,0 +1,4 @@
+checks: success
+lanes: success
+lint: run
+LANES_JSON が配列でないか、長さ () が LANES_COUNT (2) と一致しません。

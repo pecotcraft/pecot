@@ -1,0 +1,1 @@
+{"id":"2a26f952ecea3df554b17fb29806a306.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/issues.test.ts#issuesToFindings 既定値を書けない欄の空の文字列は、案内を付けず is empty だけで報告する","name":"既定値を書けない欄の空の文字列は、案内を付けず is empty だけで報告する","status":"passed","testResultsByEnv":{"default":"58b9d87c9b1de6996b6bc73de70bea37"}}

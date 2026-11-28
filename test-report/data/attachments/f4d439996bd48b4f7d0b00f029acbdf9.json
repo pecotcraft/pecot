@@ -1,0 +1,124 @@
+{
+  "name": "release_check",
+  "title": "Check release readiness",
+  "description": "Run the pre-release checks; for an nx repository only the alerts are checked",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "version": {
+        "description": "Release version (detected from the CHANGELOG when omitted)",
+        "type": "string"
+      },
+      "package": {
+        "description": "Package name in a monorepo (required for repositories with packages configured)",
+        "type": "string"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "version": {
+        "description": "Version to release (omitted when release_type is nx, where only the alerts are checked)",
+        "type": "string"
+      },
+      "tag": {
+        "description": "Tag to create (omitted when release_type is nx)",
+        "type": "string"
+      },
+      "releaseNotes": {
+        "description": "Release notes from the CHANGELOG (omitted when release_type is nx)",
+        "type": "string"
+      },
+      "commitCount": {
+        "description": "Number of commits from the release branch to the develop branch (omitted when release_type is nx)",
+        "type": "integer",
+        "minimum": -9007199254740991,
+        "maximum": 9007199254740991
+      },
+      "skipped": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Checks skipped because the feature is disabled, as in the skipped lines (e.g. \"Dependabot alerts (feature disabled)\")"
+      },
+      "dependabotAlerts": {
+        "description": "Dependabot alert status (omitted when it could not be read; the release is not blocked)",
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether Dependabot alerts are enabled"
+          },
+          "openCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of open alerts (0 when disabled)"
+          },
+          "maxSeverity": {
+            "description": "Highest severity of the open alerts (omitted when there is none)",
+            "type": "string"
+          },
+          "alertsUrl": {
+            "type": "string",
+            "description": "URL of the alert list"
+          }
+        },
+        "required": [
+          "enabled",
+          "openCount",
+          "alertsUrl"
+        ],
+        "additionalProperties": false
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "skipped"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

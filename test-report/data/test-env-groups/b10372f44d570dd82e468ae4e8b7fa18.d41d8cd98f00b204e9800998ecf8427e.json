@@ -1,0 +1,1 @@
+{"id":"b10372f44d570dd82e468ae4e8b7fa18.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight バージョンが見つからないときのメッセージも、実際のファイル名を使う","name":"バージョンが見つからないときのメッセージも、実際のファイル名を使う","status":"passed","testResultsByEnv":{"default":"b969553e694a27518fa7f83f67df841f"}}

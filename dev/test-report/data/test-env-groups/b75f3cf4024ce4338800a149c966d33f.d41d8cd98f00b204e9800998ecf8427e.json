@@ -1,0 +1,1 @@
+{"id":"b75f3cf4024ce4338800a149c966d33f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git.test.ts#activeIssueOf git の外では、undefined を返す","name":"git の外では、undefined を返す","status":"passed","testResultsByEnv":{"default":"4d24d62ed0286b440b05ad82100b09a0"}}

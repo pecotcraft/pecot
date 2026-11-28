@@ -1,0 +1,1 @@
+{"id":"f98da0585646604b395a49010672fa61.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-finish.test.ts#session_finish MCP の data リモートの head ブランチの削除に失敗すると、warnings に 1 つ入れ、成功を返す","name":"リモートの head ブランチの削除に失敗すると、warnings に 1 つ入れ、成功を返す","status":"passed","testResultsByEnv":{"default":"02410a03052be4f82bfba42a7261ebf1"}}

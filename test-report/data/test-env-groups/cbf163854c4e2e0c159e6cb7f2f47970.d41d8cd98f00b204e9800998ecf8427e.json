@@ -1,0 +1,1 @@
+{"id":"cbf163854c4e2e0c159e6cb7f2f47970.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_does_not_pick_other_pr_run_with_same_sha","name":"同じ sha でも別の PR の run は除外し、次の候補を選ぶ","status":"passed","testResultsByEnv":{"default":"f2cf1b93e1402a670bacc5a4d5f74f94"}}

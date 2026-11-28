@@ -1,0 +1,1 @@
+{"id":"75419606bf202e7111eeb0e20f80eb0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/allowlist.test.ts#findAllowlistEntry 渡した許可リストに存在しないツール名を検索すると、undefined を返す","name":"渡した許可リストに存在しないツール名を検索すると、undefined を返す","status":"passed","testResultsByEnv":{"default":"a34876cc44ac0136a29f87e9a70da32f"}}

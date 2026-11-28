@@ -1,0 +1,1 @@
+{"id":"2ee4dddb1331c38479769c731c5f5c64.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#executeGraphql 2xx で本文が空 のとき、GitHubAPIError が発生する","name":"2xx で本文が空 のとき、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"ad6cf4b537dbc025b22656a15d0e32be"}}

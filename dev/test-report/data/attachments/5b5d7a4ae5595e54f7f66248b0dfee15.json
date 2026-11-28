@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "screenshot: Summary has no image: put a screenshot of the result in Summary, or write the reason to leave it out in screenshot"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"screenshot\",\"code\":\"required\",\"message\":\"Summary has no image: put a screenshot of the result in Summary, or write the reason to leave it out in screenshot\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "screenshot",
+        "code": "required",
+        "message": "Summary has no image: put a screenshot of the result in Summary, or write the reason to leave it out in screenshot"
+      }
+    ]
+  }
+}

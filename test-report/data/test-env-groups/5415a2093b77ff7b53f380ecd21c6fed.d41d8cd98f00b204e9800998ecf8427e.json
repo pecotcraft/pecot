@@ -1,0 +1,1 @@
+{"id":"5415a2093b77ff7b53f380ecd21c6fed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/load.test.ts#loadJson and loadYaml ファイルが存在しない以外の読み取りエラーは、例外として投げる","name":"ファイルが存在しない以外の読み取りエラーは、例外として投げる","status":"passed","testResultsByEnv":{"default":"84f0996acc38252aeadb104f0528221d"}}

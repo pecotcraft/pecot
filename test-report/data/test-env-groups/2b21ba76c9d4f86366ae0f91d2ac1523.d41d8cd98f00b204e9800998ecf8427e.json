@@ -1,0 +1,1 @@
+{"id":"2b21ba76c9d4f86366ae0f91d2ac1523.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#リポジトリの検索 リポジトリの release ブランチを返し、未設定の場合や、リポジトリが存在しない場合は undefined を返す","name":"リポジトリの release ブランチを返し、未設定の場合や、リポジトリが存在しない場合は undefined を返す","status":"passed","testResultsByEnv":{"default":"767b7f66eaeb46802ae6dab3d48a2952"}}

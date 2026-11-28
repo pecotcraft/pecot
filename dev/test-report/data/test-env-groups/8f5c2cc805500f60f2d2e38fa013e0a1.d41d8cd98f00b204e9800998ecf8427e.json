@@ -1,0 +1,1 @@
+{"id":"8f5c2cc805500f60f2d2e38fa013e0a1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/tracker-body.test.ts#cell セルを作成すると、U+FEFF は空白として扱わない","name":"セルを作成すると、U+FEFF は空白として扱わない","status":"passed","testResultsByEnv":{"default":"121e389591f2d6aecccbf505d11d0c79"}}

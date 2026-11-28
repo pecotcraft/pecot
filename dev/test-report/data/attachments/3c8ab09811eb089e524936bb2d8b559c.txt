@@ -1,0 +1,1 @@
+error: repo has an invalid form: 'not-a-repo'

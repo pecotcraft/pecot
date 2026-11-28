@@ -1,0 +1,1 @@
+{"id":"f449106d963f3ca72566c819cc0f7f06.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/runtime-manifest.bats#名前付き catalog を指す依存があると、非ゼロで終了し、名前付き catalog を扱えない旨を出す","name":"名前付き catalog を指す依存があると、非ゼロで終了し、名前付き catalog を扱えない旨を出す","status":"passed","testResultsByEnv":{"default":"0d71f53134c38147f7b19c7f0729c769"}}

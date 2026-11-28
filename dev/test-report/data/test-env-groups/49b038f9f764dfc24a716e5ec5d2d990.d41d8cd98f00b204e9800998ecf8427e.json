@@ -1,0 +1,1 @@
+{"id":"49b038f9f764dfc24a716e5ec5d2d990.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/tests/node-runtime.test.ts#checkNodeRuntime Node.js のバージョンが 27.0.0 の場合は、起動を許可する","name":"Node.js のバージョンが 27.0.0 の場合は、起動を許可する","status":"passed","testResultsByEnv":{"default":"4d7ae615f0c8865ff37470e73fdc0205"}}

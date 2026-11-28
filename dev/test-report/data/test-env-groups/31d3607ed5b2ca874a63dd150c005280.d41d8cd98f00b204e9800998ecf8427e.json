@@ -1,0 +1,1 @@
+{"id":"31d3607ed5b2ca874a63dd150c005280.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_aggregator_test_target_is_not_a_lane","name":"レーンを束ねる起点の `test` は、レーン数にも最長の判定にも含めない","status":"passed","testResultsByEnv":{"default":"9a47a2b487fc9fd16e2eb876b14bf705"}}

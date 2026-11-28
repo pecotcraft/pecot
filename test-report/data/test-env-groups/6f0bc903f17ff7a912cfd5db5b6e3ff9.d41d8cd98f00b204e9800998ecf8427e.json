@@ -1,0 +1,1 @@
+{"id":"6f0bc903f17ff7a912cfd5db5b6e3ff9.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_pages_are_written_and_stale_ones_removed","name":"ページの生成では、定義書ごとのページを書き出し、古いページとディレクトリは削除する","status":"passed","testResultsByEnv":{"default":"c2ba8ef022ddb46b9673cf80d1c3c1bd"}}

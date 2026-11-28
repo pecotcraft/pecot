@@ -1,0 +1,1 @@
+{"id":"c92fc6f748873ba78e37998ae8dfa728.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/index.test.ts#InProcessSlidevPptxPipeline 中断した後に届いた進捗の報告は無視し、タイマーを再設定しない","name":"中断した後に届いた進捗の報告は無視し、タイマーを再設定しない","status":"passed","testResultsByEnv":{"default":"9904ee43fc46c16e93e891dbb315e71b"}}

@@ -1,0 +1,1 @@
+{"id":"a3d7bf81657e4493ac93e927ebe3becf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/english-only.test.ts#判定器 ソースが const a = `${x} 漢字 ${y} 終わり` のとき、日本語を含むリテラルを 2 件見つける","name":"ソースが const a = `${x} 漢字 ${y} 終わり` のとき、日本語を含むリテラルを 2 件見つける","status":"passed","testResultsByEnv":{"default":"5f26764ce50e84a90f8c7ded6041ed94"}}

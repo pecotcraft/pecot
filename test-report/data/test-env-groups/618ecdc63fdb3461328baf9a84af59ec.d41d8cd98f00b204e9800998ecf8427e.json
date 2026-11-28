@@ -1,0 +1,1 @@
+{"id":"618ecdc63fdb3461328baf9a84af59ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/result.test.ts#limitOutput 出力が上限を超えたときは、先頭を残して切り詰め、truncated を真にする","name":"出力が上限を超えたときは、先頭を残して切り詰め、truncated を真にする","status":"passed","testResultsByEnv":{"default":"2615dc0374ac2e32fd13b01e0edf6d97"}}

@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "directory not found: /workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-980/talk"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.lint.error\",\"kind\":\"dir-not-found\",\"detail\":\"directory not found: /workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-980/talk\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.lint.error",
+    "kind": "dir-not-found",
+    "detail": "directory not found: /workspaces/base/pecot/plugins/pecot-visual/cli/no-such-dir-980/talk"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"4805754ec24c1ee99fc00731fa1e5723.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/setup.test.ts#createSandbox worktrees の files は worktree を作成した後に配置し、コミットしない","name":"worktrees の files は worktree を作成した後に配置し、コミットしない","status":"passed","testResultsByEnv":{"default":"93376875840043b8bb69ec289caf03e3"}}

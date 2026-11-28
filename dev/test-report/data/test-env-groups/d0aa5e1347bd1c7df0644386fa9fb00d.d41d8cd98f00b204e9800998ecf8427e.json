@@ -1,0 +1,1 @@
+{"id":"d0aa5e1347bd1c7df0644386fa9fb00d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/tool-names.test.ts#本文のツール名 w-active の allowed-tools は、取りこぼしの片付けに使う session_finish だけを許す","name":"w-active の allowed-tools は、取りこぼしの片付けに使う session_finish だけを許す","status":"passed","testResultsByEnv":{"default":"7af667d6b58b26b96b11eb1b5ef8fc55"}}

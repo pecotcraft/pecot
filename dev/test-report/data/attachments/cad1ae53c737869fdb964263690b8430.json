@@ -1,0 +1,42 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "blocked_by[0].reason: reason must be a single line"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"blocked_by[0].reason\",\"code\":\"value\",\"message\":\"reason must be a single line\"},{\"field\":\"body\",\"code\":\"waits-for-merge\",\"message\":\"add the line of #5 to the ## Waits for merge section at the end of the body\",\"candidates\":[\"- #5: 先に要る\\n後で使う\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[{\"issue\":\"#5\",\"wait\":\"merge\"}],\"approach\":\"wait-merge\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "blocked_by[0].reason",
+        "code": "value",
+        "message": "reason must be a single line"
+      },
+      {
+        "field": "body",
+        "code": "waits-for-merge",
+        "message": "add the line of #5 to the ## Waits for merge section at the end of the body",
+        "candidates": [
+          "- #5: 先に要る\n後で使う"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [
+          {
+            "issue": "#5",
+            "wait": "merge"
+          }
+        ],
+        "approach": "wait-merge"
+      }
+    ]
+  }
+}

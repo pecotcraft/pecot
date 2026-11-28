@@ -1,0 +1,1 @@
+{"id":"12c4072c0dc1e94f1e84f175c974909b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/rule-tester.test.ts#no-numeric-asset-prefix valid 数字で始まらない画像名の参照だと、報告しない","name":"数字で始まらない画像名の参照だと、報告しない","status":"passed","testResultsByEnv":{"default":"25c0a9c4466952aa93c4be00e079bfa6"}}

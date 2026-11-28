@@ -1,0 +1,1 @@
+{"id":"9f90ec05824b6a1abbc26675ab8b2d03.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/scenario.test.ts#parseScenario 形式に誤りがあると、例外が発生する: id がツール名と kind の形でない","name":"形式に誤りがあると、例外が発生する: id がツール名と kind の形でない","status":"passed","testResultsByEnv":{"default":"901a11c3bdce8a45b5ae4fc007785d89"}}

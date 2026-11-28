@@ -1,0 +1,1 @@
+{"id":"3ec1a4027c873654b9c19a0957fdf8b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#getBranchSha ブランチの ref を取得すると、object.sha を返す","name":"ブランチの ref を取得すると、object.sha を返す","status":"passed","testResultsByEnv":{"default":"b69a2001e7049660da3f705e890505f6"}}

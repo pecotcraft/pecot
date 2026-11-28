@@ -1,0 +1,1 @@
+{"id":"7cb28544c131b0cea72b3d53ccf62e4d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender-capture-flow.test.ts#captureAndReplaceElements 要素が表示領域の外にある場合は、transform を一時的に解除して撮影する","name":"要素が表示領域の外にある場合は、transform を一時的に解除して撮影する","status":"passed","testResultsByEnv":{"default":"a40a9024a9e8e40778643f1582e6765e"}}

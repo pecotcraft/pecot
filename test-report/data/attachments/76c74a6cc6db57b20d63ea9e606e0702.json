@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.issue_fields: read the Issue fields with list_issue_fields to check issue_fields"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.issue_fields\",\"code\":\"read-required\",\"message\":\"read the Issue fields with list_issue_fields to check issue_fields\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}],\"warnings\":[\"issue_write takes no parent_* together with issue_fields: leave the parent out of issue_write and link it with sub_issue_write after the create\"]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.issue_fields",
+        "code": "read-required",
+        "message": "read the Issue fields with list_issue_fields to check issue_fields"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ],
+    "warnings": [
+      "issue_write takes no parent_* together with issue_fields: leave the parent out of issue_write and link it with sub_issue_write after the create"
+    ]
+  }
+}

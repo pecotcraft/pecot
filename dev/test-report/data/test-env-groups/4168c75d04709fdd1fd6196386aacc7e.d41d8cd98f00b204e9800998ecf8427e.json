@@ -1,0 +1,1 @@
+{"id":"4168c75d04709fdd1fd6196386aacc7e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 ルート .env に対応しないホストは gh auth token -h <host> にフォールバックする","name":"ルート .env に対応しないホストは gh auth token -h <host> にフォールバックする","status":"passed","testResultsByEnv":{"default":"9bad99ac20ad305c4775687745d67ab9"}}

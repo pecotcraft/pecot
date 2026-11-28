@@ -1,0 +1,1 @@
+{"id":"f34799e1ca2ef66f6c766ad3f4b875d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations arrow arrow の from と to が同じ座標の場合は、拒否する","name":"arrow の from と to が同じ座標の場合は、拒否する","status":"passed","testResultsByEnv":{"default":"d2f2bc737e9bd6f11ebbe7b10a8d856e"}}

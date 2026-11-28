@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Session status"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/demo/7\",\"repository\":\"acme/demo\",\"activeIssue\":{\"reference\":\"acme/demo/7\"},\"warnings\":[\"cannot read the active Issue: GraphQL authentication error: Client error '401 Unauthorized' for url 'http://127.0.0.1:38919/graphql'\\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401\"]}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/demo/7",
+    "repository": "acme/demo",
+    "activeIssue": {
+      "reference": "acme/demo/7"
+    },
+    "warnings": [
+      "cannot read the active Issue: GraphQL authentication error: Client error '401 Unauthorized' for url 'http://127.0.0.1:38919/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401"
+    ]
+  }
+}

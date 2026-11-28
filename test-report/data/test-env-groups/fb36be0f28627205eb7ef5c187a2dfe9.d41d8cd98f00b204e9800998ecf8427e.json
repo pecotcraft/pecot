@@ -1,0 +1,1 @@
+{"id":"fb36be0f28627205eb7ef5c187a2dfe9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyJapaneseFontFix endParaRPr: 段落に日本語があり、a:ea が存在しない場合は、新しく追加する","name":"endParaRPr: 段落に日本語があり、a:ea が存在しない場合は、新しく追加する","status":"passed","testResultsByEnv":{"default":"66fa49490bd9499bdd10e7ea4b513f35"}}

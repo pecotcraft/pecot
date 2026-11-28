@@ -1,0 +1,1 @@
+{"id":"03b02f78548536836cc66c3b3fdd50d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-pr の手順 Step 1 は、引数を本文に受け、resume のときに Step 4 か Step 6 の出力から続けさせる","name":"Step 1 は、引数を本文に受け、resume のときに Step 4 か Step 6 の出力から続けさせる","status":"passed","testResultsByEnv":{"default":"8a4eb835bbe90c9dae8bb3c3c18d94e2"}}

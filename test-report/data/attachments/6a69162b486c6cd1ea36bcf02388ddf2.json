@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "removed: worktree wt1"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt1\",\"deletedBranch\":true,\"warnings\":[\"failed to remove the set directory: /tmp/pecot-cli-3G440A/workspaces/wt1: [Errno 13] Permission denied: '/tmp/pecot-cli-3G440A/workspaces/wt1'\"]}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt1",
+    "deletedBranch": true,
+    "warnings": [
+      "failed to remove the set directory: /tmp/pecot-cli-3G440A/workspaces/wt1: [Errno 13] Permission denied: '/tmp/pecot-cli-3G440A/workspaces/wt1'"
+    ]
+  }
+}

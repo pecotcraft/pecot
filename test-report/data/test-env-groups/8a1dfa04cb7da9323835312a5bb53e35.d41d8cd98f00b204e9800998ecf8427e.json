@@ -1,0 +1,1 @@
+{"id":"8a1dfa04cb7da9323835312a5bb53e35.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#toIssueFacts Waits for merge の節にあって blocked by に存在しない組は、判定の入力から外し、食い違いとして返す","name":"Waits for merge の節にあって blocked by に存在しない組は、判定の入力から外し、食い違いとして返す","status":"passed","testResultsByEnv":{"default":"513c1e2fdfa95715e081e3ec9cb4321d"}}

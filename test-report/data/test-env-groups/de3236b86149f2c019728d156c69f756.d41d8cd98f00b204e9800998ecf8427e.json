@@ -1,0 +1,1 @@
+{"id":"de3236b86149f2c019728d156c69f756.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#addSubIssue 親と子の Node ID を parentId と childId の変数で送信し、両方の Issue 番号を返す","name":"親と子の Node ID を parentId と childId の変数で送信し、両方の Issue 番号を返す","status":"passed","testResultsByEnv":{"default":"5cb0f5ebe7b0b808704a02302ecfcc8d"}}

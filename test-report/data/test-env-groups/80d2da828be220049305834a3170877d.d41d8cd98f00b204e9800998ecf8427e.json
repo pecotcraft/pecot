@@ -1,0 +1,1 @@
+{"id":"80d2da828be220049305834a3170877d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slide-url.test.ts#buildSlideUrl clicks が 0 の場合も、クエリに含める（省略するのは clicks を指定しない場合だけ）","name":"clicks が 0 の場合も、クエリに含める（省略するのは clicks を指定しない場合だけ）","status":"passed","testResultsByEnv":{"default":"be884edc306d9742d38802176da1f1c7"}}

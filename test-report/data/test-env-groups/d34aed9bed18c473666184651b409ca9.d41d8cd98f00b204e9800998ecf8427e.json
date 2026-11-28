@@ -1,0 +1,1 @@
+{"id":"d34aed9bed18c473666184651b409ca9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/skeleton.test.ts#extractSkeleton 値の途中にある frontmatter の文字列には反応せず、行頭の frontmatter だけを雛形にする","name":"値の途中にある frontmatter の文字列には反応せず、行頭の frontmatter だけを雛形にする","status":"passed","testResultsByEnv":{"default":"5e12f0fa9285d419eca7125133997787"}}

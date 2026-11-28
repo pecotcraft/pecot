@@ -1,0 +1,1 @@
+written: /tmp/bats-run-IHNnqy/test/4/dim.md

@@ -1,0 +1,1 @@
+{"id":"147352759957ce558dbbf1cafb7d128c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: modern) slide_convert スキーマ違反を拒否する: transition_type が enum 外","name":"スキーマ違反を拒否する: transition_type が enum 外","status":"passed","testResultsByEnv":{"default":"4a59e4196cdcf797ce1481692dd93f57"}}

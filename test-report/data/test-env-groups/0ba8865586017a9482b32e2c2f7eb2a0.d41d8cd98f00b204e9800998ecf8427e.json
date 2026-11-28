@@ -1,0 +1,1 @@
+{"id":"0ba8865586017a9482b32e2c2f7eb2a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#install 失敗後に build を呼ばない","name":"install 失敗後に build を呼ばない","status":"passed","testResultsByEnv":{"default":"aa25b2640d3e02f7c40cf3ed784a4503"}}

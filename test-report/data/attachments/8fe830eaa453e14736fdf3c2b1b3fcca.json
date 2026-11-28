@@ -1,0 +1,2813 @@
+{
+  "_meta": {
+    "io.modelcontextprotocol/serverInfo": {
+      "name": "pecot-tools",
+      "version": "4.0.2"
+    }
+  },
+  "ttlMs": 0,
+  "cacheScope": "private",
+  "tools": [
+    {
+      "name": "aws_sso_login",
+      "title": "Start SSO login",
+      "description": "Starts AWS SSO device authorization and returns the verification URL and code immediately. It does not wait for completion, so check with aws_sso_login_status after the user approves",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "description": "State of the device authorization. Returned on success and on failed / timed-out",
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "failed",
+              "timed-out"
+            ]
+          },
+          "verificationUrl": {
+            "description": "URL to open in a browser to approve (success only, once awscli has printed it)",
+            "type": "string"
+          },
+          "verificationUrlComplete": {
+            "description": "URL with the code filled in; no code entry is needed (success only, once awscli has printed it)",
+            "type": "string"
+          },
+          "userCode": {
+            "description": "Code to enter at verificationUrl (success only, once awscli has printed it)",
+            "type": "string"
+          },
+          "profile": {
+            "description": "Profile being authenticated. Empty when the awscli default resolution applies. Returned on success and on failed / timed-out",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "state",
+              "profile"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_sso_login_status",
+      "title": "Get SSO login status",
+      "description": "Returns the state (pending / completed / failed / timed-out) of the authorization started by aws_sso_login. Does not run awscli",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "description": "State of the device authorization. Returned on success and on failed / timed-out",
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "failed",
+              "timed-out"
+            ]
+          },
+          "verificationUrl": {
+            "description": "URL to open in a browser to approve (success only, once awscli has printed it)",
+            "type": "string"
+          },
+          "verificationUrlComplete": {
+            "description": "URL with the code filled in; no code entry is needed (success only, once awscli has printed it)",
+            "type": "string"
+          },
+          "userCode": {
+            "description": "Code to enter at verificationUrl (success only, once awscli has printed it)",
+            "type": "string"
+          },
+          "output": {
+            "description": "awscli output when the state is completed, only the beginning when it exceeds the limit",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "state"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_sts_get_caller_identity",
+      "title": "Get caller identity",
+      "description": "Returns the account ID, user ID, and ARN of the current credentials. Use it to check that authentication works",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "UserId": {
+            "type": "string",
+            "description": "Unique identifier of the calling entity (STS GetCallerIdentity)"
+          },
+          "Account": {
+            "type": "string",
+            "description": "AWS account ID that owns the calling entity (STS GetCallerIdentity)"
+          },
+          "Arn": {
+            "type": "string",
+            "description": "ARN of the calling entity (STS GetCallerIdentity)"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_lambda_list_functions",
+      "title": "List Lambda functions",
+      "description": "Lists Lambda functions in the region. For many functions, split with max_items and starting_token",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "Functions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "FunctionConfiguration objects of the Lambda ListFunctions response"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_lambda_get_function_configuration",
+      "title": "Get Lambda function config",
+      "description": "Returns the configuration of one function (runtime, handler, environment variables, timeout, etc.)",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "function_name": {
+            "type": "string",
+            "description": "Function name, partial ARN, or full ARN"
+          },
+          "qualifier": {
+            "description": "Version number or alias name. If omitted, $LATEST",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        },
+        "required": [
+          "function_name"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "FunctionName": {
+            "type": "string",
+            "description": "Function name (Lambda GetFunctionConfiguration response)"
+          },
+          "FunctionArn": {
+            "type": "string",
+            "description": "Function ARN (Lambda GetFunctionConfiguration response)"
+          },
+          "Runtime": {
+            "type": "string",
+            "description": "Runtime identifier (Lambda GetFunctionConfiguration response)"
+          },
+          "Role": {
+            "type": "string",
+            "description": "Execution role ARN (Lambda GetFunctionConfiguration response)"
+          },
+          "Handler": {
+            "type": "string",
+            "description": "Handler that Lambda calls (Lambda GetFunctionConfiguration response)"
+          },
+          "CodeSize": {
+            "type": "number",
+            "description": "Deployment package size in bytes (Lambda GetFunctionConfiguration response)"
+          },
+          "Description": {
+            "type": "string",
+            "description": "Function description (Lambda GetFunctionConfiguration response)"
+          },
+          "Timeout": {
+            "type": "number",
+            "description": "Timeout in seconds (Lambda GetFunctionConfiguration response)"
+          },
+          "MemorySize": {
+            "type": "number",
+            "description": "Memory in MB (Lambda GetFunctionConfiguration response)"
+          },
+          "LastModified": {
+            "type": "string",
+            "description": "Last update time (ISO 8601) (Lambda GetFunctionConfiguration response)"
+          },
+          "CodeSha256": {
+            "type": "string",
+            "description": "SHA256 hash of the deployment package (Lambda GetFunctionConfiguration response)"
+          },
+          "Version": {
+            "type": "string",
+            "description": "Function version (Lambda GetFunctionConfiguration response)"
+          },
+          "VpcConfig": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "VpcConfigResponse object (Lambda GetFunctionConfiguration response)"
+          },
+          "DeadLetterConfig": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "DeadLetterConfig object (Lambda GetFunctionConfiguration response)"
+          },
+          "Environment": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "EnvironmentResponse object with the environment variables (Lambda GetFunctionConfiguration response)"
+          },
+          "KMSKeyArn": {
+            "type": "string",
+            "description": "KMS key ARN (Lambda GetFunctionConfiguration response)"
+          },
+          "TracingConfig": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "TracingConfigResponse object (Lambda GetFunctionConfiguration response)"
+          },
+          "MasterArn": {
+            "type": "string",
+            "description": "ARN of the main function of a Lambda@Edge function (Lambda GetFunctionConfiguration response)"
+          },
+          "RevisionId": {
+            "type": "string",
+            "description": "Latest revision ID (Lambda GetFunctionConfiguration response)"
+          },
+          "Layers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "Layer objects (Lambda GetFunctionConfiguration response)"
+          },
+          "State": {
+            "type": "string",
+            "description": "Current state of the function (Lambda GetFunctionConfiguration response)"
+          },
+          "StateReason": {
+            "type": "string",
+            "description": "Reason for the current state (Lambda GetFunctionConfiguration response)"
+          },
+          "StateReasonCode": {
+            "type": "string",
+            "description": "Reason code for the current state (Lambda GetFunctionConfiguration response)"
+          },
+          "LastUpdateStatus": {
+            "type": "string",
+            "description": "Status of the last update (Lambda GetFunctionConfiguration response)"
+          },
+          "LastUpdateStatusReason": {
+            "type": "string",
+            "description": "Reason for the last update status (Lambda GetFunctionConfiguration response)"
+          },
+          "LastUpdateStatusReasonCode": {
+            "type": "string",
+            "description": "Reason code for the last update status (Lambda GetFunctionConfiguration response)"
+          },
+          "FileSystemConfigs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "FileSystemConfig objects (Lambda GetFunctionConfiguration response)"
+          },
+          "SigningProfileVersionArn": {
+            "type": "string",
+            "description": "Signing profile version ARN (Lambda GetFunctionConfiguration response)"
+          },
+          "SigningJobArn": {
+            "type": "string",
+            "description": "Signing job ARN (Lambda GetFunctionConfiguration response)"
+          },
+          "PackageType": {
+            "type": "string",
+            "description": "Deployment package type (Zip or Image) (Lambda GetFunctionConfiguration response)"
+          },
+          "ImageConfigResponse": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "ImageConfigResponse object (Lambda GetFunctionConfiguration response)"
+          },
+          "Architectures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Instruction set architectures (Lambda GetFunctionConfiguration response)"
+          },
+          "EphemeralStorage": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "EphemeralStorage object (Lambda GetFunctionConfiguration response)"
+          },
+          "SnapStart": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "SnapStartResponse object (Lambda GetFunctionConfiguration response)"
+          },
+          "RuntimeVersionConfig": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "RuntimeVersionConfig object (Lambda GetFunctionConfiguration response)"
+          },
+          "LoggingConfig": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "LoggingConfig object (Lambda GetFunctionConfiguration response)"
+          },
+          "TenancyConfig": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "TenancyConfig object (Lambda GetFunctionConfiguration response)"
+          },
+          "CapacityProviderConfig": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "CapacityProviderConfig object (Lambda GetFunctionConfiguration response)"
+          },
+          "ConfigSha256": {
+            "type": "string",
+            "description": "SHA256 hash of the function configuration (Lambda GetFunctionConfiguration response)"
+          },
+          "DurableConfig": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "DurableConfig object (Lambda GetFunctionConfiguration response)"
+          },
+          "RuntimeConfig": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "FunctionRuntimeConfig object (Lambda GetFunctionConfiguration response)"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_lambda_list_event_source_mappings",
+      "title": "List event source mappings",
+      "description": "Lists the mappings between functions and event sources (SQS queues, DynamoDB streams, etc.). Filter by event_source_arn or function_name",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "event_source_arn": {
+            "description": "ARN of the event source (starts with arn:)",
+            "type": "string"
+          },
+          "function_name": {
+            "description": "Function name, partial ARN, or full ARN",
+            "type": "string"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "EventSourceMappings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "EventSourceMappingConfiguration objects of the Lambda ListEventSourceMappings response"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_logs_describe_log_groups",
+      "title": "List log groups",
+      "description": "Lists CloudWatch Logs log groups. Narrow by prefix with log_group_name_prefix",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "log_group_name_prefix": {
+            "description": "Log group name prefix",
+            "type": "string"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "logGroups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "LogGroup objects of the CloudWatch Logs DescribeLogGroups response"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_logs_describe_log_streams",
+      "title": "List log streams",
+      "description": "Lists log streams in a log group. To find the latest stream, set order_by to LastEventTime and descending to true",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "log_group_name": {
+            "type": "string",
+            "description": "Target log group name"
+          },
+          "log_stream_name_prefix": {
+            "description": "Log stream name prefix",
+            "type": "string"
+          },
+          "order_by": {
+            "description": "Sort key",
+            "type": "string",
+            "enum": [
+              "LogStreamName",
+              "LastEventTime"
+            ]
+          },
+          "descending": {
+            "default": false,
+            "description": "If true, sorts in descending order",
+            "type": "boolean"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        },
+        "required": [
+          "log_group_name"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "logStreams": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "LogStream objects of the CloudWatch Logs DescribeLogStreams response"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_logs_get_log_events",
+      "title": "Get log events",
+      "description": "Gets events of one log stream. To continue, pass nextForwardToken from the response as next_token",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "log_group_name": {
+            "type": "string",
+            "description": "Target log group name"
+          },
+          "log_stream_name": {
+            "type": "string",
+            "description": "Target log stream name"
+          },
+          "start_time": {
+            "description": "Start time (UNIX epoch milliseconds)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "end_time": {
+            "description": "End time (UNIX epoch milliseconds)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "limit": {
+            "description": "Maximum number of events to return (1-10000)",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "next_token": {
+            "description": "nextForwardToken / nextBackwardToken from the previous response",
+            "type": "string"
+          },
+          "start_from_head": {
+            "default": false,
+            "description": "If true, returns the oldest events first",
+            "type": "boolean"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        },
+        "required": [
+          "log_group_name",
+          "log_stream_name"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "OutputLogEvent objects of the CloudWatch Logs GetLogEvents response"
+          },
+          "nextForwardToken": {
+            "type": "string",
+            "description": "Token for the next events in the forward direction. Pass it as next_token to continue (CloudWatch Logs GetLogEvents response)"
+          },
+          "nextBackwardToken": {
+            "type": "string",
+            "description": "Token for the next events in the backward direction (CloudWatch Logs GetLogEvents response)"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_logs_filter_log_events",
+      "title": "Search log events",
+      "description": "Searches log events across a log group. log_stream_names and log_stream_name_prefix cannot be specified together",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "log_group_name": {
+            "type": "string",
+            "description": "Target log group name"
+          },
+          "log_stream_names": {
+            "description": "Log stream names to search. Cannot be combined with log_stream_name_prefix",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "log_stream_name_prefix": {
+            "description": "Prefix of log stream names to search. Cannot be combined with log_stream_names",
+            "type": "string"
+          },
+          "filter_pattern": {
+            "description": "CloudWatch Logs filter pattern",
+            "type": "string"
+          },
+          "start_time": {
+            "description": "Start time (UNIX epoch milliseconds)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "end_time": {
+            "description": "End time (UNIX epoch milliseconds)",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        },
+        "required": [
+          "log_group_name"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "FilteredLogEvent objects of the CloudWatch Logs FilterLogEvents response"
+          },
+          "searchedLogStreams": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "SearchedLogStream objects of the CloudWatch Logs FilterLogEvents response (no longer supported by AWS; an empty list)"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_cloudwatch_get_metric_statistics",
+      "title": "Get CloudWatch metric statistics",
+      "description": "Gets statistics of one metric over a time range. Specify all dimensions exactly as when the metric was published, or the result is empty",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Metric namespace (e.g. AWS/SQS, AWS/Lambda)"
+          },
+          "metric_name": {
+            "type": "string",
+            "description": "Metric name (e.g. NumberOfMessagesSent)"
+          },
+          "dimensions": {
+            "description": "Dimensions to filter by. Specify exactly the combination the metric has",
+            "maxItems": 30,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Dimension name (e.g. QueueName, FunctionName)"
+                },
+                "value": {
+                  "type": "string",
+                  "description": "Dimension value"
+                }
+              },
+              "required": [
+                "name",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "start_time": {
+            "type": "string",
+            "description": "Start time. ISO 8601 with a required timezone (Z or +09:00 form), e.g. 2026-09-01T00:00:00Z / 2026-09-01T09:00:00+09:00"
+          },
+          "end_time": {
+            "type": "string",
+            "description": "End time. ISO 8601 with a required timezone (Z or +09:00 form), same format as start_time"
+          },
+          "period": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "description": "Aggregation period in seconds. Must be a multiple of 60"
+          },
+          "statistics": {
+            "minItems": 1,
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "SampleCount",
+                "Average",
+                "Sum",
+                "Minimum",
+                "Maximum"
+              ]
+            },
+            "description": "Statistics to get. Specify 1 to 5"
+          },
+          "unit": {
+            "description": "Unit to filter by. The result is empty if it does not match the unit of the data",
+            "type": "string",
+            "enum": [
+              "Seconds",
+              "Microseconds",
+              "Milliseconds",
+              "Bytes",
+              "Kilobytes",
+              "Megabytes",
+              "Gigabytes",
+              "Terabytes",
+              "Bits",
+              "Kilobits",
+              "Megabits",
+              "Gigabits",
+              "Terabits",
+              "Percent",
+              "Count",
+              "Bytes/Second",
+              "Kilobytes/Second",
+              "Megabytes/Second",
+              "Gigabytes/Second",
+              "Terabytes/Second",
+              "Bits/Second",
+              "Kilobits/Second",
+              "Megabits/Second",
+              "Gigabits/Second",
+              "Terabits/Second",
+              "Count/Second",
+              "None"
+            ]
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        },
+        "required": [
+          "namespace",
+          "metric_name",
+          "start_time",
+          "end_time",
+          "period",
+          "statistics"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "Label": {
+            "type": "string",
+            "description": "Metric label (CloudWatch GetMetricStatistics response)"
+          },
+          "Datapoints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "Datapoint objects of the CloudWatch GetMetricStatistics response"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_sqs_list_queues",
+      "title": "List SQS queues",
+      "description": "Lists SQS queue URLs. Narrow by name prefix with queue_name_prefix",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "queue_name_prefix": {
+            "description": "Queue name prefix",
+            "type": "string"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "QueueUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Queue URLs (SQS ListQueues response)"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_sqs_get_queue_attributes",
+      "title": "Get SQS queue attributes",
+      "description": "Returns the attributes of one queue (backlog counts, visibility timeout, dead-letter queue settings, etc.)",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "queue_url": {
+            "type": "string",
+            "description": "Queue URL (starts with https://)"
+          },
+          "attribute_names": {
+            "default": [
+              "All"
+            ],
+            "description": "Attribute names to get. Defaults to all attributes",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        },
+        "required": [
+          "queue_url"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "Attributes": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Map of attribute names to values (SQS GetQueueAttributes response)"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_athena_start_query_execution",
+      "title": "Start Athena query",
+      "description": "Starts a read-only query (SELECT / WITH / SHOW / DESCRIBE / EXPLAIN) and returns query_execution_id. Mutating queries and multiple statements are rejected before running. Wait for completion with aws_athena_get_query_execution, then fetch results with aws_athena_get_query_results",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "query_string": {
+            "type": "string",
+            "description": "Read-only query to run. Give a single statement that starts with SELECT / WITH / SHOW / DESCRIBE / EXPLAIN (no enclosing parentheses)"
+          },
+          "work_group": {
+            "description": "Workgroup name",
+            "type": "string"
+          },
+          "database": {
+            "description": "Default database name",
+            "type": "string"
+          },
+          "catalog": {
+            "description": "Data catalog name. Specify together with database (not on its own)",
+            "type": "string"
+          },
+          "output_location": {
+            "description": "Output location for results (starts with s3://)",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        },
+        "required": [
+          "query_string"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "QueryExecutionId": {
+            "type": "string",
+            "description": "ID of the started query (Athena StartQueryExecution response)"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_athena_get_query_execution",
+      "title": "Get Athena query status",
+      "description": "Returns the query execution state (QUEUED / RUNNING / SUCCEEDED / FAILED / CANCELLED) and statistics",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "query_execution_id": {
+            "type": "string",
+            "description": "ID returned by aws_athena_start_query_execution"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        },
+        "required": [
+          "query_execution_id"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "QueryExecution": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "QueryExecution object of the Athena GetQueryExecution response"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_athena_get_query_results",
+      "title": "Get Athena query results",
+      "description": "Returns the result rows of a completed query. For many rows, split with max_items and starting_token",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "query_execution_id": {
+            "type": "string",
+            "description": "ID returned by aws_athena_start_query_execution"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        },
+        "required": [
+          "query_execution_id"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ResultSet": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "ResultSet object (Rows and ResultSetMetadata) of the Athena GetQueryResults response"
+          },
+          "UpdateCount": {
+            "type": "number",
+            "description": "Number of rows changed by a DML statement (Athena GetQueryResults response)"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_s3_ls",
+      "title": "List S3 contents",
+      "description": "Lists the entries directly under a bucket or prefix. Omit s3_uri to list buckets. The command has no JSON output, so results are returned per line in lines",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "s3_uri": {
+            "description": "Target to list (s3://bucket or s3://bucket/prefix/). If omitted, lists buckets",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "lines"
+            ]
+          },
+          {
+            "required": [
+              "output",
+              "truncated"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_rds_describe_events",
+      "title": "List RDS events",
+      "description": "Returns the event history of DB instances and clusters (stop, start, failover, etc.). Without a range, covers the last 1 hour; events are retained for 14 days",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "source_identifier": {
+            "description": "Identifier of the event source. When specified, also specify source_type",
+            "type": "string"
+          },
+          "source_type": {
+            "description": "Type of the event source",
+            "type": "string",
+            "enum": [
+              "db-instance",
+              "db-parameter-group",
+              "db-security-group",
+              "db-snapshot",
+              "db-cluster",
+              "db-cluster-snapshot",
+              "custom-engine-version",
+              "db-proxy",
+              "blue-green-deployment",
+              "db-shard-group",
+              "zero-etl"
+            ]
+          },
+          "start_time": {
+            "description": "Start time. ISO 8601 with a required timezone (Z or +09:00 form), e.g. 2026-09-01T00:00:00Z / 2026-09-01T09:00:00+09:00",
+            "type": "string"
+          },
+          "end_time": {
+            "description": "End time. ISO 8601 with a required timezone (Z or +09:00 form), same format as start_time",
+            "type": "string"
+          },
+          "duration": {
+            "description": "Number of minutes back from now. Cannot be combined with start_time / end_time",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "event_categories": {
+            "description": "Event categories to filter by (e.g. availability, failover)",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "Events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "Event objects of the RDS DescribeEvents response"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_rds_describe_db_clusters",
+      "title": "List DB clusters",
+      "description": "Returns the configuration and state of Aurora / Multi-AZ DB clusters. Narrow to one with db_cluster_identifier",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "db_cluster_identifier": {
+            "description": "Cluster identifier or ARN. If omitted, all clusters",
+            "type": "string"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "DBClusters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "DBCluster objects of the RDS DescribeDBClusters response"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_rds_describe_db_instances",
+      "title": "List DB instances",
+      "description": "Returns the configuration and state of DB instances (DBInstanceStatus, endpoint, etc.). Narrow to one with db_instance_identifier",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "db_instance_identifier": {
+            "description": "Instance identifier or ARN. If omitted, all instances",
+            "type": "string"
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "DBInstances": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "DBInstance objects of the RDS DescribeDBInstances response"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_scheduler_list_schedules",
+      "title": "List schedules",
+      "description": "Lists EventBridge Scheduler schedules. Get details (expression, target) with aws_scheduler_get_schedule",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "group_name": {
+            "description": "Schedule group name to filter by. If omitted, lists all groups",
+            "type": "string"
+          },
+          "name_prefix": {
+            "description": "Schedule name prefix",
+            "type": "string"
+          },
+          "state": {
+            "description": "State to filter by",
+            "type": "string",
+            "enum": [
+              "ENABLED",
+              "DISABLED"
+            ]
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "Schedules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "ScheduleSummary objects of the EventBridge Scheduler ListSchedules response"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "Schedules"
+            ]
+          },
+          {
+            "required": [
+              "lines"
+            ]
+          },
+          {
+            "required": [
+              "output",
+              "truncated"
+            ]
+          },
+          {
+            "required": [
+              "kind",
+              "detail"
+            ]
+          }
+        ]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_scheduler_get_schedule",
+      "title": "Get schedule details",
+      "description": "Returns the schedule expression (ScheduleExpression), timezone, target, and state of one schedule",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Schedule name"
+          },
+          "group_name": {
+            "description": "Schedule group name. If omitted, the default group is used",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ActionAfterCompletion": {
+            "type": "string",
+            "description": "Action after the schedule completes (NONE or DELETE) (EventBridge Scheduler GetSchedule response)"
+          },
+          "Arn": {
+            "type": "string",
+            "description": "Schedule ARN (EventBridge Scheduler GetSchedule response)"
+          },
+          "CreationDate": {
+            "description": "Creation time (EventBridge Scheduler GetSchedule response)",
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "Description": {
+            "type": "string",
+            "description": "Schedule description (EventBridge Scheduler GetSchedule response)"
+          },
+          "EndDate": {
+            "description": "Time before which the schedule can invoke its target (EventBridge Scheduler GetSchedule response)",
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "FlexibleTimeWindow": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "FlexibleTimeWindow object (EventBridge Scheduler GetSchedule response)"
+          },
+          "GroupName": {
+            "type": "string",
+            "description": "Schedule group name (EventBridge Scheduler GetSchedule response)"
+          },
+          "KmsKeyArn": {
+            "type": "string",
+            "description": "Customer managed KMS key ARN (EventBridge Scheduler GetSchedule response)"
+          },
+          "LastModificationDate": {
+            "description": "Last modification time (EventBridge Scheduler GetSchedule response)",
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "Name": {
+            "type": "string",
+            "description": "Schedule name (EventBridge Scheduler GetSchedule response)"
+          },
+          "ScheduleExpression": {
+            "type": "string",
+            "description": "Schedule expression (at, rate, or cron) (EventBridge Scheduler GetSchedule response)"
+          },
+          "ScheduleExpressionTimezone": {
+            "type": "string",
+            "description": "Timezone of the schedule expression (EventBridge Scheduler GetSchedule response)"
+          },
+          "StartDate": {
+            "description": "Time after which the schedule can invoke its target (EventBridge Scheduler GetSchedule response)",
+            "type": [
+              "string",
+              "number"
+            ]
+          },
+          "State": {
+            "type": "string",
+            "description": "ENABLED or DISABLED (EventBridge Scheduler GetSchedule response)"
+          },
+          "Target": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": {},
+            "description": "Target object (EventBridge Scheduler GetSchedule response)"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_ecr_describe_images",
+      "title": "List ECR images",
+      "description": "Returns tags, digests, and push times of images in a repository. Use it to check deploy times. Only ACTIVE images are returned unless specified otherwise",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "repository_name": {
+            "type": "string",
+            "description": "Repository name"
+          },
+          "registry_id": {
+            "description": "AWS account ID of the registry (12 digits). If omitted, the default registry",
+            "type": "string"
+          },
+          "image_ids": {
+            "description": "Images to get. Each element needs at least one of image_tag and image_digest. Cannot be combined with starting_token",
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "image_tag": {
+                  "description": "Image tag",
+                  "type": "string"
+                },
+                "image_digest": {
+                  "description": "Image digest (sha256:... form)",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "tag_status": {
+            "description": "Filter by whether the image is tagged. If omitted, no filtering",
+            "type": "string",
+            "enum": [
+              "TAGGED",
+              "UNTAGGED",
+              "ANY"
+            ]
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        },
+        "required": [
+          "repository_name"
+        ]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "imageDetails": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "ImageDetail objects of the ECR DescribeImages response"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "aws_ec2_describe_instances",
+      "title": "List EC2 instances",
+      "description": "Returns instance state, type, tags, and network configuration. Output is large, so narrow it with max_items or filters",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "instance_ids": {
+            "description": "Instance IDs to get (i-... form)",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "filters": {
+            "description": "Filter conditions. With several, only instances matching all are returned",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Filter name (e.g. instance-state-name, tag:Name)"
+                },
+                "values": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Values; an instance matches if any one matches"
+                }
+              },
+              "required": [
+                "name",
+                "values"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "max_items": {
+            "description": "Maximum number of items in one response",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "starting_token": {
+            "description": "nextToken from the previous response. Fetches the next page",
+            "type": "string"
+          },
+          "profile": {
+            "description": "AWS profile name. If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[\\w.-]+$"
+          },
+          "region": {
+            "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+            "type": "string",
+            "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "Reservations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {},
+              "additionalProperties": {}
+            },
+            "description": "Reservation objects of the EC2 DescribeInstances response"
+          },
+          "NextToken": {
+            "description": "Pagination token that awscli adds when max_items cut the result (success only). Same value as nextToken",
+            "type": "string"
+          },
+          "lines": {
+            "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "output": {
+            "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+            "type": "string"
+          },
+          "truncated": {
+            "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+            "type": "boolean"
+          },
+          "nextToken": {
+            "description": "Pass as starting_token to fetch the next page (success only). Present only when max_items cut the result",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Full text of the failure and how to recover (failure only)",
+            "type": "string"
+          },
+          "log": {
+            "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+            "type": "string"
+          },
+          "warnings": {
+            "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    }
+  ]
+}

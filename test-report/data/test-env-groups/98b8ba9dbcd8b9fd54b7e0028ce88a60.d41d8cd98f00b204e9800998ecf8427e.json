@@ -1,0 +1,1 @@
+{"id":"98b8ba9dbcd8b9fd54b7e0028ce88a60.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot:.nx/nx-release/tests/dependabot-plans.test.mjs#--check: plan が欠けていれば 1 で、sha と group 名を stderr に出す。plan は書かない","name":"--check: plan が欠けていれば 1 で、sha と group 名を stderr に出す。plan は書かない","status":"passed","testResultsByEnv":{"default":"350a72a109ebe85fd4f257e8910e98fa"}}

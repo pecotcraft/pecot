@@ -1,0 +1,1 @@
+{"id":"852375f8568fac34aaf59a8a4a08c43c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_link 登録済みのリポジトリに clear_packages を付けると、packages を消す","name":"登録済みのリポジトリに clear_packages を付けると、packages を消す","status":"passed","testResultsByEnv":{"default":"22a79ea07bb2cc3895914a5c2129f31d"}}

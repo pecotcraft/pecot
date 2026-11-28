@@ -1,0 +1,1 @@
+{"id":"b1c609ffb80a4bb570e8d792201ec510.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-start.test.ts#auto start ボードの読み書きの失敗 Status を戻す対象でも、ボードに項目が見つからなければ、何も書き込まない","name":"Status を戻す対象でも、ボードに項目が見つからなければ、何も書き込まない","status":"passed","testResultsByEnv":{"default":"1e4780426039ca308d4fc710b36a4401"}}

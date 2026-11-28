@@ -1,0 +1,1 @@
+{"id":"1225d371cdf92432c384f0c834de4cf8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_16_block_mixed_doc_and_code","name":"同じ group で README.md とコードを変更した場合は、失敗する","status":"passed","testResultsByEnv":{"default":"a082bb0d27ad4c3c7d94848cdb70bc77"}}

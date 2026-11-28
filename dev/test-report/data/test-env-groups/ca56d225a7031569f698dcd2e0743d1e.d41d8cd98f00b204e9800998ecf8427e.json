@@ -1,0 +1,1 @@
+{"id":"ca56d225a7031569f698dcd2e0743d1e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_build_passes_site_env_to_container","name":"リリース版の build は、サイトを作る段のコンテナに、サイトの環境変数だけを渡す","status":"passed","testResultsByEnv":{"default":"1b8e60c8faeba28dfe6a0d0134e0e6f4"}}

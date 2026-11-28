@@ -1,0 +1,1 @@
+{"id":"8969b8deaff946a16104d03fcf5f1929.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_publish_replaces_and_stays_single_commit","name":"保管を繰り返しても、ブランチの commit は 1 つのままで、中身を置き換える","status":"passed","testResultsByEnv":{"default":"888432f13c63bace12cea35df977afb3"}}

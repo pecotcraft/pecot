@@ -1,0 +1,1 @@
+{"id":"7fef14b8d667d5e5d1427f72818eef4f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#jsonStrings 入れ子の値だけ返す のとき、引用符を含まない本文だけを切り出す","name":"入れ子の値だけ返す のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"b0afc0928cc212fdb79e8bfc72ce6b9d"}}

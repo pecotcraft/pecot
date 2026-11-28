@@ -1,0 +1,1 @@
+{"id":"08a83f0f786de4498b4c72eac86a37ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/security-alerts.test.ts#fetchSecretScanningStatus 無効と確認できないときは、権限不足を示す SecurityAlertError の例外が発生する","name":"無効と確認できないときは、権限不足を示す SecurityAlertError の例外が発生する","status":"passed","testResultsByEnv":{"default":"000968bcc52847caef5e8cf5dd24290b"}}

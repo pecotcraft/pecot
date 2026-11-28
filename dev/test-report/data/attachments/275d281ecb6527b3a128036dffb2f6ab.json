@@ -1,0 +1,15 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_lambda_list_functions succeeded"
+    },
+    {
+      "type": "text",
+      "text": "{\"lines\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "lines": []
+  }
+}

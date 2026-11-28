@@ -1,0 +1,72 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "second: body: remove the line of first from the ## Waits for merge section: it is not a wait merge prerequisite in blocked_by"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"issue\":\"second\",\"field\":\"body\",\"code\":\"waits-for-merge\",\"message\":\"remove the line of first from the ## Waits for merge section: it is not a wait merge prerequisite in blocked_by\"},{\"issue\":\"second\",\"field\":\"body\",\"code\":\"waits-for-merge\",\"message\":\"remove the line of #5 from the ## Waits for merge section: it is not a wait merge prerequisite in blocked_by\"},{\"issue\":\"second\",\"field\":\"body\",\"code\":\"waits-for-merge\",\"message\":\"remove the line of #900000007 from the ## Waits for merge section: it is not a wait merge prerequisite in blocked_by\"},{\"issue\":\"second\",\"field\":\"body\",\"code\":\"waits-for-merge\",\"message\":\"remove the line of other/demo#900000001 from the ## Waits for merge section: it is not a wait merge prerequisite in blocked_by\"},{\"issue\":\"second\",\"field\":\"body\",\"code\":\"waits-for-merge\",\"message\":\"remove the line of acme/other#900000001 from the ## Waits for merge section: it is not a wait merge prerequisite in blocked_by\"}],\"plan\":[{\"key\":\"first\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"},{\"key\":\"second\",\"order\":3,\"blockedBy\":[{\"issue\":\"first\",\"wait\":\"stack\"}],\"approach\":\"stack\",\"stackOn\":\"first\"}],\"stackableChains\":[[\"first\",\"second\"]]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "issue": "second",
+        "field": "body",
+        "code": "waits-for-merge",
+        "message": "remove the line of first from the ## Waits for merge section: it is not a wait merge prerequisite in blocked_by"
+      },
+      {
+        "issue": "second",
+        "field": "body",
+        "code": "waits-for-merge",
+        "message": "remove the line of #5 from the ## Waits for merge section: it is not a wait merge prerequisite in blocked_by"
+      },
+      {
+        "issue": "second",
+        "field": "body",
+        "code": "waits-for-merge",
+        "message": "remove the line of #900000007 from the ## Waits for merge section: it is not a wait merge prerequisite in blocked_by"
+      },
+      {
+        "issue": "second",
+        "field": "body",
+        "code": "waits-for-merge",
+        "message": "remove the line of other/demo#900000001 from the ## Waits for merge section: it is not a wait merge prerequisite in blocked_by"
+      },
+      {
+        "issue": "second",
+        "field": "body",
+        "code": "waits-for-merge",
+        "message": "remove the line of acme/other#900000001 from the ## Waits for merge section: it is not a wait merge prerequisite in blocked_by"
+      }
+    ],
+    "plan": [
+      {
+        "key": "first",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      },
+      {
+        "key": "second",
+        "order": 3,
+        "blockedBy": [
+          {
+            "issue": "first",
+            "wait": "stack"
+          }
+        ],
+        "approach": "stack",
+        "stackOn": "first"
+      }
+    ],
+    "stackableChains": [
+      [
+        "first",
+        "second"
+      ]
+    ]
+  }
+}

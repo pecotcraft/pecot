@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "added: Issue acme/demo/7 to project"
+    },
+    {
+      "type": "text",
+      "text": "{\"issue\":\"acme/demo/7\",\"added\":true}"
+    }
+  ],
+  "structuredContent": {
+    "issue": "acme/demo/7",
+    "added": true
+  }
+}

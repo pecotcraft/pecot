@@ -1,0 +1,3 @@
+created: PR acme/demo feat/demo/12 -> feat/demo/11: feat(demo): #12 見本の変更
+set: Issue #12 status to In Review
+warning: could not register stack: GitHub API error: 400 Unsupported API version

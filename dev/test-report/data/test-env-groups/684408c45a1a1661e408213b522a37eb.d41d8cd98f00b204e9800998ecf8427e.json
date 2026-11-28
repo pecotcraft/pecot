@@ -1,0 +1,1 @@
+{"id":"684408c45a1a1661e408213b522a37eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data MCP の呼び出し 開発ブランチを merge で取り込んだ 後に check を付けると、スタックし直しが要ると判断する","name":"開発ブランチを merge で取り込んだ 後に check を付けると、スタックし直しが要ると判断する","status":"passed","testResultsByEnv":{"default":"db5a2deaba91c3a55e47661ded75c2d3"}}

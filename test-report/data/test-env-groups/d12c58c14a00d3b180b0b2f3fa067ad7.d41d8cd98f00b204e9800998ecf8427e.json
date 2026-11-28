@@ -1,0 +1,1 @@
+{"id":"d12c58c14a00d3b180b0b2f3fa067ad7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#applyPrerenderImageReplace meta に left と top が存在しない場合は、大きさだけで対応付けて差し替える","name":"meta に left と top が存在しない場合は、大きさだけで対応付けて差し替える","status":"passed","testResultsByEnv":{"default":"d1c0adcaf87bbd44bd7acaaaa17a5cce"}}

@@ -1,0 +1,1 @@
+{"id":"599f6000f2d98112612c503a4091e066.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/text-file.test.ts#readTextFile 改行が CRLF や CR のファイルを読み込むと、改行を LF に統一する","name":"改行が CRLF や CR のファイルを読み込むと、改行を LF に統一する","status":"passed","testResultsByEnv":{"default":"232331ca7d8a319bacf2f0a00fe82716"}}

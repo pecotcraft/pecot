@@ -1,0 +1,1 @@
+{"id":"86f6cdfcca75efef0f801b9adf9bdd02.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: TypeScript / JavaScript 二重引用符で囲んだ文字列にも、違反があれば指摘を返す","name":"二重引用符で囲んだ文字列にも、違反があれば指摘を返す","status":"passed","testResultsByEnv":{"default":"c948800be2c415d11e653a69bbf81b2a"}}

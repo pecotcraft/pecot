@@ -1,0 +1,1 @@
+{"id":"af3f96a478637fe5aeef9c7203067fe1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/visibility-helpers.test.ts#waitForSelectorInVisibleSlide timeout を指定して呼び出すと、待機の処理を実行する","name":"timeout を指定して呼び出すと、待機の処理を実行する","status":"passed","testResultsByEnv":{"default":"ef134b3114c02a01f14c9e35d04f3d6a"}}

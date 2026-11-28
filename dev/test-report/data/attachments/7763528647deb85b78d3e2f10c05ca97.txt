@@ -1,0 +1,4 @@
+graph --file=/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_no_prev_uses_run_many0/repo/.pecot/tmp/nx-lanes.aWSQgO/graph.json
+ENV NO_COLOR=1 LEGACY=unset
+run-many -t test-cli,test-hooks,test-unit --graph=/tmp/pytest-of-vscode/pytest-0/popen-gw2/test_no_prev_uses_run_many0/repo/.pecot/tmp/list-test-lanes.quyjqt/tasks-graph-pr.json
+ENV NO_COLOR=1 LEGACY=unset

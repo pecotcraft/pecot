@@ -1,0 +1,1 @@
+{"id":"bc12d5f114b634f9a1ba4027449c2bef.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/projects.test.ts#createProjectView 個人のボードで userId が存在しない場合は、リクエストを送信せず、GitHubAPIError が発生する","name":"個人のボードで userId が存在しない場合は、リクエストを送信せず、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"cdfc578c0b919e9b48f89c0a580773db"}}

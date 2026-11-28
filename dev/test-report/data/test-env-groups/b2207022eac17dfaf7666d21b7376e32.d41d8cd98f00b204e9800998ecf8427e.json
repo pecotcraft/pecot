@@ -1,0 +1,1 @@
+{"id":"b2207022eac17dfaf7666d21b7376e32.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_lane_is_ignored_with_warn_without_ci_mode","name":"`PECOT_NX_CI=1` がないと、`PECOT_NX_LANE` を警告つきで無視し、従来どおり affected を実行する","status":"passed","testResultsByEnv":{"default":"87e0c82709798977ced84be07e39aa23"}}

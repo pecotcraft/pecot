@@ -1,0 +1,1 @@
+{"id":"a2f122010a33fa5d53e7f945bbdec9a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx presDir が相対パスの場合は、絶対パスが必要であるエラーで失敗する","name":"presDir が相対パスの場合は、絶対パスが必要であるエラーで失敗する","status":"passed","testResultsByEnv":{"default":"5299c98eb813924ef9ec26186901609b"}}

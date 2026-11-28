@@ -1,0 +1,1 @@
+{"id":"8fb51a72c31464c2db0c0b48f9e8821a.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats#同じ変換を 2 回合成した pptx を比べると、全項目を PASS と判定する","name":"同じ変換を 2 回合成した pptx を比べると、全項目を PASS と判定する","status":"passed","testResultsByEnv":{"default":"f17e5a277ee1806389c89600e215658f"}}

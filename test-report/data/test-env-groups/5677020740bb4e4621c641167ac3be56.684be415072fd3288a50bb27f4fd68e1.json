@@ -1,0 +1,1 @@
+{"id":"5677020740bb4e4621c641167ac3be56.684be415072fd3288a50bb27f4fd68e1","fullName":".githooks.tests.test_list_test_lanes#test_stack_single_option_is_usage_error","name":"--pr-main だけを渡すと、使い方を出力して終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"8eba038254e72f1914800befe4be76a1"}}

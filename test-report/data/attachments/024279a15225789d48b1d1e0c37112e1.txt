@@ -1,0 +1,1 @@
+PECOT_RESULT {"operation":"repo-settings","request_id":"req-1","ok":true,"result":{"delete_branch_on_merge":false,"default_branch":"trunk","owner_type":"User"}}

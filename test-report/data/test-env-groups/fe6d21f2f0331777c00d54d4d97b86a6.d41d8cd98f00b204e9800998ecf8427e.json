@@ -1,0 +1,1 @@
+{"id":"fe6d21f2f0331777c00d54d4d97b86a6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#runMcpServe SIGTERM と SIGINT を受け取った場合は、開発用サーバーを停止してから終了する","name":"SIGTERM と SIGINT を受け取った場合は、開発用サーバーを停止してから終了する","status":"passed","testResultsByEnv":{"default":"e32fc18eb6bae3c44eeb5ecf09c57b8b"}}

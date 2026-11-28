@@ -1,0 +1,4 @@
+warning: the result file has no frontmatter; writing failed
+created: auto result comment (failed) on Issue acme/demo/7
+set: Status of Issue acme/demo/7 to Needs Attention
+removed: label pecot-auto from Issue acme/demo/7

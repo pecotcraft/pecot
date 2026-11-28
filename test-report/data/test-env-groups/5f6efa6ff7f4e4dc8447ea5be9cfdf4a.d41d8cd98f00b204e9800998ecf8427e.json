@@ -1,0 +1,1 @@
+{"id":"5f6efa6ff7f4e4dc8447ea5be9cfdf4a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/pr-waiting.test.ts#moveIssuesWaitingFor 待つ Issue を全件読めなければ、読めた分を動かしてから warning の行を出す","name":"待つ Issue を全件読めなければ、読めた分を動かしてから warning の行を出す","status":"passed","testResultsByEnv":{"default":"ba12c0702877315f88bd2803039ac04f"}}

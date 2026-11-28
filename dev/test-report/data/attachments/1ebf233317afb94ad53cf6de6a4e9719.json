@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reason: reason is only for wait merge; a stack prerequisite has no reason"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reason\",\"code\":\"unexpected\",\"message\":\"reason is only for wait merge; a stack prerequisite has no reason\"}],\"expected_status\":\"Blocked\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reason",
+        "code": "unexpected",
+        "message": "reason is only for wait merge; a stack prerequisite has no reason"
+      }
+    ],
+    "expected_status": "Blocked"
+  }
+}

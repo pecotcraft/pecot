@@ -1,0 +1,1 @@
+{"id":"e372800e8d9000022592d411489b1055.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/workflow-doctor.test.ts#workflow_doctor ファイルと設定がそろっていると、ready を true にして成功を返す","name":"ファイルと設定がそろっていると、ready を true にして成功を返す","status":"passed","testResultsByEnv":{"default":"2b30b927c21e13432424ef974fce7561"}}

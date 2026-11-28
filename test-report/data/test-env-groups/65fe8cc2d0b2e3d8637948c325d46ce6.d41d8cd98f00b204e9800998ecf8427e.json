@@ -1,0 +1,1 @@
+{"id":"65fe8cc2d0b2e3d8637948c325d46ce6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 token に空文字を渡したときは、指定なしと同じに取得する","name":"token に空文字を渡したときは、指定なしと同じに取得する","status":"passed","testResultsByEnv":{"default":"bc136effd6cd78010a620f7767453a7a"}}

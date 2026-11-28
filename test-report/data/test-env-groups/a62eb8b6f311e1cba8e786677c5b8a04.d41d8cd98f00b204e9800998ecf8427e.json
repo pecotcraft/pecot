@@ -1,0 +1,1 @@
+{"id":"a62eb8b6f311e1cba8e786677c5b8a04.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create package を付けて打つと、パッケージ名を接頭辞にしたタグと名前でリリースを作る","name":"package を付けて打つと、パッケージ名を接頭辞にしたタグと名前でリリースを作る","status":"passed","testResultsByEnv":{"default":"9551c28a3de5211b9ae8df4ece0243c2"}}

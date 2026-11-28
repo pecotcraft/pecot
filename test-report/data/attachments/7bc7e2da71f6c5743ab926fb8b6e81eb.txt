@@ -1,0 +1,13 @@
+# Session status
+
+- Branch: feat/demo/7
+- Repository: acme/demo
+- Active Issue: acme/demo#7
+
+## Active Issue
+
+#7 t (OPEN)
+
+## Stack
+- stacked above: PR #40 (feat/demo/8)
+- stacked above: PR #42 (feat/demo/10)

@@ -1,0 +1,1 @@
+{"id":"540a620b1ed7add12c8e0c2dc5c24881.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ pr-check-state-dirty を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ pr-check-state-dirty を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"4445bd61bc93bd53b608c8513f3cff1e"}}

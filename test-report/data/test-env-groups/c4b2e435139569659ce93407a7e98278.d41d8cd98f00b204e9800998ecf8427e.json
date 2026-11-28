@@ -1,0 +1,1 @@
+{"id":"c4b2e435139569659ce93407a7e98278.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_root_entries#test_allowed_names_only_pass","name":"許可された名前のディレクトリとルート直下のファイルだけなら、成功で終わる","status":"passed","testResultsByEnv":{"default":"55cbce14f692082eedea7c0f80fbec18"}}

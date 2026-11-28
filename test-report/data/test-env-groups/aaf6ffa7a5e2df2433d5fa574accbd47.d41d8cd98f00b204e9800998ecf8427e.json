@@ -1,0 +1,1 @@
+{"id":"aaf6ffa7a5e2df2433d5fa574accbd47.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory シェルから継いだ COPILOT_SESSION_CWD は、cwd がプラグインのルートの外なら使わない","name":"シェルから継いだ COPILOT_SESSION_CWD は、cwd がプラグインのルートの外なら使わない","status":"passed","testResultsByEnv":{"default":"e262e61a4d7c13cf17f8195d580fbb13"}}

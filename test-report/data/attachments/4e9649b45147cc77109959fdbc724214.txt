@@ -1,0 +1,8 @@
+:iface-id: SM-ONE
+:iface-plugin: sample
+:iface-kind: Action
+
+one run
+==============
+
+.. iface-defs:: sample SM-ONE

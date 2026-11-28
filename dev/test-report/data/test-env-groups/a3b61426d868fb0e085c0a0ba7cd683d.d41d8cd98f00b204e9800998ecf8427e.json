@@ -1,0 +1,1 @@
+{"id":"a3b61426d868fb0e085c0a0ba7cd683d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「hrefMap 型不一致」の場合は、undefined を返す","name":"エントリが「hrefMap 型不一致」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"99f3e7a3e74a128fea2a7a2acde58147"}}

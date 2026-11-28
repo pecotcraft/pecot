@@ -1,0 +1,1 @@
+{"id":"93c92ba3d47ae953e5e6c906b3feb251.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_version_bumps_patch_and_appends_run_number","name":"`dev-version.mjs` は、パッチの版を 1 つ上げて、run 番号を付ける","status":"passed","testResultsByEnv":{"default":"220882bb29869097c42cb56c61acc42d"}}

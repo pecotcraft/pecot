@@ -1,0 +1,1 @@
+{"id":"9e5fde5d8de6f82a9ae4d688e7bdbfd9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/setup.test.ts#createSandbox タグは at で指定したブランチか HEAD に付き、push: true のタグだけ origin にも送られる","name":"タグは at で指定したブランチか HEAD に付き、push: true のタグだけ origin にも送られる","status":"passed","testResultsByEnv":{"default":"da0efd330e68def730f05f8b56288094"}}

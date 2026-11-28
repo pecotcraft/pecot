@@ -1,0 +1,1 @@
+{"id":"b09faecb113de65a60e2a86415a31046.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ release-check-state-no-changelog を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ release-check-state-no-changelog を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"46ec8183acb6806a385d90901759e35a"}}

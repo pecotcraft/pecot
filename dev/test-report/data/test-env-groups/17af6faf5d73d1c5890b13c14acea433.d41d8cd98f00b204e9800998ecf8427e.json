@@ -1,0 +1,1 @@
+{"id":"17af6faf5d73d1c5890b13c14acea433.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/text-violation.test.ts#evidence_create の文面確認 文章規則の確認自体が失敗した場合は、text-lint-failed で失敗し、xlsx を書き出さない","name":"文章規則の確認自体が失敗した場合は、text-lint-failed で失敗し、xlsx を書き出さない","status":"passed","testResultsByEnv":{"default":"1b0ff7a3d12061d5d9d8c63e3d8e6d12"}}

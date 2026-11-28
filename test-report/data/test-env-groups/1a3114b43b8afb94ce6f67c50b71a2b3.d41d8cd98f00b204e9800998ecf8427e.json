@@ -1,0 +1,1 @@
+{"id":"1a3114b43b8afb94ce6f67c50b71a2b3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#リストの記号で始まる行 記号の後ろに空白が無い の行は、リストの項目として扱わず、段落を分けない","name":"記号の後ろに空白が無い の行は、リストの項目として扱わず、段落を分けない","status":"passed","testResultsByEnv":{"default":"e51152a30b90f4121440383e27e7e243"}}

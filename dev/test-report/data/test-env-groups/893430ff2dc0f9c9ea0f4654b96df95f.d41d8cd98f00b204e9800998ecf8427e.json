@@ -1,0 +1,1 @@
+{"id":"893430ff2dc0f9c9ea0f4654b96df95f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#getPngDimensions IHDR のマーカーが存在しない場合は、シグネチャが一致しても undefined を返す","name":"IHDR のマーカーが存在しない場合は、シグネチャが一致しても undefined を返す","status":"passed","testResultsByEnv":{"default":"f03875d1c1301c5192a32a263bd2d596"}}

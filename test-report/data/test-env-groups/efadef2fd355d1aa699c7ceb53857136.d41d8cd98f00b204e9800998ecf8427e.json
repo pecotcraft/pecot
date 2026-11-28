@@ -1,0 +1,1 @@
+{"id":"efadef2fd355d1aa699c7ceb53857136.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#fullWidthEquivalent 半角の文字数を 0.7 倍して端数が出ると、切り上げた値を返す","name":"半角の文字数を 0.7 倍して端数が出ると、切り上げた値を返す","status":"passed","testResultsByEnv":{"default":"71f3be0734a2c0e09993584f46d30eb1"}}

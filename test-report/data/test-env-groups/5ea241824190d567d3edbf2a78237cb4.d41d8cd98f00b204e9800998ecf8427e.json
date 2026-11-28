@@ -1,0 +1,1 @@
+{"id":"5ea241824190d567d3edbf2a78237cb4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_deploy_checks_served_and_redeploys_once","name":"公開の job は、目印を読み戻し、出なければ待って 1 回だけ deploy し直す","status":"passed","testResultsByEnv":{"default":"cbfbd9a04887b79c311fb5ea76b9d00d"}}

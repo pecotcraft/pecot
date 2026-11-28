@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"skipped\":[],\"warnings\":[\"could not check Dependabot alerts. The release is not blocked.\\n  reason: acme/demo: GitHub API error: 502 Bad Gateway\"]}"
+    }
+  ],
+  "structuredContent": {
+    "skipped": [],
+    "warnings": [
+      "could not check Dependabot alerts. The release is not blocked.\n  reason: acme/demo: GitHub API error: 502 Bad Gateway"
+    ]
+  }
+}

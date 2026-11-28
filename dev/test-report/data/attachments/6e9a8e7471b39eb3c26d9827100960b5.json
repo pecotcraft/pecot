@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pullNumber: the PR is stacked on PR #11 (head feat/demo/11), which is open: merge PR #11 first"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"pullNumber\",\"code\":\"not-stack-bottom\",\"message\":\"the PR is stacked on PR #11 (head feat/demo/11), which is open: merge PR #11 first\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "pullNumber",
+        "code": "not-stack-bottom",
+        "message": "the PR is stacked on PR #11 (head feat/demo/11), which is open: merge PR #11 first"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"f4c296d7370be177a832a5fa2a5c3aaf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check MCP の data git のリポジトリでない と、kind が git-unresolved の失敗を返す","name":"git のリポジトリでない と、kind が git-unresolved の失敗を返す","status":"passed","testResultsByEnv":{"default":"feac1bc667eabeb5bbf81559d7f33c37"}}

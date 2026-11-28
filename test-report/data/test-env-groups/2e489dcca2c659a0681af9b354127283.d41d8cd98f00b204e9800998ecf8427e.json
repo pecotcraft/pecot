@@ -1,0 +1,1 @@
+{"id":"2e489dcca2c659a0681af9b354127283.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#応答の中身 aws_logs_describe_log_groups の NextToken を nextToken へ転記する","name":"aws_logs_describe_log_groups の NextToken を nextToken へ転記する","status":"passed","testResultsByEnv":{"default":"3d47b5674c290e57ddb7c8802113b2a8"}}

@@ -1,0 +1,1 @@
+{"id":"ddd61b253b44eeb1fd6558f510a60c76.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pecot_rc#test_stops_outside_git_worktree","name":"git の作業ツリーの外で実行すると、終了コード 1 で終了し、案内を表示する","status":"passed","testResultsByEnv":{"default":"a2061bcfb1cd2d487415ce33317f1c25"}}

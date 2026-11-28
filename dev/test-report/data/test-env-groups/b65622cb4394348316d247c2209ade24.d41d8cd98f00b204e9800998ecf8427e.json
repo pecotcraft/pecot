@@ -1,0 +1,1 @@
+{"id":"b65622cb4394348316d247c2209ade24.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_report_release_takes_each_plugins_lanes_from_its_tag","name":"リリース版のレポートは、各プラグインのレーンを、そのタグの commit の report-lanes.json から選ぶ","status":"passed","testResultsByEnv":{"default":"b3499eb1ca0475f006b7e1fa32ff0b21"}}

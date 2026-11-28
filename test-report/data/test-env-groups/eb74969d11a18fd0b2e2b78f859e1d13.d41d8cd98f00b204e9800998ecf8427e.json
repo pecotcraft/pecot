@@ -1,0 +1,1 @@
+{"id":"eb74969d11a18fd0b2e2b78f859e1d13.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#removeWorktree 未コミットの変更があれば削除を拒否し、isForced を指定すれば削除する","name":"未コミットの変更があれば削除を拒否し、isForced を指定すれば削除する","status":"passed","testResultsByEnv":{"default":"07d00cc41987bd36f5df84ca11964787"}}

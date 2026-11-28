@@ -1,0 +1,1 @@
+{"id":"4fea8500283f60500bdd31a37c3a1f56.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/auth.test.ts#ensureEnvironmentFile 既存の .env には追記し、既存の内容を保つ。2 回目は追記しない","name":"既存の .env には追記し、既存の内容を保つ。2 回目は追記しない","status":"passed","testResultsByEnv":{"default":"45fdaf636d14f17b961613a5a446af12"}}

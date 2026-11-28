@@ -1,0 +1,1 @@
+{"id":"c464161bf4fd2eb7baf3417ec0b37822.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link all を付けて呼ぶと、すべてのサブの worktree にリンクを作る","name":"all を付けて呼ぶと、すべてのサブの worktree にリンクを作る","status":"passed","testResultsByEnv":{"default":"dda4eaab46b9ba5b0f69cc159b13038a"}}

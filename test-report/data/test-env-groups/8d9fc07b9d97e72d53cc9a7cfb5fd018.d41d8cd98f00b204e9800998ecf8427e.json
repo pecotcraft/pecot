@@ -1,0 +1,1 @@
+{"id":"8d9fc07b9d97e72d53cc9a7cfb5fd018.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#number の lax な変換（Python の実出力どおり） number に \".0\" を渡した場合は、検証エラー int_parsing を返す","name":"number に \".0\" を渡した場合は、検証エラー int_parsing を返す","status":"passed","testResultsByEnv":{"default":"e223bfc4a1448088f5370237bb767e1f"}}

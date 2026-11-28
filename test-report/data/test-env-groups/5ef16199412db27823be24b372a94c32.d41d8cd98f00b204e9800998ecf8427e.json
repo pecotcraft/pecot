@@ -1,0 +1,1 @@
+{"id":"5ef16199412db27823be24b372a94c32.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/allowlist.test.ts#共通入力 region の入力は、AWS のリージョン表記だけを受け付ける","name":"region の入力は、AWS のリージョン表記だけを受け付ける","status":"passed","testResultsByEnv":{"default":"fd8c8560cfc0126d7d1150c598a07578"}}

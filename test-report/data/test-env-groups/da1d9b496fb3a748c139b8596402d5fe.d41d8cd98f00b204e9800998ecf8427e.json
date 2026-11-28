@@ -1,0 +1,1 @@
+{"id":"da1d9b496fb3a748c139b8596402d5fe.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_gitlint_japanese_rule#test_dependabot_title_fails_when_option_disabled","name":"allow-dependabot を false にすると、Dependabot のタイトルも日本語の規則に違反する","status":"passed","testResultsByEnv":{"default":"6b3a720fec4bd3d76374a5c675022992"}}

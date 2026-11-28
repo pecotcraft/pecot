@@ -1,0 +1,1 @@
+{"id":"29592f9d8c62b274636135a67662fdb1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/data-directory.test.ts#dataDirectory CLAUDE_PLUGIN_DATA の末尾に改行がある とき、/data/claude を返す","name":"CLAUDE_PLUGIN_DATA の末尾に改行がある とき、/data/claude を返す","status":"passed","testResultsByEnv":{"default":"dd34a2b10fa6ebdabb912fcabc53379d"}}

@@ -1,0 +1,1 @@
+{"id":"ec95e9ca974401768ec4c9ee21392126.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create base が設定のブランチと違うと、終了コード 3 で終わる","name":"base が設定のブランチと違うと、終了コード 3 で終わる","status":"passed","testResultsByEnv":{"default":"2505f3655ce4d5eeaa4af5380112351d"}}

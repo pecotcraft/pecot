@@ -1,0 +1,1 @@
+{"id":"5bcc8f65e3008a24137ecb1a55f52a5b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_commit_text_reports_violation","name":"コミットメッセージに文の長さの規則の違反があると、sentence-length を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"c78265b87a11d6152ed8d897d3c0298e"}}

@@ -1,0 +1,1 @@
+{"id":"1821b72ecac24f9274129738a65fcc9e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 参照クエリ \"/* 直近の注文 */ SELECT order_id FROM orders\" は、許可する","name":"参照クエリ \"/* 直近の注文 */ SELECT order_id FROM orders\" は、許可する","status":"passed","testResultsByEnv":{"default":"1e4dc0aa51c4ea21435562ecb6647d63"}}

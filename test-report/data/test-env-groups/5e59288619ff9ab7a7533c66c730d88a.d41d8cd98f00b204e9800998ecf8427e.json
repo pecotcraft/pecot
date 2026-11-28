@@ -1,0 +1,1 @@
+{"id":"5e59288619ff9ab7a7533c66c730d88a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-merge.test.ts#pr_merge 403 は、ほかの API と同じ失敗の文を出し、終了コード 1 を返す","name":"403 は、ほかの API と同じ失敗の文を出し、終了コード 1 を返す","status":"passed","testResultsByEnv":{"default":"31a1b4399e3cfdb7d0137b6f662cd589"}}

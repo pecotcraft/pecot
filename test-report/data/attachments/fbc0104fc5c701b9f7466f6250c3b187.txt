@@ -1,0 +1,1 @@
+{"issue":"acme/demo/7","number":7,"kind":"ci-fix","proceed":false,"reason":"the CI fixes reached the limit (1 of 1)","branch":"feat/fix-x/7","pr":11,"ci_attempts":1}

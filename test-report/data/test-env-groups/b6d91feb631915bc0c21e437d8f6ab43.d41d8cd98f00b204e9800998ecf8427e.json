@@ -1,0 +1,1 @@
+{"id":"b6d91feb631915bc0c21e437d8f6ab43.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/names.test.ts#fixture の names 名前が語彙に合わない項目と、読み取り専用の語で書き込む項目を、validate が 1 件ごとに 1 行で報告する","name":"名前が語彙に合わない項目と、読み取り専用の語で書き込む項目を、validate が 1 件ごとに 1 行で報告する","status":"passed","testResultsByEnv":{"default":"4e412031330bb19e53829d720203574a"}}

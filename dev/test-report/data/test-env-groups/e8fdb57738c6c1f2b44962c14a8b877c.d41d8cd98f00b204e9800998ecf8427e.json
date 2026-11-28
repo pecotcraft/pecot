@@ -1,0 +1,1 @@
+{"id":"e8fdb57738c6c1f2b44962c14a8b877c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-numeric-asset-prefix.test.ts#本文の image ノードが数字始まりだと、ノード自身の位置で検出する","name":"本文の image ノードが数字始まりだと、ノード自身の位置で検出する","status":"passed","testResultsByEnv":{"default":"870ce6f98c81009bceae7fe1f68f3d02"}}

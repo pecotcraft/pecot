@@ -1,0 +1,1 @@
+{"id":"7e87a79af9abf1720699a69b0bf111af.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_exec_without_container_id_fails","name":"コンテナ ID が存在しないと、exec は終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"42604aa1c9bdcb57a9592dcde7181a36"}}

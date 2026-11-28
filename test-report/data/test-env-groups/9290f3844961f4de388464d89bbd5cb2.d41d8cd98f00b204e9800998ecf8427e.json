@@ -1,0 +1,1 @@
+{"id":"9290f3844961f4de388464d89bbd5cb2.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_with_timing#test_sigint_to_process_group_records_rc_130","name":"プロセスグループに SIGINT が届くと、`rc=130` を記録し、同じコードで終了する","status":"passed","testResultsByEnv":{"default":"ba98fa054025c3f3a2c300d663c82365"}}

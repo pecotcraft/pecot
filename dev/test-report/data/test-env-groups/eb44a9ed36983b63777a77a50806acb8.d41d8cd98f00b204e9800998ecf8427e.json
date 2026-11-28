@@ -1,0 +1,1 @@
+{"id":"eb44a9ed36983b63777a77a50806acb8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/server.test.ts#入力の検証の誤り 実行中の呼び出しがキャンセルされると、コマンドが受け取った io の signal が中断される","name":"実行中の呼び出しがキャンセルされると、コマンドが受け取った io の signal が中断される","status":"passed","testResultsByEnv":{"default":"7c4e2c8a0eb46c60518f7347e87122f4"}}

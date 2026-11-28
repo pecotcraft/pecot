@@ -1,0 +1,1 @@
+{"id":"03401a9710cd7d5f42edf0d3c32f9e0d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#fallbackSizeMatch 候補が空の場合は、undefined を返す","name":"候補が空の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"b3f7ac5660cd44f7a9384dbf7f536849"}}

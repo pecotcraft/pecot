@@ -1,0 +1,1 @@
+{"id":"519be89d70c11f6550efa90692e0d5f6.25f70a713485b6eded2e14ecc39be1dd","fullName":".githooks.tests.test_nx_affected_mapping#test_outside_project_file_affects_only_the_root_project","name":"プラグインの外の .markdownlint-cli2.jsonc を変更すると、ルートの project だけが affected になる","status":"passed","testResultsByEnv":{"default":"60aec0f07a5d4c62a49bdc28ea52de15"}}

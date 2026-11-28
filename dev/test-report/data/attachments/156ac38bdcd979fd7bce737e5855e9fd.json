@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.projects: read the boards of acme with projects_list (method list_projects, every page) and pass the results as reads.projects"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.projects\",\"code\":\"read-required\",\"message\":\"read the boards of acme with projects_list (method list_projects, every page) and pass the results as reads.projects\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.projects",
+        "code": "read-required",
+        "message": "read the boards of acme with projects_list (method list_projects, every page) and pass the results as reads.projects"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"8bb6b73f3f7297c6db812a4cccfa346c.9a38a3d7ddb9cea42c21caddc5277e99","fullName":".githooks.tests.test_github_ops_workflow_copy#test_every_action_is_pinned","name":".github/workflows/pecot-github-ops.yml は pecot の action を呼び、ほかの action を 40 桁の SHA で固定する","status":"passed","testResultsByEnv":{"default":"5364d98bc6ef4d8fd756964b0a417b18"}}

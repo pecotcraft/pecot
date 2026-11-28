@@ -1,0 +1,1 @@
+{"id":"ce50f21731c3e2ba0c283e1637c59e74.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#readWaitsForMerge 改行が \\r\\n の本文も、同じように読む","name":"改行が \\r\\n の本文も、同じように読む","status":"passed","testResultsByEnv":{"default":"8fefe2892cc9164c9a17836f953ff56f"}}

@@ -1,0 +1,1 @@
+{"id":"6aba5770de9f3781be692db6afdbda21.bf8dfef0c1267884380c2980fab6ce77","fullName":".githooks.tests.test_nx_task_cache#test_cacheable_target_declares_runtime_and_env","name":"pecot-visual:lint-slidev は、キャッシュを有効にし、runtime と環境変数を入力に宣言する","status":"passed","testResultsByEnv":{"default":"4249143dc53d5f7d8a8db821da073a2f"}}

@@ -1,0 +1,1 @@
+{"id":"2a536dbe25ce94e1628072bf5c73ed4e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_errors_without_dist","name":"ビルド成果物（dist）が存在しないと、pnpm install の案内を出力して失敗で終わる","status":"passed","testResultsByEnv":{"default":"b44d32cf9ebdf19e86eb7b6c624fabaa"}}

@@ -1,0 +1,1 @@
+{"id":"be6d35fb60e4582492ad0d1fd48fcdfc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data 待っている Issue の列を動かすと、その Issue を moves に返す","name":"待っている Issue の列を動かすと、その Issue を moves に返す","status":"passed","testResultsByEnv":{"default":"a606213e33e53239a3e1b9d8075c976f"}}

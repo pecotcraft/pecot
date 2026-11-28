@@ -1,0 +1,1 @@
+{"id":"47eb52d3e5c893aa4f02ce54f3133320.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync bot が書いた最後の自動処理の結果が人の対応を待たないものなら、Needs Attention を Todo に戻す","name":"bot が書いた最後の自動処理の結果が人の対応を待たないものなら、Needs Attention を Todo に戻す","status":"passed","testResultsByEnv":{"default":"ba151f60a11cd6d6f73792d33a3c269a"}}

@@ -1,0 +1,1 @@
+{"id":"f9587825adbce8db4e00c6ecb38dbfc9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-breakdown の手順 準備の Step は、承認の commit のメッセージに工程の名前を入れさせ、再開でそれを読む","name":"準備の Step は、承認の commit のメッセージに工程の名前を入れさせ、再開でそれを読む","status":"passed","testResultsByEnv":{"default":"595c4a007325637009e3c08b22e6fbce"}}

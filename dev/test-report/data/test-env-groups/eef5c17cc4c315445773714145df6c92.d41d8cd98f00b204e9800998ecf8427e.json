@@ -1,0 +1,1 @@
+{"id":"eef5c17cc4c315445773714145df6c92.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-scaled-drawio.test.ts#小数で上限を超える図だと、切り上げの寸法で指摘する","name":"小数で上限を超える図だと、切り上げの寸法で指摘する","status":"passed","testResultsByEnv":{"default":"567e5a2b6e6942481a7dfeef922206c1"}}

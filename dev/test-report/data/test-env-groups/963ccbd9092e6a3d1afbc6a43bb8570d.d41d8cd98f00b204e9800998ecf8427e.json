@@ -1,0 +1,1 @@
+{"id":"963ccbd9092e6a3d1afbc6a43bb8570d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#shellStrings 終端語に . を含む heredoc の本文を読み飛ばす のとき、引用符を含まない本文だけを切り出す","name":"終端語に . を含む heredoc の本文を読み飛ばす のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"ec1ec09a18d608cbbb9bc43f9f969f27"}}

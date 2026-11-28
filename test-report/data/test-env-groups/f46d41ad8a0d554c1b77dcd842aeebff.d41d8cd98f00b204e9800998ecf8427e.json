@@ -1,0 +1,1 @@
+{"id":"f46d41ad8a0d554c1b77dcd842aeebff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#relativeToCwd 作業ディレクトリの下の絶対パスを、/ 区切りの相対パスにして返す","name":"作業ディレクトリの下の絶対パスを、/ 区切りの相対パスにして返す","status":"passed","testResultsByEnv":{"default":"70787ae9af97f00e949a1b3acbc7a337"}}

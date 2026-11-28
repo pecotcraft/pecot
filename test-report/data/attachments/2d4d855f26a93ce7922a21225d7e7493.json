@@ -1,0 +1,23 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not check secret scanning: acme/demo: cannot fetch the secret scanning list (permission may be missing; it cannot be confirmed as disabled)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"could not check secret scanning: acme/demo: cannot fetch the secret scanning list (permission may be missing; it cannot be confirmed as disabled)\",\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"}}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "could not check secret scanning: acme/demo: cannot fetch the secret scanning list (permission may be missing; it cannot be confirmed as disabled)",
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    }
+  },
+  "isError": true
+}

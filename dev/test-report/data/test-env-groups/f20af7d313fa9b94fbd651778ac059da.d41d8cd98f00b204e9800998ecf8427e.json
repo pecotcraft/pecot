@@ -1,0 +1,1 @@
+{"id":"f20af7d313fa9b94fbd651778ac059da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/screenshot.test.ts#capturePng / exportViaEmbed 書き出しに失敗した場合は、出力ディレクトリを作成しない","name":"書き出しに失敗した場合は、出力ディレクトリを作成しない","status":"passed","testResultsByEnv":{"default":"6dd4c85b848970a89cb39a312719826d"}}

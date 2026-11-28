@@ -1,0 +1,1 @@
+{"id":"17f76be21404cc58bde71df154423aae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh cd 先が git でないとき、cd を採らず HOOK_TOOL_CWD 以降で判定して止める","name":"cd 先が git でないとき、cd を採らず HOOK_TOOL_CWD 以降で判定して止める","status":"passed","testResultsByEnv":{"default":"c03229ed3344534de7b306bb70418e6d"}}

@@ -1,0 +1,1 @@
+{"id":"70f3357b0acc8fcfa528beeeff34780d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/design-lint/tests/lint-design.test.ts#lint-design.mjs 読めないファイルを渡すと、[NG] と「読めません」を出して exit 1 で終わり、残りのファイルも確認する","name":"読めないファイルを渡すと、[NG] と「読めません」を出して exit 1 で終わり、残りのファイルも確認する","status":"passed","testResultsByEnv":{"default":"2fbb8c60a4a317a20bc1a29ef2c7ebba"}}

@@ -1,0 +1,1 @@
+{"id":"7d5db8cbf7a1ea7be8bea902b7dd2ada.3372fae03f596cea8f70b9ed02e61aa1","fullName":".githooks.tests.test_report_workflow#test_pack_report_leaves_history_out_of_the_tree","name":"側が release のとき、レポートを梱包し、履歴は tar に含めない","status":"passed","testResultsByEnv":{"default":"b2f35555e4769864205abd9b2bc4c54e"}}

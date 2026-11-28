@@ -1,0 +1,1 @@
+{"id":"453e1f9f2759c668fad552e1a410ddfa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/session-finish-remote.test.ts#collectClosingIssueNumbers PR が次のとき（head の末尾が番号でない）、閉じる Issue の番号を集める","name":"PR が次のとき（head の末尾が番号でない）、閉じる Issue の番号を集める","status":"passed","testResultsByEnv":{"default":"fe363c71ba413cb6deb80d833924b10c"}}

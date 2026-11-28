@@ -1,0 +1,1 @@
+{"id":"d5156bdce1edffc115908149eb8bf67e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-theme.test.ts#errorToReason テーマの解決や宣言に由来しない例外は、reason を unknown にする","name":"テーマの解決や宣言に由来しない例外は、reason を unknown にする","status":"passed","testResultsByEnv":{"default":"5d1c0216de9e3e518818b8140b3f9a27"}}

@@ -1,0 +1,1 @@
+{"id":"22e0b359e6f4e28de9fe48a346d71f8e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/ci-scope-consistency.test.ts#project.json の --scope 値 3 つのプラグインとも、run-*.sh を --scope 付きで起動する target を持つ","name":"3 つのプラグインとも、run-*.sh を --scope 付きで起動する target を持つ","status":"passed","testResultsByEnv":{"default":"429a43a051ef5e5d6bea200ea6a42215"}}

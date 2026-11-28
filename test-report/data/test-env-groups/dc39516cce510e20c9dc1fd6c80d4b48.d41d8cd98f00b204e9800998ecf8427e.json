@@ -1,0 +1,1 @@
+{"id":"dc39516cce510e20c9dc1fd6c80d4b48.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 未編集プレースホルダの検出と正当な `<...>` の通過（#962） 問題のない本文は、エラーにしない","name":"問題のない本文は、エラーにしない","status":"passed","testResultsByEnv":{"default":"7e91d904bf1fedf52954b5fece80341f"}}

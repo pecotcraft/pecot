@@ -1,0 +1,1 @@
+{"id":"30e75f41a85df2442e95c9e90d4edf8a.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#監査記録が無いと dry-run でも非ゼロ終了","name":"監査記録が無いと dry-run でも非ゼロ終了","status":"passed","testResultsByEnv":{"default":"ec0e222698bb25a46c23eef7a38bfe25"}}

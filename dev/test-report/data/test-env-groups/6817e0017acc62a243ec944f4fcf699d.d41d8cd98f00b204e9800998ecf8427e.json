@@ -1,0 +1,1 @@
+{"id":"6817e0017acc62a243ec944f4fcf699d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check create・update の値 update に pullNumber が無いと、pullNumber の required の problem を返す","name":"update に pullNumber が無いと、pullNumber の required の problem を返す","status":"passed","testResultsByEnv":{"default":"048f7043bf0ff369e82cea6f3f11b27d"}}

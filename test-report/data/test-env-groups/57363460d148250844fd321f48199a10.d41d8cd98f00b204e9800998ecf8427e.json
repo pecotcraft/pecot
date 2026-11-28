@@ -1,0 +1,1 @@
+{"id":"57363460d148250844fd321f48199a10.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check MCP の data 記録が無く、親ブランチの追跡参照が無い と、理由を warnings に入れ、develop_branch の追跡参照と比べる","name":"記録が無く、親ブランチの追跡参照が無い と、理由を warnings に入れ、develop_branch の追跡参照と比べる","status":"passed","testResultsByEnv":{"default":"3c8e899a116ca0dd6e7410030ccd9197"}}

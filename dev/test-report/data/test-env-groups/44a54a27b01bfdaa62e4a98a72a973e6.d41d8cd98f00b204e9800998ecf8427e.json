@@ -1,0 +1,1 @@
+{"id":"44a54a27b01bfdaa62e4a98a72a973e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#pnpm の install が失敗すると、build へ進まずに非ゼロ終了する","name":"pnpm の install が失敗すると、build へ進まずに非ゼロ終了する","status":"passed","testResultsByEnv":{"default":"26880ff10507396776c458c7bb7986cb"}}

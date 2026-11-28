@@ -1,0 +1,1 @@
+{"id":"982e72bacfb61e99c754c3222f247b26.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#nxProjects nx の終了コードが 0 以外の場合は、undefined を返す","name":"nx の終了コードが 0 以外の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"a3358d621a6bea4c447d89c17941a2dd"}}

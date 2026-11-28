@@ -1,0 +1,1 @@
+{"id":"111f1839b58543cf87d97526e1f0fe51.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_upload_dir_holds_only_used_artifacts","name":"upload 用の場所には、`nx-used.txt` に書かれた hash の成果物だけをコピーし、hash は英数字だけを受け付ける","status":"passed","testResultsByEnv":{"default":"77bc22e52396c454bf1692f8d730fd2a"}}

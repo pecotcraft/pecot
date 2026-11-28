@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_lambda_get_function_configuration failed (permission-denied). Permission denied. Check the profile / role"
+    },
+    {
+      "type": "text",
+      "text": "{\"log\":\"\\naws: [ERROR]: An error occurred (AccessDeniedException) when calling the ListFunctions operation: User: arn:aws:sts::123456789012:assumed-role/dev/session is not authorized to perform: lambda:ListFunctions\\naws_session_token = [redacted]\\n\",\"kind\":\"permission-denied\",\"detail\":\"aws_lambda_get_function_configuration failed (permission-denied). Permission denied. Check the profile / role\"}"
+    }
+  ],
+  "structuredContent": {
+    "log": "\naws: [ERROR]: An error occurred (AccessDeniedException) when calling the ListFunctions operation: User: arn:aws:sts::123456789012:assumed-role/dev/session is not authorized to perform: lambda:ListFunctions\naws_session_token = [redacted]\n",
+    "kind": "permission-denied",
+    "detail": "aws_lambda_get_function_configuration failed (permission-denied). Permission denied. Check the profile / role"
+  },
+  "isError": true
+}

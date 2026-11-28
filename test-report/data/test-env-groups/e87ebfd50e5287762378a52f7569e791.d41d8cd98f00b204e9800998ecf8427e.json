@@ -1,0 +1,1 @@
+{"id":"e87ebfd50e5287762378a52f7569e791.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-stdio.test.ts#MCP サーバ (stdio) 標準出力に JSON-RPC 以外の文字列を出さない","name":"標準出力に JSON-RPC 以外の文字列を出さない","status":"passed","testResultsByEnv":{"default":"59998e387c4c82afe46740e6930fd4e8"}}

@@ -1,0 +1,1 @@
+{"id":"afa469d34acd10473046e78434156701.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#relativeToCwd 作業ディレクトリの外のパスを渡すと、undefined を返す","name":"作業ディレクトリの外のパスを渡すと、undefined を返す","status":"passed","testResultsByEnv":{"default":"40ec1d304b793ec6149501d3559ca736"}}

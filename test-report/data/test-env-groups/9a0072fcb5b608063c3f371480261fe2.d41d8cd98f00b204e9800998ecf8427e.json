@@ -1,0 +1,1 @@
+{"id":"9a0072fcb5b608063c3f371480261fe2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/textlint-rule.test.ts#行頭が「- 」だと、Markdown の記法として解釈しない","name":"行頭が「- 」だと、Markdown の記法として解釈しない","status":"passed","testResultsByEnv":{"default":"53d343335b7720df2b75db3ad264bd06"}}

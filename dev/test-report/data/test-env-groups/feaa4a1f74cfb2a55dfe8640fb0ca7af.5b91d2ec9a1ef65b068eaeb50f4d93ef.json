@@ -1,0 +1,1 @@
+{"id":"feaa4a1f74cfb2a55dfe8640fb0ca7af.5b91d2ec9a1ef65b068eaeb50f4d93ef","fullName":".githooks.tests.test_pages_provenance#test_pull_request_run_without_its_pr_artifact_is_dropped","name":"pull_request の run は、その PR の artifact が ['pages-side-pr-6'] だと破棄する","status":"passed","testResultsByEnv":{"default":"2313b78a8edb77efaae334fc55d57e66"}}

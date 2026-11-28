@@ -1,0 +1,1 @@
+{"id":"1c3aff59ffcce389e1f03d70e5c81b23.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check warning が 1 件以上あると、終了コード 2 で終わる","name":"warning が 1 件以上あると、終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"45d8807da54667ce690865680af5f8c3"}}

@@ -1,0 +1,1 @@
+{"id":"c374aab88a878c74e67ed61b35d8d608.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_lane_mode_runs_one_lane_with_run_many","name":"lane モードでは、affected を呼ばず、指定したレーンの run-many を 1 回だけ実行する","status":"passed","testResultsByEnv":{"default":"c69f9d846a3916518e271eef80c68d76"}}

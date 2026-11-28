@@ -1,0 +1,1 @@
+{"id":"c9a5950db6e44f77d85dff79ffaa08a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/fixtures/themes.test.ts#テスト用テーマのファイル構成 宣言なしのテスト用テーマは、layouts と package.json だけを持ち、宣言と references を持たない","name":"宣言なしのテスト用テーマは、layouts と package.json だけを持ち、宣言と references を持たない","status":"passed","testResultsByEnv":{"default":"a2235d52d7b29a014fdc70c45f805bac"}}

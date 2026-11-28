@@ -1,0 +1,1 @@
+{"id":"72fdca27daab46983a0a3d005fc92037.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-overflow-hidden-with-bg-children.test.ts#no-overflow-hidden-with-bg-children invalid 子要素の背景が複合セレクタで指定されていても、報告する","name":"子要素の背景が複合セレクタで指定されていても、報告する","status":"passed","testResultsByEnv":{"default":"72c92ba0b85227accd973ac4029ba344"}}

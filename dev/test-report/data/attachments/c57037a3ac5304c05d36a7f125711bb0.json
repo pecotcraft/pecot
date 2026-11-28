@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "s3_uri must be in the form s3://<bucket>[/<prefix>]: /var/data/"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"s3_uri must be in the form s3://<bucket>[/<prefix>]: /var/data/\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "s3_uri must be in the form s3://<bucket>[/<prefix>]: /var/data/"
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"1f252857c11e762ecfbf20084c45eb6e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_cache_server#test_put_then_get_returns_stored_bytes","name":"PUT した内容を GET すると、同じバイト列を返す","status":"passed","testResultsByEnv":{"default":"49300cfdfb7c8433d3ea9874d1c6d648"}}

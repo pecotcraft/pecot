@@ -1,0 +1,1 @@
+{"id":"875ad6d5e503dd24c67ccb4f9064a106.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/plugin-update-notice.bats#session-start.sh 経由でも更新案内を出し、.pecotv は作らない","name":"session-start.sh 経由でも更新案内を出し、.pecotv は作らない","status":"passed","testResultsByEnv":{"default":"b82bb214e9fa305f5565467a419ff4cd"}}

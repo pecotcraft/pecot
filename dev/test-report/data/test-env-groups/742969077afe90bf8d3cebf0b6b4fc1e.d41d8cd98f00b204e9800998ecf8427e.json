@@ -1,0 +1,1 @@
+{"id":"742969077afe90bf8d3cebf0b6b4fc1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project-check.test.ts#project_check create ボードの一覧を渡していないか、最後のページに続きがあると、read-required の problem を返す","name":"ボードの一覧を渡していないか、最後のページに続きがあると、read-required の problem を返す","status":"passed","testResultsByEnv":{"default":"668ce6723c19c82f386c8c43547ba1f4"}}

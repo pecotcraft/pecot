@@ -1,0 +1,1 @@
+{"id":"6757cbc826fd9e1b7b23339b8bfeca0a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_push_runs_only_on_main_for_files_that_change_a_package","name":"push は main だけで、パッケージに影響するファイルの変更でのみ動く","status":"passed","testResultsByEnv":{"default":"5842509f9d09d25c0e08ca9e5b202de8"}}

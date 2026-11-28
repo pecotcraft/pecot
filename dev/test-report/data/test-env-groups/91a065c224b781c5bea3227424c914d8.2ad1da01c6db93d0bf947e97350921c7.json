@@ -1,0 +1,1 @@
+{"id":"91a065c224b781c5bea3227424c914d8.2ad1da01c6db93d0bf947e97350921c7","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_targets_maps_changed_files_to_plugins","name":"変更ファイルが ['libs/text-rules/src/index.ts'] のとき、`dev-targets.mjs` は対象のプラグインを ['pecot-visual'] に決める","status":"passed","testResultsByEnv":{"default":"b05f993dc4e7c22005374bb235def821"}}

@@ -1,0 +1,1 @@
+{"id":"174d1df3632fce66117de9111da61c2a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/payload.test.ts#isTruthy null は false（Python の bool と同じ）","name":"null は false（Python の bool と同じ）","status":"passed","testResultsByEnv":{"default":"9a426e0ab5ea4a0c96672ce9cf7fae6c"}}

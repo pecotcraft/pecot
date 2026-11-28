@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"links\":[{\"path\":\"/tmp/pecot-cli-Xgw0YE/workspaces/wt1/demo/CLAUDE.local.md\",\"destination\":\"/tmp/pecot-cli-Xgw0YE/workspaces/base/demo/CLAUDE.local.md\",\"change\":\"update\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "links": [
+      {
+        "path": "/tmp/pecot-cli-Xgw0YE/workspaces/wt1/demo/CLAUDE.local.md",
+        "destination": "/tmp/pecot-cli-Xgw0YE/workspaces/base/demo/CLAUDE.local.md",
+        "change": "update"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"b721055f6042786926e7f61ed0e1ce48.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateClosedHeadings（テンプレに無い ## / ### 見出し #1330） 要約のない見出しは、全体を名前として扱う","name":"要約のない見出しは、全体を名前として扱う","status":"passed","testResultsByEnv":{"default":"2c7fe806b0bba1ff02b542e0e20a731f"}}

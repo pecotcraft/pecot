@@ -1,0 +1,1 @@
+{"id":"4f4c97a17a26a59c09cc9a8c07a0ed05.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory cwd がプラグインのルートの配下でも、移動する","name":"cwd がプラグインのルートの配下でも、移動する","status":"passed","testResultsByEnv":{"default":"69b44e34f40b02eb13c77bd582abc951"}}

@@ -1,0 +1,85 @@
+{
+  "name": "release_create",
+  "title": "Create release",
+  "description": "Create a GitHub release and its tag (the release notes come from the CHANGELOG)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "version": {
+        "type": "string",
+        "description": "Release version (for example 0.6.1)"
+      },
+      "package": {
+        "description": "Package name in a monorepo (required for repositories with packages configured)",
+        "type": "string"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "version"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "tag": {
+        "type": "string",
+        "description": "Tag of the release"
+      },
+      "url": {
+        "description": "URL of the created release (omitted when the response has none)",
+        "type": "string"
+      },
+      "releaseNotes": {
+        "type": "string",
+        "description": "Release notes from the CHANGELOG"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "tag",
+          "releaseNotes"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"43041a663df44be9f699eacb5a00de90.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync 表に PR を足すと、added の行を理由とともに標準エラーに出す","name":"表に PR を足すと、added の行を理由とともに標準エラーに出す","status":"passed","testResultsByEnv":{"default":"3e7b1afe9ace4bdc1a8bec2d1b09b1b4"}}

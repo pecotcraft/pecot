@@ -1,0 +1,1 @@
+{"id":"12dbd1c28ae29f26ca7f17486479823c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/ci-scope-consistency.test.ts#project.json の --scope 値 pecot-tools:lint が起動する run-*.sh は実在し、その --scope 値を受理する","name":"pecot-tools:lint が起動する run-*.sh は実在し、その --scope 値を受理する","status":"passed","testResultsByEnv":{"default":"9c915915e86eb61ecf95379b0a7c480b"}}

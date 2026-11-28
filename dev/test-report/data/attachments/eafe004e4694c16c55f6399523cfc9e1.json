@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "wrote drawio viewer HTML to /tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing/diagram.drawio.html"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"drawio.url.done\",\"file\":\"/tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing/diagram.drawio.html\",\"theme\":{\"source\":\"default\",\"fonts\":{\"body\":[\"sans-serif\"]}}}"
+    }
+  ],
+  "structuredContent": {
+    "event": "drawio.url.done",
+    "file": "/tmp/pecotv-1094-mount-NeIxkG/c/pecotv-1094/missing/diagram.drawio.html",
+    "theme": {
+      "source": "default",
+      "fonts": {
+        "body": [
+          "sans-serif"
+        ]
+      }
+    }
+  }
+}

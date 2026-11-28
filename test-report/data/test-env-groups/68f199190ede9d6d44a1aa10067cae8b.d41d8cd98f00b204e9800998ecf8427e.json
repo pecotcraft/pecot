@@ -1,0 +1,1 @@
+{"id":"68f199190ede9d6d44a1aa10067cae8b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/tracker-body.test.ts#cell セルを作成すると、U+2028 は改行として扱わない","name":"セルを作成すると、U+2028 は改行として扱わない","status":"passed","testResultsByEnv":{"default":"94cad8b271b4aa5bd9d2a9bbb621faca"}}

@@ -1,0 +1,1 @@
+{"id":"0852df5657f1bc6ebc9f6ed1355a09ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-gate.test.ts#auto gate 読めないイベントと GitHub の失敗 CI のブランチの読み取りが GitHub の失敗で止まると、ブランチを示して止まる","name":"CI のブランチの読み取りが GitHub の失敗で止まると、ブランチを示して止まる","status":"passed","testResultsByEnv":{"default":"a416275af152f2415b8d969232f85e96"}}

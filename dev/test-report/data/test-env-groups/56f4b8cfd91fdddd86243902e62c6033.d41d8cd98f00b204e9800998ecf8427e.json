@@ -1,0 +1,1 @@
+{"id":"56f4b8cfd91fdddd86243902e62c6033.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#calculateSpcValue px の接尾辞がない値も、数値として扱う","name":"px の接尾辞がない値も、数値として扱う","status":"passed","testResultsByEnv":{"default":"206cbdf0d7ecf1945f264234a31b081f"}}

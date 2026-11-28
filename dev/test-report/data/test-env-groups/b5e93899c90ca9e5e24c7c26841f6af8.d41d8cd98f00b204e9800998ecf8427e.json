@@ -1,0 +1,1 @@
+{"id":"b5e93899c90ca9e5e24c7c26841f6af8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-inset-shadow.test.ts#no-inset-shadow invalid style ブロックが複数あり、それぞれに inset があると、ブロックごとに報告する","name":"style ブロックが複数あり、それぞれに inset があると、ブロックごとに報告する","status":"passed","testResultsByEnv":{"default":"f4c4ba65fbe13ad69203e9d6043a5857"}}

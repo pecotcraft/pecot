@@ -1,0 +1,1 @@
+{"id":"11833415eb3a46b5ac2c26bf629442a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/textlint-rule.test.ts#行頭が「# 」だと、見出しとして解釈しない","name":"行頭が「# 」だと、見出しとして解釈しない","status":"passed","testResultsByEnv":{"default":"c230b1e0b4b7ad5e4a06005262ccbb32"}}

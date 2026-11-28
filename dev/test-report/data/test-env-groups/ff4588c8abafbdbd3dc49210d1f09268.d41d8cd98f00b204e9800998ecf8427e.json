@@ -1,0 +1,1 @@
+{"id":"ff4588c8abafbdbd3dc49210d1f09268.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh git の作業ツリーの外で実行すると、error の行を表示して終了コード 2 で止まる","name":"git の作業ツリーの外で実行すると、error の行を表示して終了コード 2 で止まる","status":"passed","testResultsByEnv":{"default":"2d1f3a7c34a665630a9446289d0216b5"}}

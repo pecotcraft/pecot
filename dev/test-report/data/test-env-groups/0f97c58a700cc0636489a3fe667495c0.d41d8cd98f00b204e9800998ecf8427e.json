@@ -1,0 +1,1 @@
+{"id":"0f97c58a700cc0636489a3fe667495c0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/interface-export.test.ts#generated.json の書き出し ツールの入力に項目を 1 つ追加すると、差分の行に input.properties.<名前>: added が出力される","name":"ツールの入力に項目を 1 つ追加すると、差分の行に input.properties.<名前>: added が出力される","status":"passed","testResultsByEnv":{"default":"e9788d23b35b306562ecca8e3839b720"}}

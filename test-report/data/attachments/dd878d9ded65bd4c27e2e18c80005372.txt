@@ -1,0 +1,1 @@
+WARN: base 未解決のため version plan check を skip

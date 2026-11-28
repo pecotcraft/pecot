@@ -1,0 +1,1 @@
+{"id":"982b91591d07091ccbdbb03a42f67c58.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#validatePullRequestContent Summary に画像が存在せず、screenshot の理由も指定していない場合は、エラーにする","name":"Summary に画像が存在せず、screenshot の理由も指定していない場合は、エラーにする","status":"passed","testResultsByEnv":{"default":"ec696de11bfa4cc090182c174017201c"}}

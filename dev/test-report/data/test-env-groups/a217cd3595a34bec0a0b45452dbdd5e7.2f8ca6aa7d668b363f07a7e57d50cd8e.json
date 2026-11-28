@@ -1,0 +1,1 @@
+{"id":"a217cd3595a34bec0a0b45452dbdd5e7.2f8ca6aa7d668b363f07a7e57d50cd8e","fullName":".githooks.tests.test_report_workflow#test_stage_results_copies_results_and_writes_source","name":"テスト結果の状態が results のとき、結果を集める場所に source.json を作成し、結果があればコピーする","status":"passed","testResultsByEnv":{"default":"1d3039bdefd8b79a8703efb5964b52c3"}}

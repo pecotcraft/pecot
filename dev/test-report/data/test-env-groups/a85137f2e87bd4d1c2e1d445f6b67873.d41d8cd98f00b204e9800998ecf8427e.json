@@ -1,0 +1,1 @@
+{"id":"a85137f2e87bd4d1c2e1d445f6b67873.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#ensureDevcontainerEnvironment REMOTE_CONTAINERS が設定されていれば通過する","name":"REMOTE_CONTAINERS が設定されていれば通過する","status":"passed","testResultsByEnv":{"default":"e129d30bb81f56c494a70a39698ef84e"}}

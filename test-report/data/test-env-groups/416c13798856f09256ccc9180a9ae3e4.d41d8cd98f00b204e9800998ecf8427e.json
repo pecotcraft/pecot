@@ -1,0 +1,1 @@
+{"id":"416c13798856f09256ccc9180a9ae3e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#ensureChromiumHostDependencies 起動前の依存確認が枠付きで返すライブラリの不足も、不足として導入する","name":"起動前の依存確認が枠付きで返すライブラリの不足も、不足として導入する","status":"passed","testResultsByEnv":{"default":"611f46f63c2eda196f9f9389f8b37d14"}}

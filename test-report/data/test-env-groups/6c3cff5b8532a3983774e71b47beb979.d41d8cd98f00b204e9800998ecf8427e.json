@@ -1,0 +1,1 @@
+{"id":"6c3cff5b8532a3983774e71b47beb979.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/release-check.test.ts#release check code scanning に open の alert があると、error の行を出して失敗にするが、残りの確認は続ける","name":"code scanning に open の alert があると、error の行を出して失敗にするが、残りの確認は続ける","status":"passed","testResultsByEnv":{"default":"d9702c96090ec04f8811bc629c670ee2"}}

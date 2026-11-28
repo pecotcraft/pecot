@@ -1,0 +1,171 @@
+{
+  "name": "project_get",
+  "title": "Get project config",
+  "description": "Show the value of a key of the project config (aggregation_repo: the Epic aggregation repository), or without key, the overview of the active project and its registered repositories with their branches and release type",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "key": {
+        "type": "string",
+        "enum": [
+          "aggregation_repo"
+        ],
+        "description": "Key of the project config (aggregation_repo: the Epic aggregation repository)"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "key": {
+        "description": "Key that was read (omitted when key was not given)",
+        "type": "string",
+        "enum": [
+          "aggregation_repo"
+        ]
+      },
+      "value": {
+        "description": "Value of the key (omitted when it is not set, or when key was not given)",
+        "type": "string"
+      },
+      "project": {
+        "description": "Overview of the active project (only when key was not given)",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the project config"
+          },
+          "host": {
+            "type": "string",
+            "description": "GitHub host"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Owner of the board"
+          },
+          "number": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of the board"
+          },
+          "aggregation_repo": {
+            "description": "Epic aggregation repository (null when not set)",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "host",
+          "owner",
+          "number",
+          "aggregation_repo"
+        ],
+        "additionalProperties": false
+      },
+      "repositories": {
+        "description": "Registered repositories, in registration order (only when key was not given)",
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "full_name": {
+              "type": "string",
+              "description": "Repository (owner/repo)"
+            },
+            "develop_branch": {
+              "description": "Develop branch (null when not set)",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "release_branch": {
+              "description": "Release branch (null when not set)",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "release_type": {
+              "type": "string",
+              "enum": [
+                "single",
+                "multi",
+                "nx"
+              ],
+              "description": "Release type in effect"
+            },
+            "packages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the package (the tag prefix)"
+                  },
+                  "changelog": {
+                    "type": "string",
+                    "description": "Path of the CHANGELOG of the package"
+                  }
+                },
+                "required": [
+                  "name",
+                  "changelog"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Packages of a monorepo (empty when none)"
+            },
+            "changelog_file": {
+              "description": "CHANGELOG path set for a repository without packages (omitted when not set)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "full_name",
+            "develop_branch",
+            "release_branch",
+            "release_type",
+            "packages"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

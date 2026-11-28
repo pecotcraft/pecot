@@ -1,0 +1,1 @@
+{"id":"ac333cf4ba18335329b21636998ca2b0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#runMcpServe process の exit イベントでも、最後の手段として終了処理を呼び出す","name":"process の exit イベントでも、最後の手段として終了処理を呼び出す","status":"passed","testResultsByEnv":{"default":"a99a3c5b4ea57a9e585bdc226a0d46ad"}}

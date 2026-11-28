@@ -1,0 +1,1 @@
+{"id":"216601604e95a346234f49e324423fee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#失敗種別 fixture profile-not-found の失敗は、失敗の種類 auth-missing と判定する","name":"fixture profile-not-found の失敗は、失敗の種類 auth-missing と判定する","status":"passed","testResultsByEnv":{"default":"e647f2905075b2063db5e5ac7d90a5e8"}}

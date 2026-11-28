@@ -1,0 +1,1 @@
+{"id":"0ab049309652452b74a837ded5c78c8d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#symlink 経由の起動でも --out-dir ガードが条件 (a) の文言で拒否する","name":"symlink 経由の起動でも --out-dir ガードが条件 (a) の文言で拒否する","status":"passed","testResultsByEnv":{"default":"0ed6f1992f14185b6aa4805860ff497f"}}

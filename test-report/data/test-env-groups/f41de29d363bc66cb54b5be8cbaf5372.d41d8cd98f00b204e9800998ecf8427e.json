@@ -1,0 +1,1 @@
+{"id":"f41de29d363bc66cb54b5be8cbaf5372.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_finish_fails_without_done_marker","name":"完了の印がない場合は、検証が完了していないと Summary に書き、終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"215f0147dc7dd8505bbe6da5949d834f"}}

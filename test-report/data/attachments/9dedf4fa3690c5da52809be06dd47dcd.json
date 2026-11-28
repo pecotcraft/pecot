@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "runtime dependencies already installed / Playwright Chromium already installed"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"setup.skipped\",\"runtime\":{\"installed\":true,\"downloaded\":false,\"durationMs\":0,\"location\":\"/home/vscode/.local/share/pecot/pecot-visual/mcp-dist\"},\"chromium\":{\"installed\":true,\"downloaded\":false,\"durationMs\":872,\"location\":\"/home/vscode/.cache/ms-playwright\"},\"hostDeps\":{\"installed\":true,\"downloaded\":false,\"durationMs\":217}}"
+    }
+  ],
+  "structuredContent": {
+    "event": "setup.skipped",
+    "runtime": {
+      "installed": true,
+      "downloaded": false,
+      "durationMs": 0,
+      "location": "/home/vscode/.local/share/pecot/pecot-visual/mcp-dist"
+    },
+    "chromium": {
+      "installed": true,
+      "downloaded": false,
+      "durationMs": 872,
+      "location": "/home/vscode/.cache/ms-playwright"
+    },
+    "hostDeps": {
+      "installed": true,
+      "downloaded": false,
+      "durationMs": 217
+    }
+  }
+}

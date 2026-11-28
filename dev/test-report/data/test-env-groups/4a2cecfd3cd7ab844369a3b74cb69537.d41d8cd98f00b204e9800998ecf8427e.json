@@ -1,0 +1,1 @@
+{"id":"4a2cecfd3cd7ab844369a3b74cb69537.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/plugin-update-notice.bats#CLAUDE_PLUGIN_ROOT が浅すぎて版のディレクトリを含まないとき、何も出さない","name":"CLAUDE_PLUGIN_ROOT が浅すぎて版のディレクトリを含まないとき、何も出さない","status":"passed","testResultsByEnv":{"default":"0dcbc5072d536e2b5a0168804df1da36"}}

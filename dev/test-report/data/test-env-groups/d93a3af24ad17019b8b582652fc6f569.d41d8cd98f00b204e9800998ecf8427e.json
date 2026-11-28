@@ -1,0 +1,1 @@
+{"id":"d93a3af24ad17019b8b582652fc6f569.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/lockfile-single-version.test.ts#固定対象の単一版 (#1233) 固定した shiki 系の版が、@slidev/cli の宣言する範囲に収まる","name":"固定した shiki 系の版が、@slidev/cli の宣言する範囲に収まる","status":"passed","testResultsByEnv":{"default":"e04221e021b133890a0f3d04d74e8bb7"}}

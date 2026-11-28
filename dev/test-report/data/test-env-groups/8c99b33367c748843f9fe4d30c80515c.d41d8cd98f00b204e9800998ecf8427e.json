@@ -1,0 +1,1 @@
+{"id":"8c99b33367c748843f9fe4d30c80515c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-typescript.test.ts#strings plugin: テンプレート文字列の ${} 埋め込み式の後ろの行にある違反を、元のファイルの行と桁で返す","name":"埋め込み式の後ろの行にある違反を、元のファイルの行と桁で返す","status":"passed","testResultsByEnv":{"default":"cf214884774474ccad574e7a77fc97ae"}}

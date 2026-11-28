@@ -1,0 +1,5 @@
+
+ NX   JSON output created in /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_gate_selects_the_githooks5
+
+/tmp/pytest-of-vscode/pytest-0/popen-gw0/test_gate_selects_the_githooks5/graph-test.json
+

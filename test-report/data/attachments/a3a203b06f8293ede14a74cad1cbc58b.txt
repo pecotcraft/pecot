@@ -1,0 +1,2 @@
+error: main is a protected branch
+  protected: develop-aist, main, release-v1

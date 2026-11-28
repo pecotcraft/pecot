@@ -1,0 +1,1 @@
+{"id":"6c43ce1482c5ad5ade60f52a19d95069.a58e8fcc747fea7b56cd3384d4461c07","fullName":".githooks.tests.test_check_bats_explains#test_reports_dynamic_test_without_explains","name":"関数で作るテストの本体が explains で始まらないと、関数名を添えて止める","status":"passed","testResultsByEnv":{"default":"2d433f240b35c5f38bf1811a2b82b6fc"}}

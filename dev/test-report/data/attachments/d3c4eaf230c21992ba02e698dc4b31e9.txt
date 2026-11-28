@@ -1,0 +1,4 @@
+warning: 1 open Dependabot alert. The release is not blocked.
+  #7
+  → https://ghes.example.com/acme/demo/security/dependabot
+skipped: code scanning (feature disabled)

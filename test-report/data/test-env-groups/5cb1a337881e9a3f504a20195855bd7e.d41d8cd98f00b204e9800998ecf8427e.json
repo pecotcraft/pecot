@@ -1,0 +1,1 @@
+{"id":"5cb1a337881e9a3f504a20195855bd7e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pecot_open_rc#test_pc_sends_rc_to_every_new_pane","name":"`pecot-open.sh --rc` を新しいセッションで実行すると、すべてのペインに `pecot-rc.sh` を送る","status":"passed","testResultsByEnv":{"default":"e1d868e0c06e367ac692c55ca35b2464"}}

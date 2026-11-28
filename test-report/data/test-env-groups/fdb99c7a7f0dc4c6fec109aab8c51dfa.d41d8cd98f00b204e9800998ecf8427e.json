@@ -1,0 +1,1 @@
+{"id":"fdb99c7a7f0dc4c6fec109aab8c51dfa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#decidePullRequestBase 親 PR が無い の場合は、PR を作成せずに止める","name":"親 PR が無い の場合は、PR を作成せずに止める","status":"passed","testResultsByEnv":{"default":"091a1b09cfa81751ffb737bed8693cdf"}}

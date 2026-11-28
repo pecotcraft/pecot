@@ -1,0 +1,1 @@
+{"id":"29b48d2b54bc593c1bee714db3d5ea29.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#putOnBoard Status の書き込みが VALIDATION で失敗した場合は、エラーと案内を 1 回ずつ表示し、1 を返す","name":"Status の書き込みが VALIDATION で失敗した場合は、エラーと案内を 1 回ずつ表示し、1 を返す","status":"passed","testResultsByEnv":{"default":"a6f24d970402f2cd1a45bb9d204e3f2d"}}

@@ -1,0 +1,1 @@
+{"id":"9f7b77f85c87c0b1b7c75838c167baa4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#installChromium Error でない値が例外として投げられた場合も、起動失敗を表す SpawnResult を返す","name":"Error でない値が例外として投げられた場合も、起動失敗を表す SpawnResult を返す","status":"passed","testResultsByEnv":{"default":"0e67270afd845567c86676465162b43d"}}

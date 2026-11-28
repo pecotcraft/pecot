@@ -1,0 +1,1 @@
+{"id":"b48b0493d3c2f32503b736fb9e35905a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync Tracker の Issue を作ると、ボードの欄は Status だけを入れ、Priority を入れない","name":"Tracker の Issue を作ると、ボードの欄は Status だけを入れ、Priority を入れない","status":"passed","testResultsByEnv":{"default":"a43d92f804247dfacedc81d1d49e7e65"}}

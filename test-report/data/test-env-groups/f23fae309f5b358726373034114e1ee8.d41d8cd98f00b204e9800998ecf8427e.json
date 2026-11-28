@@ -1,0 +1,1 @@
+{"id":"f23fae309f5b358726373034114e1ee8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check ボードの欄と Issue field 数値の欄に数値を書くと、problem の無い結果を返す","name":"数値の欄に数値を書くと、problem の無い結果を返す","status":"passed","testResultsByEnv":{"default":"9e5b152248cac7a577290d072dc43ee0"}}

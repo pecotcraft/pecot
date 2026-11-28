@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "updated: feat/demo/12 restacked on main"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/demo/12\",\"base\":\"main\",\"outcome\":\"restacked\",\"pushed\":true,\"relinked\":21}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/demo/12",
+    "base": "main",
+    "outcome": "restacked",
+    "pushed": true,
+    "relinked": 21
+  }
+}

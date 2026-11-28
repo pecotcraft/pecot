@@ -1,0 +1,1 @@
+{"id":"0f07160a0ff9c3b7755cbe4aa9775c5f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#clearOrphanedCacheArtifacts 既知の命名のファイルだけを削除し、manifest.json と一時ファイルは残す","name":"既知の命名のファイルだけを削除し、manifest.json と一時ファイルは残す","status":"passed","testResultsByEnv":{"default":"734b44a78f876ad9ff16f270a9f3966f"}}

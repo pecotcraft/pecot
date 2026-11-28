@@ -1,0 +1,1 @@
+{"id":"2b4981d7f757b710fcedf09db7934729.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#runSlideLint 集計 lint の対象のファイルが 0 件なら、違反が 0 件の場合と区別して、outcome を no-target にする","name":"lint の対象のファイルが 0 件なら、違反が 0 件の場合と区別して、outcome を no-target にする","status":"passed","testResultsByEnv":{"default":"fd8a864a3288e844076a5f34a32863d0"}}

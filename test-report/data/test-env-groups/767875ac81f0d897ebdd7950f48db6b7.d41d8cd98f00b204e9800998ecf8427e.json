@@ -1,0 +1,1 @@
+{"id":"767875ac81f0d897ebdd7950f48db6b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#createDevServerRegistry 起動済みの talk-dir へ別のポートを指定した呼び出しが中断済みなら、既存を止めずに cancelled を返す","name":"起動済みの talk-dir へ別のポートを指定した呼び出しが中断済みなら、既存を止めずに cancelled を返す","status":"passed","testResultsByEnv":{"default":"0c068b0bb29361ba244c715eff213302"}}

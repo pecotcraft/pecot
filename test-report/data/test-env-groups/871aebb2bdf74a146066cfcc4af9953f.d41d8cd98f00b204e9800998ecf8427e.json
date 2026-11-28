@@ -1,0 +1,1 @@
+{"id":"871aebb2bdf74a146066cfcc4af9953f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#parseUpdateMetadata update-type が存在しない場合は、Bumps 行の版から種類を求める","name":"update-type が存在しない場合は、Bumps 行の版から種類を求める","status":"passed","testResultsByEnv":{"default":"3d734256672c10aa5312265494e391bc"}}

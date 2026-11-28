@@ -1,0 +1,1 @@
+{"id":"7f78c25db8af05ac9366411a90b02767.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync Issue の一覧 を取れないと、何も書かずに step を失敗にする","name":"Issue の一覧 を取れないと、何も書かずに step を失敗にする","status":"passed","testResultsByEnv":{"default":"b37a0297e44d8dc076a383f6ed34fd79"}}

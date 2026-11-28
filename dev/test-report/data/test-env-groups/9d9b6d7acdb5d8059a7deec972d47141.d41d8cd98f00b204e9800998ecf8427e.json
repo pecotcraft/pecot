@@ -1,0 +1,1 @@
+{"id":"9d9b6d7acdb5d8059a7deec972d47141.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/input-acceptance.test.ts#MCP ツールの入力の受理・拒否 (クライアントのプロトコル世代: modern) 未知ツール 存在しないツールは、JSON-RPC エラー（-32602）で拒否し、ハンドラへ届かない","name":"存在しないツールは、JSON-RPC エラー（-32602）で拒否し、ハンドラへ届かない","status":"passed","testResultsByEnv":{"default":"14ab9db949b166e79a5336b7fe07f8bf"}}

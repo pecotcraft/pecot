@@ -1,0 +1,1 @@
+{"id":"4964cc40f84281b6098c839267719a53.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/payload.test.ts#asObject / asArray オブジェクトはそのまま、それ以外は空のオブジェクト（as_dict）","name":"オブジェクトはそのまま、それ以外は空のオブジェクト（as_dict）","status":"passed","testResultsByEnv":{"default":"f4b17113bd5b238ecb6180cb85d7f4bf"}}

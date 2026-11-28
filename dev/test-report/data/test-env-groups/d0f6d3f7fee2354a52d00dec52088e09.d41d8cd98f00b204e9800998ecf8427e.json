@@ -1,0 +1,1 @@
+{"id":"d0f6d3f7fee2354a52d00dec52088e09.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues タイトルが [Tracker] で始まる場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","name":"タイトルが [Tracker] で始まる場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","status":"passed","testResultsByEnv":{"default":"323572e2e743f8725c658b2910dbe564"}}

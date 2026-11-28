@@ -1,0 +1,1 @@
+{"id":"8d841b04fd656dd55ac7512fc45977c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine テキスト中の CR は、文字参照 &#13; として出力し、再び parse しても保つ","name":"テキスト中の CR は、文字参照 &#13; として出力し、再び parse しても保つ","status":"passed","testResultsByEnv":{"default":"3b794c61bd6193d49624a9a5e51fe806"}}

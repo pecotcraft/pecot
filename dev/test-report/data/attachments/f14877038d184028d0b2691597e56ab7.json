@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "awscli 2.22.0 or later is required (detected: 2.15.0)"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"awscli-missing\",\"detail\":\"awscli 2.22.0 or later is required (detected: 2.15.0)\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "awscli-missing",
+    "detail": "awscli 2.22.0 or later is required (detected: 2.15.0)"
+  },
+  "isError": true
+}

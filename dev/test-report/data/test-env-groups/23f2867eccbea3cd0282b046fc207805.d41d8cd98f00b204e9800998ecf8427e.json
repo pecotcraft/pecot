@@ -1,0 +1,1 @@
+{"id":"23f2867eccbea3cd0282b046fc207805.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#aggregation_repo aggregation_repo が配列の場合は、文字列ではないため検証エラーを返す","name":"aggregation_repo が配列の場合は、文字列ではないため検証エラーを返す","status":"passed","testResultsByEnv":{"default":"0430e07b68301afdc18c2f1304e2e02e"}}

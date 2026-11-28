@@ -1,0 +1,1 @@
+ERROR: 監査未実施のため中止: 永続層: /tmp/bats-run-ZtRN2n/test/29/runtime-case23-nolock に npm-shrinkwrap.json / package-lock.json がありません

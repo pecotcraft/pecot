@@ -1,0 +1,1 @@
+{"id":"2561f1ac93089a8b06ed75d65a38e745.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#executeMcpServe 起動に失敗したら、stderr に error: の行を出力して 1 を返す","name":"起動に失敗したら、stderr に error: の行を出力して 1 を返す","status":"passed","testResultsByEnv":{"default":"80538204347968ea79501c397dcd4b79"}}

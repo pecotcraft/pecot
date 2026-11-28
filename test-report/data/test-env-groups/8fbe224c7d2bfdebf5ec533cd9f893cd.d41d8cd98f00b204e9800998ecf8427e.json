@@ -1,0 +1,1 @@
+{"id":"8fbe224c7d2bfdebf5ec533cd9f893cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-sso.test.ts#SSO の 2 段構成 ログインを開始していない状態確認は、invalid-input を返し、awscli を起動しない","name":"ログインを開始していない状態確認は、invalid-input を返し、awscli を起動しない","status":"passed","testResultsByEnv":{"default":"47ee3cea316e9ad3dfc1a3be028b22db"}}

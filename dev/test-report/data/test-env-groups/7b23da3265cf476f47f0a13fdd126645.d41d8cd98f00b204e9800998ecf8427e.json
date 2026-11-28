@@ -1,0 +1,1 @@
+{"id":"7b23da3265cf476f47f0a13fdd126645.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites 進行の欄は名前でなく ID で特定し、旧い名前のままでも値を取り出す","name":"進行の欄は名前でなく ID で特定し、旧い名前のままでも値を取り出す","status":"passed","testResultsByEnv":{"default":"6a87d83a170428bdfdacb0923c9a8a0e"}}

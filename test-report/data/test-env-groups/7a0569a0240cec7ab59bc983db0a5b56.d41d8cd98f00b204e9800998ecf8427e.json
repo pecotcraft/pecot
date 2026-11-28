@@ -1,0 +1,1 @@
+{"id":"7a0569a0240cec7ab59bc983db0a5b56.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ session-finish-usage を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ session-finish-usage を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"6a4e022b2678096d8071561349c23c02"}}

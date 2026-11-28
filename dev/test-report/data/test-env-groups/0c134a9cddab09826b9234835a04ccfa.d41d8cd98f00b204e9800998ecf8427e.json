@@ -1,0 +1,1 @@
+{"id":"0c134a9cddab09826b9234835a04ccfa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-board.test.ts#applyBoardMove 書き込みに失敗した場合は、警告を表示し、元の列のままにする","name":"書き込みに失敗した場合は、警告を表示し、元の列のままにする","status":"passed","testResultsByEnv":{"default":"7b540255c7cd41a8c0d6a87d9c84426b"}}

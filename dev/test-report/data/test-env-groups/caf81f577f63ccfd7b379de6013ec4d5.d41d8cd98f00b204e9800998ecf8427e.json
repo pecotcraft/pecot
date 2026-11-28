@@ -1,0 +1,1 @@
+{"id":"caf81f577f63ccfd7b379de6013ec4d5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getWorktreeDirectories メインの worktree だけなら、空の一覧を返す","name":"メインの worktree だけなら、空の一覧を返す","status":"passed","testResultsByEnv":{"default":"cc98ae33e61bd344173faba8628a2512"}}

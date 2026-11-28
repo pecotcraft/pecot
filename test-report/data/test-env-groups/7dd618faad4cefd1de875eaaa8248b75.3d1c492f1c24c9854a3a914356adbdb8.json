@@ -1,0 +1,1 @@
+{"id":"7dd618faad4cefd1de875eaaa8248b75.3d1c492f1c24c9854a3a914356adbdb8","fullName":".githooks.tests.test_report_workflow#test_report_steps_hand_sources_history_and_tree_to_each_other","name":"側が dev のとき、レポートの step は材料・履歴・サイトのファイルを順に引き継ぐ","status":"passed","testResultsByEnv":{"default":"91b04667b171c5f7f1b161cc893047e6"}}

@@ -1,0 +1,3 @@
+==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)
+  NG: .npmrc はルートの 1 本だけに置く（プラグインの下に置かない）: plugins/pecot-visual/cli/.npmrc
+check-pm-guard: 静的確認 FAILED (1 件)

@@ -1,0 +1,1 @@
+{"id":"cf6f6960d365ad355b0d92288a7411d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#parseProjectConfig（検証エラー） 検証エラーのメッセージは、config-nine-errors の入力で Python の実出力と同じになる","name":"検証エラーのメッセージは、config-nine-errors の入力で Python の実出力と同じになる","status":"passed","testResultsByEnv":{"default":"34b88c57c27d4d5b87d4ea46de7d73f9"}}

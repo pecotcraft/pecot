@@ -1,0 +1,1 @@
+warning: cannot read slides.md; deriving the default output name from the basename (/tmp/pecotv-slide-convert-WiVUqE/sample/slides.md): EISDIR: illegal operation on a directory, read

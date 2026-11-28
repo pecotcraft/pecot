@@ -1,0 +1,1 @@
+{"id":"e16359cb6f64c4fc9f9c40c7e853042f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh transcript_path が無いとき（Copilot CLI）、出力せず、記録を残さない","name":"transcript_path が無いとき（Copilot CLI）、出力せず、記録を残さない","status":"passed","testResultsByEnv":{"default":"482a0110b4a5097714602936a43ada0c"}}

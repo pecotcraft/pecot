@@ -1,0 +1,1 @@
+{"id":"a9daf4d3e49312b7a2ac45b25780dd3c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_dev_rewrite_touches_only_dev_and_record","name":"開発版を書き換えても、`dev/` と記録だけを変える","status":"passed","testResultsByEnv":{"default":"5b5ede0f8207ea5a304c29653848997d"}}

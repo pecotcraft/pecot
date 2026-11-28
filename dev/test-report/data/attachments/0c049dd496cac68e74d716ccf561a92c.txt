@@ -1,0 +1,1 @@
+fatal: Not a valid commit name cccccccccccccccccccccccccccccccccccccccc

@@ -1,0 +1,1 @@
+{"id":"9f8c5cfaa2dafb21104288a2e1d40742.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add すべての wtN をこのリポジトリの worktree が既に使っていると、最大の番号の次のセットに worktree を作る","name":"すべての wtN をこのリポジトリの worktree が既に使っていると、最大の番号の次のセットに worktree を作る","status":"passed","testResultsByEnv":{"default":"ae086fae7db2ad3482303c1eb5367e0c"}}

@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: the body still has the frontmatter of the template: pass its keys as arguments and leave them out of body"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"frontmatter\",\"message\":\"the body still has the frontmatter of the template: pass its keys as arguments and leave them out of body\"},{\"field\":\"body\",\"code\":\"empty-closes\",\"message\":\"the Closes # line has no number: write the number of the Issue the PR closes, or remove the line when the Issue is an Epic\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "frontmatter",
+        "message": "the body still has the frontmatter of the template: pass its keys as arguments and leave them out of body"
+      },
+      {
+        "field": "body",
+        "code": "empty-closes",
+        "message": "the Closes # line has no number: write the number of the Issue the PR closes, or remove the line when the Issue is an Epic"
+      }
+    ]
+  }
+}

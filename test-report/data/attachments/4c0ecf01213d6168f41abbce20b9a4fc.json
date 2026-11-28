@@ -1,0 +1,40 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "blocked_by: an Issue of kind epic has no prerequisites"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"blocked_by\",\"code\":\"unexpected\",\"message\":\"an Issue of kind epic has no prerequisites\"}],\"plan\":[{\"key\":\"issues[0]\",\"blockedBy\":[{\"issue\":\"#5\",\"wait\":\"stack\"}],\"approach\":\"stack\",\"stackOn\":\"#5\"}],\"stackableChains\":[[\"#5\",\"issues[0]\"]]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "blocked_by",
+        "code": "unexpected",
+        "message": "an Issue of kind epic has no prerequisites"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "blockedBy": [
+          {
+            "issue": "#5",
+            "wait": "stack"
+          }
+        ],
+        "approach": "stack",
+        "stackOn": "#5"
+      }
+    ],
+    "stackableChains": [
+      [
+        "#5",
+        "issues[0]"
+      ]
+    ]
+  }
+}

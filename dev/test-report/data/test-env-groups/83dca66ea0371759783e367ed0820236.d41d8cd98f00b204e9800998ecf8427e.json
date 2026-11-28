@@ -1,0 +1,1 @@
+{"id":"83dca66ea0371759783e367ed0820236.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#本体の runtime manifest との整合 manifest の runtime 依存は、すべてインストール対象に含まれる","name":"manifest の runtime 依存は、すべてインストール対象に含まれる","status":"passed","testResultsByEnv":{"default":"d7a1797491b58681007c66e1b926bac9"}}

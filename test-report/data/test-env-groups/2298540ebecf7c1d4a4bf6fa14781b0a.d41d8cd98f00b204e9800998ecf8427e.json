@@ -1,0 +1,1 @@
+{"id":"2298540ebecf7c1d4a4bf6fa14781b0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-breakdown の手順 起票の Step は、既存の分解のタスクを 3 通りに分けて扱い、2 重に起票しない","name":"起票の Step は、既存の分解のタスクを 3 通りに分けて扱い、2 重に起票しない","status":"passed","testResultsByEnv":{"default":"993095a8670595852ce1ff8562c62ecd"}}

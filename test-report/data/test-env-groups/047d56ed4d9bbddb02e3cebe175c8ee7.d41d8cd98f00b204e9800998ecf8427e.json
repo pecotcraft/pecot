@@ -1,0 +1,1 @@
+{"id":"047d56ed4d9bbddb02e3cebe175c8ee7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/restack.test.ts#describeNeedsRestack merged の判断では、- needs restack: yes を返す","name":"merged の判断では、- needs restack: yes を返す","status":"passed","testResultsByEnv":{"default":"a67079b1538d518eb959cc4858ad0eea"}}

@@ -1,0 +1,5 @@
+created: PR acme/demo feat/demo/34 -> main: feat(demo): #34 見本の変更
+warning: board item lookup for Issue #34 failed: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:34805/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+warning: could not read the Issues waiting for #34: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:34805/graphql'
+  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500

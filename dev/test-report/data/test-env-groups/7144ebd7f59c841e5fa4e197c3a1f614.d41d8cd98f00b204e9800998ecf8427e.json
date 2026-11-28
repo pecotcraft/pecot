@@ -1,0 +1,1 @@
+{"id":"7144ebd7f59c841e5fa4e197c3a1f614.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/version-range.test.ts#doesRangeAllowMajor: キャレット / チルダ ^0.25.0 は、メジャーバージョン 0 を許可し、1 は許可しない","name":"^0.25.0 は、メジャーバージョン 0 を許可し、1 は許可しない","status":"passed","testResultsByEnv":{"default":"af7b1be872233d5355cce0341273b96a"}}

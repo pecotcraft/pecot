@@ -1,0 +1,1 @@
+{"id":"c981f027c96f32833725eb0beeeee52f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 allowed_bots は、発行の step の出力 app-slug を読み、* を使わない","name":"allowed_bots は、発行の step の出力 app-slug を読み、* を使わない","status":"passed","testResultsByEnv":{"default":"9c5376257e6ec4acb0174ebc631ea635"}}

@@ -1,0 +1,1 @@
+{"id":"f2634a2def2935a5690065bc733a5f64.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 水平線（#1185） 強調で包んだインラインコードのすぐ次の行の ---（setext の下線）は、水平線として扱いエラーにする","name":"強調で包んだインラインコードのすぐ次の行の ---（setext の下線）は、水平線として扱いエラーにする","status":"passed","testResultsByEnv":{"default":"a6c6e99429ad54aa20411ab5004d4fe8"}}

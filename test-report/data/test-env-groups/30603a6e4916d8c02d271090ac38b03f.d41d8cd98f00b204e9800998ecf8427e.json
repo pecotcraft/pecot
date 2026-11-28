@@ -1,0 +1,1 @@
+{"id":"30603a6e4916d8c02d271090ac38b03f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys layouts や patches が存在しない最小構成でも成功する","name":"layouts や patches が存在しない最小構成でも成功する","status":"passed","testResultsByEnv":{"default":"e18de53db784d5ba2dd2eab756e41d7f"}}

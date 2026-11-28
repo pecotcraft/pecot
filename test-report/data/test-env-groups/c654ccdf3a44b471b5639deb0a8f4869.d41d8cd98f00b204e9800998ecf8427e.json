@@ -1,0 +1,1 @@
+{"id":"c654ccdf3a44b471b5639deb0a8f4869.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create ファイルと message を一緒に渡すと、message の本文を使わずにファイルから PR を作る","name":"ファイルと message を一緒に渡すと、message の本文を使わずにファイルから PR を作る","status":"passed","testResultsByEnv":{"default":"fe0cd823b10ceaaec6ea3dcc541f17fe"}}

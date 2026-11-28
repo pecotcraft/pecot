@@ -1,0 +1,157 @@
+{
+  "name": "runtime_setup",
+  "title": "Set up runtime",
+  "description": "Downloads the runtime dependencies pecotv uses (@slidev/cli / dom-to-pptx / @slidev/parser, etc.) and Playwright Chromium. Call it when slide_create / slide_convert / slide_sync fail with \"runtime dependencies are not installed\", or when drawio_export / slide_convert / drawio_create PNG output fails with \"Playwright Chromium is not installed\". The first run downloads about 600MB of runtime dependencies and about 120MB of Chromium, so it takes tens of seconds. If OS libraries needed to launch Chromium are missing, it installs them with apt-get where sudo is available, and otherwise returns the command to install them. It skips what is already installed, so it finishes quickly and is safe to call repeatedly.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {},
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "event": {
+        "type": "string",
+        "description": "setup.done when something was downloaded, setup.skipped when everything was already in place, setup.error on failure"
+      },
+      "runtime": {
+        "type": "object",
+        "properties": {
+          "installed": {
+            "type": "boolean",
+            "description": "Whether the runtime dependencies are in place after this run"
+          },
+          "downloaded": {
+            "type": "boolean",
+            "description": "Whether this run downloaded or installed the runtime dependencies"
+          },
+          "durationMs": {
+            "type": "number",
+            "description": "Time spent on this stage in milliseconds (0 when skipped)"
+          },
+          "location": {
+            "description": "Where they are placed (omitted when it cannot be determined)",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Why the stage failed, or what it installed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "installed",
+          "downloaded",
+          "durationMs"
+        ],
+        "additionalProperties": false,
+        "description": "Result of the runtime dependencies stage"
+      },
+      "chromium": {
+        "type": "object",
+        "properties": {
+          "installed": {
+            "type": "boolean",
+            "description": "Whether Playwright Chromium files are in place after this run"
+          },
+          "downloaded": {
+            "type": "boolean",
+            "description": "Whether this run downloaded or installed Playwright Chromium files"
+          },
+          "durationMs": {
+            "type": "number",
+            "description": "Time spent on this stage in milliseconds (0 when skipped)"
+          },
+          "location": {
+            "description": "Where they are placed (omitted when it cannot be determined)",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Why the stage failed, or what it installed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "installed",
+          "downloaded",
+          "durationMs"
+        ],
+        "additionalProperties": false,
+        "description": "Result of the Playwright Chromium stage"
+      },
+      "hostDeps": {
+        "type": "object",
+        "properties": {
+          "installed": {
+            "type": "boolean",
+            "description": "Whether the OS libraries required to launch Chromium are in place after this run"
+          },
+          "downloaded": {
+            "type": "boolean",
+            "description": "Whether this run downloaded or installed the OS libraries required to launch Chromium"
+          },
+          "durationMs": {
+            "type": "number",
+            "description": "Time spent on this stage in milliseconds (0 when skipped)"
+          },
+          "location": {
+            "description": "Where they are placed (omitted when it cannot be determined)",
+            "type": "string"
+          },
+          "detail": {
+            "description": "Why the stage failed, or what it installed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "installed",
+          "downloaded",
+          "durationMs"
+        ],
+        "additionalProperties": false,
+        "description": "Result of the OS libraries stage (omitted when Chromium could not be placed)"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full text of the failure and how to recover (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of the command or child process (failure only). Over 64KB, the end is kept and the first line notes the truncation"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warnings raised during the run (omitted when there are none). Beyond 100 warnings or 64KB, the last item tells how many were omitted"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "event",
+          "runtime",
+          "chromium",
+          "hostDeps"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": true
+  }
+}

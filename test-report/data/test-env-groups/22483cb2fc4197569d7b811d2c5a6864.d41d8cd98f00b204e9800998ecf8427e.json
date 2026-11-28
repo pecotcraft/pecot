@@ -1,0 +1,1 @@
+{"id":"22483cb2fc4197569d7b811d2c5a6864.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_ci_result#test_checks_result_failure","name":"checks の結果が failure だと、ジョブがすべて成功でも失敗で終わる","status":"passed","testResultsByEnv":{"default":"9522337506bf5254b622221c28b6170b"}}

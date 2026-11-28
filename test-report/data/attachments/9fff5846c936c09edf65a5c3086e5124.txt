@@ -1,0 +1,3 @@
+usage: dev_sources.py resolve [-h] --head HEAD --repo REPO
+                              [--max-commits MAX_COMMITS] [--root ROOT]
+dev_sources.py resolve: error: argument --repo: owner/repo の形ではありません: o/r/x

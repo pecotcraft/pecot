@@ -1,0 +1,1 @@
+{"id":"627d3e51ea24c5a1d7c31723bac944d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool talk-dir が存在しないと、子を起動せずに talk-dir-not-found のエラーを返し、log を載せない","name":"talk-dir が存在しないと、子を起動せずに talk-dir-not-found のエラーを返し、log を載せない","status":"passed","testResultsByEnv":{"default":"bfe432b69371733a85467b217a362c34"}}

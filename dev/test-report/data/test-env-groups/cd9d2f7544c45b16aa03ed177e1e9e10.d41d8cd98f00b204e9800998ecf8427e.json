@@ -1,0 +1,1 @@
+{"id":"cd9d2f7544c45b16aa03ed177e1e9e10.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator props validation props に許可されていないキーがあると、検証に失敗する","name":"props に許可されていないキーがあると、検証に失敗する","status":"passed","testResultsByEnv":{"default":"6a91d8221fe4c4dd0fd6fbdf11920eed"}}

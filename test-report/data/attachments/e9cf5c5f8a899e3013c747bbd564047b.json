@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: eslint not run: /tmp/pecotv-test-file-tools-IjbT7z/talk/pages/cover.md\\n  eslint crashed (exit 2 / config resolution failure, plugin load failure, etc.).\\n  eslint output: Oops! Something went wrong! :(\\n  No eslint result exists for this file, so violations have not been detected.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: eslint not run: /tmp/pecotv-test-file-tools-IjbT7z/talk/pages/cover.md\n  eslint crashed (exit 2 / config resolution failure, plugin load failure, etc.).\n  eslint output: Oops! Something went wrong! :(\n  No eslint result exists for this file, so violations have not been detected."
+    }
+  }
+}

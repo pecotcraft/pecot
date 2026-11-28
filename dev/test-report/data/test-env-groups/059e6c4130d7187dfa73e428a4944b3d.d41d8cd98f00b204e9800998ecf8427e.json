@@ -1,0 +1,1 @@
+{"id":"059e6c4130d7187dfa73e428a4944b3d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 ルート .env のトークンが gh auth token より優先される（gh は呼ばれない）","name":"ルート .env のトークンが gh auth token より優先される（gh は呼ばれない）","status":"passed","testResultsByEnv":{"default":"6b410c46838958855aabbe113769bf30"}}

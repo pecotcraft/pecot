@@ -1,0 +1,1 @@
+{"id":"d7e51dd0786d8dd014e50bd50fc9a386.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_root_package_manifest#test_package_manager_guard_is_kept","name":"違うパッケージマネージャの install を止める宣言を、root とライブラリで維持する","status":"passed","testResultsByEnv":{"default":"44848f686662ef90501600cb30882800"}}

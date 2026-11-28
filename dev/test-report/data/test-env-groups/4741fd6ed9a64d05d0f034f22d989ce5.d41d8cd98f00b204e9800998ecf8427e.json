@@ -1,0 +1,1 @@
+{"id":"4741fd6ed9a64d05d0f034f22d989ce5.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#--dev を付けると、high を警告にとどめて続行し、件数を監査記録に残す","name":"--dev を付けると、high を警告にとどめて続行し、件数を監査記録に残す","status":"passed","testResultsByEnv":{"default":"8d718f2be4a772535e2f51568f55c20e"}}

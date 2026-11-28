@@ -1,0 +1,1 @@
+{"id":"8086f9f05f42c212e5891a6870003309.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#extractClosingIssueNumbers 本文 \"text\\n Closes #1\" から、閉じる Issue の番号を取り出す","name":"本文 \"text\\n Closes #1\" から、閉じる Issue の番号を取り出す","status":"passed","testResultsByEnv":{"default":"0a4a98fe68481bf30053320b7ad686f4"}}

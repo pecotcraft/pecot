@@ -1,0 +1,4 @@
+warning: host: "github.com" differs from the config file host (ghes.example.com)
+  using the config file host
+updated: config file /tmp/pecot-repo-pFW3GT/.pecot/config/projects/ghes.example.com_acme_1.json
+set: active project to ghes.example.com_acme_1

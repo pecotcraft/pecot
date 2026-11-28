@@ -1,0 +1,8 @@
+:iface-id: PA-SESSION-FINISH
+:iface-plugin: pecot-actions
+:iface-kind: Action
+
+session finish
+============================
+
+.. iface-defs:: pecot-actions PA-SESSION-FINISH

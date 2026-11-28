@@ -1,0 +1,1 @@
+{"id":"e8b97492d31b37e890268d96d5ef452b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#linkNodeModules (テーマ) テーマの置き場が symlink 経由のパスの場合も、物理パスへ張る","name":"テーマの置き場が symlink 経由のパスの場合も、物理パスへ張る","status":"passed","testResultsByEnv":{"default":"961385acad4b5b8b2f52df19010b298a"}}

@@ -1,0 +1,1 @@
+{"id":"1ce085dd6a566d214c3e123b3c781320.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インライン HTML の Html ノード Markdown の断片として調べた場合と同じ件数と規則を返す: 長い URL","name":"Markdown の断片として調べた場合と同じ件数と規則を返す: 長い URL","status":"passed","testResultsByEnv":{"default":"a72a03a534d8d313ab7c15646ca6b29f"}}

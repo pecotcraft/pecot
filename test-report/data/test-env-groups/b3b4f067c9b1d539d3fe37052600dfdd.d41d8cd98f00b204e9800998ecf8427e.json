@@ -1,0 +1,1 @@
+{"id":"b3b4f067c9b1d539d3fe37052600dfdd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init.test.ts#pecot-dir-init.sh .pecot が無いとき、必要なディレクトリとファイルを作る","name":".pecot が無いとき、必要なディレクトリとファイルを作る","status":"passed","testResultsByEnv":{"default":"00262b9ed05871d7d26d1b8d74061002"}}

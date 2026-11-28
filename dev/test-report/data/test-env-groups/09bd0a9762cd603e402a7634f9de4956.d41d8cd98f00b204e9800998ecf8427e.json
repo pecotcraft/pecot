@@ -1,0 +1,1 @@
+{"id":"09bd0a9762cd603e402a7634f9de4956.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath WSL_DISTRO_NAME が設定されていない場合は、UNC パスを変換できないものとして扱う","name":"WSL_DISTRO_NAME が設定されていない場合は、UNC パスを変換できないものとして扱う","status":"passed","testResultsByEnv":{"default":"a527fac838197eda2f9e709e0568c585"}}

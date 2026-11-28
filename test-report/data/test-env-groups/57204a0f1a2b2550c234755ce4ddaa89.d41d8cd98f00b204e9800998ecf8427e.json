@@ -1,0 +1,1 @@
+{"id":"57204a0f1a2b2550c234755ce4ddaa89.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#addIssueFieldValues 状態コード 403 が返った場合は、GitHub の本文を保持した GitHubAPIError が発生する","name":"状態コード 403 が返った場合は、GitHub の本文を保持した GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"e3fb14f453843c8b9e88b3eeae349f19"}}

@@ -1,0 +1,1 @@
+{"id":"1d898c982a693b851acfaa3b8e86f3ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インラインコードの Code ノード バッククォートで囲んだ区間の外の違反は、元のファイルの位置で返す","name":"バッククォートで囲んだ区間の外の違反は、元のファイルの位置で返す","status":"passed","testResultsByEnv":{"default":"eb33594908f5d338bae36c7e1a7fcf6b"}}

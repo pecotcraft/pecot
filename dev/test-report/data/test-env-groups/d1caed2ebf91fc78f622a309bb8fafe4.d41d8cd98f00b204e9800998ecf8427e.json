@@ -1,0 +1,1 @@
+{"id":"d1caed2ebf91fc78f622a309bb8fafe4.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_text#test_check_text_rebuilds_stale_dist","name":"dist がソースより古いと、作り直してから文章規則を適用する","status":"passed","testResultsByEnv":{"default":"5b31f3c96e42bb79e17df26bec9aa22c"}}

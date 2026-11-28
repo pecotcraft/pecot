@@ -1,0 +1,1 @@
+{"id":"6ea488035884755422d8fa566fa048f1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#screenWorkflowRun conclusion が stale の場合は、処理を進めず何も書き込まない","name":"conclusion が stale の場合は、処理を進めず何も書き込まない","status":"passed","testResultsByEnv":{"default":"fe1cbad0784bc686ddc21351e344554d"}}

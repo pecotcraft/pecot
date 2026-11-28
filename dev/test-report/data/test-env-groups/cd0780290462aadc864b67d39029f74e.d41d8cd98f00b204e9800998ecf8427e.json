@@ -1,0 +1,1 @@
+{"id":"cd0780290462aadc864b67d39029f74e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssueKind Phase1 のクエリでリポジトリが存在しない場合は、GitHubNotFoundError が発生する","name":"Phase1 のクエリでリポジトリが存在しない場合は、GitHubNotFoundError が発生する","status":"passed","testResultsByEnv":{"default":"f9d6e62cda4d9ad876b0df922a5708b3"}}

@@ -1,0 +1,1 @@
+{"id":"453c4866a6a5afe7c534f67d4e0bcb4c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getWorktreeList git の出力が空の場合は、空の一覧を返す","name":"git の出力が空の場合は、空の一覧を返す","status":"passed","testResultsByEnv":{"default":"a04fc61c24e002f9c720886a3dc75631"}}

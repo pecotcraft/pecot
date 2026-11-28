@@ -1,0 +1,1 @@
+{"id":"df303d01fe7d0086ae13b08bec9b4640.5888ae77231bdcb836d880da524a8140","fullName":".githooks.tests.test_run_affected_tests#test_failure_with_two_lanes_and_recommendations_reports_both","name":"失敗が 2 件で推奨が続く場合も、2 件とも拾い、推奨は拾わない（static が False の場合）","status":"passed","testResultsByEnv":{"default":"7ec1cab689576e8c6cd578ab34690b99"}}

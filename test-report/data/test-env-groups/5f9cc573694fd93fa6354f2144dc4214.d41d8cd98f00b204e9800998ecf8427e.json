@@ -1,0 +1,1 @@
+{"id":"5f9cc573694fd93fa6354f2144dc4214.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — ルートの検証 ルートが undefined の場合は、ルートのエラーになる","name":"ルートが undefined の場合は、ルートのエラーになる","status":"passed","testResultsByEnv":{"default":"dd04c27aca927a87bf8757ecfd99fcb6"}}

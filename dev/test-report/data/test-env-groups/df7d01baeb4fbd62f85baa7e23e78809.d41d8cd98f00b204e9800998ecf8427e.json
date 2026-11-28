@@ -1,0 +1,1 @@
+{"id":"df7d01baeb4fbd62f85baa7e23e78809.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_ci_mode_run_many_uses_static_without_bail","name":"`PECOT_NX_CI=1` の場合は、run-many も static の出力で実行し、`--nxBail` を付けない","status":"passed","testResultsByEnv":{"default":"8f3518cd14ff408f0e55efd944000f76"}}

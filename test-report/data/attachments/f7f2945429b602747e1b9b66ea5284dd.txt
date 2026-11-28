@@ -1,0 +1,1 @@
+error: delete_branch_on_merge was not returned; the token needs contents: write

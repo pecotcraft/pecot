@@ -1,0 +1,45 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "skipped: field pecot-status (already exists)"
+    },
+    {
+      "type": "text",
+      "text": "{\"fields\":[{\"name\":\"pecot-status\",\"change\":\"unchanged\",\"addedOptions\":[]},{\"name\":\"pecot-lane\",\"change\":\"unchanged\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"skip\",\"addedOptions\":[]}],\"migration\":{\"renamed\":null,\"config_moved\":null,\"pending_delete\":[],\"deleted\":[]},\"view\":{\"created\":true,\"name\":\"Lanes\",\"url\":\"https://ghes.example.com/users/acme/projects/1/views/2\"},\"warnings\":[\"could not add options skills to field pecot-lane: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:43795/graphql'\\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500\"]}"
+    }
+  ],
+  "structuredContent": {
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "unchanged",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "unchanged",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "skip",
+        "addedOptions": []
+      }
+    ],
+    "migration": {
+      "renamed": null,
+      "config_moved": null,
+      "pending_delete": [],
+      "deleted": []
+    },
+    "view": {
+      "created": true,
+      "name": "Lanes",
+      "url": "https://ghes.example.com/users/acme/projects/1/views/2"
+    },
+    "warnings": [
+      "could not add options skills to field pecot-lane: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:43795/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    ]
+  }
+}

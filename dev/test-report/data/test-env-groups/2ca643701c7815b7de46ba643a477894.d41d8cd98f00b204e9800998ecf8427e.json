@@ -1,0 +1,1 @@
+{"id":"2ca643701c7815b7de46ba643a477894.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_build_audits_visual_before_building","name":"開発版のビルドは、pecot-visual の場合に監査してからビルドする","status":"passed","testResultsByEnv":{"default":"a3f218553583713e3d2ebc2005e08011"}}

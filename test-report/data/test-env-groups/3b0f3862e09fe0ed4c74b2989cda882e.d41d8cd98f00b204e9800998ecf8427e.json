@@ -1,0 +1,1 @@
+{"id":"3b0f3862e09fe0ed4c74b2989cda882e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_exclude_pages_store#test_leaves_repo_without_origin_unchanged","name":"origin が存在しないリポジトリでは、何も変更しない","status":"passed","testResultsByEnv":{"default":"67b10fc4202b5550a32c88e200c457f5"}}

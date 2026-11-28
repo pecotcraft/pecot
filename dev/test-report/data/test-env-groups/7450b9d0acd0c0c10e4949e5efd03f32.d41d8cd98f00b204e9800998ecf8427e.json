@@ -1,0 +1,1 @@
+{"id":"7450b9d0acd0c0c10e4949e5efd03f32.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/attach.test.ts#attach Allure の reporter が動くレーンの中 readOutput に diagram.svg を渡すと、読んだ中身を返し、型 image/svg+xml で残す","name":"readOutput に diagram.svg を渡すと、読んだ中身を返し、型 image/svg+xml で残す","status":"passed","testResultsByEnv":{"default":"5e4197ffc816ae99d0f576f26a3c00ab"}}

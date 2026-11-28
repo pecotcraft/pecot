@@ -1,0 +1,1 @@
+{"id":"61d9b0d9982c80dc8c4f35853969f700.0a9e0a7619fea74a32dba2f68d70e8e4","fullName":".githooks.tests.test_run_pr_checks#test_server_without_port_falls_back_to_skip","name":"サーバが port を書かない場合（exit-before-port）は、待ち切って止め、キャッシュを使わずに実行する","status":"passed","testResultsByEnv":{"default":"d4f718ec4e0a446a8e445b0fc5ddc5cd"}}

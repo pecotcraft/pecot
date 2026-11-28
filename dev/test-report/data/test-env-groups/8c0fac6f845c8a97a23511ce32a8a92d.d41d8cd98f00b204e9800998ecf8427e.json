@@ -1,0 +1,1 @@
+{"id":"8c0fac6f845c8a97a23511ce32a8a92d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/json-null.test.ts#JSON_NULL JSON に変換すると、undefined のように落ちず null になる","name":"JSON に変換すると、undefined のように落ちず null になる","status":"passed","testResultsByEnv":{"default":"d3b69086d840708c826b87100b3a4d12"}}

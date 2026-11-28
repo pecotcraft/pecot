@@ -1,0 +1,1 @@
+{"id":"510647e8404592f3c35269370d4d51e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/allowlist.test.ts#共通入力 profile の入力は、英数字と _ . - を受け付け、それ以外の文字を拒否する","name":"profile の入力は、英数字と _ . - を受け付け、それ以外の文字を拒否する","status":"passed","testResultsByEnv":{"default":"8603c784ebc2f93f515461476a2d08e6"}}

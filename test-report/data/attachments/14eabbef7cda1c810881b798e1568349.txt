@@ -1,0 +1,5 @@
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_duplicate_title_fails_as_0/suite/sample.test.sh
+PASS: 同じ
+FAIL: 同じ（2 回目） — 題が重なる（同じファイルに同じ題の確かめがある）
+
+PASS: 1 / FAIL: 1 / SKIP: 0

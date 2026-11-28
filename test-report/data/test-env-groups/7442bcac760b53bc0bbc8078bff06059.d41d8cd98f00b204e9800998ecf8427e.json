@@ -1,0 +1,1 @@
+{"id":"7442bcac760b53bc0bbc8078bff06059.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — annotations callout callout の text に改行（CR）が含まれる場合は、拒否する","name":"callout の text に改行（CR）が含まれる場合は、拒否する","status":"passed","testResultsByEnv":{"default":"c914f22e5ed446aa95717fcd47531f22"}}

@@ -1,0 +1,1 @@
+{"id":"2ba577834a6acb6a85798ba61d994b87.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/runtime-install.test.ts#installRuntimeDependencies manifest の overrides を、永続層の package.json へ書き込む","name":"manifest の overrides を、永続層の package.json へ書き込む","status":"passed","testResultsByEnv":{"default":"970cb26d16b8f8b04f4e6bab8440b40b"}}

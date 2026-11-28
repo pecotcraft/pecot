@@ -1,0 +1,1 @@
+{"id":"c55d589afc48315e3b5445348cef3299.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-table-cell-background.test.ts#require-table-cell-background valid 外側の表の col の背景は、内側の表のセルの対象にせず、報告しない","name":"外側の表の col の背景は、内側の表のセルの対象にせず、報告しない","status":"passed","testResultsByEnv":{"default":"1d40e8e8cd2ec64d51df5964a27c755c"}}

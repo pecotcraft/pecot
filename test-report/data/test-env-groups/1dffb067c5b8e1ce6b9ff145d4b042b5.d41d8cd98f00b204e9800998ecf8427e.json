@@ -1,0 +1,1 @@
+{"id":"1dffb067c5b8e1ce6b9ff145d4b042b5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#formatReviewsMarkdown と formatReviewThreadsMarkdown 日付は 10 文字以上の場合だけ、先頭の 10 文字を表示する","name":"日付は 10 文字以上の場合だけ、先頭の 10 文字を表示する","status":"passed","testResultsByEnv":{"default":"c7634a6742103272ae307a49af121eeb"}}

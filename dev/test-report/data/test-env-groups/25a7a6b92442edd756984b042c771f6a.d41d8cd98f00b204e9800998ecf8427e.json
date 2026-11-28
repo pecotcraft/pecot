@@ -1,0 +1,1 @@
+{"id":"25a7a6b92442edd756984b042c771f6a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/serve.test.ts#runMcpServe のプログラムの誤り コマンドが想定外の例外を投げたら、stderr に error: の行で通知する","name":"コマンドが想定外の例外を投げたら、stderr に error: の行で通知する","status":"passed","testResultsByEnv":{"default":"2e84c3ceeb0cbf80de3e7306ff0b8a51"}}

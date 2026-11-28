@@ -1,0 +1,1 @@
+{"id":"1f36ccc3abb70a2ae1f1bda5e3831a6e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: 実行時依存 (永続層) npm を起動できない場合も理由付きで返す","name":"npm を起動できない場合も理由付きで返す","status":"passed","testResultsByEnv":{"default":"c2b8219b2c258a574f9ca9c4e699b2b9"}}

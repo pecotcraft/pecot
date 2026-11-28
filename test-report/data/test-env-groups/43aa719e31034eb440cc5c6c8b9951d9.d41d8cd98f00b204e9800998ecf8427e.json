@@ -1,0 +1,1 @@
+{"id":"43aa719e31034eb440cc5c6c8b9951d9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/entry-point-linter.test.ts#check-entry-point-logic.sh ロジック（grep と sed）を含むとき、VIOLATION を報告する","name":"ロジック（grep と sed）を含むとき、VIOLATION を報告する","status":"passed","testResultsByEnv":{"default":"64107c54646420e4056e1399ed32c733"}}

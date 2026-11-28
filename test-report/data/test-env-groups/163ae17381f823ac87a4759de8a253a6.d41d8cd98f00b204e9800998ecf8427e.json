@@ -1,0 +1,1 @@
+{"id":"163ae17381f823ac87a4759de8a253a6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init 旧い名前の設定ファイルがあると、新しい名前に移し、アクティブな設定を新しい名前にする","name":"旧い名前の設定ファイルがあると、新しい名前に移し、アクティブな設定を新しい名前にする","status":"passed","testResultsByEnv":{"default":"422eaa61cb17b4fe51aa3868d9f5324f"}}

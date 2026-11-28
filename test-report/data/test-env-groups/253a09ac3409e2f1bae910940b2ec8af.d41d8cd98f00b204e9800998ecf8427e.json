@@ -1,0 +1,1 @@
+{"id":"253a09ac3409e2f1bae910940b2ec8af.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/evidence-create.test.ts#runEvidenceCreate spec の検証に失敗した場合は、invalid-spec の例外のメッセージに、パス付きですべてのエラーを含める","name":"spec の検証に失敗した場合は、invalid-spec の例外のメッセージに、パス付きですべてのエラーを含める","status":"passed","testResultsByEnv":{"default":"76d91fcfb45301c068a4638fe3b85251"}}

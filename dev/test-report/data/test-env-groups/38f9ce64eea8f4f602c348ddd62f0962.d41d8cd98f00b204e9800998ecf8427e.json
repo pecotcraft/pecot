@@ -1,0 +1,1 @@
+{"id":"38f9ce64eea8f4f602c348ddd62f0962.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-describe-title.test.ts#describe-title invalid suite も describe と同じく、題が name に無ければ止める","name":"suite も describe と同じく、題が name に無ければ止める","status":"passed","testResultsByEnv":{"default":"376da16a25865b3bb11ec841495e7b1c"}}

@@ -1,0 +1,1 @@
+{"id":"31f15782f6ed185eb8a1becc9d4c28be.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_18_pass_other_group_file_in_test_inputs","name":"project.json だけを変更した場合は、その group の宣言だけで成功する","status":"passed","testResultsByEnv":{"default":"2483b2b46c5913f3f2777a0266d6d0de"}}

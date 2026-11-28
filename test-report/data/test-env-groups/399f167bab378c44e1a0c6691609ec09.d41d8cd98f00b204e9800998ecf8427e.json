@@ -1,0 +1,1 @@
+{"id":"399f167bab378c44e1a0c6691609ec09.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateSections（必須セクション検証: 見出しレベル・em-dash サマリ） h4 を期待している箇所に h3 があっても、不足として検出する","name":"h4 を期待している箇所に h3 があっても、不足として検出する","status":"passed","testResultsByEnv":{"default":"ade05f5a43a30bfc6cf083421df23b41"}}

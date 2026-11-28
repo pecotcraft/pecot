@@ -1,0 +1,1 @@
+{"id":"6bf230fe5e87f0d9f1d2b8a53fde27e2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings バックスラッシュと CRLF で続く文字列 のとき、引用符を含まない本文だけを切り出す","name":"バックスラッシュと CRLF で続く文字列 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"9eb7ed7dfd66859bd47f309e40498e3a"}}

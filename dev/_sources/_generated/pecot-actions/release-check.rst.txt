@@ -1,0 +1,8 @@
+:iface-id: PA-RELEASE-CHECK
+:iface-plugin: pecot-actions
+:iface-kind: Action
+
+release check
+==========================
+
+.. iface-defs:: pecot-actions PA-RELEASE-CHECK

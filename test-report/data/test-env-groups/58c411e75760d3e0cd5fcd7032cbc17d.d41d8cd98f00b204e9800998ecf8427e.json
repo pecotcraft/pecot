@@ -1,0 +1,1 @@
+{"id":"58c411e75760d3e0cd5fcd7032cbc17d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys src で分離したスライドの本文を編集した場合は、そのスライドの slideHash だけが変わる","name":"src で分離したスライドの本文を編集した場合は、そのスライドの slideHash だけが変わる","status":"passed","testResultsByEnv":{"default":"04a7abb2919f849421dfb0e58b0209bd"}}

@@ -1,0 +1,16 @@
+
+nx exit code: 130
+=== 失敗レーン: p:test-cli ===
+::group::❌ > nx run p:test-cli  [local cache]
+
+STATIC_FAIL_BODY AssertionError: expected 1 to be 2
+ NX   Running target test for 3 projects failed
+
+Failed tasks:
+
+- p:test-cli
+
+
+
+全出力: /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_ci_mode_failure_normalize0/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log
+進行確認: tail -f /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_ci_mode_failure_normalize0/repo/.pecot/tmp/nx-affected-tests/nx-affected-tests.log

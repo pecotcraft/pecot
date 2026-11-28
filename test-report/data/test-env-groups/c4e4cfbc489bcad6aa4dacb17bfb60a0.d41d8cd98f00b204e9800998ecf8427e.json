@@ -1,0 +1,1 @@
+{"id":"c4e4cfbc489bcad6aa4dacb17bfb60a0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#expectedScope 差分が空の場合は、空の一覧を返す","name":"差分が空の場合は、空の一覧を返す","status":"passed","testResultsByEnv":{"default":"367a2cd5eec569d384820710f1f8b1b5"}}

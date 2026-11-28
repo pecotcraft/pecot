@@ -1,0 +1,1 @@
+{"id":"035b0d44dbb3d2a1cb0af966c709a132.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release .githooks/scripts/tests/mcp-publish-common.bats#dry-run での絶対パスの npm キャッシュの opt-in は通る","name":"dry-run での絶対パスの npm キャッシュの opt-in は通る","status":"passed","testResultsByEnv":{"default":"fdb88aeebe00d60e3ed9d1bc36cd227f"}}

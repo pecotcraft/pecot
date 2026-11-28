@@ -1,0 +1,1 @@
+{"id":"51dc891ce3a97c9031a010deee86590c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-table-complex-content.test.ts#no-table-complex-content invalid td の中に img があると、報告する","name":"td の中に img があると、報告する","status":"passed","testResultsByEnv":{"default":"840fced26fd8a003a0da10dd3c5cddcb"}}

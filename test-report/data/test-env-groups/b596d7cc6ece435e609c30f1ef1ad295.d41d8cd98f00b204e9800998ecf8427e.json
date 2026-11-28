@@ -1,0 +1,1 @@
+{"id":"b596d7cc6ece435e609c30f1ef1ad295.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml — 注記図形 callout の文章に含まれるタブは、そのまま a:t に残す","name":"callout の文章に含まれるタブは、そのまま a:t に残す","status":"passed","testResultsByEnv":{"default":"b704c3ab6bb4bd227202c5f5cfb41a74"}}

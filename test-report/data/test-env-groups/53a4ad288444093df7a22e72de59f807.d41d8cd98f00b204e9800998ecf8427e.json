@@ -1,0 +1,1 @@
+{"id":"53a4ad288444093df7a22e72de59f807.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/board-sync.test.ts#board sync 設定の解決 設定の JSON が読めないと、error の行を出して終了コード 1 で終わる","name":"設定の JSON が読めないと、error の行を出して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"861ba33e69031d6703e75518198c807b"}}

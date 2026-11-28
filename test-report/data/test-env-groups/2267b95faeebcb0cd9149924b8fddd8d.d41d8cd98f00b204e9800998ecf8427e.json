@@ -1,0 +1,1 @@
+{"id":"2267b95faeebcb0cd9149924b8fddd8d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#allowlistedTool JSON を出力するツールの outputSchema は、応答のキー、awscli の出力の項目、共通の 4 項目を並べる","name":"JSON を出力するツールの outputSchema は、応答のキー、awscli の出力の項目、共通の 4 項目を並べる","status":"passed","testResultsByEnv":{"default":"911a98ada697812248929944b5b8094c"}}

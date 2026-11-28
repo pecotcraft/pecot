@@ -1,0 +1,8 @@
+:iface-id: PW-ISSUE-REOPEN
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Reopen Issue
+========================
+
+.. iface-defs:: pecot-workflow PW-ISSUE-REOPEN

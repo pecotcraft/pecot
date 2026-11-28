@@ -1,0 +1,1 @@
+{"id":"234e9dd8f0ffdaa0003956dcb1c71e50.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/tracker-body.test.ts#cell セルを作成すると、改行を含む空白の連なりを 1 つの空白にする","name":"セルを作成すると、改行を含む空白の連なりを 1 つの空白にする","status":"passed","testResultsByEnv":{"default":"a5a0d9a5c22a9892e66476d5d2cff4cb"}}

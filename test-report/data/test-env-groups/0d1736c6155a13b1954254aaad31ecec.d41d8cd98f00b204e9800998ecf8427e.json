@@ -1,0 +1,1 @@
+{"id":"0d1736c6155a13b1954254aaad31ecec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 記録が無い作業ディレクトリ 判定が blocked なら、warning を出し、スタックしていないものとして up to date と出す","name":"判定が blocked なら、warning を出し、スタックしていないものとして up to date と出す","status":"passed","testResultsByEnv":{"default":"b76d9a5e91e01da8617164c286d1ca57"}}

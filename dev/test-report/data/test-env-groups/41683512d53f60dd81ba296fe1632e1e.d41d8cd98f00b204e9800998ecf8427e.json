@@ -1,0 +1,1 @@
+{"id":"41683512d53f60dd81ba296fe1632e1e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template 属性の間の単独の / に違反があると、元のファイルの行と桁で指摘を返す","name":"属性の間の単独の / に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"2164298b41f8da6be0488429373913ad"}}

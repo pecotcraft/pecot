@@ -1,0 +1,1 @@
+{"id":"0a65b6703dce1440ca78e9bcb5fff774.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#hasStatusChanges と hasStashEntries git status の出力が \" \\n\" の場合は、変更の有無を false で返す","name":"git status の出力が \" \\n\" の場合は、変更の有無を false で返す","status":"passed","testResultsByEnv":{"default":"8dfbb01ef22952df35cea3d387a43fac"}}

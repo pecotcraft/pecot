@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.pull_request: read acme/demo#21 with pull_request_read (method get) and pass its result as reads.pull_request"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.pull_request\",\"code\":\"read-required\",\"message\":\"read acme/demo#21 with pull_request_read (method get) and pass its result as reads.pull_request\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.pull_request",
+        "code": "read-required",
+        "message": "read acme/demo#21 with pull_request_read (method get) and pass its result as reads.pull_request"
+      }
+    ]
+  }
+}

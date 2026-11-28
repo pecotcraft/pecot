@@ -1,0 +1,1 @@
+{"id":"55080808a119600462a221c141a4854e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#frontmatterOf 中身が空の frontmatter は、値を持たず、後ろの部分を本文として残す","name":"中身が空の frontmatter は、値を持たず、後ろの部分を本文として残す","status":"passed","testResultsByEnv":{"default":"24ca0f54c75512aff0f4b2d15390d9ec"}}

@@ -1,0 +1,1 @@
+{"id":"7e3a797208af159e3a54aa6bac021db6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release plugins/pecot-tools/scripts/release/tests/publish-mcp-dist.test.sh#Release が無いときは gh を view の 1 回しか呼ばない","name":"Release が無いときは gh を view の 1 回しか呼ばない","status":"passed","testResultsByEnv":{"default":"0a45341d6f2f072133f7d8bedbfa14c8"}}

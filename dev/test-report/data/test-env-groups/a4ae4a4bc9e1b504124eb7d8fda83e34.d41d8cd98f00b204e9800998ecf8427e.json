@@ -1,0 +1,1 @@
+{"id":"a4ae4a4bc9e1b504124eb7d8fda83e34.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-absolute-last.test.ts#require-absolute-last invalid absolute の要素が absolute でない兄弟より前にあると、報告する","name":"absolute の要素が absolute でない兄弟より前にあると、報告する","status":"passed","testResultsByEnv":{"default":"ca6610ebf78e80f67d7efe56957e56e3"}}

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -32 392.3 152" width="588" height="228" role="img" aria-label="pecot">
+  <clipPath id="badge"><rect x="-40" y="-32" width="392.3" height="152" rx="30"/></clipPath>
+  <g clip-path="url(#badge)">
+    <rect x="-40" y="-32" width="392.3" height="152" fill="#14171C"/>
+    <rect x="-40" y="-32" width="109.5" height="152" fill="#262C36"/>
+    <rect x="69.5" y="-32" width="64.5" height="152" fill="#262C36" fill-opacity="0.75"/>
+    <rect x="134" y="-32" width="61" height="152" fill="#262C36" fill-opacity="0.5"/>
+    <rect x="195" y="-32" width="62.3" height="152" fill="#262C36" fill-opacity="0.25"/>
+  </g>
+  <text x="303" y="91.5" text-anchor="end" font-size="9" font-weight="600" letter-spacing="1.8" fill="#A9ADB6" font-family="'Space Grotesk', Inter, system-ui, sans-serif">© 2026 PECOTCRAFT</text>
+  <g stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke="#F1EFE8">
+    <path d="M14 18 V73"/>
+    <circle cx="38" cy="42" r="22"/>
+    <path d="M81.1 48.8 L122.9 35.2 A22 22 0 1 0 106.6 63.5"/>
+    <path d="M171.1 20.2 A22 22 0 1 0 183.6 57.6"/>
+    <circle cx="226.3" cy="42" r="22"/>
+    <path d="M280.3 5 V50 Q280.3 64 294.3 64 H298.3"/>
+    <path d="M266.3 20 H294.3"/>
+  </g>
+  <g fill="#45C2B1">
+    <circle cx="14" cy="88" r="6.5"/>
+    <circle cx="119.3" cy="55.5" r="6.5"/>
+    <circle cx="184.3" cy="27.3" r="6.5"/>
+    <circle cx="226.3" cy="42" r="6.5"/>
+    <circle cx="309.3" cy="20" r="6.5"/>
+  </g>
+</svg>

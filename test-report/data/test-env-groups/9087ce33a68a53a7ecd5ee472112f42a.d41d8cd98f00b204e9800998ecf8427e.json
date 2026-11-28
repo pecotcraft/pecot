@@ -1,0 +1,1 @@
+{"id":"9087ce33a68a53a7ecd5ee472112f42a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の blocked_by 次の指定をすると、検証の誤りにする: Tracker の blocked_by","name":"次の指定をすると、検証の誤りにする: Tracker の blocked_by","status":"passed","testResultsByEnv":{"default":"eab5c7f42eb2f189fc9ec217dfbc885a"}}

@@ -1,0 +1,1 @@
+{"id":"f5225369680191627a97e52252f8dadb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#touchFlag 状態のディレクトリが存在しない場合は、ディレクトリも作成してフラグファイルを作成する","name":"状態のディレクトリが存在しない場合は、ディレクトリも作成してフラグファイルを作成する","status":"passed","testResultsByEnv":{"default":"6a925476956ab87057facc0968627233"}}

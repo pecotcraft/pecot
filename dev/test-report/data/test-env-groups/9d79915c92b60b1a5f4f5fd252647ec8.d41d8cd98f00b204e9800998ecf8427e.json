@@ -1,0 +1,1 @@
+{"id":"9d79915c92b60b1a5f4f5fd252647ec8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-theme.test.ts#executeSlideTheme（宣言のあるテーマ） 宣言ファイルを持つテーマを指定すると、テーマの情報と宣言の内容をすべて返す","name":"宣言ファイルを持つテーマを指定すると、テーマの情報と宣言の内容をすべて返す","status":"passed","testResultsByEnv":{"default":"1fcc2154cc13636d3365ed6def53d5c9"}}

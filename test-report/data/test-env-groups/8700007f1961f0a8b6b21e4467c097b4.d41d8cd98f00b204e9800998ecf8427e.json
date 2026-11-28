@@ -1,0 +1,1 @@
+{"id":"8700007f1961f0a8b6b21e4467c097b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-gate.test.ts#auto gate 設定に fields.status が無いと、何も読まずに project_init を案内して止まる","name":"設定に fields.status が無いと、何も読まずに project_init を案内して止まる","status":"passed","testResultsByEnv":{"default":"e0fd980157ae1fdd150fd82b7e70cbc1"}}

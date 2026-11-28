@@ -1,0 +1,1 @@
+{"id":"76faad929e09efe81147c4e81b5995a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check もし develop の branch を設定していないなら、終了コード 1 で終わる","name":"もし develop の branch を設定していないなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"ee42ca70811f02df437c72a3d88bfb6e"}}

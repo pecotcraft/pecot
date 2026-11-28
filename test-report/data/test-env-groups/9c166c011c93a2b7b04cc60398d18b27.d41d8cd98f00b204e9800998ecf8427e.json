@@ -1,0 +1,1 @@
+{"id":"9c166c011c93a2b7b04cc60398d18b27.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_cli_report_release_without_report_lanes_has_empty_matrix","name":"report-lanes.json が存在しないと、CLI の --report release は空のジョブの一覧を出力する","status":"passed","testResultsByEnv":{"default":"326d293ba7ab0f58d1408544579b677b"}}

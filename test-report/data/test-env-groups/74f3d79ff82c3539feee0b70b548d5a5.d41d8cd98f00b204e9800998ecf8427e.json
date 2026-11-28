@@ -1,0 +1,1 @@
+{"id":"74f3d79ff82c3539feee0b70b548d5a5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#素の URL の Link ノード URL の末尾にある 対応する ( の無い ) は、URL に含めない","name":"URL の末尾にある 対応する ( の無い ) は、URL に含めない","status":"passed","testResultsByEnv":{"default":"2b9756fc6baa331e799bfcf16e76f792"}}

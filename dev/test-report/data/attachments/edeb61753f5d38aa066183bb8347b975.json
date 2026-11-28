@@ -1,0 +1,27 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "# Session status"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/demo/7\",\"repository\":\"acme/demo\",\"activeIssue\":{\"reference\":\"acme/demo/7\"},\"worktree\":{\"list\":\"/tmp/pecot-project-0b5LGr 1eb981f [feat/demo/7]\",\"directoryName\":\"pecot-project-0b5LGr\",\"isWorktree\":false},\"warnings\":[\"baseBranch is not decided: branch origin/main does not exist\\n  check the remote branches with: git branch -r\"]}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/demo/7",
+    "repository": "acme/demo",
+    "activeIssue": {
+      "reference": "acme/demo/7"
+    },
+    "worktree": {
+      "list": "/tmp/pecot-project-0b5LGr 1eb981f [feat/demo/7]",
+      "directoryName": "pecot-project-0b5LGr",
+      "isWorktree": false
+    },
+    "warnings": [
+      "baseBranch is not decided: branch origin/main does not exist\n  check the remote branches with: git branch -r"
+    ]
+  }
+}

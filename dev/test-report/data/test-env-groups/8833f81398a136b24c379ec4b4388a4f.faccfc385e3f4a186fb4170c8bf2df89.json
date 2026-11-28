@@ -1,0 +1,1 @@
+{"id":"8833f81398a136b24c379ec4b4388a4f.faccfc385e3f4a186fb4170c8bf2df89","fullName":".githooks.tests.test_nx_task_cache#test_non_cacheable_target_says_cache_false","name":"pecot-visual:lint は、cache を false と明示している","status":"passed","testResultsByEnv":{"default":"3a4f63f9d3bf244d8877d826fb1c945e"}}

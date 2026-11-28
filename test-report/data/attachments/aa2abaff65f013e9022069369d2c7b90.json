@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "merge did not finish in 60s. Check PR #11"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-api\",\"detail\":\"merge did not finish in 60s. Check PR #11\",\"pullRequest\":\"acme/demo/11\",\"base\":\"main\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "merge did not finish in 60s. Check PR #11",
+    "pullRequest": "acme/demo/11",
+    "base": "main"
+  },
+  "isError": true
+}

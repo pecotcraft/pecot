@@ -1,0 +1,1 @@
+{"id":"c733daea0503486a024e786c68e52f2f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 欄の欠けと statement の pattern の不一致が同時にあっても、両方を同じ実行で報告する","name":"欄の欠けと statement の pattern の不一致が同時にあっても、両方を同じ実行で報告する","status":"passed","testResultsByEnv":{"default":"5204c600b1d73c9c9bf5424b736164d3"}}

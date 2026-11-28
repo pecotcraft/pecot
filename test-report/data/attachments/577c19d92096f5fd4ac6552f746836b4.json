@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: PR acme/demo feat/demo/12 -> main: feat(demo): #12 見本の変更"
+    },
+    {
+      "type": "text",
+      "text": "{\"url\":\"https://ghes.example.com/acme/demo/pull/21\",\"number\":21,\"head\":\"feat/demo/12\",\"base\":\"main\",\"title\":\"feat(demo): #12 見本の変更\",\"moves\":[],\"warnings\":[\"status update of Issue #12 failed: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}\\n  hint: if the board options were recreated, call project_activate with project: \\\"ghes.example.com_acme_board_acme\\\" to read their IDs again\",\"could not move #13: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}\"]}"
+    }
+  ],
+  "structuredContent": {
+    "url": "https://ghes.example.com/acme/demo/pull/21",
+    "number": 21,
+    "head": "feat/demo/12",
+    "base": "main",
+    "title": "feat(demo): #12 見本の変更",
+    "moves": [],
+    "warnings": [
+      "status update of Issue #12 failed: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}\n  hint: if the board options were recreated, call project_activate with project: \"ghes.example.com_acme_board_acme\" to read their IDs again",
+      "could not move #13: GraphQL query error: {'type': 'VALIDATION', 'message': 'The single select option Id does not belong to the field'}"
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"6c13bc1ba1c857d4a6328d0eca200783.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/validate-references/tests/schema-validator.test.ts#schema-validator layout files レイアウトのファイルに category が無いと、検証に失敗する","name":"レイアウトのファイルに category が無いと、検証に失敗する","status":"passed","testResultsByEnv":{"default":"d0c3893094e99852f1017ef28be4bafa"}}

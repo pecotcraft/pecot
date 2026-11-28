@@ -1,0 +1,1 @@
+{"id":"415e5f32bfb67763bc53517e355ee980.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-hooks plugins/pecot-visual/hooks/tests/plugin-update-notice.bats#CLAUDE_PLUGIN_ROOT の末尾にスラッシュがあっても、更新案内を出す","name":"CLAUDE_PLUGIN_ROOT の末尾にスラッシュがあっても、更新案内を出す","status":"passed","testResultsByEnv":{"default":"4095abfc7bd24df4a8a5769f5fa099c6"}}

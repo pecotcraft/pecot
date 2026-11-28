@@ -1,0 +1,1 @@
+{"id":"13ef9268bdc2cf89fe070789876c881f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-decorative-bar-element.test.ts#no-decorative-bar-element valid バーのセレクタにクラスが無いと、どの要素にも合わず報告しない","name":"バーのセレクタにクラスが無いと、どの要素にも合わず報告しない","status":"passed","testResultsByEnv":{"default":"8f6f74a2fbc64eabbaa0bdfcd88b781f"}}

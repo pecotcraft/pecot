@@ -1,0 +1,1 @@
+{"id":"859750a72763fee04c56f448519af4f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_link worktree_link で、devcontainer の外で呼ぶと、理由を detail に入れて失敗を返す","name":"worktree_link で、devcontainer の外で呼ぶと、理由を detail に入れて失敗を返す","status":"passed","testResultsByEnv":{"default":"ea120733a5bcaa8f155a53b4b321e319"}}

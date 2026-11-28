@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: branch feat/7 in acme/demo from main"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/7\",\"repository\":\"acme/demo\",\"base\":\"main\",\"issue\":\"acme/demo/7\",\"workDirectory\":\"/tmp/pecot-repo-DP1YIW/.pecot/work/7\"}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/7",
+    "repository": "acme/demo",
+    "base": "main",
+    "issue": "acme/demo/7",
+    "workDirectory": "/tmp/pecot-repo-DP1YIW/.pecot/work/7"
+  }
+}

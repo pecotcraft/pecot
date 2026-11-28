@@ -1,0 +1,1 @@
+{"id":"42c2c472e1afa1f3f7598a088f1cc7a3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree と番号の記録（実 git） path を指定して作成した worktree があっても、次の作成では wt2 を選ぶ","name":"path を指定して作成した worktree があっても、次の作成では wt2 を選ぶ","status":"passed","testResultsByEnv":{"default":"80f51999d0c9f9b165a0bb1484214b9a"}}

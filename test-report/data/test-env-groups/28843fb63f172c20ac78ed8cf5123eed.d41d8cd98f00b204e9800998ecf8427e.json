@@ -1,0 +1,1 @@
+{"id":"28843fb63f172c20ac78ed8cf5123eed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-state-guard.test.ts#pecot-state-guard.sh .pecot と .gitignore があるとき、既存の .gitignore の内容を変えない","name":".pecot と .gitignore があるとき、既存の .gitignore の内容を変えない","status":"passed","testResultsByEnv":{"default":"1a66bb4556863be8673cf4aaf8f67d46"}}

@@ -1,0 +1,1 @@
+{"id":"a6f1139ae6331919a6cc0dba009d1ac3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 契機は issues の labeled だけになり、pull_request_target を持たない","name":"契機は issues の labeled だけになり、pull_request_target を持たない","status":"passed","testResultsByEnv":{"default":"ab01b10f2592688e5a0d01ebb0a38de3"}}

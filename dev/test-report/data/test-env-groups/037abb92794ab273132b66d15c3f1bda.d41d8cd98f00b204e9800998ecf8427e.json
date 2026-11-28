@@ -1,0 +1,1 @@
+{"id":"037abb92794ab273132b66d15c3f1bda.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/body-extractor.test.ts#複数行のコメントがあると、行数を保ったまま本文から消し、ノートに内側の開始位置を持たせる","name":"複数行のコメントがあると、行数を保ったまま本文から消し、ノートに内側の開始位置を持たせる","status":"passed","testResultsByEnv":{"default":"d1d673df85c5b015c2fb6e064ee58483"}}

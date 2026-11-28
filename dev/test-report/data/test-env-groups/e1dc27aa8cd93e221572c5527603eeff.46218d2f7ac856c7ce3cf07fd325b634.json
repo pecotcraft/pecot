@@ -1,0 +1,1 @@
+{"id":"e1dc27aa8cd93e221572c5527603eeff.46218d2f7ac856c7ce3cf07fd325b634","fullName":".githooks.tests.test_nx_affected_mapping#test_gate_selects_the_githooks_lanes_that_read_the_change","name":"plugins/pecot-workflow/scripts/ci/run-tests.sh を変更すると、それを読む githooks のレーンだけが選ばれる","status":"passed","testResultsByEnv":{"default":"462b1296c8b1b0d1385617bb572704cd"}}

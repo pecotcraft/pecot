@@ -1,0 +1,1 @@
+{"id":"8b3f9859df4ea065304f033a7e3a8e4e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh git status のとき、保護ブランチでも何も出力しない","name":"git status のとき、保護ブランチでも何も出力しない","status":"passed","testResultsByEnv":{"default":"14941c6944820ebc28fbc80f7de033dc"}}

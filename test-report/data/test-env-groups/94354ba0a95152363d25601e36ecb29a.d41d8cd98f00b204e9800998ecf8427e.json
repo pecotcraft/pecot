@@ -1,0 +1,1 @@
+{"id":"94354ba0a95152363d25601e36ecb29a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#validateSemver バージョンが 0.3.2 の場合は、検証を通す","name":"バージョンが 0.3.2 の場合は、検証を通す","status":"passed","testResultsByEnv":{"default":"05b0c2b117c83c150a0db98965c8b7d2"}}

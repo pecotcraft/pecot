@@ -1,0 +1,1 @@
+{"id":"4fad1df6c6587a8db925f985cb8ce810.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh owner に @ を含む ssh:// とき、作業中の Issue は無いとして、出力せず記録を残さない","name":"owner に @ を含む ssh:// とき、作業中の Issue は無いとして、出力せず記録を残さない","status":"passed","testResultsByEnv":{"default":"399c3029309e68c9754f4fcae874a9ab"}}

@@ -1,0 +1,1 @@
+{"id":"610c69c71bc119dd5bfb059a9befe51e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data MCP の呼び出し message の形で head ブランチ名の末尾に番号があると、本文にその番号の Closes を足す","name":"message の形で head ブランチ名の末尾に番号があると、本文にその番号の Closes を足す","status":"passed","testResultsByEnv":{"default":"8db2d77f4fa202832f9cc34fe63eea4d"}}

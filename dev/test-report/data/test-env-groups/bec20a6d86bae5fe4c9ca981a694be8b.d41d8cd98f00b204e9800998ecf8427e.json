@@ -1,0 +1,1 @@
+{"id":"bec20a6d86bae5fe4c9ca981a694be8b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-kind.test.ts#isEpicIssue Issue Type が空文字で sub-issue がある場合は、Epic と判定する","name":"Issue Type が空文字で sub-issue がある場合は、Epic と判定する","status":"passed","testResultsByEnv":{"default":"bccce13fb59cbecce6504163732a6cc3"}}

@@ -1,0 +1,1 @@
+{"id":"c294bea56f085e5b525c59c4fa9e7999.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/dev-install-lib.bats#plugin root を渡すと、リポジトリの root で frozen install を 1 回だけ動かす","name":"plugin root を渡すと、リポジトリの root で frozen install を 1 回だけ動かす","status":"passed","testResultsByEnv":{"default":"3c4dde6c944348b8e5f0d70f31b9c97b"}}

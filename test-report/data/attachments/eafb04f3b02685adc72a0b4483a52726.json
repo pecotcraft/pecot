@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "origin/feat/demo/12 has commits that are not in feat/demo/12\n  feat/demo/12 is back at the position before the restack\n  rebase or merge them into feat/demo/12 first, then call pr_restack again"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"git-unresolved\",\"detail\":\"origin/feat/demo/12 has commits that are not in feat/demo/12\\n  feat/demo/12 is back at the position before the restack\\n  rebase or merge them into feat/demo/12 first, then call pr_restack again\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "git-unresolved",
+    "detail": "origin/feat/demo/12 has commits that are not in feat/demo/12\n  feat/demo/12 is back at the position before the restack\n  rebase or merge them into feat/demo/12 first, then call pr_restack again"
+  },
+  "isError": true
+}

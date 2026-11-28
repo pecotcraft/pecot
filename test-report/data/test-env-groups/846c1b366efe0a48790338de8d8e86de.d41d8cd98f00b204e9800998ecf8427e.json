@@ -1,0 +1,1 @@
+{"id":"846c1b366efe0a48790338de8d8e86de.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_sync theme に file: つきの相対パスを渡すと、実処理を呼ばずに invalid-option のエラーを返す","name":"theme に file: つきの相対パスを渡すと、実処理を呼ばずに invalid-option のエラーを返す","status":"passed","testResultsByEnv":{"default":"26d320b6c9aefe79f5ce3d9fad6d10d5"}}

@@ -1,0 +1,1 @@
+{"id":"ba8d6f88b3ec42c5b1fe6f446c3ae6ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: Python トリプルクォートの中に二重引用符が 1 つあっても、文字列が終わらない","name":"トリプルクォートの中に二重引用符が 1 つあっても、文字列が終わらない","status":"passed","testResultsByEnv":{"default":"ca5af0776c66317649eae83adb3bafd4"}}

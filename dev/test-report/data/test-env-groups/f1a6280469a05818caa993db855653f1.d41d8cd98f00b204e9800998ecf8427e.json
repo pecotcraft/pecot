@@ -1,0 +1,1 @@
+{"id":"f1a6280469a05818caa993db855653f1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/workflow-template.test.ts#evaluateRequirements 取得できない一覧があっても、取得できた一覧で条件がそろえば ok と判定する","name":"取得できない一覧があっても、取得できた一覧で条件がそろえば ok と判定する","status":"passed","testResultsByEnv":{"default":"d05c568d856f757edcd131e5a9b13af4"}}

@@ -1,0 +1,1 @@
+{"id":"f542dc90c2cb74ddf629eb1d4aaf43eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#planProgression 循環があれば、進め方を返さずに循環を返す","name":"循環があれば、進め方を返さずに循環を返す","status":"passed","testResultsByEnv":{"default":"47f277112927e8ee13931c9bb7dec8cf"}}

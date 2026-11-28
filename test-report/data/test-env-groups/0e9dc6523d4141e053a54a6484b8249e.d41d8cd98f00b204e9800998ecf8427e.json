@@ -1,0 +1,1 @@
+{"id":"0e9dc6523d4141e053a54a6484b8249e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_create MCP の data GitHub のトークンが見つからないと、トークンが見つからないことを detail に入れる","name":"GitHub のトークンが見つからないと、トークンが見つからないことを detail に入れる","status":"passed","testResultsByEnv":{"default":"05399ebe8e368169b7c08d2fa3836cd6"}}

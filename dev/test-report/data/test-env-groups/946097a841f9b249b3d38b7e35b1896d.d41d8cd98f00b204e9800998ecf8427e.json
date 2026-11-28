@@ -1,0 +1,1 @@
+{"id":"946097a841f9b249b3d38b7e35b1896d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#runSlideConvert (fake DI 経由 / 全分岐) pptx の値が揃っている場合は、省略の警告を出力しない","name":"pptx の値が揃っている場合は、省略の警告を出力しない","status":"passed","testResultsByEnv":{"default":"ae36cf2aa439a1e89fb3a819d7254858"}}

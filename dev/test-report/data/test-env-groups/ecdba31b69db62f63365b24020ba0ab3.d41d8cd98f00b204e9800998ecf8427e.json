@@ -1,0 +1,1 @@
+{"id":"ecdba31b69db62f63365b24020ba0ab3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: 実行時依存 (永続層) 取得先を特定できなくても例外を出さずに返す","name":"取得先を特定できなくても例外を出さずに返す","status":"passed","testResultsByEnv":{"default":"05ce014fff699c05d611d6c5b654a774"}}

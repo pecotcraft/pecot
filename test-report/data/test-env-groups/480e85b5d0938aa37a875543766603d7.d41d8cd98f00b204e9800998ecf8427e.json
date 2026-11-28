@@ -1,0 +1,1 @@
+{"id":"480e85b5d0938aa37a875543766603d7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-table-complex-content.test.ts#no-table-complex-content invalid td の中に canvas があると、報告する","name":"td の中に canvas があると、報告する","status":"passed","testResultsByEnv":{"default":"3aae2188d7873781b0f406edb8fbfcc6"}}

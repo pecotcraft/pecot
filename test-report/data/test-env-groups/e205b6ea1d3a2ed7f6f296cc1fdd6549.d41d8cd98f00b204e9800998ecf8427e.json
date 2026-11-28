@@ -1,0 +1,1 @@
+{"id":"e205b6ea1d3a2ed7f6f296cc1fdd6549.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/load.test.ts#loadSources with a missing or broken repository git に登録されていても作業ツリーに存在しないファイルは、読み込みの対象から外す","name":"git に登録されていても作業ツリーに存在しないファイルは、読み込みの対象から外す","status":"passed","testResultsByEnv":{"default":"99005ff1d86df98a5443d175d747717b"}}

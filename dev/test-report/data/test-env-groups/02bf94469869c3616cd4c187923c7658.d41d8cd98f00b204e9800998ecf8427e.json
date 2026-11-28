@@ -1,0 +1,1 @@
+{"id":"02bf94469869c3616cd4c187923c7658.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender-capture-flow.test.ts#captureAndReplaceElements DOM の置き換えで例外が発生した場合は、errors にエラーを追加する","name":"DOM の置き換えで例外が発生した場合は、errors にエラーを追加する","status":"passed","testResultsByEnv":{"default":"676c5b5f3c70e99acf5739c2556e209c"}}

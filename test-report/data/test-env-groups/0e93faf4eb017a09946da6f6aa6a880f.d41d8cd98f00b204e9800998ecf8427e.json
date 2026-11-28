@@ -1,0 +1,1 @@
+{"id":"0e93faf4eb017a09946da6f6aa6a880f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インライン HTML の Html ノード 自己完結タグ は、規則の対象にしない","name":"自己完結タグ は、規則の対象にしない","status":"passed","testResultsByEnv":{"default":"319258da9877697031615205f0cfb958"}}

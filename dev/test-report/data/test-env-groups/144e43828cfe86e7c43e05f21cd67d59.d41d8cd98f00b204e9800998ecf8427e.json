@@ -1,0 +1,1 @@
+{"id":"144e43828cfe86e7c43e05f21cd67d59.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#parseReads 形が合わない Issue の結果があると、github-mcp-shape で止める","name":"形が合わない Issue の結果があると、github-mcp-shape で止める","status":"passed","testResultsByEnv":{"default":"5d0a49db9b90a758946868eeb9251bb3"}}

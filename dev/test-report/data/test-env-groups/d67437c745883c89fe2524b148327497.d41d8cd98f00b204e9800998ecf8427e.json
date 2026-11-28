@@ -1,0 +1,1 @@
+{"id":"d67437c745883c89fe2524b148327497.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_fork_pr_is_not_imported","name":"fork の PR は取り込まず、fork の PR の理由を出力する","status":"passed","testResultsByEnv":{"default":"6c7acb6a8e5f00eea26cd8444ec47bf4"}}

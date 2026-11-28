@@ -1,0 +1,1 @@
+{"id":"054c52539ae9c4ba3b8275f36d1b38e9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#formatValidationError（入力値の省略はバイト長で決まる） 入力値が list の場合は、Python の入力値の表記と一致する","name":"入力値が list の場合は、Python の入力値の表記と一致する","status":"passed","testResultsByEnv":{"default":"f1161ac33c0df92abbd940162846f749"}}

@@ -1,0 +1,1 @@
+{"id":"289a85ddda3bda619c6a11526400af11.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/names.test.ts#項目の名前と names 位置の語が区切りでつないだ 2 語のとき、その 2 語を 1 つの位置に当て、長い語を先に当てる","name":"位置の語が区切りでつないだ 2 語のとき、その 2 語を 1 つの位置に当て、長い語を先に当てる","status":"passed","testResultsByEnv":{"default":"ee2f82765b00ca3c7b25f6ec18326dcf"}}

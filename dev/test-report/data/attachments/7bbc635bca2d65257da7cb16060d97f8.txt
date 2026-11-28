@@ -1,0 +1,2 @@
+written: /tmp/bats-run-1EtphK/file/1/multi.json
+written: /tmp/bats-run-1EtphK/file/1/multi.md

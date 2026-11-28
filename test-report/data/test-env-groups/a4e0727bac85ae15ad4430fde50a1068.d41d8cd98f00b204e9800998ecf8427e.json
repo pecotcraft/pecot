@@ -1,0 +1,1 @@
+{"id":"a4e0727bac85ae15ad4430fde50a1068.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「slideHash 欠落」の場合は、undefined を返す","name":"エントリが「slideHash 欠落」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"b5d809c53b168c2b0b974170bd7a506a"}}

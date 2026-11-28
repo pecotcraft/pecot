@@ -1,0 +1,1 @@
+{"id":"16937c284ea69a7a4311e8e73874d227.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/parity/parity.test.ts#前後比較 シナリオ pr-show-auth を動かすと、期待出力（golden）と同じ結果になる","name":"シナリオ pr-show-auth を動かすと、期待出力（golden）と同じ結果になる","status":"passed","testResultsByEnv":{"default":"7e28df169923846a9e1c97e9bd00c7a4"}}

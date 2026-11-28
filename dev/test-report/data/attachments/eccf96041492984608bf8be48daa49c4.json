@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "refine bug"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"refine bug\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "refine bug"
+  },
+  "isError": true
+}

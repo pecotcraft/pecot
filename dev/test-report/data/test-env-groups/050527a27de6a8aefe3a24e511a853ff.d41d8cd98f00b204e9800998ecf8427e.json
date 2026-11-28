@@ -1,0 +1,1 @@
+{"id":"050527a27de6a8aefe3a24e511a853ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli 必須のオプションを指定しない呼び出しは、終了コード 252 で終了し、invalid-input と判定する","name":"必須のオプションを指定しない呼び出しは、終了コード 252 で終了し、invalid-input と判定する","status":"passed","testResultsByEnv":{"default":"cd31c13f8467111ea8abddea597865d0"}}

@@ -1,0 +1,1 @@
+{"id":"a439047aad42a4905c1054072ec5e15f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#readWaitsForMerge 全角数字の参照 がある場合は、malformed を返す","name":"全角数字の参照 がある場合は、malformed を返す","status":"passed","testResultsByEnv":{"default":"5d3a94dc81bb7f87997c17a4e642a087"}}

@@ -1,0 +1,1 @@
+{"id":"95c4e6c8986db2f086ef7515be8a3d71.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/runtime-guard.test.ts#slide_create / slide_sync / slide_dev への接続 slide_dev はレジストリに触れず同じ kind / event で返す","name":"slide_dev はレジストリに触れず同じ kind / event で返す","status":"passed","testResultsByEnv":{"default":"f93b66c18c5b9473c1fa38805974441d"}}

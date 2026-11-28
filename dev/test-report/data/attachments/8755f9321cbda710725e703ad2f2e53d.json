@@ -1,0 +1,16 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "removed: worktree wt1"
+    },
+    {
+      "type": "text",
+      "text": "{\"name\":\"wt1\",\"deletedBranch\":false}"
+    }
+  ],
+  "structuredContent": {
+    "name": "wt1",
+    "deletedBranch": false
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"e8509f1d9bf9dab708f93f1e4e8cd1a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getAsyncMergeResult status が pending の場合は、uuid も返す","name":"status が pending の場合は、uuid も返す","status":"passed","testResultsByEnv":{"default":"295c1273c1f4eccb39c7ebf6fa8211e5"}}

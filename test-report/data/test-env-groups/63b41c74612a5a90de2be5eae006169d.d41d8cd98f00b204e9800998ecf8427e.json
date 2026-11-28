@@ -1,0 +1,1 @@
+{"id":"63b41c74612a5a90de2be5eae006169d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/failure.test.ts#kindOfFailure 例外 [GitHubNotFoundError: n] は、原因の種類 github-not-found に分類される","name":"例外 [GitHubNotFoundError: n] は、原因の種類 github-not-found に分類される","status":"passed","testResultsByEnv":{"default":"954c8d901d5c949895b3ba1306c267a2"}}

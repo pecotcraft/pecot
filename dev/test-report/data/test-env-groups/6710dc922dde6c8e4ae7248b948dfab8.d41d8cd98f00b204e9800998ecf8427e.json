@@ -1,0 +1,1 @@
+{"id":"6710dc922dde6c8e4ae7248b948dfab8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_run_cmd_has_no_preflight","name":"release の runCmd は、preflight を実行しない","status":"passed","testResultsByEnv":{"default":"8d8634dfd7126b114b9d7cf084148b30"}}

@@ -1,0 +1,1 @@
+{"id":"24da09f9f818afc593258ed736922fd1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/mcp/resources.test.ts#resources/read comment の merge-diff を読むと、配布するテンプレートのファイルと同じ中身を返す","name":"comment の merge-diff を読むと、配布するテンプレートのファイルと同じ中身を返す","status":"passed","testResultsByEnv":{"default":"fa7e19301e680d6804bb0417e6c5d91d"}}

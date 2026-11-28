@@ -1,0 +1,1 @@
+{"id":"4296168a094e7339aa66def5b625d1a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge MCP の data PR が見つからない と、kind が github-not-found の失敗を返す","name":"PR が見つからない と、kind が github-not-found の失敗を返す","status":"passed","testResultsByEnv":{"default":"581cf2baf4c4990a7073fa9c4d172aa7"}}

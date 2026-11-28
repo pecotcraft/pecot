@@ -1,0 +1,1 @@
+{"id":"4a7dd4ffd9b67e2426ca5bdbd0cd6b02.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/tests/version.test.ts#readVersion CLAUDE_PLUGIN_ROOT が空のときは、同梱の plugin.json の version を返す","name":"CLAUDE_PLUGIN_ROOT が空のときは、同梱の plugin.json の version を返す","status":"passed","testResultsByEnv":{"default":"0c69716b7841d8419d6bf7e31ccb9bda"}}

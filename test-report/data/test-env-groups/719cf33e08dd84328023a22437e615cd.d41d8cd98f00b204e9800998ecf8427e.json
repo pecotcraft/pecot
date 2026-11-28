@@ -1,0 +1,1 @@
+{"id":"719cf33e08dd84328023a22437e615cd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#pickLowerPullRequest 閉じた PR しか無い の場合は、開いている PR・マージ済みの PR・閉じた PR の順に選ぶ","name":"閉じた PR しか無い の場合は、開いている PR・マージ済みの PR・閉じた PR の順に選ぶ","status":"passed","testResultsByEnv":{"default":"54f6774a52c5187873a08fcd5b41a756"}}

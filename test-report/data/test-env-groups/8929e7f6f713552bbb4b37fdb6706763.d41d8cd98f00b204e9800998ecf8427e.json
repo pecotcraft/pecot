@@ -1,0 +1,1 @@
+{"id":"8929e7f6f713552bbb4b37fdb6706763.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings 二重引用符 のとき、引用符を含まない本文だけを切り出す","name":"二重引用符 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"2c8ba57341ffb53e875c90eca26d1fdd"}}

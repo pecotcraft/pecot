@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "unchanged: .github/workflows/pecot-auto.yml (workflow template auto 3)"
+    },
+    {
+      "type": "text",
+      "text": "{\"path\":\".github/workflows/pecot-auto.yml\",\"version\":3,\"installedVersion\":3,\"written\":false,\"upToDate\":true}"
+    }
+  ],
+  "structuredContent": {
+    "path": ".github/workflows/pecot-auto.yml",
+    "version": 3,
+    "installedVersion": 3,
+    "written": false,
+    "upToDate": true
+  }
+}

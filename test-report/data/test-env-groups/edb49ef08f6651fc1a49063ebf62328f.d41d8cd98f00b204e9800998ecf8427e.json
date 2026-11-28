@@ -1,0 +1,1 @@
+{"id":"edb49ef08f6651fc1a49063ebf62328f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/work-start.test.ts#inferStackedBase 判定が 判定が無い Epic・Tracker のときは、git を調べずに開発ブランチからの着手として返す","name":"判定が 判定が無い Epic・Tracker のときは、git を調べずに開発ブランチからの着手として返す","status":"passed","testResultsByEnv":{"default":"b8f6778cd1c105b2895929333e4267ec"}}

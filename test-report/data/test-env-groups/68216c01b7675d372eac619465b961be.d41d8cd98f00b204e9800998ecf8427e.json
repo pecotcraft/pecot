@@ -1,0 +1,1 @@
+{"id":"68216c01b7675d372eac619465b961be.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/batch-plan.test.ts#resolveBatch 前提が番号 0 の参照を指す場合は、エラーを返す","name":"前提が番号 0 の参照を指す場合は、エラーを返す","status":"passed","testResultsByEnv":{"default":"cf0fb5ea8bfbd7e0f48b90d31a22ce42"}}

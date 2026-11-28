@@ -1,0 +1,1 @@
+-C	/tmp/pecot-hooks-aoeoS5/compact	rev-parse	--show-toplevel	

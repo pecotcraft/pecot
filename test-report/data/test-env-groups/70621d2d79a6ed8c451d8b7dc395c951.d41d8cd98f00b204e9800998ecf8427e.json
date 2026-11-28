@@ -1,0 +1,1 @@
+{"id":"70621d2d79a6ed8c451d8b7dc395c951.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/session-finish.test.ts#session finish 待っている Issue 判定が変わらない待つ Issue は、Readiness changed の節に出さない","name":"判定が変わらない待つ Issue は、Readiness changed の節に出さない","status":"passed","testResultsByEnv":{"default":"8e8c1a20ae12476621b1df4f10c3fb8b"}}

@@ -1,0 +1,1 @@
+{"id":"43e7460988e4c22cbb969ba9252122bf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx onProgress は、スキャンの各ステップと、worker の成功・失敗のどちらの完了でも呼ばれる","name":"onProgress は、スキャンの各ステップと、worker の成功・失敗のどちらの完了でも呼ばれる","status":"passed","testResultsByEnv":{"default":"8d33c6c6439a98240f86a98ed4dfe9ac"}}

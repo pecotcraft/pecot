@@ -1,0 +1,1 @@
+{"id":"699a587ad644f6aaa06bfc5fcdbd5174.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project-check.test.ts#project_check fields pecot が使わない欄と、pecot-status と並ぶ旧い進行の欄を deletable に並べる","name":"pecot が使わない欄と、pecot-status と並ぶ旧い進行の欄を deletable に並べる","status":"passed","testResultsByEnv":{"default":"c44350b44a5f442afc4bd97cc4ba89a2"}}

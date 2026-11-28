@@ -1,0 +1,1 @@
+{"id":"9de2ee29b039401320680ad03f8fef55.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move ボードの項目を読めないときは、error に ID を読み直す案内を添えない","name":"ボードの項目を読めないときは、error に ID を読み直す案内を添えない","status":"passed","testResultsByEnv":{"default":"e05bdfad39175163439b3fa734c1a4f2"}}

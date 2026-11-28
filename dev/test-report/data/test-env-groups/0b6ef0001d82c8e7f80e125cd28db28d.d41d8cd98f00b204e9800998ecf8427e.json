@@ -1,0 +1,1 @@
+{"id":"0b6ef0001d82c8e7f80e125cd28db28d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-vue.test.ts#strings plugin: .vue の template 自己終了タグの後ろの属性値 に違反があると、元のファイルの行と桁で指摘を返す","name":"自己終了タグの後ろの属性値 に違反があると、元のファイルの行と桁で指摘を返す","status":"passed","testResultsByEnv":{"default":"735da6d84ab097c563e1440ae6c56f6e"}}

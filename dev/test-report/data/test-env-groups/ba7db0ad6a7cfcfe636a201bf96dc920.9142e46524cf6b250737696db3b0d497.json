@@ -1,0 +1,1 @@
+{"id":"ba7db0ad6a7cfcfe636a201bf96dc920.9142e46524cf6b250737696db3b0d497","fullName":".githooks.tests.test_bats_report#test_explains_rejects_bad_value","name":"explains に 2 つ の値を渡すと、その @test を失敗にする","status":"passed","testResultsByEnv":{"default":"bc0edf42192256c5b0e940e5efd6fd4b"}}

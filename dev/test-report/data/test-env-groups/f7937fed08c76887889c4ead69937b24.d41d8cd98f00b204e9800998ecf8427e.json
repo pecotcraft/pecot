@@ -1,0 +1,1 @@
+{"id":"f7937fed08c76887889c4ead69937b24.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check create・update の値 create に title・head・base が無いと、それぞれの required の problem を返す","name":"create に title・head・base が無いと、それぞれの required の problem を返す","status":"passed","testResultsByEnv":{"default":"160385482499fef91bcfb0b8437457b7"}}

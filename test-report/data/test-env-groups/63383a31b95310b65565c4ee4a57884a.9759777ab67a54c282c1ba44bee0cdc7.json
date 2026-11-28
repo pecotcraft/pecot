@@ -1,0 +1,1 @@
+{"id":"63383a31b95310b65565c4ee4a57884a.9759777ab67a54c282c1ba44bee0cdc7","fullName":".githooks.tests.test_gitlint_japanese_rule#test_near_miss_title_fails","name":"タイトルが「build(repo): bumpy english」のように、Dependabot の形に近いだけだと、日本語の規則に違反する","status":"passed","testResultsByEnv":{"default":"3b9958dd2dc13be47f90a50e47deafcc"}}

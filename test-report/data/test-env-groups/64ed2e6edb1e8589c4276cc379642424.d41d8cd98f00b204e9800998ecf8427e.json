@@ -1,0 +1,1 @@
+{"id":"64ed2e6edb1e8589c4276cc379642424.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#--out-dir ガードが リポジトリルート を弾く","name":"--out-dir ガードが リポジトリルート を弾く","status":"passed","testResultsByEnv":{"default":"c774e8cbb3b74ec847f80f5a1046fc12"}}

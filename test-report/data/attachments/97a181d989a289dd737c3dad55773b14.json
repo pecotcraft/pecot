@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "up to date: feat/demo/12 on main"
+    },
+    {
+      "type": "text",
+      "text": "{\"branch\":\"feat/demo/12\",\"base\":\"main\",\"outcome\":\"up-to-date\",\"warnings\":[\"cannot infer the stacked base: blocked by #11 (not in review: #11 (not started))\"]}"
+    }
+  ],
+  "structuredContent": {
+    "branch": "feat/demo/12",
+    "base": "main",
+    "outcome": "up-to-date",
+    "warnings": [
+      "cannot infer the stacked base: blocked by #11 (not in review: #11 (not started))"
+    ]
+  }
+}

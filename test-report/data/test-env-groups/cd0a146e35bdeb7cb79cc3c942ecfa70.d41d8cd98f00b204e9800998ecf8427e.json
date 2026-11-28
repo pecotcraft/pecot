@@ -1,0 +1,1 @@
+{"id":"cd0a146e35bdeb7cb79cc3c942ecfa70.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/no-cross-layer-import.test.ts#no-cross-layer-import valid L3 から composables を import すると、報告しない","name":"L3 から composables を import すると、報告しない","status":"passed","testResultsByEnv":{"default":"9f20cc1b8daee6b1eb7a4fa0f4d5bea4"}}

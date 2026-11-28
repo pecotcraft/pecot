@@ -1,0 +1,1 @@
+{"id":"a2d4dd8d881272ee8d60acc4cc541d6d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/result.test.ts#toolOutputSchema output が共通の項目の名前 kind を持つ場合は、例外が発生する","name":"output が共通の項目の名前 kind を持つ場合は、例外が発生する","status":"passed","testResultsByEnv":{"default":"e58e7ec65284eee1fa8c7ac30c4ab331"}}

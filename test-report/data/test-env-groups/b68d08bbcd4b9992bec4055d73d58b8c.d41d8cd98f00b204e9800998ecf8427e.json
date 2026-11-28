@@ -1,0 +1,1 @@
+{"id":"b68d08bbcd4b9992bec4055d73d58b8c.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#runtime_setup が永続層ルートへ実行時依存を入れる","name":"runtime_setup が永続層ルートへ実行時依存を入れる","status":"passed","testResultsByEnv":{"default":"da48cf5b4568a3d2ad0ab6c5579270ce"}}

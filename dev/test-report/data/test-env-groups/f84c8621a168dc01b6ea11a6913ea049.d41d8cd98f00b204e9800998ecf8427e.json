@@ -1,0 +1,1 @@
+{"id":"f84c8621a168dc01b6ea11a6913ea049.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-finish.test.ts#session_finish 判定に要る読み取りが足りないと、その Issue を判定せず、足りない読み取りを warnings で案内する","name":"判定に要る読み取りが足りないと、その Issue を判定せず、足りない読み取りを warnings で案内する","status":"passed","testResultsByEnv":{"default":"6319295f4a32887b5c9b929c8a36e827"}}

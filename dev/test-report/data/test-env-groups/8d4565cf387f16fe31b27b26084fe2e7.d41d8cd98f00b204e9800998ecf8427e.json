@@ -1,0 +1,1 @@
+{"id":"8d4565cf387f16fe31b27b26084fe2e7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender-capture-flow.test.ts#captureAndReplaceElements 高解像度のスクリーンショットに失敗した場合は、警告を出力し、その要素を処理しない","name":"高解像度のスクリーンショットに失敗した場合は、警告を出力し、その要素を処理しない","status":"passed","testResultsByEnv":{"default":"99c8b3423b5e5681dc492f710d2c05e5"}}

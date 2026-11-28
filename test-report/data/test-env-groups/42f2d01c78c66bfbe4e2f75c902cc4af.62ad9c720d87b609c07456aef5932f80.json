@@ -1,0 +1,1 @@
+{"id":"42f2d01c78c66bfbe4e2f75c902cc4af.62ad9c720d87b609c07456aef5932f80","fullName":".githooks.tests.test_pages_served#test_fetch_turns_transport_errors_into_none","name":"fetch は、TimeoutError の通信の失敗を status の無い結果にする","status":"passed","testResultsByEnv":{"default":"4a0cb5022e13e78acd944e59fa46aa83"}}

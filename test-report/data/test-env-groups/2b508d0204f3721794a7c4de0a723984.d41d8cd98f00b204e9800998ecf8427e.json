@@ -1,0 +1,1 @@
+{"id":"2b508d0204f3721794a7c4de0a723984.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/definitions.test.ts#generated.json checks generated.json の description と入力の説明に日本語があると、検証エラーにする","name":"generated.json の description と入力の説明に日本語があると、検証エラーにする","status":"passed","testResultsByEnv":{"default":"a64b13dd4e3a797a319c77c3c899ce47"}}

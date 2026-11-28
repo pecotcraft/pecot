@@ -1,0 +1,1 @@
+{"id":"7f268020c0a0d8fa79be6f866c90a091.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/text-violation.test.ts#drawio_create の文面確認 文章規則の確認自体が失敗した場合は、text-lint-failed で失敗し、ファイルを書き出さない","name":"文章規則の確認自体が失敗した場合は、text-lint-failed で失敗し、ファイルを書き出さない","status":"passed","testResultsByEnv":{"default":"483e7289d5cf9b293e485cd540e9893d"}}

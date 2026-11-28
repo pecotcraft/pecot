@@ -1,0 +1,8 @@
+:iface-id: PA-BOARD-SYNC
+:iface-plugin: actions
+:iface-kind: Action
+
+board sync
+====================
+
+.. iface-defs:: actions PA-BOARD-SYNC

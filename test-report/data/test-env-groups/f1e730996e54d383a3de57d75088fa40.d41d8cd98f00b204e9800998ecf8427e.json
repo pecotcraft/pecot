@@ -1,0 +1,1 @@
+{"id":"f1e730996e54d383a3de57d75088fa40.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#isDone・isInReview・hasStarted ブランチか PR のどちらかが存在する Issue は、着手済みと判定する","name":"ブランチか PR のどちらかが存在する Issue は、着手済みと判定する","status":"passed","testResultsByEnv":{"default":"92b7518bc6e79db18efd1ec0cbcecc82"}}

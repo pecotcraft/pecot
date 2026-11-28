@@ -1,0 +1,26 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "aws_cloudwatch_get_metric_statistics succeeded"
+    },
+    {
+      "type": "text",
+      "text": "{\"Label\":\"NumberOfMessagesSent\",\"Datapoints\":[{\"Timestamp\":\"2026-09-01T00:00:00+00:00\",\"SampleCount\":12,\"Average\":3.5,\"Sum\":42,\"Minimum\":1,\"Maximum\":9,\"Unit\":\"Count\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "Label": "NumberOfMessagesSent",
+    "Datapoints": [
+      {
+        "Timestamp": "2026-09-01T00:00:00+00:00",
+        "SampleCount": 12,
+        "Average": 3.5,
+        "Sum": 42,
+        "Minimum": 1,
+        "Maximum": 9,
+        "Unit": "Count"
+      }
+    ]
+  }
+}

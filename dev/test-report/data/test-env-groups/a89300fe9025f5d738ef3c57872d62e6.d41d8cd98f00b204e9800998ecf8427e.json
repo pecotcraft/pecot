@@ -1,0 +1,1 @@
+{"id":"a89300fe9025f5d738ef3c57872d62e6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/url.test.ts#encodeData XML を URL エンコードし、deflate で圧縮して、base64 に変換する","name":"XML を URL エンコードし、deflate で圧縮して、base64 に変換する","status":"passed","testResultsByEnv":{"default":"0f7ec88e028c52543bd4434f10ce960b"}}

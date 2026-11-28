@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid input: directory: Directory '/tmp/pecot-cli-h8cJpH/file.txt/sub' does not exist."
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid input: directory: Directory '/tmp/pecot-cli-h8cJpH/file.txt/sub' does not exist.\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: directory: Directory '/tmp/pecot-cli-h8cJpH/file.txt/sub' does not exist."
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"cad40f50d508e4ec60d24a5e33532e15.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/redact.test.ts#redactSecrets aws_secret_access_key は、値の部分だけを伏せ字にする","name":"aws_secret_access_key は、値の部分だけを伏せ字にする","status":"passed","testResultsByEnv":{"default":"7b87a6c02207a24558836e6ef4c9f1ed"}}

@@ -1,0 +1,1 @@
+{"id":"dbd554d803cbb8b8d617eec676ab3521.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/tracker-body.test.ts#cell セルを作成すると、U+001C〜U+001F と U+0085 は空白として扱う","name":"セルを作成すると、U+001C〜U+001F と U+0085 は空白として扱う","status":"passed","testResultsByEnv":{"default":"3f12c10e341a8fcf3046c75c5c20547f"}}

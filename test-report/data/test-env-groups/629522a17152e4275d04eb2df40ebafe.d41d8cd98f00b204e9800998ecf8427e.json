@@ -1,0 +1,1 @@
+{"id":"629522a17152e4275d04eb2df40ebafe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#toIssueFacts Waits for merge の節に存在しない前提は stack、存在する前提は merge と理由を持つ","name":"Waits for merge の節に存在しない前提は stack、存在する前提は merge と理由を持つ","status":"passed","testResultsByEnv":{"default":"6e5930ddeba854512d8d03cd365200d2"}}

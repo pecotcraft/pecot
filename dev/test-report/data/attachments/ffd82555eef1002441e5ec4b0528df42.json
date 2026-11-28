@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "copy exclude config not found: .pecot/config/.worktreeignore\n    call worktree_init to generate the template"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"not-initialized\",\"detail\":\"copy exclude config not found: .pecot/config/.worktreeignore\\n    call worktree_init to generate the template\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "not-initialized",
+    "detail": "copy exclude config not found: .pecot/config/.worktreeignore\n    call worktree_init to generate the template"
+  },
+  "isError": true
+}

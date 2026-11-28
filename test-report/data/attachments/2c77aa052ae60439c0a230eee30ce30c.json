@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "body: missing section (pecot-template://comment/merge-diff): ## Merge — <summary>; the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"body\",\"code\":\"missing-section\",\"message\":\"missing section (pecot-template://comment/merge-diff): ## Merge — <summary>; the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed\"},{\"field\":\"body\",\"code\":\"missing-section\",\"message\":\"missing section (pecot-template://comment/merge-diff): ### Variance — <summary>; the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed\"},{\"field\":\"body\",\"code\":\"missing-section\",\"message\":\"missing section (pecot-template://comment/merge-diff): ### Impact — <summary>; the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "body",
+        "code": "missing-section",
+        "message": "missing section (pecot-template://comment/merge-diff): ## Merge — <summary>; the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed"
+      },
+      {
+        "field": "body",
+        "code": "missing-section",
+        "message": "missing section (pecot-template://comment/merge-diff): ### Variance — <summary>; the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed"
+      },
+      {
+        "field": "body",
+        "code": "missing-section",
+        "message": "missing section (pecot-template://comment/merge-diff): ### Impact — <summary>; the em dash must be U+2014; hyphen-minus (-) and EN DASH (U+2013) are not allowed"
+      }
+    ]
+  }
+}

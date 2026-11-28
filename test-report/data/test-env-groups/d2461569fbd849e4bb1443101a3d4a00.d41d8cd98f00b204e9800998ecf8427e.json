@@ -1,0 +1,1 @@
+{"id":"d2461569fbd849e4bb1443101a3d4a00.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_land_script_is_executable","name":"`release-land.sh` には、実行権限が付いている","status":"passed","testResultsByEnv":{"default":"0717c3a692ef75cdb87645a4e335eaf2"}}

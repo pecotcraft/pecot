@@ -1,0 +1,1 @@
+{"id":"33b52a5d70395d6220e3e3f2a128c0b7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init MCP の data Status の欄が存在しないと、その欄を skip にする","name":"Status の欄が存在しないと、その欄を skip にする","status":"passed","testResultsByEnv":{"default":"94fa075d7dc0755b684daae92cd6e9b4"}}

@@ -1,0 +1,39 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: project #1 https://ghes.example.com/users/acme/projects/1"
+    },
+    {
+      "type": "text",
+      "text": "{\"number\":1,\"url\":\"https://ghes.example.com/users/acme/projects/1\",\"title\":\"board\",\"owner\":\"acme\",\"fields\":[{\"name\":\"pecot-status\",\"change\":\"create\",\"addedOptions\":[]},{\"name\":\"pecot-lane\",\"change\":\"skip\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"unchanged\",\"addedOptions\":[]}],\"warnings\":[\"field pecot-lane was not created because no lanes were given\\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes\",\"could not add option Needs Attention to field Status: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:40251/graphql'\\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500\"]}"
+    }
+  ],
+  "structuredContent": {
+    "number": 1,
+    "url": "https://ghes.example.com/users/acme/projects/1",
+    "title": "board",
+    "owner": "acme",
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "create",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "skip",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "unchanged",
+        "addedOptions": []
+      }
+    ],
+    "warnings": [
+      "field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes",
+      "could not add option Needs Attention to field Status: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:40251/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"c1ac8eaeca4a513b3c6a6a77911a8363.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/fs-sync.test.ts#removeTemplateEntries 入れ子の名前の親がシンボリックリンクなら、リンク先の中は削除しない","name":"入れ子の名前の親がシンボリックリンクなら、リンク先の中は削除しない","status":"passed","testResultsByEnv":{"default":"eea5a0a6a68703ecbadf601652f82326"}}

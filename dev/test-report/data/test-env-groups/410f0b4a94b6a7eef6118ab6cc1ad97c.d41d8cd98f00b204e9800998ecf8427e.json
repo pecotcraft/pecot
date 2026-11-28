@@ -1,0 +1,1 @@
+{"id":"410f0b4a94b6a7eef6118ab6cc1ad97c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/e2e/mcp-stdio.test.ts#pecot-tools-mcp (stdio) 標準出力には、JSON-RPC 以外の出力を含めない","name":"標準出力には、JSON-RPC 以外の出力を含めない","status":"passed","testResultsByEnv":{"default":"691c291c1defa749859d82e6297984d9"}}

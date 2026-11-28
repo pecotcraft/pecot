@@ -1,0 +1,1 @@
+{"id":"eeaf244f964f52cb561d0b16139e02d9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-decorative-bar-element.test.ts#no-decorative-bar-element (CSS のみ) valid position が absolute でないと、報告しない","name":"position が absolute でないと、報告しない","status":"passed","testResultsByEnv":{"default":"b8b917306e72f0e79766ff77d603c608"}}

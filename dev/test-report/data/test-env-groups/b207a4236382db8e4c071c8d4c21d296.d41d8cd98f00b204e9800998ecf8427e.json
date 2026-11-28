@@ -1,0 +1,1 @@
+{"id":"b207a4236382db8e4c071c8d4c21d296.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/git-url.test.ts#parseRemoteUrl エラー文には、前後の空白を除いた URL を含める（Python と同じ）","name":"エラー文には、前後の空白を除いた URL を含める（Python と同じ）","status":"passed","testResultsByEnv":{"default":"7d8cb4c07b9858814ef1bfee05f26310"}}

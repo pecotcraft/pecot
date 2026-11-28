@@ -1,0 +1,1 @@
+{"id":"d418960bcd9d151f461e1993abe8a287.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_validate 参照の yaml に違反があると、参照の dir 全体の検証の結果を知らせる","name":"参照の yaml に違反があると、参照の dir 全体の検証の結果を知らせる","status":"passed","testResultsByEnv":{"default":"d29e3cca863bd4e098fc0eb6dba82d52"}}

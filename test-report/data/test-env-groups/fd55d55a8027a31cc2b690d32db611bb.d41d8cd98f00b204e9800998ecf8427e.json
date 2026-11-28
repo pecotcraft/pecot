@@ -1,0 +1,1 @@
+{"id":"fd55d55a8027a31cc2b690d32db611bb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/eslint-runner.test.ts#resolveEslintBin assets が要求するものとメジャーが違う eslint は使わず、例外が発生する","name":"assets が要求するものとメジャーが違う eslint は使わず、例外が発生する","status":"passed","testResultsByEnv":{"default":"c06f9fd34de012484d12a5fa3e5fd5cd"}}

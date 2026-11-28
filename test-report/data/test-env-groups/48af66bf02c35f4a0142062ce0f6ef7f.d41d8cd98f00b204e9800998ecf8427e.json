@@ -1,0 +1,1 @@
+{"id":"48af66bf02c35f4a0142062ce0f6ef7f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#syncProjectConfig 旧い名前の設定ファイルを新しい名前へ移動し、旧いファイルを削除する","name":"旧い名前の設定ファイルを新しい名前へ移動し、旧いファイルを削除する","status":"passed","testResultsByEnv":{"default":"5eacc062ccecc4615fbaf403bcd06eab"}}

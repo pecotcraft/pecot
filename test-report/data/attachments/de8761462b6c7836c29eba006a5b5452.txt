@@ -1,0 +1,1 @@
+ERROR: 第 1 引数に COMMIT_EDITMSG のパスを渡してください

@@ -1,0 +1,1 @@
+{"id":"a3eb3b0480ebd2dca9c3f4bf78581fa0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-css-filter.test.ts#no-css-filter valid filter が blur() だけなら、報告しない","name":"filter が blur() だけなら、報告しない","status":"passed","testResultsByEnv":{"default":"c8be3a97c82a259ad77bc2d28da5de01"}}

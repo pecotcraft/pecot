@@ -1,0 +1,1 @@
+{"id":"22267441900b6dfab9c9897efcf59a2e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#readWaitsForMerge 理由が空白だけの行 がある場合は、malformed を返す","name":"理由が空白だけの行 がある場合は、malformed を返す","status":"passed","testResultsByEnv":{"default":"32d508c258e4ee51a5934db0ddc18294"}}

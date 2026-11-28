@@ -1,0 +1,1 @@
+{"id":"071c25beab9fb7dbcb401af2ca6bf620.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_misplaced_pecot#test_root_pecot_only_passes","name":"ルート直下の .pecot だけなら、その配下に入れ子の .pecot があっても成功で終わる","status":"passed","testResultsByEnv":{"default":"7e039b565315d343c28056a973a339a3"}}

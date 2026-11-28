@@ -1,0 +1,1 @@
+{"id":"8a1ddf52a0077428d2e2d7896f412df8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#`-` 始まりの値（research R3） 位置引数の値が - で始まる場合は、invalid-input として拒否する","name":"位置引数の値が - で始まる場合は、invalid-input として拒否する","status":"passed","testResultsByEnv":{"default":"c87077bd1d5c12546924179acce385fd"}}

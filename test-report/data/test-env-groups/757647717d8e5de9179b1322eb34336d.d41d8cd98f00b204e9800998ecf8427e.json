@@ -1,0 +1,1 @@
+{"id":"757647717d8e5de9179b1322eb34336d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_ci_report_results#test_upload_results_keeps_hidden_files_for_thirty_days","name":"レーンの結果は、レーンの slug の名前で、隠しファイルも含めて 30 日間保存する","status":"passed","testResultsByEnv":{"default":"1f2d6e04a9d6a23dd8fe7a981ab047c4"}}

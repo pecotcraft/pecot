@@ -1,0 +1,1 @@
+{"id":"f5a9d2302c92467c4fb277effa1edf61.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/failure-kinds-definition.test.ts#項目ごとの exit_status ツールが stopWith・CommandExit に渡す名前を、その項目が持つ","name":"ツールが stopWith・CommandExit に渡す名前を、その項目が持つ","status":"passed","testResultsByEnv":{"default":"8439c762428d7532082dbd758899ab78"}}

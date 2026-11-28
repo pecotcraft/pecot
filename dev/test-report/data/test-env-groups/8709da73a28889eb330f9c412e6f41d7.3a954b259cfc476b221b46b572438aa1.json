@@ -1,0 +1,1 @@
+{"id":"8709da73a28889eb330f9c412e6f41d7.3a954b259cfc476b221b46b572438aa1","fullName":".githooks.tests.test_pages_provenance#test_report_dispatch_without_exactly_one_report_artifact_is_dropped","name":"レポートの手動実行の run は、レポートの artifact が 1 つに決まらないと、[] の場合に破棄する","status":"passed","testResultsByEnv":{"default":"d90a23286abfc7b6ee5f21944de98c92"}}

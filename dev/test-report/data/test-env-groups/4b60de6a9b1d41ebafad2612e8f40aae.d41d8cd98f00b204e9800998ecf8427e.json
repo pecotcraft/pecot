@@ -1,0 +1,1 @@
+{"id":"4b60de6a9b1d41ebafad2612e8f40aae.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites 親が null の場合は、parent を null にする","name":"親が null の場合は、parent を null にする","status":"passed","testResultsByEnv":{"default":"9ef8ca5957f7b9369b53877b2912dcec"}}

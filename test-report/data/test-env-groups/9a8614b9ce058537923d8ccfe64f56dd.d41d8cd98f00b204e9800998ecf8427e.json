@@ -1,0 +1,1 @@
+{"id":"9a8614b9ce058537923d8ccfe64f56dd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#statusViolation 許可する値を指定した場合は、その値も受け付け、それ以外の場合は許可する値を並べて案内する","name":"許可する値を指定した場合は、その値も受け付け、それ以外の場合は許可する値を並べて案内する","status":"passed","testResultsByEnv":{"default":"c95218f04d5316a8dd40604b812fc2e4"}}

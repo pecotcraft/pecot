@@ -1,0 +1,1 @@
+{"id":"6700a0867221e5f81044715a324e9d66.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_failed_stage_stops_the_server","name":"stage が失敗した場合も、サーバを停止する","status":"passed","testResultsByEnv":{"default":"618d1e9e0b92173263ee53ff9040e6a7"}}

@@ -1,0 +1,1 @@
+{"id":"00268d210148c061ae02b7e7ebcd5ac9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_step_gate#test_writes_the_report_to_a_temporary_directory_and_removes_it","name":"gate はレポートを一時ディレクトリに作成して、終了時に削除する","status":"passed","testResultsByEnv":{"default":"d3ee2a093133ad84e7f3ea8baee4a1a8"}}

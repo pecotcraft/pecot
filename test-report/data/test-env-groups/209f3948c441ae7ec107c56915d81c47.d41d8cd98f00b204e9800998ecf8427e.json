@@ -1,0 +1,1 @@
+{"id":"209f3948c441ae7ec107c56915d81c47.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/redact.test.ts#redactSecrets アクセスキー ID は、長期用と一時用のどちらも伏せ字にする","name":"アクセスキー ID は、長期用と一時用のどちらも伏せ字にする","status":"passed","testResultsByEnv":{"default":"479fe2fb76df44511a66de87a14d2c45"}}

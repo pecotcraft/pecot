@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "comment_id: comment 2 is not in reads.comments: it is on another Issue than acme/demo/7, or on a page of issue_read get_comments not read yet (read the next page with page)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"comment_id\",\"code\":\"not-found\",\"message\":\"comment 2 is not in reads.comments: it is on another Issue than acme/demo/7, or on a page of issue_read get_comments not read yet (read the next page with page)\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "comment_id",
+        "code": "not-found",
+        "message": "comment 2 is not in reads.comments: it is on another Issue than acme/demo/7, or on a page of issue_read get_comments not read yet (read the next page with page)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"e222c9a5ab199272c5f176472521c4ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#getBranchSha スラッシュを含むブランチ名は、そのままパスに含める","name":"スラッシュを含むブランチ名は、そのままパスに含める","status":"passed","testResultsByEnv":{"default":"e297b313856b30f01d6f92ff4660e86b"}}

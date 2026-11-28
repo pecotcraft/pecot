@@ -1,0 +1,1 @@
+{"id":"a452f3d283da546f6db9e2ccc4c12aad.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_restore_owner_chowns_to_current_user","name":"restore-owner は、ワークスペースの所有者を現在のユーザーに戻す","status":"passed","testResultsByEnv":{"default":"538586292a4f96053497fea50e09e557"}}

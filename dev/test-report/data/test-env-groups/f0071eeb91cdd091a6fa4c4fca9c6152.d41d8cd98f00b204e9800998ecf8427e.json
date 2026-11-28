@@ -1,0 +1,1 @@
+{"id":"f0071eeb91cdd091a6fa4c4fca9c6152.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#withSpawnOutput 標準エラー出力が上限を超えても、先に出力された warning は warnings に残す","name":"標準エラー出力が上限を超えても、先に出力された warning は warnings に残す","status":"passed","testResultsByEnv":{"default":"f251bde92bb28917395c93802a4050e1"}}

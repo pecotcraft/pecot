@@ -1,0 +1,24 @@
+
+nx exit code: 1
+=== 失敗レーン: fx ===
+fx: build
+fx: ran lane-pecot
+fx: ran lane-pecotv
+ NX   Running targets test-lane-defaults, test-lane-flaky, test-lane-pecot, test-lane-pecotv, test-lane-tools for 2 projects and 3 tasks they depend on failed
+
+Tasks not run because their dependencies failed, --nx-bail=true, or their batch ended before reaching them:
+
+- fx:test-lane-tools
+- lane-defaults:test-lane-defaults
+
+Failed tasks:
+
+- fx:test-lane-flaky
+
+  Run duration:      1.2s
+  Cache:             0/5 hit (0%)
+  Critical path:     57ms (1 task)
+  Recoverable time:  <1ms
+
+全出力: /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_failed_lane_is_rerun_not_0/ws/.pecot/tmp/nx-affected-tests/nx-affected-tests.log
+進行確認: tail -f /tmp/pytest-of-vscode/pytest-0/popen-gw0/test_failed_lane_is_rerun_not_0/ws/.pecot/tmp/nx-affected-tests/nx-affected-tests.log

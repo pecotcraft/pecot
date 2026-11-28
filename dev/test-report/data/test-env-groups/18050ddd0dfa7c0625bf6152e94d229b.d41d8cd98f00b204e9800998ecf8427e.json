@@ -1,0 +1,1 @@
+{"id":"18050ddd0dfa7c0625bf6152e94d229b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/fixtures/themes.test.ts#package.json 宣言ありのテスト用テーマの dependencies は、テーマだけが使う依存 1 つだけにする","name":"宣言ありのテスト用テーマの dependencies は、テーマだけが使う依存 1 つだけにする","status":"passed","testResultsByEnv":{"default":"6a10f2a4576dfe2557738cd0600ceb38"}}

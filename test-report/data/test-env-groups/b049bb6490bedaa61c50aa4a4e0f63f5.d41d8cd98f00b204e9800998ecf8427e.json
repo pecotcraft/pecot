@@ -1,0 +1,1 @@
+{"id":"b049bb6490bedaa61c50aa4a4e0f63f5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/e2e/mcp-stdio.test.ts#pecot-tools-mcp (stdio) SSO ログインの待機中に SIGTERM を受けると、認証の awscli のプロセスも終了する","name":"SSO ログインの待機中に SIGTERM を受けると、認証の awscli のプロセスも終了する","status":"passed","testResultsByEnv":{"default":"c37f46836feae8a3e1caec2025676e79"}}

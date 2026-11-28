@@ -1,0 +1,1 @@
+{"id":"6152bcdc88cda0a6c94e424c9d3014fb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge MCP の data 対象のリポを含む設定が存在しない と、kind が repo-not-in-project の失敗を返す","name":"対象のリポを含む設定が存在しない と、kind が repo-not-in-project の失敗を返す","status":"passed","testResultsByEnv":{"default":"aa209549ec6a5f0e0453021a877474eb"}}

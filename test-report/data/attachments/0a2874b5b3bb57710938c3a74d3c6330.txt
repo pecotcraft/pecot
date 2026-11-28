@@ -1,0 +1,1 @@
+ERROR: PECOT_NX_PARALLEL は正の整数です: abc

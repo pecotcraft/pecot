@@ -1,0 +1,1 @@
+{"id":"4f5b5aef7689254319aedd710348a1c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/npm-cache-opt-in.test.sh#publish 実配布 + opt-in: npm を呼ぶ前に止まる","name":"publish 実配布 + opt-in: npm を呼ぶ前に止まる","status":"passed","testResultsByEnv":{"default":"b4dbbcabab439111f370b879c52024a3"}}

@@ -1,0 +1,1 @@
+{"id":"d838ec6d4b3bc3d6d1ce5ed13513e5eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#pickPrimaryRemote remote が [\"upstream\",\"fork\"] のとき、\"upstream\" を選ぶ","name":"remote が [\"upstream\",\"fork\"] のとき、\"upstream\" を選ぶ","status":"passed","testResultsByEnv":{"default":"fda12f5db7ccb892615fa9badc7ca474"}}

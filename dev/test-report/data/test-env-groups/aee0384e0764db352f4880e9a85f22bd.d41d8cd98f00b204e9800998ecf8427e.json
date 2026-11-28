@@ -1,0 +1,1 @@
+{"id":"aee0384e0764db352f4880e9a85f22bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#hostPackagesFromDryRun フォントと X サーバのパッケージを除き、共有ライブラリのパッケージだけを返す","name":"フォントと X サーバのパッケージを除き、共有ライブラリのパッケージだけを返す","status":"passed","testResultsByEnv":{"default":"9ed2d676e03599829ab8fce1eaff3237"}}

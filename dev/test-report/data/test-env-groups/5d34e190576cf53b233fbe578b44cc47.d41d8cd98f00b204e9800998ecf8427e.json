@@ -1,0 +1,1 @@
+{"id":"5d34e190576cf53b233fbe578b44cc47.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/result.test.ts#toAbortedResult 中断の結果は、kind を aborted、detail を cancelled にする","name":"中断の結果は、kind を aborted、detail を cancelled にする","status":"passed","testResultsByEnv":{"default":"2a64d4327ade342d2d14285674b89138"}}

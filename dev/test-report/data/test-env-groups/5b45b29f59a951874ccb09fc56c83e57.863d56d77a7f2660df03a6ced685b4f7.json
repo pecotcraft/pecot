@@ -1,0 +1,1 @@
+{"id":"5b45b29f59a951874ccb09fc56c83e57.863d56d77a7f2660df03a6ced685b4f7","fullName":".githooks.tests.test_sandbox_ops_workflow#test_sweep_step_arguments","name":"ISSUE が「」・DRY_RUN が false のとき、sandbox-sweep.sh に [] を渡す","status":"passed","testResultsByEnv":{"default":"b6855bffbe0d62e4f3c86b69f6f609f1"}}

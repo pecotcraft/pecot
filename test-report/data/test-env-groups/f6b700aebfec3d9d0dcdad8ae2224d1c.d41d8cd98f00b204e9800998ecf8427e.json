@@ -1,0 +1,1 @@
+{"id":"f6b700aebfec3d9d0dcdad8ae2224d1c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#partitionStepsBySlide グループ数が 1 の場合は、すべてのステップを入力の順のまま 1 つのグループにする","name":"グループ数が 1 の場合は、すべてのステップを入力の順のまま 1 つのグループにする","status":"passed","testResultsByEnv":{"default":"f3652ba8f3514289dc6eab24aac97a55"}}

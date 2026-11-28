@@ -1,0 +1,1 @@
+{"id":"3f72289d4dab72930647f98358020160.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight 指定したバージョンが CHANGELOG に存在しなければ、ReleaseError に包んで投げる","name":"指定したバージョンが CHANGELOG に存在しなければ、ReleaseError に包んで投げる","status":"passed","testResultsByEnv":{"default":"eb852fd305d39337cba7518cc04aaef8"}}

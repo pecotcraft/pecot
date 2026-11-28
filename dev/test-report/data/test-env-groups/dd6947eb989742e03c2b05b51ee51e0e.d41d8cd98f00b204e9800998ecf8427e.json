@@ -1,0 +1,1 @@
+{"id":"dd6947eb989742e03c2b05b51ee51e0e.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.bats#sanitize_env が GIT_DIR と FORCE_COLOR を捨てる","name":"sanitize_env が GIT_DIR と FORCE_COLOR を捨てる","status":"passed","testResultsByEnv":{"default":"fec099e3b04ad36c1010081081d64a8d"}}

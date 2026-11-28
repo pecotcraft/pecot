@@ -1,0 +1,1 @@
+{"id":"b7869d385934d02eeb27750d4d653d40.aab6de4c7dfe0b5529a00eb52697815f","fullName":".githooks.tests.test_report_generate#test_real_allure_reads_what_generate_passes_as_readable","name":"履歴が読める形（lone-cr）のとき、本物の allure でも履歴を維持して追記する","status":"passed","testResultsByEnv":{"default":"f36cb0b5c0c08d94ef22fb1ffe780c97"}}

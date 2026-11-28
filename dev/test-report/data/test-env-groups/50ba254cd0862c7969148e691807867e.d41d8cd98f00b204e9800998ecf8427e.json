@@ -1,0 +1,1 @@
+{"id":"50ba254cd0862c7969148e691807867e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/declaration.test.ts#readThemeDeclaration 宣言の形に誤りがある場合は、理由 invalid-shape のエラーに、誤りのある項目名を含める","name":"宣言の形に誤りがある場合は、理由 invalid-shape のエラーに、誤りのある項目名を含める","status":"passed","testResultsByEnv":{"default":"901620350a8b36650ad98665bdce1d5a"}}

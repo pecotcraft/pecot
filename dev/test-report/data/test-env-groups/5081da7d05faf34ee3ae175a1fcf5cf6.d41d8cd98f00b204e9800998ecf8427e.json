@@ -1,0 +1,1 @@
+{"id":"5081da7d05faf34ee3ae175a1fcf5cf6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateClosedHeadings（テンプレに無い ## / ### 見出し #1330） 閉じていないコードフェンスは、validateBodyStyle に任せる","name":"閉じていないコードフェンスは、validateBodyStyle に任せる","status":"passed","testResultsByEnv":{"default":"f878105233367add5ec2050715573a96"}}

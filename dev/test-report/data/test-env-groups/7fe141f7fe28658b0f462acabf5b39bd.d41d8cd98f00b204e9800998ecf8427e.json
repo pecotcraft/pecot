@@ -1,0 +1,1 @@
+{"id":"7fe141f7fe28658b0f462acabf5b39bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#stripLeadingHtmlComment（冒頭ガイドコメント除去 #958 F-02） 冒頭にコメントが存在しない本文は、変更しない","name":"冒頭にコメントが存在しない本文は、変更しない","status":"passed","testResultsByEnv":{"default":"10abf755edabafc6b8b239d5c824f48c"}}

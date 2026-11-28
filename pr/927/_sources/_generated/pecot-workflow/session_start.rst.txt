@@ -1,0 +1,8 @@
+:iface-id: PW-SESSION-START
+:iface-plugin: pecot-workflow
+:iface-kind: MCP
+
+Record Issue branch
+======================================
+
+.. iface-defs:: pecot-workflow PW-SESSION-START

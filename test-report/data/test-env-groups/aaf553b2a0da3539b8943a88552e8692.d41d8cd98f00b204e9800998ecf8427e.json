@@ -1,0 +1,1 @@
+{"id":"aaf553b2a0da3539b8943a88552e8692.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/rule-tester.test.ts#no-content-before-frontmatter valid frontmatter が先頭にあると、報告しない","name":"frontmatter が先頭にあると、報告しない","status":"passed","testResultsByEnv":{"default":"7c61aec02726fe54741335b4f87bbd69"}}

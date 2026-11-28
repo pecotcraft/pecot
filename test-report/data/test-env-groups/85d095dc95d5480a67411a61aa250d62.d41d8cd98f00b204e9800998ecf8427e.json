@@ -1,0 +1,1 @@
+{"id":"85d095dc95d5480a67411a61aa250d62.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx onlySlide の click が null のとき、走査したページの step を変換して成功を返す","name":"onlySlide の click が null のとき、走査したページの step を変換して成功を返す","status":"passed","testResultsByEnv":{"default":"a13c7adbc417389f9f4321983c7a9b24"}}

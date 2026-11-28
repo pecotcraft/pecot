@@ -1,0 +1,3 @@
+deleted: 2 archived items
+count: GraphQL points used: 30
+count: GraphQL points remaining: 4870

@@ -1,0 +1,1 @@
+{"id":"1a163d66a553e348b8b84c67337a1e26.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/issue-rules.test.ts#buildIssueTitle Issue の種類 task とタイトル [Task] タイトル に接頭辞を付けると、[Task] タイトル になる","name":"Issue の種類 task とタイトル [Task] タイトル に接頭辞を付けると、[Task] タイトル になる","status":"passed","testResultsByEnv":{"default":"bdc1038d23fea3acf0de6b0294f8fc90"}}

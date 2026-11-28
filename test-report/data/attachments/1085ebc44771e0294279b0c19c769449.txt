@@ -1,0 +1,1 @@
+WARN: interp: changelog.file に補間トークンを含むため確認対象外

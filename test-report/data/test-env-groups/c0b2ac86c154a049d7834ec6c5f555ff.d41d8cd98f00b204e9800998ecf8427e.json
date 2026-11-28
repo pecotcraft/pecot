@@ -1,0 +1,1 @@
+{"id":"c0b2ac86c154a049d7834ec6c5f555ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory 実体のパスを解決できない（権限がない）ときは、cwd のままにせず、パスと元の失敗を理由にして決められない","name":"実体のパスを解決できない（権限がない）ときは、cwd のままにせず、パスと元の失敗を理由にして決められない","status":"passed","testResultsByEnv":{"default":"60e1781823da1190a6a8d87bc5c1c876"}}

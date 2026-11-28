@@ -1,0 +1,1 @@
+{"id":"7f4da68a73f6652bb731689f43135345.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#stripLeadingHtmlComment（冒頭ガイドコメント除去 #958 F-02） 冒頭のコメントと、その前後の空行を除去する","name":"冒頭のコメントと、その前後の空行を除去する","status":"passed","testResultsByEnv":{"default":"678c6038ec9945d8e53e6f56d5b3a05f"}}

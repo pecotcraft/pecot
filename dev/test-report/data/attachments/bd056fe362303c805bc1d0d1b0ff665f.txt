@@ -1,0 +1,8 @@
+ERROR: release group に属さない nx project が、group に属するプラグイン project の
+       配下にあるため、その配下の変更が version plan の判定から漏れます。
+
+該当 project:
+  - pecot-workflow-cli
+
+1 プラグイン = 1 nx project の構成にしてください（プラグイン配下に別の project.json を
+置かず、タスクはプラグイン root の project.json に集約する）。

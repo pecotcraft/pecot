@@ -1,0 +1,1 @@
+{"id":"a36097ab323402c35e670fc34f9b14a8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_finish_reports_image_on_infra_failure","name":"基盤の失敗の場合は、Summary にイメージ名も書く","status":"passed","testResultsByEnv":{"default":"910f5b408357961b2f905687be70e211"}}

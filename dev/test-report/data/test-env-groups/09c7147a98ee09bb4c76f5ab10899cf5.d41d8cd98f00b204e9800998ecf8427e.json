@@ -1,0 +1,1 @@
+{"id":"09c7147a98ee09bb4c76f5ab10899cf5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository 見本のリポジトリ resources-unlisted を検証すると、検証エラーの行を過不足なく決まった順で返す","name":"見本のリポジトリ resources-unlisted を検証すると、検証エラーの行を過不足なく決まった順で返す","status":"passed","testResultsByEnv":{"default":"6f07ff3dd70b810f3bccbf41085de0f8"}}

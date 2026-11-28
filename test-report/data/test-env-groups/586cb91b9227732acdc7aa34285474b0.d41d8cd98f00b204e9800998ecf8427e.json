@@ -1,0 +1,1 @@
+{"id":"586cb91b9227732acdc7aa34285474b0.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_ci_result#test_checks_lint_failure","name":"checks (lint) のジョブが失敗すると、失敗で終わる","status":"passed","testResultsByEnv":{"default":"0ad3dd3fd4231d54d42cde99e463aa0f"}}

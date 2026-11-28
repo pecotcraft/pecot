@@ -1,0 +1,1 @@
+{"id":"993838bb89432013ec8a59804ca3b4df.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/tests/version.test.ts#loadVersionFromPluginJson ファイルが存在しなければ、undefined を返す","name":"ファイルが存在しなければ、undefined を返す","status":"passed","testResultsByEnv":{"default":"c0f19fb0e80019912a02472ee43ddb0b"}}

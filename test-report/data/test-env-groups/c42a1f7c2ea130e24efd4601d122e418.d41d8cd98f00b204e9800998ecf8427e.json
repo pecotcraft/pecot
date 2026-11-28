@@ -1,0 +1,1 @@
+{"id":"c42a1f7c2ea130e24efd4601d122e418.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/font-policy.test.ts#doesContainJapanese 空文字列（入力 \"\"）のとき、false を返す","name":"空文字列（入力 \"\"）のとき、false を返す","status":"passed","testResultsByEnv":{"default":"a271d7efa151e3848688c80d288c22ad"}}

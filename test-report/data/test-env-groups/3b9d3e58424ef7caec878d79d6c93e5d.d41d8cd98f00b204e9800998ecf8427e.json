@@ -1,0 +1,1 @@
+{"id":"3b9d3e58424ef7caec878d79d6c93e5d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_merge MCP の data PR に衝突があって admin を付けない と、kind が pr-state の失敗を返す","name":"PR に衝突があって admin を付けない と、kind が pr-state の失敗を返す","status":"passed","testResultsByEnv":{"default":"34754b5847ffad2f0ad3938aa0e393ad"}}

@@ -1,0 +1,1 @@
+{"id":"e17652a3b040a00d32f376ad3fa3a434.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#yamlStrings 複数行のプレーンスカラー のとき、引用符を含まない本文だけを切り出す","name":"複数行のプレーンスカラー のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"8625c988cb1b19a1eae806d8ee6d2191"}}

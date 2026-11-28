@@ -1,0 +1,2 @@
+  pkg (high)
+    - npm 報告の severity。advisory の参照先 ghost が報告に載っていない 

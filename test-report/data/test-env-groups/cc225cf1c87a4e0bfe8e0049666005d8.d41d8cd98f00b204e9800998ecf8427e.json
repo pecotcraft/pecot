@@ -1,0 +1,1 @@
+{"id":"cc225cf1c87a4e0bfe8e0049666005d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/release-nx-steps.test.ts#release-nx.md nx の起動は pnpm-lock.yaml の有無で切り替え、直接の npx nx は書かない","name":"nx の起動は pnpm-lock.yaml の有無で切り替え、直接の npx nx は書かない","status":"passed","testResultsByEnv":{"default":"52771dd6c97d414f5f2a3f2ea0ae7c55"}}

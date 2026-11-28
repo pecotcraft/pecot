@@ -1,0 +1,1 @@
+{"id":"428876766ebf9b7959b53f78701977d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/domain/tests/issue-surface.test.ts#extractIssueSurface OpenAPI の JSON の本文が存在しない 場合は、REST の項目を出力しない","name":"OpenAPI の JSON の本文が存在しない 場合は、REST の項目を出力しない","status":"passed","testResultsByEnv":{"default":"3077ac9b09d6bbc1ac259af6392369f8"}}

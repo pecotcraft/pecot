@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Issue acme/demo/7 is not on the project board\n  hint: add it to the board first with board_add with issue_ref: \"acme/demo/7\""
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"not-on-board\",\"detail\":\"Issue acme/demo/7 is not on the project board\\n  hint: add it to the board first with board_add with issue_ref: \\\"acme/demo/7\\\"\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "not-on-board",
+    "detail": "Issue acme/demo/7 is not on the project board\n  hint: add it to the board first with board_add with issue_ref: \"acme/demo/7\""
+  },
+  "isError": true
+}

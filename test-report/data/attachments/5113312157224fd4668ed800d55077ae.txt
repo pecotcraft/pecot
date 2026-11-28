@@ -1,0 +1,2 @@
+error: worktree config already exists
+  /tmp/pecot-cli-JpRNFg/workspaces/base/demo/.pecot/config/worktree-config.json

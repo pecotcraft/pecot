@@ -1,0 +1,1 @@
+{"id":"152175f551f4e6b037408c878ae1dcee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move .active が無くても、対象のリポを含む設定が 1 つならその設定で Status を更新する","name":".active が無くても、対象のリポを含む設定が 1 つならその設定で Status を更新する","status":"passed","testResultsByEnv":{"default":"95420571885dd46c9b603bdbe8c7eeb8"}}

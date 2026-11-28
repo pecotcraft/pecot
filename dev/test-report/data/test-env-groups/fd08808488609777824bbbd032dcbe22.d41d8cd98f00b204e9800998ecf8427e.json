@@ -1,0 +1,1 @@
+{"id":"fd08808488609777824bbbd032dcbe22.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-tools.test.ts#MCP のツール (stdio) 親プロセスへ `SIGTERM` を送っても、開発サーバーを終了させる","name":"親プロセスへ `SIGTERM` を送っても、開発サーバーを終了させる","status":"passed","testResultsByEnv":{"default":"69d9263514a993befb8ea2cee3d09244"}}

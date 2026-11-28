@@ -1,0 +1,1 @@
+{"id":"55e14a730596a7a2bba88eb2073de339.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh の .pecot/work 配下 work 配下でも、GIT_DIR が export されていても漏らさない","name":"work 配下でも、GIT_DIR が export されていても漏らさない","status":"passed","testResultsByEnv":{"default":"4c7792581e74a5fdbc47311bbbbb9682"}}

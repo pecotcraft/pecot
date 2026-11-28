@@ -1,0 +1,1 @@
+{"id":"9ff8c82ce4ddd92f9cccd09f9e83bf6c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues 進行の欄が Backlog の場合は、結果のコメントの本文に現在の進行の欄の値を含める","name":"進行の欄が Backlog の場合は、結果のコメントの本文に現在の進行の欄の値を含める","status":"passed","testResultsByEnv":{"default":"8b22d6134a11bcb0954d8704f111f19e"}}

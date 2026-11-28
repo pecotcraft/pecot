@@ -1,0 +1,1 @@
+{"id":"159345dcbae79d1659a23f8a2742b86e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/diff.test.ts#diffGenerated names の語の追加と read_only の削除があると、names のパスを含む差の行を返す","name":"names の語の追加と read_only の削除があると、names のパスを含む差の行を返す","status":"passed","testResultsByEnv":{"default":"f5f87485c6008af07d4fc70fd640db71"}}

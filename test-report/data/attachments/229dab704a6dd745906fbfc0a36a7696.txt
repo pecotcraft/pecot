@@ -1,0 +1,2 @@
+error: acme/demo has no packages configured
+  package can only be used in a monorepo

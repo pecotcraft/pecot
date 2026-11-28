@@ -1,0 +1,1 @@
+{"id":"33f7794c6c5e52099b359b1c1eb66f6f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board.test.ts#board_show pecot-lane repo が owner/repo の形でないと、GitHub へ何も要求せず invalid-input の失敗を返す","name":"repo が owner/repo の形でないと、GitHub へ何も要求せず invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"7f0e28d4992b289cc3f867e85ec55b77"}}

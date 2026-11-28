@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "s3_uri must not start with '-': --endpoint-url"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"s3_uri must not start with '-': --endpoint-url\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "s3_uri must not start with '-': --endpoint-url"
+  },
+  "isError": true
+}

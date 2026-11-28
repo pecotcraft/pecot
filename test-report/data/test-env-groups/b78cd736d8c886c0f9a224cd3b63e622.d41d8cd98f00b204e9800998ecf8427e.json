@@ -1,0 +1,1 @@
+{"id":"b78cd736d8c886c0f9a224cd3b63e622.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 一覧で前提が 1 件以上の Issue だけ、その件数で前提を読む","name":"一覧で前提が 1 件以上の Issue だけ、その件数で前提を読む","status":"passed","testResultsByEnv":{"default":"17082b2236242bb893f7e1ddfed1a8e6"}}

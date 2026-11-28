@@ -1,0 +1,1 @@
+{"id":"03409b64ec77ab6e46d05ae31166f3e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/config-dispatcher.test.ts#hooks-config.json によるスクリプトの無効化 gh issue create のチェックを設定で無効にすると、通す","name":"gh issue create のチェックを設定で無効にすると、通す","status":"passed","testResultsByEnv":{"default":"6d4005857f5fc6e63cbc16fd4dbdb7b3"}}

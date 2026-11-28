@@ -1,0 +1,1 @@
+{"id":"59964e51b4e4fcdb5a71064dfc39604a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry 明示指定のアニメーションのフラグを保存して復元すると、同じ値で往復する","name":"明示指定のアニメーションのフラグを保存して復元すると、同じ値で往復する","status":"passed","testResultsByEnv":{"default":"2199880294ff58b22a3051fdaaea0193"}}

@@ -1,0 +1,1 @@
+{"id":"b0ea5830649382c3bcb6b6c3ab930d7d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 未コミットの変更があると、スタックし直さずに終了コード 2 で終わる","name":"未コミットの変更があると、スタックし直さずに終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"2848a271501c98fbc0b9de8ad4323289"}}

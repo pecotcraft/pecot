@@ -1,0 +1,1 @@
+{"id":"6bb440c2d85741e2f14354c5b64f995a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-result.test.ts#isLabelWrittenByAutomation 最後の Bot の結果より後に、目印のないコメントがあっても、true を返す","name":"最後の Bot の結果より後に、目印のないコメントがあっても、true を返す","status":"passed","testResultsByEnv":{"default":"aefea3208895d03afdfe833d239e2878"}}

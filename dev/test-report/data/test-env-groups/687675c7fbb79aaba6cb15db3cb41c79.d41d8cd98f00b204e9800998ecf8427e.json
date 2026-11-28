@@ -1,0 +1,1 @@
+{"id":"687675c7fbb79aaba6cb15db3cb41c79.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: 両系統が失敗した場合 両系統の取得に失敗すると、実行時依存と Chromium のどちらも installed が false になる","name":"両系統の取得に失敗すると、実行時依存と Chromium のどちらも installed が false になる","status":"passed","testResultsByEnv":{"default":"63f280d477a5584e04ac8c9c4ede4012"}}

@@ -1,0 +1,1 @@
+{"id":"ac73b8b09fc08817cecb422c154a299b.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#nodeLinker の行の末尾にコメントがあっても、値だけを返す","name":"nodeLinker の行の末尾にコメントがあっても、値だけを返す","status":"passed","testResultsByEnv":{"default":"40df17b67136d5e375bd0268a462b1bb"}}

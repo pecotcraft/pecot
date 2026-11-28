@@ -1,0 +1,2 @@
+error: cannot read repository info from the remote URL
+  check it with: git remote -v

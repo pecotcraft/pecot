@@ -1,0 +1,1 @@
+{"id":"abcc0e6f46e069d70a539f7520e64dd9.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_24_pass_pecot_tools_plan","name":"pecot-tools の変更に、pecot-tools を宣言する version plan を同梱すると、成功する","status":"passed","testResultsByEnv":{"default":"bc485e93639747b78b8c8bc8ab9dd0cb"}}

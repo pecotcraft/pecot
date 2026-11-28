@@ -1,0 +1,1 @@
+{"id":"6fa8bee5d44609a4e29b55c5c190aab0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getAsyncMergeResult 403 が返ると、GitHubAPIError を発生させる","name":"403 が返ると、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"ebc61f06c5109d3b3af493afdf889ea6"}}

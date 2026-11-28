@@ -1,0 +1,1 @@
+{"id":"0f1ad9753b196813db753ce832496b4b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/drawio/screenshot.test.ts#capturePng / exportViaEmbed viewer で図を描き、渡した書体を読み込んでから撮影し、PNG に XML を埋め込む","name":"viewer で図を描き、渡した書体を読み込んでから撮影し、PNG に XML を埋め込む","status":"passed","testResultsByEnv":{"default":"9e694f19e16224950fa082a6436d1fc2"}}

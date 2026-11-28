@@ -1,0 +1,1 @@
+{"id":"8488bda4e04759069fa806dbbc47fa75.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getCurrentWorktreeName 番号の記録があれば、置き場所の親の名前に依らずそれを返す","name":"番号の記録があれば、置き場所の親の名前に依らずそれを返す","status":"passed","testResultsByEnv":{"default":"057ad3b7d6812f2ef98b5472e048325c"}}

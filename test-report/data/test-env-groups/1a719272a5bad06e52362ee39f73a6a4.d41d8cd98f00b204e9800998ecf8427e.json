@@ -1,0 +1,1 @@
+{"id":"1a719272a5bad06e52362ee39f73a6a4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/field-options.test.ts#findOptionByName 名前が大文字と小文字まで一致する選択肢を返し、一致しない場合は undefined を返す","name":"名前が大文字と小文字まで一致する選択肢を返し、一致しない場合は undefined を返す","status":"passed","testResultsByEnv":{"default":"37f71f7d3aee9ed180f90f8a95637cf5"}}

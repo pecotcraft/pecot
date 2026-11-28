@@ -1,0 +1,37 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "could not sync project config: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:38153/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"github-api\",\"detail\":\"could not sync project config: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:38153/graphql'\\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500\",\"fields\":[{\"name\":\"pecot-status\",\"change\":\"unchanged\",\"addedOptions\":[]},{\"name\":\"pecot-lane\",\"change\":\"skip\",\"addedOptions\":[]},{\"name\":\"Status\",\"change\":\"skip\",\"addedOptions\":[]}],\"warnings\":[\"field pecot-lane was not created because no lanes were given\\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "github-api",
+    "detail": "could not sync project config: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:38153/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500",
+    "fields": [
+      {
+        "name": "pecot-status",
+        "change": "unchanged",
+        "addedOptions": []
+      },
+      {
+        "name": "pecot-lane",
+        "change": "skip",
+        "addedOptions": []
+      },
+      {
+        "name": "Status",
+        "change": "skip",
+        "addedOptions": []
+      }
+    ],
+    "warnings": [
+      "field pecot-lane was not created because no lanes were given\n  choose the lanes (the areas of work, such as plugins, teams or services) and pass them with lanes"
+    ]
+  },
+  "isError": true
+}

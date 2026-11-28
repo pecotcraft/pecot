@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "assignees: an Issue takes up to 10 assignees (given 11)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"assignees\",\"code\":\"limit\",\"message\":\"an Issue takes up to 10 assignees (given 11)\"}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "assignees",
+        "code": "limit",
+        "message": "an Issue takes up to 10 assignees (given 11)"
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

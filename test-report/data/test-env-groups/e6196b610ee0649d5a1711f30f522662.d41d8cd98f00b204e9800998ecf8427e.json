@@ -1,0 +1,1 @@
+{"id":"e6196b610ee0649d5a1711f30f522662.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-start.test.ts#auto start ボードの読み書きの失敗 ボードへの追加が失敗すると、その理由で止まる","name":"ボードへの追加が失敗すると、その理由で止まる","status":"passed","testResultsByEnv":{"default":"990275b79f8cb32b12eab8b3b439005d"}}

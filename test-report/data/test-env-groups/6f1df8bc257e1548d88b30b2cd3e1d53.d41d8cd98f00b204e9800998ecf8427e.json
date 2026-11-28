@@ -1,0 +1,1 @@
+{"id":"6f1df8bc257e1548d88b30b2cd3e1d53.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show MCP の呼び出し ボードの取得で GitHub API がエラーを返すと、失敗を返す","name":"ボードの取得で GitHub API がエラーを返すと、失敗を返す","status":"passed","testResultsByEnv":{"default":"a51fac390dbbab3673be0636de7a7029"}}

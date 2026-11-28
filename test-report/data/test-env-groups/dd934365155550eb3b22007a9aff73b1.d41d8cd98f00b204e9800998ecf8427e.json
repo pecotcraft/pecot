@@ -1,0 +1,1 @@
+{"id":"dd934365155550eb3b22007a9aff73b1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/windows-path.test.ts#toPosixPath バックスラッシュで書いたドライブレターのパスは、マウントルートの配下のパスに変換する","name":"バックスラッシュで書いたドライブレターのパスは、マウントルートの配下のパスに変換する","status":"passed","testResultsByEnv":{"default":"794fc665fb9bdd1a02fd2834145a39d3"}}

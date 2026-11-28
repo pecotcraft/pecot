@@ -1,0 +1,1 @@
+{"id":"3c80845d1fe4dcf8cfd3ea64b4c897b3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_env_inputs#test_scan_keeps_only_valid_names_in_interface_env","name":"interface-env のコメントからは、変数名の形をした語だけを取り出す","status":"passed","testResultsByEnv":{"default":"07a2279bf5439cb208128ce7c66c557a"}}

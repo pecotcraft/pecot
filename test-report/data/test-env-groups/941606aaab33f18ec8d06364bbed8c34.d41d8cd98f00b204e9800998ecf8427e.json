@@ -1,0 +1,1 @@
+{"id":"941606aaab33f18ec8d06364bbed8c34.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/tests/awscli.test.ts#runAwscli killRunningAwscli を呼ぶと、実行中の awscli のプロセスに SIGTERM を送る","name":"killRunningAwscli を呼ぶと、実行中の awscli のプロセスに SIGTERM を送る","status":"passed","testResultsByEnv":{"default":"3d80932879989e15d05edc89fb946bc4"}}

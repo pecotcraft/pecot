@@ -1,0 +1,1 @@
+{"id":"a3afa73ac0bd5b84cd1e295decfac060.734e712c7945143e63157f4702d1ad4d","fullName":".githooks.tests.test_pre_commit_config_wiring#test_entry_wrapped_with_timing","name":"hook check-text-push の entry は、with-timing.sh で元のスクリプトを包んでいる","status":"passed","testResultsByEnv":{"default":"5ba522e9a4ecab67563da06016dafd67"}}

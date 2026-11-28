@@ -1,0 +1,1 @@
+{"id":"4c794cea630e08c58ca89fe7aa695bde.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#syncProjectConfig 止まるとき 同じタイトルのプロジェクトが存在しない 場合は、エラーの行を表示して止める","name":"同じタイトルのプロジェクトが存在しない 場合は、エラーの行を表示して止める","status":"passed","testResultsByEnv":{"default":"eb32870c6b1009aa21b251fb3a7ebe23"}}

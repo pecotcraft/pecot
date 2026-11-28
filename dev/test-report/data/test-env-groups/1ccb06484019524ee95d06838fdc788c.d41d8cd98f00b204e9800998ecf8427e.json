@@ -1,0 +1,1 @@
+{"id":"1ccb06484019524ee95d06838fdc788c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#closeIssue GHES のクライアントでも、token 認証で同じパスに PATCH を送信する","name":"GHES のクライアントでも、token 認証で同じパスに PATCH を送信する","status":"passed","testResultsByEnv":{"default":"1e26a933c4d160d0c346f880a9de744c"}}

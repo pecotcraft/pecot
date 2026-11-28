@@ -1,0 +1,1 @@
+{"id":"0c8245513053c312363877a873402aa0.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_server_is_stopped_by_trap_when_script_is_terminated","name":"stage の実行中にスクリプトが SIGTERM を受けた場合も、trap でサーバを停止する","status":"passed","testResultsByEnv":{"default":"61f7183aed264a717d5105f32809ace3"}}

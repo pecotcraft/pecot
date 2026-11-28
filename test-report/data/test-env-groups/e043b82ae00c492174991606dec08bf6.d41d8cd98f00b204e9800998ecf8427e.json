@@ -1,0 +1,1 @@
+{"id":"e043b82ae00c492174991606dec08bf6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-handoff の手順 Step は 1〜3 で、PR と Issue を読む・merge-diff・precede-notify の順に並ぶ","name":"Step は 1〜3 で、PR と Issue を読む・merge-diff・precede-notify の順に並ぶ","status":"passed","testResultsByEnv":{"default":"fc6c040fd3b5896b14e5889305701e32"}}

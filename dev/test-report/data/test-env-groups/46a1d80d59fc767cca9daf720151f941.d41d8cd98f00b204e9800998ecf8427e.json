@@ -1,0 +1,1 @@
+{"id":"46a1d80d59fc767cca9daf720151f941.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-unknown-props.test.ts#props が文字列（不正）だと、空配列を返す","name":"props が文字列（不正）だと、空配列を返す","status":"passed","testResultsByEnv":{"default":"ef36926a448f4a48bea6a67cdcab147e"}}

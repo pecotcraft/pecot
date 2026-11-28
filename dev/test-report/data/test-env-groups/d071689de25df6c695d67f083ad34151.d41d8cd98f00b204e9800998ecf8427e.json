@@ -1,0 +1,1 @@
+{"id":"d071689de25df6c695d67f083ad34151.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/readiness.test.ts#toIssueFacts ボードの列・ラベル・種別と、Issue 自身の状態を、判定用の値に変換する","name":"ボードの列・ラベル・種別と、Issue 自身の状態を、判定用の値に変換する","status":"passed","testResultsByEnv":{"default":"1dfc1b392c2c5987f3481b7f22dee462"}}

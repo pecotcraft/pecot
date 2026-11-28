@@ -1,0 +1,1 @@
+{"id":"1a05cf1a11993c102a97c98d17ba4967.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync 一覧の新しいクエリがスキーマの失敗になると、古いクエリで読み直し、前提を読まずに終了コード 0 で終わる","name":"一覧の新しいクエリがスキーマの失敗になると、古いクエリで読み直し、前提を読まずに終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"04b698a3ac4a7935df962613c7cbfae9"}}

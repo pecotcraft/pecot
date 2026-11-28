@@ -1,0 +1,1 @@
+{"id":"4a46c3bb1393e40d29664621da7481e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 等幅の並び 書体の並びに monospace を含むセルは、書体の判定を省略する","name":"書体の並びに monospace を含むセルは、書体の判定を省略する","status":"passed","testResultsByEnv":{"default":"af2020c5107cba68d2108a1d7c6f74bb"}}

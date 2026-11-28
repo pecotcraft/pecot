@@ -1,0 +1,1 @@
+{"id":"8c738eaecb9b1690d62e8a7b4c770476.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-gate.test.ts#auto gate workflow_run のイベント ブランチの先頭でない commit ブランチの CI なら、何も書かず、proceed を偽にする","name":"ブランチの先頭でない commit ブランチの CI なら、何も書かず、proceed を偽にする","status":"passed","testResultsByEnv":{"default":"06912248ce951c68c9ecc3e8b85f972a"}}

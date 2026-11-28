@@ -1,0 +1,3 @@
+==> bash /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_file_stopped_before_finis1/suite/sample.test.sh
+PASS: 前
+BROKEN: suite/sample.test.sh: bt_finish に届かず、終了コード 1 で終わった

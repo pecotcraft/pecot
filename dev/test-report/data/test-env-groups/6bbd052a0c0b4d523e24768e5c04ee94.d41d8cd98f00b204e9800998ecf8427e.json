@@ -1,0 +1,1 @@
+{"id":"6bbd052a0c0b4d523e24768e5c04ee94.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine ノードに対する appendChildXml に、不正な断片を渡すと、例外が発生する","name":"ノードに対する appendChildXml に、不正な断片を渡すと、例外が発生する","status":"passed","testResultsByEnv":{"default":"5d31fee5afdd33782d23f067f0c64f10"}}

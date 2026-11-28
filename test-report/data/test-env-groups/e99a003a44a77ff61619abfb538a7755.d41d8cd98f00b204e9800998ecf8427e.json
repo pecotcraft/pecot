@@ -1,0 +1,1 @@
+{"id":"e99a003a44a77ff61619abfb538a7755.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/version-range.test.ts#doesRangeAllowMajor: 範囲表記 ^9.0.0 || ^10.0.0 のように、キャレットを OR で並べた範囲も許可する","name":"^9.0.0 || ^10.0.0 のように、キャレットを OR で並べた範囲も許可する","status":"passed","testResultsByEnv":{"default":"7b618d697c19f78360b9273b7593665d"}}

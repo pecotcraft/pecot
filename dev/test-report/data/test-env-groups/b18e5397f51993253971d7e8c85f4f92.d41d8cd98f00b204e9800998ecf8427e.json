@@ -1,0 +1,1 @@
+{"id":"b18e5397f51993253971d7e8c85f4f92.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_entry_point_linter#test_valid_entry_point_passes","name":"正常なエントリポイントを渡すと、PASS を出力して成功で終わる","status":"passed","testResultsByEnv":{"default":"2736d5db26fe518d526d6b997bc89e80"}}

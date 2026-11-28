@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "skipped: symlink /tmp/pecot-cli-I7Q7hv/workspaces/wt1/demo/CLAUDE.local.md (a real file exists: /tmp/pecot-cli-I7Q7hv/workspaces/wt1/demo/CLAUDE.local.md)"
+    },
+    {
+      "type": "text",
+      "text": "{\"links\":[{\"path\":\"/tmp/pecot-cli-I7Q7hv/workspaces/wt1/demo/CLAUDE.local.md\",\"destination\":\"/tmp/pecot-cli-I7Q7hv/workspaces/base/demo/CLAUDE.local.md\",\"change\":\"skip\",\"reason\":\"a real file exists: /tmp/pecot-cli-I7Q7hv/workspaces/wt1/demo/CLAUDE.local.md\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "links": [
+      {
+        "path": "/tmp/pecot-cli-I7Q7hv/workspaces/wt1/demo/CLAUDE.local.md",
+        "destination": "/tmp/pecot-cli-I7Q7hv/workspaces/base/demo/CLAUDE.local.md",
+        "change": "skip",
+        "reason": "a real file exists: /tmp/pecot-cli-I7Q7hv/workspaces/wt1/demo/CLAUDE.local.md"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"caa205946f94c00cd4093c5880d2668d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/input-acceptance.test.ts#input-acceptance (全ツールの入力の受理・拒否) [modern] aws_cloudwatch_get_metric_statistics の region region の書式に合わない値を渡すと、拒否する","name":"region の書式に合わない値を渡すと、拒否する","status":"passed","testResultsByEnv":{"default":"d1affa61b343a5e4e3e20a183b33a24a"}}

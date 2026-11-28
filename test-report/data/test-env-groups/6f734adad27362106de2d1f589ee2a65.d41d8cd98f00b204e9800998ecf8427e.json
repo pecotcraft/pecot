@@ -1,0 +1,1 @@
+{"id":"6f734adad27362106de2d1f589ee2a65.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（file） 依存を宣言しているのに node_modules が存在しない場合は、install の案内で失敗する","name":"依存を宣言しているのに node_modules が存在しない場合は、install の案内で失敗する","status":"passed","testResultsByEnv":{"default":"97ff82b24953321a695daa15d32b6a24"}}

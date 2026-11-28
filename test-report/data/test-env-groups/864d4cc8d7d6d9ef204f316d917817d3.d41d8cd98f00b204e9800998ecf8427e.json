@@ -1,0 +1,1 @@
+{"id":"864d4cc8d7d6d9ef204f316d917817d3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check MCP の data <remote>/<develop_branch> が無いと、kind が git-unresolved の失敗を返す","name":"<remote>/<develop_branch> が無いと、kind が git-unresolved の失敗を返す","status":"passed","testResultsByEnv":{"default":"c50f3d88e35d599586942168c6a71694"}}

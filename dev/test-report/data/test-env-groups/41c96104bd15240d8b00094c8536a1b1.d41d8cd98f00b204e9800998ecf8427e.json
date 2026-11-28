@@ -1,0 +1,1 @@
+{"id":"41c96104bd15240d8b00094c8536a1b1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_lanes#test_every_release_unit_has_a_lane_in_the_report","name":"リリース版の単位は、どれも report-lanes.json に、results を持つレーンがある","status":"passed","testResultsByEnv":{"default":"d112d9ea03cace89bf3a5caca422ce20"}}

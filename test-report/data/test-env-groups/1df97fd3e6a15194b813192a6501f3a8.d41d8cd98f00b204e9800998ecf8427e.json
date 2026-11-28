@@ -1,0 +1,1 @@
+{"id":"1df97fd3e6a15194b813192a6501f3a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-setup.test.ts#runSetupCommand コマンドが成功した場合は、標準出力を結果に含める","name":"コマンドが成功した場合は、標準出力を結果に含める","status":"passed","testResultsByEnv":{"default":"7d90c78a2b937a30452e5758c59bfe91"}}

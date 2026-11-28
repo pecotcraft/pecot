@@ -1,0 +1,1 @@
+{"id":"6738324ff156e982bfd8df70d1b19e11.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-lint.test.ts#テーマの宣言で動く lint (実 eslint) references に宣言されていないプロパティがあると、no-unknown-props の違反を報告する","name":"references に宣言されていないプロパティがあると、no-unknown-props の違反を報告する","status":"passed","testResultsByEnv":{"default":"de24f9c9eeb54e11a3282e6bf2be1f16"}}

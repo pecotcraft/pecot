@@ -1,0 +1,1 @@
+{"id":"c4611bcfa154ab0b57d8e19a350324b6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-check.test.ts#issue_check 前提 Epic に前提を付けると、blocked_by の problem にする","name":"Epic に前提を付けると、blocked_by の problem にする","status":"passed","testResultsByEnv":{"default":"a97e697b45b485fd16edb47f52dd3d34"}}

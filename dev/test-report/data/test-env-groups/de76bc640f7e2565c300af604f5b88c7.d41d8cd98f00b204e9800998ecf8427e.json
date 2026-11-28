@@ -1,0 +1,1 @@
+{"id":"de76bc640f7e2565c300af604f5b88c7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference owner が不正な場合は、検証エラーの文を参照エラーに包んで例外を発生させる","name":"owner が不正な場合は、検証エラーの文を参照エラーに包んで例外を発生させる","status":"passed","testResultsByEnv":{"default":"26421583a70be42272d46b057d915714"}}

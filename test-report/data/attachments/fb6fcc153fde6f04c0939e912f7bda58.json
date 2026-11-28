@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "unchanged: current branch main"
+    },
+    {
+      "type": "text",
+      "text": "{\"closedIssues\":[],\"skippedIssues\":[{\"number\":12,\"reason\":\"failed\"}],\"deletedBranches\":[],\"readinessChanges\":[],\"restack\":[],\"currentBranch\":\"main\",\"warnings\":[\"reading Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:43861/graphql'\\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500; not closed\",\"deleting local branch feat/demo/12 failed: Command ['git', 'branch', '-D', 'feat/demo/12'] returned non-zero exit status 1.\"]}"
+    }
+  ],
+  "structuredContent": {
+    "closedIssues": [],
+    "skippedIssues": [
+      {
+        "number": 12,
+        "reason": "failed"
+      }
+    ],
+    "deletedBranches": [],
+    "readinessChanges": [],
+    "restack": [],
+    "currentBranch": "main",
+    "warnings": [
+      "reading Issue #12 failed: GraphQL query error: Server error '500 Internal Server Error' for url 'http://127.0.0.1:43861/graphql'\n  For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500; not closed",
+      "deleting local branch feat/demo/12 failed: Command ['git', 'branch', '-D', 'feat/demo/12'] returned non-zero exit status 1."
+    ]
+  }
+}

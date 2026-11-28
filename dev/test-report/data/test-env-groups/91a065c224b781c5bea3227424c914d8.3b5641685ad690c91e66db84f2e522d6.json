@@ -1,0 +1,1 @@
+{"id":"91a065c224b781c5bea3227424c914d8.3b5641685ad690c91e66db84f2e522d6","fullName":".githooks.tests.test_publish_npm_workflow#test_dev_targets_maps_changed_files_to_plugins","name":"変更ファイルが ['plugins/pecot-visual/SKILL.md'] のとき、`dev-targets.mjs` は対象のプラグインを ['pecot-visual'] に決める","status":"passed","testResultsByEnv":{"default":"18eb9eb32322579be209da31a29a046a"}}

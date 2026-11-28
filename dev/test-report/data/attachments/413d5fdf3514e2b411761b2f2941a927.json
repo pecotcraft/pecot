@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "params.tag: the release of v0.2.0 already exists (https://ghes.example.com/acme/demo/releases/tag/v0.2.0); release a new version"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"params.tag\",\"code\":\"tag-exists\",\"message\":\"the release of v0.2.0 already exists (https://ghes.example.com/acme/demo/releases/tag/v0.2.0); release a new version\"}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "params.tag",
+        "code": "tag-exists",
+        "message": "the release of v0.2.0 already exists (https://ghes.example.com/acme/demo/releases/tag/v0.2.0); release a new version"
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  }
+}

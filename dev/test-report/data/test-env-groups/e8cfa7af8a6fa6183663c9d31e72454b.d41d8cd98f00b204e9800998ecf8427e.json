@@ -1,0 +1,1 @@
+{"id":"e8cfa7af8a6fa6183663c9d31e72454b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: chromium 取得が失敗したら isError で原因と復旧手順を返す","name":"取得が失敗したら isError で原因と復旧手順を返す","status":"passed","testResultsByEnv":{"default":"a4593fce7e38dab2bfe43a7c3104d9f0"}}

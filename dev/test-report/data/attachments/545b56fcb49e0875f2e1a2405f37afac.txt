@@ -1,0 +1,1 @@
+ERROR: --out-dir はリポジトリ (/workspaces/base/pecot) の外を指定してください: /workspaces/base/pecot/plugins/pecot-workflow/scripts/release/.f02-outdir-check-4528

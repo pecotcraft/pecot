@@ -1,0 +1,1 @@
+{"id":"196587c673658e4382f5d63cd55d53ce.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check MCP の data CHANGELOG に渡した版の節が存在しない と、kind が preflight-failed の失敗を返す","name":"CHANGELOG に渡した版の節が存在しない と、kind が preflight-failed の失敗を返す","status":"passed","testResultsByEnv":{"default":"f4ca67a113e94bfe83c4369010e0ad0f"}}

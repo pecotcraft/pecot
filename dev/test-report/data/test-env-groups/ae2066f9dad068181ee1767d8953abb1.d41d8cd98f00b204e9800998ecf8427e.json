@@ -1,0 +1,1 @@
+{"id":"ae2066f9dad068181ee1767d8953abb1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/chromium.test.ts#isChromiumInstalled 取得完了のマーカーが存在する場合は、取得済みと判定する","name":"取得完了のマーカーが存在する場合は、取得済みと判定する","status":"passed","testResultsByEnv":{"default":"208825870aa7dda76b68fa2c5999f977"}}

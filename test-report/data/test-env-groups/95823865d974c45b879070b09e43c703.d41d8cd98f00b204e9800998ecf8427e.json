@@ -1,0 +1,1 @@
+{"id":"95823865d974c45b879070b09e43c703.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/npm-cache-opt-in.test.sh#publish NX_DRY_RUN + opt-in: 指定ディレクトリを npm cache にする","name":"publish NX_DRY_RUN + opt-in: 指定ディレクトリを npm cache にする","status":"passed","testResultsByEnv":{"default":"2fb4bf18378e96ba1a2c8175edcf0c17"}}

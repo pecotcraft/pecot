@@ -1,0 +1,1 @@
+{"id":"46fbe43230aa3602a95f5465eb86cafc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: チェックボックス記法（#962） 引用や入れ子のリストの中のタスクリストも、書式のエラーにする: >- [ ] w","name":"引用や入れ子のリストの中のタスクリストも、書式のエラーにする: >- [ ] w","status":"passed","testResultsByEnv":{"default":"4c280c7e079ecd3f6d40c56d79328512"}}

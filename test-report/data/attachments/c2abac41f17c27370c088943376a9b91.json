@@ -1,0 +1,280 @@
+{
+  "name": "aws_lambda_get_function_configuration",
+  "title": "Get Lambda function config",
+  "description": "Returns the configuration of one function (runtime, handler, environment variables, timeout, etc.)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "function_name": {
+        "type": "string",
+        "description": "Function name, partial ARN, or full ARN"
+      },
+      "qualifier": {
+        "description": "Version number or alias name. If omitted, $LATEST",
+        "type": "string"
+      },
+      "profile": {
+        "description": "AWS profile name. If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[\\w.-]+$"
+      },
+      "region": {
+        "description": "AWS region (e.g. ap-northeast-1). If omitted, the awscli default resolution applies",
+        "type": "string",
+        "pattern": "^[a-z]{2,4}(?:-[a-z]+)+-\\d$"
+      }
+    },
+    "required": [
+      "function_name"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "FunctionName": {
+        "type": "string",
+        "description": "Function name (Lambda GetFunctionConfiguration response)"
+      },
+      "FunctionArn": {
+        "type": "string",
+        "description": "Function ARN (Lambda GetFunctionConfiguration response)"
+      },
+      "Runtime": {
+        "type": "string",
+        "description": "Runtime identifier (Lambda GetFunctionConfiguration response)"
+      },
+      "Role": {
+        "type": "string",
+        "description": "Execution role ARN (Lambda GetFunctionConfiguration response)"
+      },
+      "Handler": {
+        "type": "string",
+        "description": "Handler that Lambda calls (Lambda GetFunctionConfiguration response)"
+      },
+      "CodeSize": {
+        "type": "number",
+        "description": "Deployment package size in bytes (Lambda GetFunctionConfiguration response)"
+      },
+      "Description": {
+        "type": "string",
+        "description": "Function description (Lambda GetFunctionConfiguration response)"
+      },
+      "Timeout": {
+        "type": "number",
+        "description": "Timeout in seconds (Lambda GetFunctionConfiguration response)"
+      },
+      "MemorySize": {
+        "type": "number",
+        "description": "Memory in MB (Lambda GetFunctionConfiguration response)"
+      },
+      "LastModified": {
+        "type": "string",
+        "description": "Last update time (ISO 8601) (Lambda GetFunctionConfiguration response)"
+      },
+      "CodeSha256": {
+        "type": "string",
+        "description": "SHA256 hash of the deployment package (Lambda GetFunctionConfiguration response)"
+      },
+      "Version": {
+        "type": "string",
+        "description": "Function version (Lambda GetFunctionConfiguration response)"
+      },
+      "VpcConfig": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "VpcConfigResponse object (Lambda GetFunctionConfiguration response)"
+      },
+      "DeadLetterConfig": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "DeadLetterConfig object (Lambda GetFunctionConfiguration response)"
+      },
+      "Environment": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "EnvironmentResponse object with the environment variables (Lambda GetFunctionConfiguration response)"
+      },
+      "KMSKeyArn": {
+        "type": "string",
+        "description": "KMS key ARN (Lambda GetFunctionConfiguration response)"
+      },
+      "TracingConfig": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "TracingConfigResponse object (Lambda GetFunctionConfiguration response)"
+      },
+      "MasterArn": {
+        "type": "string",
+        "description": "ARN of the main function of a Lambda@Edge function (Lambda GetFunctionConfiguration response)"
+      },
+      "RevisionId": {
+        "type": "string",
+        "description": "Latest revision ID (Lambda GetFunctionConfiguration response)"
+      },
+      "Layers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {}
+        },
+        "description": "Layer objects (Lambda GetFunctionConfiguration response)"
+      },
+      "State": {
+        "type": "string",
+        "description": "Current state of the function (Lambda GetFunctionConfiguration response)"
+      },
+      "StateReason": {
+        "type": "string",
+        "description": "Reason for the current state (Lambda GetFunctionConfiguration response)"
+      },
+      "StateReasonCode": {
+        "type": "string",
+        "description": "Reason code for the current state (Lambda GetFunctionConfiguration response)"
+      },
+      "LastUpdateStatus": {
+        "type": "string",
+        "description": "Status of the last update (Lambda GetFunctionConfiguration response)"
+      },
+      "LastUpdateStatusReason": {
+        "type": "string",
+        "description": "Reason for the last update status (Lambda GetFunctionConfiguration response)"
+      },
+      "LastUpdateStatusReasonCode": {
+        "type": "string",
+        "description": "Reason code for the last update status (Lambda GetFunctionConfiguration response)"
+      },
+      "FileSystemConfigs": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {}
+        },
+        "description": "FileSystemConfig objects (Lambda GetFunctionConfiguration response)"
+      },
+      "SigningProfileVersionArn": {
+        "type": "string",
+        "description": "Signing profile version ARN (Lambda GetFunctionConfiguration response)"
+      },
+      "SigningJobArn": {
+        "type": "string",
+        "description": "Signing job ARN (Lambda GetFunctionConfiguration response)"
+      },
+      "PackageType": {
+        "type": "string",
+        "description": "Deployment package type (Zip or Image) (Lambda GetFunctionConfiguration response)"
+      },
+      "ImageConfigResponse": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "ImageConfigResponse object (Lambda GetFunctionConfiguration response)"
+      },
+      "Architectures": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Instruction set architectures (Lambda GetFunctionConfiguration response)"
+      },
+      "EphemeralStorage": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "EphemeralStorage object (Lambda GetFunctionConfiguration response)"
+      },
+      "SnapStart": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "SnapStartResponse object (Lambda GetFunctionConfiguration response)"
+      },
+      "RuntimeVersionConfig": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "RuntimeVersionConfig object (Lambda GetFunctionConfiguration response)"
+      },
+      "LoggingConfig": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "LoggingConfig object (Lambda GetFunctionConfiguration response)"
+      },
+      "TenancyConfig": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "TenancyConfig object (Lambda GetFunctionConfiguration response)"
+      },
+      "CapacityProviderConfig": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "CapacityProviderConfig object (Lambda GetFunctionConfiguration response)"
+      },
+      "ConfigSha256": {
+        "type": "string",
+        "description": "SHA256 hash of the function configuration (Lambda GetFunctionConfiguration response)"
+      },
+      "DurableConfig": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "DurableConfig object (Lambda GetFunctionConfiguration response)"
+      },
+      "RuntimeConfig": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": {},
+        "description": "FunctionRuntimeConfig object (Lambda GetFunctionConfiguration response)"
+      },
+      "lines": {
+        "description": "Output split into lines (success only). Returned when the output is not a JSON object: commands without JSON output, empty output, or warnings only",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "output": {
+        "description": "Beginning of the redacted output when it exceeds the limit (success only, together with truncated)",
+        "type": "string"
+      },
+      "truncated": {
+        "description": "true when the output exceeded the limit and output holds only its beginning (success only)",
+        "type": "boolean"
+      },
+      "kind": {
+        "description": "Failure kind (failure only): not-allowed / invalid-input = rejected before running, timeout, awscli-missing, and the awscli failure kinds",
+        "type": "string"
+      },
+      "detail": {
+        "description": "Full text of the failure and how to recover (failure only)",
+        "type": "string"
+      },
+      "log": {
+        "description": "Redacted awscli output, only the beginning when it exceeds the limit (failure only)",
+        "type": "string"
+      },
+      "warnings": {
+        "description": "Warnings raised during the run, such as top-level keys of the awscli JSON output that the tool does not declare and dropped (omitted when there are none)",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "openWorldHint": true
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"ab4fe0ab5346fd3bf52088712c8ebd82.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites 必須の値が存在しない場合は、前提の取得で GitHubAPIError が発生する","name":"必須の値が存在しない場合は、前提の取得で GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"5b41e3fc106f53e7eea962e0ce9ee426"}}

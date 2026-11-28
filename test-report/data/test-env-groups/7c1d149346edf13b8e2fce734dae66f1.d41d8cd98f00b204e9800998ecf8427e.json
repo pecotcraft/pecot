@@ -1,0 +1,1 @@
+{"id":"7c1d149346edf13b8e2fce734dae66f1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_link リンクに成功すると、設定ファイルにリポジトリを足す","name":"リンクに成功すると、設定ファイルにリポジトリを足す","status":"passed","testResultsByEnv":{"default":"786c8ea5092e238222cb0298e5015f0b"}}

@@ -1,0 +1,1 @@
+{"id":"e73cd6d38b255fe7334787aa2c28f720.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#describeBaseStop 親 PR が開いているのに開発ブランチを渡した場合は、使うべき base を示す","name":"親 PR が開いているのに開発ブランチを渡した場合は、使うべき base を示す","status":"passed","testResultsByEnv":{"default":"9f9106669d06cd9b108563ecd9f7f09b"}}

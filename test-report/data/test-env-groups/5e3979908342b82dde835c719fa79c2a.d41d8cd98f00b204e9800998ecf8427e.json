@@ -1,0 +1,1 @@
+{"id":"5e3979908342b82dde835c719fa79c2a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#executeAllowlisted 実際に採取した失敗のフィクスチャ invalid-token は、auth-expired と判定する","name":"実際に採取した失敗のフィクスチャ invalid-token は、auth-expired と判定する","status":"passed","testResultsByEnv":{"default":"cb9aa050a32799dbbfe43e2f5fa73829"}}

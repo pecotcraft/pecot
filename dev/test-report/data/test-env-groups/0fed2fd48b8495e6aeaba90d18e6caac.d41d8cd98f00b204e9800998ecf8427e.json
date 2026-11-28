@@ -1,0 +1,1 @@
+{"id":"0fed2fd48b8495e6aeaba90d18e6caac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/failure.test.ts#exitCodeOfFailure 失敗の原因の種類を、io.failureKind に渡す","name":"失敗の原因の種類を、io.failureKind に渡す","status":"passed","testResultsByEnv":{"default":"780a168445092bcc7fc806860b13ea0a"}}

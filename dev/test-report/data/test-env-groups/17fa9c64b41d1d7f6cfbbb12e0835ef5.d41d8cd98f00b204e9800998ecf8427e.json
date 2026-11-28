@@ -1,0 +1,1 @@
+{"id":"17fa9c64b41d1d7f6cfbbb12e0835ef5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） origin の owner が不正な名前でも、WorktreeRuntimeError を投げる","name":"origin の owner が不正な名前でも、WorktreeRuntimeError を投げる","status":"passed","testResultsByEnv":{"default":"bad21b4bc1addf0f10b357a175f809a8"}}

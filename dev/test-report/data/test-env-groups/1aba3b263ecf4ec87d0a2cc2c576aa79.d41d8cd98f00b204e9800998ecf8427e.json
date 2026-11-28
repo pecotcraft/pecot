@@ -1,0 +1,1 @@
+{"id":"1aba3b263ecf4ec87d0a2cc2c576aa79.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#loadPlugin Processor を持たないモジュールを読み込むと、TypeError を投げる","name":"Processor を持たないモジュールを読み込むと、TypeError を投げる","status":"passed","testResultsByEnv":{"default":"28cab01f73b646dab20e59b6207c8f20"}}

@@ -1,0 +1,1 @@
+{"id":"9804a8f4867865378b42d6893eee16ca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/url.test.ts#generateDrawioViewerUrl 生成した URL には viewbox のクエリを含めず、lightbox の自動縮小に任せる","name":"生成した URL には viewbox のクエリを含めず、lightbox の自動縮小に任せる","status":"passed","testResultsByEnv":{"default":"72fa66f27e00a825048d877247d47653"}}

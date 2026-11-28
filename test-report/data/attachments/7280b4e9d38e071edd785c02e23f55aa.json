@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "catalog must not contain , = { }: x,y"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"catalog must not contain , = { }: x,y\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "catalog must not contain , = { }: x,y"
+  },
+  "isError": true
+}

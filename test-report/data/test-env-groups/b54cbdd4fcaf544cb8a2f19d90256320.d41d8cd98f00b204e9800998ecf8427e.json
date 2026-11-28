@@ -1,0 +1,1 @@
+{"id":"b54cbdd4fcaf544cb8a2f19d90256320.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/changelog-file.test.ts#readLatestVersionFromFile / extractReleaseNotesFromFile ファイルからリリースノートを抽出する","name":"ファイルからリリースノートを抽出する","status":"passed","testResultsByEnv":{"default":"9ce896a74be3f3b080bfe371d3640395"}}

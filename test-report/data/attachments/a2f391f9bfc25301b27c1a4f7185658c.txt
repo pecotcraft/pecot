@@ -1,0 +1,3 @@
+created: branch feat/7 in acme/demo from main
+set: Issue acme/demo/7 status active
+warning: could not record the work target: [Errno 17] File exists: '/tmp/pecot-repo-nftOo4/.pecot/state'

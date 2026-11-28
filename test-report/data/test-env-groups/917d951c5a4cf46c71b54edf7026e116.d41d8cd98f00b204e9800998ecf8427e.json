@@ -1,0 +1,1 @@
+{"id":"917d951c5a4cf46c71b54edf7026e116.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: シェル 入れ子のコマンド置換の中に同じ引用符があると、文字列の境界は誤るが、位置は元のファイルのまま返す","name":"入れ子のコマンド置換の中に同じ引用符があると、文字列の境界は誤るが、位置は元のファイルのまま返す","status":"passed","testResultsByEnv":{"default":"60cc13eba988b2b225472f8306d3afa7"}}

@@ -1,0 +1,1 @@
+{"id":"6d4edd82ed99bf71cc82c39c630e8c59.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#XML 名前空間を含む drawio XML の扱い 宣言されていない名前空間の接頭辞を含む XML は、読み取りに失敗したものとして警告を返さない","name":"宣言されていない名前空間の接頭辞を含む XML は、読み取りに失敗したものとして警告を返さない","status":"passed","testResultsByEnv":{"default":"c81c9100bd12f906050fc653449a3f1e"}}

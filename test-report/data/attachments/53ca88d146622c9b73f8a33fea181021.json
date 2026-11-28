@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool drawio_export: pdf: Invalid input: expected boolean, received number"
+    }
+  ],
+  "isError": true
+}

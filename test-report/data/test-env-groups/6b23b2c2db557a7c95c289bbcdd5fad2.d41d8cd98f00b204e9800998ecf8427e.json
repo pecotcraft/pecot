@@ -1,0 +1,1 @@
+{"id":"6b23b2c2db557a7c95c289bbcdd5fad2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/english-only.test.ts#判定器 ソースが const a = 'full-width （）' のとき、日本語を含むリテラルを 1 件見つける","name":"ソースが const a = 'full-width （）' のとき、日本語を含むリテラルを 1 件見つける","status":"passed","testResultsByEnv":{"default":"f540acb02ab8a16a43a508c98534b8c3"}}

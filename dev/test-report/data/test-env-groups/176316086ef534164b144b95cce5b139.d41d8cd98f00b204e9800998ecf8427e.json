@@ -1,0 +1,1 @@
+{"id":"176316086ef534164b144b95cce5b139.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/config-store.test.ts#findConfigFor 候補が 2 つ以上の場合は、.active の指す候補を使い、指していなければ ambiguous を返す","name":"候補が 2 つ以上の場合は、.active の指す候補を使い、指していなければ ambiguous を返す","status":"passed","testResultsByEnv":{"default":"8debb1a79eedba0a3a3df71ac80a6138"}}

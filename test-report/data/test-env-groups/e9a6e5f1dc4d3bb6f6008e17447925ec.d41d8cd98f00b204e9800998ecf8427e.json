@@ -1,0 +1,1 @@
+{"id":"e9a6e5f1dc4d3bb6f6008e17447925ec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#isAssignable 担当者の確認で状態コード 204 が返った場合は、true を返す","name":"担当者の確認で状態コード 204 が返った場合は、true を返す","status":"passed","testResultsByEnv":{"default":"cfee0457f03da5691e4be1fa13207e66"}}

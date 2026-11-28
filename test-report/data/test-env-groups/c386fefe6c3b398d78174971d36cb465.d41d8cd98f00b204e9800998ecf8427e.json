@@ -1,0 +1,1 @@
+{"id":"c386fefe6c3b398d78174971d36cb465.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/prerequisites.test.ts#removeWaitsForMerge 最後の 1 行を削除した場合は、節ごと削除し、本文の末尾なら手前の空行も削除する","name":"最後の 1 行を削除した場合は、節ごと削除し、本文の末尾なら手前の空行も削除する","status":"passed","testResultsByEnv":{"default":"474fd539d444c2b62182867b67fe3d16"}}

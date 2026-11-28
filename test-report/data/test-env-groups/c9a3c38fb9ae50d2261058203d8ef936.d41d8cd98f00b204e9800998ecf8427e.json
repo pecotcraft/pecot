@@ -1,0 +1,1 @@
+{"id":"c9a3c38fb9ae50d2261058203d8ef936.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check 記録が無く、判定を読む GitHub への接続が切れる と、warning の行を出し、develop_branch の追跡参照と比べる","name":"記録が無く、判定を読む GitHub への接続が切れる と、warning の行を出し、develop_branch の追跡参照と比べる","status":"passed","testResultsByEnv":{"default":"ef484691b60e076678e6297d0bfa7f4c"}}

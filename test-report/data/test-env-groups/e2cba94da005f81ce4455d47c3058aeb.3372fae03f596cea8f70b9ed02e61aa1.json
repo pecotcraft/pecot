@@ -1,0 +1,1 @@
+{"id":"e2cba94da005f81ce4455d47c3058aeb.3372fae03f596cea8f70b9ed02e61aa1","fullName":".githooks.tests.test_pages_store#test_check_cli_report_uses_report_check","name":"`check --kind report --side release` は、レポートの確認を使い、履歴を含む tar では終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"e1816fe4c72ac0dff0243ffb41751c1d"}}

@@ -1,0 +1,1 @@
+{"id":"f426058897e45c551eb4dec599dad442.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.test.sh#配布ツリーに .gitignore が無い","name":"配布ツリーに .gitignore が無い","status":"passed","testResultsByEnv":{"default":"62d4f12044ab42dae5a28161fd0ebc6f"}}

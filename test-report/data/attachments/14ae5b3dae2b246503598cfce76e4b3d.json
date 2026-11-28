@@ -1,0 +1,15 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "ok"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": []
+  }
+}

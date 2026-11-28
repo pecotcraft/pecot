@@ -1,0 +1,1 @@
+{"id":"8833f81398a136b24c379ec4b4388a4f.df260405a69abf502ff110e306beec18","fullName":".githooks.tests.test_nx_task_cache#test_non_cacheable_target_says_cache_false","name":"pecot-visual:chromium-preflight は、cache を false と明示している","status":"passed","testResultsByEnv":{"default":"b5b2d2af4728e2179dcac2e9452e8a11"}}

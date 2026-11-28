@@ -1,0 +1,1 @@
+{"id":"2ce09c81e35cc1c7fbfff9a84ff3d8ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/state-store.test.ts#writeBaseRecord / readBaseRecord 記録のファイルが存在しない場合は、開発ブランチから着手したものとして読み込む","name":"記録のファイルが存在しない場合は、開発ブランチから着手したものとして読み込む","status":"passed","testResultsByEnv":{"default":"ad1b23974cac430eef1c0950fc78c3db"}}

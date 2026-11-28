@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: work directory .pecot/work/7/"
+    },
+    {
+      "type": "text",
+      "text": "{\"repository\":\"acme/demo\",\"base\":\"main\",\"issue\":\"acme/demo/7\",\"workDirectory\":\"/tmp/pecot-repo-6aGaYQ/.pecot/work/7\",\"warnings\":[\"leftovers are not checked: pass the result of list_pull_requests (head acme:feat/old/5, state all) in reads.pull_requests\"]}"
+    }
+  ],
+  "structuredContent": {
+    "repository": "acme/demo",
+    "base": "main",
+    "issue": "acme/demo/7",
+    "workDirectory": "/tmp/pecot-repo-6aGaYQ/.pecot/work/7",
+    "warnings": [
+      "leftovers are not checked: pass the result of list_pull_requests (head acme:feat/old/5, state all) in reads.pull_requests"
+    ]
+  }
+}

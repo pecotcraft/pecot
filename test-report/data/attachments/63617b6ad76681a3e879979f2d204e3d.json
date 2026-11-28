@@ -1,0 +1,16 @@
+[
+  "plugins/pecot-visual/assets/slidev/package.json",
+  "plugins/pecot-visual/assets/slidev/runtime/package.json",
+  "plugins/pecot-visual/assets/slidev/scripts/eslint/2layer/package.json",
+  "plugins/pecot-visual/assets/slidev/scripts/eslint/_shared/package.json",
+  "plugins/pecot-visual/assets/slidev/scripts/eslint/asset-path/package.json",
+  "plugins/pecot-visual/assets/slidev/scripts/eslint/pptx-compat/package.json",
+  "plugins/pecot-visual/assets/slidev/scripts/eslint/slidev-pages-lint/package.json",
+  "plugins/pecot-visual/assets/slidev/scripts/eslint/text-constraints/package.json",
+  "plugins/pecot-visual/assets/slidev/scripts/eslint/validate-references/package.json",
+  "plugins/pecot-visual/cli/tests/fixtures/hash-slidev/package.json",
+  "plugins/pecot-visual/cli/tests/fixtures/minimal-slidev/package.json",
+  "plugins/pecot-visual/cli/tests/fixtures/themes/theme-only-dep/package.json",
+  "plugins/pecot-visual/cli/tests/fixtures/themes/with-declaration/package.json",
+  "plugins/pecot-visual/cli/tests/fixtures/themes/without-declaration/package.json"
+]

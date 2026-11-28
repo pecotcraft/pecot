@@ -1,0 +1,1 @@
+{"id":"c2b0c8eb9f7b58afb3a085a37c2ce78c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-tools.test.ts#MCP のツール (stdio) `drawio_create` を `out_path` なしで呼ぶと、URL を返す","name":"`drawio_create` を `out_path` なしで呼ぶと、URL を返す","status":"passed","testResultsByEnv":{"default":"2467bceae0787fef7b91b2cea595c32d"}}

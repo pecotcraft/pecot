@@ -1,0 +1,1 @@
+{"id":"6dac9ebb0b1ef185ed317e64f954a703.faac56d08628b218e4eda5e09a81930a","fullName":".githooks.tests.test_nx_cache_server#test_bad_token_is_401","name":"トークンが None のとき、GET と PUT の両方で 401 を返し、何も保存しない","status":"passed","testResultsByEnv":{"default":"4fc5d4893c33d2084b67722530508ad3"}}

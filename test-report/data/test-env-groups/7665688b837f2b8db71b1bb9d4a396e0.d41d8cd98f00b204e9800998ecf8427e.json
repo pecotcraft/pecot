@@ -1,0 +1,1 @@
+{"id":"7665688b837f2b8db71b1bb9d4a396e0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/e2e/mcp-stdio.test.ts#pecot-tools-mcp (stdio) プロトコルの版 2026-07-28 で接続しても、tools/list と tools/call が成功する","name":"プロトコルの版 2026-07-28 で接続しても、tools/list と tools/call が成功する","status":"passed","testResultsByEnv":{"default":"fe645ab3cd963c9deb33a328b160c2a7"}}

@@ -1,0 +1,1 @@
+{"id":"4aaa83b830d1724c42a5db13c2b69574.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check git の remote が無いと、終了コード 1 で終わる","name":"git の remote が無いと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"193e6a16b04ebf71f840e264ee3a2a2a"}}

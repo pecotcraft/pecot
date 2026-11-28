@@ -1,0 +1,1 @@
+{"id":"f273c6da4754411bccbf9d08922c8de2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/executor.test.ts#createBoundedExecutor 処理の戻り値は、そのまま呼び出し元へ返す","name":"処理の戻り値は、そのまま呼び出し元へ返す","status":"passed","testResultsByEnv":{"default":"413e52d71a21ef26dbb77d546ecf3ecc"}}

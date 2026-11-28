@@ -1,0 +1,4 @@
+warning: symlink creation skipped because the path is tracked by git: /tmp/pecot-cli-LgqdT6/workspaces/wt1/demo/CLAUDE.local.md
+created: worktree wt1 at /tmp/pecot-cli-LgqdT6/workspaces/wt1/demo (branch wt1 from develop)
+count: symlinks created: 0
+count: symlink errors: 1

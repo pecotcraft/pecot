@@ -1,0 +1,1 @@
+{"id":"5f08c3c11246adad6d855ddf8514641c.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_provenance#test_pr_candidates_need_url_not_only_name","name":"PR の候補は、リポジトリ名だけでなく url の所有者まで確認する","status":"passed","testResultsByEnv":{"default":"b83035f7ccf33cca4d49fa67ab302582"}}

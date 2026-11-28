@@ -1,0 +1,1 @@
+{"id":"a7c5a0453cf80bfb7169a7953ce126d6.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.test.sh#eslint プラグインの build の時点で、前回の dist が残っていない","name":"eslint プラグインの build の時点で、前回の dist が残っていない","status":"passed","testResultsByEnv":{"default":"8aa35f407e2a350bb1e1df736a3fd1b3"}}

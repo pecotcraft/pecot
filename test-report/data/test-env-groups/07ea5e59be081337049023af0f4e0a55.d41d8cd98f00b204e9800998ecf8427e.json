@@ -1,0 +1,1 @@
+{"id":"07ea5e59be081337049023af0f4e0a55.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync 表を none に書き直すと、Tracker を completed の理由で閉じる","name":"表を none に書き直すと、Tracker を completed の理由で閉じる","status":"passed","testResultsByEnv":{"default":"2846e15dd4eea2f30128d42e66b3a8aa"}}

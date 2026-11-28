@@ -1,0 +1,1 @@
+{"id":"0880bfc103de32285a96175879de20f3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-worktree-branch-check.sh git -C の対象が feature で HOOK_WORKING_DIR が保護ブランチのとき、通す","name":"git -C の対象が feature で HOOK_WORKING_DIR が保護ブランチのとき、通す","status":"passed","testResultsByEnv":{"default":"9243d9e7f30b5d9218a7a16a89915ece"}}

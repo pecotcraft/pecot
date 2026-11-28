@@ -1,0 +1,1 @@
+{"id":"4ff530549cc6cda4ba56ce84ff275f03.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 注記図形の導出 丸めると同じピクセルになる始点と終点でも、arrow の辺の長さを 0 にしない","name":"丸めると同じピクセルになる始点と終点でも、arrow の辺の長さを 0 にしない","status":"passed","testResultsByEnv":{"default":"dc865ed7a3f32421e416c4f4cefdfc7b"}}

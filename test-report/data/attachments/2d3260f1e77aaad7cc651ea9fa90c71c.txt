@@ -1,0 +1,5 @@
+# Session status
+
+- Branch: feat/demo/7
+- Repository: acme/demo
+- Active Issue: acme/demo#7

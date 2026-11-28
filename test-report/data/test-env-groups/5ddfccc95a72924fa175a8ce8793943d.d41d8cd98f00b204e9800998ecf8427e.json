@@ -1,0 +1,1 @@
+{"id":"5ddfccc95a72924fa175a8ce8793943d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateFoldBalance（折りたたみ <details> の開閉の対応 #1330） マスクされた領域の中の details は折りたたみではない: fenced_code","name":"マスクされた領域の中の details は折りたたみではない: fenced_code","status":"passed","testResultsByEnv":{"default":"a9923043ed9e414426fd233149214f7f"}}

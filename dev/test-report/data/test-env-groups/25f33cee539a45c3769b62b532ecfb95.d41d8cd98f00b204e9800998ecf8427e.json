@@ -1,0 +1,1 @@
+{"id":"25f33cee539a45c3769b62b532ecfb95.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#parseUpdateMetadata 版が 1 から 1.0 に変わると、種類は minor になる","name":"版が 1 から 1.0 に変わると、種類は minor になる","status":"passed","testResultsByEnv":{"default":"063a75bc966395b7112191830096b8a6"}}

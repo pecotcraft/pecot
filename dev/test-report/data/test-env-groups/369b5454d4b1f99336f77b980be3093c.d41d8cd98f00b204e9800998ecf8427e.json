@@ -1,0 +1,1 @@
+{"id":"369b5454d4b1f99336f77b980be3093c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/initial-pages.test.ts#nameToTitle 既に大文字と小文字が併存していても各単語先頭を大文字にする","name":"既に大文字と小文字が併存していても各単語先頭を大文字にする","status":"passed","testResultsByEnv":{"default":"ec596652be98da6c6b8cf02b54cb4679"}}

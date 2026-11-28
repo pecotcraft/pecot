@@ -1,0 +1,1 @@
+{"id":"60c7c414f9e81fb00ee2e0aad87cafea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/pnpm.test.ts#resolvePnpmCommand pnpm と corepack がなければ、npx を使い、packageManager に書かれた版の pnpm を指定する","name":"pnpm と corepack がなければ、npx を使い、packageManager に書かれた版の pnpm を指定する","status":"passed","testResultsByEnv":{"default":"af4c0388fdf1424551c30adb2102942b"}}

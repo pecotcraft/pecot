@@ -1,0 +1,1 @@
+{"id":"f1f6c502aea20a59caa892ca86bcc005.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/drawio/tests/label-text.test.ts#labelTexts 空の value と、タグだけで文字のない HTML は、結果に含めない","name":"空の value と、タグだけで文字のない HTML は、結果に含めない","status":"passed","testResultsByEnv":{"default":"ee3bd0bf47521f28121560643bb8ec5a"}}

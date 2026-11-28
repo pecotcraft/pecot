@@ -1,0 +1,1 @@
+{"id":"67135a1455b6bbb2b0243d7060423b2d.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_affected_tests#test_broken_profile_warns_and_keeps_exit_code","name":"profile が途中で途切れた JSON の場合は、警告を出すが終了コード 0 のままにして、レーン 0 と表示する","status":"passed","testResultsByEnv":{"default":"d0bb71dc7a4c8c143e0cf62f941f8494"}}

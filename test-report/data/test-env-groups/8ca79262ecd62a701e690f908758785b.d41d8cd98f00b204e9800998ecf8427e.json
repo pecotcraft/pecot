@@ -1,0 +1,1 @@
+{"id":"8ca79262ecd62a701e690f908758785b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_workflows#test_no_workflow_has_actions_write","name":"サイトに関する workflow は、actions の書き込み権限を持たない","status":"passed","testResultsByEnv":{"default":"53dc1f1e0732e9facfa6f802b7dff469"}}

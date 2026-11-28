@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Input validation error: Invalid arguments for tool aws_ec2_describe_instances: filters.0: Unrecognized key: \"Extra\""
+    }
+  ],
+  "isError": true
+}

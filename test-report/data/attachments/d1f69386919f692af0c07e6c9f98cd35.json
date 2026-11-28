@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "theme spec has no tag: git+https://example.invalid/org/theme.git (fix: add #<tag>)"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"slide.create.error\",\"kind\":\"theme-tag-required\",\"detail\":\"theme spec has no tag: git+https://example.invalid/org/theme.git (fix: add #<tag>)\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "slide.create.error",
+    "kind": "theme-tag-required",
+    "detail": "theme spec has no tag: git+https://example.invalid/org/theme.git (fix: add #<tag>)"
+  },
+  "isError": true
+}

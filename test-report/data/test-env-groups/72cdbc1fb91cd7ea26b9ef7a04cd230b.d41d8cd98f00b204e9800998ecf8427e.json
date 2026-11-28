@@ -1,0 +1,1 @@
+{"id":"72cdbc1fb91cd7ea26b9ef7a04cd230b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/queries.test.ts#偽サーバの operation 対応表 QUERY_GET_PULL_REQUEST_SLIM の operation 名が、偽サーバの対応表に存在する","name":"QUERY_GET_PULL_REQUEST_SLIM の operation 名が、偽サーバの対応表に存在する","status":"passed","testResultsByEnv":{"default":"0024e3e374a1fb67cc396e282e64c396"}}

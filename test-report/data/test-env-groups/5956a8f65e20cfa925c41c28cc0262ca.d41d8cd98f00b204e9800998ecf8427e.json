@@ -1,0 +1,1 @@
+{"id":"5956a8f65e20cfa925c41c28cc0262ca.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_normal_mode_is_reported","name":"通常のモードでは、範囲の欄に base と head の SHA とモードを書く","status":"passed","testResultsByEnv":{"default":"986911b52e031d9612ab15530e0c0a87"}}

@@ -1,0 +1,1 @@
+{"id":"e289e0e823b892b3de2d5bdb2d9de2a4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings rb 接頭辞と大文字 のとき、引用符を含まない本文だけを切り出す","name":"rb 接頭辞と大文字 のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"7aa9f116ba8b5140177e3dd0da1a904b"}}

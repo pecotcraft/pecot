@@ -1,0 +1,1 @@
+{"id":"0d366d6918fe7e5778f6a45656ab1b64.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-table-cell-background.test.ts#require-table-cell-background valid セルにクラスで背景色があると、報告しない","name":"セルにクラスで背景色があると、報告しない","status":"passed","testResultsByEnv":{"default":"abc2c9b82ee18860f983ad43827b2235"}}

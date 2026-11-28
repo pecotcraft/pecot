@@ -1,0 +1,4 @@
+error: invalid reference: zzz
+  accepted forms:
+    - full: 'owner/repo/N'
+    - short: 'N' (with a base repository)

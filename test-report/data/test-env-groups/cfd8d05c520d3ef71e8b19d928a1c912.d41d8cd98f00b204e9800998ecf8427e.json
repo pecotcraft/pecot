@@ -1,0 +1,1 @@
+{"id":"cfd8d05c520d3ef71e8b19d928a1c912.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_release_workflow#test_pages_release_build_is_triggered_after_land_in_production_only","name":"リリース版のサイトのビルドは、本番のリリースが main に反映された後にだけ起動する","status":"passed","testResultsByEnv":{"default":"330a7de28890f64c28431c92c307f44f"}}

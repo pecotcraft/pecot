@@ -1,0 +1,1 @@
+{"id":"e3cf2bfc37f6748a1b3a4486d585b955.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/rule-tester.test.ts#textlint valid HTML タグを除くと空になる項目なら、報告しない","name":"HTML タグを除くと空になる項目なら、報告しない","status":"passed","testResultsByEnv":{"default":"9fd34ea989ca51f0b7f27ba176a499a4"}}

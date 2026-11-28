@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Output validation error: Invalid structured content for tool aws_sqs_get_queue_attributes: data must NOT have additional properties"
+    }
+  ],
+  "isError": true
+}

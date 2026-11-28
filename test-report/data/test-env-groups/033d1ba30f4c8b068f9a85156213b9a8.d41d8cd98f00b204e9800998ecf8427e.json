@@ -1,0 +1,1 @@
+{"id":"033d1ba30f4c8b068f9a85156213b9a8.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.test.sh#dry-run での絶対パスの opt-in は通る","name":"dry-run での絶対パスの opt-in は通る","status":"passed","testResultsByEnv":{"default":"97b564b55b35c71b8db6ee3e830d5dad"}}

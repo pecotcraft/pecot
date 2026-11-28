@@ -1,0 +1,1 @@
+{"id":"add9952fbd95f092e337a6ae2e477fb1.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_run_pr_checks#test_part_option_may_follow_positionals","name":"`--part` は、位置引数の後ろに置いても指定できる","status":"passed","testResultsByEnv":{"default":"565da7065094c56f8fd3d8e945644a9b"}}

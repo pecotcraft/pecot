@@ -1,0 +1,1 @@
+{"id":"a04f44a263557f45cd3c2fe244a80684.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-resolver.test.ts#withUnreadableReason 読み取れない remote があれば、案内の後に理由の行を追加する","name":"読み取れない remote があれば、案内の後に理由の行を追加する","status":"passed","testResultsByEnv":{"default":"cf10e09dd7a3b1a94ce284a0c9e9bb70"}}

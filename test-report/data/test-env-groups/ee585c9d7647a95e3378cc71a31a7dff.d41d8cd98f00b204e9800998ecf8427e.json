@@ -1,0 +1,1 @@
+{"id":"ee585c9d7647a95e3378cc71a31a7dff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/text-file.test.ts#readTextFile ディレクトリを読み込むと、Python の IsADirectoryError と同じ文の OsError を発生させる","name":"ディレクトリを読み込むと、Python の IsADirectoryError と同じ文の OsError を発生させる","status":"passed","testResultsByEnv":{"default":"72cbbcd69e18031b0a9176a63103e04f"}}

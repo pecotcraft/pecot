@@ -1,0 +1,1 @@
+{"id":"e23accabdbc278067cd1117290f7623a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 帯と行高 値を持たない装飾用のセルは、タイトルとキャプションの帯だけに配置する","name":"値を持たない装飾用のセルは、タイトルとキャプションの帯だけに配置する","status":"passed","testResultsByEnv":{"default":"510f63f04854d5f25f03a7d0e0846ef3"}}

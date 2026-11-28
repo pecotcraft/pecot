@@ -1,0 +1,1 @@
+{"id":"afa1bf9b818bb697f5a29e5185d38c85.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 進行の欄が旧い名前のボードでは、同じ内容を出し、旧い名前の警告と project_init の案内を標準エラーに出す","name":"進行の欄が旧い名前のボードでは、同じ内容を出し、旧い名前の警告と project_init の案内を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"ea614754dbd15150a93d60dc34570977"}}

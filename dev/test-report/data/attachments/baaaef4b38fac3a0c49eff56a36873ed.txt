@@ -1,0 +1,2 @@
+==> check-pm-guard: 静的確認 (devEngines / engines / .npmrc / scripts)
+  OK: 全 package.json の宣言と .npmrc、pecotv の scripts を確認 (28 件)

@@ -1,0 +1,1 @@
+{"id":"43d2f300b26a53f4f2c660bd14a9dbd7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/pull-request.test.ts#collectPreflightWarnings 警告は push・status・stash の順に返し、stash の件数に空行を含めない","name":"警告は push・status・stash の順に返し、stash の件数に空行を含めない","status":"passed","testResultsByEnv":{"default":"47a9b089386dd9c47aea15d5f5660b30"}}

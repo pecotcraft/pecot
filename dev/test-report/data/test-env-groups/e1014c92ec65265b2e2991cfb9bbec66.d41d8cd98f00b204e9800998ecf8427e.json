@@ -1,0 +1,1 @@
+{"id":"e1014c92ec65265b2e2991cfb9bbec66.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry PNG と meta の対を保存して復元すると、同じ内容が往復する","name":"PNG と meta の対を保存して復元すると、同じ内容が往復する","status":"passed","testResultsByEnv":{"default":"ea1ff02b6eb405759f30df6bab9102de"}}

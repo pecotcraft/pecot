@@ -1,0 +1,1 @@
+{"id":"1f7ea193ea843cee34211d2de6e50644.506e02cc65795078ce7054d4d0f21f25","fullName":".githooks.tests.test_pr_run#test_pr_number_from_head_ref_unreadable","name":"head_ref が refs/heads/other のとき、PR 番号を読み取れず終了コード 1 で終了する","status":"passed","testResultsByEnv":{"default":"b81131c4685c7dee668f599b727a09b7"}}

@@ -1,0 +1,1 @@
+{"id":"e6a97b7afb7293859ae1e940fe3e0972.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/attach-mcp-tgz.test.sh#origin が URL でも scp 形式でもない文字列 のとき止まる","name":"origin が URL でも scp 形式でもない文字列 のとき止まる","status":"passed","testResultsByEnv":{"default":"2ee130164754de76d83839dcc148b862"}}

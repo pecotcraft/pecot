@@ -1,0 +1,1 @@
+error: could not load config file broken.json: invalid config file: /tmp/pecot-repo-7YDwhJ/.pecot/config/projects/broken.json: Expected property name or '}' in JSON at position 2 (line 1 column 3)

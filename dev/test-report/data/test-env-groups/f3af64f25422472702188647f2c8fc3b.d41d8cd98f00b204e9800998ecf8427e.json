@@ -1,0 +1,1 @@
+{"id":"f3af64f25422472702188647f2c8fc3b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/project-sync.test.ts#syncProjectConfig 内容が同じとき 設定の内容が変わらない場合は、設定ファイルを書き込まず、アクティブなプロジェクトを変更しない","name":"設定の内容が変わらない場合は、設定ファイルを書き込まず、アクティブなプロジェクトを変更しない","status":"passed","testResultsByEnv":{"default":"8e0d8d671174a3a2d90a89ce30d19b9c"}}

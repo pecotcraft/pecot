@@ -1,0 +1,1 @@
+{"id":"bb64a9311b13e98ec085b795772b5a7d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show MCP の data reviews を付けると、レビューの本文と日時を reviews に、行のコメントを review_threads に入れる","name":"reviews を付けると、レビューの本文と日時を reviews に、行のコメントを review_threads に入れる","status":"passed","testResultsByEnv":{"default":"ec56a1c6dc960a6d9a31c611fcbe7fad"}}

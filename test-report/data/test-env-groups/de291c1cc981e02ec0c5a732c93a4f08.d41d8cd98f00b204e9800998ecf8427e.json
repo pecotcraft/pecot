@@ -1,0 +1,1 @@
+{"id":"de291c1cc981e02ec0c5a732c93a4f08.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — extraHeaders extraHeaders の要素がオブジェクトでない場合は、拒否する","name":"extraHeaders の要素がオブジェクトでない場合は、拒否する","status":"passed","testResultsByEnv":{"default":"91369031f887d0e083f5d50fbb9a51b5"}}

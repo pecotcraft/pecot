@@ -1,0 +1,1 @@
+{"id":"6883a641283f67e44eb55ebd516f8b04.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check もしタグが remote に既にあるなら、終了コード 1 で終わる","name":"もしタグが remote に既にあるなら、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"132ddf362683ae63183768ae7157e7cc"}}

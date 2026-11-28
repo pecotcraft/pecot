@@ -1,0 +1,1 @@
+{"id":"6734aab47987c1cc6915a87a408fb4e8.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_bash_test_lib#test_labels_and_full_name","name":"結果にはレーン・ファイルのパス・機能の階層・host・thread のラベルを付け、fullName にはレーンとパスと題を含める","status":"passed","testResultsByEnv":{"default":"0760e37b61a8b87c8575f19183905c11"}}

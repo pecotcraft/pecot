@@ -1,0 +1,1 @@
+{"id":"acfbd80f0c512b4d84d0600e81b48caa.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_nx_cache_server#test_sigterm_exits_when_store_is_gone","name":"ストアのディレクトリが存在しなくても、SIGTERM を受けると終了コード 0 で終了する","status":"passed","testResultsByEnv":{"default":"4d1c3d111783b8db4a531daaa0e7274f"}}

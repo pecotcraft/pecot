@@ -1,0 +1,1 @@
+{"id":"a3c708282b8826a39a519804cba84dfb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-finish.test.ts#session_finish 実行すると、close する Issue の件数を count の行で標準エラーに出す","name":"実行すると、close する Issue の件数を count の行で標準エラーに出す","status":"passed","testResultsByEnv":{"default":"256c127225b124f874320fe46bd09a51"}}

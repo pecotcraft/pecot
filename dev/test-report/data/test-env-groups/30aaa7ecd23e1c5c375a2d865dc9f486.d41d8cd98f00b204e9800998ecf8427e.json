@@ -1,0 +1,1 @@
+{"id":"30aaa7ecd23e1c5c375a2d865dc9f486.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#コマンドの実体 ビルドした bin を実行し、違反のないファイルを渡すと、何も出力せず、終了コード 0 を返す","name":"ビルドした bin を実行し、違反のないファイルを渡すと、何も出力せず、終了コード 0 を返す","status":"passed","testResultsByEnv":{"default":"7d1517df82c07a4e48c3c233f71edfd0"}}

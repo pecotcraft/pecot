@@ -1,0 +1,1 @@
+{"id":"4309f861b51a3a2a977d809cb4fc1707.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/hook-input.test.ts#hook-input.sh session_title が キーなし のとき、source を読み、セッション名は になる","name":"session_title が キーなし のとき、source を読み、セッション名は になる","status":"passed","testResultsByEnv":{"default":"809bd602cccfa4df85af8a344d28c24b"}}

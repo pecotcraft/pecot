@@ -1,0 +1,1 @@
+{"id":"159c28575203bfb8fcd73a08f960a314.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_sync_playwright_deps#test_same_version_is_not_written","name":"lock の版が設定と同じなら、ファイルを書き込まない","status":"passed","testResultsByEnv":{"default":"cd90af44c336830664725756623aea96"}}

@@ -1,0 +1,1 @@
+{"id":"275c92ab7fcddc72c2249311824762ae.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_38_pass_dependabot_with_plan","name":"github-actions が version plan を commit したあとは、dependabot の更新でも成功する","status":"passed","testResultsByEnv":{"default":"bc9c71c7c7c5fb7adc4d1d34c78db0de"}}

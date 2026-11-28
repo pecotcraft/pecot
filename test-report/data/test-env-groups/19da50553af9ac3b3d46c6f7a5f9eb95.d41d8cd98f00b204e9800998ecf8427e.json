@@ -1,0 +1,1 @@
+{"id":"19da50553af9ac3b3d46c6f7a5f9eb95.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_excludes_own_run","name":"実行中の自分の run の artifact は、候補から除外する","status":"passed","testResultsByEnv":{"default":"721e02e1ac1cfffb74be403b1f3fe048"}}

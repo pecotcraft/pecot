@@ -1,0 +1,1 @@
+{"id":"fa9791cdbb8b820db3dc1e39a4132254.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url-theme.test.ts#移行前の talk-dir と、解けないテーマ 宣言の誤り（形の誤り）は theme-invalid-shape","name":"宣言の誤り（形の誤り）は theme-invalid-shape","status":"passed","testResultsByEnv":{"default":"7408dd0b0539002e0d6f6809a22fd0d5"}}

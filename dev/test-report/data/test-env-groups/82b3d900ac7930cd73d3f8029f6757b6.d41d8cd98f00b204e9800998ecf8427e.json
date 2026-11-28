@@ -1,0 +1,1 @@
+{"id":"82b3d900ac7930cd73d3f8029f6757b6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#トークンの取得 環境にトークンが存在しなくても、構築では gh を呼び出さず、認証エラーも発生しない","name":"環境にトークンが存在しなくても、構築では gh を呼び出さず、認証エラーも発生しない","status":"passed","testResultsByEnv":{"default":"b1e788ed7df4e34d3c6e31dcb4ef4c0b"}}

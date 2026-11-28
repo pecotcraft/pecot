@@ -1,0 +1,1 @@
+{"id":"757e789762356a54ddafb53d0899a67d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#配布 package.json の依存が、すべてローカルの実体に解決できる","name":"配布 package.json の依存が、すべてローカルの実体に解決できる","status":"passed","testResultsByEnv":{"default":"1f923b0ba012c95232b8407390893fa6"}}

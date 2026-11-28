@@ -1,0 +1,1 @@
+{"id":"ff8f9693691a74c2c622ce45bcc898ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（失敗） 依存の導入に失敗した場合は、install で失敗し、タグのディレクトリを残さない","name":"依存の導入に失敗した場合は、install で失敗し、タグのディレクトリを残さない","status":"passed","testResultsByEnv":{"default":"72c05a5a8cc751451a99d7d331c9d39e"}}

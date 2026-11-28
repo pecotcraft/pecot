@@ -1,0 +1,1 @@
+{"id":"ddc41fb486c7537e46e1340dba042ea6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/process.test.ts#mergeStderr (純粋関数) 追加のメッセージが空の場合は、取得した標準エラーをそのまま返す","name":"追加のメッセージが空の場合は、取得した標準エラーをそのまま返す","status":"passed","testResultsByEnv":{"default":"31fe20d6f83d7327446106940034208b"}}

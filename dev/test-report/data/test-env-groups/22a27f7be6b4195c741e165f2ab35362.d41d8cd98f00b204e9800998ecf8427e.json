@@ -1,0 +1,1 @@
+{"id":"22a27f7be6b4195c741e165f2ab35362.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry profile が異なるログインは、別のセッションとして並行して保持する","name":"profile が異なるログインは、別のセッションとして並行して保持する","status":"passed","testResultsByEnv":{"default":"6d8efa9a025121e0d1350f7bfd0f2385"}}

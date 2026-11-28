@@ -1,0 +1,1 @@
+{"id":"bf5c08f09113c1a36434c8c9de5ad8ba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/compare-junit.test.ts#main 結果に差があれば 1 を返し、1 回目と 2 回目の結果を並べて出力する","name":"結果に差があれば 1 を返し、1 回目と 2 回目の結果を並べて出力する","status":"passed","testResultsByEnv":{"default":"273d2bc28f99a46d80aba2a50cb9408b"}}

@@ -1,0 +1,1 @@
+{"id":"010a04b9fdeeff027a61a748b5096dc7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start checkout に true を渡して呼ぶと、渡さないときと同じ結果になる","name":"checkout に true を渡して呼ぶと、渡さないときと同じ結果になる","status":"passed","testResultsByEnv":{"default":"b1d6a4c28b745da4a57e51d9a0859130"}}

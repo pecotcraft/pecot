@@ -1,0 +1,1 @@
+{"id":"3368c2e58528dba99c574c7f306af592.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/sso.test.ts#ssoTools 案内の確定を待つ上限より先にログインの制限時間に達したときは、timed-out を返す","name":"案内の確定を待つ上限より先にログインの制限時間に達したときは、timed-out を返す","status":"passed","testResultsByEnv":{"default":"eaaf5f3ef86e2ef18c86d65dbefde248"}}

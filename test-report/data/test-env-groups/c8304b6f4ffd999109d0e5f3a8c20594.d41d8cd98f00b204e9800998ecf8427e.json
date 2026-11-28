@@ -1,0 +1,1 @@
+{"id":"c8304b6f4ffd999109d0e5f3a8c20594.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide.test.ts#slide_lint dir が相対パスなら、invalid-path のエラーを返す","name":"dir が相対パスなら、invalid-path のエラーを返す","status":"passed","testResultsByEnv":{"default":"c2e5ea5fcba3ebbe161e5d26af73a623"}}

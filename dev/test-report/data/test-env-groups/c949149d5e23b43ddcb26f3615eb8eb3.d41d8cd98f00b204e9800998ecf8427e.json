@@ -1,0 +1,1 @@
+{"id":"c949149d5e23b43ddcb26f3615eb8eb3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_latest_tags_follow_slash_v_tag_form","name":"タグの形が <名前>/v{version} の単位は、その形のタグだけから最新を選ぶ","status":"passed","testResultsByEnv":{"default":"f0a8ecaa5d784fc384a1516f73a545f6"}}

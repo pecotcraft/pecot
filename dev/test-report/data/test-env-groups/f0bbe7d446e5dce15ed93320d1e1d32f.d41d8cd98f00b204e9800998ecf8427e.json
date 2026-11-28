@@ -1,0 +1,1 @@
+{"id":"f0bbe7d446e5dce15ed93320d1e1d32f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#SlideSyncUsageError / SlideSyncRuntimeError re-export コマンドのモジュールから、例外の型が再エクスポートされる","name":"コマンドのモジュールから、例外の型が再エクスポートされる","status":"passed","testResultsByEnv":{"default":"e935decb7c4e3329d72aaea187012a56"}}

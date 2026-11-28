@@ -1,0 +1,1 @@
+{"id":"861fe0a20c6d9059d06ed06a97f56ee6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#兄弟 PDF `pdf: false` でも `-o` に `.pdf` を指定すると拒否し、`.svg` の指定を案内する","name":"`pdf: false` でも `-o` に `.pdf` を指定すると拒否し、`.svg` の指定を案内する","status":"passed","testResultsByEnv":{"default":"e4bbfca448f78ac49e074a064bc407a7"}}

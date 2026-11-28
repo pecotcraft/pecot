@@ -1,0 +1,1 @@
+{"id":"db443ac577a766dc74137bfe657aa1f3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_sandbox_ops_workflow#test_diff_passes_two_tokens","name":"diff は、このリポの token と検証用の token を分けて sandbox-diff.sh に渡す","status":"passed","testResultsByEnv":{"default":"e98ed22fc6fca6f89fe6033598427b9b"}}

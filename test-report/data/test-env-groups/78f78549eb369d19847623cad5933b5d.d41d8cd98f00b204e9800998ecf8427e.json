@@ -1,0 +1,1 @@
+{"id":"78f78549eb369d19847623cad5933b5d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/drawio-icons.test.ts#createIconResolver 色を指定すると、SVG の currentColor を指定した色に置換する","name":"色を指定すると、SVG の currentColor を指定した色に置換する","status":"passed","testResultsByEnv":{"default":"14aa00cce6f8e1d513d1ca849bbc6d2e"}}

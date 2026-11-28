@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "config file validation failed: /tmp/pecot-cli-BFsFd8/workspaces/base/demo/.pecot/config/worktree-config.json: 1 validation error for WorktreeConfig\n  links\n    Input should be a valid list [type=list_type, input_value='x', input_type=str]\n      For further information visit https://errors.pydantic.dev/2.14/v/list_type"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"config-invalid\",\"detail\":\"config file validation failed: /tmp/pecot-cli-BFsFd8/workspaces/base/demo/.pecot/config/worktree-config.json: 1 validation error for WorktreeConfig\\n  links\\n    Input should be a valid list [type=list_type, input_value='x', input_type=str]\\n      For further information visit https://errors.pydantic.dev/2.14/v/list_type\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "config-invalid",
+    "detail": "config file validation failed: /tmp/pecot-cli-BFsFd8/workspaces/base/demo/.pecot/config/worktree-config.json: 1 validation error for WorktreeConfig\n  links\n    Input should be a valid list [type=list_type, input_value='x', input_type=str]\n      For further information visit https://errors.pydantic.dev/2.14/v/list_type"
+  },
+  "isError": true
+}

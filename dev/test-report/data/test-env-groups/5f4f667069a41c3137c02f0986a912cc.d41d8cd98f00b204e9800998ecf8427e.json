@@ -1,0 +1,1 @@
+{"id":"5f4f667069a41c3137c02f0986a912cc.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dependabot_commit_workflow#test_commit_workflow_stops_before_image_when_app_token_is_missing","name":"dependabot-commit.yml は、App のトークンが無いとき、イメージを載せる前に止まる","status":"passed","testResultsByEnv":{"default":"4919f69a2e11f74a5934c537528dfff3"}}

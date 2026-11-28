@@ -1,0 +1,1 @@
+{"id":"2e560e37b94956e57f66fa8a31348f12.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/explains.test.ts#explains NX_TASK_TARGET_TARGET が空の場合は、説明を Allure に送らない","name":"NX_TASK_TARGET_TARGET が空の場合は、説明を Allure に送らない","status":"passed","testResultsByEnv":{"default":"688e6cf28cf80fdd3387327a1b936806"}}

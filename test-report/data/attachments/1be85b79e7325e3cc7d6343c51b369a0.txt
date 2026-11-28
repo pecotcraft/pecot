@@ -1,0 +1,1 @@
+{"event":"slide.convert.error","warnings":[],"errors":[],"kind":"project-not-found","detail":"directory not found: /tmp/pecotv-runner-log-e2e-sjqgQk/missing-project"}

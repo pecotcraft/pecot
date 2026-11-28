@@ -1,0 +1,1 @@
+{"id":"42b65e076dedad7c0f5852a83b2b7a3b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 本文の Issue が既にリンクされている とき、PR の本文を保存し直さない","name":"本文の Issue が既にリンクされている とき、PR の本文を保存し直さない","status":"passed","testResultsByEnv":{"default":"039bd8f8280446eb354a775b0cc8a7fd"}}

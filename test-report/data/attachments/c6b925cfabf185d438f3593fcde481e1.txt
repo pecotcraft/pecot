@@ -1,0 +1,2 @@
+created: worktree wt1 at /tmp/pecot-cli-ojCUXm/workspaces/wt1/demo (branch wt1 from develop)
+count: symlinks created: 1

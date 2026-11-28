@@ -1,0 +1,1 @@
+{"id":"f3c099550313ccb14e5bca213b15a1e1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create PR を作る前に pr_check と同じ確認をする","name":"PR を作る前に pr_check と同じ確認をする","status":"passed","testResultsByEnv":{"default":"c5e8f6f347693529ae0a9106b9b24be2"}}

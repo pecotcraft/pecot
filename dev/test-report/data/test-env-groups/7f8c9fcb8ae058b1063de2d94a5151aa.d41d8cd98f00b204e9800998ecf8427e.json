@@ -1,0 +1,1 @@
+{"id":"7f8c9fcb8ae058b1063de2d94a5151aa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-create.test.ts#executeSlideCreate (smoke) テーマの宣言に pptx.linkColor が無ければ、警告を結果に載せる","name":"テーマの宣言に pptx.linkColor が無ければ、警告を結果に載せる","status":"passed","testResultsByEnv":{"default":"598fb0871f33eec02145aecc6afac81f"}}

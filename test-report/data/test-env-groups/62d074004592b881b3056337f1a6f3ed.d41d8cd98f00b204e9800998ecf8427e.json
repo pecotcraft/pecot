@@ -1,0 +1,1 @@
+{"id":"62d074004592b881b3056337f1a6f3ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-fonts.test.ts#validateSlideFonts 書体が Inter だけで英数字だけのセルには、警告を返さない","name":"書体が Inter だけで英数字だけのセルには、警告を返さない","status":"passed","testResultsByEnv":{"default":"7efac385bc68b6d69ac7c0cc503e61f7"}}

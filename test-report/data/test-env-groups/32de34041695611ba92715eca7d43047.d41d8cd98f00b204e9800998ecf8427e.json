@@ -1,0 +1,1 @@
+{"id":"32de34041695611ba92715eca7d43047.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/server.test.ts#resolveBoundPort 要求したポートが 0 で、実際のポートも取得できない場合は、例外が発生する","name":"要求したポートが 0 で、実際のポートも取得できない場合は、例外が発生する","status":"passed","testResultsByEnv":{"default":"1d751600af0024086c140d4f51041a1e"}}

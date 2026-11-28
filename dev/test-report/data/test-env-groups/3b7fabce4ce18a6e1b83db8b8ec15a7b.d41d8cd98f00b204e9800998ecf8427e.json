@@ -1,0 +1,1 @@
+{"id":"3b7fabce4ce18a6e1b83db8b8ec15a7b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-project/tests/node-modules.test.ts#isNodeModulesLinkCurrent (印との比較) 印が JSON として解析できない場合と、形式が異なる場合は、false を返す","name":"印が JSON として解析できない場合と、形式が異なる場合は、false を返す","status":"passed","testResultsByEnv":{"default":"e1026cea4941c91189bf5771195c9e05"}}

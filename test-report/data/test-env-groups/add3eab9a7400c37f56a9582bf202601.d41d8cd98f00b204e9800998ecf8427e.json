@@ -1,0 +1,1 @@
+{"id":"add3eab9a7400c37f56a9582bf202601.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/plugin-manifests.test.ts#プラグインの 2 組の manifest mcp.json は $schema と mcpServers だけを持つ","name":"mcp.json は $schema と mcpServers だけを持つ","status":"passed","testResultsByEnv":{"default":"43b83e01cb67b7f6bcdd4b8ad420a0ec"}}

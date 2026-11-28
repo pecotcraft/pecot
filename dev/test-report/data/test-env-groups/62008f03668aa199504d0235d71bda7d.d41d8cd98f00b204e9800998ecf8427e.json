@@ -1,0 +1,1 @@
+{"id":"62008f03668aa199504d0235d71bda7d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint リポのルートの .textlintignore で外したファイルは、cwd がサブディレクトリでも空のオブジェクトを返す","name":"リポのルートの .textlintignore で外したファイルは、cwd がサブディレクトリでも空のオブジェクトを返す","status":"passed","testResultsByEnv":{"default":"baa66551d1234db5065d431628217937"}}

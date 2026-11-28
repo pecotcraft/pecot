@@ -1,0 +1,1 @@
+{"id":"8970ebbcd26d5e926a1e993490fb8e53.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#ensureChromiumHostDependencies ライブラリの不足以外の起動失敗は、launch-failed として返し、何も導入しない","name":"ライブラリの不足以外の起動失敗は、launch-failed として返し、何も導入しない","status":"passed","testResultsByEnv":{"default":"441d0a9b3eddbcda7c55740279d70a33"}}

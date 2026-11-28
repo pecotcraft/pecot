@@ -1,0 +1,1 @@
+{"id":"0dd0caf217eb5bf3dd81328df284591e.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-workflow:test-release plugins/pecot-workflow/scripts/release/tests/publish-mcp-dist.bats#origin が scp 形式の URL でも、gh の -R に owner/name を渡す","name":"origin が scp 形式の URL でも、gh の -R に owner/name を渡す","status":"passed","testResultsByEnv":{"default":"5a71d8cf59b58c3e5294363b008fa4c0"}}

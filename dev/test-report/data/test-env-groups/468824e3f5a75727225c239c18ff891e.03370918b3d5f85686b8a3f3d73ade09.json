@@ -1,0 +1,1 @@
+{"id":"468824e3f5a75727225c239c18ff891e.03370918b3d5f85686b8a3f3d73ade09","fullName":".githooks.tests.test_pages_provenance#test_path_head_repository_and_conclusion_must_match","name":"push の run は、path・head のリポジトリ・結論のいずれかが条件に合わないと、{'path': '.github/workflows/ci.yaml'} の場合に破棄する","status":"passed","testResultsByEnv":{"default":"32bc99343218cb67c828bf4de214a40e"}}

@@ -1,0 +1,1 @@
+{"id":"23948729286caa80c25dc8b2197ce3ad.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_resolve_accepts_tags_on_same_commit","name":"複数のタグが同じ commit を指していても、その commit を骨組みにする","status":"passed","testResultsByEnv":{"default":"4ffe1d0ba711cbdb98efc7d7c85d651f"}}

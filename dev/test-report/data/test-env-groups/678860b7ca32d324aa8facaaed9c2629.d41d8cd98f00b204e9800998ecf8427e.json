@@ -1,0 +1,1 @@
+{"id":"678860b7ca32d324aa8facaaed9c2629.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName 欠番は埋めない。wt1・wt3 が埋まっていれば wt4","name":"欠番は埋めない。wt1・wt3 が埋まっていれば wt4","status":"passed","testResultsByEnv":{"default":"1f38fd755788241843bff55336987fbd"}}

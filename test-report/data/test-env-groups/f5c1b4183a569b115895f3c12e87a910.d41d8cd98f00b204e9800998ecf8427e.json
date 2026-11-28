@@ -1,0 +1,1 @@
+{"id":"f5c1b4183a569b115895f3c12e87a910.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/text-file.test.ts#readTextFile BOM のない UTF-8 のファイルを読み込むと、内容をそのまま返す","name":"BOM のない UTF-8 のファイルを読み込むと、内容をそのまま返す","status":"passed","testResultsByEnv":{"default":"090c3ad1a41f43c28ba10edb247edb32"}}

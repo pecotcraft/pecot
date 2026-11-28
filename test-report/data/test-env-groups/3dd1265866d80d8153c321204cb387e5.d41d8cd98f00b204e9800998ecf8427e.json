@@ -1,0 +1,1 @@
+{"id":"3dd1265866d80d8153c321204cb387e5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/board-view.test.ts#pruneArchivedItems 削除に失敗した項目と ID が文字列でない項目の件数を、警告として表示する","name":"削除に失敗した項目と ID が文字列でない項目の件数を、警告として表示する","status":"passed","testResultsByEnv":{"default":"6f652c391a55010615b996d5fca11f88"}}

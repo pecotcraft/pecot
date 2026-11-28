@@ -1,0 +1,1 @@
+{"id":"bb156eeec4bd5c6ac0726f5b09d55e5a.aae5e37036ceade6ba061b1402581cb6","fullName":".githooks.tests.test_list_test_lanes#test_stack_unreadable_sha_falls_back_to_normal","name":"pr_main の sha を読めないと、警告を出力して通常のモードで実行する","status":"passed","testResultsByEnv":{"default":"603716e036ab527cf7121c43d61784f6"}}

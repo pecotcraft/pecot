@@ -1,0 +1,1 @@
+{"id":"afb2de6b1359742ec16a2026c9082c9f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tools/tests/_shared.test.ts#allowlistedTool responseShape が共通の項目の名前 log を持つときは、定義を作らず例外を発生させる","name":"responseShape が共通の項目の名前 log を持つときは、定義を作らず例外を発生させる","status":"passed","testResultsByEnv":{"default":"37f60cca346e9ea404d2194936fec107"}}

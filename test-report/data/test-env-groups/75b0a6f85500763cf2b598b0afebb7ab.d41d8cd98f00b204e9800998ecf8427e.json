@@ -1,0 +1,1 @@
+{"id":"75b0a6f85500763cf2b598b0afebb7ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#relativeToCwd 作業ディレクトリがシンボリックリンクでも、実体のパスで渡したときと同じ相対パスを返す","name":"作業ディレクトリがシンボリックリンクでも、実体のパスで渡したときと同じ相対パスを返す","status":"passed","testResultsByEnv":{"default":"07be1ceb1feb74f953c239ddc27bae31"}}

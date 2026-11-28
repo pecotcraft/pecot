@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "drawio_create: cannot read input file: /tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing: EISDIR: illegal operation on a directory, read"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"drawio.url.error\",\"kind\":\"input-not-found\",\"detail\":\"drawio_create: cannot read input file: /tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing: EISDIR: illegal operation on a directory, read\"}"
+    }
+  ],
+  "structuredContent": {
+    "event": "drawio.url.error",
+    "kind": "input-not-found",
+    "detail": "drawio_create: cannot read input file: /tmp/pecotv-1094-mount-R1VSQR/c/pecotv-1094/missing: EISDIR: illegal operation on a directory, read"
+  },
+  "isError": true
+}

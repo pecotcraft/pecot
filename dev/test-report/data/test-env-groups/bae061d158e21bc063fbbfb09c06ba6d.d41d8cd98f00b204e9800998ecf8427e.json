@@ -1,0 +1,1 @@
+{"id":"bae061d158e21bc063fbbfb09c06ba6d.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#廃止した --repo を、未対応の引数として拒否する","name":"廃止した --repo を、未対応の引数として拒否する","status":"passed","testResultsByEnv":{"default":"035d7648b16a8e3fbce709219968de5f"}}

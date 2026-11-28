@@ -1,0 +1,97 @@
+{
+  "name": "release_merge",
+  "title": "Merge release PR",
+  "description": "Merge a release PR with a regular merge",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pr_ref": {
+        "type": "string",
+        "description": "PR reference (owner/repo/123)"
+      },
+      "delete_branch": {
+        "default": false,
+        "description": "Delete the branch after merging",
+        "type": "boolean"
+      },
+      "admin": {
+        "default": false,
+        "description": "Merge with admin rights (skip the mergeability check)",
+        "type": "boolean"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "pr_ref"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "pullRequest": {
+        "type": "string",
+        "description": "Release PR (owner/repo/N)"
+      },
+      "head": {
+        "type": "string",
+        "description": "Head branch of the PR"
+      },
+      "base": {
+        "type": "string",
+        "description": "Base branch of the PR (the release branch)"
+      },
+      "deletedBranch": {
+        "type": "boolean",
+        "description": "Whether the remote head branch was deleted (false without delete_branch or when the deletion failed)"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "pullRequest",
+          "head",
+          "base",
+          "deletedBranch"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

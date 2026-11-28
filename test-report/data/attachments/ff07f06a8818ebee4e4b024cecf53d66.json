@@ -1,0 +1,20 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "SSO authentication failed (auth-missing). The profile has no SSO configuration. Run aws configure sso in a terminal"
+    },
+    {
+      "type": "text",
+      "text": "{\"state\":\"failed\",\"profile\":\"plain\",\"log\":\"\\naws: [ERROR]: An error occurred (Configuration): Missing the following required SSO configuration values: sso_start_url, sso_region. To make sure this profile is properly configured to use SSO, please run: aws configure sso\\n\",\"kind\":\"auth-missing\",\"detail\":\"SSO authentication failed (auth-missing). The profile has no SSO configuration. Run aws configure sso in a terminal\"}"
+    }
+  ],
+  "structuredContent": {
+    "state": "failed",
+    "profile": "plain",
+    "log": "\naws: [ERROR]: An error occurred (Configuration): Missing the following required SSO configuration values: sso_start_url, sso_region. To make sure this profile is properly configured to use SSO, please run: aws configure sso\n",
+    "kind": "auth-missing",
+    "detail": "SSO authentication failed (auth-missing). The profile has no SSO configuration. Run aws configure sso in a terminal"
+  },
+  "isError": true
+}

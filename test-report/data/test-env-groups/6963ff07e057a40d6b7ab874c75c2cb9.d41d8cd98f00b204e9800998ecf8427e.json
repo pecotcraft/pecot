@@ -1,0 +1,1 @@
+{"id":"6963ff07e057a40d6b7ab874c75c2cb9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-export.test.ts#executeDrawioExport の PDF 出力が .pdf なら invalid-output-extension で成果物を残さない","name":"出力が .pdf なら invalid-output-extension で成果物を残さない","status":"passed","testResultsByEnv":{"default":"4360c276d01456bd175ac2eecfae8e84"}}

@@ -1,0 +1,1 @@
+{"id":"743ab3d5cc43e311927c2ec107760976.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-directory-init-detection.test.ts#UserPromptSubmit pecot のコマンド（引数つきの短縮形）のとき、init が発火する","name":"pecot のコマンド（引数つきの短縮形）のとき、init が発火する","status":"passed","testResultsByEnv":{"default":"4b5519f1fbc41d04cfe8982299afefc7"}}

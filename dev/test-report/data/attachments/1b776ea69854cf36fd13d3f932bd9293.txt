@@ -1,0 +1,9 @@
+ERROR: リポジトリルート以外に .pecot/ ディレクトリが残存しています
+
+作業ファイルはリポジトリルートの .pecot/work/<Issue番号>/ に置く規約です。
+次のパスはパッケージ配下等への誤配置です:
+  - /tmp/pytest-of-vscode/pytest-0/popen-gw1/test_nested_misplaced_reports_0/repo/pkg/.pecot
+
+対処:
+  - 必要なファイルはリポジトリルートの .pecot/work/<Issue番号>/ へ移動する
+  - 不要なら誤配置 .pecot/ を削除する

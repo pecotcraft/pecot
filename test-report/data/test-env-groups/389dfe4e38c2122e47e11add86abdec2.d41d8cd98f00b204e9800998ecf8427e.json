@@ -1,0 +1,1 @@
+{"id":"389dfe4e38c2122e47e11add86abdec2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/infra/sso/tests/login-registry.test.ts#createLoginRegistry シャットダウン後にログインを開始すると、awscli を起動せず failed を返す","name":"シャットダウン後にログインを開始すると、awscli を起動せず failed を返す","status":"passed","testResultsByEnv":{"default":"0e44e4d56ead99d79b72b3ac5ff5b3e6"}}

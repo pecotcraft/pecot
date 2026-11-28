@@ -1,0 +1,1 @@
+{"id":"2b0b95991f79e61a3e381f0a57e158dc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#runSlideLint の talk-dir 検証 slides.md が存在しないディレクトリを指定すると、理由が not-talk-dir の例外が発生する","name":"slides.md が存在しないディレクトリを指定すると、理由が not-talk-dir の例外が発生する","status":"passed","testResultsByEnv":{"default":"57429c35659337404ac1fc326291f0e1"}}

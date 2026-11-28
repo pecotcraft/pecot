@@ -1,0 +1,1 @@
+{"id":"ea101cdd35bb83e67a9580a3237a6383.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-breakdown の手順 specify の Step は、git 拡張の hook が存在しないか無効なリポジトリでは、何も追加しない","name":"specify の Step は、git 拡張の hook が存在しないか無効なリポジトリでは、何も追加しない","status":"passed","testResultsByEnv":{"default":"a7df67fb9130e978094a2f8fdbd2191a"}}

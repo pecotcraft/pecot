@@ -1,0 +1,1 @@
+{"id":"d954f48c33ac95f704dc6df7024f7d9e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-sync.test.ts#executeSlideSync (smoke) 存在しない dir は dir-not-found の失敗になる","name":"存在しない dir は dir-not-found の失敗になる","status":"passed","testResultsByEnv":{"default":"3c6233b6efb44a93d9b1f03c93a8a6d1"}}

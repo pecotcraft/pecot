@@ -1,0 +1,1 @@
+{"id":"0fcc923e4ddd6a0ac00ec7a0be4c99d0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-finish.test.ts#auto finish GitHub の読み書きの失敗 起動ラベルを外す書き込みが失敗すると、その理由で止まる","name":"起動ラベルを外す書き込みが失敗すると、その理由で止まる","status":"passed","testResultsByEnv":{"default":"dbd5d339ceb90ad7ed5d2265e3cef78d"}}

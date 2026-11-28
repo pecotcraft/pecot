@@ -1,0 +1,1 @@
+{"id":"eb644cb3b3a9a97d47b6f08ea0b4768a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#saveSlideToCache / materializeCacheEntry 並列で保存した後に manifest を 1 回書くと、全エントリが含まれる","name":"並列で保存した後に manifest を 1 回書くと、全エントリが含まれる","status":"passed","testResultsByEnv":{"default":"7596b7003b352801b872497a2c6b2a94"}}

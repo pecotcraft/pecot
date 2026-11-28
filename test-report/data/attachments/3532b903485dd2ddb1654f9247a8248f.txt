@@ -1,0 +1,31 @@
+## PR #21 feat(demo): #12 見本の変更
+
+**State:** OPEN | **Mergeable:** MERGEABLE
+
+**Branch:** `feat/demo/12` → `main`
+
+**Closing Issues:**
+  - #12 見本の Issue
+
+---
+
+Closes #12
+
+
+---
+
+## Reviews
+
+### @reviewer (CHANGES_REQUESTED) - 2026-01-02
+
+直してください。
+
+---
+
+## Line Comments
+
+### `src/a.ts:10` [Open]
+
+**@reviewer** (2026-01-02) https://github.com/acme/demo/pull/21#discussion_r1:
+> 名前を直す
+

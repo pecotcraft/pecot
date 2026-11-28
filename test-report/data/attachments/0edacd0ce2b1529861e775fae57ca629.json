@@ -1,0 +1,8 @@
+[
+  "pecot-tools:lint",
+  "pecot-visual:install",
+  "pecot-visual:lint-cli",
+  "pecot:install",
+  "text-rules:build",
+  "text-rules:install"
+]

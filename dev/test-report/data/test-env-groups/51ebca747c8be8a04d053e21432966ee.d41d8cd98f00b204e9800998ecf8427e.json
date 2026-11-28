@@ -1,0 +1,1 @@
+{"id":"51ebca747c8be8a04d053e21432966ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/slidev-pages-lint/tests/no-numeric-asset-prefix.test.ts#ネストした object・array 配下の参照が数字始まりでも、検出する","name":"ネストした object・array 配下の参照が数字始まりでも、検出する","status":"passed","testResultsByEnv":{"default":"74d59e522c657961cdaab933a063b9a4"}}

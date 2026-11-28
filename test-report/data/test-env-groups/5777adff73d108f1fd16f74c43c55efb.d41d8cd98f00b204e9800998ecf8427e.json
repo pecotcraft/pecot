@@ -1,0 +1,1 @@
+{"id":"5777adff73d108f1fd16f74c43c55efb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#git-no-verify-check.sh --no-verify を使うとき、止めるメッセージにそのフラグを含める","name":"--no-verify を使うとき、止めるメッセージにそのフラグを含める","status":"passed","testResultsByEnv":{"default":"18b599e3124e8dc41898442cf6cb4ba9"}}

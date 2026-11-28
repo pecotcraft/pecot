@@ -1,0 +1,1 @@
+{"id":"0fb5e824f3ab218dae3deb30dc284bdd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight CHANGELOG の内容が存在しなければ、git と差分の数え上げを呼ばずに ReleaseError を投げる","name":"CHANGELOG の内容が存在しなければ、git と差分の数え上げを呼ばずに ReleaseError を投げる","status":"passed","testResultsByEnv":{"default":"97f54b5e7b64fccbe9e447fd0dbd57cf"}}

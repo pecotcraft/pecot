@@ -1,0 +1,16 @@
+
+> nx run fx:test
+
+> echo hi
+
+hi
+
+
+
+ NX   Successfully ran target test for project fx
+
+
+  Run duration:      16ms
+  Cache:             0/1 hit (0%)
+  Critical path:     13ms (1 task)
+  Recoverable time:  <1ms

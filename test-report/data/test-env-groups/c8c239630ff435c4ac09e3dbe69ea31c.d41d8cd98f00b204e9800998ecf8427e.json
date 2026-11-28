@@ -1,0 +1,1 @@
+{"id":"c8c239630ff435c4ac09e3dbe69ea31c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/attributes.test.ts#readAttributeValues Issue fields を読み取れない部分エラーでも、ほかの値は返し、警告を 1 行追加する","name":"Issue fields を読み取れない部分エラーでも、ほかの値は返し、警告を 1 行追加する","status":"passed","testResultsByEnv":{"default":"51d0af6cda6c4a69b78171127b3cd17b"}}

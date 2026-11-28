@@ -1,0 +1,1 @@
+{"id":"543ea8f881bd3c2ec29df5dd0231f550.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/validate.test.ts#validateRepository mcp_output mcp.output の最上位が閉じていない型だと、検証エラーにする","name":"mcp.output の最上位が閉じていない型だと、検証エラーにする","status":"passed","testResultsByEnv":{"default":"d943ff126203dcb4ce8e5fa0406dff31"}}

@@ -1,0 +1,1 @@
+{"id":"51524df40fa7557438ba54d3cf5afcfe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add devcontainer の外で呼ぶと、理由を detail に入れて失敗を返す","name":"devcontainer の外で呼ぶと、理由を detail に入れて失敗を返す","status":"passed","testResultsByEnv":{"default":"2f82a57fb3d7f63d7413dd38cbdf6699"}}

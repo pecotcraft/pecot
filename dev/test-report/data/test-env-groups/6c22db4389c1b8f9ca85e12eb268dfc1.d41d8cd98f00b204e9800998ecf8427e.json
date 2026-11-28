@@ -1,0 +1,1 @@
+{"id":"6c22db4389c1b8f9ca85e12eb268dfc1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#getNextSetName 参加できるセットが複数あれば、最小の番号のセットにする","name":"参加できるセットが複数あれば、最小の番号のセットにする","status":"passed","testResultsByEnv":{"default":"321d430d947972a79b9df544871820b0"}}

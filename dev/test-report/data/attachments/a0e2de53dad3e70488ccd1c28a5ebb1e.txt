@@ -1,0 +1,1 @@
+cp: cannot open 'plugins/p/test-results/test-cli/allure-results/2-result.json' for reading: Permission denied

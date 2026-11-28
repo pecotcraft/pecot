@@ -1,0 +1,22 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "spy"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"spy\",\"layout\":\"spy\",\"category\":\"spy\",\"deprecated\":false,\"path\":\"/spy.md\",\"skeleton\":\"\",\"reference\":\"\",\"includes\":{}}"
+    }
+  ],
+  "structuredContent": {
+    "event": "spy",
+    "layout": "spy",
+    "category": "spy",
+    "deprecated": false,
+    "path": "/spy.md",
+    "skeleton": "",
+    "reference": "",
+    "includes": {}
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"758dff2653e4a626f02c2e9e4968c60c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/failure.test.ts#classifyFailure ENOENT と stderr の内容が同時にあるときは、ENOENT を優先して awscli-missing と判定する","name":"ENOENT と stderr の内容が同時にあるときは、ENOENT を優先して awscli-missing と判定する","status":"passed","testResultsByEnv":{"default":"ec4a9996de4115da1cb94fba48b5aa5b"}}

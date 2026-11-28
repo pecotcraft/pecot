@@ -1,0 +1,1 @@
+{"id":"8be7768ae3ca8bdb76042f5a8ae89391.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/scan.test.ts#pythonStrings 文字列の中の # は文字列に含める のとき、引用符を含まない本文だけを切り出す","name":"文字列の中の # は文字列に含める のとき、引用符を含まない本文だけを切り出す","status":"passed","testResultsByEnv":{"default":"4a39e71fa49713fde16d1d9d93015610"}}

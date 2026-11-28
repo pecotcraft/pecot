@@ -1,0 +1,1 @@
+{"id":"e3149264b239ed46c0a3ec544b0d48d8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/cache-warning-merge-failure.test.ts#CUJ: キャッシュ系警告が --json payload から観測できる 変換の後で失敗した場合も、error の結果に同じキャッシュの警告を含める","name":"変換の後で失敗した場合も、error の結果に同じキャッシュの警告を含める","status":"passed","testResultsByEnv":{"default":"6057cc8de042d11016899a7efdbda068"}}

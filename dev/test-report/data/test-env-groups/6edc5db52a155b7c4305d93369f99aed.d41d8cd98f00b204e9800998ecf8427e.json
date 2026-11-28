@@ -1,0 +1,1 @@
+{"id":"6edc5db52a155b7c4305d93369f99aed.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#advisory の id は一致するが package が違う例外は、陳腐化として監査未実施で中止する","name":"advisory の id は一致するが package が違う例外は、陳腐化として監査未実施で中止する","status":"passed","testResultsByEnv":{"default":"d7933372450384ea5ff255cad7f8648b"}}

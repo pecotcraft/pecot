@@ -1,0 +1,1 @@
+{"id":"85814938c0594280a06186d1d7346aec.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#isWorktreeEnvironment git が存在しなければ、WorktreeRuntimeError でなく OsError を投げる","name":"git が存在しなければ、WorktreeRuntimeError でなく OsError を投げる","status":"passed","testResultsByEnv":{"default":"62717b667d507dd3c5799edb91221952"}}

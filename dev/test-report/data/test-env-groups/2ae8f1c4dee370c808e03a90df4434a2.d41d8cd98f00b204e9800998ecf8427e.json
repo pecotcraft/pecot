@@ -1,0 +1,1 @@
+{"id":"2ae8f1c4dee370c808e03a90df4434a2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues 進行の欄が Pending の場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","name":"進行の欄が Pending の場合は、処理を進めず、対象外（out-of-scope）の結果を書き込む","status":"passed","testResultsByEnv":{"default":"233880f02209b1727ab48caa44e99db7"}}

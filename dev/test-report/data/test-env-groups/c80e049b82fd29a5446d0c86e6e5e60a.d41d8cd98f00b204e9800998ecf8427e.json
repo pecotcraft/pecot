@@ -1,0 +1,1 @@
+{"id":"c80e049b82fd29a5446d0c86e6e5e60a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/environment.test.ts#Python reads Python のソースに a spread があると、名前を解決できない行を 1 件返し、名前は返さない","name":"Python のソースに a spread があると、名前を解決できない行を 1 件返し、名前は返さない","status":"passed","testResultsByEnv":{"default":"8ef71f4b9f82f7cb1b276b0dafb2ceae"}}

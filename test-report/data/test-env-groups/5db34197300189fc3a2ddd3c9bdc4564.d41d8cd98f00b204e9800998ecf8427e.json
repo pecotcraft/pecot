@@ -1,0 +1,1 @@
+{"id":"5db34197300189fc3a2ddd3c9bdc4564.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#getRepositorySettings default_branch が無い場合は、GitHubAPIError を発生させる","name":"default_branch が無い場合は、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"10fa5b6d561385686b309ef37f6393c8"}}

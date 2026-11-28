@@ -1,0 +1,1 @@
+{"id":"6283669754819d85ca5dc41f7d7df429.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board.test.ts#board_show MCP の data json を省くと、json の中身に release_type・packages と列の合わない件数を足して返す","name":"json を省くと、json の中身に release_type・packages と列の合わない件数を足して返す","status":"passed","testResultsByEnv":{"default":"c047655ea72bc8586a4eba75ec3e7705"}}

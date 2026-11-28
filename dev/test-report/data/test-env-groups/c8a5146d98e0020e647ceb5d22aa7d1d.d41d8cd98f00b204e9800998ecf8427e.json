@@ -1,0 +1,1 @@
+{"id":"c8a5146d98e0020e647ceb5d22aa7d1d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/errors.test.ts#MCP ツールの異常系応答 ハンドラ内で捕捉されない例外が発生しても、その呼び出しだけが失敗し、サーバーは呼び出しを受け付け続ける","name":"ハンドラ内で捕捉されない例外が発生しても、その呼び出しだけが失敗し、サーバーは呼び出しを受け付け続ける","status":"passed","testResultsByEnv":{"default":"2ac71baf0c6930e365a66ceba2254e6d"}}

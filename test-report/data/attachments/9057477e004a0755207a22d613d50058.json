@@ -1,0 +1,14 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"warning: eslint violations: /tmp/pecotv-test-file-tools-IjbT7z/topology/sub/talk/pages/shared/violation.md\\n\\n  /tmp/pecotv-test-file-tools-IjbT7z/topology/sub/talk/pages/shared/violation.md\\n    1:1  error  heading: 26 chars (max: 20) (full-width-equivalent count after HTML tags are removed)  text-constraints/max-chars\\n\\n  ✖ 1 problem (1 error, 0 warnings)\\n\\n  The output above lists the eslint violations in this file.\"}}"
+    }
+  ],
+  "structuredContent": {
+    "hookSpecificOutput": {
+      "hookEventName": "PostToolUse",
+      "additionalContext": "warning: eslint violations: /tmp/pecotv-test-file-tools-IjbT7z/topology/sub/talk/pages/shared/violation.md\n\n  /tmp/pecotv-test-file-tools-IjbT7z/topology/sub/talk/pages/shared/violation.md\n    1:1  error  heading: 26 chars (max: 20) (full-width-equivalent count after HTML tags are removed)  text-constraints/max-chars\n\n  ✖ 1 problem (1 error, 0 warnings)\n\n  The output above lists the eslint violations in this file."
+    }
+  }
+}

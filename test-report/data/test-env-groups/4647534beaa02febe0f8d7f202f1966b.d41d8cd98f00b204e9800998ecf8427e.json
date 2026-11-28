@@ -1,0 +1,1 @@
+{"id":"4647534beaa02febe0f8d7f202f1966b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/drawio.test.ts#drawio_create theme theme のパスが相対なら弾く（MCP サーバの作業ディレクトリは呼び出し元と異なる）","name":"theme のパスが相対なら弾く（MCP サーバの作業ディレクトリは呼び出し元と異なる）","status":"passed","testResultsByEnv":{"default":"cb12eb95bb42aa7ea353c298ce5c26d1"}}

@@ -1,0 +1,5 @@
+checks: success
+lanes: success
+lint: run
+checks (lint): success
+tests: 0 レーン (skipped)

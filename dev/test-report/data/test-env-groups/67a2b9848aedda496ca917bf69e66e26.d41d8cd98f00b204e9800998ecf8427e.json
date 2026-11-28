@@ -1,0 +1,1 @@
+{"id":"67a2b9848aedda496ca917bf69e66e26.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start ブランチが無いとき 前提が済んでいなければ、ブランチを作らずに止まる","name":"前提が済んでいなければ、ブランチを作らずに止まる","status":"passed","testResultsByEnv":{"default":"5dc6a4c0a9b573a5c3ab58f55dca105b"}}

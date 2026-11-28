@@ -1,0 +1,1 @@
+{"id":"e8b4b2165e119f1e1cfc69e7c0494d7c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create ファイルで作るとき末尾の番号の Issue が Epic だと、Closes を足さない","name":"ファイルで作るとき末尾の番号の Issue が Epic だと、Closes を足さない","status":"passed","testResultsByEnv":{"default":"79af1dd9966631a7c02c2178e3912513"}}

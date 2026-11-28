@@ -1,0 +1,1 @@
+{"id":"2311aad5ab3110310880d6e79e1d348d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/changelog.test.ts#validateSemver 全角数字のバージョンは、受け付ける","name":"全角数字のバージョンは、受け付ける","status":"passed","testResultsByEnv":{"default":"96c0d042001e5d2b12a7dd13ca4f0b20"}}

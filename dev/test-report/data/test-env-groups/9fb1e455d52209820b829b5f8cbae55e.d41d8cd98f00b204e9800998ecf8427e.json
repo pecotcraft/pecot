@@ -1,0 +1,1 @@
+{"id":"9fb1e455d52209820b829b5f8cbae55e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/_shared/tests/drawio-geometry.test.ts#drawioGeometry: フィットモデル 幅がパネルちょうどの図だと、右端の図形を右から 40px（= 60 - 20）の位置に置く","name":"幅がパネルちょうどの図だと、右端の図形を右から 40px（= 60 - 20）の位置に置く","status":"passed","testResultsByEnv":{"default":"ce9e8ab6ec90ef1d9dd4c5db75dd2847"}}

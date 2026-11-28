@@ -1,0 +1,1 @@
+{"id":"f3d9255f68cf8cbc49ccc03fef6a706c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/tool-names.test.ts#本文のツール名 接頭辞付きの名前は、スキルの frontmatter の allowed-tools にだけ書く","name":"接頭辞付きの名前は、スキルの frontmatter の allowed-tools にだけ書く","status":"passed","testResultsByEnv":{"default":"c2d09ba0499d5e8818cc2dd64c0ff045"}}

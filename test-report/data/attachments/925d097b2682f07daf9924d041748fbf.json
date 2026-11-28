@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "=== Git Remote ==="
+    },
+    {
+      "type": "text",
+      "text": "{\"remoteUrl\":\"git@ghes.example.com:acme/demo.git\",\"currentBranch\":\"feat/demo/12\",\"pushed\":true,\"pushStatus\":\"in sync with origin/feat/demo/12\",\"baseBranch\":\"origin/main\",\"gitStatus\":\"On branch feat/demo/12\\nYour branch is up to date with 'origin/feat/demo/12'.\\n\\nnothing to commit, working tree clean\\n\",\"commits\":\"96c2001 change upper.txt\\n0245cd9 lower\",\"diffSummary\":\"lower.txt | 1 +\\n upper.txt | 1 +\\n 2 files changed, 2 insertions(+)\",\"worktree\":{\"list\":\"/tmp/pecot-parity-HY1qs3/base/demo 96c2001 [feat/demo/12]\",\"directoryName\":\"demo\",\"isWorktree\":false},\"stashList\":\"(no stash)\",\"warnings\":[\"cannot infer the stacked base: origin/feat/demo/11 is not found; fetch it with: git fetch\"]}"
+    }
+  ],
+  "structuredContent": {
+    "remoteUrl": "git@ghes.example.com:acme/demo.git",
+    "currentBranch": "feat/demo/12",
+    "pushed": true,
+    "pushStatus": "in sync with origin/feat/demo/12",
+    "baseBranch": "origin/main",
+    "gitStatus": "On branch feat/demo/12\nYour branch is up to date with 'origin/feat/demo/12'.\n\nnothing to commit, working tree clean\n",
+    "commits": "96c2001 change upper.txt\n0245cd9 lower",
+    "diffSummary": "lower.txt | 1 +\n upper.txt | 1 +\n 2 files changed, 2 insertions(+)",
+    "worktree": {
+      "list": "/tmp/pecot-parity-HY1qs3/base/demo 96c2001 [feat/demo/12]",
+      "directoryName": "demo",
+      "isWorktree": false
+    },
+    "stashList": "(no stash)",
+    "warnings": [
+      "cannot infer the stacked base: origin/feat/demo/11 is not found; fetch it with: git fetch"
+    ]
+  }
+}

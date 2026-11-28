@@ -1,0 +1,8 @@
+:iface-id: PA-REVIEW-FINISH
+:iface-plugin: pecot-actions
+:iface-kind: Action
+
+review finish
+==========================
+
+.. iface-defs:: pecot-actions PA-REVIEW-FINISH

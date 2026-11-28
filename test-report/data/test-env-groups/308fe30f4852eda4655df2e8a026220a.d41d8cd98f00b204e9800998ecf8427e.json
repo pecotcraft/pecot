@@ -1,0 +1,1 @@
+{"id":"308fe30f4852eda4655df2e8a026220a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_activate 旧い名前の進行の欄だけがあるボードも、初期化済みとして同期する","name":"旧い名前の進行の欄だけがあるボードも、初期化済みとして同期する","status":"passed","testResultsByEnv":{"default":"61471559dcc92dac99f9a70e8e29168d"}}

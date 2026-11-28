@@ -1,0 +1,1 @@
+{"id":"27c6afd563733f02e1aa761b94a56ef0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show json と reviews を一緒に付けて打つと、JSON にレビューと行のコメントを含める","name":"json と reviews を一緒に付けて打つと、JSON にレビューと行のコメントを含める","status":"passed","testResultsByEnv":{"default":"9bc796250904e7146e9755f8af0c637a"}}

@@ -1,0 +1,1 @@
+{"id":"ba628f6d8d302f30288f77dee34758bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） worktree-config.json を読み込めなければ、OsError をそのまま伝える","name":"worktree-config.json を読み込めなければ、OsError をそのまま伝える","status":"passed","testResultsByEnv":{"default":"ef16a94c9483835c45f2d896f882ed6d"}}

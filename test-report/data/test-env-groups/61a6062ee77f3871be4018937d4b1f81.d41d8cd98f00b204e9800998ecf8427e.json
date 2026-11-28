@@ -1,0 +1,1 @@
+{"id":"61a6062ee77f3871be4018937d4b1f81.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyJapaneseFontFix a:t が空文字列の run の場合は、補正せず、例外も発生しない","name":"a:t が空文字列の run の場合は、補正せず、例外も発生しない","status":"passed","testResultsByEnv":{"default":"053016da5aa71791e0e84a81dfac38b3"}}

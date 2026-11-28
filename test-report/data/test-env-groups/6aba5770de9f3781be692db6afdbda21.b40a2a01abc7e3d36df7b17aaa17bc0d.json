@@ -1,0 +1,1 @@
+{"id":"6aba5770de9f3781be692db6afdbda21.b40a2a01abc7e3d36df7b17aaa17bc0d","fullName":".githooks.tests.test_nx_task_cache#test_cacheable_target_declares_runtime_and_env","name":"workflow-core:test-unit は、キャッシュを有効にし、runtime と環境変数を入力に宣言する","status":"passed","testResultsByEnv":{"default":"119795cea2494ef1b83beb5eb448e05d"}}

@@ -1,0 +1,1 @@
+{"id":"be736da420c164d563335e60c6a4971a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: Python 文字列の中のエスケープした空行で段落を分け、文の長さの指摘を出さない","name":"文字列の中のエスケープした空行で段落を分け、文の長さの指摘を出さない","status":"passed","testResultsByEnv":{"default":"be9493cb5b6cafada3ee2a36d6630419"}}

@@ -1,0 +1,1 @@
+{"id":"579c30560c009befa1ce7d37e1b5eafe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/domain/tests/athena-query.test.ts#classifyAthenaQuery 参照クエリ \" select order_id from orders limit 10\" は、許可する","name":"参照クエリ \" select order_id from orders limit 10\" は、許可する","status":"passed","testResultsByEnv":{"default":"ddfc2d03e557fd1724492e9c10f4bcdc"}}

@@ -1,0 +1,1 @@
+{"id":"fa670b9132c0335e0dcdbd125413ba2d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues ラベルを付けた人が [bot] の場合は、権限が write でも処理を進めず、何も書き込まない","name":"ラベルを付けた人が [bot] の場合は、権限が write でも処理を進めず、何も書き込まない","status":"passed","testResultsByEnv":{"default":"ef7c9de3de8824ca6bbf924661e1b186"}}

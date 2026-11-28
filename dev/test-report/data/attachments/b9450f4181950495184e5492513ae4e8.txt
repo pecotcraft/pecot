@@ -1,0 +1,4 @@
+ずれは 1 件
+board-fields / pecot-status
+  このリポ: {"dataType":"SINGLE_SELECT","options":[{"name":"Pending"},{"name":"Backlog"},{"name":"Blocked"},{"name":"Ready"},{"name":"Active"},{"name":"In Review"},{"name":"Archived"}]}
+  検証用: {"dataType":"SINGLE_SELECT","options":[{"name":"Pending"},{"name":"Backlog"},{"name":"Blocked"},{"name":"Ready"},{"name":"Active"},{"name":"In Review"},{"name":"Archived"},{"name":"Done"}]}

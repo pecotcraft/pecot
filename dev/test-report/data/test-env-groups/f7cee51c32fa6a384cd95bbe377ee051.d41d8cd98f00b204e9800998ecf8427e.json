@@ -1,0 +1,1 @@
+{"id":"f7cee51c32fa6a384cd95bbe377ee051.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#createWorktree（実 git・実ファイル） --allow-existing-branch を指定すれば、孤児ブランチを削除せず再利用する","name":"--allow-existing-branch を指定すれば、孤児ブランチを削除せず再利用する","status":"passed","testResultsByEnv":{"default":"2600155b1abbf509b649e006500e9245"}}

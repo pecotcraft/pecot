@@ -1,0 +1,1 @@
+{"id":"263a26b36ee4b2a1e527e07fcc9a4405.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_link release_type が single・multi・nx のどれでもないと、終了コード 1 で終わる","name":"release_type が single・multi・nx のどれでもないと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"274eb2d8c50195dff4f43979c2f8ec8f"}}

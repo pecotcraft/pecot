@@ -1,0 +1,1 @@
+{"id":"b1643849eddfc550849b86bf16c23e12.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_store#test_closed_prs_are_removed","name":"開いていない PR の側は、`apply` で削除し、記録からも消す","status":"passed","testResultsByEnv":{"default":"9a08a9e837093e5b794493052ad9c962"}}

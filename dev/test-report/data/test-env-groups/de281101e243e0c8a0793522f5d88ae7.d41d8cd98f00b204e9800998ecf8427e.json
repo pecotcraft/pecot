@@ -1,0 +1,1 @@
+{"id":"de281101e243e0c8a0793522f5d88ae7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show .pecot-base がスタック先を指すと、stack にブランチ・Issue・コミットを入れる","name":".pecot-base がスタック先を指すと、stack にブランチ・Issue・コミットを入れる","status":"passed","testResultsByEnv":{"default":"ab25135b7cdf79cb0c035dd9d582d855"}}

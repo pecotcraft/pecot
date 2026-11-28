@@ -1,0 +1,1 @@
+{"id":"cb6753cdefb0e1adcc0a756076e03f44.e02b5c1547f6aa2264e61027edda8da3","fullName":".githooks.tests.test_run_affected_tests#test_lane_mode_rejects_invalid_lane_before_nx_run","name":"lane に lane-one:test-postinstall を指定すると、run-many を呼ばずにエラーで終了する","status":"passed","testResultsByEnv":{"default":"27430cbc9fa3c918bca43442c7dd00f6"}}

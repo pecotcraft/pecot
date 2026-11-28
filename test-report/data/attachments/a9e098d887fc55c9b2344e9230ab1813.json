@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "title: the title of kind task starts with [Task]"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"title\",\"code\":\"title-prefix\",\"message\":\"the title of kind task starts with [Task]\",\"candidates\":[\"[Task] #3-04: 一覧に状態を出す\"]},{\"field\":\"reads.issues\",\"code\":\"read-required\",\"message\":\"read acme/demo/7 with issue_read (method get): the order in the title must stay\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "title",
+        "code": "title-prefix",
+        "message": "the title of kind task starts with [Task]",
+        "candidates": [
+          "[Task] #3-04: 一覧に状態を出す"
+        ]
+      },
+      {
+        "field": "reads.issues",
+        "code": "read-required",
+        "message": "read acme/demo/7 with issue_read (method get): the order in the title must stay"
+      }
+    ]
+  }
+}

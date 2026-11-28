@@ -1,0 +1,1 @@
+{"id":"0245eca124bdb1bceee45cd6b9274b78.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/contract.test.ts#MCP ツール契約 (tools/list) ツール aws_sqs_list_queues は、配列の要素のオブジェクトに宣言外のキーを許可しない","name":"ツール aws_sqs_list_queues は、配列の要素のオブジェクトに宣言外のキーを許可しない","status":"passed","testResultsByEnv":{"default":"f025f61ccee65976b9882b069a74dc6c"}}

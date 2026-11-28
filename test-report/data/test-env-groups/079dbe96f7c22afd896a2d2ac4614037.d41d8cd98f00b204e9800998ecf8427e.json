@@ -1,0 +1,1 @@
+{"id":"079dbe96f7c22afd896a2d2ac4614037.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/process.test.ts#mergeStderr (純粋関数) 両方が空でない場合は、改行でつないで返す","name":"両方が空でない場合は、改行でつないで返す","status":"passed","testResultsByEnv":{"default":"968719ff317beb9a948b7db37cffd127"}}

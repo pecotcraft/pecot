@@ -1,0 +1,1 @@
+{"id":"9e1bf5b02c9336a4af3e683fdfe011b5.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_check_commit_text_stage_and_always_run","name":"check-commit-text は commit-msg の stage で常に実行する","status":"passed","testResultsByEnv":{"default":"e8ae80ac8f691dc63a5eb573a5ca58d9"}}

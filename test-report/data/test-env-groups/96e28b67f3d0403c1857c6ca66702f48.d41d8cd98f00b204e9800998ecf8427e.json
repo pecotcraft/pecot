@@ -1,0 +1,1 @@
+{"id":"96e28b67f3d0403c1857c6ca66702f48.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/issue-surface-drift.test.ts#drift.ts --openapi だけを省略すると、DEFAULT_API_VERSION の版の OpenAPI だけを取得する","name":"--openapi だけを省略すると、DEFAULT_API_VERSION の版の OpenAPI だけを取得する","status":"passed","testResultsByEnv":{"default":"788a0129604eea0b8428e2c0cf7a1c47"}}

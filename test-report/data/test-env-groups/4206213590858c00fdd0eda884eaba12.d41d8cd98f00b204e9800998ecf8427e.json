@@ -1,0 +1,1 @@
+{"id":"4206213590858c00fdd0eda884eaba12.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/infra/dependency-root.test.ts#resolveDependency fromUrl を渡した場合は、その位置からの解決を先に試す","name":"fromUrl を渡した場合は、その位置からの解決を先に試す","status":"passed","testResultsByEnv":{"default":"cfb4fefd9f7d2d60cc9860c17a3d0e61"}}

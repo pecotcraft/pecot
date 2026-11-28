@@ -1,0 +1,1 @@
+{"id":"325d3622fa984a1c411d6e499a2708cc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh の .pecot/work 配下 work 配下で解決した値は、もう一度解決しても変わらない","name":"work 配下で解決した値は、もう一度解決しても変わらない","status":"passed","testResultsByEnv":{"default":"a58fda2d924137dd7dcebe1ace230413"}}

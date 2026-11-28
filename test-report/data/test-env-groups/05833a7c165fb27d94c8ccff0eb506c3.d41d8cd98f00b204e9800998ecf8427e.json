@@ -1,0 +1,1 @@
+{"id":"05833a7c165fb27d94c8ccff0eb506c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slide-url.test.ts#parseSlideUrl パスが数値の URL は、その数値をスライド番号として解析する","name":"パスが数値の URL は、その数値をスライド番号として解析する","status":"passed","testResultsByEnv":{"default":"b5518d57d2fae8e9d89b1c342ea66a78"}}

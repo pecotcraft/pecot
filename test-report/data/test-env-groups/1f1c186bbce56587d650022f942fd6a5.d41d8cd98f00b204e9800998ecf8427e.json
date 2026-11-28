@@ -1,0 +1,1 @@
+{"id":"1f1c186bbce56587d650022f942fd6a5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#executeMcpServe サーバーのインスタンスの作成に失敗した場合は、標準エラー出力へ 1 行出力し、終了コードを 1 にして、接続を閉じる","name":"サーバーのインスタンスの作成に失敗した場合は、標準エラー出力へ 1 行出力し、終了コードを 1 にして、接続を閉じる","status":"passed","testResultsByEnv":{"default":"d1f1a3cb1c809badbfd8ea3a6466faf2"}}

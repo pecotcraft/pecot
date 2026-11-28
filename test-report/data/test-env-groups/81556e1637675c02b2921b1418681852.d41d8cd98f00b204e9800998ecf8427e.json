@@ -1,0 +1,1 @@
+{"id":"81556e1637675c02b2921b1418681852.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/python-format.test.ts#pythonRepr JSON の値 \"日本語\" を渡すと、Python の repr と同じ文字列を返す","name":"JSON の値 \"日本語\" を渡すと、Python の repr と同じ文字列を返す","status":"passed","testResultsByEnv":{"default":"6534f562b7ed59578c2257d0bc7fa4b7"}}

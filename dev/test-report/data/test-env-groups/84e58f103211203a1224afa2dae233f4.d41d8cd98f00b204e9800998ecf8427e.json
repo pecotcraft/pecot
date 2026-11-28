@@ -1,0 +1,1 @@
+{"id":"84e58f103211203a1224afa2dae233f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/slide-lint.test.ts#runSlideLint 集計 違反がなければ、outcome を clean にして、lint した件数を返す","name":"違反がなければ、outcome を clean にして、lint した件数を返す","status":"passed","testResultsByEnv":{"default":"ce4e89a9824dae2ed593bbcf20fc2491"}}

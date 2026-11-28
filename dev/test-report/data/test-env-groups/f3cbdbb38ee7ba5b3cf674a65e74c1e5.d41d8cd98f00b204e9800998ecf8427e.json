@@ -1,0 +1,1 @@
+{"id":"f3cbdbb38ee7ba5b3cf674a65e74c1e5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data MCP の呼び出し PR が閉じている とき、relink を返さない","name":"PR が閉じている とき、relink を返さない","status":"passed","testResultsByEnv":{"default":"234c8ceb115a1d0a6514512460b63820"}}

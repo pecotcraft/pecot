@@ -1,0 +1,1 @@
+{"id":"ec7c5553c8a4e356d2df5601218b5459.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_dev_container#test_prefetch_then_up_pulls_once","name":"prefetch のあとに up を実行しても、pull は 1 回だけにする","status":"passed","testResultsByEnv":{"default":"b14afc3498f34cf92e26f4bf68a4e428"}}

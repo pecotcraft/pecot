@@ -1,0 +1,1 @@
+{"id":"26656184e5d4abbe8c6cdadf3361b03e.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_28_error_nested_project_outside_group","name":"group 外の project がプラグインの project の配下にあると、README だけの変更でもエラーにする","status":"passed","testResultsByEnv":{"default":"c7f01348bf0b35ee0070f11267bc60fa"}}

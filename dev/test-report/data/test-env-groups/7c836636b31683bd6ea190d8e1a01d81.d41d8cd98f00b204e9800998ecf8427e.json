@@ -1,0 +1,1 @@
+{"id":"7c836636b31683bd6ea190d8e1a01d81.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「clickStep 欠落」の場合は、undefined を返す","name":"エントリが「clickStep 欠落」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"841524c097b20ef1f343b2c172e5c236"}}

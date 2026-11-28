@@ -1,0 +1,2 @@
+docker pull の所要: 0 秒
+PECOT_CI_IMAGE=pecot-ci-local（PR の定義から build, 失敗）

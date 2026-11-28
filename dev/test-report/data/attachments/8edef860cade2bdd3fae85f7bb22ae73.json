@@ -1,0 +1,66 @@
+{
+  "pecot-visual:test": [
+    "pecot-visual:test-cli",
+    "pecot-visual:test-compare",
+    "pecot-visual:test-hooks",
+    "pecot-visual:test-release",
+    "pecot-visual:test-skills",
+    "pecot-visual:test-slidev"
+  ],
+  "pecot-visual:test-cli": [
+    "pecot-visual:build-cli",
+    "pecot-visual:build-slidev",
+    "pecot-visual:check-pm-guard",
+    "pecot-visual:chromium-preflight",
+    "pecot-visual:install"
+  ],
+  "pecot-visual:install": [
+    "pecot:install"
+  ],
+  "pecot:install": [],
+  "pecot-visual:check-pm-guard": [
+    "pecot-visual:install"
+  ],
+  "pecot-visual:chromium-preflight": [
+    "pecot-visual:build-cli",
+    "pecot-visual:install"
+  ],
+  "pecot-visual:build-cli": [
+    "text-rules:build"
+  ],
+  "text-rules:build": [
+    "text-rules:install"
+  ],
+  "text-rules:install": [
+    "pecot:install"
+  ],
+  "pecot-visual:build-slidev": [
+    "pecot-visual:install",
+    "text-rules:build"
+  ],
+  "pecot-visual:test-slidev": [
+    "pecot-visual:build-slidev",
+    "pecot-visual:check-pm-guard",
+    "pecot-visual:install"
+  ],
+  "pecot-visual:test-hooks": [
+    "pecot-visual:check-pm-guard",
+    "pecot-visual:install"
+  ],
+  "pecot-visual:test-compare": [
+    "pecot-visual:build-cli",
+    "pecot-visual:check-pm-guard",
+    "pecot-visual:install"
+  ],
+  "pecot-visual:test-release": [
+    "pecot-visual:build-cli",
+    "pecot-visual:build-slidev",
+    "pecot-visual:check-pm-guard",
+    "pecot-visual:install",
+    "text-rules:build"
+  ],
+  "pecot-visual:test-skills": [
+    "pecot-visual:check-pm-guard",
+    "pecot-visual:install"
+  ]
+}

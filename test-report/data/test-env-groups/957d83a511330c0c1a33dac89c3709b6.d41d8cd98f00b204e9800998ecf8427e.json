@@ -1,0 +1,1 @@
+{"id":"957d83a511330c0c1a33dac89c3709b6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/launch.test.ts#launchChromium 起動と無関係のエラーは、包み直さずにそのまま投げる","name":"起動と無関係のエラーは、包み直さずにそのまま投げる","status":"passed","testResultsByEnv":{"default":"3af9a1c5e9c68510746402f89ad5c125"}}

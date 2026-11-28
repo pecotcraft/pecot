@@ -1,0 +1,2 @@
+error: base branch feat/demo/11 has no open PR
+  reopen the PR of feat/demo/11, or create a new one, then call pr_create again

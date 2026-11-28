@@ -1,0 +1,1 @@
+{"id":"a30f2fa0bd7cf00057da617dc32add89.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#errorToReason errorToReason は、SlideSyncUsageError の reason をそのまま返す","name":"errorToReason は、SlideSyncUsageError の reason をそのまま返す","status":"passed","testResultsByEnv":{"default":"ec4c3699f1b976b5f68b1f3ad30b3d2e"}}

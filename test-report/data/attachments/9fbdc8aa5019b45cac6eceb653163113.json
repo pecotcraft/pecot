@@ -1,0 +1,12 @@
+[
+  "pecot-visual:build-cli",
+  "pecot-visual:build-slidev",
+  "pecot-visual:check-pm-guard",
+  "pecot-visual:chromium-preflight",
+  "pecot-visual:install",
+  "pecot-visual:test-cli",
+  "pecot-visual:test-compare",
+  "pecot:install",
+  "text-rules:build",
+  "text-rules:install"
+]

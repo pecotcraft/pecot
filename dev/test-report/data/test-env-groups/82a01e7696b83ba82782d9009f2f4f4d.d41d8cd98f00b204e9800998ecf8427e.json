@@ -1,0 +1,1 @@
+{"id":"82a01e7696b83ba82782d9009f2f4f4d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/core.test.ts#gh-command-check.sh コマンドが gh pr create のとき、終了コード 1 で止める","name":"コマンドが gh pr create のとき、終了コード 1 で止める","status":"passed","testResultsByEnv":{"default":"7d8a67a903b0d29c3c237b1a277bae00"}}

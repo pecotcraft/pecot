@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-RDS-DESCRIBE-DB-CLUSTERS
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+List DB clusters
+================================
+
+.. iface-defs:: pecot-tools PT-AWS-RDS-DESCRIBE-DB-CLUSTERS

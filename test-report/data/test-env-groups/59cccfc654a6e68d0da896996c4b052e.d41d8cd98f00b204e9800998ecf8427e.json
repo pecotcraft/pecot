@@ -1,0 +1,1 @@
+{"id":"59cccfc654a6e68d0da896996c4b052e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-gate.test.ts#auto gate issues のイベント ラベルを付けた人が [bot] なら、権限を読まず、proceed を偽にする","name":"ラベルを付けた人が [bot] なら、権限を読まず、proceed を偽にする","status":"passed","testResultsByEnv":{"default":"a1994f2b8547618a0386a1dfbbbba4cd"}}

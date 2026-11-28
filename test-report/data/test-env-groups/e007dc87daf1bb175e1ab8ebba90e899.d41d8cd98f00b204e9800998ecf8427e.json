@@ -1,0 +1,1 @@
+{"id":"e007dc87daf1bb175e1ab8ebba90e899.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateHeadingSummaries（em-dash サマリは 50 文字以内・日本語を含む 1 文 #1185） 日本語の文字種として数える: 検証（kanji）","name":"日本語の文字種として数える: 検証（kanji）","status":"passed","testResultsByEnv":{"default":"791aa378ff2aa48d391ccdfb9197d062"}}

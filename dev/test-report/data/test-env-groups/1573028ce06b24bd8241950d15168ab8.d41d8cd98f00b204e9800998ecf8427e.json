@@ -1,0 +1,1 @@
+{"id":"1573028ce06b24bd8241950d15168ab8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/auto-gate.test.ts#decideGate の issues ブランチがある場合は、kind を resume にして処理を進める","name":"ブランチがある場合は、kind を resume にして処理を進める","status":"passed","testResultsByEnv":{"default":"bd9eeaf14d2312869d8aeca8291ab572"}}

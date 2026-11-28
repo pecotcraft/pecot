@@ -1,0 +1,1 @@
+{"id":"7b95d18a7432cd95822bfa470d5d15f1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_remove worktree_remove で、devcontainer の外で呼ぶと、理由を detail に入れて失敗を返す","name":"worktree_remove で、devcontainer の外で呼ぶと、理由を detail に入れて失敗を返す","status":"passed","testResultsByEnv":{"default":"e20cd9e7662563df303cd61c7d8d4847"}}

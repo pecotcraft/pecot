@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "related_issue_number: an Issue cannot wait for itself: #7 -> #7"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"related_issue_number\",\"code\":\"cycle\",\"message\":\"an Issue cannot wait for itself: #7 -> #7\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "related_issue_number",
+        "code": "cycle",
+        "message": "an Issue cannot wait for itself: #7 -> #7"
+      }
+    ]
+  }
+}

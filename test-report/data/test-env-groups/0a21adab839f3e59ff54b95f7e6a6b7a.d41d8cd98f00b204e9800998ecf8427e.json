@@ -1,0 +1,1 @@
+{"id":"0a21adab839f3e59ff54b95f7e6a6b7a.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_fetch_pr_nx_cache#test_pull_request_picks_latest_artifact","name":"pull_request のとき、PR の head に対応する最新の artifact を選び、run_id を出力する","status":"passed","testResultsByEnv":{"default":"a86d41d4f9b52daffb8a0026f2fe7542"}}

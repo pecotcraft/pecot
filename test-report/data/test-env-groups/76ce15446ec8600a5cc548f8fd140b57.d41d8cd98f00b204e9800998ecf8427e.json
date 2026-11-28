@@ -1,0 +1,1 @@
+{"id":"76ce15446ec8600a5cc548f8fd140b57.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-move.test.ts#board_move MCP の呼び出し 番号だけを渡して repo を省くと、git の remote のリポジトリの Issue を対象にする","name":"番号だけを渡して repo を省くと、git の remote のリポジトリの Issue を対象にする","status":"passed","testResultsByEnv":{"default":"b1f383d9b54fcdd418a58bd79b58f2c9"}}

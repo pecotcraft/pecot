@@ -1,0 +1,1 @@
+{"id":"141b760124fb1e8e26fdef24e01a3225.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/board-sync.test.ts#board sync Issue の依存関係に対応しない GHES では、warning を 1 回出し、終了コード 0 で終わる","name":"Issue の依存関係に対応しない GHES では、warning を 1 回出し、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"b339d997c3d188566844adc1173b6fc0"}}

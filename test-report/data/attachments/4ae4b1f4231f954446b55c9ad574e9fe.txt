@@ -1,0 +1,2 @@
+error: project config not found: nothing
+  available: github.com_acme_board_acme

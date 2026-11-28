@@ -1,0 +1,1 @@
+{"id":"249ec192150e2429d49b2bce05f6b8cf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#parseFrontmatter 改行が CRLF の本文でも、フロントマターを認識する","name":"改行が CRLF の本文でも、フロントマターを認識する","status":"passed","testResultsByEnv":{"default":"3af40202640c6ea61601b7f6f4dbe00e"}}

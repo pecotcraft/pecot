@@ -1,0 +1,1 @@
+stage=manual|args=run --hook-stage manual --from-ref 25760df05ca4ac429efc0658863219b094ca5924 --to-ref d9bbc5afb8c3f0d200ef23c0298f365cdfcd6abb --show-diff-on-failure --color=never|SKIP=check-version-plan-required|PVB=25760df05ca4ac429efc0658863219b094ca5924|TO=unset|NXC=unset|NXCI=1|LANE=unset|SRV=http://127.0.0.1:38669|NXCF=unset

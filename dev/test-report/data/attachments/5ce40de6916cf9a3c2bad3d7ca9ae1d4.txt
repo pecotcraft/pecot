@@ -1,0 +1,1 @@
+アクティブなプロジェクトの指定を読めません: /tmp/pecot-cli-VMDZkG/.pecot/config/projects/.active

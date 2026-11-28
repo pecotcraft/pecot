@@ -1,0 +1,1 @@
+{"id":"ce03feb344fb19222e87c6c3ee0f30b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/hook-input.test.ts#hook-input.sh Claude の Bash の入力を、PECOT_HOOK_* に読み込む","name":"Claude の Bash の入力を、PECOT_HOOK_* に読み込む","status":"passed","testResultsByEnv":{"default":"6d3f89be4d5d9f7d8ba90ab89c972e74"}}

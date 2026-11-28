@@ -1,0 +1,1 @@
+{"id":"c261700a816e7aac73fa60598f5b2d3b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#main の --write モードの指定が無い・不正なら 2 を返す","name":"モードの指定が無い・不正なら 2 を返す","status":"passed","testResultsByEnv":{"default":"d349899e028d7050f6b7923ca2b7953e"}}

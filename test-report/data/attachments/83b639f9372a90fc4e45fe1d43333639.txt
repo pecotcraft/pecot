@@ -1,0 +1,6 @@
+==> bats /tmp/pytest-of-vscode/pytest-0/popen-gw2/test_plain_failure_uses_failed0/suite/sample.bats
+1..1
+# pecot-description: コマンドの失敗のテストです。
+not ok 1 コマンドの失敗 # in 82 ms
+# (in test file suite/sample.bats, line 7)
+#   `[ 1 -eq 2 ]' failed

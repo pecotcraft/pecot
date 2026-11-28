@@ -1,0 +1,1 @@
+{"id":"b198e27177e1c20445398e1be792c95d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-slide-font-sizes.test.ts#validateSlideFontSizes 宣言ごとの 5 段 (T051) 同じ図でも、渡した宣言が違えば判定の結果が変わる","name":"同じ図でも、渡した宣言が違えば判定の結果が変わる","status":"passed","testResultsByEnv":{"default":"d482eee7d7e531a217cfb9b902c0bd90"}}

@@ -1,0 +1,1 @@
+{"id":"4811d0a34b341b1d4b22d40b021496bb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/dependabot-pull-requests.test.ts#waitingReasons の update-type group の中に major の更新が 1 つでもあれば、major を理由に含める","name":"group の中に major の更新が 1 つでもあれば、major を理由に含める","status":"passed","testResultsByEnv":{"default":"5a7c567173c7149db9268fe1ae420be2"}}

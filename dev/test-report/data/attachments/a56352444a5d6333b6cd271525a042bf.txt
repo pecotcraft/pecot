@@ -1,0 +1,1 @@
+image=ghcr.io/example/img:def-73537cf2fde6dea18311cb613f1efa2e5e6ddfbe@sha256:beef

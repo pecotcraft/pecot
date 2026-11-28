@@ -1,0 +1,1 @@
+{"id":"09b14e18d161fa46f7616b26645ba0cb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#createStack 422（base が親の PR の head と合わない）が返ると、GitHubAPIError を発生させる","name":"422（base が親の PR の head と合わない）が返ると、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"2f84b08ff52845efc17dcc675b3ce58a"}}

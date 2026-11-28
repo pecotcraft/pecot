@@ -1,0 +1,1 @@
+{"id":"34f028c08dd8cdfac65ff82e7771a6fa.d41d8cd98f00b204e9800998ecf8427e","fullName":"libs.interface-spec.docs.tests.test_iface_defs#test_interface_dir_follows_the_root_in_targets_json","name":"定義書の場所は、targets.json に root があればそこを、無ければ plugins の下を指す","status":"passed","testResultsByEnv":{"default":"d6ac025bc1f444baaa792313524504ff"}}

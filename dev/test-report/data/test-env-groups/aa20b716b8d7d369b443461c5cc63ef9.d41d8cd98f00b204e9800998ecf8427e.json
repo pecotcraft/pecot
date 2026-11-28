@@ -1,0 +1,1 @@
+{"id":"aa20b716b8d7d369b443461c5cc63ef9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/eslint-describe-title.test.ts#describe-title の typescript-eslint の parser valid 型注釈のあるファイルでも、題が name にあれば止めない","name":"型注釈のあるファイルでも、題が name にあれば止めない","status":"passed","testResultsByEnv":{"default":"9fefb7a712e8fde314da36d4a622be8c"}}

@@ -1,0 +1,2 @@
+deleted: 2 archived items
+warning: failed to delete 1 archived items

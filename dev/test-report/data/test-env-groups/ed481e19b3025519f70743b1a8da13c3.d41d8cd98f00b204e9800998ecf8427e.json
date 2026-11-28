@@ -1,0 +1,1 @@
+{"id":"ed481e19b3025519f70743b1a8da13c3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#convertStepsSinglePass print ルートが存在しない場合は、各グループが即時に判定し、何も変換せずに不在を示す結果を返す","name":"print ルートが存在しない場合は、各グループが即時に判定し、何も変換せずに不在を示す結果を返す","status":"passed","testResultsByEnv":{"default":"1cc8086de88c9e07af3239853801b1cc"}}

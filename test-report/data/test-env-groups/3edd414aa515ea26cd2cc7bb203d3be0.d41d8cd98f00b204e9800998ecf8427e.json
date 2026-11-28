@@ -1,0 +1,1 @@
+{"id":"3edd414aa515ea26cd2cc7bb203d3be0.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync dry-run が true だと、GitHub への書き込みをしない","name":"dry-run が true だと、GitHub への書き込みをしない","status":"passed","testResultsByEnv":{"default":"fa41a2c3132f6be08393878f2934bf07"}}

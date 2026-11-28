@@ -1,0 +1,1 @@
+{"id":"f641a1575766d95a6e4a03c894ed57bf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/server.test.ts#createMcpServer の progress ハートビート reportProgress で報告したメッセージを即座に通知し、以降の定期的な通知でも同じメッセージを使う","name":"reportProgress で報告したメッセージを即座に通知し、以降の定期的な通知でも同じメッセージを使う","status":"passed","testResultsByEnv":{"default":"b857bdf4059197da3b65bdd0f9754160"}}

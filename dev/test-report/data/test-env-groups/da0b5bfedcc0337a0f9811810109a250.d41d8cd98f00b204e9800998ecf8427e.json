@@ -1,0 +1,1 @@
+{"id":"da0b5bfedcc0337a0f9811810109a250.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-theme.test.ts#executeSlideTheme（宣言の無いテーマ） 宣言ファイルを持たないテーマを指定すると、declared を false にして既定値の一覧と警告を返す","name":"宣言ファイルを持たないテーマを指定すると、declared を false にして既定値の一覧と警告を返す","status":"passed","testResultsByEnv":{"default":"b5d92f60a7dd0652a8e3207c575bb29d"}}

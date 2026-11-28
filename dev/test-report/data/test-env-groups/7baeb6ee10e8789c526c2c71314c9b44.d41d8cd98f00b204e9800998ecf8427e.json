@@ -1,0 +1,1 @@
+{"id":"7baeb6ee10e8789c526c2c71314c9b44.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_workflow#test_report_writes_sources_into_the_work_dir","name":"report の job は、材料を作業のディレクトリに書き出す","status":"passed","testResultsByEnv":{"default":"5fbe0f113e5df3681917ae6854710d25"}}

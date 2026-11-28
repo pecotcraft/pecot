@@ -1,0 +1,1 @@
+{"id":"4be9a1bcc2de2877a1cd75fe887268e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/mcp/tests/session-directory.test.ts#resolveSessionDirectory プラグインのルートの中で COPILOT_SESSION_CWD が実在するディレクトリなら、そこへ移動する","name":"プラグインのルートの中で COPILOT_SESSION_CWD が実在するディレクトリなら、そこへ移動する","status":"passed","testResultsByEnv":{"default":"082ecb0547c167280b8eddd59d0aad04"}}

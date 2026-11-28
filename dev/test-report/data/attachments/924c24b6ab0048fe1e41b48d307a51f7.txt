@@ -1,0 +1,1 @@
+note: theme /tmp/pecotv-drawio-theme-csZz07/themes/no-declaration has no pecot-theme.json declaration; continuing with the defaults

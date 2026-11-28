@@ -1,0 +1,1 @@
+{"id":"594605c6f3dccfd9f4ad2e70ad2e43bd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 未編集プレースホルダの検出と正当な `<...>` の通過（#962） 許可された HTML タグは通す","name":"許可された HTML タグは通す","status":"passed","testResultsByEnv":{"default":"e40192f6d2b44ce3beb9490fee138170"}}

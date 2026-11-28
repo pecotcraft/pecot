@@ -1,0 +1,1 @@
+{"id":"7ecc8e91b2fde1b0778bfe21ef14444f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/errors.test.ts#GitHubAPIError 基本的なエラーは状態コードと本文を持たない","name":"基本的なエラーは状態コードと本文を持たない","status":"passed","testResultsByEnv":{"default":"acfd8af2b9e720f647b9edb5667bcced"}}

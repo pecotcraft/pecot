@@ -1,0 +1,1 @@
+{"id":"cf376c8dcab540a0ee84f8c64acf93ea.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/layer-file-placement.test.ts#layer-file-placement valid アーキテクチャ外の既知のディレクトリ composables に置くと、報告しない","name":"アーキテクチャ外の既知のディレクトリ composables に置くと、報告しない","status":"passed","testResultsByEnv":{"default":"73d6816c6d758bda2cf42f5fccdb4e28"}}

@@ -1,0 +1,1 @@
+{"id":"d0c053cc52ba0d9b5f3c6b5faba9dd35.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest エントリが「pptxFile 型不一致」の場合は、undefined を返す","name":"エントリが「pptxFile 型不一致」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"ee259b8ab4d4274e2c1dd6be0d42f8b6"}}

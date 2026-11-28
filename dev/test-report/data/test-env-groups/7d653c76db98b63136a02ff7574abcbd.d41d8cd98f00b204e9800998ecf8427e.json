@@ -1,0 +1,1 @@
+{"id":"7d653c76db98b63136a02ff7574abcbd.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats#引数が 1 個しかないとき、usage を stderr に出して終了コード 2 で終わる","name":"引数が 1 個しかないとき、usage を stderr に出して終了コード 2 で終わる","status":"passed","testResultsByEnv":{"default":"a61bb6519f120b27aa4990fecc2701f2"}}

@@ -1,0 +1,1 @@
+{"id":"140c43578222cd299c89a0134ddb2d35.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/entry-point-library-references.test.ts#hooks のスクリプトの参照先 参照の実在とトークン会計 lib/core/mcp-guidance.sh が読むテンプレはすべて実在する","name":"lib/core/mcp-guidance.sh が読むテンプレはすべて実在する","status":"passed","testResultsByEnv":{"default":"26060b8de15b5e042db5dfd933f40a5c"}}

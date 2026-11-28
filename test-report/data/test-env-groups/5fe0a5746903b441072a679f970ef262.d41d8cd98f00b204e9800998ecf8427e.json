@@ -1,0 +1,1 @@
+{"id":"5fe0a5746903b441072a679f970ef262.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init MCP の data suffix を渡すと、入力の誤りとして失敗を返し、GitHub を呼ばない","name":"suffix を渡すと、入力の誤りとして失敗を返し、GitHub を呼ばない","status":"passed","testResultsByEnv":{"default":"49b908488af72bef5df957660df93ec6"}}

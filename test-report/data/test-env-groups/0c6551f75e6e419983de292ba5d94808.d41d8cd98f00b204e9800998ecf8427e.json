@@ -1,0 +1,1 @@
+{"id":"0c6551f75e6e419983de292ba5d94808.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_24c_pass_libs_project_with_text_rules_plan","name":"libs の text-rules の変更に、text-rules を宣言する version plan を同梱すると、成功する","status":"passed","testResultsByEnv":{"default":"350ecd0424fbd58a44b343f386415746"}}

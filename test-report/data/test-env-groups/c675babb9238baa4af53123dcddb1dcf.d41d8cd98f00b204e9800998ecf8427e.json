@@ -1,0 +1,1 @@
+{"id":"c675babb9238baa4af53123dcddb1dcf.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-table-cell-background.test.ts#require-table-cell-background valid セルの :style が動的だと、背景色の可能性があるので報告しない","name":"セルの :style が動的だと、背景色の可能性があるので報告しない","status":"passed","testResultsByEnv":{"default":"b769fb0c910318ac1dc306b4d0289668"}}

@@ -1,0 +1,1 @@
+{"id":"fd75af8d49ac0c3786f88a1ca36c82b3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/slide-convert.test.ts#runSlideConvert (fake DI 経由 / 全分岐) build の失敗時の標準エラーが 1KB を超える場合は、末尾だけを detail に出力する","name":"build の失敗時の標準エラーが 1KB を超える場合は、末尾だけを detail に出力する","status":"passed","testResultsByEnv":{"default":"a1e5126780ec3c14ffe97e6eef0d1e4e"}}

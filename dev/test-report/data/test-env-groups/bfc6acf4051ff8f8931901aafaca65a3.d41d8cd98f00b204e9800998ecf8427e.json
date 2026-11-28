@@ -1,0 +1,1 @@
+{"id":"bfc6acf4051ff8f8931901aafaca65a3.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_22_block_both_plugins","name":"2 つの group を変更して version plan が存在しないと、両方の group を示して失敗する","status":"passed","testResultsByEnv":{"default":"0a49643510646c85ea4405d2bfe6ba0a"}}

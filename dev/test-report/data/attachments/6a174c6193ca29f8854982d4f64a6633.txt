@@ -1,0 +1,1 @@
+workflow run pages-build.yml --repo o/r --ref main -f side=release

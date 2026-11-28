@@ -1,0 +1,1 @@
+{"id":"fbbaa0cb4a1e08fd328f42e11e3a1737.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_verify#test_stored_dev_without_record_is_empty","name":"開発版の記録が存在しないと、定義書の開発版の記録は空になる","status":"passed","testResultsByEnv":{"default":"4dd06493d97fe4d959557b6e43906f21"}}

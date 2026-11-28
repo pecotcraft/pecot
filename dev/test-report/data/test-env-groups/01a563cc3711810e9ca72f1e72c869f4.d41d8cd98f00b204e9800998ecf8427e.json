@@ -1,0 +1,1 @@
+{"id":"01a563cc3711810e9ca72f1e72c869f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/prerender.test.ts#restorePrerenderElements 復元処理では、非表示にした要素の表示を戻し、プリレンダの画像を削除する","name":"復元処理では、非表示にした要素の表示を戻し、プリレンダの画像を削除する","status":"passed","testResultsByEnv":{"default":"d84683c3c65004d3f9e2637338c45293"}}

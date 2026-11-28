@@ -1,0 +1,1 @@
+{"id":"37aeee7a65fa993c3952bfea37965568.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack MCP の data MCP の呼び出し 親ブランチが古い位置へ戻された 後に check を付けると、スタックし直しが要ると判断する","name":"親ブランチが古い位置へ戻された 後に check を付けると、スタックし直しが要ると判断する","status":"passed","testResultsByEnv":{"default":"a446d13698c3f9b2e22f1f44795e0723"}}

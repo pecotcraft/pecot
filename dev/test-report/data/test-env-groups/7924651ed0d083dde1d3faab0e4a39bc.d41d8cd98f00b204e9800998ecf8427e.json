@@ -1,0 +1,1 @@
+{"id":"7924651ed0d083dde1d3faab0e4a39bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-flow-structure.test.ts#w-active の手順 ブランチ作成では branch_check の示す base を使い、スタックして着手した旨を伝える","name":"ブランチ作成では branch_check の示す base を使い、スタックして着手した旨を伝える","status":"passed","testResultsByEnv":{"default":"bf012a2c1c283a66959032802876c2b4"}}

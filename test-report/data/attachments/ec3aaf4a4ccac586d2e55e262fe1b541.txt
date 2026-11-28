@@ -1,0 +1,5 @@
+# Session status
+
+- Branch: unknown
+- Repository: unknown
+- Active Issue: none

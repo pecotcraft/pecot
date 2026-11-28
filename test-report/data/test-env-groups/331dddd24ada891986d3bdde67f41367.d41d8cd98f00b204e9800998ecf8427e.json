@@ -1,0 +1,1 @@
+{"id":"331dddd24ada891986d3bdde67f41367.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/captured-output.test.ts#createWarningCollector 件数の上限を超えた場合は、100 件を保ち、省いた件数を最後の 1 文で知らせる","name":"件数の上限を超えた場合は、100 件を保ち、省いた件数を最後の 1 文で知らせる","status":"passed","testResultsByEnv":{"default":"2cec0c8dac5ded63eb3f30c812c5e903"}}

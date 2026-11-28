@@ -1,0 +1,24 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "base: base must be main (given: feat/demo/11): .pecot-base records no stacked base for the head, so the PR goes to the develop branch"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"base\",\"code\":\"base-mismatch\",\"message\":\"base must be main (given: feat/demo/11): .pecot-base records no stacked base for the head, so the PR goes to the develop branch\",\"candidates\":[\"main\"]}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "base",
+        "code": "base-mismatch",
+        "message": "base must be main (given: feat/demo/11): .pecot-base records no stacked base for the head, so the PR goes to the develop branch",
+        "candidates": [
+          "main"
+        ]
+      }
+    ]
+  }
+}

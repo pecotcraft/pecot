@@ -1,0 +1,1 @@
+{"id":"fe5ff4b33b96312b70aa503c12b8fa0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/ears.test.ts#hasJapanese 文字列 \"ひらがな\" を渡すと、hasJapanese は true を返す","name":"文字列 \"ひらがな\" を渡すと、hasJapanese は true を返す","status":"passed","testResultsByEnv":{"default":"173ae16ba78eea5adefc9c2f2d4d964c"}}

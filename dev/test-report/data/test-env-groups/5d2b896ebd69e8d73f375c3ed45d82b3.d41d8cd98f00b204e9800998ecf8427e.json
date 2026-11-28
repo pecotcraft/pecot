@@ -1,0 +1,1 @@
+{"id":"5d2b896ebd69e8d73f375c3ed45d82b3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/no-line-height-centering.test.ts#no-line-height-centering valid 子セレクタの親に height が無いと、報告しない","name":"子セレクタの親に height が無いと、報告しない","status":"passed","testResultsByEnv":{"default":"ab9b2c33b904aa963b4e6f88455c2c5a"}}

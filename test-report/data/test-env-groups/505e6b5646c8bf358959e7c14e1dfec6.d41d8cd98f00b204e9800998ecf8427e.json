@@ -1,0 +1,1 @@
+{"id":"505e6b5646c8bf358959e7c14e1dfec6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/interface-spec-src:tests/commands-md.test.ts#commands-md commands.md が存在しないと、stale の 2 行を出力し、1 で終了する","name":"commands.md が存在しないと、stale の 2 行を出力し、1 で終了する","status":"passed","testResultsByEnv":{"default":"4f282dc45e178fad38220a18fd4c4bc4"}}

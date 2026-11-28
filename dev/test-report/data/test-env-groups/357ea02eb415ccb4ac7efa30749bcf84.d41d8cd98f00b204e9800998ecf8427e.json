@@ -1,0 +1,1 @@
+{"id":"357ea02eb415ccb4ac7efa30749bcf84.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/tracker-sync-dependabot.test.ts#tracker sync open の Tracker が無く、判断を待つ PR も無いと、skipped の行を標準エラーに出す","name":"open の Tracker が無く、判断を待つ PR も無いと、skipped の行を標準エラーに出す","status":"passed","testResultsByEnv":{"default":"ec80e34ed88917ef7a4371bcc0deef14"}}

@@ -1,0 +1,1 @@
+{"id":"c3919277e3f41e155fec30e3df93547e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getAsyncMergeResult status が failed の場合は、details.message をそのまま返す","name":"status が failed の場合は、details.message をそのまま返す","status":"passed","testResultsByEnv":{"default":"2e2dfbb33fb4a0e9eb5b02f7d721ccf6"}}

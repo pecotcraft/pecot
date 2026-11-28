@@ -1,0 +1,1 @@
+{"id":"003cc37d9901de04282e42e41a16fea7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/bash-guard-responses.test.ts#pre-tool-use-bash.sh の応答形式 Copilot CLI の入力で保護ブランチから commit するとき、deny を返す","name":"Copilot CLI の入力で保護ブランチから commit するとき、deny を返す","status":"passed","testResultsByEnv":{"default":"7368fd3c2e62e250ad29b0fc9ca99abe"}}

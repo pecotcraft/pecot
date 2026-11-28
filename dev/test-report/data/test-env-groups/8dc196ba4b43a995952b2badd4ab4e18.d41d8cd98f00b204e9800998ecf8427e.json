@@ -1,0 +1,1 @@
+{"id":"8dc196ba4b43a995952b2badd4ab4e18.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/layout.test.ts#buildEvidenceLayout — 注記図形の導出 arrow の向き（左下向き）が変わった場合は、位置と大きさは同じで、flip だけが変わる","name":"arrow の向き（左下向き）が変わった場合は、位置と大きさは同じで、flip だけが変わる","status":"passed","testResultsByEnv":{"default":"9a67abda359168bd008ef6693375218d"}}

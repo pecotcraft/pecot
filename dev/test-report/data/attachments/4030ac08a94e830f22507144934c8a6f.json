@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "spy"
+    },
+    {
+      "type": "text",
+      "text": "{\"event\":\"spy\",\"file\":\"/spy.svg\",\"sourceSha256\":\"spy\",\"icons\":0}"
+    }
+  ],
+  "structuredContent": {
+    "event": "spy",
+    "file": "/spy.svg",
+    "sourceSha256": "spy",
+    "icons": 0
+  }
+}

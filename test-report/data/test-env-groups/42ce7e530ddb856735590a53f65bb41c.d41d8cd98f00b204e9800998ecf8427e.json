@@ -1,0 +1,1 @@
+{"id":"42ce7e530ddb856735590a53f65bb41c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data MCP の呼び出し 待つ Issue の判定に作った PR が出ていなければ、1 回だけ読み直してから動かし、moves に入れる","name":"待つ Issue の判定に作った PR が出ていなければ、1 回だけ読み直してから動かし、moves に入れる","status":"passed","testResultsByEnv":{"default":"eba4e0dac873d77ce2479f30941d0f73"}}

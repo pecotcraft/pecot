@@ -1,0 +1,1 @@
+{"id":"c22346f50dbea35429a46fce93fa92e4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/release.test.ts#runPreflight 空文字列のバージョンは、省略とみなさず検証で失敗する","name":"空文字列のバージョンは、省略とみなさず検証で失敗する","status":"passed","testResultsByEnv":{"default":"d8fa1c4153ad1eb745bf1f91d2d5811e"}}

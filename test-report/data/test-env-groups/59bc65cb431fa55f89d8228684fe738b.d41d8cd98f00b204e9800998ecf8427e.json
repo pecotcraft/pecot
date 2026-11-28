@@ -1,0 +1,1 @@
+{"id":"59bc65cb431fa55f89d8228684fe738b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/bin.test.ts#main 先頭に BOM がある .ts ファイルでも、BOM が無い場合と同じ位置にコメントの違反を返す","name":"先頭に BOM がある .ts ファイルでも、BOM が無い場合と同じ位置にコメントの違反を返す","status":"passed","testResultsByEnv":{"default":"5b9e5679ec988976803b8e7c1d6e5ba2"}}

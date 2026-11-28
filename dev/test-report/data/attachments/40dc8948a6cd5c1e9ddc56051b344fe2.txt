@@ -1,0 +1,1 @@
+warning: failed to parse hooks-config.json; using the default value (true)

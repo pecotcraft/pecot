@@ -1,0 +1,1 @@
+{"id":"71bb18d66cb7524ae3a09408284a36bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#board_show 着手の判定 Active と In Review の Issue は、前提を読まず、Readiness の列も出さない","name":"Active と In Review の Issue は、前提を読まず、Readiness の列も出さない","status":"passed","testResultsByEnv":{"default":"bc4d1f0ba4da316f8ea18769506d2370"}}

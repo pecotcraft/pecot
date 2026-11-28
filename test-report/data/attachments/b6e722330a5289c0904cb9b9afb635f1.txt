@@ -1,0 +1,21 @@
+Validating: /workspaces/base/pecot/plugins/pecot-visual/assets/slidev/scripts/eslint/_shared/tests/fixtures/deck/pages/_references
+
+  ✓ _common.yaml
+  ✓ _footer.yaml
+  ✓ _header.yaml
+  ✓ agenda.yaml
+  ✓ annotated-diagram.yaml
+  ✓ annotated-image.yaml
+  ✓ annotated-terminal.yaml
+  ✓ axis-table.yaml
+  ✓ cover.yaml
+  ✓ end.yaml
+  ✓ media-right-chart.yaml
+  ✓ media-right-diagram.yaml
+  ✓ media-right-image.yaml
+  ✓ premise-conclusion.yaml
+  ✓ stat-readout.yaml
+  ✓ triad-triptych.yaml
+  ✓ two-column.yaml
+
+17 files checked, 0 error(s) found.

@@ -1,0 +1,141 @@
+{
+  "name": "session_show",
+  "title": "Show session",
+  "description": "Show the branch, repository, work Issue, stack record, the base branch to compare against and the worktree of the session. Reads nothing on GitHub; read the Issue and the PRs stacked above with the official GitHub MCP",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "directory": {
+        "description": "Target Git repository (absolute or relative path)",
+        "type": "string"
+      },
+      "project": {
+        "description": "Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "directory"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "branch": {
+        "description": "Current branch (omitted when it cannot be read)",
+        "type": "string"
+      },
+      "repository": {
+        "description": "Repository of the git remote (owner/repo; omitted when it cannot be read)",
+        "type": "string"
+      },
+      "activeIssue": {
+        "description": "Work Issue of the session (omitted when there is none)",
+        "type": "object",
+        "properties": {
+          "reference": {
+            "type": "string",
+            "description": "Work Issue found from the git remote and the number that ends the branch name (owner/repo/N, the form issue_ref takes)"
+          }
+        },
+        "required": [
+          "reference"
+        ],
+        "additionalProperties": false
+      },
+      "stack": {
+        "description": "Base the work was stacked on, from .pecot-base (omitted when not stacked)",
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string",
+            "description": "Base branch the work branch is stacked on"
+          },
+          "stackedOn": {
+            "type": "string",
+            "description": "Issue stacked on (owner/repo/N)"
+          },
+          "sha": {
+            "type": "string",
+            "description": "Commit of the base branch the work started from"
+          }
+        },
+        "required": [
+          "branch",
+          "stackedOn",
+          "sha"
+        ],
+        "additionalProperties": false
+      },
+      "baseBranch": {
+        "description": "Remote branch to compare the work against (remote/branch): the stack branch while it is on the remote, else the develop branch (omitted when it cannot be decided)",
+        "type": "string"
+      },
+      "worktree": {
+        "type": "object",
+        "properties": {
+          "list": {
+            "type": "string",
+            "description": "Output of git worktree list"
+          },
+          "directoryName": {
+            "type": "string",
+            "description": "Name of the current directory"
+          },
+          "isWorktree": {
+            "description": "Whether the directory is a linked worktree (omitted when it could not be determined)",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "list",
+          "directoryName"
+        ],
+        "additionalProperties": false,
+        "description": "Worktree information"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "worktree"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": true
+  }
+}

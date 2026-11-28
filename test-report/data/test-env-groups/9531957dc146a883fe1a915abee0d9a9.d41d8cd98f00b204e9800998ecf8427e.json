@@ -1,0 +1,1 @@
+{"id":"9531957dc146a883fe1a915abee0d9a9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx の 1 パス変換と差分キャッシュ (#1141) ステップ単位で 1 パス変換を退避した場合も、警告を記録する","name":"ステップ単位で 1 パス変換を退避した場合も、警告を記録する","status":"passed","testResultsByEnv":{"default":"3455d0e64c6333bbde3167fb19106602"}}

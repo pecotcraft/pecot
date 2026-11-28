@@ -1,0 +1,6 @@
+count: Issues to close: 1
+closed: Issue #12
+deleted: remote branch feat/demo/12
+set: current branch to main
+updated: main from origin/main
+deleted: local branch feat/demo/12

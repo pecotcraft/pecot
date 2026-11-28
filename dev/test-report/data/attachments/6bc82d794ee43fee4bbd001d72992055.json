@@ -1,0 +1,31 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "pecot-status: the board has no pecot-status field; add a create change with these options in this order: Pending (color GRAY, description \"Items on hold (Epic or Task). Moved here from Ready or Backlog when deprioritized.\"), Backlog (color RED, description \"Items waiting to be planned. Not for direct work - break down into smaller tasks first.\"), Blocked (color GRAY, description \"Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.\"), Ready (color GREEN, description \"Tasks ready for implementation. AI agent picks from here and moves to Active on start.\"), Active (color BLUE, description \"Currently being worked on. One active task per worktree - track progress and updates here.\"), In Review (color YELLOW, description \"Pull request created and waiting for review. Moves to Archived after merge is completed.\"), Archived (color PURPLE, description \"Completed or cancelled items. Moved here after the issue is closed or no longer needed.\")"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"pecot-status\",\"code\":\"missing-field\",\"message\":\"the board has no pecot-status field; add a create change with these options in this order: Pending (color GRAY, description \\\"Items on hold (Epic or Task). Moved here from Ready or Backlog when deprioritized.\\\"), Backlog (color RED, description \\\"Items waiting to be planned. Not for direct work - break down into smaller tasks first.\\\"), Blocked (color GRAY, description \\\"Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.\\\"), Ready (color GREEN, description \\\"Tasks ready for implementation. AI agent picks from here and moves to Active on start.\\\"), Active (color BLUE, description \\\"Currently being worked on. One active task per worktree - track progress and updates here.\\\"), In Review (color YELLOW, description \\\"Pull request created and waiting for review. Moves to Archived after merge is completed.\\\"), Archived (color PURPLE, description \\\"Completed or cancelled items. Moved here after the issue is closed or no longer needed.\\\")\",\"candidates\":[\"Pending\",\"Backlog\",\"Blocked\",\"Ready\",\"Active\",\"In Review\",\"Archived\"]}],\"deletable\":[]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "pecot-status",
+        "code": "missing-field",
+        "message": "the board has no pecot-status field; add a create change with these options in this order: Pending (color GRAY, description \"Items on hold (Epic or Task). Moved here from Ready or Backlog when deprioritized.\"), Backlog (color RED, description \"Items waiting to be planned. Not for direct work - break down into smaller tasks first.\"), Blocked (color GRAY, description \"Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.\"), Ready (color GREEN, description \"Tasks ready for implementation. AI agent picks from here and moves to Active on start.\"), Active (color BLUE, description \"Currently being worked on. One active task per worktree - track progress and updates here.\"), In Review (color YELLOW, description \"Pull request created and waiting for review. Moves to Archived after merge is completed.\"), Archived (color PURPLE, description \"Completed or cancelled items. Moved here after the issue is closed or no longer needed.\")",
+        "candidates": [
+          "Pending",
+          "Backlog",
+          "Blocked",
+          "Ready",
+          "Active",
+          "In Review",
+          "Archived"
+        ]
+      }
+    ],
+    "deletable": []
+  }
+}

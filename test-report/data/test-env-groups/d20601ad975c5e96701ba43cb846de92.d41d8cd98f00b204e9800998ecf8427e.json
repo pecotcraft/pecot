@@ -1,0 +1,1 @@
+{"id":"d20601ad975c5e96701ba43cb846de92.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_report_generate#test_real_allure_shows_only_environment_values_shared_by_all_lanes","name":"本物の allure のメタデータに、レーンの間で値が同じ環境の情報だけを出す","status":"passed","testResultsByEnv":{"default":"09264f846ec5e7be3e21e4fedfa86e5a"}}

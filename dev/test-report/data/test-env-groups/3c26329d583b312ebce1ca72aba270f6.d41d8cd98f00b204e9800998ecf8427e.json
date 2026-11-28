@@ -1,0 +1,1 @@
+{"id":"3c26329d583b312ebce1ca72aba270f6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/e2e/mcp-tools.test.ts#MCP のツール (stdio) Chromium が取得されていなくてもサーバーは動き続け、Chromium を使うツールは `runtime_setup` を案内する","name":"Chromium が取得されていなくてもサーバーは動き続け、Chromium を使うツールは `runtime_setup` を案内する","status":"passed","testResultsByEnv":{"default":"20d475d5aadcbf5aa0227660212aefde"}}

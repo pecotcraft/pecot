@@ -1,0 +1,1 @@
+{"id":"504f4813514660421faee04852932b4f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/serve.test.ts#runMcpServe サーバーのインスタンス内部で発生したエラーを、標準エラー出力へ 1 行出力する","name":"サーバーのインスタンス内部で発生したエラーを、標準エラー出力へ 1 行出力する","status":"passed","testResultsByEnv":{"default":"1ab0cd5aa4d0091c1378db483f13dc85"}}

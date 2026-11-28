@@ -1,0 +1,19 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: worktree config /tmp/pecot-cli-TC6cpe/workspaces/base/demo/.pecot/config/worktree-config.json"
+    },
+    {
+      "type": "text",
+      "text": "{\"configFile\":\"/tmp/pecot-cli-TC6cpe/workspaces/base/demo/.pecot/config/worktree-config.json\",\"ignoreFile\":\"/tmp/pecot-cli-TC6cpe/workspaces/base/demo/.pecot/config/.worktreeignore\",\"warnings\":[\"using repo acme/demo (could not read the repository from the URL of the Git remote origin)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "configFile": "/tmp/pecot-cli-TC6cpe/workspaces/base/demo/.pecot/config/worktree-config.json",
+    "ignoreFile": "/tmp/pecot-cli-TC6cpe/workspaces/base/demo/.pecot/config/.worktreeignore",
+    "warnings": [
+      "using repo acme/demo (could not read the repository from the URL of the Git remote origin)"
+    ]
+  }
+}

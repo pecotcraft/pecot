@@ -1,0 +1,1 @@
+{"id":"05b093760a7dfb033d5ca31392027329.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 水平線（#1185） 引用・リストの中の水平線とタブ区切りの水平線も不可: \"---\\t\"（trailing-tab）","name":"引用・リストの中の水平線とタブ区切りの水平線も不可: \"---\\t\"（trailing-tab）","status":"passed","testResultsByEnv":{"default":"1165b39c9a5d0cda6ce93ca7d3d58f2a"}}

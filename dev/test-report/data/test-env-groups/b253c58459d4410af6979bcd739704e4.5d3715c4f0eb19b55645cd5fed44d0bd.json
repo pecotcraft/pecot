@@ -1,0 +1,1 @@
+{"id":"b253c58459d4410af6979bcd739704e4.5d3715c4f0eb19b55645cd5fed44d0bd","fullName":".githooks.tests.test_step_gate#test_ignores_tests_that_did_not_pass","name":"step が存在しなくても、状態が failed のテストは判定の対象にしない","status":"passed","testResultsByEnv":{"default":"f2c2f40d49ed8cc86bcb82159774d04f"}}

@@ -1,0 +1,35 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "owner_type: create_project needs owner_type: user or org"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"owner_type\",\"code\":\"required\",\"message\":\"create_project needs owner_type: user or org\",\"candidates\":[\"user\",\"org\"]},{\"field\":\"title\",\"code\":\"required\",\"message\":\"create_project needs the title of the new board\"},{\"field\":\"changes\",\"code\":\"unexpected\",\"message\":\"create checks a new board; check its fields with method fields after create_project\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "owner_type",
+        "code": "required",
+        "message": "create_project needs owner_type: user or org",
+        "candidates": [
+          "user",
+          "org"
+        ]
+      },
+      {
+        "field": "title",
+        "code": "required",
+        "message": "create_project needs the title of the new board"
+      },
+      {
+        "field": "changes",
+        "code": "unexpected",
+        "message": "create checks a new board; check its fields with method fields after create_project"
+      }
+    ]
+  }
+}

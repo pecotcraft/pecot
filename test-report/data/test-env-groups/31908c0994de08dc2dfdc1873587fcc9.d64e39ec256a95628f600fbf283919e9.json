@@ -1,0 +1,1 @@
+{"id":"31908c0994de08dc2dfdc1873587fcc9.d64e39ec256a95628f600fbf283919e9","fullName":".githooks.tests.test_board_sync#test_deploy_starts_from_the_profile_aws_cli_uses","name":"環境変数が {'AWS_PROFILE': 'a'} の場合に、aws login の案内に --profile pecot を使う","status":"passed","testResultsByEnv":{"default":"9a86a3537b1b44251607bfb72301a4c0"}}

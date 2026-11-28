@@ -1,0 +1,18 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "set: aggregation_repo to acme/roadmap"
+    },
+    {
+      "type": "text",
+      "text": "{\"key\":\"aggregation_repo\",\"value\":\"acme/roadmap\",\"change\":\"create\",\"configPath\":\"/tmp/pecot-parity-D55nwr/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json\"}"
+    }
+  ],
+  "structuredContent": {
+    "key": "aggregation_repo",
+    "value": "acme/roadmap",
+    "change": "create",
+    "configPath": "/tmp/pecot-parity-D55nwr/base/demo/.pecot/config/projects/ghes.example.com_acme_board_acme.json"
+  }
+}

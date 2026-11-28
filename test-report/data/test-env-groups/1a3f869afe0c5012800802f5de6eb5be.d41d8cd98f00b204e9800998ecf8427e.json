@@ -1,0 +1,1 @@
+{"id":"1a3f869afe0c5012800802f5de6eb5be.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pages_release#test_report_release_leaves_out_shared_lanes_when_skeleton_has_no_report_lanes","name":"骨組みに report-lanes.json が存在しないと、共通のレーンはリリース版のレポートに含めない","status":"passed","testResultsByEnv":{"default":"a6bf280ea56ff202d75d2322d0defa52"}}

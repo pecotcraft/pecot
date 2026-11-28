@@ -1,0 +1,1 @@
+{"id":"ad344ecb7031115486df3fd0870b343e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/review-finish.test.ts#review finish インラインコメントの本文と日時が文字列でなければ、指摘として数えない","name":"インラインコメントの本文と日時が文字列でなければ、指摘として数えない","status":"passed","testResultsByEnv":{"default":"5e3f7190b377c922d27ea792a04df777"}}

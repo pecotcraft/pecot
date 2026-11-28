@@ -1,0 +1,1 @@
+{"id":"25e8638e2916167ec558a68d98e95f9d.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#deleteIssueFieldValue フィールド値の削除で状態コード 403 が返った場合は、GitHubAPIError が発生する","name":"フィールド値の削除で状態コード 403 が返った場合は、GitHubAPIError が発生する","status":"passed","testResultsByEnv":{"default":"880039dfbd498adbae58c65cc5b53e02"}}

@@ -1,0 +1,1 @@
+{"id":"6f61a41430b5e76251cb67b12ad0001a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start repo が今の git remote のリポジトリと食い違うと、終了コード 1 で終わる","name":"repo が今の git remote のリポジトリと食い違うと、終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"2b5e1a6df0474f19e0ddbf003312eed6"}}

@@ -1,0 +1,1 @@
+{"id":"ae18dcb1e62f2c1c0549a8a20d17d8c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-finish.test.ts#session_finish delete_branch を付けて打つと、リモートの head ブランチを削除する","name":"delete_branch を付けて打つと、リモートの head ブランチを削除する","status":"passed","testResultsByEnv":{"default":"dc16ddc78c8ac7b8f3eb50afcbe6dd0d"}}

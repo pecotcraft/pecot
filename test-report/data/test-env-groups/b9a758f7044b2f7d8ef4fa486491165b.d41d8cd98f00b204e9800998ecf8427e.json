@@ -1,0 +1,1 @@
+{"id":"b9a758f7044b2f7d8ef4fa486491165b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/body-extractor.test.ts#コメントの範囲を渡さないと、コードブロックの中の記述を本文に残し、ノートにしない","name":"コメントの範囲を渡さないと、コードブロックの中の記述を本文に残し、ノートにしない","status":"passed","testResultsByEnv":{"default":"6f7c05b1b5e3d1aa231ab740b025516c"}}

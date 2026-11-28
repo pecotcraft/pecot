@@ -1,0 +1,1 @@
+{"id":"6e67236f816b3ef437372f66d8923bd6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/2layer/tests/layer-file-placement.test.ts#layer-file-placement invalid src/ の下に .vue を置くと、不明な場所として報告する","name":"src/ の下に .vue を置くと、不明な場所として報告する","status":"passed","testResultsByEnv":{"default":"18ad1364e3299974e70f0e579b0c7399"}}

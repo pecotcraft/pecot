@@ -1,0 +1,1 @@
+{"id":"53a404a00926a4923ddbc1d7dec54055.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/project.test.ts#project_init 選択肢を足せなかったときは、warning の行を出して続け、終了コード 0 で終わる","name":"選択肢を足せなかったときは、warning の行を出して続け、終了コード 0 で終わる","status":"passed","testResultsByEnv":{"default":"abe02f1e11461c04c38d0681498b7ff6"}}

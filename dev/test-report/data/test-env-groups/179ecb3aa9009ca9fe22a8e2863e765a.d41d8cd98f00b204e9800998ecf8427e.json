@@ -1,0 +1,1 @@
+{"id":"179ecb3aa9009ca9fe22a8e2863e765a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/result.test.ts#parsePathArguments 拒否の結果の structuredContent は、最上位に kind として invalid-path を持つ","name":"拒否の結果の structuredContent は、最上位に kind として invalid-path を持つ","status":"passed","testResultsByEnv":{"default":"bf0d0cbf0925da021f56aaf4ae31b349"}}

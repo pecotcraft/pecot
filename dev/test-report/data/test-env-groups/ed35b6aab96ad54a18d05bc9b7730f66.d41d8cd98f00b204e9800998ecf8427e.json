@@ -1,0 +1,1 @@
+{"id":"ed35b6aab96ad54a18d05bc9b7730f66.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/prerender-replace.test.ts#buildPicMediaMap rId に対応する画像が rels に存在しない pic の場合は、対象から外す","name":"rId に対応する画像が rels に存在しない pic の場合は、対象から外す","status":"passed","testResultsByEnv":{"default":"e9bf676395f0a9fc8bb38af0789f8db8"}}

@@ -1,0 +1,1 @@
+{"id":"4f7444fb7065bc6e4212d2a7d9252e24.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml — 注記図形 向きが既定の arrow には、flip の属性を出力しない","name":"向きが既定の arrow には、flip の属性を出力しない","status":"passed","testResultsByEnv":{"default":"66eafe90a31eaf3f1313af75a839aa55"}}

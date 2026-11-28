@@ -1,0 +1,1 @@
+{"id":"383515e6c71ab9d5863bea75cf26d303.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/interface/file-tools.test.ts#file_lint pecot-text-lint が時間切れになると、20 秒を超えたことを返す","name":"pecot-text-lint が時間切れになると、20 秒を超えたことを返す","status":"passed","testResultsByEnv":{"default":"16dc3726a11d1223a13f944774bbdcc9"}}

@@ -1,0 +1,1 @@
+{"id":"f3408c0faf687383b6dbca6acac33bba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_create MCP の data MCP の呼び出し owner:branch の head でも、ブランチ名の末尾の番号の Closes を本文に足す","name":"owner:branch の head でも、ブランチ名の末尾の番号の Closes を本文に足す","status":"passed","testResultsByEnv":{"default":"8dfaaee89b39bf48eee8390a6258712d"}}

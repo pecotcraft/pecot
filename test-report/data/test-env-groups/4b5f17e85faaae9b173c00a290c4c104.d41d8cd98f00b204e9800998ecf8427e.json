@@ -1,0 +1,1 @@
+{"id":"4b5f17e85faaae9b173c00a290c4c104.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/restack.test.ts#decideRestack 親 PR がマージ済みで、ブランチが残っている の場合は、merged と判断する","name":"親 PR がマージ済みで、ブランチが残っている の場合は、merged と判断する","status":"passed","testResultsByEnv":{"default":"f487fedf49afdf78acd8dbd3c6a2049a"}}

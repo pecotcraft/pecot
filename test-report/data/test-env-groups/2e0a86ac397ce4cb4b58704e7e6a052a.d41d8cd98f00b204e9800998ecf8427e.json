@@ -1,0 +1,1 @@
+{"id":"2e0a86ac397ce4cb4b58704e7e6a052a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-start.test.ts#session_start MCP の data 作業対象を記録できないと、warnings に 1 つ入れる","name":"作業対象を記録できないと、warnings に 1 つ入れる","status":"passed","testResultsByEnv":{"default":"fb6bdb3a5e21f911a605d8ae86130851"}}

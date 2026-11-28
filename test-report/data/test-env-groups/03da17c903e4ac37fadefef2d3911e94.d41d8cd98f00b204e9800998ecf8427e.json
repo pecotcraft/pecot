@@ -1,0 +1,1 @@
+{"id":"03da17c903e4ac37fadefef2d3911e94.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/reference-parser.test.ts#parseIssueReference issue 参照に owner/repo/N を渡すと、リポジトリと番号に分けて返す","name":"issue 参照に owner/repo/N を渡すと、リポジトリと番号に分けて返す","status":"passed","testResultsByEnv":{"default":"3cfb7817e88a34575589ce25377ad0da"}}

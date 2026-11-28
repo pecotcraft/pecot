@@ -1,0 +1,1 @@
+{"id":"71949d150931f1c46a4c6fc006b4331b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#convertStepsSinglePass print ページの準備中に例外が発生した場合は、従来の worker で変換する","name":"print ページの準備中に例外が発生した場合は、従来の worker で変換する","status":"passed","testResultsByEnv":{"default":"5d0dd732c0ef33f7cd820cff5bf47a5a"}}

@@ -1,0 +1,1 @@
+{"id":"71200b1b979884eda8ab0b322b058329.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.test.sh#opt-in があれば prefer-offline と指定のキャッシュを渡す","name":"opt-in があれば prefer-offline と指定のキャッシュを渡す","status":"passed","testResultsByEnv":{"default":"fa43b5df849ee418ed4180bd9997ab0c"}}

@@ -1,0 +1,1 @@
+{"id":"907fa30b7df86908a9774cdca45eef09.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/regex-posix-convention.test.ts#hooks の ERE の記法の規約 lib/core/pecot-dir-init.sh のコード行に glibc 拡張の \\s・\\S は無い","name":"lib/core/pecot-dir-init.sh のコード行に glibc 拡張の \\s・\\S は無い","status":"passed","testResultsByEnv":{"default":"d2b1039f81149539ad5fe967ef02a746"}}

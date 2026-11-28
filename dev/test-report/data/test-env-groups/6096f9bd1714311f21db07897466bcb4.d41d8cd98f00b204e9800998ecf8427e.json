@@ -1,0 +1,1 @@
+{"id":"6096f9bd1714311f21db07897466bcb4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/drawio.test.ts#drawio_export icons_dir が相対なら invalid-path で弾く","name":"icons_dir が相対なら invalid-path で弾く","status":"passed","testResultsByEnv":{"default":"e2e1db4f88745a88da2ca9c9e8e80eb9"}}

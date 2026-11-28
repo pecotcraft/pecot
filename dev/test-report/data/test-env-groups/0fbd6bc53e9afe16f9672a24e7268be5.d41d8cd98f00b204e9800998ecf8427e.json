@@ -1,0 +1,1 @@
+{"id":"0fbd6bc53e9afe16f9672a24e7268be5.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/format.test.ts#formatBoardOutput の Readiness の列 判定の表を渡さない場合は、Readiness の列を付けない","name":"判定の表を渡さない場合は、Readiness の列を付けない","status":"passed","testResultsByEnv":{"default":"c49d8fc6a6915439a623ab688849b2cb"}}

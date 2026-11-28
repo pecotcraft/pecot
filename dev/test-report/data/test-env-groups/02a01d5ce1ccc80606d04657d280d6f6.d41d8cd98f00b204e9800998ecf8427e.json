@@ -1,0 +1,1 @@
+{"id":"02a01d5ce1ccc80606d04657d280d6f6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-create.test.ts#slide create の失敗 (FR-013) 依存ルートの実体が存在しない場合は、取得も生成先の変更もせず、symlink-failed で止まる","name":"依存ルートの実体が存在しない場合は、取得も生成先の変更もせず、symlink-failed で止まる","status":"passed","testResultsByEnv":{"default":"a9ad0e946c8fb9466ddaee0dd7bfc67c"}}

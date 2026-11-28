@@ -1,0 +1,6 @@
+{
+  "hookSpecificOutput": {
+    "sessionTitle": "#12 題名",
+    "hookEventName": "UserPromptSubmit"
+  }
+}

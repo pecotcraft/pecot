@@ -1,0 +1,1 @@
+{"id":"55886e7e880087a5851d8fd14efd1275.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: 実行時依存 (永続層) タイムアウトと中断は原因を区別して返す","name":"タイムアウトと中断は原因を区別して返す","status":"passed","testResultsByEnv":{"default":"4e766382b4d130846d3cb3af237c66df"}}

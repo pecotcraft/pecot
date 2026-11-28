@@ -1,0 +1,1 @@
+{"id":"c6d7252266d1784e03d2e9d19ecacc60.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-reject.test.ts#Athena の変更系・複文（research R6） database の値に = を含む場合は、invalid-input として拒否する","name":"database の値に = を含む場合は、invalid-input として拒否する","status":"passed","testResultsByEnv":{"default":"bbbb188ef21bdcd25db5ad3c31bbf594"}}

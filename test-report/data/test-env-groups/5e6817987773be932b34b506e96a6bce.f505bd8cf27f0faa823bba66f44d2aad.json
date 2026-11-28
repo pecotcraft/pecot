@@ -1,0 +1,1 @@
+{"id":"5e6817987773be932b34b506e96a6bce.f505bd8cf27f0faa823bba66f44d2aad","fullName":".githooks.tests.test_dev_container#test_missing_runner_env_exits_1","name":"GITHUB_WORKSPACE が存在しないと、その名前を出力して終了コード 1 で終わる","status":"passed","testResultsByEnv":{"default":"d3e28079cc918107d82383fd04959536"}}

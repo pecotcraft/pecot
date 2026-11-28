@@ -1,0 +1,21 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.pull_requests: the base feat/demo/11 is not the develop branch: read the PRs of feat/demo/11 with list_pull_requests (owner acme, repo demo, head acme:feat/demo/11, state open) and pass its result as reads.pull_requests"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.pull_requests\",\"code\":\"read-required\",\"message\":\"the base feat/demo/11 is not the develop branch: read the PRs of feat/demo/11 with list_pull_requests (owner acme, repo demo, head acme:feat/demo/11, state open) and pass its result as reads.pull_requests\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.pull_requests",
+        "code": "read-required",
+        "message": "the base feat/demo/11 is not the develop branch: read the PRs of feat/demo/11 with list_pull_requests (owner acme, repo demo, head acme:feat/demo/11, state open) and pass its result as reads.pull_requests"
+      }
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"id":"6dc9d600b59213bac27b4b23e08face3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/release-check.test.ts#runReleaseCheck code scanning の alert を読めないと、理由を error に出して失敗にする","name":"code scanning の alert を読めないと、理由を error に出して失敗にする","status":"passed","testResultsByEnv":{"default":"96f38aa9057123e962c96a844d0ade9d"}}

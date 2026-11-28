@@ -1,0 +1,1 @@
+{"id":"252baeb57f91e22fe6d39680355d375c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter の blocked_by 次の指定をすると、検証の誤りにする: blocked_by がない status: blocked","name":"次の指定をすると、検証の誤りにする: blocked_by がない status: blocked","status":"passed","testResultsByEnv":{"default":"13215387fd11d64076e78ed056e52145"}}

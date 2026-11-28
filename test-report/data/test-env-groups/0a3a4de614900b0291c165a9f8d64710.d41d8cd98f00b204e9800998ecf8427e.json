@@ -1,0 +1,1 @@
+{"id":"0a3a4de614900b0291c165a9f8d64710.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#getPullRequestForMerge マージの可否の判断に使う項目を返す","name":"マージの可否の判断に使う項目を返す","status":"passed","testResultsByEnv":{"default":"f921814627f386f0c216011b23130423"}}

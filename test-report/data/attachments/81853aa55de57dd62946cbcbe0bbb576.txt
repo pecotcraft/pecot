@@ -1,0 +1,5 @@
+error: the result of issue_read in reads.issues[0] is not in the shape of the official GitHub MCP server
+  issue.number: Invalid input: expected number, received string
+  issue.title: Invalid input: expected string, received undefined
+  issue.state: Invalid input: expected string, received undefined
+  issue.html_url: Invalid input: expected string, received undefined

@@ -1,0 +1,1 @@
+{"id":"ec726a1ec333a92ec9dd35f4ea35cf09.da3c949076cd9455e04ce8eca74d8ca1","fullName":".githooks.tests.test_pre_commit_config_wiring#test_plugin_validate_skips_unrelated_paths","name":"plugins/pecot-workflow/project.json を変更しても、plugin-validate は起動しない","status":"passed","testResultsByEnv":{"default":"7665a9035f0ad319c4bd00cd685192ec"}}

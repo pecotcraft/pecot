@@ -1,0 +1,113 @@
+{
+  "name": "worktree_link",
+  "title": "Update worktree symlinks",
+  "description": "Apply or update symlinks in existing worktrees",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "directory": {
+        "description": "Target Git repository (absolute or relative path)",
+        "type": "string"
+      },
+      "force": {
+        "default": false,
+        "description": "Overwrite real files and directories without asking",
+        "type": "boolean"
+      },
+      "all": {
+        "default": false,
+        "description": "Apply to all sub-worktrees",
+        "type": "boolean"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "directory"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "Absolute path of the symlink"
+            },
+            "destination": {
+              "type": "string",
+              "description": "Absolute path the symlink points to"
+            },
+            "change": {
+              "type": "string",
+              "enum": [
+                "create",
+                "update",
+                "skip",
+                "error"
+              ],
+              "description": "create: a new symlink; update: an existing one was replaced; skip: left as it was; error: could not be made"
+            },
+            "reason": {
+              "description": "Why the link was skipped or failed (omitted for create and update)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "destination",
+            "change"
+          ],
+          "additionalProperties": false
+        },
+        "description": "One entry per link of the config in each target worktree (an empty array when there is no sub-worktree)"
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "links"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": true
+  }
+}

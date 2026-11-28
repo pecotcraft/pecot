@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "this tool must run inside a devcontainer\n  the current environment does not have the mount layout pecot expects (/workspaces/<project>/base/<repo>)\n  prepare .devcontainer/ in the project, run Reopen in Container in VS Code, and call it again"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"this tool must run inside a devcontainer\\n  the current environment does not have the mount layout pecot expects (/workspaces/<project>/base/<repo>)\\n  prepare .devcontainer/ in the project, run Reopen in Container in VS Code, and call it again\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "this tool must run inside a devcontainer\n  the current environment does not have the mount layout pecot expects (/workspaces/<project>/base/<repo>)\n  prepare .devcontainer/ in the project, run Reopen in Container in VS Code, and call it again"
+  },
+  "isError": true
+}

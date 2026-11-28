@@ -1,0 +1,1 @@
+{"id":"1278eab65e0129dcc5577923407eb763.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#stackUndecidedHint 読んでいない PR のとき、足りない読み取りの案内を返す","name":"読んでいない PR のとき、足りない読み取りの案内を返す","status":"passed","testResultsByEnv":{"default":"20abc75beeaa76be77aa31cdd7eaa34c"}}

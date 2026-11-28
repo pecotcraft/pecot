@@ -1,0 +1,1 @@
+{"id":"88a1031d79863afe6953a95ab0d16b58.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#指紋が監査記録と一致しないと、gh を呼ばずに非ゼロ終了し、配布ツリーの指紋を出力する","name":"指紋が監査記録と一致しないと、gh を呼ばずに非ゼロ終了し、配布ツリーの指紋を出力する","status":"passed","testResultsByEnv":{"default":"8a246c968101cf82e9fbdf84519889d5"}}

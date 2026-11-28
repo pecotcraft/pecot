@@ -1,0 +1,1 @@
+{"id":"a13d7fe3c2c9c2a6d00718de8551cbd8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#prerequisiteFacts Issue を読まず状態も渡さなければ、undefined を返す","name":"Issue を読まず状態も渡さなければ、undefined を返す","status":"passed","testResultsByEnv":{"default":"2dccf05c410177e7fbf387107c30548a"}}

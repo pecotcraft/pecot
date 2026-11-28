@@ -1,0 +1,46 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "## Board status (filter: acme/other)"
+    },
+    {
+      "type": "text",
+      "text": "{\"board\":{\"items\":[{\"id\":1003,\"workflow\":\"Active\",\"lane\":\"docs\",\"title\":\"Item 3\",\"updatedAt\":\"2026-11-01T00:00:00Z\",\"content\":{\"number\":3,\"state\":\"OPEN\",\"url\":\"https://ghes.example.com/acme/other/issues/3\",\"labels\":[],\"repository\":\"acme/other\"},\"readiness\":null}]},\"lanes\":[{\"name\":\"cli\",\"count\":0,\"startable\":0},{\"name\":\"docs\",\"count\":1,\"startable\":0}],\"mismatches\":0}"
+    }
+  ],
+  "structuredContent": {
+    "board": {
+      "items": [
+        {
+          "id": 1003,
+          "workflow": "Active",
+          "lane": "docs",
+          "title": "Item 3",
+          "updatedAt": "2026-11-01T00:00:00Z",
+          "content": {
+            "number": 3,
+            "state": "OPEN",
+            "url": "https://ghes.example.com/acme/other/issues/3",
+            "labels": [],
+            "repository": "acme/other"
+          },
+          "readiness": null
+        }
+      ]
+    },
+    "lanes": [
+      {
+        "name": "cli",
+        "count": 0,
+        "startable": 0
+      },
+      {
+        "name": "docs",
+        "count": 1,
+        "startable": 0
+      }
+    ],
+    "mismatches": 0
+  }
+}

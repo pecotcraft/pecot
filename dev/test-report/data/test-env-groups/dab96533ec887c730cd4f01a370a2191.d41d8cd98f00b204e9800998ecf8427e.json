@@ -1,0 +1,1 @@
+{"id":"dab96533ec887c730cd4f01a370a2191.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/sync.test.ts#runSlideSync (移行済みの talk-dir) talk-dir の種類の判定に失敗した場合は、その例外を返し、後続の処理を呼ばない","name":"talk-dir の種類の判定に失敗した場合は、その例外を返し、後続の処理を呼ばない","status":"passed","testResultsByEnv":{"default":"4aa5c9037fa2be0e1110f4c00549e1d7"}}

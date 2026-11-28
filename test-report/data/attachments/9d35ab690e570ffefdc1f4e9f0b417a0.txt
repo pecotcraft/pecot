@@ -1,0 +1,7 @@
+ずれは 2 件
+config-options / status
+  このリポ: ["in_progress","needs_attention","todo"]
+  検証用: なし
+config-options / workflow
+  このリポ: ["active","archived","backlog","blocked","in_review","pending","ready"]
+  検証用: なし

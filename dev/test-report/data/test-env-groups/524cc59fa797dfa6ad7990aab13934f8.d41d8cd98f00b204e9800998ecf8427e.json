@@ -1,0 +1,1 @@
+{"id":"524cc59fa797dfa6ad7990aab13934f8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/release.test.ts#release_check タグ・本文・名前 本文が CHANGELOG の節と違うと、body-mismatch の項目と節の本文の候補を返す","name":"本文が CHANGELOG の節と違うと、body-mismatch の項目と節の本文の候補を返す","status":"passed","testResultsByEnv":{"default":"9bd377c80be5330696b3c1391ddd19fe"}}

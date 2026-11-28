@@ -1,0 +1,1 @@
+{"id":"9b6453fcdd7f45c54c03045e5fa9d8b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/sandbox/sandbox-diff.test.ts#sandbox-diff.sh board-sync の中身が違うと、両方の blob の sha と違う最初の行を出す（FR-032）","name":"board-sync の中身が違うと、両方の blob の sha と違う最初の行を出す（FR-032）","status":"passed","testResultsByEnv":{"default":"d7dbebc111f1d7f1e3e400677d5bf5fc"}}

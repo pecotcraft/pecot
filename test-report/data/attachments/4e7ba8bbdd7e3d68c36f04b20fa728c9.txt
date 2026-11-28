@@ -1,0 +1,3 @@
+PASS: /workspaces/base/pecot/plugins/pecot-workflow/hooks/session-start.sh
+=== Summary ===
+0 files with violations, 1 files clean

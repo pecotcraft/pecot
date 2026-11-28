@@ -1,0 +1,1 @@
+{"id":"1b23bc4c846dfab737a675cad784a745.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_local_hooks_use_unsupported_languages","name":"local hook の language は新しい表記で、pre-commit の下限もそれ以上に固定する","status":"passed","testResultsByEnv":{"default":"be11f43eb1bd462c139c13d15b96b6ee"}}

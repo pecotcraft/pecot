@@ -1,0 +1,1 @@
+{"id":"7c43a413305ebf0272cecc0593d8bd72.73e2165649992057b043301049a54646","fullName":".githooks.tests.test_pages_served#test_main_requires_one_target","name":"CLI は、--page-url と --url の両方か、どちらも無いと止まる","status":"passed","testResultsByEnv":{"default":"dbc3c55e30f3f36551aff511d71c9a7b"}}

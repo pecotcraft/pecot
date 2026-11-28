@@ -1,0 +1,8 @@
+:iface-id: PT-AWS-SCHEDULER-LIST-SCHEDULES
+:iface-plugin: pecot-tools
+:iface-kind: MCP
+
+List schedules
+============================
+
+.. iface-defs:: pecot-tools PT-AWS-SCHEDULER-LIST-SCHEDULES

@@ -1,0 +1,1 @@
+{"id":"08ffb5eb7ef4979a7fc90a39a6759168.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/playwright/tests/host-dependencies.test.ts#recordHostDependenciesResult 依存ルートに node_modules が存在しない場合は、記録せず、エラーにもしない","name":"依存ルートに node_modules が存在しない場合は、記録せず、エラーにもしない","status":"passed","testResultsByEnv":{"default":"0c277de65a598208ade76675b7de0057"}}

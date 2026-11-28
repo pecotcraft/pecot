@@ -1,0 +1,1 @@
+{"id":"f040d5f1e54a398ff45a702d665e97ed.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/skill-scripts.test.ts#w-pr の CI とマージの待ち受け ci の待ちで、CI が落ちた なら、CI_FAILED を 1 行出力して終了コード 0 で終了する","name":"ci の待ちで、CI が落ちた なら、CI_FAILED を 1 行出力して終了コード 0 で終了する","status":"passed","testResultsByEnv":{"default":"dcf096efd8a20b7c5b663679f94c7656"}}

@@ -1,0 +1,1 @@
+{"id":"bcb11551a7559cd95ef76228ec0cca0c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/skills/official-mcp-writes.test.ts#公式の MCP で書く手順 w-ready が、Issue を書く手順として github-write.md を参照する","name":"w-ready が、Issue を書く手順として github-write.md を参照する","status":"passed","testResultsByEnv":{"default":"0e4d81cbcf6fa0ec84019821e57f44b6"}}

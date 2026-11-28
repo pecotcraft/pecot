@@ -1,0 +1,1 @@
+{"id":"50a1ee5ce7f72ba1476d2facf8c6d840.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack 親ブランチにコミットが足されていると、スタックし直して push し、base の記録を新しい位置に書き直す","name":"親ブランチにコミットが足されていると、スタックし直して push し、base の記録を新しい位置に書き直す","status":"passed","testResultsByEnv":{"default":"18c9dfcaec3f4e295959f1fc59522eac"}}

@@ -1,0 +1,1 @@
+{"id":"b648e88b1ca52debb363b565388c49e9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree-links.test.ts#getDefaultConfig 指定した共有先を 3 つのリンクが指し、setup_command は未指定になる","name":"指定した共有先を 3 つのリンクが指し、setup_command は未指定になる","status":"passed","testResultsByEnv":{"default":"37f45ebeb0df8854004373f7d8057cbe"}}

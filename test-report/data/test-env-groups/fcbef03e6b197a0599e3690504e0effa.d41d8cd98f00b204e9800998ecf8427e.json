@@ -1,0 +1,1 @@
+{"id":"fcbef03e6b197a0599e3690504e0effa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#computeDeckCacheKeys デッキの環境全体のハッシュ envHash と、全スライドの slideHash を返す","name":"デッキの環境全体のハッシュ envHash と、全スライドの slideHash を返す","status":"passed","testResultsByEnv":{"default":"7c828229937170bb3aabc89ab205d17c"}}

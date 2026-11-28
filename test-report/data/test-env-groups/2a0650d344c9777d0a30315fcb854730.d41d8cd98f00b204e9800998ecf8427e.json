@@ -1,0 +1,1 @@
+{"id":"2a0650d344c9777d0a30315fcb854730.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr-restack.test.ts#pr_restack PR の base が既定のブランチでない とき、PR の本文を保存し直さない","name":"PR の base が既定のブランチでない とき、PR の本文を保存し直さない","status":"passed","testResultsByEnv":{"default":"64f9d352abd5b85296b085039d546842"}}

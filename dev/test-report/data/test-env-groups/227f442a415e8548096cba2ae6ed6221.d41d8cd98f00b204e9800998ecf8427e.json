@@ -1,0 +1,1 @@
+{"id":"227f442a415e8548096cba2ae6ed6221.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/text-constraints/tests/text-measurer.test.ts#hasDisallowedEmTag <em> に閉じタグが無くても、true を返す","name":"<em> に閉じタグが無くても、true を返す","status":"passed","testResultsByEnv":{"default":"8985c0c075877acef8c89033759b097e"}}

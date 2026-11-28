@@ -1,0 +1,1 @@
+{"id":"717206723668f7fedbffe4139a276c3b.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#removeAnimationTiming p:timing がある場合は、p:timing とその配下のアニメーションの設定をまとめて削除する","name":"p:timing がある場合は、p:timing とその配下のアニメーションの設定をまとめて削除する","status":"passed","testResultsByEnv":{"default":"038a33ffaf2c8f327c79a5eccf2dc0d9"}}

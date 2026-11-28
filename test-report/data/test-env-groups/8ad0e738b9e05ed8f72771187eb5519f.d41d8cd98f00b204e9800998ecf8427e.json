@@ -1,0 +1,1 @@
+{"id":"8ad0e738b9e05ed8f72771187eb5519f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/session-title.test.ts#session-title.sh SessionStart の source が fork のとき、セッション名を出す","name":"SessionStart の source が fork のとき、セッション名を出す","status":"passed","testResultsByEnv":{"default":"153039db06fa21e326c6239e0f47da23"}}

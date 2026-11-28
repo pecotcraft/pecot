@@ -1,0 +1,36 @@
+{
+  "host": "ghes.example.com",
+  "owner": "acme",
+  "project": {
+    "number": 1,
+    "id": "PVT_1",
+    "board_url": "https://ghes.example.com/users/acme/projects/1/views/1?layout=board&verticalGroupedBy%5BcolumnId%5D=456&filterQuery=%20pecot-status%3APending%2CBacklog%2CReady%2CActive%2CArchived%2C%22In%20Review%22",
+    "fields": {
+      "workflow": {
+        "id": "PVTSSF_workflow",
+        "options": {
+          "backlog": "o1",
+          "pending": "o2",
+          "ready": "o3",
+          "active": "o4",
+          "in_review": "o5",
+          "archived": "o6"
+        }
+      },
+      "status": {
+        "id": "PVTSSF_status",
+        "options": {
+          "todo": "o1",
+          "in_progress": "o2"
+        }
+      }
+    }
+  },
+  "repositories": [
+    {
+      "owner": "acme",
+      "name": "demo"
+    }
+  ],
+  "aggregation_repo": "acme/roadmap"
+}

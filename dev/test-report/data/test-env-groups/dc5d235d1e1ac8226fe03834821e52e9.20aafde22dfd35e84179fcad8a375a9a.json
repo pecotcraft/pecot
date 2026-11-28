@@ -1,0 +1,1 @@
+{"id":"dc5d235d1e1ac8226fe03834821e52e9.20aafde22dfd35e84179fcad8a375a9a","fullName":".githooks.tests.test_pre_commit_config_wiring#test_plugin_validate_runs_when_definitions_change","name":".github/plugin/marketplace.json を変更すると、plugin-validate が起動する","status":"passed","testResultsByEnv":{"default":"49d5329afcd5aa966f7e6efa082e525a"}}

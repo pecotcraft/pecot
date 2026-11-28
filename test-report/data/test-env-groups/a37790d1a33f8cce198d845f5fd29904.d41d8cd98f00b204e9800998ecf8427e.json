@@ -1,0 +1,1 @@
+{"id":"a37790d1a33f8cce198d845f5fd29904.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/directory-option.test.ts#directorySchema ディレクトリを指定しないと、directory の検証の誤りにする","name":"ディレクトリを指定しないと、directory の検証の誤りにする","status":"passed","testResultsByEnv":{"default":"10d450f41a488f600af8e32b78d36eee"}}

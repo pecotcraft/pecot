@@ -1,0 +1,24 @@
+{
+  "project": "githooks",
+  "target": "test-checks",
+  "runtime": [
+    "dpkg-query -W -f='${Package}=${Version}\\n'",
+    "git --version",
+    "git hash-object pnpm-lock.yaml",
+    "jq --version",
+    "node --version",
+    "node -p \"require('nx/package.json').version\"",
+    "uv --version",
+    "uv python find --no-project --show-version 3.12"
+  ],
+  "environment": [
+    "HOME",
+    "NODE_OPTIONS",
+    "NODE_V8_COVERAGE",
+    "NX_CLOUD_ENCRYPTION_KEY",
+    "PECOT_REPORT_SITE_URL"
+  ],
+  "external": [
+    "AllExternalDependencies"
+  ]
+}

@@ -1,0 +1,1 @@
+{"id":"8a83a9a37e9ca63db97c979a1fd4813c.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/english-only.test.ts#判定器 ソースが const a = 'English only — ok → §' のとき、日本語を含むリテラルを 0 件見つける","name":"ソースが const a = 'English only — ok → §' のとき、日本語を含むリテラルを 0 件見つける","status":"passed","testResultsByEnv":{"default":"7d20631eca4034386e3bc7929bead6bf"}}

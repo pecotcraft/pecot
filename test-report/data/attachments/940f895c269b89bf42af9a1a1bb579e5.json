@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "screenshot is for message; write the reason in the `screenshot` frontmatter field instead"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"screenshot is for message; write the reason in the `screenshot` frontmatter field instead\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "screenshot is for message; write the reason in the `screenshot` frontmatter field instead"
+  },
+  "isError": true
+}

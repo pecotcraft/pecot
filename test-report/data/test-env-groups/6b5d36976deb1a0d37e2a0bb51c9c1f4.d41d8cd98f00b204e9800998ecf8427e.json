@@ -1,0 +1,1 @@
+{"id":"6b5d36976deb1a0d37e2a0bb51c9c1f4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/pipeline.test.ts#convertToPptx の 1 パス変換 (#1141) 1 パス変換で完了したステップをやり直しても、onStepProgress は完了を二重に数えない","name":"1 パス変換で完了したステップをやり直しても、onStepProgress は完了を二重に数えない","status":"passed","testResultsByEnv":{"default":"a550866abd70ff5e0129c4c80ee714d7"}}

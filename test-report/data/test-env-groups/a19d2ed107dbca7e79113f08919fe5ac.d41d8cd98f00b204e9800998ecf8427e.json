@@ -1,0 +1,1 @@
+{"id":"a19d2ed107dbca7e79113f08919fe5ac.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_show MCP の data PR の参照の形が誤っていると、何も読まずに kind が invalid-input の失敗を返す","name":"PR の参照の形が誤っていると、何も読まずに kind が invalid-input の失敗を返す","status":"passed","testResultsByEnv":{"default":"d970530cced77c9514fc930ddc40f021"}}

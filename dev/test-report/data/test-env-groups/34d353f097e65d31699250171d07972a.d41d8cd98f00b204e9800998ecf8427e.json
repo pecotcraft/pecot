@@ -1,0 +1,1 @@
+{"id":"34d353f097e65d31699250171d07972a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/project-root.test.ts#project-root.sh tool の cwd がサブディレクトリのとき、そのリポの toplevel に解決する","name":"tool の cwd がサブディレクトリのとき、そのリポの toplevel に解決する","status":"passed","testResultsByEnv":{"default":"58fa69aac989229e68d945081750d4a8"}}

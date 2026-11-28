@@ -1,0 +1,1 @@
+{"id":"09f28d13d400e575446875a710d062ca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#convertStepsSinglePass コンテナ数が全体のステップ総数と一致しない場合は、従来の worker で変換する","name":"コンテナ数が全体のステップ総数と一致しない場合は、従来の worker で変換する","status":"passed","testResultsByEnv":{"default":"a7f35b6b212dc57a73e18a0be2cacbca"}}

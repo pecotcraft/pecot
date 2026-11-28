@@ -1,0 +1,1 @@
+{"id":"b914e51cfc9dd15d884422e4f7787354.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-finish.test.ts#auto finish 結果が ci-fix-pushed なら、Status を書かない","name":"結果が ci-fix-pushed なら、Status を書かない","status":"passed","testResultsByEnv":{"default":"fceef1c0f6ac6db88e439f8625f38b08"}}

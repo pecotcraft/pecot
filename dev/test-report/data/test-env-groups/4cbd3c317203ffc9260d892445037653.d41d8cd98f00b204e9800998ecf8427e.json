@@ -1,0 +1,1 @@
+{"id":"4cbd3c317203ffc9260d892445037653.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-compare plugins/pecot-visual/scripts/pptx-compare/tests/compare-pptx.bats#同じファイルを before と after に渡すと、生の相違が 0 件になる","name":"同じファイルを before と after に渡すと、生の相違が 0 件になる","status":"passed","testResultsByEnv":{"default":"db5e57e26c01e5e28bdd59f92ec0ebeb"}}

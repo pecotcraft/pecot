@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "this repository is not placed in the layout pecot expects for a project\n  \n    current: /tmp/pecot-cli-iiKGlr/workspaces/misplaced/demo\n    expected: /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base/demo\n  \n  why base/ is needed:\n    the devcontainer mounts the parallel sets (wt1, wt2...) selectively, so base/ separates the resident set from the parallel sets\n  \n  migration steps (the cwd goes away, so close this CLI session first):\n    1. close this CLI session\n    2. in another terminal, run:\n         mkdir -p /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base\n         mv /tmp/pecot-cli-iiKGlr/workspaces/misplaced/demo /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base/\n    3. restart the CLI in /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base/demo/"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"other\",\"detail\":\"this repository is not placed in the layout pecot expects for a project\\n  \\n    current: /tmp/pecot-cli-iiKGlr/workspaces/misplaced/demo\\n    expected: /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base/demo\\n  \\n  why base/ is needed:\\n    the devcontainer mounts the parallel sets (wt1, wt2...) selectively, so base/ separates the resident set from the parallel sets\\n  \\n  migration steps (the cwd goes away, so close this CLI session first):\\n    1. close this CLI session\\n    2. in another terminal, run:\\n         mkdir -p /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base\\n         mv /tmp/pecot-cli-iiKGlr/workspaces/misplaced/demo /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base/\\n    3. restart the CLI in /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base/demo/\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "other",
+    "detail": "this repository is not placed in the layout pecot expects for a project\n  \n    current: /tmp/pecot-cli-iiKGlr/workspaces/misplaced/demo\n    expected: /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base/demo\n  \n  why base/ is needed:\n    the devcontainer mounts the parallel sets (wt1, wt2...) selectively, so base/ separates the resident set from the parallel sets\n  \n  migration steps (the cwd goes away, so close this CLI session first):\n    1. close this CLI session\n    2. in another terminal, run:\n         mkdir -p /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base\n         mv /tmp/pecot-cli-iiKGlr/workspaces/misplaced/demo /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base/\n    3. restart the CLI in /tmp/pecot-cli-iiKGlr/workspaces/misplaced/base/demo/"
+  },
+  "isError": true
+}

@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "invalid input: flag: Invalid input: expected boolean, received string"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"invalid-input\",\"detail\":\"invalid input: flag: Invalid input: expected boolean, received string\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "invalid-input",
+    "detail": "invalid input: flag: Invalid input: expected boolean, received string"
+  },
+  "isError": true
+}

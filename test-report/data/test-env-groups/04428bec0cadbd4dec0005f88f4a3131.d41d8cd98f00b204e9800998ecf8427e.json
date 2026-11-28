@@ -1,0 +1,1 @@
+{"id":"04428bec0cadbd4dec0005f88f4a3131.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/index.test.ts#InProcessSlidevPptxPipeline runner が成功した場合は、その戻り値をそのまま返す","name":"runner が成功した場合は、その戻り値をそのまま返す","status":"passed","testResultsByEnv":{"default":"480a70d764e4f9f161b83862d8f188a9"}}

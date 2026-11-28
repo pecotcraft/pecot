@@ -1,0 +1,1 @@
+{"id":"0b31c48eb62c902eb646d28d7cda4903.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/spec-schema.test.ts#parseEvidenceSpec — ルートの検証 最初のエラーで打ち切らず、すべてのエラーを返す","name":"最初のエラーで打ち切らず、すべてのエラーを返す","status":"passed","testResultsByEnv":{"default":"65c30c554432bd3a5a52833d08fba1dc"}}

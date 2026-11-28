@@ -1,0 +1,1 @@
+{"id":"697c478956be4b970c3b19aa8c419e26.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#getTagCommitSha 軽量のタグは、ref の object.sha を返す","name":"軽量のタグは、ref の object.sha を返す","status":"passed","testResultsByEnv":{"default":"bb78fa135d1fb02d392f835f9689c59e"}}

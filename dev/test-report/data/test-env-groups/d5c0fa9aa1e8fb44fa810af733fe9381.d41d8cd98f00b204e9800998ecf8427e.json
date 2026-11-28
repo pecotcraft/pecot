@@ -1,0 +1,1 @@
+{"id":"d5c0fa9aa1e8fb44fa810af733fe9381.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#インライン HTML の Html ノード Markdown の断片として調べた場合と同じ件数と規則を返す: タグでない < と >","name":"Markdown の断片として調べた場合と同じ件数と規則を返す: タグでない < と >","status":"passed","testResultsByEnv":{"default":"3226d4c8f6ae5a05b2c7cba915693ee1"}}

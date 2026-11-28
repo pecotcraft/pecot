@@ -1,0 +1,1 @@
+{"id":"a65599a97e049767216afefb6b249fb8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/repos.test.ts#createLinkedBranch linkedBranch が null の場合は、GitHubAPIError を発生させる","name":"linkedBranch が null の場合は、GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"b741bbad74cb112a6a991abdec29c404"}}

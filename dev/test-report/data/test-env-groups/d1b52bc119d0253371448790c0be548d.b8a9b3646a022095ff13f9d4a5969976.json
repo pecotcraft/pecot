@@ -1,0 +1,1 @@
+{"id":"d1b52bc119d0253371448790c0be548d.b8a9b3646a022095ff13f9d4a5969976","fullName":".githooks.tests.test_run_pr_checks#test_summary_reports_nx_cache_source","name":"キャッシュの取り込み元の記録が変わると、Summary のキャッシュの行は「キャッシュ: 取り込みなし（記録なし）」になる","status":"passed","testResultsByEnv":{"default":"48672590522d7d32eb3aa54889a0fc29"}}

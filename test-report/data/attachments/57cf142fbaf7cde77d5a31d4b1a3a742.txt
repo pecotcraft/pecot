@@ -1,0 +1,2 @@
+error: the body does not follow the template note
+  missing sections: ## Note — <summary>

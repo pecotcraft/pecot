@@ -1,0 +1,1 @@
+{"id":"41daace2c706e885eba9aa3309af4b75.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/audit-mcp-dist.bats#配布ツリーと永続層に脆弱性が無いと、監査を通して指紋と HEAD を監査記録に残す","name":"配布ツリーと永続層に脆弱性が無いと、監査を通して指紋と HEAD を監査記録に残す","status":"passed","testResultsByEnv":{"default":"fb40a0af89051adfb6964b1b59f960e4"}}

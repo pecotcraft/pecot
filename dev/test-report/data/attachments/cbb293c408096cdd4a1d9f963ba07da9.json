@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "reads.release: get_release_by_tag failed: failed to get release by tag: 502 Bad Gateway; read it again"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"reads.release\",\"code\":\"read-required\",\"message\":\"get_release_by_tag failed: failed to get release by tag: 502 Bad Gateway; read it again\"}],\"skipped\":[],\"dependabotAlerts\":{\"enabled\":true,\"openCount\":0,\"alertsUrl\":\"https://ghes.example.com/acme/demo/security/dependabot\"},\"version\":\"0.2.0\",\"releaseNotes\":\"### 追加\\n\\n- 新機能 A\\n- 新機能 B\"}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "reads.release",
+        "code": "read-required",
+        "message": "get_release_by_tag failed: failed to get release by tag: 502 Bad Gateway; read it again"
+      }
+    ],
+    "skipped": [],
+    "dependabotAlerts": {
+      "enabled": true,
+      "openCount": 0,
+      "alertsUrl": "https://ghes.example.com/acme/demo/security/dependabot"
+    },
+    "version": "0.2.0",
+    "releaseNotes": "### 追加\n\n- 新機能 A\n- 新機能 B"
+  }
+}

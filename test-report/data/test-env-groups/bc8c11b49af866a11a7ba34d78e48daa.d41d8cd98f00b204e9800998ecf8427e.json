@@ -1,0 +1,1 @@
+{"id":"bc8c11b49af866a11a7ba34d78e48daa.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/mcp-cancel.test.ts#pr_check が ls-remote を待つ間、ping に答え、取り消すとリモートの接続を止める","name":"pr_check が ls-remote を待つ間、ping に答え、取り消すとリモートの接続を止める","status":"passed","testResultsByEnv":{"default":"1ad496c4cf9ddeed8c48350390852640"}}

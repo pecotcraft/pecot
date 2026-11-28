@@ -1,0 +1,1 @@
+{"id":"f75778b53eb9a8fe22357941cc3d816a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/attributes.test.ts#readAttributeValues 担当者・マイルストーン・Issue type・ラベルを、source が issue の値として返す","name":"担当者・マイルストーン・Issue type・ラベルを、source が issue の値として返す","status":"passed","testResultsByEnv":{"default":"6295ab3702e8ac8070c5cafa2d4b8851"}}

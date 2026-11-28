@@ -1,0 +1,1 @@
+{"id":"389dca198b752eafc7c042c94c417c77.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/cache-manifest.test.ts#parseCacheManifest manifest が「schemaVersion 型不一致」の場合は、undefined を返す","name":"manifest が「schemaVersion 型不一致」の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"068b56d188b047efecefedd588b26055"}}

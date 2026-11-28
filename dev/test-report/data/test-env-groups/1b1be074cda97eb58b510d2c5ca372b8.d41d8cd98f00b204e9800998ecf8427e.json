@@ -1,0 +1,1 @@
+{"id":"1b1be074cda97eb58b510d2c5ca372b8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-read.test.ts#応答の中身 aws_s3_ls は JSON を出力しないため、出力を 1 行ごとの配列にして lines に載せる","name":"aws_s3_ls は JSON を出力しないため、出力を 1 行ごとの配列にして lines に載せる","status":"passed","testResultsByEnv":{"default":"fe57ef5925f5f267f9c738539e83302d"}}

@@ -1,0 +1,1 @@
+{"id":"7077aef96eb4d05c57740b4aa620397f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/errors.test.ts#継承 GitHubRateLimitError は GitHubAPIError を継承し、クラス名を name に持つ","name":"GitHubRateLimitError は GitHubAPIError を継承し、クラス名を name に持つ","status":"passed","testResultsByEnv":{"default":"2fd01c0a9ce8612ed7262ec30aa5e4c9"}}

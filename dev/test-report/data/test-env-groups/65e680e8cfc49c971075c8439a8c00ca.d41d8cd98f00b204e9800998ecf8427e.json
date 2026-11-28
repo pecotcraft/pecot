@@ -1,0 +1,1 @@
+{"id":"65e680e8cfc49c971075c8439a8c00ca.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/auto-start.test.ts#auto start 札が自動処理の書いた Needs Attention で PR が無い なら、札を Todo に戻す","name":"札が自動処理の書いた Needs Attention で PR が無い なら、札を Todo に戻す","status":"passed","testResultsByEnv":{"default":"8d84e9d03c7701ff16d25df749f4d90d"}}

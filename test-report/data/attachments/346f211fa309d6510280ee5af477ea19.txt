@@ -1,0 +1,7 @@
+{
+  "hookSpecificOutput": {
+    "additionalContext": "hello",
+    "hookEventName": "SessionStart"
+  },
+  "additionalContext": "hello"
+}

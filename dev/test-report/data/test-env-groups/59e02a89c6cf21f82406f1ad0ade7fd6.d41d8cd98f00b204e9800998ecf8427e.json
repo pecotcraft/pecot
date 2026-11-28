@@ -1,0 +1,1 @@
+{"id":"59e02a89c6cf21f82406f1ad0ade7fd6.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/helpers/caret-range.test.ts#caretRangeViolation: 0.x 0.21.0 は、minor が互換の単位なので、^0.20.3 の範囲の外と判定する","name":"0.21.0 は、minor が互換の単位なので、^0.20.3 の範囲の外と判定する","status":"passed","testResultsByEnv":{"default":"27401334a5b46a6f06e575d803bb0b9b"}}

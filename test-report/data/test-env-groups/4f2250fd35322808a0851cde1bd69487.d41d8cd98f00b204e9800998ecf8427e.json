@@ -1,0 +1,1 @@
+{"id":"4f2250fd35322808a0851cde1bd69487.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-tools:test-release .githooks/scripts/tests/mcp-publish-common.test.sh#タグが無ければ exit 0 で終える","name":"タグが無ければ exit 0 で終える","status":"passed","testResultsByEnv":{"default":"576cd3c6b5bf233c16a698c1828b6f87"}}

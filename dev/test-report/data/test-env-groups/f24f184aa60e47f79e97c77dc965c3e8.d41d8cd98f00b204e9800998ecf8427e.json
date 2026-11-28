@@ -1,0 +1,1 @@
+{"id":"f24f184aa60e47f79e97c77dc965c3e8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/text-rules-src:tests/strings-plugin.test.ts#strings plugin: YAML YAML のキーは対象にせず、# のコメントは、コメントとして 1 件だけ返す","name":"YAML のキーは対象にせず、# のコメントは、コメントとして 1 件だけ返す","status":"passed","testResultsByEnv":{"default":"2bfa63da93edfc2ddeed05293958fb7d"}}

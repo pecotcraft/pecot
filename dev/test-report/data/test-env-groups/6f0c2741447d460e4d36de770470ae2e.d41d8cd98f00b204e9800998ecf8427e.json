@@ -1,0 +1,1 @@
+{"id":"6f0c2741447d460e4d36de770470ae2e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/release-check.test.ts#release check Nx のリポで version を渡すと、alert を読まずに error の行を出して失敗にする","name":"Nx のリポで version を渡すと、alert を読まずに error の行を出して失敗にする","status":"passed","testResultsByEnv":{"default":"91d1c0bb04c5e47d690dda9080b3d2ab"}}

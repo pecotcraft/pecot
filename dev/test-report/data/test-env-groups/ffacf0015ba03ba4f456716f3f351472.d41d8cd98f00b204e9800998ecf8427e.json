@@ -1,0 +1,1 @@
+{"id":"ffacf0015ba03ba4f456716f3f351472.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/config.test.ts#parseProjectConfig（旧い形） workflow_suffix が存在しない設定も、読み取る","name":"workflow_suffix が存在しない設定も、読み取る","status":"passed","testResultsByEnv":{"default":"5269943fe29454b9cb90e42b577d844b"}}

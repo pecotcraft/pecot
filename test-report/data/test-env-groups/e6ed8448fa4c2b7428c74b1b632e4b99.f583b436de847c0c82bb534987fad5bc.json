@@ -1,0 +1,1 @@
+{"id":"e6ed8448fa4c2b7428c74b1b632e4b99.f583b436de847c0c82bb534987fad5bc","fullName":".githooks.tests.test_pre_commit_config_wiring#test_nx_env_inputs_skips_unrelated_paths","name":"plugins/pecot-workflow/skills/w-pr/SKILL.md を変更しても、nx-env-inputs は起動しない","status":"passed","testResultsByEnv":{"default":"1f3c72ea555612ea032dd6d0cd3fde2c"}}

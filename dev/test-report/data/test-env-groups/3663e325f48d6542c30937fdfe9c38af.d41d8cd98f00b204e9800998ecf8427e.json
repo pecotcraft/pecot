@@ -1,0 +1,1 @@
+{"id":"3663e325f48d6542c30937fdfe9c38af.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_with_timing#test_outside_git_keeps_exit_code","name":"git の管理外で実行しても、子の終了コードを返し、記録は作成しない","status":"passed","testResultsByEnv":{"default":"06eeaf82ffb28757e8ceee99ba99a8f7"}}

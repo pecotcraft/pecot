@@ -1,0 +1,1 @@
+{"id":"5412fef891833c6dbf93021a03c5d385.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/infra/xml-engine.test.ts#XmldomXmlEngine document に対する appendChildXml は、ドキュメントのルートの子として要素を追加する","name":"document に対する appendChildXml は、ドキュメントのルートの子として要素を追加する","status":"passed","testResultsByEnv":{"default":"9a45c4001d08b339047c0fbd1489fbfb"}}

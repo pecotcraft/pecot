@@ -1,0 +1,1 @@
+{"id":"f7c394ffc411dd9e57cf9c957672dedd.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_issue_surface_workflow#test_has_no_node_setup_steps","name":"issue-surface-drift.yml は、Node.js の用意と依存の install の step を持たない","status":"passed","testResultsByEnv":{"default":"69f5f886cbec3d7ba243e6d9d6e813ec"}}

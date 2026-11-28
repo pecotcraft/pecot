@@ -1,0 +1,1 @@
+{"id":"8ac0a1a78e5b479fce432be6f7924e77.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/commands/slide-sync.test.ts#executeSlideSync の入力エラー ファイルの指定は not-a-directory になる","name":"ファイルの指定は not-a-directory になる","status":"passed","testResultsByEnv":{"default":"bdb7f4d9c5c8035851e4cf504945f2b1"}}

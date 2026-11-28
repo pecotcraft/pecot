@@ -1,0 +1,10 @@
+error: git-worktree-branch-check: direct push to the protected branch 'wt2' is not allowed.
+
+  Reason: a protected branch accepts changes only through a PR. A direct commit would merge
+  changes without review and cause conflicts with other worktrees.
+
+  Work on a feature branch:
+    1. Create a feature branch: git checkout -b feat/your-feature-name
+    2. Commit and create the PR on the feature branch
+
+  To delete a remote branch, use the MCP tool branch_delete of the workflow server with repo (owner/repo) and branch.

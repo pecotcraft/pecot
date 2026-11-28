@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "created: .github/workflows/pecot-auto.yml"
+    },
+    {
+      "type": "text",
+      "text": "{\"path\":\".github/workflows/pecot-auto.yml\",\"version\":4,\"written\":true}"
+    }
+  ],
+  "structuredContent": {
+    "path": ".github/workflows/pecot-auto.yml",
+    "version": 4,
+    "written": true
+  }
+}

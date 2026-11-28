@@ -1,0 +1,1 @@
+{"id":"7a5c8c93cedea75f6ea1a28bf4e530ee.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-skills plugins/pecot-visual/scripts/ci/tests/check-pm-guard-scripts.bats#環境変数の代入の後に npm を起動する script があると、違反として返す","name":"環境変数の代入の後に npm を起動する script があると、違反として返す","status":"passed","testResultsByEnv":{"default":"7af61fab8ec4938ed26bd5dd4e7dd1b1"}}

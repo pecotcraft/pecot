@@ -1,0 +1,1 @@
+{"id":"3371ea769e29dcc603545523557cf707.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/worktree.test.ts#worktree_add このリポジトリの worktree がまだ使っていない wtN があると、その中で番号が最小のセットに worktree を作る","name":"このリポジトリの worktree がまだ使っていない wtN があると、その中で番号が最小のセットに worktree を作る","status":"passed","testResultsByEnv":{"default":"962e3cb3507b228402a186148a4b3a26"}}

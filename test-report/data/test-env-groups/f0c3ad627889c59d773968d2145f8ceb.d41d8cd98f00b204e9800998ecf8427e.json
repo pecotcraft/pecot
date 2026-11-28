@@ -1,0 +1,1 @@
+{"id":"f0c3ad627889c59d773968d2145f8ceb.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_check_version_plan_required#test_39_strict_fails_without_push_info","name":"strict では、push の情報が存在しないと失敗し、strict でなければ飛ばす","status":"passed","testResultsByEnv":{"default":"bd9889ff2cf0904927f4c63d4ca99603"}}

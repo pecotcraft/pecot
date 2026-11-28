@@ -1,0 +1,1 @@
+{"id":"a484fd61d3c431ba55e72013c7ea0c2c.f9ec9ac8357fcfd8d8018d10ab02b62a","fullName":".githooks.tests.test_pages_provenance#test_run_kind_follows_the_workflow_path","name":"run の path が .github/workflows/pages-build.yml のとき、種類は site になる","status":"passed","testResultsByEnv":{"default":"e67b629ce0e9621acc32899b62789d6f"}}

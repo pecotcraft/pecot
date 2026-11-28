@@ -1,0 +1,1 @@
+{"id":"83ef00139248a10b37ca82917fcc5bb9.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show 開発ブランチの追跡参照が無いと、baseBranch を入れず、warnings に理由を入れて成功を返す","name":"開発ブランチの追跡参照が無いと、baseBranch を入れず、warnings に理由を入れて成功を返す","status":"passed","testResultsByEnv":{"default":"a6a53f35423a2a85d85bdcdd5e12679c"}}

@@ -1,0 +1,3 @@
+run-many -t test --parallel=4 --nxBail --output-style=stream
+ENV PECOTV_PM_GUARD_BEHAVIOR=unset
+ENV NO_COLOR=1

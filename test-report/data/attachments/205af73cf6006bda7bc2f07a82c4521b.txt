@@ -1,0 +1,9 @@
+skipped: field pecot-status (already exists)
+skipped: field pecot-lane (already exists)
+unchanged: option cli in field pecot-lane
+unchanged: option skills in field pecot-lane
+unchanged: option Blocked in field pecot-status
+skipped: field Status (not found)
+created: view Lanes (https://ghes.example.com/users/acme/projects/1/views/2)
+created: config file /tmp/pecot-repo-WjZ0oL/.pecot/config/projects/ghes.example.com_acme_1.json
+set: active project to ghes.example.com_acme_1

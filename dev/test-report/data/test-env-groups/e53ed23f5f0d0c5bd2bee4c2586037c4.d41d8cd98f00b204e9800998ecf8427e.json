@@ -1,0 +1,1 @@
+{"id":"e53ed23f5f0d0c5bd2bee4c2586037c4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/auto-workflow-template.test.ts#auto のワークフローの雛形 gate と setup の時間の上限は 5 分になる","name":"gate と setup の時間の上限は 5 分になる","status":"passed","testResultsByEnv":{"default":"4536ac6063666e10bb66819726b2798b"}}

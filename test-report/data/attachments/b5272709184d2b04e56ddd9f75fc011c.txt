@@ -1,0 +1,5 @@
+warning: this board uses the old field name pecot-workflow-acme
+  call project_init with owner: "acme", name: <name>, host: "github.com"
+moved: #4 Blocked -> Ready (startable)
+count: GraphQL points used: 30
+count: GraphQL points remaining: 4870

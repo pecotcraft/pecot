@@ -1,0 +1,1 @@
+{"id":"ef1192d2776df51bb6de0e7518258f92.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#runMcpServe サーバのインスタンスが検出したプロトコル層のエラーを、標準エラー出力へ 1 行出力する","name":"サーバのインスタンスが検出したプロトコル層のエラーを、標準エラー出力へ 1 行出力する","status":"passed","testResultsByEnv":{"default":"0280a1b1d6b71c469e582152af865a97"}}

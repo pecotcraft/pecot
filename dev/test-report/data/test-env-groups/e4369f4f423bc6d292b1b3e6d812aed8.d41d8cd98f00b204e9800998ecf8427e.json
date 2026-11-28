@@ -1,0 +1,1 @@
+{"id":"e4369f4f423bc6d292b1b3e6d812aed8.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#readIssueSnapshot API が失敗した場合は、読み取れなかった理由（unreadable）を返す","name":"API が失敗した場合は、読み取れなかった理由（unreadable）を返す","status":"passed","testResultsByEnv":{"default":"7bf44f1dfe4617bc564e0e5a96559200"}}

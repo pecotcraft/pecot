@@ -1,0 +1,1 @@
+{"id":"7c87ecc61801bebed0ae2f00da607069.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/frontmatter.test.ts#validateIssueFrontmatter 旧いテンプレートの 選べない値の priority: urgent を渡すと、止めずに読み捨てる","name":"旧いテンプレートの 選べない値の priority: urgent を渡すと、止めずに読み捨てる","status":"passed","testResultsByEnv":{"default":"b9ae17a9cc69755f46f42724aa46b416"}}

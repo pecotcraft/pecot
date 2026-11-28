@@ -1,0 +1,1 @@
+{"id":"494494913951d19fee351bcd3cdc2719.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show Stack の節 .pecot-base の形が誤っている ときは、Stack の節を出さず、判定も読まない","name":".pecot-base の形が誤っている ときは、Stack の節を出さず、判定も読まない","status":"passed","testResultsByEnv":{"default":"ff10e6aff968a3909f96b67d5eee709f"}}

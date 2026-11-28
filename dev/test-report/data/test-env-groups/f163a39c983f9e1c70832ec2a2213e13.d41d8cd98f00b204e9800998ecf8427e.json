@@ -1,0 +1,1 @@
+{"id":"f163a39c983f9e1c70832ec2a2213e13.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/commands/tests/check-reads.test.ts#boardShapeOf ID で見つからない選択肢は、名前で探し、どちらでも見つからなければ undefined にする","name":"ID で見つからない選択肢は、名前で探し、どちらでも見つからなければ undefined にする","status":"passed","testResultsByEnv":{"default":"ae7fa259a7b0ec2a8d02bcc738452ee0"}}

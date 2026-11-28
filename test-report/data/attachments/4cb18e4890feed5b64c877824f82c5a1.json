@@ -1,0 +1,34 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "preflight found warnings; fix them before creating a PR"
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"preflight-failed\",\"detail\":\"preflight found warnings; fix them before creating a PR\",\"remoteUrl\":\"git@ghes.example.com:acme/demo.git\",\"currentBranch\":\"feat/demo/12\",\"pushed\":true,\"pushStatus\":\"in sync with origin/feat/demo/12\",\"baseBranch\":\"origin/main\",\"gitStatus\":\"On branch feat/demo/12\\nnothing to commit, working tree clean\\n\",\"commits\":\"(no commits)\",\"diffSummary\":\"(no diff)\",\"worktree\":{\"list\":\"/tmp/pecot-parity-ruRBEf/base/demo dd06359 [feat/demo/12]\",\"directoryName\":\"demo\",\"isWorktree\":false},\"stashList\":\"stash@{0}: WIP on feat/demo/12: dd06359 initial commit\",\"warnings\":[\"Stash List: 1 stash entries (fix: check them)\"]}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "preflight-failed",
+    "detail": "preflight found warnings; fix them before creating a PR",
+    "remoteUrl": "git@ghes.example.com:acme/demo.git",
+    "currentBranch": "feat/demo/12",
+    "pushed": true,
+    "pushStatus": "in sync with origin/feat/demo/12",
+    "baseBranch": "origin/main",
+    "gitStatus": "On branch feat/demo/12\nnothing to commit, working tree clean\n",
+    "commits": "(no commits)",
+    "diffSummary": "(no diff)",
+    "worktree": {
+      "list": "/tmp/pecot-parity-ruRBEf/base/demo dd06359 [feat/demo/12]",
+      "directoryName": "demo",
+      "isWorktree": false
+    },
+    "stashList": "stash@{0}: WIP on feat/demo/12: dd06359 initial commit",
+    "warnings": [
+      "Stash List: 1 stash entries (fix: check them)"
+    ]
+  },
+  "isError": true
+}

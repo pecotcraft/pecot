@@ -1,0 +1,1 @@
+{"id":"4b49b35e16f0771bb298d8f70ec056b4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/issues.test.ts#getIssuePrerequisites 部分エラー blockedBy の外のパスの errors が 1 つでも含まれる場合は、例外が発生する","name":"blockedBy の外のパスの errors が 1 つでも含まれる場合は、例外が発生する","status":"passed","testResultsByEnv":{"default":"924ea9d11141516af52ebed6f841cfd5"}}

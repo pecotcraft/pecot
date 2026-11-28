@@ -1,0 +1,1 @@
+{"id":"e056b9849dc5264e35b754e6d65afbb4.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/commands-shared/tests/issue-readiness.test.ts#judgeSnapshot 前提の PR の base ブランチを head に持つ PR を追加で取得し、開発ブランチまでたどる","name":"前提の PR の base ブランチを head に持つ PR を追加で取得し、開発ブランチまでたどる","status":"passed","testResultsByEnv":{"default":"d6ec3ee6d65467a77ae3a300faed168c"}}

@@ -1,0 +1,1 @@
+{"id":"c39a054fe65896b8864e95f493183866.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/pulls.test.ts#requestAsyncMerge 422 が返ると、ほかの API と同じ GitHubAPIError を発生させる","name":"422 が返ると、ほかの API と同じ GitHubAPIError を発生させる","status":"passed","testResultsByEnv":{"default":"472e46e94eeeae000bcf0fb9d5fddc13"}}

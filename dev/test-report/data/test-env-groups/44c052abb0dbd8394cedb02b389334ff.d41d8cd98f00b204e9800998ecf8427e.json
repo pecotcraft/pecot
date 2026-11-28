@@ -1,0 +1,1 @@
+{"id":"44c052abb0dbd8394cedb02b389334ff.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/hook-resolution-count.test.ts#上限を超えるコマンド 上限ぎりぎりのコマンドは、コアのガードが止める","name":"上限ぎりぎりのコマンドは、コアのガードが止める","status":"passed","testResultsByEnv":{"default":"3f22a96e7a0ef7b870c101514fe2fc6a"}}

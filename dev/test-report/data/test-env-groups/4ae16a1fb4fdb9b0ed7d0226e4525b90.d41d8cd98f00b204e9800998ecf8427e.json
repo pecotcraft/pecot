@@ -1,0 +1,1 @@
+{"id":"4ae16a1fb4fdb9b0ed7d0226e4525b90.d41d8cd98f00b204e9800998ecf8427e","fullName":"pecot-visual:test-release plugins/pecot-visual/scripts/release/tests/publish-mcp-dist.bats#監査スキップの記録では、dry-run が突合を省略して配布ツリーの指紋を出力する","name":"監査スキップの記録では、dry-run が突合を省略して配布ツリーの指紋を出力する","status":"passed","testResultsByEnv":{"default":"47a2ff012385b75694442adf5196a9e9"}}

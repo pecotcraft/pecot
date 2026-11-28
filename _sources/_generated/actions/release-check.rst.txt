@@ -1,0 +1,8 @@
+:iface-id: PA-RELEASE-CHECK
+:iface-plugin: actions
+:iface-kind: Action
+
+release check
+==========================
+
+.. iface-defs:: actions PA-RELEASE-CHECK

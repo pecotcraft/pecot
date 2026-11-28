@@ -1,0 +1,1 @@
+{"id":"ae0716ba1bf29c6c30afae8fd5cbeb23.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/session-show.test.ts#session_show .active が無くても、そのリポを含む設定が 1 つならその設定で作業中の Issue を読む","name":".active が無くても、そのリポを含む設定が 1 つならその設定で作業中の Issue を読む","status":"passed","testResultsByEnv":{"default":"9a10c5df9fc7ce48206980465694b025"}}

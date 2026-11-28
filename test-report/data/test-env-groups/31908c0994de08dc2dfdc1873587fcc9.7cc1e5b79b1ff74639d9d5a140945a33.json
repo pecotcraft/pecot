@@ -1,0 +1,1 @@
+{"id":"31908c0994de08dc2dfdc1873587fcc9.7cc1e5b79b1ff74639d9d5a140945a33","fullName":".githooks.tests.test_board_sync#test_deploy_starts_from_the_profile_aws_cli_uses","name":"環境変数が {'AWS_DEFAULT_PROFILE': 'other'} の場合に、aws login の案内に --profile other を使う","status":"passed","testResultsByEnv":{"default":"9b371c9e50aade77ccd5506e826adbcd"}}

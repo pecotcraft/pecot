@@ -1,0 +1,17 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "release_branch is not set\n  set it with: project_link with repo: \"owner/repo\", release_branch: \"main\""
+    },
+    {
+      "type": "text",
+      "text": "{\"kind\":\"repo-setting-missing\",\"detail\":\"release_branch is not set\\n  set it with: project_link with repo: \\\"owner/repo\\\", release_branch: \\\"main\\\"\"}"
+    }
+  ],
+  "structuredContent": {
+    "kind": "repo-setting-missing",
+    "detail": "release_branch is not set\n  set it with: project_link with repo: \"owner/repo\", release_branch: \"main\""
+  },
+  "isError": true
+}

@@ -1,0 +1,1 @@
+{"id":"4dc5976cd33521677a264696eb4cd9eb.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-theme/tests/talk-theme.test.ts#findTalkThemeDependency theme: none と未指定の場合は、undefined を返す","name":"theme: none と未指定の場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"916fb2cae780200c83bb2d11f55362cd"}}

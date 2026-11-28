@@ -1,0 +1,1 @@
+{"id":"8fc53c26919174003c99dc3e635a5936.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateFoldBalance（折りたたみ <details> の開閉の対応 #1330） 閉じタグだけがあると、対応する開きタグが存在しない旨のエラーを返す","name":"閉じタグだけがあると、対応する開きタグが存在しない旨のエラーを返す","status":"passed","testResultsByEnv":{"default":"a222401eea3d5ceb90fc5f887472003a"}}

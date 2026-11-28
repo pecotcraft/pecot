@@ -1,0 +1,1 @@
+{"id":"c8c20a527dce48579854a1e1a8458293.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/merge.test.ts#mergePptxFiles: 埋め込みフォントの統合 typeface に含まれる & や二重引用符を、属性値としてエスケープする","name":"typeface に含まれる & や二重引用符を、属性値としてエスケープする","status":"passed","testResultsByEnv":{"default":"1f900dc7207f8e9c3b8d05bba028954e"}}

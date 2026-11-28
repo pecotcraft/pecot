@@ -1,0 +1,1 @@
+{"id":"7d047b9b913a5173cf6c3facda5d1159.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-actions:tests/interface/github-ops/branch-and-stack.test.ts#github ops stack-register で 子が別のスタックにある とき、書き込まずに order-conflict を返す","name":"stack-register で 子が別のスタックにある とき、書き込まずに order-conflict を返す","status":"passed","testResultsByEnv":{"default":"d02de383f39d0058695813d091c2fd1d"}}

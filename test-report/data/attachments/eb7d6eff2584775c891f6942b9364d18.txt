@@ -1,0 +1,1 @@
+workflow run test-report.yml --repo o/r --ref main -f side=release

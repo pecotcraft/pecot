@@ -1,0 +1,1 @@
+{"id":"acc3273997ab73928317c3daf70169f7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-project/tests/initial-pages.test.ts#buildInitialPages (ページ名に使えないレイアウト名) 使えない名前のレイアウトしか存在しない場合は、ページを作成せず、警告を 2 件返す","name":"使えない名前のレイアウトしか存在しない場合は、ページを作成せず、警告を 2 件返す","status":"passed","testResultsByEnv":{"default":"fd8c0a3be22a3bc14679827c1eb1e29e"}}

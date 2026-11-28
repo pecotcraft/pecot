@@ -1,0 +1,1 @@
+{"id":"2425d84ff9aede698f26ca1681b26e53.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/slidev-to-pptx/tests/slides-title.test.ts#sanitizeFilename 前後の空白は trim（入力 \" hello \"）の場合は、ファイル名として使える文字列を返す","name":"前後の空白は trim（入力 \" hello \"）の場合は、ファイル名として使える文字列を返す","status":"passed","testResultsByEnv":{"default":"290e336cf4fab44f7e26fa20471a2b6b"}}

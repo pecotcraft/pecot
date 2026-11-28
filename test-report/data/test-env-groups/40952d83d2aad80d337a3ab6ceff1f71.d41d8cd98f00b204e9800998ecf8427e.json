@@ -1,0 +1,1 @@
+{"id":"40952d83d2aad80d337a3ab6ceff1f71.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/issue-comment-check.test.ts#issue_comment_check 同梱に無いコメントのテンプレートを指定すると、同梱のテンプレートを候補に添えて problem にする","name":"同梱に無いコメントのテンプレートを指定すると、同梱のテンプレートを候補に添えて problem にする","status":"passed","testResultsByEnv":{"default":"ce9900d1e66ab6ea241be3b288f160d6"}}

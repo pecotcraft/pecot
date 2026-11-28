@@ -1,0 +1,1 @@
+{"id":"ec9a6c385c81439a45d9c5137c9ed5a1.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/nx-scope.test.ts#resolveNx nx がどこにも存在しない場合は、undefined を返す","name":"nx がどこにも存在しない場合は、undefined を返す","status":"passed","testResultsByEnv":{"default":"a7aa6115e1e79616d89a7d1dfecc8d1f"}}

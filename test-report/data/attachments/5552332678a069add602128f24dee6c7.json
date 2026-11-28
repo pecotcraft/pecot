@@ -1,0 +1,32 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "project_fields.pecot-status: the column at creation is Ready (given: Backlog)"
+    },
+    {
+      "type": "text",
+      "text": "{\"problems\":[{\"field\":\"project_fields.pecot-status\",\"code\":\"column\",\"message\":\"the column at creation is Ready (given: Backlog)\",\"candidates\":[\"Ready\"]}],\"plan\":[{\"key\":\"issues[0]\",\"order\":2,\"blockedBy\":[],\"approach\":\"alone\"}]}"
+    }
+  ],
+  "structuredContent": {
+    "problems": [
+      {
+        "field": "project_fields.pecot-status",
+        "code": "column",
+        "message": "the column at creation is Ready (given: Backlog)",
+        "candidates": [
+          "Ready"
+        ]
+      }
+    ],
+    "plan": [
+      {
+        "key": "issues[0]",
+        "order": 2,
+        "blockedBy": [],
+        "approach": "alone"
+      }
+    ]
+  }
+}

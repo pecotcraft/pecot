@@ -1,0 +1,1 @@
+{"id":"21faf8191807b04e40aa9a73ff19d170.7443f2b4b28108e46a348b7a41357970","fullName":".githooks.tests.test_run_pr_checks#test_part_selects_stages_and_skip","name":"`--part=lint` を指定すると、流す stage と飛ばす hook が変わる","status":"passed","testResultsByEnv":{"default":"af59c5b61e7a67c95e2436ea488b3c2a"}}

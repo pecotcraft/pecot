@@ -1,0 +1,1 @@
+{"id":"71d6f9cbac9dad841d0bbb37501b20bc.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/integration/commands/drawio-url.test.ts#executeDrawioUrl output なし capturePng を呼ばない (PNG は output の兄弟ファイルなので抑止)","name":"capturePng を呼ばない (PNG は output の兄弟ファイルなので抑止)","status":"passed","testResultsByEnv":{"default":"2be0038c5c50b8d478e6a483494fed3b"}}

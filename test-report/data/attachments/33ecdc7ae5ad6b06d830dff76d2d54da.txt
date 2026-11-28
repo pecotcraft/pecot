@@ -1,0 +1,4 @@
+checks: success
+lanes: cancelled
+lint: run
+lanes が success ではありません: cancelled

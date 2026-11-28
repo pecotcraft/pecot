@@ -1,0 +1,1 @@
+{"id":"1414b71cc8abe9a8d2101e6e6dda7e70.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check MCP の data preflight の warning で失敗しても、集めた値を data に残す","name":"preflight の warning で失敗しても、集めた値を data に残す","status":"passed","testResultsByEnv":{"default":"c7ff7f5ade6411cffba3be4f2e3a8854"}}

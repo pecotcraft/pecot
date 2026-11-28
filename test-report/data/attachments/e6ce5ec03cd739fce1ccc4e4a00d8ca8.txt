@@ -1,0 +1,2 @@
+error: repository owner different-owner differs from project owner acme
+  GitHub Projects V2 links only repositories of the project owner

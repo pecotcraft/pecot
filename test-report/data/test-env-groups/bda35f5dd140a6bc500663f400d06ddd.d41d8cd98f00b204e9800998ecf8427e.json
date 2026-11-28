@@ -1,0 +1,1 @@
+{"id":"bda35f5dd140a6bc500663f400d06ddd.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/sections.test.ts#validateBodyStyle: 段落の中の改行（GitHub は改行のまま表示する） 箇条書きの続き は、改行のエラーにしない","name":"箇条書きの続き は、改行のエラーにしない","status":"passed","testResultsByEnv":{"default":"3c7c1c9be64aa24e02265b2d78a48fae"}}

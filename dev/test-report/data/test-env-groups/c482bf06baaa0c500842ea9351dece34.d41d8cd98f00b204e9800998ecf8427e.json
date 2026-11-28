@@ -1,0 +1,1 @@
+{"id":"c482bf06baaa0c500842ea9351dece34.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-theme/tests/store.test.ts#fetchTheme（git） テーマをタグで取得した場合は、依存を導入して patch を適用し、stamp.json を書き込む","name":"テーマをタグで取得した場合は、依存を導入して patch を適用し、stamp.json を書き込む","status":"passed","testResultsByEnv":{"default":"98bb074d315afc0f17366e8cbf20e4d5"}}

@@ -1,0 +1,6 @@
+{
+  "hookSpecificOutput": {
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "deny reason"
+  }
+}

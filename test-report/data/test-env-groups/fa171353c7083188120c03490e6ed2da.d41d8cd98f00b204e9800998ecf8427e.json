@@ -1,0 +1,1 @@
+{"id":"fa171353c7083188120c03490e6ed2da.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/pptx-ooxml/tests/post-process.test.ts#applyHyperlinkFix リンクの色と URL のテキストの場合は、ハイパーリンクに変換する","name":"リンクの色と URL のテキストの場合は、ハイパーリンクに変換する","status":"passed","testResultsByEnv":{"default":"499d7f09a8cd152790b8d3ed41fa6a7b"}}

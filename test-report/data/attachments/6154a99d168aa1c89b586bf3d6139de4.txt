@@ -1,0 +1,1 @@
+/tmp/pecot-text-lint-WCQtpW/repository/specs/a.md:1:1 no-ai-words "経路" はAIが書いた文章で多用される表現です。別の表現に言い換えられないか検討してください。

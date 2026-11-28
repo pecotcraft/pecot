@@ -1,0 +1,1 @@
+{"id":"dff69456d5247fea1237da1ea07fd8e3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface-export.test.ts#振る舞いの項目のつなぎ collectVerifiedIds 文字列の中の // をコメントとして扱わない","name":"文字列の中の // をコメントとして扱わない","status":"passed","testResultsByEnv":{"default":"20d8f92c97166c38721b7e0edfbdd702"}}

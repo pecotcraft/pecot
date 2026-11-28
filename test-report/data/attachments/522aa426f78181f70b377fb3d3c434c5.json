@@ -1,0 +1,107 @@
+{
+  "name": "workflow_install",
+  "title": "Install workflow template",
+  "description": "Write a GitHub Actions workflow template of pecot into the repository",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Name of the workflow template (board-sync, review, handoff, auto, github-ops)"
+      },
+      "check": {
+        "default": false,
+        "description": "Write nothing; check that the file in the repository has the version of the bundled template",
+        "type": "boolean"
+      },
+      "force": {
+        "default": false,
+        "description": "Overwrite the file when it already exists",
+        "type": "boolean"
+      },
+      "directory": {
+        "description": "Root of the target Git repository (absolute or relative path; default: the current directory)",
+        "type": "string"
+      },
+      "repo": {
+        "description": "Target repository, given explicitly as 'owner/repo'",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path of the workflow file from the repository root"
+      },
+      "version": {
+        "type": "number",
+        "description": "Version of the bundled template"
+      },
+      "installedVersion": {
+        "description": "Version of the file already in the repository; omitted when there is no file or no version marker",
+        "type": "number"
+      },
+      "written": {
+        "type": "boolean",
+        "description": "Whether the file was written (false on check)"
+      },
+      "upToDate": {
+        "description": "With check: whether the file in the repository has the version of the bundled template",
+        "type": "boolean"
+      },
+      "removedLines": {
+        "description": "With force: lines you added between the begin and end markers, which the bundled template replaces",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "kind": {
+        "type": "string",
+        "description": "Failure kind (failure only)"
+      },
+      "detail": {
+        "type": "string",
+        "description": "Full failure text: the error message and the guidance lines that follow it (failure only)"
+      },
+      "log": {
+        "type": "string",
+        "description": "Raw output of a child process (failure only; omitted when not captured)"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Warning messages; continuation lines of a message are indented by two spaces (omitted when there is none)"
+      }
+    },
+    "additionalProperties": false,
+    "anyOf": [
+      {
+        "required": [
+          "path",
+          "version",
+          "written"
+        ]
+      },
+      {
+        "required": [
+          "kind",
+          "detail"
+        ]
+      }
+    ]
+  },
+  "annotations": {
+    "readOnlyHint": false
+  }
+}

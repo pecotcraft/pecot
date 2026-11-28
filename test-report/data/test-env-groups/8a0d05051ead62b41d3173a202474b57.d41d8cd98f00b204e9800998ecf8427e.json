@@ -1,0 +1,1 @@
+{"id":"8a0d05051ead62b41d3173a202474b57.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/github/tests/client.test.ts#handleHttpError 403 以外の状態で本文に rate limit があっても、レート制限にはしない","name":"403 以外の状態で本文に rate limit があっても、レート制限にはしない","status":"passed","testResultsByEnv":{"default":"6570f67782d911c10fa5d29189861ccf"}}

@@ -1,0 +1,1 @@
+{"id":"8832a0851ddcfa682f99274703244e0a.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-show.test.ts#board_show json を付けても、結果の項目を json を省いたときと同じにする","name":"json を付けても、結果の項目を json を省いたときと同じにする","status":"passed","testResultsByEnv":{"default":"f9d81bb3b41b08ca703c3878dea3b9fd"}}

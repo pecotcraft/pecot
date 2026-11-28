@@ -1,0 +1,1 @@
+{"id":"52cfa73f08fbb15cd5bd86b5f01b25fe.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:src/infra/tests/worktree.test.ts#filterCopyableFiles 否定パターンを指定すると、特定のサブパスを除外から外す","name":"否定パターンを指定すると、特定のサブパスを除外から外す","status":"passed","testResultsByEnv":{"default":"82f72bf58d802e0fd108ea4860de54ee"}}

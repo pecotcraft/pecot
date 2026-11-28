@@ -1,0 +1,1 @@
+{"id":"eb5165e5e00b9ca5d226f87817b2a702.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/git-restack.test.ts#pushWithLease 期待する SHA が remote の先頭と一致しない場合は、push を拒否し、remote を変更しない","name":"期待する SHA が remote の先頭と一致しない場合は、push を拒否し、remote を変更しない","status":"passed","testResultsByEnv":{"default":"579c7a4de5c2bb8d64152bb33036b18f"}}

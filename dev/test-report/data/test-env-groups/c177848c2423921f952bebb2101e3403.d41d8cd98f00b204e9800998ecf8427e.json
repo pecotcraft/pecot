@@ -1,0 +1,1 @@
+{"id":"c177848c2423921f952bebb2101e3403.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/hooks/lib/pecot-state-guard.test.ts#pecot-state-guard.sh .pecot が無いとき、失敗し、.pecot を新規作成しない","name":".pecot が無いとき、失敗し、.pecot を新規作成しない","status":"passed","testResultsByEnv":{"default":"ef1c838f8400917f0d1dbdef9d2de23e"}}

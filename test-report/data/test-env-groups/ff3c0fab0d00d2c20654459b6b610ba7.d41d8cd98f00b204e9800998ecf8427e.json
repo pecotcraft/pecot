@@ -1,0 +1,1 @@
+{"id":"ff3c0fab0d00d2c20654459b6b610ba7.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/tools-sso.test.ts#SSO の 2 段構成 awscli が 2.22 未満のときは、ログインを開始せず awscli-missing を返す","name":"awscli が 2.22 未満のときは、ログインを開始せず awscli-missing を返す","status":"passed","testResultsByEnv":{"default":"9ccf9a0d5eb2fb0b3bad1f16cb1447a7"}}

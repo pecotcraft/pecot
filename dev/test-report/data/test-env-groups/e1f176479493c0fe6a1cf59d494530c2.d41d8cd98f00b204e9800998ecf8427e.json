@@ -1,0 +1,1 @@
+{"id":"e1f176479493c0fe6a1cf59d494530c2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/slide-dev.test.ts#slideDevTool dir が相対パスなら、実処理の前に invalid-path のエラーを返す","name":"dir が相対パスなら、実処理の前に invalid-path のエラーを返す","status":"passed","testResultsByEnv":{"default":"3e155cfe2ef5a9960a933902a687dbd9"}}

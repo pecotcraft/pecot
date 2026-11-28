@@ -1,0 +1,1 @@
+ERROR: 監査未実施のため中止: 配布ツリー: 例外リストの added が非空文字列ではありません: /tmp/bats-run-ZtRN2n/test/27/bad-exceptions/empty-added.json

@@ -1,0 +1,1 @@
+{"id":"c0a1ffb1a8bc5f14ad33b4082dbaf399.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tests/server.test.ts#createMcpServer の progress ハートビート キャンセルした後は、定期的な通知と reportProgress のどちらでも、通知を送らない [legacy]","name":"キャンセルした後は、定期的な通知と reportProgress のどちらでも、通知を送らない [legacy]","status":"passed","testResultsByEnv":{"default":"a50c9bc4a5900f5bba7e75475fe479f8"}}

@@ -1,0 +1,1 @@
+{"id":"4f873064a2093da3f0c71e4e5c27e4b2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:tests/integration/real-awscli.test.ts#実 awscli ツール aws_rds_describe_db_instances の引数の並びは、実際の awscli が構文として受理する","name":"ツール aws_rds_describe_db_instances の引数の並びは、実際の awscli が構文として受理する","status":"passed","testResultsByEnv":{"default":"f300acc53eae1e2476d170a3984c3431"}}

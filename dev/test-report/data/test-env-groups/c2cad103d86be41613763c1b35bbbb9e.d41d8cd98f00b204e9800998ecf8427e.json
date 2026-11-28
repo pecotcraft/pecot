@@ -1,0 +1,1 @@
+{"id":"c2cad103d86be41613763c1b35bbbb9e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/board-show.test.ts#board_show 判定に要る前提の Issue の読み取りが無いと、readiness を unknown にして理由を入れる","name":"判定に要る前提の Issue の読み取りが無いと、readiness を unknown にして理由を入れる","status":"passed","testResultsByEnv":{"default":"5be4170ee2adffc55f141793dd3606b8"}}

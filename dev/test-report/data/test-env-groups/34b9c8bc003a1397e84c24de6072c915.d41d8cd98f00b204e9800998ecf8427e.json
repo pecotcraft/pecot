@@ -1,0 +1,1 @@
+{"id":"34b9c8bc003a1397e84c24de6072c915.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/slidev-assets-dev:scripts/eslint/pptx-compat/tests/require-image-border-radius.test.ts#require-image-border-radius valid img が image-block の直接の子だと、報告しない","name":"img が image-block の直接の子だと、報告しない","status":"passed","testResultsByEnv":{"default":"40989745a8171b6c280349c4c3d72504"}}

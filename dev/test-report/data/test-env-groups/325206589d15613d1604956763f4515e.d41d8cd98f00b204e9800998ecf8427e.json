@@ -1,0 +1,1 @@
+{"id":"325206589d15613d1604956763f4515e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/cache-store.test.ts#pruneCache 渡した集合に存在しない stepIndex はすべて削除する（部分的なスキャン結果を渡してはならない）","name":"渡した集合に存在しない stepIndex はすべて削除する（部分的なスキャン結果を渡してはならない）","status":"passed","testResultsByEnv":{"default":"a0937a7d9f3aac45a9ce69cfa324cc8b"}}

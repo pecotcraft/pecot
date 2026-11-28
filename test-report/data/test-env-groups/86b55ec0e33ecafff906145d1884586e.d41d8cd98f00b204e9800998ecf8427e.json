@@ -1,0 +1,1 @@
+{"id":"86b55ec0e33ecafff906145d1884586e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/console-logger.test.ts#createLogger メッセージの先頭に改行がある場合は、改行を取り除き、空の note 行を出力しない","name":"メッセージの先頭に改行がある場合は、改行を取り除き、空の note 行を出力しない","status":"passed","testResultsByEnv":{"default":"50d647d4ba5304f1793dd5d6d39847df"}}

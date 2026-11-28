@@ -1,0 +1,1 @@
+{"id":"46ee23d9308bf554036b52d0ebbc4e66.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/infra/slidev-to-pptx/tests/single-pass-worker.test.ts#convertStepsSinglePass 1 つのグループが従来の worker に切り替わっても、ほかのグループは 1 パスで変換を続ける","name":"1 つのグループが従来の worker に切り替わっても、ほかのグループは 1 パスで変換を続ける","status":"passed","testResultsByEnv":{"default":"bcf8f10e30338137e2a5400285a66f76"}}

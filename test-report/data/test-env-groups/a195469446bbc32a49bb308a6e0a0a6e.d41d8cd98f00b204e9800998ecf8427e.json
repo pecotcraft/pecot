@@ -1,0 +1,1 @@
+{"id":"a195469446bbc32a49bb308a6e0a0a6e.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/infra/tests/paths.test.ts#projectRoot 作業ディレクトリが削除されている場合は、git のルートを得られず ProjectRootNotFoundError を発生させる","name":"作業ディレクトリが削除されている場合は、git のルートを得られず ProjectRootNotFoundError を発生させる","status":"passed","testResultsByEnv":{"default":"a82d565f34ce7c273c52ed48167ecae2"}}

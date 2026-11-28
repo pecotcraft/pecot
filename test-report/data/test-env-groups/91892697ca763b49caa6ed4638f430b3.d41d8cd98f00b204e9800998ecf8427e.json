@@ -1,0 +1,1 @@
+{"id":"91892697ca763b49caa6ed4638f430b3.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/domain/evidence-xlsx/tests/ooxml.test.ts#buildDrawingXml — 注記図形 注記付きの画像は、画像と注記を 1 つの grpSp にまとめ、id をグループ、画像、注記の順に振る","name":"注記付きの画像は、画像と注記を 1 つの grpSp にまとめ、id をグループ、画像、注記の順に振る","status":"passed","testResultsByEnv":{"default":"473f696b994030e81d9f3c06cc198441"}}

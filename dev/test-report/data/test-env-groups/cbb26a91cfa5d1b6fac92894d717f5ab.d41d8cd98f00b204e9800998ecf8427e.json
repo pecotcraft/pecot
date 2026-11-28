@@ -1,0 +1,1 @@
+{"id":"cbb26a91cfa5d1b6fac92894d717f5ab.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:tests/unit/domain/drawio/validate-whitespace-wrap.test.ts#validateWhitespaceWrap 和文を含んでいても、vertex 属性のないセルには、警告を返さない","name":"和文を含んでいても、vertex 属性のないセルには、警告を返さない","status":"passed","testResultsByEnv":{"default":"a7cb31905d6ef10ff1769b3105ef693f"}}

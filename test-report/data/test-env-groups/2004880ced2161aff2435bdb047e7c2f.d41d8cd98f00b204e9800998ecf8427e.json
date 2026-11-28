@@ -1,0 +1,1 @@
+{"id":"2004880ced2161aff2435bdb047e7c2f.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-tools-cli:src/mcp/tests/serve.test.ts#installStdoutGuard ガードが返した Writable への書き込みだけを、元の標準出力へ送る","name":"ガードが返した Writable への書き込みだけを、元の標準出力へ送る","status":"passed","testResultsByEnv":{"default":"ecdfdd47aeed62a88fb15a914b17a0a6"}}

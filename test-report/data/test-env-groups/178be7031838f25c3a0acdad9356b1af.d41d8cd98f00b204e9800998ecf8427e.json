@@ -1,0 +1,1 @@
+{"id":"178be7031838f25c3a0acdad9356b1af.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/actions:tests/interface/auto-finish.test.ts#auto finish 結果が pr-created なら、Status を書かない","name":"結果が pr-created なら、Status を書かない","status":"passed","testResultsByEnv":{"default":"57a750bcc3b6a06d10b641fdc6f1628f"}}

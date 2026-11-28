@@ -1,0 +1,1 @@
+{"id":"93cb8e0f5e084fd6d6c85dc07d22e38b.d41d8cd98f00b204e9800998ecf8427e","fullName":".githooks.tests.test_pre_commit_config_wiring#test_stage_dir_matches_stages","name":"stage 名のディレクトリ直下のスクリプトを使う hook は、その stage だけで動く","status":"passed","testResultsByEnv":{"default":"e874d78d7752cf52e7e4b8227126dc35"}}

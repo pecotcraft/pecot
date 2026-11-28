@@ -1,0 +1,1 @@
+{"id":"85f6d2ff30b3d9e91612d087114724ba.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/board-move.test.ts#decideBoardMove の列 作業の跡がある場合は、列が In Review でも、どの判定でも列を動かさない","name":"作業の跡がある場合は、列が In Review でも、どの判定でも列を動かさない","status":"passed","testResultsByEnv":{"default":"568b8cffd7ab22645fa83349cb9eedd6"}}

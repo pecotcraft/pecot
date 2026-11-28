@@ -1,0 +1,1 @@
+{"id":"aa5f62e2b64373a5c2e93eda8dba14f2.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecotv-cli:src/mcp/tools/tests/setup.test.ts#runtime_setup: chromium 取得済みでも取得コマンドは実行し、ダウンロードなしとして返す","name":"取得済みでも取得コマンドは実行し、ダウンロードなしとして返す","status":"passed","testResultsByEnv":{"default":"d7abdba9df949c6ac5469448b098d200"}}

@@ -1,0 +1,1 @@
+{"id":"0c80615451d9647883d94d5dfefb6514.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/pecot-workflow-cli:tests/interface/pr.test.ts#pr_check MCP で呼ぶと、Push Status の直し方をツールの名前で出す","name":"MCP で呼ぶと、Push Status の直し方をツールの名前で出す","status":"passed","testResultsByEnv":{"default":"13296e4ccd9d75c9accc874a419b5ddd"}}

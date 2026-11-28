@@ -1,0 +1,1 @@
+{"id":"ecb28c4b98b1f44472532f237e901462.d41d8cd98f00b204e9800998ecf8427e","fullName":"@pecot/workflow-core-src:src/domain/tests/repository-policy.test.ts#mode=warn で共通の分岐 repo を指定せず、Git リポジトリの中で実行すると、現在のリポジトリのまま続行する","name":"repo を指定せず、Git リポジトリの中で実行すると、現在のリポジトリのまま続行する","status":"passed","testResultsByEnv":{"default":"7229bec03d91a9898a60365c7acc9790"}}
