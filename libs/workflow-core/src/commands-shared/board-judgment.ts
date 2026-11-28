@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// ボードの Issue の読み取り・判定と、列と札の動かし方。board show（数えるだけ）と、board sync・pr create（書く）が共有する。
+// ボードの Issue の読み取り・判定と、列と札の動かし方。board sync と session finish が共有する。
 import { decideBoardMove } from '../domain/board-move.js'
 import type { BoardMove, MissingValue } from '../domain/board-move.js'
 import { getOptionId } from '../domain/config.js'
@@ -65,9 +65,9 @@ export interface JudgeBoardOptions {
   */
   readonly columns: ReadonlySet<string>
   /**
-  個別の読み取りを省く Issue。'skip' は判定から外し、IssueSnapshot は一覧の値だけで判定し、undefined は個別に読む
+  個別の読み取りを省く Issue。'skip' は判定から外し、undefined は個別に読む
   */
-  readonly withoutRead: (target: BoardTarget, progress: BoardProgress | undefined) => IssueSnapshot | 'skip' | undefined
+  readonly withoutRead: (target: BoardTarget, progress: BoardProgress | undefined) => 'skip' | undefined
   /**
   判定し直す呼び出しと共有するキャッシュ。無ければ判定ごとに作る
   */
@@ -97,9 +97,7 @@ export async function judgeBoard(client: GitHubClient, config: ProjectConfig, it
   const reads = await mapWithLimit(targets, READ_MAX_WORKERS, async (target): Promise<{ target: BoardTarget, snapshot: Snapshot } | undefined> => {
     if (state.isUnsupported) return undefined
     const known = progress.get(target.key)
-    const local = options.withoutRead(target, known)
-    if (local === 'skip') return undefined
-    if (local !== undefined) return { target, snapshot: local }
+    if (options.withoutRead(target, known) === 'skip') return undefined
     try {
       return { target, snapshot: await readIssueSnapshot(client, config, target.ref, blockedByReadCount(known?.blockedBy), true) }
     }

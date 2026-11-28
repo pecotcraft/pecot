@@ -6,7 +6,6 @@
     "detail": "real file exists: {{TMP}}/wt1/demo/CLAUDE.local.md\noverwrite it?\nAborted."
   },
   "stderr": "",
-  "requests": [],
   "files": {
     "../../wt1/demo/.gitignore": ".pecot/\n",
     "../../wt1/demo/CLAUDE.local.md": "サブ WT 側の実ファイル\n",

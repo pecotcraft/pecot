@@ -67,13 +67,6 @@ export function asNotFoundError(error: unknown): unknown {
 }
 
 /**
-このエラーが、ブランチ（ref）がもう無いことを表すか。`Reference does not exist` を含む 404・422 だけを「無い」と見なす
-*/
-export function isMissingReferenceError(error: Readonly<GitHubAPIError>): boolean {
-  return (error.statusCode === 404 || error.statusCode === 422) && error.responseBody?.includes('Reference does not exist') === true
-}
-
-/**
 別の要求が同時に閉じたことを示す 422 か（PR の Closes による自動 close など）
 */
 export function isClosedByAnotherRequest(error: Readonly<GitHubAPIError>): boolean {

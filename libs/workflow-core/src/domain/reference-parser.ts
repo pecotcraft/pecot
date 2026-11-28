@@ -7,7 +7,7 @@ import { formatHinted, globalRepositoryHint, hinted, placeholder } from './comma
 import type { HintedText } from './command-hint.js'
 import { PecotError, InvalidValueError } from './errors.js'
 import { parsePythonInteger, ValidationFailure } from './python-format.js'
-import { createRepositoryReference, parseOwnerRepository, repositoryFullName } from './repository-resolver.js'
+import { createRepositoryReference, repositoryFullName } from './repository-resolver.js'
 import type { RepositoryReference } from './repository-resolver.js'
 
 /**
@@ -106,41 +106,4 @@ PR 参照を IssueReference にする。Issue と番号空間を共有するの�
 */
 export function parsePullRequestReference(raw: string, baseRepository?: RepositoryReference, options: { readonly repositoryFlag?: boolean } = {}): IssueReference {
   return parseIssueReference(raw, baseRepository, options)
-}
-
-/**
-`owner/repo` 形式の文字列を RepositoryReference にする。不正なら ReferenceParseError
-*/
-export function parseRepositoryReference(raw: string): RepositoryReference {
-  try {
-    return parseOwnerRepository(raw)
-  }
-  catch (error: unknown) {
-    if (error instanceof InvalidValueError) throw new ReferenceParseError(error.message, raw, { cause: error })
-    throw error
-  }
-}
-
-const REFS_PATTERN = /(?:^|\s)Refs?:?\s+(?:#(?<number>\p{Nd}+)|(?<owner>[\w.-]+)\/(?<repository>[\w.-]+)[#/](?<qualifiedNumber>\p{Nd}+))/gimu
-
-/**
-PR 本文の Refs で参照された Issue 番号を集める。
-受理形式は `Refs #N`・`Refs owner/repo#N`・`Refs owner/repo/N`（`Ref` も可、コロンは任意、大文字小文字は区別しない）。
-owner/repo 付きの参照は、repository と一致（大文字小文字を区別しない）するものだけ採る
-*/
-export function extractReferencesIssueNumbers(body: string | undefined, repository: RepositoryReference): ReadonlySet<number> {
-  const numbers = new Set<number>()
-  if (body === undefined || body === '') return numbers
-  const ownerKey = repository.owner.toLowerCase()
-  const repositoryKey = repository.repository.toLowerCase()
-  for (const match of body.matchAll(REFS_PATTERN)) {
-    const { number, owner, repository: matchedRepository, qualifiedNumber } = match.groups ?? {}
-    if (number !== undefined) {
-      numbers.add(integerOf(number))
-    }
-    else if (qualifiedNumber !== undefined && owner?.toLowerCase() === ownerKey && matchedRepository?.toLowerCase() === repositoryKey) {
-      numbers.add(integerOf(qualifiedNumber))
-    }
-  }
-  return numbers
 }

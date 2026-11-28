@@ -40,7 +40,7 @@ actions/ に移した処理の形。name の `_` を `-` にしたものが acti
 export const ACTION_HINT_COMMANDS: readonly HintCommandShape[] = [
   { name: 'board_sync', inputs: ['project', 'dry_run'] },
   { name: 'review_finish', inputs: ['pr', 'job_status', 'execution_file', 'since', 'review_outcome', 'review_conclusion', 'review_has_token'] },
-  { name: 'tracker_sync', inputs: ['source', 'project', 'dry_run'] },
+  { name: 'tracker_sync', inputs: ['source', 'surface_file', 'project', 'dry_run'] },
   { name: 'auto_gate', inputs: ['max_ci_attempts', 'project'] },
   { name: 'auto_start', inputs: ['issue', 'project'] },
   { name: 'auto_finish', inputs: ['issue', 'project', 'result_file', 'job_status', 'execution_file', 'start_outcome', 'result', 'body_file'] },

@@ -301,10 +301,3 @@ export function formatBoardOutput(items: readonly BoardItem[], readiness?: Reado
 
   return sections.length === 0 ? '_No items_' : sections.map(section => section.join('\n')).join('\n\n')
 }
-
-/**
-アイテムリストを JSON 出力用の辞書にする
-*/
-export function formatItemsJson(items: readonly BoardItem[]): { readonly items: readonly BoardItem[] } {
-  return { items }
-}

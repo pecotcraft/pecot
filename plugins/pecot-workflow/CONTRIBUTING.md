@@ -123,7 +123,7 @@ npx --prefix="$HOME/.cache/pecot-inspector" -y @modelcontextprotocol/inspector@2
 
 - `--prefix` は外さない。`package.json` の無いディレクトリを渡す。外すと、リポの `package.json` の `devEngines` で npm が止まる（`EBADDEVENGINES`）
 - ツールの一覧は `--method tools/list`、テンプレートは `--method resources/read --uri pecot-template://comment/plan` で読める
-- Inspector は、サーバに `HOME`・`PATH` など 6 つの環境変数しか渡さない。トークンを環境変数だけで持つ環境では、`-e PECOT_GITHUB_COM_TOKEN=<トークン>` を足す。devcontainer では `gh` の認証を使うので要らない
+- Inspector は、サーバに `HOME`・`PATH` など 6 つの環境変数しか渡さない。ほかの環境変数は `-e <名前>=<値>` で渡す。ツールは GitHub を呼ばないので、トークンは要らない
 - `-e` は、次のオプションまでの引数を環境変数として読むので、行の最後に置く。サーバのコマンドの前に置くと、サーバを起動できない（`No servers found in config file`）
 - 結果は JSON で出る。失敗は `result.isError` が `true` で、`structuredContent.kind` に原因の名前が入る
 
@@ -133,12 +133,7 @@ npx --prefix="$HOME/.cache/pecot-inspector" -y @modelcontextprotocol/inspector@2
 
 検証用に Issue・PR を作るときは、PR を 1 本作るだけの場合も、次の手順で進めます。`<作業ツリー>` は、直している worktree の絶対パスです。
 
-1. 作業ツリーで、検証用の設定がこのリポとずれていないことを確かめる。ずれがあれば、検証用を直してから進める
-
-   ```bash
-   plugins/pecot-workflow/scripts/sandbox/sandbox-diff.sh   # 0: ずれなし / 1: ずれあり / 2: 読めない
-   ```
-
+1. 検証用の設定がこのリポとずれていないことを、「sandbox-ops で比べる・片付ける」の手順の `diff` で確かめる。ずれがあれば、「ずれを直す」の表で検証用を直してから進める
 2. 検証用の clone を作り、検証用のボードを選ぶ。ボードの設定ファイルは検証用のリポに含まれている
 
    ```bash
@@ -167,22 +162,53 @@ npx --prefix="$HOME/.cache/pecot-inspector" -y @modelcontextprotocol/inspector@2
    ```
 
    書く手順と `reads` に渡すものは、`skills/w-help/references/github-write.md` にある。スキルで作るときは、clone で「直した pecot-workflow を動かす」の手順でクライアントを起動する
-6. 確かめが終わったら片付ける。名前の形に合う開いた PR・ブランチ・Issue・カード・リリースが対象
-
-   ```bash
-   <作業ツリー>/plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号> --dry-run
-   <作業ツリー>/plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh --issue <Issue番号>
-   ```
+6. 確かめが終わったら、「sandbox-ops で比べる・片付ける」の手順の `sweep` で片付ける。名前の形に合う開いた PR・ブランチ・Issue・カード・リリースが対象。先に `dry-run` を `true` にして対象を読み、続けて `false` で片付ける
 
 clone は、確かめるセッションごとに 1 つ作ります。手順 5 で clone の中のブランチを切り替えるため、共有するとぶつかります。
-環境に `PECOT_GITHUB_COM_TOKEN`・`GITHUB_COM_TOKEN` が無く、`gh` に認証していれば、`gh auth token` を使うので `.env` は不要です。
-別のトークンで書き込むときは、clone の `.pecot/config/.env` に `PECOT_GITHUB_COM_TOKEN=<トークン>` を書きます。そのうえで、環境変数 `PECOT_GITHUB_COM_TOKEN`・`GITHUB_COM_TOKEN` を外します。
-`sandbox-sweep.sh` は、名前の形に合わないものと、検証用の `main`・設定ファイルには触りません。`--issue` を省くと、名前の形に合うものをすべて片付けます。
-`sandbox-diff.sh` と `sandbox-sweep.sh` は、このリポの `.claude/settings.json` で承認なしに実行できます。
+sweep は、名前の形に合わないものと、検証用の `main`・設定ファイルには触りません。`issue` を空にすると、名前の形に合うものをすべて片付けます。
 `sandbox-diff.sh` で比べない項目を足すときは、`sandbox-diff-items.json` と spec の表を同じ変更で直します。
 このリポの ruleset・ボード・`pecot-board-sync.yml`・`pecot-review.yml`・`pecot-handoff.yml` の決まりを変えるときは、検証用を先に変えます。逆にすると、確かめた結果がこのリポで再現しません。
 必須のチェックを足すときは、検証用の `ci.yml`・`codeql.yml` に、同じ名前のジョブを先に足します。検証用のこの 2 つは、チェックの名前を出すだけのスタブです。
 `sandbox-diff.sh` は、この 2 つの有無だけを比べ、ジョブの名前は比べません。
+
+#### sandbox-ops で比べる・片付ける
+
+比べる（`sandbox-diff.sh`）のも片付ける（`sandbox-sweep.sh`）のも、このリポの `.github/workflows/sandbox-ops.yml` が動かします。端末とクラウドのスレッドで同じ手順です。公式の MCP の Actions のツールで起動し、job のログで結果を読みます。
+
+1. `request_id` を決める。`<Issue番号>-<乱数>` のように、同じ operation を何度起動しても見分けられる値にする
+2. `actions_run_trigger`（`run_workflow`）で起動する。`owner` は `pecotcraft`、`repo` は `pecot`、`workflow_id` は `sandbox-ops.yml`、`ref` は `main` にする
+
+   | operation | `inputs` |
+   |:---|:---|
+   | 比べる | `{"operation":"diff","request_id":"<request_id>"}` |
+   | 片付けの対象を読む | `{"operation":"sweep","issue":"<Issue番号>","dry-run":"true","request_id":"<request_id>"}` |
+   | 片付ける | `{"operation":"sweep","issue":"<Issue番号>","dry-run":"false","request_id":"<request_id>"}` |
+
+3. `actions_list`（`list_workflow_runs`）で、実行の名前が `sandbox-ops <operation> <request_id>` のものを探す
+4. `actions_get`（`get_workflow_run`）で、終わるまで読み直す
+5. `get_job_logs` で、operation と同じ名前の job のログを読む
+
+| 実行の結果 | ログ | 読み方 |
+|:---|:---|:---|
+| `success`（diff） | `ずれは 0 件` | ずれは無い |
+| `failure`（diff） | `ずれは N 件` と、項目ごとの `このリポ:`・`検証用:` の行 | 「ずれを直す」の表で直し、もう一度比べる |
+| `failure`（diff・sweep） | `error:` で始まる行 | 読めなかった先と理由が出る。権限の不足なら、App の権限と token の `permission-` の入力を確かめる |
+| `success`（sweep） | 片付けた（`dry-run` では片付ける予定の）PR・ブランチ・Issue・カード・リリースの行 | `dry-run` で対象を確かめてから、`false` で起動し直す |
+| `skipped` | — | 変数 `PECOT_SANDBOX_APP_CLIENT_ID` が空。このリポの Settings の Variables を確かめる |
+
+検証用へは、App `pecot-agent-sandbox` の token を `repositories: pecot-sandbox` に絞って使います。diff は、このリポのマージの設定を、ワークフローの `GITHUB_TOKEN` で読みます。
+
+#### ずれを直す
+
+diff のログの項目の名前で、直し方が決まります。直したら、もう一度 diff で比べます。
+
+| 項目 | 直し方 |
+|:---|:---|
+| `merge-settings / <鍵>` | 利用者が検証用の [Settings の General](https://github.com/pecotcraft/pecot-sandbox/settings) の Pull Requests で、このリポと同じ値にする |
+| `ruleset <名前>`・`ruleset <名前> / <鍵>` | 利用者が検証用の [Settings の Rules](https://github.com/pecotcraft/pecot-sandbox/settings/rules) で、このリポの同じ名前の ruleset と同じ形にする |
+| `board-fields / <欄>` | `projects_list`（`list_project_fields`）で 3 番の欄を読み、`project_check`（`fields`）を通す。そのうえで、検証用の `pecot-github-ops.yml` の `project-fields` で直す。起動の形は `skills/w-help/references/github-ops.md` |
+| `config-file`・`config-options / <欄>` | 検証用の `.pecot/config/` の設定ファイルを直す PR を、「基本の流れ」の手順 4・5 で作る。利用者が画面でマージする |
+| `workflows / <ファイル>` | 検証用の `.github/workflows/` の写しを、このリポの `main` から作った形に直す PR を作る。作り方は「配る自動化を確かめる」の手順 5。利用者が画面でマージする |
 
 ### 直した pecot-workflow を動かす
 
@@ -262,7 +288,7 @@ MCP サーバ（`cli/src`）の直しは、クライアントに反映されま�
 自動レビューを quickstart で確かめるときは、次の 2 つに気を付けます。
 
 - 検証用には写しが既にあるので、`workflow_install`（`review`）は上書きになる
-- 確かめの後に、写しをこのリポの `main` の `.github/workflows/pecot-review.yml` と同じ中身に戻す PR を入れる。その後、`sandbox-diff.sh` でずれが 0 件であることを確かめる
+- 確かめの後に、写しをこのリポの `main` の `.github/workflows/pecot-review.yml` と同じ中身に戻す PR を入れる。その後、sandbox-ops の diff でずれが 0 件であることを確かめる
 
 利用者に配る `actions/templates/pecot-board-sync.yml` や、それが呼ぶ pecot の action を直したときは、マージの前に動かします。検証用の `.github/workflows/` に入れます。`uses:` は、作業ブランチの `actions/<処理>/dist/index.js` を読みます。
 検証用の `main` の workflow を書き換えるので、この確かめは一度に 1 人で行います。
@@ -275,7 +301,7 @@ MCP サーバ（`cli/src`）の直しは、クライアントに反映されま�
    - 実行の `Sync the board` の step が成功し、ログに `moved:`・`set:` の行が出ること
    - `projects_list`（`list_project_items`）で読んだ、動かす見込みのカードの列か Status が変わったこと
 5. 写しを、このリポの `main` の `.github/workflows/pecot-board-sync.yml` から作った形に戻す PR を入れる。pecot の action の呼び方は `pecotcraft/pecot/actions/<処理>@main` にする
-6. `sandbox-diff.sh` でずれが 0 件であることを確かめる
+6. sandbox-ops の diff でずれが 0 件であることを確かめる
 
 定期の起動は検証用には届きません。検証用の写しは `schedule` を持ちません。このリポの Lambda（`.github/board-sync/`）は、`handler.mjs` がリポの ID を比べて、`pecotcraft/pecot` だけを起動します。
 
@@ -288,7 +314,7 @@ MCP サーバ（`cli/src`）の直しは、クライアントに反映されま�
 2. claude-code-action の `plugin_marketplaces` を `./pecot-src` にする。`./` で始まる値は、ローカルのマーケットプレイスとして渡る。`#<ref>` を付けた URL は受けない
 3. `plugins` は `pecot-w@pecot` のままにする
 4. 写しを検証用の `main` に入れてから、検証用で PR をマージし、Epic と後続の Issue のコメントと実行の結果を読む
-5. 確かめの後に、写しをこのリポの `main` の `.github/workflows/pecot-handoff.yml` と同じ中身に戻す PR を入れる。その後、`sandbox-diff.sh` でずれが 0 件であることを確かめる
+5. 確かめの後に、写しをこのリポの `main` の `.github/workflows/pecot-handoff.yml` と同じ中身に戻す PR を入れる。その後、sandbox-ops の diff でずれが 0 件であることを確かめる
 
 ### このリポだけの運用
 
@@ -307,7 +333,7 @@ MCP サーバ（`cli/src`）の直しは、クライアントに反映されま�
 ### GitHub に書き込む処理の一覧
 
 スキルが GitHub に書く手と、配る workflow が書くものの一覧です。書く手と先に通すチェックの組は、`skills/w-help/references/github-write.md` の表にあります。
-pecot-workflow の MCP ツールで GitHub に書くのは、remote へ push する `pr_restack` だけです。「sweep」は `sandbox-sweep.sh` で片付くことを表します。
+pecot-workflow の MCP ツールで GitHub に書くのは、remote へ push する `pr_restack` だけです。「sweep」は sandbox-ops の sweep で片付くことを表します。
 検証用で作った Issue は、sweep が閉じます（コメントと値は残ります）。
 
 | 書く手 | 作るもの・変えるもの | 片付け方・注意 |
@@ -349,16 +375,16 @@ pecot が GitHub の Issue の機能をどこまで扱うかを、次の 2 つ�
 
 | `status` | 鍵 | 書くもの |
 |:---|:---|:---|
-| `supported` | `handler` | 値を書く `cli/src/domain/attributes.ts` の `ATTRIBUTE_HANDLERS` の鍵 |
+| `supported` | `handler` | 値を書く `libs/workflow-core/src/domain/attributes.ts` の `ATTRIBUTE_HANDLERS` の鍵 |
 | `supported` | `tool` | 属性でなく、ツールが書く項目（題・本文・状態・parent・blocked_by など）の MCP のツール名 |
 | `excluded` | `reason` | 外す理由。preview・GitHub が計算する・pecot の流れの外 など |
 
 ### 写しを作り直す
 
-写しは、REST の版を pecot が REST に送る版（`cli/src/infra/github/client.ts` の `DEFAULT_API_VERSION`）に合わせて作ります。`--api-version` を省くと、その版になります。
+写しの REST の版は、pecot の action が REST へ送る版と同じにします。版は `libs/workflow-core/src/infra/github/client.ts` の `DEFAULT_API_VERSION` です。`--api-version` を省くと、その版になります。
 
 ```bash
-pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/github-surface/extract.ts --out ../interface/github-issue-surface.json
+pnpm --dir actions exec tsx scripts/issue-surface-extract.ts --out ../plugins/pecot-workflow/interface/github-issue-surface.json
 ```
 
 PR の CI は写しだけを読み、GitHub には取りに行きません。
@@ -379,16 +405,10 @@ PR の CI は写しだけを読み、GitHub には取りに行きません。
 
 Tracker ができたら、「写しを作り直す」の手順で写しを作り直し、「網羅のテストが落ちたとき」の表で担保の一覧を直します。その PR がマージされると、次の実行で Tracker が閉じます。
 
-手元で比べの結果を見るときは、`--dry-run` を付けて実行します。書き込まずに、予定の操作（`dry-run: would create Tracker …` など）を出します。
-
-```bash
-pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/github-surface/drift.ts --repo pecotcraft/pecot --dry-run
-```
-
-`--sdl <ファイル>`・`--openapi <ファイル>` を渡すと、そのファイルを GitHub の今のスキーマの代わりに読みます。
-
-書き込む確かめは、`--repo pecotcraft/pecot-sandbox` にして、検証用の clone を `CLAUDE_PROJECT_DIR` に渡して打ちます。
-題に `[cuj …]` が入らないので、`sandbox-sweep.sh` は片付けません。できた Issue を `gh issue close <番号> -R pecotcraft/pecot-sandbox` で閉じます。
+比べは、pecot の action の tracker-sync（`source: issue-surface`、入力 `surface-file` に写しのパス）が行います。
+結果だけを見るときは、公式の MCP の `actions_run_trigger`（`run_workflow`）で `issue-surface-drift.yml` を起動します。`inputs` は `{"dry-run":"true"}` にします。
+`get_job_logs` で読むログに、書き込まずに予定の操作（`dry-run: would create …` など）が出ます。直した tracker-sync を確かめるときは、`ref` に作業ブランチを渡します。
+比べと Tracker の扱いの振る舞いは、`actions/tests/interface/tracker-sync-issue-surface.test.ts` が持ちます。
 
 ### 網羅のテストが落ちたとき
 

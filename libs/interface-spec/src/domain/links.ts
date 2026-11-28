@@ -2,8 +2,8 @@ import type { SourceFile } from './environment-names.js'
 import { compareText, formatFinding } from './finding.js'
 import type { COVERAGE_MODES } from './schema.js'
 
-// 前後に [A-Za-z0-9_-] が続く文字列（PT-X-011 の途中や xPW-A-01）は ID としない。
-const BEHAVIOR_ID = /(?<![\w-])P[ATVW]-[A-Z0-9-]+-\d{2}(?![\w-])/gu
+// 前後に [A-Za-z0-9_-] が続く文字列（PT-X-01a や xPW-A-01）は ID としない。番号は 2 桁以上。
+const BEHAVIOR_ID = /(?<![\w-])P[ATVW]-[A-Z0-9-]+-\d{2,}(?![\w-])/gu
 
 export interface FoundId {
   readonly id: string

@@ -1,22 +1,15 @@
-"""issue-surface-drift.yml の形と、比べの step の run: のシェルの確かめ。
+"""issue-surface-drift.yml の形と、比べの step が呼ぶ action と入力の確かめ。
 
-workflow_dispatch は main に定義が入るまで動かせないため、形と run: のシェルをここで固定する。
+workflow_dispatch は main に定義が入るまで動かせないため、形をここで固定する。
 """
 
 from __future__ import annotations
 
-import os
-import sys
 from pathlib import Path
 from typing import Any
 
 import allure
-import pytest
 import yaml
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from attach import read_output, run_attached  # noqa: E402
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _WORKFLOW = _REPO_ROOT / ".github/workflows/issue-surface-drift.yml"
@@ -97,47 +90,36 @@ def test_checkout_does_not_persist_credentials() -> None:
 
 
 @allure.title(
-    "DRY_RUN が {dry_run} のとき、比較の step は --repo を渡し、--dry-run は true の場合だけ渡す"
+    "比べの step は、このリポの tracker-sync を issue-surface で呼び、写しのパスと dry-run と App のトークンを渡す"
 )
-@pytest.mark.parametrize(("dry_run", "expect_flag"), [("true", True), ("false", False)])
-def test_compare_step_passes_repo_and_dry_run_only_when_true(
-    tmp_path: Path, dry_run: str, expect_flag: bool
-) -> None:
-    """比較の step の `run` のシェルを、偽の `pnpm` を `PATH` に置いて実行するテストです。`--repo owner/repo` を渡し、`DRY_RUN` が `true` の場合だけ `--dry-run` を渡すことを確認します。"""
-    with allure.step("偽の pnpm を置き、比べの step の run を動かす"):
+def test_compare_step_uses_tracker_sync_with_issue_surface() -> None:
+    """比べの step のテストです。`./actions/tracker-sync` を `source: issue-surface` で呼び出し、写しのパス・`dry-run` の入力・App のトークンを渡すことを確認します。"""
+    with allure.step("比べの step を読む"):
         step = _step(_COMPARE)
-        assert "${{" not in step["run"]
-        bin_dir = tmp_path / "bin"
-        bin_dir.mkdir()
-        fake = bin_dir / "pnpm"
-        fake.write_text('#!/usr/bin/env bash\nprintf "%s\\n" "$@" > "$OUT"\n', encoding="utf-8")
-        fake.chmod(0o755)
-        out = tmp_path / "args.txt"
-        env = {
-            **os.environ,
-            "PATH": f"{bin_dir}:{os.environ['PATH']}",
-            "OUT": str(out),
-            "GITHUB_REPOSITORY": "owner/repo",
-            "DRY_RUN": dry_run,
+    with allure.step("uses と with の値を確かめる"):
+        assert step["uses"] == "./actions/tracker-sync"
+        assert "run" not in step
+        assert step["with"] == {
+            "token": "${{ steps.app-token.outputs.token }}",
+            "source": "issue-surface",
+            "surface-file": "plugins/pecot-workflow/interface/github-issue-surface.json",
+            "dry-run": "${{ inputs.dry-run }}",
         }
-        result = run_attached(
-            ["bash", "-e", "-c", step["run"]],
-            cwd=tmp_path,
-            env=env,
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-    with allure.step("repo を渡し、dry-run の旗が true のときだけ付くことを確かめる"):
-        assert result.returncode == 0, result.stderr
-        args = read_output(out).splitlines()
-        assert args == [
-            "--dir",
-            "plugins/pecot-workflow/cli",
-            "exec",
-            "tsx",
-            "scripts/github-surface/drift.ts",
-            "--repo",
-            "owner/repo",
-            *(["--dry-run"] if expect_flag else []),
+
+
+@allure.title("比べの step に渡す写しのパスに、写しのファイルが存在する")
+def test_surface_file_exists() -> None:
+    """比べの step の `surface-file` のテストです。渡すパスが、リポのルートから見て存在するファイルを指すことを確認します。"""
+    with allure.step("surface-file のパスにファイルがあることを確かめる"):
+        assert (_REPO_ROOT / _step(_COMPARE)["with"]["surface-file"]).is_file()
+
+
+@allure.title("issue-surface-drift.yml は、Node.js の用意と依存の install の step を持たない")
+def test_has_no_node_setup_steps() -> None:
+    """ワークフローの step の並びのテストです。action が build 済みの dist を読むので、`Checkout`・App のトークン・比べの 3 つの step だけを持つことを確認します。"""
+    with allure.step("step の名前の並びを確かめる"):
+        assert [s.get("name") for s in _job()["steps"]] == [
+            "Checkout",
+            "Generate GitHub App token",
+            _COMPARE,
         ]

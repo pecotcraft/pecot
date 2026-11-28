@@ -1,4 +1,4 @@
-// Tracker を書き直す処理（actions の tracker-sync と、このリポの github-surface の drift）が共有する補助。
+// Tracker を書き直す処理（actions の tracker-sync の各 source）が共有する補助。
 import type { ProjectConfig } from '../domain/config.js'
 import type { TrackerIssue } from '../domain/tracker-body.js'
 import { TransportFailure } from '../infra/github/client.js'

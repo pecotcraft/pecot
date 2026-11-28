@@ -7517,29 +7517,6 @@ PR 参照を IssueReference にする。Issue と番号空間を共有するの�
 function parsePullRequestReference(raw, baseRepository, options = {}) {
     return parseIssueReference(raw, baseRepository, options);
 }
-const REFS_PATTERN = /(?:^|\s)Refs?:?\s+(?:#(?<number>\p{Nd}+)|(?<owner>[\w.-]+)\/(?<repository>[\w.-]+)[#/](?<qualifiedNumber>\p{Nd}+))/gimu;
-/**
-PR 本文の Refs で参照された Issue 番号を集める。
-受理形式は `Refs #N`・`Refs owner/repo#N`・`Refs owner/repo/N`（`Ref` も可、コロンは任意、大文字小文字は区別しない）。
-owner/repo 付きの参照は、repository と一致（大文字小文字を区別しない）するものだけ採る
-*/
-function extractReferencesIssueNumbers(body, repository) {
-    const numbers = new Set();
-    if (body === undefined || body === '')
-        return numbers;
-    const ownerKey = repository.owner.toLowerCase();
-    const repositoryKey = repository.repository.toLowerCase();
-    for (const match of body.matchAll(REFS_PATTERN)) {
-        const { number, owner, repository: matchedRepository, qualifiedNumber } = match.groups ?? {};
-        if (number !== undefined) {
-            numbers.add(integerOf(number));
-        }
-        else if (qualifiedNumber !== undefined && owner?.toLowerCase() === ownerKey && matchedRepository?.toLowerCase() === repositoryKey) {
-            numbers.add(integerOf(qualifiedNumber));
-        }
-    }
-    return numbers;
-}
 
 // ブランチ名の読み取り。session_start が作る名前は、末尾が `/Issue番号` になる。
 /**
@@ -18207,36 +18184,6 @@ const QUERY_GET_ISSUE_NODE_ID = `query ($owner: String!, $repo: String!, $number
     }
   }
 }`;
-// リンクリポジトリ取得（user版）
-const QUERY_GET_LINKED_REPOSITORIES_USER = `query ($owner: String!, $projectNumber: Int!) {
-  user(login: $owner) {
-    projectV2(number: $projectNumber) {
-      repositories(first: 100) {
-        nodes {
-          owner {
-            login
-          }
-          name
-        }
-      }
-    }
-  }
-}`;
-// リンクリポジトリ取得（organization版）
-const QUERY_GET_LINKED_REPOSITORIES_ORG = `query ($owner: String!, $projectNumber: Int!) {
-  organization(login: $owner) {
-    projectV2(number: $projectNumber) {
-      repositories(first: 100) {
-        nodes {
-          owner {
-            login
-          }
-          name
-        }
-      }
-    }
-  }
-}`;
 // プロジェクトNode ID取得（user版）
 const QUERY_GET_PROJECT_ID_USER = `query ($owner: String!, $projectNumber: Int!) {
   user(login: $owner) {
@@ -18293,30 +18240,10 @@ const MUTATION_UPDATE_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: 
     }
   }
 }`;
-// プロジェクトアイテムのフィールドに値を書く。value は ProjectV2FieldValue（種類ごとに 1 つのキー）
-const MUTATION_UPDATE_PROJECT_ITEM_FIELD_VALUE = `mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
-  updateProjectV2ItemFieldValue(
-    input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value }
-  ) {
-    projectV2Item {
-      id
-    }
-  }
-}`;
 // プロジェクトアイテム削除
 const MUTATION_DELETE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
   deleteProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
     deletedItemId
-  }
-}`;
-// プロジェクトアイテムのフィールドの値を消す
-const MUTATION_CLEAR_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!) {
-  clearProjectV2ItemFieldValue(
-    input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId }
-  ) {
-    projectV2Item {
-      id
-    }
   }
 }`;
 // サブIssue紐づけ
@@ -18411,32 +18338,6 @@ const QUERY_GET_ISSUE_PROJECT_ITEMS = `query ($owner: String!, $repo: String!, $
             }
           }
         }
-      }
-    }
-  }
-}`;
-// プロジェクト一覧取得（user版）
-const QUERY_LIST_PROJECTS_USER = `query ($owner: String!, $first: Int!) {
-  user(login: $owner) {
-    projectsV2(first: $first) {
-      nodes {
-        number
-        title
-        url
-        id
-      }
-    }
-  }
-}`;
-// プロジェクト一覧取得（organization版）
-const QUERY_LIST_PROJECTS_ORG = `query ($owner: String!, $first: Int!) {
-  organization(login: $owner) {
-    projectsV2(first: $first) {
-      nodes {
-        number
-        title
-        url
-        id
       }
     }
   }
@@ -18570,29 +18471,6 @@ const MUTATION_UPDATE_PROJECT_FIELD = `mutation ($fieldId: ID!, $options: [Proje
     }
   }
 }`;
-// ユーザーNode ID取得
-const QUERY_GET_USER_NODE_ID = `query ($login: String!) {
-  user(login: $login) {
-    id
-  }
-}`;
-// 組織Node ID取得
-const QUERY_GET_ORG_NODE_ID = `query ($login: String!) {
-  organization(login: $login) {
-    id
-  }
-}`;
-// プロジェクト作成
-const MUTATION_CREATE_PROJECT = `mutation ($ownerId: ID!, $title: String!) {
-  createProjectV2(input: { ownerId: $ownerId, title: $title }) {
-    projectV2 {
-      id
-      number
-      title
-      url
-    }
-  }
-}`;
 // Issue 種別判定用クエリ（軽量・Epic 判定専用）
 // Phase2: issueType.name == "Epic" を一次判定
 const QUERY_GET_ISSUE_KIND = `query ($owner: String!, $repo: String!, $number: Int!) {
@@ -18702,56 +18580,6 @@ const QUERY_GET_ISSUE_SLIM = getIssueSlimQuery('', `
       }`);
 // 上のクエリから、前提の件数を除いたもの。Issue の依存関係を持たない GHES で読み直すのに使う
 const QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY = getIssueSlimQuery('GetIssueSlimWithoutBlockedBy', '');
-// Python 版 queries.py の QUERY_GET_SUB_ISSUES_PAGE と逐語で一致させる。
-const QUERY_GET_SUB_ISSUES_PAGE = `query ($owner: String!, $repo: String!, $number: Int!, $after: String!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      subIssues(first: 100, after: $after) {
-        nodes {
-          number
-          state
-          title
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-    }
-  }
-}`;
-// PR詳細取得（スリム版 - 必要なフィールドのみ）
-const QUERY_GET_PULL_REQUEST_SLIM = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      title
-      body
-      headRefName
-      baseRefName
-      isDraft
-      mergeable
-      comments {
-        totalCount
-      }
-      closingIssuesReferences(first: 10) {
-        nodes {
-          number
-          title
-        }
-      }
-      reviews(first: 10) {
-        nodes {
-          state
-          author {
-            login
-          }
-        }
-      }
-    }
-  }
-}`;
 // session finish が読む PR。closing issues のリポと、既定ブランチの名前を足す
 const QUERY_GET_PULL_REQUEST_FOR_FINISH = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
@@ -18776,83 +18604,6 @@ const QUERY_GET_PULL_REQUEST_FOR_FINISH = `query ($owner: String!, $repo: String
       baseRepository {
         defaultBranchRef {
           name
-        }
-      }
-    }
-  }
-}`;
-// pr merge が読む PR の状態。GetPullRequestSlim を変えずに、マージの判断に要る項目だけを読む
-const QUERY_GET_PULL_REQUEST_FOR_MERGE = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      isDraft
-      baseRefName
-      headRefOid
-      isMergeQueueEnabled
-      isInMergeQueue
-    }
-  }
-}`;
-// 上のクエリから merge queue の項目を除いたもの。その項目を持たない GHES で読み直すのに使う
-const QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      isDraft
-      baseRefName
-      headRefOid
-    }
-  }
-}`;
-// PR詳細取得（レビュー詳細付き - --reviews オプション用）
-const QUERY_GET_PULL_REQUEST_WITH_REVIEWS = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      title
-      body
-      headRefName
-      baseRefName
-      isDraft
-      mergeable
-      comments {
-        totalCount
-      }
-      closingIssuesReferences(first: 10) {
-        nodes {
-          number
-          title
-        }
-      }
-      reviews(first: 20) {
-        nodes {
-          state
-          body
-          author {
-            login
-          }
-          submittedAt
-        }
-      }
-      reviewThreads(first: 50) {
-        nodes {
-          isResolved
-          path
-          line
-          comments(first: 10) {
-            nodes {
-              author {
-                login
-              }
-              body
-              createdAt
-              url
-            }
-          }
         }
       }
     }
@@ -18935,12 +18686,6 @@ const QUERY_LIST_OPEN_PULL_REQUESTS = `query ($owner: String!, $repo: String!, $
         }
       }
     }
-  }
-}`;
-// 前提（blocked by）を付ける入力の型があるか。対応しない GHES（3.19 より前）では null になる
-const QUERY_HAS_ADD_BLOCKED_BY_INPUT = `{
-  __type(name: "AddBlockedByInput") {
-    name
   }
 }`;
 // 前提（blocked by）を付ける。issueId が待つ側、blockingIssueId が前提
@@ -19095,26 +18840,6 @@ const QUERY_LIST_PULL_REQUESTS_BY_HEAD = `query ($owner: String!, $repo: String!
 }
 
 ${PULL_REQUEST_FIELDS}`;
-// base のブランチ名で開いている PR を引く（古い順）
-const QUERY_LIST_PULL_REQUESTS_BY_BASE = `query ($owner: String!, $repo: String!, $baseRefName: String!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequests(
-      baseRefName: $baseRefName
-      states: [OPEN]
-      first: 20
-      orderBy: { field: CREATED_AT, direction: ASC }
-    ) {
-      pageInfo {
-        hasNextPage
-      }
-      nodes {
-        ...PullRequestFields
-      }
-    }
-  }
-}
-
-${PULL_REQUEST_FIELDS}`;
 const BLOCKED_BY_REFERENCE_FIELDS = `fragment BlockedByReferenceFields on Issue {
   id
   number
@@ -19126,39 +18851,6 @@ const BLOCKED_BY_REFERENCE_FIELDS = `fragment BlockedByReferenceFields on Issue 
     name
   }
 }`;
-// 前提の追加・削除の前の読み取り。判定の読み取りより軽く、本文と前提の参照だけを取る
-const QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES = `query ($owner: String!, $repo: String!, $number: Int!, $blockedByFirst: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      id
-      body
-      blockedBy(first: $blockedByFirst) {
-        totalCount
-        nodes {
-          ...BlockedByReferenceFields
-        }
-      }
-    }
-  }
-}
-
-${BLOCKED_BY_REFERENCE_FIELDS}`;
-// 輪をたどる 1 段分。node ID の並びのそれぞれの前提を、まとめて読む
-const QUERY_GET_BLOCKED_BY_OF_NODES = `query ($ids: [ID!]!, $blockedByFirst: Int!) {
-  nodes(ids: $ids) {
-    ... on Issue {
-      id
-      blockedBy(first: $blockedByFirst) {
-        totalCount
-        nodes {
-          ...BlockedByReferenceFields
-        }
-      }
-    }
-  }
-}
-
-${BLOCKED_BY_REFERENCE_FIELDS}`;
 // その Issue を前提にしている Issue（blocking）の参照。PR を作った後に、待つ側の Issue を絞るために読む
 const QUERY_GET_ISSUE_BLOCKING_REFERENCES = `query ($owner: String!, $repo: String!, $number: Int!, $blockingFirst: Int!) {
   repository(owner: $owner, name: $repo) {
@@ -19212,161 +18904,6 @@ const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String!, $num
     }
   }
 }`;
-// Issue のボードの Item の pecot-lane の値。親の Epic の値を引き継ぐときに読む
-const QUERY_GET_ISSUE_LANE = `query ($owner: String!, $repo: String!, $number: Int!, $laneFieldName: String!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      projectItems(first: 20, includeArchived: false) {
-        nodes {
-          project {
-            id
-          }
-          lane: fieldValueByName(name: $laneFieldName) {
-            ... on ProjectV2ItemFieldSingleSelectValue {
-              name
-            }
-          }
-        }
-      }
-    }
-  }
-}`;
-// Issue の機能を読むクエリ。hasIssueFields が false の版は、Issue fields・Issue type を持たない GHES 向け
-function projectFieldFragment(hasIssueFields) {
-    return `fragment ProjectFieldFields on ProjectV2FieldConfiguration {
-  ... on ProjectV2FieldCommon {
-    id
-    name
-    dataType${hasIssueFields ? '\n    isIssueField' : ''}
-  }
-}`;
-}
-const ISSUE_FIELD_FIELDS = `fragment IssueFieldFields on IssueFields {
-  ... on IssueFieldCommon {
-    name
-    dataType
-  }
-}`;
-// 値の型それぞれに field を読む。知らない型は __typename と、共通の interface を実装していれば field で見分ける
-const PROJECT_FIELD_VALUE_TYPES = [
-    ['ProjectV2ItemFieldDateValue', 'date'],
-    ['ProjectV2ItemFieldIterationValue', 'title'],
-    ['ProjectV2ItemFieldLabelValue', ''],
-    ['ProjectV2ItemFieldMilestoneValue', ''],
-    ['ProjectV2ItemFieldMultiSelectValue', 'options {\n                  name\n                }'],
-    ['ProjectV2ItemFieldNumberValue', 'number'],
-    ['ProjectV2ItemFieldPullRequestValue', ''],
-    ['ProjectV2ItemFieldRepositoryValue', ''],
-    ['ProjectV2ItemFieldReviewerValue', ''],
-    ['ProjectV2ItemFieldSingleSelectValue', 'name'],
-    ['ProjectV2ItemFieldTextValue', 'text'],
-    ['ProjectV2ItemFieldUserValue', ''],
-    ['ProjectV2ItemIssueFieldValue', ''],
-];
-// Issue fields と同じ頃に入った型。Issue fields を持たない GHES の版のクエリには書かない
-const TYPES_WITH_ISSUE_FIELDS = new Set(['ProjectV2ItemIssueFieldValue', 'ProjectV2ItemFieldMultiSelectValue']);
-function projectFieldValueSelections(hasIssueFields) {
-    return PROJECT_FIELD_VALUE_TYPES
-        .filter(([type]) => hasIssueFields || !TYPES_WITH_ISSUE_FIELDS.has(type))
-        .map(([type, value]) => `
-              ... on ${type} {${value === '' ? '' : `\n                ${value}`}
-                field {
-                  ...ProjectFieldFields
-                }
-              }`)
-        .join('');
-}
-const ISSUE_FIELD_VALUES = `
-      issueType {
-        name
-      }
-      issueFieldValues(first: 100) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          __typename
-          ... on IssueFieldValueCommon {
-            field {
-              ...IssueFieldFields
-            }
-          }
-          ... on IssueFieldDateValue {
-            value
-          }
-          ... on IssueFieldMultiSelectValue {
-            options {
-              name
-            }
-          }
-          ... on IssueFieldNumberValue {
-            numberValue: value
-          }
-          ... on IssueFieldSingleSelectValue {
-            name
-          }
-          ... on IssueFieldTextValue {
-            value
-          }
-        }
-      }`;
-function getIssueAttributesQuery(name, hasIssueFields) {
-    return `query ${name}($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      assignees(first: 100) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          login
-        }
-      }
-      milestone {
-        title
-      }
-      labels(first: 100) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          name
-        }
-      }${hasIssueFields ? ISSUE_FIELD_VALUES : ''}
-      projectItems(first: 100, includeArchived: false) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          id
-          project {
-            id
-          }
-          fieldValues(first: 100) {
-            pageInfo {
-              hasNextPage
-            }
-            nodes {
-              __typename
-              ... on ProjectV2ItemFieldValueCommon {
-                field {
-                  ...ProjectFieldFields
-                }
-              }${projectFieldValueSelections(hasIssueFields)}
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-${projectFieldFragment(hasIssueFields)}${hasIssueFields ? `\n\n${ISSUE_FIELD_FIELDS}` : ''}`;
-}
-// Issue 1 件の、値の入っている機能（担当者・マイルストーン・ラベル・Issue type・Issue fields・ボードのフィールド）
-getIssueAttributesQuery('', true);
-// 上のクエリから、Issue fields と Issue type を除いたもの
-getIssueAttributesQuery('GetIssueAttributesWithoutIssueFields', false);
 // Lanes のビューを作る先。所有者の種類と個人の数値の id（REST のパス）、ビューの名前、欄の databaseId
 const QUERY_GET_PROJECT_VIEW_TARGET = `query ($owner: String!, $projectNumber: Int!) {
   repositoryOwner(login: $owner) {
@@ -19976,10 +19513,6 @@ class GitHubClientBase {
     ghTimeoutMilliseconds;
     apiUrl;
     graphqlUrl;
-    /**
-    プロジェクトにリンクされたリポジトリの一覧のキャッシュ（`owner/projectNumber` がキー）
-    */
-    linkedRepositoriesCache = new Map();
     constructor(options) {
         this.diagnostics = options.diagnostics;
         this.host = options.host ?? 'github.com';
@@ -20286,12 +19819,6 @@ or authenticate with the GitHub CLI:
     async executeGraphqlTolerating(query, variables, isTolerated) {
         return this.runGraphql(query, variables, isTolerated);
     }
-    /**
-    認証ユーザーの情報（login・id・name・email など）
-    */
-    async getAuthenticatedUser() {
-        return this.restJson('GET', '/user');
-    }
 }
 
 // REST の URL に連結するパスの符号化。owner・リポジトリ名・ブランチ名は、セグメントごとに符号化する。
@@ -20328,9 +19855,9 @@ const ALERTS_PER_PAGE = 100;
 // 一覧の per_page の上限。secret は 100、変数は 30（REST の文書）
 const SECRETS_PER_PAGE = 100;
 const VARIABLES_PER_PAGE = 30;
-const NO_CONTENT$1 = 204;
+const NO_CONTENT = 204;
 const FORBIDDEN = 403;
-const NOT_FOUND$1 = 404;
+const NOT_FOUND = 404;
 class ReposApi extends GitHubClientBase {
     // 名前だけを返し、変数の値は外へ渡さない。読めない（403・404）ときは undefined
     async listNamesOrUndefined(path, perPage, itemsKey) {
@@ -20339,7 +19866,7 @@ class ReposApi extends GitHubClientBase {
             items = await this.listAll(path, { per_page: perPage }, itemsKey);
         }
         catch (error) {
-            if (error instanceof GitHubAPIError && (error.statusCode === FORBIDDEN || error.statusCode === NOT_FOUND$1) && !(error instanceof GitHubRateLimitError))
+            if (error instanceof GitHubAPIError && (error.statusCode === FORBIDDEN || error.statusCode === NOT_FOUND) && !(error instanceof GitHubRateLimitError))
                 return undefined;
             throw error;
         }
@@ -20430,20 +19957,6 @@ class ReposApi extends GitHubClientBase {
         return requireString(jsonField(reference, 'sha'), 'object.sha');
     }
     /**
-    タグが指す commit の SHA（REST）。注釈付きのタグは git/tags で commit まで辿る。見つからなければ GitHubNotFoundError
-    */
-    async getTagCommitSha(owner, repository, tag) {
-        let target = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/git/ref/tags/${encodePath(tag)}`), 'object');
-        // タグを指すタグもあるので、commit に着くまで辿る
-        for (let depth = 0; depth < 5 && jsonField(target, 'type') === 'tag'; depth += 1) {
-            const sha = requireString(jsonField(target, 'sha'), 'object.sha');
-            target = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/git/tags/${encodePathSegment(sha)}`), 'object');
-        }
-        if (jsonField(target, 'type') !== 'commit')
-            throw new GitHubAPIError(`tag ${tag} does not point to a commit`);
-        return requireString(jsonField(target, 'sha'), 'object.sha');
-    }
-    /**
     head_sha の workflow の run の id と conclusion。終わっていない run の conclusion は空。先頭の 100 件だけ読む
     */
     async listWorkflowRunConclusions(owner, repository, headSha) {
@@ -20487,14 +20000,6 @@ class ReposApi extends GitHubClientBase {
     async getMergeBase(owner, repository, base, head) {
         const comparison = await this.restJson('GET', `${repositoryPath(owner, repository)}/compare/${encodePath(base)}...${encodePath(head)}`, { params: { per_page: 1 } });
         return requireString(jsonField(jsonField(comparison, 'merge_base_commit'), 'sha'), 'merge_base_commit.sha');
-    }
-    /**
-    ブランチを削除する。保護されたブランチなどは GitHubAPIError
-    */
-    async deleteBranch(owner, repository, branch) {
-        const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/git/refs/heads/${encodePath(branch)}`);
-        if (!response.isSuccess)
-            this.handleHttpError(response);
     }
     /**
     GitHub のリリースを作る。target_commitish を指定するので、タグも自動で作られる
@@ -20546,13 +20051,6 @@ class ReposApi extends GitHubClientBase {
         return typeof type === 'string' ? type : undefined;
     }
     /**
-    リポジトリの既定ブランチ名
-    */
-    async getRepositoryDefaultBranch(owner, repository) {
-        const settings = await this.getRepositorySettings(owner, repository);
-        return settings.defaultBranch;
-    }
-    /**
     open な Dependabot alert を全件取得する（REST）。
     alerts が無効（403）などで取得できなければ GitHubAPIError
     */
@@ -20588,9 +20086,9 @@ class ReposApi extends GitHubClientBase {
     */
     async isDependabotAlertsEnabled(owner, repository) {
         const response = await this.restRequest('GET', `${repositoryPath(owner, repository)}/vulnerability-alerts`);
-        if (response.statusCode === NO_CONTENT$1)
+        if (response.statusCode === NO_CONTENT)
             return true;
-        if (response.statusCode === NOT_FOUND$1)
+        if (response.statusCode === NOT_FOUND)
             return false;
         return this.handleHttpError(response);
     }
@@ -20635,7 +20133,6 @@ function viewTargetOf(owner, number, ownerNode) {
     return { owner, number, ownerKind: typename, userId: typeof userId === 'number' ? userId : undefined, url: requireString(jsonField(project, 'url'), 'projectV2.url'), views, fieldDatabaseIds };
 }
 const MAX_ARCHIVED_CONSECUTIVE = 50;
-const DEFAULT_PROJECT_LIMIT = 20;
 // ワークフローのフィールドの値が Archived か。そのフィールドが無ければ false
 function isItemArchived(item, workflowFieldId) {
     return extractFieldValueById(item, workflowFieldId)?.toLowerCase() === 'archived';
@@ -20643,12 +20140,6 @@ function isItemArchived(item, workflowFieldId) {
 // オブジェクトの要素だけを残す（null などは落とす）
 function objectsOf(items) {
     return items.filter(item => isJsonObject(item));
-}
-function linkedRepositoriesOf(project) {
-    return truthyNodes(jsonField(project, 'repositories')).map(node => ({
-        owner: requireString(jsonField(jsonField(node, 'owner'), 'login'), 'repositories.nodes.owner.login'),
-        name: requireString(jsonField(node, 'name'), 'repositories.nodes.name'),
-    }));
 }
 class ProjectsApi extends ReposApi {
     // user のクエリ。GitHub の失敗は、認証エラーとレート制限も含めて undefined にし、org のクエリへ進む。
@@ -20770,24 +20261,6 @@ class ProjectsApi extends ReposApi {
         return requireString(jsonField(item, 'id'), 'projectV2Item.id');
     }
     /**
-    プロジェクトアイテムのフィールドに、種類ごとの値（ProjectV2FieldValue）を書き、アイテムの ID を返す
-    */
-    async setProjectItemFieldValue(projectId, itemId, fieldId, value) {
-        const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_ITEM_FIELD_VALUE, { projectId, itemId, fieldId, value });
-        const item = jsonField(jsonField(result, 'updateProjectV2ItemFieldValue'), 'projectV2Item');
-        if (!isTruthy(item))
-            throw new GitHubAPIError('failed to update the field');
-        return requireString(jsonField(item, 'id'), 'projectV2Item.id');
-    }
-    /**
-    プロジェクトアイテムのフィールドの値を消す
-    */
-    async clearProjectItemField(projectId, itemId, fieldId) {
-        const result = await this.executeGraphql(MUTATION_CLEAR_PROJECT_ITEM_FIELD, { projectId, itemId, fieldId });
-        if (!isTruthy(jsonField(jsonField(result, 'clearProjectV2ItemFieldValue'), 'projectV2Item')))
-            throw new GitHubAPIError('failed to clear the field');
-    }
-    /**
     プロジェクトボードからアイテムを削除し、削除したアイテムの ID を返す
     */
     async deleteProjectItem(projectId, itemId) {
@@ -20796,37 +20269,6 @@ class ProjectsApi extends ReposApi {
         if (!isTruthy(deletedId))
             throw new GitHubAPIError('failed to delete the project item');
         return requireString(deletedId, 'deletedItemId');
-    }
-    /**
-    プロジェクトにリンクされたリポジトリの一覧。user 所有を先に試し、無ければ organization 所有を試す
-    */
-    async getLinkedRepositories(owner, projectNumber) {
-        const variables = { owner, projectNumber };
-        const userResult = await this.queryAsUser(QUERY_GET_LINKED_REPOSITORIES_USER, variables);
-        const userProject = jsonField(jsonField(userResult, 'user'), 'projectV2');
-        if (isTruthy(userProject))
-            return linkedRepositoriesOf(userProject);
-        const orgResult = await this.executeGraphql(QUERY_GET_LINKED_REPOSITORIES_ORG, variables);
-        const organizationProject = jsonField(jsonField(orgResult, 'organization'), 'projectV2');
-        return isTruthy(organizationProject) ? linkedRepositoriesOf(organizationProject) : [];
-    }
-    /**
-    リンクされたリポジトリの一覧（キャッシュ付き）。同じクライアントの中で同じ引数なら、2 回目以降はキャッシュを返す
-    */
-    async getLinkedRepositoriesCached(owner, projectNumber) {
-        const cacheKey = `${owner}/${String(projectNumber)}`;
-        const cached = this.linkedRepositoriesCache.get(cacheKey);
-        if (cached !== undefined)
-            return cached;
-        const repositories = await this.getLinkedRepositories(owner, projectNumber);
-        this.linkedRepositoriesCache.set(cacheKey, repositories);
-        return repositories;
-    }
-    /**
-    RepositoryMembership（domain/config.ts）の実体。キャッシュ付きの一覧を返す
-    */
-    async linkedRepositories(owner, projectNumber) {
-        return this.getLinkedRepositoriesCached(owner, projectNumber);
     }
     /**
     プロジェクト番号から GraphQL Node ID を取る。user 所有を先に試す。無ければ GitHubNotFoundError
@@ -20880,16 +20322,6 @@ class ProjectsApi extends ReposApi {
         };
     }
     /**
-    Issue の、指定のプロジェクトの Item の pecot-lane の値。Issue・Item・値のどれかが無ければ undefined
-    */
-    async getIssueLane(projectId, owner, repository, issueNumber) {
-        const result = await this.executeGraphql(QUERY_GET_ISSUE_LANE, { owner, repo: repository, number: issueNumber, laneFieldName: LANE_FIELD_NAME });
-        const issue = jsonField(jsonField(result, 'repository'), 'issue');
-        const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId);
-        const name = jsonField(jsonField(item, 'lane'), 'name');
-        return typeof name === 'string' ? name : undefined;
-    }
-    /**
     プロジェクトアイテムで値が入っている単一選択フィールドの ID を取る。アイテムが見つからなければ空
     */
     async getItemSetFieldIds(projectId, owner, repository, issueNumber, itemId) {
@@ -20931,19 +20363,6 @@ class ProjectsApi extends ReposApi {
             }
             throw error;
         }
-    }
-    /**
-    オーナーのプロジェクト一覧（number・title・url・id）。user 所有を先に試す
-    */
-    async listProjects(owner, limit = DEFAULT_PROJECT_LIMIT) {
-        const variables = { owner, first: limit };
-        const userResult = await this.queryAsUser(QUERY_LIST_PROJECTS_USER, variables);
-        const userProjects = jsonField(jsonField(userResult, 'user'), 'projectsV2');
-        if (isTruthy(userProjects))
-            return objectsOf(truthyNodes(userProjects));
-        const orgResult = await this.executeGraphql(QUERY_LIST_PROJECTS_ORG, variables);
-        const organizationProjects = jsonField(jsonField(orgResult, 'organization'), 'projectsV2');
-        return isTruthy(organizationProjects) ? objectsOf(truthyNodes(organizationProjects)) : [];
     }
     /**
     プロジェクトの情報（id・title・url・fields）。user 所有を先に試す。見つからなければ undefined
@@ -21000,30 +20419,6 @@ class ProjectsApi extends ReposApi {
         return asObject(updated);
     }
     /**
-    オーナー（user か organization）の GraphQL Node ID。user を先に試し、無ければ GitHubNotFoundError
-    */
-    async getOwnerNodeId(owner) {
-        const userResult = await this.queryAsUser(QUERY_GET_USER_NODE_ID, { login: owner });
-        const userId = jsonField(jsonField(userResult, 'user'), 'id');
-        if (isTruthy(userId))
-            return requireString(userId, 'user.id');
-        const orgResult = await this.executeGraphql(QUERY_GET_ORG_NODE_ID, { login: owner });
-        const organizationId = jsonField(jsonField(orgResult, 'organization'), 'id');
-        if (isTruthy(organizationId))
-            return requireString(organizationId, 'organization.id');
-        throw new GitHubNotFoundError(`owner not found: ${owner}`);
-    }
-    /**
-    GitHub Projects V2 を作り、作ったプロジェクト（id・number・title・url）を返す
-    */
-    async createProject(ownerId, title) {
-        const result = await this.executeGraphql(MUTATION_CREATE_PROJECT, { ownerId, title });
-        const project = jsonField(jsonField(result, 'createProjectV2'), 'projectV2');
-        if (!isTruthy(project))
-            throw new GitHubAPIError('failed to create the project');
-        return asObject(project);
-    }
-    /**
     ビューを作る先（所有者の種類・ビュー・欄の databaseId）を読む。所有者かボードが無ければ GitHubNotFoundError
     */
     async getProjectViewTarget(owner, projectNumber) {
@@ -21052,10 +20447,6 @@ class ProjectsApi extends ReposApi {
 // 返す値のキー名は、Python の辞書と同じ snake_case にする（CLI の JSON 出力がそのまま使う）。
 const ISSUES_PER_PAGE = 100;
 const DEFAULT_COMMENT_LIMIT = 5;
-const NO_CONTENT = 204;
-const NOT_FOUND = 404;
-// POST .../issue-field-values の issue_field_values の maxItems
-const MAX_ISSUE_FIELD_VALUES_PER_REQUEST = 25;
 /**
 前提を 1 回で読む件数の上限
 */
@@ -21070,17 +20461,9 @@ const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support
 function asDependenciesError(error) {
     return isSchemaError(error) && /blockedBy|blocking|issueType/iu.test(error.message) ? new DependenciesUnsupportedError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error;
 }
-/**
-nodes(ids:) の 1 回で渡せる node ID の上限
-*/
-const MAX_NODES_PER_QUERY = 100;
 // 部分エラーのうち、対象の Issue の blockedBy の下のもの
 function isBlockedByPath(path) {
     return path[0] === 'repository' && path[1] === 'issue' && path[2] === 'blockedBy';
-}
-// nodes(ids:) の部分エラーのうち、node の下のもの
-function isNodesPath(path) {
-    return path[0] === 'nodes';
 }
 // 部分エラーのうち、対象の Issue の blocking の下のもの
 function isBlockingPath(path) {
@@ -21099,14 +20482,6 @@ function readBlockedByReferences(connection, field = 'blockedBy') {
         return { kind: 'read-failed', reason: `${field} has a null node` };
     const issues = nodes.map(node => readIssueReference(node));
     return { kind: 'ok', total: requireNumber(jsonField(connection, 'totalCount'), `${field}.totalCount`), issues };
-}
-// nodes(ids:) の 1 件を前提にする。message は、その node の部分エラー
-function readNodeBlockedBy(node, id, message) {
-    if (message !== undefined)
-        return { kind: 'read-failed', reason: `blockedBy could not be read: ${message}` };
-    if (!isTruthy(node) || jsonField(node, 'id') !== id)
-        return { kind: 'read-failed', reason: 'the node is not an Issue or was not found' };
-    return readBlockedByReferences(jsonField(node, 'blockedBy'));
 }
 function numberOrUndefined(value) {
     return typeof value === 'number' ? value : undefined;
@@ -21230,45 +20605,6 @@ class IssuesApi extends ProjectsApi {
         return this.restObject('POST', `${repositoryPath(owner, repository)}/issues`, { json: data });
     }
     /**
-    組み込みの機能（担当者・ラベル・マイルストーン・Issue type）を、PATCH 1 回で書き、応答の Issue を返す
-    */
-    async updateIssueAttributes(owner, repository, number, writes) {
-        const data = Object.fromEntries(writes.map(write => [write.key, write.value]));
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, { json: data });
-    }
-    /**
-    Issue fields の値を足す（今の値に重ねる）。0 件なら要求しない。空の配列はすべての値を消す仕様のため
-    */
-    async addIssueFieldValues(owner, repository, number, values) {
-        const target = `${repositoryPath(owner, repository)}/issues/${String(number)}/issue-field-values`;
-        for (let start = 0; start < values.length; start += MAX_ISSUE_FIELD_VALUES_PER_REQUEST) {
-            const chunk = values.slice(start, start + MAX_ISSUE_FIELD_VALUES_PER_REQUEST);
-            await this.restJson('POST', target, { json: { issue_field_values: chunk.map(({ fieldId, value }) => ({ field_id: fieldId, value })) } });
-        }
-    }
-    /**
-    Issue field の値を 1 つ外す。値が無い 404 は 'absent'
-    */
-    async deleteIssueFieldValue(owner, repository, number, fieldId) {
-        const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/issues/${String(number)}/issue-field-values/${String(fieldId)}`);
-        if (response.statusCode === NOT_FOUND)
-            return 'absent';
-        if (!response.isSuccess)
-            this.handleHttpError(response);
-        return 'deleted';
-    }
-    /**
-    そのログイン名を、リポの Issue の担当にできるか。204 は true、404 は false、ほかの応答は例外
-    */
-    async isAssignable(owner, repository, login) {
-        const response = await this.restRequest('GET', `${repositoryPath(owner, repository)}/assignees/${encodePathSegment(login)}`);
-        if (response.statusCode === NO_CONTENT)
-            return true;
-        if (response.statusCode === NOT_FOUND)
-            return false;
-        return this.handleHttpError(response);
-    }
-    /**
     Issue にコメントを足す
     */
     async addIssueComment(owner, repository, number, body) {
@@ -21370,13 +20706,6 @@ class IssuesApi extends ProjectsApi {
         await this.executeDependencyMutation(MUTATION_ADD_BLOCKED_BY, { issueId, blockingIssueId });
     }
     /**
-    Issue の依存関係（blocked by）に対応するか。対応しない GHES（3.19 より前）は false
-    */
-    async supportsBlockedBy() {
-        const result = await this.executeGraphql(QUERY_HAS_ADD_BLOCKED_BY_INPUT, {});
-        return jsonField(result, '__type') !== JSON_NULL;
-    }
-    /**
     前提（blocked by）を外す。addBlockedBy と同じ失敗をする
     */
     async removeBlockedBy(issueId, blockingIssueId) {
@@ -21405,27 +20734,6 @@ class IssuesApi extends ProjectsApi {
         };
     }
     /**
-    Issue の node ID・本文・前提（先頭 blockedByFirst 件の参照と全体の件数）を、判定の読み取りより軽く読む。
-    blockedBy の部分エラーと null の node は、例外にせず read-failed で返す。
-    Issue の依存関係に対応しない GHES（3.19 より前）は DependenciesUnsupportedError
-    */
-    async getIssueBlockedByReferences(owner, repository, number, blockedByFirst = MAX_BLOCKED_BY) {
-        let outcome;
-        try {
-            outcome = await this.queryIssueTolerating(QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES, { owner, repo: repository, number, blockedByFirst }, isBlockedByPath);
-        }
-        catch (error) {
-            throw asDependenciesError(error);
-        }
-        const issue = issueNode(outcome.data, owner, repository, number);
-        const messages = outcome.errors.map(error => stringOrEmpty(jsonField(error, 'message')));
-        return {
-            id: requireString(jsonField(issue, 'id'), 'issue.id'),
-            body: requireString(jsonField(issue, 'body'), 'issue.body'),
-            blockedBy: messages.length > 0 ? { kind: 'read-failed', reason: `blockedBy could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blockedBy')),
-        };
-    }
-    /**
     その Issue を前提にしている Issue（blocking 先頭 blockingFirst 件）の参照と、全体の件数を読む。
     total が issues の数より多ければ、読めなかった分がある。blocking の部分エラーと null の node は read-failed。
     Issue の依存関係に対応しない GHES は DependenciesUnsupportedError
@@ -21442,30 +20750,6 @@ class IssuesApi extends ProjectsApi {
         const issue = issueNode(outcome.data, owner, repository, number);
         const messages = outcome.errors.filter(error => isBlockingPath(asArray(error['path']))).map(error => stringOrEmpty(jsonField(error, 'message')));
         return messages.length > 0 ? { kind: 'read-failed', reason: `blocking could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blocking'), 'blocking');
-    }
-    /**
-    node ID の並びのそれぞれの前提を、まとめて読む（輪の探索の 1 段）。結果の鍵は node ID。
-    Issue でない・見つからない node と部分エラーは、その node だけ read-failed。
-    Issue の依存関係に対応しない GHES は DependenciesUnsupportedError
-    */
-    async getBlockedByOfNodes(ids) {
-        const result = new Map();
-        for (let start = 0; start < ids.length; start += MAX_NODES_PER_QUERY) {
-            const chunk = ids.slice(start, start + MAX_NODES_PER_QUERY);
-            let outcome;
-            try {
-                outcome = await this.executeGraphqlTolerating(QUERY_GET_BLOCKED_BY_OF_NODES, { ids: [...chunk], blockedByFirst: MAX_BLOCKED_BY }, isNodesPath);
-            }
-            catch (error) {
-                throw asDependenciesError(error);
-            }
-            const nodes = asArray(jsonField(outcome.data, 'nodes'));
-            const failed = new Map(outcome.errors.map(error => [asArray(error['path'])[1], stringOrEmpty(jsonField(error, 'message'))]));
-            for (const [index, id] of chunk.entries()) {
-                result.set(id, readNodeBlockedBy(nodes.at(index), id, failed.get(index)));
-            }
-        }
-        return result;
     }
     /**
     Issue 種別を軽く取る。issueType フィールドに対応しない GHES では、subIssues だけで判定する
@@ -21489,23 +20773,6 @@ class IssuesApi extends ProjectsApi {
             issue_type: stringOrNull(jsonField(jsonField(issue, 'issueType'), 'name')),
             sub_issues_total: subIssuesTotal(issue),
         };
-    }
-    /**
-    親のサブ Issue を全件読む。1 ページ目は getIssueSlim と同じクエリで読み、続きがあるときだけ GetSubIssuesPage を回す
-    */
-    async getAllSubIssues(owner, repository, number) {
-        const issue = await this.fetchSlimIssue(owner, repository, number, 0);
-        const subIssues = [];
-        let connection = jsonField(issue, 'subIssues');
-        for (;;) {
-            subIssues.push(...readSubIssueNodes(connection));
-            const pageInfo = jsonField(connection, 'pageInfo');
-            const cursor = jsonField(pageInfo, 'endCursor');
-            if (typeof cursor !== 'string' || jsonField(pageInfo, 'hasNextPage') !== true)
-                return subIssues;
-            const result = await this.queryIssue(QUERY_GET_SUB_ISSUES_PAGE, { owner, repo: repository, number, after: cursor });
-            connection = jsonField(issueNode(result, owner, repository, number), 'subIssues');
-        }
     }
     /**
     Issue の詳細を取る（GraphQL）。親・サブ Issue・リンクブランチ・リンク PR を 1 回のクエリで取る
@@ -21589,7 +20856,7 @@ const WORKFLOW_FIELD_SPECS = [
     { option: { name: 'Archived', color: 'PURPLE', description: 'Completed or cancelled items. Moved here after the issue is closed or no longer needed.' } },
 ];
 
-// Issue の着手の可否の読み取り。前提を読み、判定する。board show と issue show が使う。
+// Issue の着手の可否の読み取り。前提を読み、判定する。board sync・session finish・自動処理の着手の判定が使う。
 // 流れは getIssuePrerequisites → readWaitsForMerge → toIssueFacts → judgeReadiness。
 /**
 順 8 で base をたどる段数の上限
@@ -21800,19 +21067,6 @@ async function judgeAssuming(client, config, judged, assume, cache) {
     const reason = judged.readiness?.reason;
     return await judgeSnapshot(client, snapshot, cache, reason?.code === 'cycle' ? reason.cycle : undefined);
 }
-/**
-readinessJson の形。キーの並びは readinessJson と同じにする
-*/
-const READINESS_JSON = strictObject({
-    kind: _enum(['startable', 'stackable', 'blocked']).describe('Readiness judgment'),
-    stackOn: strictObject({
-        number: int$2().describe('Issue number to stack on'),
-        repository: string$1().describe('Repository of that Issue (owner/repo)'),
-        branch: string$1().describe('Branch to stack on'),
-    }).nullable().describe('Prerequisite to stack on (null unless stackable)'),
-    reason: string$1().nullable().describe('Code of the reason for blocked (null unless blocked)'),
-    text: string$1().describe('Readiness as shown in the Readiness line'),
-});
 
 /**
 例外が持つ子プロセスの生の出力（log）。無いか空なら undefined
@@ -21876,7 +21130,7 @@ const WORKFLOW_KEY_ORDER = ['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 
 WORKFLOW_KEY_ORDER.map(name => keyEntry(name, WORKFLOW_FIELD_SPECS.some(spec => spec.option.name === name && spec.isOptional === true)));
 [keyEntry('Todo', true), keyEntry('In Progress', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)];
 
-// board show の表示と、Archived の整理、Dependabot alert の収集。
+// board sync が使う、ボードの読み取りと Archived の整理。
 /**
 items を最大 limit 件ずつ並列に処理し、結果を items の順で返す。1 件でも投げたら、その例外で止まる
 */
@@ -21892,76 +21146,6 @@ async function mapWithLimit(items, limit, task) {
     await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
     return results;
 }
-const ALERTS_JSON = union([
-    strictObject({
-        error: string$1().describe('Reason the Dependabot alerts could not be fetched'),
-    }),
-    strictObject({
-        enabled: boolean().describe('Whether Dependabot alerts are enabled'),
-        open_count: int$2().describe('Number of open alerts (0 when disabled)'),
-        max_severity: string$1().nullable().describe('Highest severity of the open alerts (null when there is none)'),
-        alerts_url: string$1().describe('URL of the alert list'),
-    }),
-]);
-// extend は同じ名前のキーを元の位置のまま置き換えるので、キーの並びは readinessJson と同じに保たれる
-const BOARD_READINESS_JSON = READINESS_JSON.extend({
-    kind: _enum(['startable', 'stackable', 'blocked', 'unknown']).describe('Readiness judgment (unknown when the prerequisites could not be read)'),
-    text: string$1().describe('Readiness as shown in the Readiness column'),
-});
-const BOARD_CONTENT_JSON = strictObject({
-    number: unknown().optional().describe('Issue or PR number'),
-    state: unknown().optional().describe('State of the Issue or PR (OPEN etc.)'),
-    url: unknown().optional().describe('URL of the Issue or PR'),
-    labels: array(string$1()).optional().describe('Label names'),
-    repository: string$1().optional().describe('Repository (owner/repo)'),
-});
-const BOARD_ITEM_JSON = strictObject({
-    id: unknown().optional().describe('Project item ID'),
-    workflow: string$1().nullable().optional().describe('Column (workflow field value) of the item'),
-    lane: string$1().nullable().optional().describe('Value of the pecot-lane field (null when the item has none or the board has no pecot-lane field)'),
-    title: unknown().optional().describe('Title of the Issue or PR'),
-    updatedAt: unknown().optional().describe('Last update time of the item'),
-    content: BOARD_CONTENT_JSON.describe('Issue or PR on the card'),
-    readiness: BOARD_READINESS_JSON.nullable().optional().describe('Readiness of a Ready or Blocked Issue (null for other items; omitted when the server does not support issue dependencies)'),
-});
-const PACKAGE_JSON = strictObject({
-    name: string$1().describe('Package name'),
-    changelog: string$1().describe('Path of the CHANGELOG of the package'),
-});
-const REPOSITORY_JSON = strictObject({
-    full_name: string$1().describe('Repository (owner/repo)'),
-    owner: string$1().describe('Owner of the repository'),
-    name: string$1().describe('Name of the repository'),
-    develop_branch: string$1().nullable().describe('Develop branch (null when not set)'),
-    release_branch: string$1().nullable().describe('Release branch (null when not set)'),
-    dependabot_alerts: ALERTS_JSON.describe('Dependabot alert status, or the reason it could not be fetched'),
-    release_type: _enum(['single', 'multi', 'nx']).describe('Release type in effect'),
-    packages: array(PACKAGE_JSON).describe('Packages of a monorepo (data only; empty when none)'),
-    changelog_file: string$1().optional().describe('CHANGELOG path set for a repository without packages (data only; omitted when not set)'),
-});
-const LANE_SUMMARY_JSON = strictObject({
-    name: string$1().nullable().describe('Value of the pecot-lane field (null for the Issues without a value)'),
-    count: int$2().describe('Number of open Issues with this value'),
-    startable: int$2().describe('Number of those Issues in Ready whose readiness is startable'),
-});
-/**
-board show の MCP の data。project・repositories・board・lanes は --json と同じ。repositories の release_type・packages・changelog_file と mismatches は data にだけ足す
-*/
-strictObject({
-    project: strictObject({
-        name: string$1().describe('Name of the project config'),
-        host: string$1().describe('GitHub host'),
-        owner: string$1().describe('Owner of the project'),
-        number: int$2().describe('Project number'),
-        aggregation_repo: string$1().nullable().describe('Roadmap (aggregation) repository (null when not set)'),
-    }).describe('Overview of the project'),
-    repositories: array(REPOSITORY_JSON).describe('Registered repositories, in registration order'),
-    board: strictObject({
-        items: array(BOARD_ITEM_JSON).describe('Open items in Backlog, Pending, Blocked, Ready, Active and In Review'),
-    }).describe('Board status'),
-    lanes: array(LANE_SUMMARY_JSON).describe('Open Issues of the board items counted per pecot-lane value, in the order of the field options (values without Issues count 0; Issues without a value come last). Empty when the board has no pecot-lane field'),
-    mismatches: int$2().describe('Number of Ready or Blocked Issues whose column or Status may not match the judgment (data only)'),
-});
 
 // 書いた設定のファイルの名前で案内する。.active は、書いた設定と違うことがある
 function rereadOptionsHint(config) {
@@ -22055,7 +21239,7 @@ function planBoardMove(out, target, move, text) {
 }
 
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// ボードの Issue の読み取り・判定と、列と札の動かし方。board show（数えるだけ）と、board sync・pr create（書く）が共有する。
+// ボードの Issue の読み取り・判定と、列と札の動かし方。board sync と session finish が共有する。
 /**
 前提の読み取りを並列に行う数の上限
 */
@@ -22097,11 +21281,8 @@ async function judgeBoard(client, config, items, progress, options) {
         if (state.isUnsupported)
             return undefined;
         const known = progress.get(target.key);
-        const local = options.withoutRead(target, known);
-        if (local === 'skip')
+        if (options.withoutRead(target, known) === 'skip')
             return undefined;
-        if (local !== undefined)
-            return { target, snapshot: local };
         try {
             return { target, snapshot: await readIssueSnapshot(client, config, target.ref, blockedByReadCount(known?.blockedBy), true) };
         }
@@ -22202,38 +21383,8 @@ const REVIEW_COMMENTS_PER_PAGE = 100;
 Stacks API が求める X-GitHub-Api-Version（https://docs.github.com/en/rest/pulls/stacks）
 */
 const STACKS_API_VERSION = '2026-03-10';
-const MERGE_QUEUE_FIELD_ERROR = /(?:Field '|field ")(?:isMergeQueueEnabled|isInMergeQueue)['"]/u;
-// eslint-disable-next-line no-restricted-syntax -- 配列から型を作るための as const
-const ASYNC_MERGE_STATUSES = ['pending', 'merged', 'enqueued', 'failed'];
 function requiresBoolean(value, path) {
     return typeof value === 'boolean' ? value : throwMalformed(path);
-}
-function isAsyncMergeStatus(value) {
-    return ASYNC_MERGE_STATUSES.some(status => status === value);
-}
-function readAsyncMergeResult(value) {
-    const status = jsonField(value, 'status');
-    if (!isAsyncMergeStatus(status))
-        throwMalformed(`mergeAsync.status (${typeof status === 'string' ? status : JSON.stringify(status)})`);
-    const details = jsonField(value, 'details');
-    const uuid = jsonField(details, 'uuid');
-    const message = jsonField(details, 'message');
-    if (status === 'pending' && typeof uuid !== 'string')
-        throwMalformed('mergeAsync.details.uuid');
-    return {
-        status,
-        ...status === 'pending' && typeof uuid === 'string' && { uuid },
-        ...typeof message === 'string' && { message },
-    };
-}
-// 文書は 400・409 の本文の形を示していないので、JSON でなくても止めない
-function bodyOrUndefined(response) {
-    try {
-        return response.json();
-    }
-    catch {
-        return undefined;
-    }
 }
 function readStack(value) {
     if (!isJsonObject(value))
@@ -22254,44 +21405,11 @@ function hasPullRequestNumber(stack, pullRequestNumber) {
         return number === pullRequestNumber || number === String(pullRequestNumber);
     });
 }
-// author がある場合だけ login を読む。author が無い（削除されたユーザーなど）、または login が空なら null
-function loginOrNull(author) {
-    const login = jsonField(author, 'login');
-    return isTruthy(login) ? stringOrNull(login) : JSON_NULL;
-}
-function formatPullRequestBase(pullRequest, owner, repository) {
-    const closingIssues = truthyNodes(jsonField(pullRequest, 'closingIssuesReferences')).map(issue => ({
-        number: requireNumber(jsonField(issue, 'number'), 'closingIssue.number'),
-        title: requireString(jsonField(issue, 'title'), 'closingIssue.title'),
-    }));
-    // Refs #XXX（本文から抽出）。Closing Issues と重複しないものだけ
-    const closingNumbers = new Set(closingIssues.map(issue => issue.number));
-    const body = jsonField(pullRequest, 'body');
-    const referenced = extractReferencesIssueNumbers(typeof body === 'string' ? body : undefined, { owner, repository });
-    const referencedIssues = [...referenced].filter(number => !closingNumbers.has(number)).toSorted((a, b) => a - b).map(number => ({ number, title: '' }));
-    const isDraft = jsonField(pullRequest, 'isDraft');
-    return {
-        number: requireNumber(jsonField(pullRequest, 'number'), 'pullRequest.number'),
-        state: requireString(jsonField(pullRequest, 'state'), 'pullRequest.state'),
-        title: requireString(jsonField(pullRequest, 'title'), 'pullRequest.title'),
-        body: requireString(body, 'pullRequest.body'),
-        head_ref: requireString(jsonField(pullRequest, 'headRefName'), 'pullRequest.headRefName'),
-        base_ref: requireString(jsonField(pullRequest, 'baseRefName'), 'pullRequest.baseRefName'),
-        is_draft: typeof isDraft === 'boolean' ? isDraft : throwMalformed('pullRequest.isDraft'),
-        mergeable: requireString(jsonField(pullRequest, 'mergeable'), 'pullRequest.mergeable'),
-        comments: requireNumber(jsonField(jsonField(pullRequest, 'comments'), 'totalCount'), 'pullRequest.comments.totalCount'),
-        closing_issues: closingIssues,
-        referenced_issues: referencedIssues,
-    };
-}
 function isDependabotAuthor(node) {
     if (!isJsonObject(node))
         return false;
     const author = jsonField(node, 'author');
     return jsonField(author, '__typename') === 'Bot' && jsonField(author, 'login') === 'dependabot';
-}
-function requiredTextOrEmpty(value) {
-    return isTruthy(value) ? requireString(value, 'text') : '';
 }
 class PullsApi extends IssuesApi {
     // PR の取得クエリを実行し、pullRequest ノードを返す
@@ -22321,85 +21439,6 @@ class PullsApi extends IssuesApi {
         };
     }
     /**
-    base のブランチ名で開いている PR を引き、同じリポの PR だけを返す（古い順に先頭 20 件）。
-    20 件に収まらないときは hasNextPage が真。リポが無ければ GitHubNotFoundError
-    */
-    async listPullRequestsByBase(owner, repository, baseReferenceName) {
-        const result = await this.executeGraphql(QUERY_LIST_PULL_REQUESTS_BY_BASE, { owner, repo: repository, baseRefName: baseReferenceName });
-        const repositoryNode = jsonField(result, 'repository');
-        if (!isTruthy(repositoryNode))
-            throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`);
-        const connection = jsonField(repositoryNode, 'pullRequests');
-        return {
-            pullRequests: readPullRequests(truthyNodes(connection))
-                .filter(pullRequest => !pullRequest.isCrossRepository)
-                .map(pullRequest => ({ number: pullRequest.number, headRefName: pullRequest.headRefName })),
-            hasNextPage: jsonField(jsonField(connection, 'pageInfo'), 'hasNextPage') === true,
-        };
-    }
-    /**
-    PR を作る
-    */
-    async createPullRequest(owner, repository, title, body, head, base, isDraft = false) {
-        return this.restObject('POST', `${repositoryPath(owner, repository)}/pulls`, {
-            json: { title, body, head, base, draft: isDraft },
-        });
-    }
-    /**
-    PR の本文を置き換える。同じ本文で保存すると、GitHub が Closes を読み直す
-    */
-    async updatePullRequestBody(owner, repository, number, body) {
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/pulls/${String(number)}`, { json: { body } });
-    }
-    /**
-    PR の詳細を取る（GraphQL）。関連 Issue とレビューを 1 回のクエリで取る
-    */
-    async getPullRequestSlim(owner, repository, number) {
-        const pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_SLIM, owner, repository, number);
-        return {
-            ...formatPullRequestBase(pullRequest, owner, repository),
-            reviews: truthyNodes(jsonField(pullRequest, 'reviews')).map(review => ({
-                state: requireString(jsonField(review, 'state'), 'review.state'),
-                author: isTruthy(jsonField(review, 'author')) ? requireString(jsonField(jsonField(review, 'author'), 'login'), 'review.author.login') : JSON_NULL,
-            })),
-        };
-    }
-    /**
-    PR の詳細をレビュー情報付きで取る。getPullRequestSlim に、レビュー本文と行コメント（reviewThreads）を足したもの
-    */
-    async getPullRequestWithReviews(owner, repository, number) {
-        const pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_WITH_REVIEWS, owner, repository, number);
-        return {
-            ...formatPullRequestBase(pullRequest, owner, repository),
-            reviews: truthyNodes(jsonField(pullRequest, 'reviews')).map(review => ({
-                state: requireString(jsonField(review, 'state'), 'review.state'),
-                author: loginOrNull(jsonField(review, 'author')),
-                body: requiredTextOrEmpty(jsonField(review, 'body')),
-                submitted_at: stringOrNull(jsonField(review, 'submittedAt')),
-            })),
-            review_threads: truthyNodes(jsonField(pullRequest, 'reviewThreads')).map(thread => ({
-                is_resolved: jsonField(thread, 'isResolved') === true,
-                path: stringOrNull(jsonField(thread, 'path')),
-                line: numberOrNull(jsonField(thread, 'line')),
-                comments: truthyNodes(jsonField(thread, 'comments')).map(comment => ({
-                    author: loginOrNull(jsonField(comment, 'author')),
-                    body: requiredTextOrEmpty(jsonField(comment, 'body')),
-                    created_at: stringOrNull(jsonField(comment, 'createdAt')),
-                    url: stringOrNull(jsonField(comment, 'url')),
-                })),
-            })),
-        };
-    }
-    /**
-    PR をマージする。mergeMethod は merge・squash・rebase。既定は squash。
-    sha を渡すと、head がその SHA でなければ GitHub が 409 で拒む
-    */
-    async mergePullRequest(owner, repository, number, mergeMethod = 'squash', sha) {
-        return this.restObject('PUT', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge`, {
-            json: sha === undefined ? { merge_method: mergeMethod } : { merge_method: mergeMethod, sha },
-        });
-    }
-    /**
     session finish が閉じる Issue を決めるのに使う PR を読む（GraphQL）。PR が無ければ GitHubNotFoundError
     */
     async getPullRequestForFinish(owner, repository, number) {
@@ -22421,66 +21460,6 @@ class PullsApi extends IssuesApi {
             }),
             default_branch: typeof defaultBranch === 'string' ? defaultBranch : undefined,
         };
-    }
-    /**
-    pr merge の判断に使う PR の状態を読む（GraphQL）。
-    merge queue の項目を持たない GHES は、項目なしのクエリで読み直し、どちらも false にする
-    */
-    async getPullRequestForMerge(owner, repository, number) {
-        let pullRequest;
-        let hasQueueFields = true;
-        try {
-            pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_MERGE, owner, repository, number);
-        }
-        catch (error) {
-            if (!isSchemaError(error) || !MERGE_QUEUE_FIELD_ERROR.test(error.message))
-                throw error;
-            pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE, owner, repository, number);
-            hasQueueFields = false;
-        }
-        return {
-            number: requireNumber(jsonField(pullRequest, 'number'), 'pullRequest.number'),
-            state: requireString(jsonField(pullRequest, 'state'), 'pullRequest.state'),
-            isDraft: requiresBoolean(jsonField(pullRequest, 'isDraft'), 'pullRequest.isDraft'),
-            baseRefName: requireString(jsonField(pullRequest, 'baseRefName'), 'pullRequest.baseRefName'),
-            headRefOid: requireString(jsonField(pullRequest, 'headRefOid'), 'pullRequest.headRefOid'),
-            isMergeQueueEnabled: hasQueueFields && requiresBoolean(jsonField(pullRequest, 'isMergeQueueEnabled'), 'pullRequest.isMergeQueueEnabled'),
-            isInMergeQueue: hasQueueFields && requiresBoolean(jsonField(pullRequest, 'isInMergeQueue'), 'pullRequest.isInMergeQueue'),
-        };
-    }
-    /**
-    非同期のマージを頼む（https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request-asynchronously）。
-    403・422 などは handleHttpError の例外
-    */
-    async requestAsyncMerge(owner, repository, number, options) {
-        const response = await this.restRequest('PUT', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge-async`, {
-            json: options.mergeQueue ? { sha: options.sha } : { sha: options.sha, merge_method: 'squash' },
-            apiVersion: STACKS_API_VERSION,
-        });
-        if (response.statusCode === 400) {
-            const message = jsonField(bodyOrUndefined(response), 'message');
-            return { outcome: 'rejected', message: typeof message === 'string' ? message : response.text };
-        }
-        if (response.statusCode === 409) {
-            const uuid = jsonField(jsonField(bodyOrUndefined(response), 'details'), 'uuid');
-            return typeof uuid === 'string' ? { outcome: 'conflict', uuid } : { outcome: 'conflict' };
-        }
-        if (!response.isSuccess)
-            this.handleHttpError(response);
-        return { outcome: 'accepted', result: readAsyncMergeResult(response.json()) };
-    }
-    /**
-    非同期のマージの結果を読む。結果が消えていれば（24 時間で消える）undefined
-    */
-    async getAsyncMergeResult(owner, repository, number, uuid) {
-        const response = await this.restRequest('GET', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge-async/${encodeURIComponent(uuid)}`, {
-            apiVersion: STACKS_API_VERSION,
-        });
-        if (response.statusCode === 404)
-            return undefined;
-        if (!response.isSuccess)
-            this.handleHttpError(response);
-        return readAsyncMergeResult(response.json());
     }
     /**
     その PR が入っているスタックを読む。入っていなければ undefined。
@@ -22569,8 +21548,6 @@ GitHub API クライアント。操作は責務別のクラスから合成する
 使い方は次のとおり。
 - 作る: `new GitHubClient({ host: 'ghes.example.com', diagnostics })`。
 - 呼ぶ: `await client.getIssueSlim('owner', 'repo', 123)`。
-
-RepositoryMembership（domain/config.ts）と同じ形の linkedRepositories も持つ。
 */
 class GitHubClient extends PullsApi {
 }
@@ -22591,7 +21568,7 @@ function apiFailureMessage(error) {
 }
 
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// pr create と session finish の後に、head の Issue を待つ Issue（blocking）の列と札を、判定で動かす。
+// session finish の後に、head の Issue を待つ Issue（blocking）の列と札を、判定で動かす。
 // どの失敗も warning にとどめ、終了コードを変えない。
 // GitHub は書いた直後の読み取りの一致を保証しない。読み直す前に、反映を待つ時間
 const RECHECK_DELAY_MILLISECONDS = 1500;
@@ -51675,7 +50652,7 @@ actions/ に移した処理の形。name の `_` を `-` にしたものが acti
 const ACTION_HINT_COMMANDS = [
     { name: 'board_sync', inputs: ['project', 'dry_run'] },
     { name: 'review_finish', inputs: ['pr', 'job_status', 'execution_file', 'since', 'review_outcome', 'review_conclusion', 'review_has_token'] },
-    { name: 'tracker_sync', inputs: ['source', 'project', 'dry_run'] },
+    { name: 'tracker_sync', inputs: ['source', 'surface_file', 'project', 'dry_run'] },
     { name: 'auto_gate', inputs: ['max_ci_attempts', 'project'] },
     { name: 'auto_start', inputs: ['issue', 'project'] },
     { name: 'auto_finish', inputs: ['issue', 'project', 'result_file', 'job_status', 'execution_file', 'start_outcome', 'result', 'body_file'] },

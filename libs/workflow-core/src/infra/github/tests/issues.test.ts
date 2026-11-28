@@ -9,7 +9,6 @@ import { JSON_NULL } from '../../../domain/json-null.js'
 import { DependenciesUnsupportedError, GitHubAPIError, GitHubAuthError, GitHubNotFoundError } from '../errors.js'
 import type { ResponseRule } from '../../../../tests/_helpers/fake-github/server.js'
 import type { GitHubClient } from '../index.js'
-import { builtinValuesOfIssue, issueFieldRestId } from '../issues.js'
 import { QUERY_GET_ISSUE_PREREQUISITES } from '../queries.js'
 import { failure, graphqlData, graphqlError, graphqlRequests, rejection, restRequests, restResponse, startClient, useFakeGithub } from './fake-client.js'
 
@@ -97,220 +96,6 @@ describe('createIssue', () => {
     })
     await step('送った要求を確かめる', () => {
       expect(restRequests(server).map(({ body }) => JSON.stringify(body))).toEqual(['{"title":"Title","body":"Body","milestone":3}'])
-    })
-  })
-})
-
-describe('updateIssueAttributes', () => {
-  it('組み込み属性の書き込みを、1 回の PATCH の本文にまとめて送信し、応答の Issue を返す', async () => {
-    await explains('`updateIssueAttributes` のテストです。担当者・ラベル・マイルストーン・Issue type を渡した場合に、1 回の PATCH の本文へそのまま含めて送信し、応答の Issue を返すことを確認します。')
-    const { response, client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const response = { number: 7, assignees: [], labels: [{ name: 'bug' }], milestone: JSON_NULL, type: { name: 'Bug' } }
-      const { client, server } = await startClient([restResponse('PATCH', '/repos/owner/repo/issues/7', { status: 200, body: response })])
-      return { response, client, server }
-    })
-    const result = await step('updateIssueAttributes を呼ぶ', async () => await client.updateIssueAttributes('owner', 'repo', 7, [
-      { key: 'assignees', value: [] },
-      { key: 'labels', value: ['bug'] },
-      { key: 'milestone', value: JSON_NULL },
-      { key: 'type', value: 'Bug' },
-    ]))
-    await step('送った要求を確かめる', () => {
-      expect(result).toEqual(response)
-      expect(restRequests(server).map(({ method, path, body }) => ({ method, path, body }))).toEqual([
-        { method: 'PATCH', path: '/repos/owner/repo/issues/7', body: { assignees: [], labels: ['bug'], milestone: JSON_NULL, type: 'Bug' } },
-      ])
-    })
-  })
-})
-
-function issueFieldValuesBody(chunk: readonly { readonly fieldId: number, readonly value: string }[]): unknown {
-  return { issue_field_values: chunk.map(({ fieldId, value }) => ({ field_id: fieldId, value })) }
-}
-
-describe('addIssueFieldValues', () => {
-  const PATH = '/repos/owner/repo/issues/7/issue-field-values'
-
-  it('フィールド ID と値の組を、API の版 2022-11-28 で POST する', async () => {
-    await explains('`addIssueFieldValues` のテストです。フィールド ID と値の組を渡した場合に、API の版 `2022-11-28` を指定して POST することを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const rule: ResponseRule = { match: { method: 'POST', path: PATH, apiVersion: '2022-11-28' }, respond: { status: 200, body: [] }, times: 1 }
-      const { client, server } = await startClient([rule])
-      return { client, server }
-    })
-    await step('addIssueFieldValues を呼ぶ', async () => {
-      await client.addIssueFieldValues('owner', 'repo', 7, [{ fieldId: 101, value: 'High' }, { fieldId: 103, value: 5 }, { fieldId: 104, value: ['x', 'y'] }])
-    })
-    await step('送った要求を確かめる', () => {
-      expect(restRequests(server).map(({ method, path, body }) => ({ method, path, body }))).toEqual([
-        { method: 'POST', path: PATH, body: { issue_field_values: [{ field_id: 101, value: 'High' }, { field_id: 103, value: 5 }, { field_id: 104, value: ['x', 'y'] }] } },
-      ])
-    })
-  })
-
-  it('値が 0 件の場合は、リクエストを送信しない', async () => {
-    await explains('`addIssueFieldValues` のテストです。値が 0 件の場合に、リクエストを送信しないことを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([])
-      return { client, server }
-    })
-    await step('addIssueFieldValues を呼ぶ', async () => {
-      await client.addIssueFieldValues('owner', 'repo', 7, [])
-    })
-    await step('送った要求を確かめる', () => {
-      expect(restRequests(server)).toEqual([])
-    })
-  })
-
-  it('26 件の値は、25 件と 1 件の 2 回に分けて送信する', async () => {
-    await explains('`addIssueFieldValues` の分割送信のテストです。26 件の値を渡した場合に、25 件と 1 件の 2 回に分けて POST することを確認します。')
-    const { client, server, values } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([restResponse('POST', PATH, { status: 200, body: [] }, 2)])
-      const values = Array.from({ length: 26 }, (_, index) => ({ fieldId: index + 1, value: String(index) }))
-      return { client, server, values }
-    })
-    await step('addIssueFieldValues を呼ぶ', async () => {
-      await client.addIssueFieldValues('owner', 'repo', 7, values)
-    })
-    await step('送った要求を確かめる', () => {
-      expect(restRequests(server).map(({ body }) => body)).toEqual([issueFieldValuesBody(values.slice(0, 25)), issueFieldValuesBody(values.slice(25))])
-    })
-  })
-
-  it('状態コード 403 が返った場合は、GitHub の本文を保持した GitHubAPIError が発生する', async () => {
-    await explains('`addIssueFieldValues` の失敗時のテストです。状態コード 403 が返った場合に、GitHub の本文を保持した `GitHubAPIError` が発生することを確認します。')
-    const { text, client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const text = '{"message":"You do not have permission to set issue field values"}'
-      const { client } = await startClient([restResponse('POST', PATH, { status: 403, text })])
-      return { text, client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.addIssueFieldValues('owner', 'repo', 7, [{ fieldId: 101, value: 'High' }]))).toMatchObject(
-        failure(GitHubAPIError, 'access denied', { statusCode: 403, responseBody: text }),
-      )
-    })
-  })
-})
-
-describe('deleteIssueFieldValue', () => {
-  const PATH = '/repos/owner/repo/issues/7/issue-field-values/101'
-
-  it('フィールド値の削除で状態コード 204 が返った場合は、deleted を返す', async () => {
-    await explains('`deleteIssueFieldValue` のテストです。状態コード 204 が返った場合に、`deleted` を返し、DELETE を送信することを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([restResponse('DELETE', PATH, { status: 204, text: '' })])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.deleteIssueFieldValue('owner', 'repo', 7, 101)).toBe('deleted')
-      expect(restRequests(server).map(({ method, path }) => ({ method, path }))).toEqual([{ method: 'DELETE', path: PATH }])
-    })
-  })
-
-  it('フィールド値の削除で状態コード 404 が返った場合は、absent を返す', async () => {
-    await explains('`deleteIssueFieldValue` のテストです。状態コード 404 が返った場合に、`absent` を返すことを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([restResponse('DELETE', PATH, { status: 404, text: '{"message":"Not Found"}' })])
-      return { client }
-    })
-    await step('結果を確かめる', async () => {
-      expect(await client.deleteIssueFieldValue('owner', 'repo', 7, 101)).toBe('absent')
-    })
-  })
-
-  it('フィールド値の削除で状態コード 403 が返った場合は、GitHubAPIError が発生する', async () => {
-    await explains('`deleteIssueFieldValue` の失敗時のテストです。状態コード 403 が返った場合に、`GitHubAPIError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([restResponse('DELETE', PATH, { status: 403, text: '{"message":"Forbidden"}' })])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.deleteIssueFieldValue('owner', 'repo', 7, 101))).toMatchObject(failure(GitHubAPIError, 'access denied', { statusCode: 403 }))
-    })
-  })
-})
-
-describe('isAssignable', () => {
-  it('担当者の確認で状態コード 204 が返った場合は、true を返す', async () => {
-    await explains('`isAssignable` のテストです。状態コード 204 が返った場合に、`true` を返し、担当者の確認用のパスへ GET を送信することを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([restResponse('GET', '/repos/owner/repo/assignees/alice', { status: 204, text: '' })])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.isAssignable('owner', 'repo', 'alice')).toBe(true)
-      expect(restRequests(server).map(({ method, path }) => ({ method, path }))).toEqual([{ method: 'GET', path: '/repos/owner/repo/assignees/alice' }])
-    })
-  })
-
-  it('担当者の確認で状態コード 404 が返った場合は、false を返す', async () => {
-    await explains('`isAssignable` のテストです。状態コード 404 が返った場合に、`false` を返すことを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([restResponse('GET', '/repos/owner/repo/assignees/ghost', { status: 404, text: '{"message":"Not Found"}' })])
-      return { client }
-    })
-    await step('結果を確かめる', async () => {
-      expect(await client.isAssignable('owner', 'repo', 'ghost')).toBe(false)
-    })
-  })
-
-  it('担当者の確認で状態コード 500 が返った場合は、GitHubAPIError が発生する', async () => {
-    await explains('`isAssignable` の失敗時のテストです。404 と 204 以外の状態コード（500）が返った場合に、`GitHubAPIError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([restResponse('GET', '/repos/owner/repo/assignees/alice', { status: 500, text: 'boom' })])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.isAssignable('owner', 'repo', 'alice'))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 500', { statusCode: 500 }))
-    })
-  })
-
-  it('ログイン名に / を含む場合は、パスの 1 区間として符号化する', async () => {
-    await explains('`isAssignable` のパスのテストです。ログイン名に `/` を含む場合に、パスの 1 区間として `%2F` へ符号化して送信することを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([restResponse('GET', '/repos/owner/repo/assignees/a%2Fb', { status: 404, text: '' })])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.isAssignable('owner', 'repo', 'a/b')).toBe(false)
-      expect(restRequests(server).map(({ path }) => path)).toEqual(['/repos/owner/repo/assignees/a%2Fb'])
-    })
-  })
-})
-
-describe('issueFieldRestId', () => {
-  it.for([
-    { name: '十進の整数', text: '101', expected: 101 },
-    { name: '安全な整数の上限', text: String(Number.MAX_SAFE_INTEGER), expected: Number.MAX_SAFE_INTEGER },
-    { name: '安全な整数の上限を超える数', text: '9007199254740992', expected: undefined },
-    { name: '0', text: '0', expected: undefined },
-    { name: '先頭が 0 の数', text: '0101', expected: undefined },
-    { name: '負の数', text: '-1', expected: undefined },
-    { name: '小数', text: '1.5', expected: undefined },
-    { name: '空文字', text: '', expected: undefined },
-    { name: '空白の付いた数', text: ' 1', expected: undefined },
-  ])('$name の文字列を渡した場合は、$expected を返す', async ({ text, expected }) => {
-    await explains('`issueFieldRestId` のテストです。十進の正の整数だけを数値として返し、`0` や負の数、小数、空文字などの場合は `undefined` を返すことを確認します。')
-    await step('結果を確かめる', () => {
-      expect(issueFieldRestId(text)).toBe(expected)
-    })
-  })
-})
-
-describe('builtinValuesOfIssue', () => {
-  it('担当者・ラベル・マイルストーン・Issue type を持つ Issue から、それぞれの名前と番号を取り出す', async () => {
-    await explains('`builtinValuesOfIssue` のテストです。担当者・ラベル・マイルストーン・Issue type を持つ Issue から、ログイン名・ラベル名・マイルストーンの題と番号・Issue type の名前を取り出すことを確認します。')
-    const issue = { assignees: [{ login: 'alice' }, { login: 'bob' }], labels: [{ name: 'bug' }, 'docs'], milestone: { title: 'v1', number: 3 }, type: { name: 'Task' } }
-    await step('結果を確かめる', () => {
-      expect(builtinValuesOfIssue(issue)).toEqual({ assignees: ['alice', 'bob'], labels: ['bug', 'docs'], milestone: { title: 'v1', number: 3 }, type: 'Task' })
-    })
-  })
-
-  it('値を持たない Issue の場合は、空の配列と undefined にする', async () => {
-    await explains('`builtinValuesOfIssue` のテストです。値を持たない Issue の場合に、担当者とラベルは空配列、マイルストーンと Issue type は `undefined` になることを確認します。')
-    await step('結果を確かめる', () => {
-      expect(builtinValuesOfIssue({ assignees: [], labels: [], milestone: JSON_NULL, type: JSON_NULL })).toStrictEqual({ assignees: [], labels: [], milestone: undefined, type: undefined })
-      expect(builtinValuesOfIssue({})).toStrictEqual({ assignees: [], labels: [], milestone: undefined, type: undefined })
     })
   })
 })
@@ -683,66 +468,6 @@ describe('getIssueKind', () => {
     })
     await step('エラーを確かめる', async () => {
       expect(await rejection(client.getIssueKind('owner', 'repo', 7))).toMatchObject(failure(GitHubNotFoundError, 'repository not found: owner/repo'))
-    })
-  })
-})
-
-function subIssueNode(number: number): Record<string, unknown> {
-  return { number, state: 'OPEN', title: `#3-${String(number).padStart(2, '0')}: s` }
-}
-
-function slimData(subIssues: Readonly<Record<string, unknown>>): unknown {
-  return { repository: { issue: { number: 3, state: 'OPEN', title: 'E', body: '', comments: { totalCount: 0, nodes: [] }, parent: JSON_NULL, subIssues, linkedBranches: { nodes: [] }, timelineItems: { nodes: [] } } } }
-}
-
-function pageData(nodes: readonly unknown[], hasNextPage: boolean, endCursor: string | undefined): unknown {
-  return { repository: { issue: { subIssues: { nodes, pageInfo: { hasNextPage, endCursor: endCursor ?? JSON_NULL } } } } }
-}
-
-describe('getAllSubIssues', () => {
-  it('続きがない場合は、1 ページ目だけを読み、GetSubIssuesPage を送信しない', async () => {
-    await explains('`getAllSubIssues` のテストです。1 ページ目に続きがない場合に、`GetIssueSlim` だけを送信し、`GetSubIssuesPage` を送信しないことを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const first = graphqlData('GetIssueSlim', slimData({ nodes: [subIssueNode(1), subIssueNode(2)], pageInfo: { hasNextPage: false, endCursor: JSON_NULL } }))
-      const { client, server } = await startClient([first])
-      return { client, server }
-    })
-    const result = await step('getAllSubIssues を呼ぶ', async () => await client.getAllSubIssues('owner', 'repo', 3))
-    await step('送った要求を確かめる', () => {
-      expect(result.map(({ number }) => number)).toEqual([1, 2])
-      expect(graphqlRequests(server)).toEqual([{ operation: 'GetIssueSlim', variables: { owner: 'owner', repo: 'repo', number: 3, commentLimit: 0 } }])
-    })
-  })
-
-  it('続きがある場合は、endCursor を after に渡して最後のページまで読む', async () => {
-    await explains('`getAllSubIssues` のテストです。続きがある場合に、`endCursor` を `after` に渡して最後のページまで読み、全ページのサブ Issue を返すことを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const first = graphqlData('GetIssueSlim', slimData({ nodes: [subIssueNode(1)], pageInfo: { hasNextPage: true, endCursor: 'c1' } }))
-      const second = graphqlData('GetSubIssuesPage', pageData([subIssueNode(2), subIssueNode(3)], true, 'c2'))
-      const third = graphqlData('GetSubIssuesPage', pageData([subIssueNode(4)], false, undefined))
-      const { client, server } = await startClient([first, second, third])
-      return { client, server }
-    })
-    const result = await step('getAllSubIssues を呼ぶ', async () => await client.getAllSubIssues('owner', 'repo', 3))
-    await step('送った要求を確かめる', () => {
-      expect(result.map(({ number }) => number)).toEqual([1, 2, 3, 4])
-      expect(graphqlRequests(server).slice(1)).toEqual([
-        { operation: 'GetSubIssuesPage', variables: { owner: 'owner', repo: 'repo', number: 3, after: 'c1' } },
-        { operation: 'GetSubIssuesPage', variables: { owner: 'owner', repo: 'repo', number: 3, after: 'c2' } },
-      ])
-    })
-  })
-
-  it('pageInfo が存在しない場合は、続きがないものとして読む', async () => {
-    await explains('`getAllSubIssues` のテストです。応答に `pageInfo` が存在しない場合は、続きがないものとして 1 ページ目だけを返すことを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const first = graphqlData('GetIssueSlim', slimData({ nodes: [subIssueNode(1)] }))
-      const { client } = await startClient([first])
-      return { client }
-    })
-    const result = await step('getAllSubIssues を呼ぶ', async () => await client.getAllSubIssues('owner', 'repo', 3))
-    await step('結果を確かめる', () => {
-      expect(result.map(({ number }) => number)).toEqual([1])
     })
   })
 })
@@ -1186,23 +911,6 @@ describe('addBlockedBy・removeBlockedBy', () => {
   })
 })
 
-describe('supportsBlockedBy', () => {
-  it.for([
-    { name: 'AddBlockedByInput の型が存在する場合は', type: { name: 'AddBlockedByInput' }, expected: true },
-    { name: 'AddBlockedByInput の型が存在しない場合（3.19 より前の GHES）は', type: JSON_NULL, expected: false },
-  ])('$name、$expected を返す', async ({ type, expected }) => {
-    await explains('`supportsBlockedBy` のテストです。`AddBlockedByInput` 型が存在する場合は `true`、存在しない場合は `false` を返すことを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([graphqlData('HasAddBlockedByInput', { __type: type })])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.supportsBlockedBy()).toBe(expected)
-      expect(graphqlRequests(server)).toEqual([{ operation: 'HasAddBlockedByInput', variables: {} }])
-    })
-  })
-})
-
 async function readWith(issue: Readonly<Record<string, unknown>>): ReturnType<GitHubClient['getIssuePrerequisites']> {
   const { client } = await startClient([graphqlData('GetIssuePrerequisites', { repository: { issue } })])
   return client.getIssuePrerequisites('owner', 'repo', 10, PROJECT_ID, FIELDS)
@@ -1554,133 +1262,14 @@ describe('getIssuePrerequisites', () => {
   })
 })
 
-function blockerNode(number: number, state = 'OPEN'): Readonly<Record<string, unknown>> {
-  return { id: `I_${String(number)}`, number, state, repository: { owner: { login: 'acme' }, name: 'demo' } }
-}
-
-async function readReferences(rule: ResponseRule): ReturnType<GitHubClient['getIssueBlockedByReferences']> {
-  const { client } = await startClient([rule])
-  return client.getIssueBlockedByReferences('acme', 'demo', 7)
-}
-
-describe('getIssueBlockedByReferences', () => {
-  it('Node ID・本文・前提の参照（番号・リポジトリ・状態）と件数を取り出す', async () => {
-    await explains('`getIssueBlockedByReferences` のテストです。Node ID・本文・前提の参照（番号・リポジトリ・状態）と件数を取り出すことを確認します。')
-    const issue = { id: 'I_7', body: '本文', blockedBy: { totalCount: 1, nodes: [blockerNode(5, 'CLOSED')] } }
-    const result = await step('readReferences を呼ぶ', async () => await readReferences(graphqlData('GetIssueBlockedByReferences', { repository: { issue } })))
-    await step('結果を確かめる', () => {
-      expect(result).toEqual({
-        id: 'I_7',
-        body: '本文',
-        blockedBy: { kind: 'ok', total: 1, issues: [{ id: 'I_5', number: 5, repository: { owner: 'acme', repository: 'demo' }, state: 'CLOSED' }] },
-      })
-    })
-  })
-
-  it('blockedBy が null の場合は、read-failed にする', async () => {
-    await explains('`getIssueBlockedByReferences` のテストです。`blockedBy` が `null` の場合に、`read-failed` になることを確認します。')
-    const issue = { id: 'I_7', body: '', blockedBy: JSON_NULL }
-    const result = await step('readReferences を呼ぶ', async () => await readReferences(graphqlData('GetIssueBlockedByReferences', { repository: { issue } })))
-    await step('結果を確かめる', () => {
-      expect(result.blockedBy).toEqual({ kind: 'read-failed', reason: 'blockedBy is null' })
-    })
-  })
-
-  it('nodes に null が含まれる場合は、read-failed にする', async () => {
-    await explains('`getIssueBlockedByReferences` のテストです。`nodes` に `null` が含まれる場合は、`read-failed` になることを確認します。')
-    const issue = { id: 'I_7', body: '', blockedBy: { totalCount: 1, nodes: [JSON_NULL] } }
-    const result = await step('readReferences を呼ぶ', async () => await readReferences(graphqlData('GetIssueBlockedByReferences', { repository: { issue } })))
-    await step('結果を確かめる', () => {
-      expect(result.blockedBy).toEqual({ kind: 'read-failed', reason: 'blockedBy has a null node' })
-    })
-  })
-
-  it('blockedBy の下の部分エラーは、例外にせず read-failed で返す', async () => {
-    await explains('`getIssueBlockedByReferences` の部分エラーのテストです。`blockedBy` の下の部分エラーの場合に、例外にせず `read-failed` で返すことを確認します。')
-    const errors = [{ message: 'forbidden', path: ['repository', 'issue', 'blockedBy', 'nodes', 0] }]
-    const issue = { id: 'I_7', body: '', blockedBy: JSON_NULL }
-    const result = await step('readReferences を呼ぶ', async () => await readReferences({ match: { operation: 'GetIssueBlockedByReferences' }, respond: { status: 200, body: { data: { repository: { issue } }, errors } }, times: 1 }))
-    await step('結果を確かめる', () => {
-      expect(result.blockedBy).toEqual({ kind: 'read-failed', reason: 'blockedBy could not be read: forbidden' })
-    })
-  })
-
-  it('依存関係に対応しない GHES では、前提の参照の取得で DependenciesUnsupportedError が発生する', async () => {
-    await explains('`getIssueBlockedByReferences` の GHES 対応のテストです。依存関係に対応しない GHES の場合に、`DependenciesUnsupportedError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([graphqlError('GetIssueBlockedByReferences', 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'')])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.getIssueBlockedByReferences('acme', 'demo', 7))).toBeInstanceOf(DependenciesUnsupportedError)
-    })
-  })
-})
-
-function blockedByOf(...numbers: readonly number[]): Readonly<Record<string, unknown>> {
-  return { totalCount: numbers.length, nodes: numbers.map(number => blockerNode(number)) }
-}
-
-function nodesRule(chunk: readonly string[]): ResponseRule {
-  return {
-    match: { operation: 'GetBlockedByOfNodes', variables: { ids: chunk, blockedByFirst: 50 } },
-    respond: { status: 200, body: { data: { nodes: chunk.map(id => ({ id, blockedBy: blockedByOf() })) } } },
-    times: 1,
-  }
-}
-
-describe('getBlockedByOfNodes', () => {
-  it('Node ID ごとの前提を取り出し、Issue でない Node と部分エラーの Node は、その Node だけ read-failed にする', async () => {
-    await explains('`getBlockedByOfNodes` のテストです。Node ID ごとの前提を取り出し、Issue でない Node と部分エラーの Node だけが `read-failed` になることを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const nodes = [{ id: 'A', blockedBy: blockedByOf(1) }, JSON_NULL, { id: 'C', blockedBy: JSON_NULL }, { id: 'X', blockedBy: blockedByOf() }]
-      const errors = [{ message: 'denied', path: ['nodes', 2, 'blockedBy'] }]
-      const { client } = await startClient([{ match: { operation: 'GetBlockedByOfNodes' }, respond: { status: 200, body: { data: { nodes }, errors } }, times: 1 }])
-      return { client }
-    })
-
-    const result = await step('getBlockedByOfNodes を呼ぶ', async () => await client.getBlockedByOfNodes(['A', 'B', 'C', 'D']))
-    await step('結果を確かめる', () => {
-      expect(result.get('A')).toMatchObject({ kind: 'ok', total: 1 })
-      expect(result.get('B')).toEqual({ kind: 'read-failed', reason: 'the node is not an Issue or was not found' })
-      expect(result.get('C')).toEqual({ kind: 'read-failed', reason: 'blockedBy could not be read: denied' })
-      expect(result.get('D')).toEqual({ kind: 'read-failed', reason: 'the node is not an Issue or was not found' })
-    })
-  })
-
-  it('101 件の Node ID は、100 件と 1 件の 2 回に分けて読み取る', async () => {
-    await explains('`getBlockedByOfNodes` のテストです。101 件の Node ID を渡した場合に、100 件と 1 件の 2 回に分けて読み取り、全件の結果を返すことを確認します。')
-    const { ids, client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const ids = Array.from({ length: 101 }, (_, index) => `N${String(index)}`)
-      const { client, server } = await startClient([nodesRule(ids.slice(0, 100)), nodesRule(ids.slice(100))])
-      return { ids, client, server }
-    })
-
-    const result = await step('getBlockedByOfNodes を呼ぶ', async () => await client.getBlockedByOfNodes(ids))
-    await step('送った要求を確かめる', () => {
-      expect(result.size).toBe(101)
-      expect(graphqlRequests(server)).toHaveLength(2)
-    })
-  })
-
-  it('依存関係に対応しない GHES では、Node ID ごとの前提の取得で DependenciesUnsupportedError が発生する', async () => {
-    await explains('`getBlockedByOfNodes` の GHES 対応のテストです。依存関係に対応しない GHES の場合に、`DependenciesUnsupportedError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([graphqlError('GetBlockedByOfNodes', 'Field \'blockedBy\' doesn\'t exist on type \'Issue\'')])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.getBlockedByOfNodes(['A']))).toBeInstanceOf(DependenciesUnsupportedError)
-    })
-  })
-})
+const BLOCKER_NODE = { id: 'I_8', number: 8, state: 'OPEN', repository: { owner: { login: 'acme' }, name: 'demo' } }
 
 describe('getIssueBlockingReferences', () => {
   it('その Issue を前提としている Issue の参照（別のリポジトリのものを含む）と件数を取り出す', async () => {
     await explains('`getIssueBlockingReferences` のテストです。その Issue を前提としている Issue の参照（別のリポジトリのものを含む）と件数を取り出すことを確認します。')
     const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
       const other = { id: 'I_9', number: 9, state: 'OPEN', repository: { owner: { login: 'acme' }, name: 'other' } }
-      const issue = { blocking: { totalCount: 2, nodes: [blockerNode(8), other] } }
+      const issue = { blocking: { totalCount: 2, nodes: [BLOCKER_NODE, other] } }
       const { client, server } = await startClient([graphqlData('GetIssueBlockingReferences', { repository: { issue } })])
       return { client, server }
     })
@@ -1702,7 +1291,7 @@ describe('getIssueBlockingReferences', () => {
   it('取得した件数より全体の件数が多い場合は、total に全体の件数を返す', async () => {
     await explains('`getIssueBlockingReferences` のテストです。全体の件数が取得した件数より多い場合に、`total` に全体の件数を返すことを確認します。')
     const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const issue = { blocking: { totalCount: 3, nodes: [blockerNode(8)] } }
+      const issue = { blocking: { totalCount: 3, nodes: [BLOCKER_NODE] } }
       const { client } = await startClient([graphqlData('GetIssueBlockingReferences', { repository: { issue } })])
       return { client }
     })

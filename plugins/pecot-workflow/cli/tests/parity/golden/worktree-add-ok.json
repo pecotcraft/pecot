@@ -9,7 +9,6 @@
     "setupFailed": false
   },
   "stderr": "",
-  "requests": [],
   "files": {
     "../../wt1/demo/.env.local": "TOKEN=sample\n",
     "../../wt1/demo/.gitignore": ".pecot/\n.env.local\n",

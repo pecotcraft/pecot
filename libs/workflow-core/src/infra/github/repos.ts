@@ -161,20 +161,6 @@ export class ReposApi extends GitHubClientBase {
   }
 
   /**
-  タグが指す commit の SHA（REST）。注釈付きのタグは git/tags で commit まで辿る。見つからなければ GitHubNotFoundError
-  */
-  async getTagCommitSha(owner: string, repository: string, tag: string): Promise<string> {
-    let target = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/git/ref/tags/${encodePath(tag)}`), 'object')
-    // タグを指すタグもあるので、commit に着くまで辿る
-    for (let depth = 0; depth < 5 && jsonField(target, 'type') === 'tag'; depth += 1) {
-      const sha = requireString(jsonField(target, 'sha'), 'object.sha')
-      target = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/git/tags/${encodePathSegment(sha)}`), 'object')
-    }
-    if (jsonField(target, 'type') !== 'commit') throw new GitHubAPIError(`tag ${tag} does not point to a commit`)
-    return requireString(jsonField(target, 'sha'), 'object.sha')
-  }
-
-  /**
   head_sha の workflow の run の id と conclusion。終わっていない run の conclusion は空。先頭の 100 件だけ読む
   */
   async listWorkflowRunConclusions(owner: string, repository: string, headSha: string): Promise<readonly WorkflowRunConclusion[]> {
@@ -219,14 +205,6 @@ export class ReposApi extends GitHubClientBase {
   async getMergeBase(owner: string, repository: string, base: string, head: string): Promise<string> {
     const comparison = await this.restJson('GET', `${repositoryPath(owner, repository)}/compare/${encodePath(base)}...${encodePath(head)}`, { params: { per_page: 1 } })
     return requireString(jsonField(jsonField(comparison, 'merge_base_commit'), 'sha'), 'merge_base_commit.sha')
-  }
-
-  /**
-  ブランチを削除する。保護されたブランチなどは GitHubAPIError
-  */
-  async deleteBranch(owner: string, repository: string, branch: string): Promise<void> {
-    const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/git/refs/heads/${encodePath(branch)}`)
-    if (!response.isSuccess) this.handleHttpError(response)
   }
 
   /**
@@ -281,14 +259,6 @@ export class ReposApi extends GitHubClientBase {
     const repositoryInfo = await this.restJson('GET', repositoryPath(owner, repository))
     const type = jsonField(jsonField(repositoryInfo, 'owner'), 'type')
     return typeof type === 'string' ? type : undefined
-  }
-
-  /**
-  リポジトリの既定ブランチ名
-  */
-  async getRepositoryDefaultBranch(owner: string, repository: string): Promise<string> {
-    const settings = await this.getRepositorySettings(owner, repository)
-    return settings.defaultBranch
   }
 
   /**

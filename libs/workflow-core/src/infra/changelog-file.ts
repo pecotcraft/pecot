@@ -4,7 +4,7 @@
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
-import { CHANGELOG_FALLBACK_FILES, changelogFileName, changelogNotFoundMessage, ChangelogFileNotFoundError, DEFAULT_CHANGELOG_FILE, extractVersionReleaseNotes, getLatestVersion } from '../domain/changelog.js'
+import { CHANGELOG_FALLBACK_FILES, DEFAULT_CHANGELOG_FILE } from '../domain/changelog.js'
 import { readTextFile } from './text-file.js'
 
 /**
@@ -25,24 +25,4 @@ export function resolveChangelogPath(gitRoot: string, changelogFile?: string): s
 */
 export function readChangelogIfExists(changelogPath: string): string | undefined {
   return existsSync(changelogPath) ? readTextFile(changelogPath) : undefined
-}
-
-function readChangelog(changelogPath: string): string {
-  const content = readChangelogIfExists(changelogPath)
-  if (content === undefined) throw new ChangelogFileNotFoundError(changelogNotFoundMessage(changelogPath))
-  return content
-}
-
-/**
-ファイルから最新バージョンを取る。ファイルが無ければ ChangelogFileNotFoundError
-*/
-export function readLatestVersionFromFile(changelogPath: string): string {
-  return getLatestVersion(readChangelog(changelogPath), changelogFileName(changelogPath))
-}
-
-/**
-ファイルから指定バージョンのリリースノートを抽出する。ファイルが無ければ ChangelogFileNotFoundError
-*/
-export function extractReleaseNotesFromFile(changelogPath: string, version: string): string {
-  return extractVersionReleaseNotes(readChangelog(changelogPath), version, changelogFileName(changelogPath))
 }

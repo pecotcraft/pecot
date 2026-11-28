@@ -41,9 +41,16 @@ describe('scanBehaviorIds', () => {
     })
   })
 
-  it('桁が多い ID や、前後に文字が付いた ID は、拾わない', async () => {
-    await explains('テストのソースから振る舞いの項目の ID を探す `scanBehaviorIds` のテストです。`PT-X-011` や `xPW-A-01` のように、桁が多い ID と前後に文字が付いた ID だけを含むソースの場合に、空の配列を返すことを確認します。')
-    const text = 'PT-X-011 xPW-A-01 a_PW-A-01 -PW-A-01 PW-A-01x PW-A-01_ PW-A-01-\n'
+  it('番号が 3 桁の ID も、2 桁の ID と同じく拾う', async () => {
+    await explains('テストのソースから振る舞いの項目の ID を探す `scanBehaviorIds` のテストです。`PA-TRACKER-SYNC-100` のように番号が 3 桁の ID を含むソースの場合に、その ID を番号の桁を欠かさずに返すことを確認します。')
+    stepSync('ID を走査して比べる', () => {
+      expect(scanBehaviorIds({ path: 'a.test.ts', text: `verifies(ctx, 'PA-TRACKER-SYNC-100')\n` })).toEqual([{ id: 'PA-TRACKER-SYNC-100', line: 1 }])
+    })
+  })
+
+  it('桁が足りない ID や、前後に文字が付いた ID は、拾わない', async () => {
+    await explains('テストのソースから振る舞いの項目の ID を探す `scanBehaviorIds` のテストです。`PT-X-1` や `xPW-A-01` のように、番号が 1 桁の ID と前後に文字が付いた ID だけを含むソースの場合に、空の配列を返すことを確認します。')
+    const text = 'PT-X-1 xPW-A-01 a_PW-A-01 -PW-A-01 PW-A-01x PW-A-01_ PW-A-01- PW-A-011x\n'
     stepSync('ID を走査して比べる', () => {
       expect(scanBehaviorIds({ path: 'a.test.ts', text })).toEqual([])
     })

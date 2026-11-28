@@ -22,6 +22,7 @@
   "dependencies": {
     "@actions/core": "^3.0.1",
     "@pecot/workflow-core": "workspace:@pecot/workflow-core-src@*",
+    "graphql": "^17.1.0",
     "yaml": "^2.9.1",
     "zod": "^4.6.7"
   },

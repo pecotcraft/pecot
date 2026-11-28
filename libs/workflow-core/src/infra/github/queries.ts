@@ -107,108 +107,12 @@ export const QUERY_LIST_PROJECT_ITEMS = listProjectItemsQuery('', ISSUE_READINES
 // 上の一覧から、Issue の依存関係に対応しない GHES で通らないフィールドを除いたもの
 export const QUERY_LIST_PROJECT_ITEMS_LEGACY = listProjectItemsQuery('ListProjectItemsLegacy', '')
 
-// プロジェクトアイテム一覧取得（フィルタリング対応）
-export const QUERY_LIST_PROJECT_ITEMS_FILTERED = `query ($projectId: ID!, $cursor: String, $filterQuery: String) {
-  node(id: $projectId) {
-    ... on ProjectV2 {
-      items(first: 100, after: $cursor, query: $filterQuery) {
-        nodes {
-          id
-          updatedAt
-          fieldValues(first: 10) {
-            nodes {
-              ... on ProjectV2ItemFieldSingleSelectValue {
-                field {
-                  ... on ProjectV2SingleSelectField {
-                    id
-                    name
-                  }
-                }
-                name
-              }
-            }
-          }
-          content {
-            ... on Issue {
-              id
-              number
-              title
-              state
-              url
-              labels(first: 10) {
-                nodes {
-                  name
-                }
-              }
-              repository {
-                owner {
-                  login
-                }
-                name
-              }
-            }
-            ... on PullRequest {
-              id
-              number
-              title
-              state
-              url
-              repository {
-                owner {
-                  login
-                }
-                name
-              }
-            }
-          }
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-    }
-  }
-}`
-
 // Issue Node ID・タイトル取得
 export const QUERY_GET_ISSUE_NODE_ID = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
       id
       title
-    }
-  }
-}`
-
-// リンクリポジトリ取得（user版）
-export const QUERY_GET_LINKED_REPOSITORIES_USER = `query ($owner: String!, $projectNumber: Int!) {
-  user(login: $owner) {
-    projectV2(number: $projectNumber) {
-      repositories(first: 100) {
-        nodes {
-          owner {
-            login
-          }
-          name
-        }
-      }
-    }
-  }
-}`
-
-// リンクリポジトリ取得（organization版）
-export const QUERY_GET_LINKED_REPOSITORIES_ORG = `query ($owner: String!, $projectNumber: Int!) {
-  organization(login: $owner) {
-    projectV2(number: $projectNumber) {
-      repositories(first: 100) {
-        nodes {
-          owner {
-            login
-          }
-          name
-        }
-      }
     }
   }
 }`
@@ -275,32 +179,10 @@ export const MUTATION_UPDATE_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $i
   }
 }`
 
-// プロジェクトアイテムのフィールドに値を書く。value は ProjectV2FieldValue（種類ごとに 1 つのキー）
-export const MUTATION_UPDATE_PROJECT_ITEM_FIELD_VALUE = `mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
-  updateProjectV2ItemFieldValue(
-    input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value }
-  ) {
-    projectV2Item {
-      id
-    }
-  }
-}`
-
 // プロジェクトアイテム削除
 export const MUTATION_DELETE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
   deleteProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
     deletedItemId
-  }
-}`
-
-// プロジェクトアイテムのフィールドの値を消す
-export const MUTATION_CLEAR_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!) {
-  clearProjectV2ItemFieldValue(
-    input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId }
-  ) {
-    projectV2Item {
-      id
-    }
   }
 }`
 
@@ -400,34 +282,6 @@ export const QUERY_GET_ISSUE_PROJECT_ITEMS = `query ($owner: String!, $repo: Str
             }
           }
         }
-      }
-    }
-  }
-}`
-
-// プロジェクト一覧取得（user版）
-export const QUERY_LIST_PROJECTS_USER = `query ($owner: String!, $first: Int!) {
-  user(login: $owner) {
-    projectsV2(first: $first) {
-      nodes {
-        number
-        title
-        url
-        id
-      }
-    }
-  }
-}`
-
-// プロジェクト一覧取得（organization版）
-export const QUERY_LIST_PROJECTS_ORG = `query ($owner: String!, $first: Int!) {
-  organization(login: $owner) {
-    projectsV2(first: $first) {
-      nodes {
-        number
-        title
-        url
-        id
       }
     }
   }
@@ -568,32 +422,6 @@ export const MUTATION_UPDATE_PROJECT_FIELD = `mutation ($fieldId: ID!, $options:
   }
 }`
 
-// ユーザーNode ID取得
-export const QUERY_GET_USER_NODE_ID = `query ($login: String!) {
-  user(login: $login) {
-    id
-  }
-}`
-
-// 組織Node ID取得
-export const QUERY_GET_ORG_NODE_ID = `query ($login: String!) {
-  organization(login: $login) {
-    id
-  }
-}`
-
-// プロジェクト作成
-export const MUTATION_CREATE_PROJECT = `mutation ($ownerId: ID!, $title: String!) {
-  createProjectV2(input: { ownerId: $ownerId, title: $title }) {
-    projectV2 {
-      id
-      number
-      title
-      url
-    }
-  }
-}`
-
 // Issue 種別判定用クエリ（軽量・Epic 判定専用）
 // Phase2: issueType.name == "Epic" を一次判定
 export const QUERY_GET_ISSUE_KIND = `query ($owner: String!, $repo: String!, $number: Int!) {
@@ -727,39 +555,6 @@ export const QUERY_GET_SUB_ISSUES_PAGE = `query ($owner: String!, $repo: String!
   }
 }`
 
-// PR詳細取得（スリム版 - 必要なフィールドのみ）
-export const QUERY_GET_PULL_REQUEST_SLIM = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      title
-      body
-      headRefName
-      baseRefName
-      isDraft
-      mergeable
-      comments {
-        totalCount
-      }
-      closingIssuesReferences(first: 10) {
-        nodes {
-          number
-          title
-        }
-      }
-      reviews(first: 10) {
-        nodes {
-          state
-          author {
-            login
-          }
-        }
-      }
-    }
-  }
-}`
-
 // session finish が読む PR。closing issues のリポと、既定ブランチの名前を足す
 export const QUERY_GET_PULL_REQUEST_FOR_FINISH = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
@@ -784,86 +579,6 @@ export const QUERY_GET_PULL_REQUEST_FOR_FINISH = `query ($owner: String!, $repo:
       baseRepository {
         defaultBranchRef {
           name
-        }
-      }
-    }
-  }
-}`
-
-// pr merge が読む PR の状態。GetPullRequestSlim を変えずに、マージの判断に要る項目だけを読む
-export const QUERY_GET_PULL_REQUEST_FOR_MERGE = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      isDraft
-      baseRefName
-      headRefOid
-      isMergeQueueEnabled
-      isInMergeQueue
-    }
-  }
-}`
-
-// 上のクエリから merge queue の項目を除いたもの。その項目を持たない GHES で読み直すのに使う
-export const QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      isDraft
-      baseRefName
-      headRefOid
-    }
-  }
-}`
-
-// PR詳細取得（レビュー詳細付き - --reviews オプション用）
-export const QUERY_GET_PULL_REQUEST_WITH_REVIEWS = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      title
-      body
-      headRefName
-      baseRefName
-      isDraft
-      mergeable
-      comments {
-        totalCount
-      }
-      closingIssuesReferences(first: 10) {
-        nodes {
-          number
-          title
-        }
-      }
-      reviews(first: 20) {
-        nodes {
-          state
-          body
-          author {
-            login
-          }
-          submittedAt
-        }
-      }
-      reviewThreads(first: 50) {
-        nodes {
-          isResolved
-          path
-          line
-          comments(first: 10) {
-            nodes {
-              author {
-                login
-              }
-              body
-              createdAt
-              url
-            }
-          }
         }
       }
     }
@@ -947,13 +662,6 @@ export const QUERY_LIST_OPEN_PULL_REQUESTS = `query ($owner: String!, $repo: Str
         }
       }
     }
-  }
-}`
-
-// 前提（blocked by）を付ける入力の型があるか。対応しない GHES（3.19 より前）では null になる
-export const QUERY_HAS_ADD_BLOCKED_BY_INPUT = `{
-  __type(name: "AddBlockedByInput") {
-    name
   }
 }`
 
@@ -1116,27 +824,6 @@ export const QUERY_LIST_PULL_REQUESTS_BY_HEAD = `query ($owner: String!, $repo: 
 
 ${PULL_REQUEST_FIELDS}`
 
-// base のブランチ名で開いている PR を引く（古い順）
-export const QUERY_LIST_PULL_REQUESTS_BY_BASE = `query ($owner: String!, $repo: String!, $baseRefName: String!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequests(
-      baseRefName: $baseRefName
-      states: [OPEN]
-      first: 20
-      orderBy: { field: CREATED_AT, direction: ASC }
-    ) {
-      pageInfo {
-        hasNextPage
-      }
-      nodes {
-        ...PullRequestFields
-      }
-    }
-  }
-}
-
-${PULL_REQUEST_FIELDS}`
-
 const BLOCKED_BY_REFERENCE_FIELDS = `fragment BlockedByReferenceFields on Issue {
   id
   number
@@ -1148,41 +835,6 @@ const BLOCKED_BY_REFERENCE_FIELDS = `fragment BlockedByReferenceFields on Issue 
     name
   }
 }`
-
-// 前提の追加・削除の前の読み取り。判定の読み取りより軽く、本文と前提の参照だけを取る
-export const QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES = `query ($owner: String!, $repo: String!, $number: Int!, $blockedByFirst: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      id
-      body
-      blockedBy(first: $blockedByFirst) {
-        totalCount
-        nodes {
-          ...BlockedByReferenceFields
-        }
-      }
-    }
-  }
-}
-
-${BLOCKED_BY_REFERENCE_FIELDS}`
-
-// 輪をたどる 1 段分。node ID の並びのそれぞれの前提を、まとめて読む
-export const QUERY_GET_BLOCKED_BY_OF_NODES = `query ($ids: [ID!]!, $blockedByFirst: Int!) {
-  nodes(ids: $ids) {
-    ... on Issue {
-      id
-      blockedBy(first: $blockedByFirst) {
-        totalCount
-        nodes {
-          ...BlockedByReferenceFields
-        }
-      }
-    }
-  }
-}
-
-${BLOCKED_BY_REFERENCE_FIELDS}`
 
 // その Issue を前提にしている Issue（blocking）の参照。PR を作った後に、待つ側の Issue を絞るために読む
 export const QUERY_GET_ISSUE_BLOCKING_REFERENCES = `query ($owner: String!, $repo: String!, $number: Int!, $blockingFirst: Int!) {
@@ -1234,315 +886,6 @@ export const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String
             }
           }
         }
-      }
-    }
-  }
-}`
-
-// Issue のボードの Item の pecot-lane の値。親の Epic の値を引き継ぐときに読む
-export const QUERY_GET_ISSUE_LANE = `query ($owner: String!, $repo: String!, $number: Int!, $laneFieldName: String!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      projectItems(first: 20, includeArchived: false) {
-        nodes {
-          project {
-            id
-          }
-          lane: fieldValueByName(name: $laneFieldName) {
-            ... on ProjectV2ItemFieldSingleSelectValue {
-              name
-            }
-          }
-        }
-      }
-    }
-  }
-}`
-
-// Issue の機能を読むクエリ。hasIssueFields が false の版は、Issue fields・Issue type を持たない GHES 向け
-function projectFieldFragment(hasIssueFields: boolean): string {
-  return `fragment ProjectFieldFields on ProjectV2FieldConfiguration {
-  ... on ProjectV2FieldCommon {
-    id
-    name
-    dataType${hasIssueFields ? '\n    isIssueField' : ''}
-  }
-}`
-}
-
-const ISSUE_FIELD_FIELDS = `fragment IssueFieldFields on IssueFields {
-  ... on IssueFieldCommon {
-    name
-    dataType
-  }
-}`
-
-// 値の型それぞれに field を読む。知らない型は __typename と、共通の interface を実装していれば field で見分ける
-const PROJECT_FIELD_VALUE_TYPES: readonly (readonly [string, string])[] = [
-  ['ProjectV2ItemFieldDateValue', 'date'],
-  ['ProjectV2ItemFieldIterationValue', 'title'],
-  ['ProjectV2ItemFieldLabelValue', ''],
-  ['ProjectV2ItemFieldMilestoneValue', ''],
-  ['ProjectV2ItemFieldMultiSelectValue', 'options {\n                  name\n                }'],
-  ['ProjectV2ItemFieldNumberValue', 'number'],
-  ['ProjectV2ItemFieldPullRequestValue', ''],
-  ['ProjectV2ItemFieldRepositoryValue', ''],
-  ['ProjectV2ItemFieldReviewerValue', ''],
-  ['ProjectV2ItemFieldSingleSelectValue', 'name'],
-  ['ProjectV2ItemFieldTextValue', 'text'],
-  ['ProjectV2ItemFieldUserValue', ''],
-  ['ProjectV2ItemIssueFieldValue', ''],
-]
-
-// Issue fields と同じ頃に入った型。Issue fields を持たない GHES の版のクエリには書かない
-const TYPES_WITH_ISSUE_FIELDS: ReadonlySet<string> = new Set(['ProjectV2ItemIssueFieldValue', 'ProjectV2ItemFieldMultiSelectValue'])
-
-function projectFieldValueSelections(hasIssueFields: boolean): string {
-  return PROJECT_FIELD_VALUE_TYPES
-    .filter(([type]) => hasIssueFields || !TYPES_WITH_ISSUE_FIELDS.has(type))
-    .map(([type, value]) => `
-              ... on ${type} {${value === '' ? '' : `\n                ${value}`}
-                field {
-                  ...ProjectFieldFields
-                }
-              }`)
-    .join('')
-}
-
-const ISSUE_FIELD_VALUES = `
-      issueType {
-        name
-      }
-      issueFieldValues(first: 100) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          __typename
-          ... on IssueFieldValueCommon {
-            field {
-              ...IssueFieldFields
-            }
-          }
-          ... on IssueFieldDateValue {
-            value
-          }
-          ... on IssueFieldMultiSelectValue {
-            options {
-              name
-            }
-          }
-          ... on IssueFieldNumberValue {
-            numberValue: value
-          }
-          ... on IssueFieldSingleSelectValue {
-            name
-          }
-          ... on IssueFieldTextValue {
-            value
-          }
-        }
-      }`
-
-function getIssueAttributesQuery(name: string, hasIssueFields: boolean): string {
-  return `query ${name}($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      assignees(first: 100) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          login
-        }
-      }
-      milestone {
-        title
-      }
-      labels(first: 100) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          name
-        }
-      }${hasIssueFields ? ISSUE_FIELD_VALUES : ''}
-      projectItems(first: 100, includeArchived: false) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          id
-          project {
-            id
-          }
-          fieldValues(first: 100) {
-            pageInfo {
-              hasNextPage
-            }
-            nodes {
-              __typename
-              ... on ProjectV2ItemFieldValueCommon {
-                field {
-                  ...ProjectFieldFields
-                }
-              }${projectFieldValueSelections(hasIssueFields)}
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-${projectFieldFragment(hasIssueFields)}${hasIssueFields ? `\n\n${ISSUE_FIELD_FIELDS}` : ''}`
-}
-
-// Issue 1 件の、値の入っている機能（担当者・マイルストーン・ラベル・Issue type・Issue fields・ボードのフィールド）
-export const QUERY_GET_ISSUE_ATTRIBUTES = getIssueAttributesQuery('', true)
-
-// 上のクエリから、Issue fields と Issue type を除いたもの
-export const QUERY_GET_ISSUE_ATTRIBUTES_WITHOUT_ISSUE_FIELDS = getIssueAttributesQuery('GetIssueAttributesWithoutIssueFields', false)
-
-const ISSUE_FIELD_DEFINITIONS = `
-    issueTypes(first: 100) {
-      pageInfo {
-        hasNextPage
-      }
-      nodes {
-        name
-      }
-    }
-    issueFields(first: 100) {
-      pageInfo {
-        hasNextPage
-      }
-      nodes {
-        ... on IssueFieldCommon {
-          fullDatabaseId
-          name
-          dataType
-        }
-        ... on IssueFieldMultiSelect {
-          options {
-            name
-          }
-        }
-        ... on IssueFieldSingleSelect {
-          options {
-            name
-          }
-        }
-      }
-    }`
-
-const MULTI_SELECT_FIELD_OPTIONS = `
-          ... on ProjectV2MultiSelectField {
-            multiSelectOptions {
-              id
-              name
-            }
-          }`
-
-function getIssueAttributeDefinitionsQuery(name: string, hasIssueFields: boolean): string {
-  return `query ${name}($owner: String!, $repo: String!, $projectId: ID!) {
-  project: node(id: $projectId) {
-    ... on ProjectV2 {
-      fields(first: 100) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          ...ProjectFieldFields
-          ... on ProjectV2IterationField {
-            configuration {
-              iterations {
-                id
-                title
-                startDate
-              }
-              completedIterations {
-                id
-                title
-                startDate
-              }
-            }
-          }${hasIssueFields ? MULTI_SELECT_FIELD_OPTIONS : ''}
-          ... on ProjectV2SingleSelectField {
-            options {
-              id
-              name
-            }
-          }
-        }
-      }
-    }
-  }
-  repository(owner: $owner, name: $repo) {${hasIssueFields ? ISSUE_FIELD_DEFINITIONS : ''}
-    labels(first: 100) {
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-      nodes {
-        name
-      }
-    }
-    milestones(first: 100, states: [OPEN]) {
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-      nodes {
-        number
-        title
-      }
-    }
-  }
-}
-
-${projectFieldFragment(hasIssueFields)}`
-}
-
-// 設定のボードのフィールドと、リポの Issue fields・Issue type・ラベル・開いたマイルストーンの定義
-export const QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS = getIssueAttributeDefinitionsQuery('', true)
-
-// 上のクエリから、Issue fields と Issue type を除いたもの
-export const QUERY_GET_ISSUE_ATTRIBUTE_DEFINITIONS_WITHOUT_ISSUE_FIELDS = getIssueAttributeDefinitionsQuery('GetIssueAttributeDefinitionsWithoutIssueFields', false)
-
-// Issue fields の型があるか。持たない GHES では null になる
-export const QUERY_HAS_ISSUE_FIELDS = `query HasIssueFields {
-  __type(name: "IssueFields") {
-    name
-  }
-}`
-
-// リポのラベルの続きのページ
-export const QUERY_GET_REPOSITORY_LABELS_PAGE = `query ($owner: String!, $repo: String!, $after: String!) {
-  repository(owner: $owner, name: $repo) {
-    labels(first: 100, after: $after) {
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-      nodes {
-        name
-      }
-    }
-  }
-}`
-
-// リポの開いたマイルストーンの続きのページ
-export const QUERY_GET_REPOSITORY_MILESTONES_PAGE = `query ($owner: String!, $repo: String!, $after: String!) {
-  repository(owner: $owner, name: $repo) {
-    milestones(first: 100, after: $after, states: [OPEN]) {
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-      nodes {
-        number
-        title
       }
     }
   }

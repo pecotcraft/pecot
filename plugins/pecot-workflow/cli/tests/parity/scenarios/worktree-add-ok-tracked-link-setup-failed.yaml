@@ -105,4 +105,3 @@ setup:
 
         # Nx ビルド状態（version-plans は残すので .nx/ 丸ごとは除外しない）
         .nx/workspace-data/
-github: []

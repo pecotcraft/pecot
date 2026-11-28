@@ -1,33 +1,16 @@
 // Issue 操作の API。cli/core/github/issues.py の移植。
 // 返す値のキー名は、Python の辞書と同じ snake_case にする（CLI の JSON 出力がそのまま使う）。
 
-import type { BuiltinWrite } from '../../domain/attributes.js'
 import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
-import type { BlockedByReference, BlockedByReferences, IssueBlockedByReferences, IssuePrerequisitesReadout, PrerequisiteFieldNames, TargetIssueReadout } from '../../domain/issue-readout.js'
+import type { BlockedByReference, BlockedByReferences, IssuePrerequisitesReadout, PrerequisiteFieldNames, TargetIssueReadout } from '../../domain/issue-readout.js'
 import { JSON_NULL } from '../../domain/json-null.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import type { IssueCommentReading, IssueCommentRecord } from '../../domain/review-finish.js'
 import type { GraphqlOutcome } from './client.js'
 import { DependenciesUnsupportedError, GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
 import { asArray, asObject, isTruthy, numberOrNull, requireNumber, requireString, requireValue, stringOrNull, subIssuesTotal, truthyNodes } from './payload.js'
-import {
-  MUTATION_ADD_BLOCKED_BY,
-  MUTATION_ADD_SUB_ISSUE,
-  MUTATION_REMOVE_BLOCKED_BY,
-  QUERY_GET_BLOCKED_BY_OF_NODES,
-  QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES,
-  QUERY_GET_ISSUE_BLOCKING_REFERENCES,
-  QUERY_GET_ISSUE_KIND,
-  QUERY_HAS_ADD_BLOCKED_BY_INPUT,
-  QUERY_GET_ISSUE_KIND_PHASE1,
-  QUERY_GET_ISSUE_LINKED_BRANCHES,
-  QUERY_GET_ISSUE_NODE_ID,
-  QUERY_GET_ISSUE_PREREQUISITES,
-  QUERY_GET_ISSUE_SLIM,
-  QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY,
-  QUERY_GET_SUB_ISSUES_PAGE,
-} from './queries.js'
+import { MUTATION_ADD_BLOCKED_BY, MUTATION_ADD_SUB_ISSUE, MUTATION_REMOVE_BLOCKED_BY, QUERY_GET_ISSUE_BLOCKING_REFERENCES, QUERY_GET_ISSUE_KIND, QUERY_GET_ISSUE_KIND_PHASE1, QUERY_GET_ISSUE_LINKED_BRANCHES, QUERY_GET_ISSUE_NODE_ID, QUERY_GET_ISSUE_PREREQUISITES, QUERY_GET_ISSUE_SLIM, QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY } from './queries.js'
 import { readBlockedBy, readIssue, readIssueReference } from './readout.js'
 import { ProjectsApi } from './projects.js'
 import { encodePathSegment, repositoryPath } from './rest-path.js'
@@ -109,13 +92,6 @@ export interface IssueSlim {
 
 const DEFAULT_COMMENT_LIMIT = 5
 
-const NO_CONTENT = 204
-
-const NOT_FOUND = 404
-
-// POST .../issue-field-values の issue_field_values の maxItems
-const MAX_ISSUE_FIELD_VALUES_PER_REQUEST = 25
-
 /**
 起票の要求に足す組み込みの機能。milestone は番号、type は Issue type の名前
 */
@@ -123,50 +99,6 @@ export interface CreateIssueExtras {
   readonly assignees?: readonly string[]
   readonly milestone?: number
   readonly type?: string
-}
-
-/**
-Issue field の値 1 つ。fieldId は REST の数の ID、選択肢は名前で送る
-*/
-export interface IssueFieldValueWrite {
-  readonly fieldId: number
-  readonly value: string | number | readonly string[]
-}
-
-/**
-GraphQL の fullDatabaseId（BigInt の文字列）を、REST の issue_field_id に直す。安全な整数でなければ undefined
-*/
-export function issueFieldRestId(fieldId: string): number | undefined {
-  if (!/^[1-9]\d*$/u.test(fieldId)) return undefined
-  const id = Number(fieldId)
-  return Number.isSafeInteger(id) ? id : undefined
-}
-
-/**
-REST の Issue の応答に入っている組み込みの機能の値。頼んだ値と比べ、GitHub が捨てた値を見つけるのに使う
-*/
-export interface IssueBuiltinValues {
-  readonly assignees: readonly string[]
-  readonly labels: readonly string[]
-  readonly milestone: { readonly title: string, readonly number: number } | undefined
-  readonly type: string | undefined
-}
-
-function stringsAt(list: JsonValue | undefined, key: string): readonly string[] {
-  return asArray(list).map(item => typeof item === 'string' ? item : jsonField(item, key)).filter(value => typeof value === 'string')
-}
-
-export function builtinValuesOfIssue(issue: JsonObject): IssueBuiltinValues {
-  const milestone = issue['milestone']
-  const title = jsonField(milestone, 'title')
-  const number = jsonField(milestone, 'number')
-  const type = jsonField(issue['type'], 'name')
-  return {
-    assignees: stringsAt(issue['assignees'], 'login'),
-    labels: stringsAt(issue['labels'], 'name'),
-    milestone: typeof title === 'string' && typeof number === 'number' ? { title, number } : undefined,
-    type: typeof type === 'string' ? type : undefined,
-  }
 }
 
 /**
@@ -187,19 +119,9 @@ function asDependenciesError(error: unknown): unknown {
   return isSchemaError(error) && /blockedBy|blocking|issueType/iu.test(error.message) ? new DependenciesUnsupportedError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error
 }
 
-/**
-nodes(ids:) の 1 回で渡せる node ID の上限
-*/
-const MAX_NODES_PER_QUERY = 100
-
 // 部分エラーのうち、対象の Issue の blockedBy の下のもの
 function isBlockedByPath(path: readonly JsonValue[]): boolean {
   return path[0] === 'repository' && path[1] === 'issue' && path[2] === 'blockedBy'
-}
-
-// nodes(ids:) の部分エラーのうち、node の下のもの
-function isNodesPath(path: readonly JsonValue[]): boolean {
-  return path[0] === 'nodes'
 }
 
 // 部分エラーのうち、対象の Issue の blocking の下のもの
@@ -219,13 +141,6 @@ function readBlockedByReferences(connection: JsonValue | undefined, field: 'bloc
   if (nodes.some(node => !isTruthy(node))) return { kind: 'read-failed', reason: `${field} has a null node` }
   const issues: readonly BlockedByReference[] = nodes.map(node => readIssueReference(node))
   return { kind: 'ok', total: requireNumber(jsonField(connection, 'totalCount'), `${field}.totalCount`), issues }
-}
-
-// nodes(ids:) の 1 件を前提にする。message は、その node の部分エラー
-function readNodeBlockedBy(node: JsonValue | undefined, id: string, message: string | undefined): BlockedByReferences {
-  if (message !== undefined) return { kind: 'read-failed', reason: `blockedBy could not be read: ${message}` }
-  if (!isTruthy(node) || jsonField(node, 'id') !== id) return { kind: 'read-failed', reason: 'the node is not an Issue or was not found' }
-  return readBlockedByReferences(jsonField(node, 'blockedBy'))
 }
 
 function numberOrUndefined(value: JsonValue | undefined): number | undefined {
@@ -355,45 +270,6 @@ export class IssuesApi extends ProjectsApi {
   }
 
   /**
-  組み込みの機能（担当者・ラベル・マイルストーン・Issue type）を、PATCH 1 回で書き、応答の Issue を返す
-  */
-  async updateIssueAttributes(owner: string, repository: string, number: number, writes: readonly BuiltinWrite[]): Promise<JsonObject> {
-    const data = Object.fromEntries(writes.map(write => [write.key, write.value]))
-    return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, { json: data })
-  }
-
-  /**
-  Issue fields の値を足す（今の値に重ねる）。0 件なら要求しない。空の配列はすべての値を消す仕様のため
-  */
-  async addIssueFieldValues(owner: string, repository: string, number: number, values: readonly IssueFieldValueWrite[]): Promise<void> {
-    const target = `${repositoryPath(owner, repository)}/issues/${String(number)}/issue-field-values`
-    for (let start = 0; start < values.length; start += MAX_ISSUE_FIELD_VALUES_PER_REQUEST) {
-      const chunk = values.slice(start, start + MAX_ISSUE_FIELD_VALUES_PER_REQUEST)
-      await this.restJson('POST', target, { json: { issue_field_values: chunk.map(({ fieldId, value }) => ({ field_id: fieldId, value })) } })
-    }
-  }
-
-  /**
-  Issue field の値を 1 つ外す。値が無い 404 は 'absent'
-  */
-  async deleteIssueFieldValue(owner: string, repository: string, number: number, fieldId: number): Promise<'absent' | 'deleted'> {
-    const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/issues/${String(number)}/issue-field-values/${String(fieldId)}`)
-    if (response.statusCode === NOT_FOUND) return 'absent'
-    if (!response.isSuccess) this.handleHttpError(response)
-    return 'deleted'
-  }
-
-  /**
-  そのログイン名を、リポの Issue の担当にできるか。204 は true、404 は false、ほかの応答は例外
-  */
-  async isAssignable(owner: string, repository: string, login: string): Promise<boolean> {
-    const response = await this.restRequest('GET', `${repositoryPath(owner, repository)}/assignees/${encodePathSegment(login)}`)
-    if (response.statusCode === NO_CONTENT) return true
-    if (response.statusCode === NOT_FOUND) return false
-    return this.handleHttpError(response)
-  }
-
-  /**
   Issue にコメントを足す
   */
   async addIssueComment(owner: string, repository: string, number: number, body: string): Promise<JsonObject> {
@@ -502,14 +378,6 @@ export class IssuesApi extends ProjectsApi {
   }
 
   /**
-  Issue の依存関係（blocked by）に対応するか。対応しない GHES（3.19 より前）は false
-  */
-  async supportsBlockedBy(): Promise<boolean> {
-    const result = await this.executeGraphql(QUERY_HAS_ADD_BLOCKED_BY_INPUT, {})
-    return jsonField(result, '__type') !== JSON_NULL
-  }
-
-  /**
   前提（blocked by）を外す。addBlockedBy と同じ失敗をする
   */
   async removeBlockedBy(issueId: string, blockingIssueId: string): Promise<void> {
@@ -540,28 +408,6 @@ export class IssuesApi extends ProjectsApi {
   }
 
   /**
-  Issue の node ID・本文・前提（先頭 blockedByFirst 件の参照と全体の件数）を、判定の読み取りより軽く読む。
-  blockedBy の部分エラーと null の node は、例外にせず read-failed で返す。
-  Issue の依存関係に対応しない GHES（3.19 より前）は DependenciesUnsupportedError
-  */
-  async getIssueBlockedByReferences(owner: string, repository: string, number: number, blockedByFirst = MAX_BLOCKED_BY): Promise<IssueBlockedByReferences> {
-    let outcome: GraphqlOutcome
-    try {
-      outcome = await this.queryIssueTolerating(QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES, { owner, repo: repository, number, blockedByFirst }, isBlockedByPath)
-    }
-    catch (error: unknown) {
-      throw asDependenciesError(error)
-    }
-    const issue = issueNode(outcome.data, owner, repository, number)
-    const messages = outcome.errors.map(error => stringOrEmpty(jsonField(error, 'message')))
-    return {
-      id: requireString(jsonField(issue, 'id'), 'issue.id'),
-      body: requireString(jsonField(issue, 'body'), 'issue.body'),
-      blockedBy: messages.length > 0 ? { kind: 'read-failed', reason: `blockedBy could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blockedBy')),
-    }
-  }
-
-  /**
   その Issue を前提にしている Issue（blocking 先頭 blockingFirst 件）の参照と、全体の件数を読む。
   total が issues の数より多ければ、読めなかった分がある。blocking の部分エラーと null の node は read-failed。
   Issue の依存関係に対応しない GHES は DependenciesUnsupportedError
@@ -578,31 +424,6 @@ export class IssuesApi extends ProjectsApi {
     const issue = issueNode(outcome.data, owner, repository, number)
     const messages = outcome.errors.filter(error => isBlockingPath(asArray(error['path']))).map(error => stringOrEmpty(jsonField(error, 'message')))
     return messages.length > 0 ? { kind: 'read-failed', reason: `blocking could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blocking'), 'blocking')
-  }
-
-  /**
-  node ID の並びのそれぞれの前提を、まとめて読む（輪の探索の 1 段）。結果の鍵は node ID。
-  Issue でない・見つからない node と部分エラーは、その node だけ read-failed。
-  Issue の依存関係に対応しない GHES は DependenciesUnsupportedError
-  */
-  async getBlockedByOfNodes(ids: readonly string[]): Promise<ReadonlyMap<string, BlockedByReferences>> {
-    const result = new Map<string, BlockedByReferences>()
-    for (let start = 0; start < ids.length; start += MAX_NODES_PER_QUERY) {
-      const chunk = ids.slice(start, start + MAX_NODES_PER_QUERY)
-      let outcome: GraphqlOutcome
-      try {
-        outcome = await this.executeGraphqlTolerating(QUERY_GET_BLOCKED_BY_OF_NODES, { ids: [...chunk], blockedByFirst: MAX_BLOCKED_BY }, isNodesPath)
-      }
-      catch (error: unknown) {
-        throw asDependenciesError(error)
-      }
-      const nodes = asArray(jsonField(outcome.data, 'nodes'))
-      const failed = new Map(outcome.errors.map(error => [asArray(error['path'])[1], stringOrEmpty(jsonField(error, 'message'))]))
-      for (const [index, id] of chunk.entries()) {
-        result.set(id, readNodeBlockedBy(nodes.at(index), id, failed.get(index)))
-      }
-    }
-    return result
   }
 
   /**
@@ -626,23 +447,6 @@ export class IssuesApi extends ProjectsApi {
       state: requireString(jsonField(issue, 'state'), 'issue.state'),
       issue_type: stringOrNull(jsonField(jsonField(issue, 'issueType'), 'name')),
       sub_issues_total: subIssuesTotal(issue),
-    }
-  }
-
-  /**
-  親のサブ Issue を全件読む。1 ページ目は getIssueSlim と同じクエリで読み、続きがあるときだけ GetSubIssuesPage を回す
-  */
-  async getAllSubIssues(owner: string, repository: string, number: number): Promise<readonly IssueSubIssue[]> {
-    const issue = await this.fetchSlimIssue(owner, repository, number, 0)
-    const subIssues: IssueSubIssue[] = []
-    let connection = jsonField(issue, 'subIssues')
-    for (;;) {
-      subIssues.push(...readSubIssueNodes(connection))
-      const pageInfo = jsonField(connection, 'pageInfo')
-      const cursor = jsonField(pageInfo, 'endCursor')
-      if (typeof cursor !== 'string' || jsonField(pageInfo, 'hasNextPage') !== true) return subIssues
-      const result = await this.queryIssue(QUERY_GET_SUB_ISSUES_PAGE, { owner, repo: repository, number, after: cursor })
-      connection = jsonField(issueNode(result, owner, repository, number), 'subIssues')
     }
   }
 

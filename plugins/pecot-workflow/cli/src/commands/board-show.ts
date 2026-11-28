@@ -12,13 +12,13 @@ import type { LaneSummary } from '@pecot/workflow-core/domain/lanes.js'
 import { describeReadiness, describeUnknown } from '@pecot/workflow-core/domain/readiness.js'
 import { issueReferenceKey } from '@pecot/workflow-core/domain/reference-parser.js'
 import { parseOwnerRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
-import { BOARD_SHOW_OUTPUT as BOARD_VIEW_OUTPUT } from '@pecot/workflow-core/commands-shared/board-view.js'
+import { BOARD_SHOW_OUTPUT } from '@pecot/workflow-core/commands-shared/board-show-output.js'
 import { defineTool } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import type { ToolDefinition } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { requireActiveConfig, stopWith } from '@pecot/workflow-core/commands-shared/command-stop.js'
 import { USAGE_EXIT_CODE } from '@pecot/workflow-core/commands-shared/usage-error.js'
-import { readinessJson } from '@pecot/workflow-core/commands-shared/issue-readiness.js'
-import type { BoardReadinessJson } from '@pecot/workflow-core/commands-shared/issue-readiness.js'
+import { readinessJson } from '@pecot/workflow-core/commands-shared/readiness-json.js'
+import type { BoardReadinessJson } from '@pecot/workflow-core/commands-shared/readiness-json.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import type { Output } from '@pecot/workflow-core/commands-shared/output.js'
 import { developmentBranchOf, parseReads, READ_BLOCKED_BY, READ_ISSUES, READ_PULL_REQUESTS, stackUndecidedHint } from './check-reads.js'
@@ -31,8 +31,6 @@ import { dependencyReads, judgeFromReads } from './readiness-reads.js'
 
 const DISPLAY_STATUSES: ReadonlySet<string> = new Set(['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review'])
 const JUDGED_STATUSES: ReadonlySet<string> = new Set(['Ready', 'Blocked'])
-
-const BOARD_SHOW_OUTPUT = BOARD_VIEW_OUTPUT.pick({ board: true, lanes: true, mismatches: true })
 
 type BoardShowData = z.input<typeof BOARD_SHOW_OUTPUT>
 

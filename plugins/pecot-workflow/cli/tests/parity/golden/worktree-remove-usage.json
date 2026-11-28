@@ -6,6 +6,5 @@
     "detail": "invalid input: name: Invalid input: expected string, received undefined"
   },
   "stderr": "",
-  "requests": [],
   "files": {}
 }

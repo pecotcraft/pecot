@@ -14,17 +14,7 @@ import type {
   AttributeValue,
   AttributeWrite,
 } from '../attributes.js'
-import {
-  ATTRIBUTE_HANDLERS,
-  builtinDefinitions,
-  builtinReadings,
-  formatAttributeValue,
-  issueFieldDefinition,
-  issueFieldValueKind,
-  projectFieldDefinition,
-  projectValueTreatment,
-  validateAttributes,
-} from '../attributes.js'
+import { ATTRIBUTE_HANDLERS, issueFieldDefinition, issueFieldValueKind, projectFieldDefinition, validateAttributes } from '../attributes.js'
 import { compareCodePoints } from '../fuzzy.js'
 import { JSON_NULL } from '../json-null.js'
 
@@ -132,68 +122,6 @@ describe('issueFieldDefinition', () => {
   })
 })
 
-describe('builtinDefinitions', () => {
-  it('組み込みの機能を、担当者・マイルストーン・Issue type・ラベル・親・前提の順に返す', async () => {
-    await explains('組み込みの機能の定義を作成する関数（`builtinDefinitions`）のテストです。担当者・マイルストーン・Issue type・ラベル・親・前提の順に定義を返し、親と前提は書き込めない定義になることを確認します。')
-    const definitions = stepSync('`builtinDefinitions` を呼ぶ', () => builtinDefinitions({ milestones: ['v1'], issueTypes: ['Bug', 'Task'], labels: ['bug'] }))
-
-    stepSync('結果を比べる', () => {
-      expect(definitions).toStrictEqual([
-        { name: 'assignees', source: 'issue', kind: 'users', writable: true },
-        { name: 'milestone', source: 'issue', kind: 'milestone', options: [{ name: 'v1' }], writable: true },
-        { name: 'type', source: 'issue', kind: 'issue_type', options: [{ name: 'Bug' }, { name: 'Task' }], writable: true },
-        { name: 'labels', source: 'issue', kind: 'labels', options: [{ name: 'bug' }], writable: true },
-        { name: 'parent', source: 'issue', kind: 'issue_ref', writable: false },
-        { name: 'blocked_by', source: 'issue', kind: 'issue_refs', writable: false },
-      ])
-    })
-  })
-
-  it('Issue type を取得できない環境では、type の定義を含めない', async () => {
-    await explains('Issue type を取得できない環境のテストです。定義の一覧に `type` が含まれないことを確認します。')
-    stepSync('`builtinDefinitions` を呼び、結果を比べる', () => {
-      expect(builtinDefinitions({ milestones: [], issueTypes: undefined, labels: [] }).map(definition => definition.name)).toStrictEqual(['assignees', 'milestone', 'labels', 'parent', 'blocked_by'])
-    })
-  })
-})
-
-describe('projectValueTreatment', () => {
-  it.for([
-    { dataType: 'TEXT', kind: 'text' },
-    { dataType: 'NUMBER', kind: 'number' },
-    { dataType: 'DATE', kind: 'date' },
-    { dataType: 'SINGLE_SELECT', kind: 'single_select' },
-    { dataType: 'MULTI_SELECT', kind: 'multi_select' },
-    { dataType: 'ITERATION', kind: 'iteration' },
-  ])('$dataType の値は、$kind として読む', async ({ dataType, kind }) => {
-    await explains(`ボードのフィールドの値の扱いを決める関数（\`projectValueTreatment\`）のテストです。種類が \`${dataType}\` の値は、\`${kind}\` として読み取ると判定することを確認します。`)
-    stepSync('`projectValueTreatment` を呼び、結果を比べる', () => {
-      expect(projectValueTreatment(dataType, false)).toStrictEqual({ treatment: 'read', kind })
-    })
-  })
-
-  it.for(['ASSIGNEES', 'LABELS', 'MILESTONE', 'ISSUE_TYPE', 'PARENT_ISSUE', 'TITLE', 'REPOSITORY', 'SUB_ISSUES_PROGRESS'])('システムのフィールド %s の値は、読み取らずに捨てる', async (dataType) => {
-    await explains('ボードのシステムのフィールドの値のテストです。Issue の情報と重複するため、読み取らずに捨てる（`skip`）と判定することを確認します。')
-    stepSync('`projectValueTreatment` を呼び、結果を比べる', () => {
-      expect(projectValueTreatment(dataType, false)).toStrictEqual({ treatment: 'skip' })
-    })
-  })
-
-  it('Issue field を写したフィールドの値は、読み取らずに捨てる', async () => {
-    await explains('Issue field を写した、ボードのフィールドの値のテストです。Issue field として別に読み取るため、読み取らずに捨てる（`skip`）と判定することを確認します。')
-    stepSync('`projectValueTreatment` を呼び、結果を比べる', () => {
-      expect(projectValueTreatment('TEXT', true)).toStrictEqual({ treatment: 'skip' })
-    })
-  })
-
-  it('対応していない種類の値は、unsupported と判定する', async () => {
-    await explains('未知の種類のフィールドの値のテストです。読み取れないため、`unsupported` と判定することを確認します。')
-    stepSync('`projectValueTreatment` を呼び、結果を比べる', () => {
-      expect(projectValueTreatment('FUTURE_KIND', false)).toStrictEqual({ treatment: 'unsupported' })
-    })
-  })
-})
-
 describe('issueFieldValueKind', () => {
   it.for([
     { dataType: 'SINGLE_SELECT', kind: 'single_select' },
@@ -202,40 +130,6 @@ describe('issueFieldValueKind', () => {
     await explains(`Issue field の値の種類を決める関数（\`issueFieldValueKind\`）のテストです。種類が \`${dataType}\` の Issue field の値は、\`${kind}\` になることを確認します。`)
     stepSync('`issueFieldValueKind` を呼び、結果を比べる', () => {
       expect(issueFieldValueKind(dataType)).toBe(kind)
-    })
-  })
-})
-
-describe('builtinReadings', () => {
-  it('値が存在する組み込みの機能だけを、担当者・マイルストーン・Issue type・ラベルの順に返す', async () => {
-    await explains('組み込みの機能の現在の値を作成する関数（`builtinReadings`）のテストです。値を持つ機能だけを、担当者・マイルストーン・Issue type・ラベルの順に返すことを確認します。')
-    stepSync('`builtinReadings` を呼び、結果を比べる', () => {
-      expect(builtinReadings({ assignees: ['alice', 'bob'], milestone: 'v1', issueType: 'Bug', labels: ['bug'] })).toStrictEqual([
-        { name: 'assignees', source: 'issue', kind: 'users', value: ['alice', 'bob'] },
-        { name: 'milestone', source: 'issue', kind: 'milestone', value: 'v1' },
-        { name: 'type', source: 'issue', kind: 'issue_type', value: 'Bug' },
-        { name: 'labels', source: 'issue', kind: 'labels', value: ['bug'] },
-      ])
-    })
-  })
-
-  it('値が存在しない組み込みの機能は、返さない', async () => {
-    await explains('担当者・ラベルが空で、マイルストーンと Issue type が `undefined` の場合のテストです。空の配列を返すことを確認します。')
-    stepSync('`builtinReadings` を呼び、結果を比べる', () => {
-      expect(builtinReadings({ assignees: [], milestone: undefined, issueType: undefined, labels: [] })).toStrictEqual([])
-    })
-  })
-})
-
-describe('formatAttributeValue', () => {
-  it.for([
-    { name: '文字列', value: 'High', text: 'High' },
-    { name: '数', value: 2.5, text: '2.5' },
-    { name: '配列', value: ['a', 'b'], text: 'a, b' },
-  ])('$name の値は、1 行の文字列にする', async ({ name, value, text }) => {
-    await explains(`属性の値を文字列にする関数（\`formatAttributeValue\`）のテストです。${name}の値は、\`${text}\` の 1 行の文字列になることを確認します。`)
-    stepSync('`formatAttributeValue` を呼び、結果を比べる', () => {
-      expect(formatAttributeValue(value)).toBe(text)
     })
   })
 })

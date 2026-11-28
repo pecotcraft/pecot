@@ -15,10 +15,9 @@ useIsolatedEnvironment()
 
 describe('project_link の package', () => {
   it('NAME の形が不正だと、GitHub を呼ぶ前に終了コード 1 で止まる', async () => {
-    await explains('`project_link` の `package` のテストです。名前の形が不正な場合に、GitHub を呼ばず、検証エラーを表示して失敗することを確認します。')
+    await explains('`project_link` の `package` のテストです。名前の形が不正な場合に、検証エラーを表示して失敗することを確認します。')
     const result = await runCommand({ tool: 'project_link', arguments: { repo: 'acme/other', package: ['b!d:x/CHANGELOG.md'] } })
     expect(result.code).toBe(1)
-    expect(result.requests).toEqual([])
     expect(result.stdout).toBe('')
     expect(result.stderr).toMatch(/^error: 1 validation error for Package\n {2}name\n {4}String should match pattern '\^\[A-Za-z0-9_\.-\]\+\$'/u)
     expect(result.stderr).not.toContain('added:')
@@ -27,11 +26,10 @@ describe('project_link の package', () => {
 
 describe('project_activate のパス', () => {
   it('ファイルの下を指すパス（ENOTDIR）は設定ファイルとみなさず、host の案内で終わる', async () => {
-    await explains('`project_activate` に、ファイルの下を指すパス `package.json/x` を渡した場合のテストです。設定ファイルとして扱わず、`host` の指定を求めるエラーを表示し、GitHub を呼ばないことを確認します。')
+    await explains('`project_activate` に、ファイルの下を指すパス `package.json/x` を渡した場合のテストです。設定ファイルとして扱わず、`host` の指定を求めるエラーを表示することを確認します。')
     const result = await runCommand({ tool: 'project_activate', arguments: { project: 'package.json/x' }, files: { 'package.json': '{}\n' } })
     expect(result.code).toBe(1)
     expect(result.stderr).toContain('error: host is required\n')
-    expect(result.requests).toEqual([])
   })
 })
 

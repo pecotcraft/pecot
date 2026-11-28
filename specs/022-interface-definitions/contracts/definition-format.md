@@ -362,7 +362,7 @@ error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSIO
 | 知らない `format` | `error: <file>: format: unknown value 2 (expected 1)` |
 | 英語の欄に日本語 | `error: <file>: PW-ISSUE-CREATE: details[1]: contains Japanese text (write English)` |
 | `statement` に日本語が無い | `error: <file>: PW-ISSUE-CREATE-01: statement: has no Japanese text (write Japanese)` |
-| 振る舞いの項目の ID の形 | `error: <file>: PW-ISSUE-QUICK: behaviors[0].id: "PW-ISSUE-QUICK-1" must be "PW-ISSUE-QUICK-NN" (NN is 2 digits)`。共通の項目は `PT-COMMON-NN` |
+| 振る舞いの項目の ID の形 | `error: <file>: PW-ISSUE-QUICK: behaviors[0].id: "PW-ISSUE-QUICK-1" must be "PW-ISSUE-QUICK-NN" (NN is 2 or more digits)`。共通の項目は `PT-COMMON-NN` |
 | ID が重なる（同じファイル） | `error: <file>: PW-ISSUE-CREATE-01: id: is defined more than once` |
 | ID が重なる（別のプラグイン） | `error: <file>: PW-COMMON-01: id: is also defined in <先に定義したファイル>` |
 | `generated.json` に無い項目 | `error: <file>: PW-ISSUE-OLD: entry is not in generated.json (remove it)` |

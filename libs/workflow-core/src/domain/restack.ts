@@ -73,18 +73,3 @@ export function describeGone(decision: Extract<RestackDecision, { kind: 'gone' }
   const pullRequest = decision.pullRequest === undefined ? 'it has no merged PR' : `PR #${String(decision.pullRequest)} was not merged`
   return `base branch ${decision.base} is gone and ${pullRequest}`
 }
-
-/**
-スタックし直しが要るか。親ブランチが消えていて決められないときは undefined
-*/
-export function needsRestack(decision: Readonly<RestackDecision>): boolean | undefined {
-  return decision.kind === 'gone' ? undefined : decision.kind === 'moved' || decision.kind === 'merged'
-}
-
-/**
-session show の `- needs restack:` の行。決められないときは undefined
-*/
-export function describeNeedsRestack(decision: Readonly<RestackDecision>): string | undefined {
-  const needed = needsRestack(decision)
-  return needed === undefined ? undefined : `- needs restack: ${needed ? 'yes' : 'no'}`
-}

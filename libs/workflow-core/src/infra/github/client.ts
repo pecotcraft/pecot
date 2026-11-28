@@ -10,7 +10,6 @@ import path from 'node:path'
 
 import { isJsonObject, parseJsonText } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
-import type { LinkedRepository } from '../../domain/config.js'
 import { BaseError, CancelledError, InvalidValueError } from '../../domain/errors.js'
 import type { JsonValue } from '../../domain/python-format.js'
 import {
@@ -413,10 +412,6 @@ export class GitHubClientBase {
   readonly ghTimeoutMilliseconds: number
   readonly apiUrl: string
   readonly graphqlUrl: string
-  /**
-  プロジェクトにリンクされたリポジトリの一覧のキャッシュ（`owner/projectNumber` がキー）
-  */
-  readonly linkedRepositoriesCache = new Map<string, readonly LinkedRepository[]>()
 
   constructor(options: Readonly<GitHubClientOptions>) {
     this.diagnostics = options.diagnostics
@@ -735,12 +730,5 @@ or authenticate with the GitHub CLI:
   */
   async executeGraphqlTolerating(query: string, variables: Readonly<Record<string, JsonValue>>, isTolerated: PathPredicate): Promise<GraphqlOutcome> {
     return this.runGraphql(query, variables, isTolerated)
-  }
-
-  /**
-  認証ユーザーの情報（login・id・name・email など）
-  */
-  async getAuthenticatedUser(): Promise<JsonValue> {
-    return this.restJson('GET', '/user')
   }
 }

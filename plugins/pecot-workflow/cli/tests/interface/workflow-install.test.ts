@@ -68,12 +68,11 @@ async function install(argumentsOfTool: Readonly<Record<string, unknown>>, files
 describe('workflow_install', () => {
   it('置き先にファイルが存在しないとき呼ぶと、雛形を書き出し、written を true にする', async (context) => {
     await verifies(context, 'PW-WORKFLOW-INSTALL-01')
-    await explains('ワークフローの雛形の書き出し（`workflow_install`）のテストです。置き先にファイルが存在しない場合に、雛形を書き出して `written` が `true` になり、GitHub へ要求を送らないことを確認します。')
+    await explains('ワークフローの雛形の書き出し（`workflow_install`）のテストです。置き先にファイルが存在しない場合に、雛形を書き出して `written` が `true` になることを確認します。')
     const result = await install({})
     expect(result.isError).toBe(false)
     expect(result.read(DESTINATION)).toBe(PINNED)
     expect(result.structured).toMatchObject({ written: true })
-    expect(result.requests).toEqual([])
   })
 
   it('雛形を書き出すと、置き先を path に、同梱の雛形の版を version に入れる', async (context) => {

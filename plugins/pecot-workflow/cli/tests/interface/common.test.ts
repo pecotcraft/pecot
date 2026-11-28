@@ -138,26 +138,6 @@ it.for([
   expect(result.text).toBe('pecotcraft/pecot (origin)')
 })
 
-// ループバックの http の URL ではない値。どれも拒否される
-// eslint-disable-next-line unicorn/prefer-https -- http で外部ホストの URL を拒否することの確認
-const NON_LOOPBACK_URLS = [{ url: 'https://example.com' }, { url: 'ftp://127.0.0.1' }, { url: 'http://example.com' }]
-
-it.for(NON_LOOPBACK_URLS)('PECOT_GITHUB_API_URL が $url だと、ツールの本体を動かさない', async ({ url }, context) => {
-  await verifies(context, 'PW-COMMON-12')
-  await explains('環境変数 `PECOT_GITHUB_API_URL` の検証のテストです。ループバックの `http` の URL ではない値を指定した場合に、ツールの本体を実行しないことを確認します。')
-  setEnvironment({ PECOT_GITHUB_API_URL: url })
-  await call(TARGET)
-  expect(state.started).toBe(0)
-})
-
-it.for(NON_LOOPBACK_URLS)('PECOT_GITHUB_API_URL が $url だと、受け付ける URL を示して失敗する', async ({ url }, context) => {
-  await verifies(context, 'PW-COMMON-13')
-  await explains('環境変数 `PECOT_GITHUB_API_URL` の検証のテストです。ループバックの `http` の URL ではない値を指定した場合に、受け付ける URL を示す `detail` を持つ失敗を返すことを確認します。')
-  setEnvironment({ PECOT_GITHUB_API_URL: url })
-  const result = await call(TARGET)
-  expect(result).toMatchObject({ isError: true, structured: { detail: `PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: ${url}` } })
-})
-
 it('プロジェクトのルートを決められないと、その理由を示して失敗する', async (context) => {
   await verifies(context, 'PW-COMMON-14')
   await explains('プロジェクトのルートの検索のテストです。ルートを決められない場合に、`project root not found` で始まる `detail` を持つ失敗を返すことを確認します。')

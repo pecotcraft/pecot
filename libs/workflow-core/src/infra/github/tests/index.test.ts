@@ -1,11 +1,7 @@
-// GitHubClient の合成のテスト。各 API のクラスの操作が 1 つのクライアントで呼べることと、
-// RepositoryMembership（domain/config.ts）を満たすことを確かめる。
+// GitHubClient の合成のテスト。各 API のクラスの操作が 1 つのクライアントで呼べることを確かめる。
 import { describe, expect, it } from 'vitest'
 import { explains } from '../../../../tests/_helpers/explains.js'
 import { step, stepSync } from '../../../../tests/_helpers/step.js'
-
-import { isRepositoryInProject, parseProjectConfig } from '../../../domain/config.js'
-import { JSON_NULL } from '../../../domain/json-null.js'
 import { GitHubClientBase } from '../client.js'
 import { GitHubClient } from '../index.js'
 import { IssuesApi } from '../issues.js'
@@ -13,7 +9,7 @@ import { ProjectsApi } from '../projects.js'
 import { PullsApi } from '../pulls.js'
 import { ReposApi } from '../repos.js'
 import { ignoredDiagnostics } from '../../../../tests/_helpers/recording-diagnostics.js'
-import { graphqlData, graphqlRequests, startClient, useFakeGithub } from './fake-client.js'
+import { startClient, useFakeGithub } from './fake-client.js'
 
 useFakeGithub()
 
@@ -27,7 +23,7 @@ describe('GitHubClient', () => {
       expect(client).toBeInstanceOf(ProjectsApi)
       expect(client).toBeInstanceOf(ReposApi)
       expect(client).toBeInstanceOf(GitHubClientBase)
-      for (const name of ['createIssue', 'getIssueSlim', 'createPullRequest', 'getPullRequestSlim', 'listProjectItems', 'getRepositoryId', 'createRelease']) {
+      for (const name of ['createIssue', 'getIssueSlim', 'getPullRequestForFinish', 'listProjectItems', 'getRepositoryId', 'createRelease']) {
         expect(Reflect.get(client, name)).toBeTypeOf('function')
       }
     })
@@ -38,27 +34,6 @@ describe('GitHubClient', () => {
     const client = stepSync('host を指定してクライアントを作る', () => new GitHubClient({ host: 'ghes.example.com', token: 't', diagnostics: ignoredDiagnostics }))
     stepSync('API の URL を比べる', () => {
       expect(client.apiUrl).toBe('https://ghes.example.com/api/v3')
-    })
-  })
-
-  it('isRepositoryInProject に RepositoryMembership として渡せる', async () => {
-    await explains('`isRepositoryInProject` のテストです。クライアントを `RepositoryMembership` として渡した場合に、ボードに含まれるリポジトリは `true`、含まれないものは `false` を返すことを確認します。')
-    const { client, server } = await step('ボードのリポジトリを返す偽の GitHub とクライアントを用意する', async () => await startClient([
-      graphqlData('GetLinkedRepositoriesUser', { user: { projectV2: { repositories: { nodes: [{ owner: { login: 'acme' }, name: 'widgets' }, JSON_NULL] } } } }),
-    ]))
-    const config = stepSync('プロジェクトの設定を用意する', () => parseProjectConfig({
-      host: 'github.com',
-      owner: 'acme',
-      workflow_suffix: 'test',
-      project: { number: 7, id: 'PVT', fields: { workflow: { id: 'WF', options: {} } } },
-    }))
-    const isIncluded = await step('含まれるリポジトリを判定する', async () => await isRepositoryInProject(config, 'acme', 'widgets', client))
-    const isExcluded = await step('含まれないリポジトリを判定する', async () => await isRepositoryInProject(config, 'acme', 'other', client))
-    stepSync('判定と送った要求を比べる', () => {
-      expect(isIncluded).toBe(true)
-      expect(isExcluded).toBe(false)
-      // 2 回目はキャッシュ
-      expect(graphqlRequests(server)).toEqual([{ operation: 'GetLinkedRepositoriesUser', variables: { owner: 'acme', projectNumber: 7 } }])
     })
   })
 })

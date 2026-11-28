@@ -1,12 +1,15 @@
 name: pecot tracker sync
-description: Rewrite the open Tracker's list for a source in the repository of the workflow. Dependabot PRs waiting for a human decision, or open security alerts.
+description: Rewrite the open Tracker's list for a source in the repository of the workflow. Dependabot PRs waiting for a human decision, open security alerts, or the difference between GitHub's current schema and the issue surface snapshot.
 inputs:
   token:
     description: Token to read the PRs or alerts and write the Tracker and the board (the App token or PAT of the workflow)
     required: false
   source:
-    description: 'What to put into the Tracker: dependabot (Dependabot PRs waiting for a human decision) or security (open security alerts)'
+    description: 'What to put into the Tracker: dependabot (Dependabot PRs waiting for a human decision), security (open security alerts) or issue-surface (items added to or removed from GitHub''s current schema compared with surface-file)'
     required: true
+  surface-file:
+    description: Path of the issue surface snapshot (github-issue-surface.json) in the checked-out repository. Required when source is issue-surface
+    required: false
   project:
     description: Name of the project config under .pecot/config/projects (without .json). Without it, the config that has the repository of the workflow
     required: false

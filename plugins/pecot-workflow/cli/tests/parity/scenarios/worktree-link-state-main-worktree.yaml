@@ -71,4 +71,3 @@ setup:
         .pecot/
       CLAUDE.local.md: |
         ローカル向けの指示
-github: []

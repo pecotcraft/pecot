@@ -3,4 +3,3 @@ id: worktree-add-usage
 tool: worktree_add
 arguments: {}
 setup: {}
-github: []

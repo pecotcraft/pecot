@@ -6,7 +6,7 @@ import { parseProjectConfig, serializeProjectConfig, WORKFLOW_FIELD_NAME } from 
 import type { FieldOptions, ProjectConfig, Repository } from '../domain/config.js'
 import { isJsonObject, jsonField, parseJsonText } from '../domain/json.js'
 import type { JsonObject } from '../domain/json.js'
-import { isLegacyWorkflowFieldName, planConfigMove, planWorkflowField } from '../domain/migration.js'
+import { planConfigMove, planWorkflowField } from '../domain/migration.js'
 import type { WorkflowFieldPlan } from '../domain/migration.js'
 import { pythonRepr } from '../domain/python-format.js'
 import type { JsonValue } from '../domain/python-format.js'
@@ -37,21 +37,12 @@ export function textOf(value: JsonValue | undefined): string {
   return typeof value === 'string' ? value : pythonRepr(value)
 }
 
-// 進行の欄か（今の名前か、改名する前の名前）
-function isWorkflowField(name: JsonValue | undefined): boolean {
-  return typeof name === 'string' && (name === WORKFLOW_FIELD_NAME || isLegacyWorkflowFieldName(name))
-}
-
 /**
 選択肢を持つフィールドの名前から、進行の欄の扱いを決める
 */
 export function planWorkflowFieldOf(fields: readonly JsonValue[]): WorkflowFieldPlan {
   const names = fields.filter(field => isJsonObject(field) && Object.hasOwn(field, 'options')).map(field => jsonField(field, 'name')).filter(name => typeof name === 'string')
   return planWorkflowField(names)
-}
-
-export function hasWorkflowField(fields: readonly JsonValue[]): boolean {
-  return fields.some(field => isWorkflowField(jsonField(field, 'name')))
 }
 
 /**

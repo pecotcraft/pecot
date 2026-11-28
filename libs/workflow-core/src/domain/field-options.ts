@@ -32,29 +32,6 @@ export function choosePlacement(existing: readonly Readonly<{ name: string }>[],
 }
 
 /**
-既存の選択肢の並びに、新しい選択肢を 1 つ差し込む。同じ名前（大文字と小文字は区別しない）が既にあれば undefined
-*/
-export function insertOption(
-  existing: readonly FieldOptionInput[],
-  option: Readonly<{ name: string, color: string, description: string }>,
-  placement: OptionPlacement,
-): readonly FieldOptionInput[] | undefined {
-  if (indexOfName(existing, option.name) !== -1) return undefined
-  const copied = existing.map(item => copyOption(item))
-  const created: FieldOptionInput = { name: option.name, color: option.color, description: option.description }
-  let position = copied.length
-  if ('after' in placement) {
-    const found = indexOfName(existing, placement.after)
-    if (found !== -1) position = found + 1
-  }
-  else if ('before' in placement) {
-    const found = indexOfName(existing, placement.before)
-    if (found !== -1) position = found
-  }
-  return [...copied.slice(0, position), created, ...copied.slice(position)]
-}
-
-/**
 名前が大文字と小文字まで同じ選択肢。無ければ undefined
 */
 export function findOptionByName<T extends Readonly<{ name: string }>>(options: readonly T[], name: string): T | undefined {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { hasErrorCode, isFileNotFound, isSystemCallError, OsError, toOsError } from '../os-error.js'
+import { hasErrorCode, isFileNotFound, OsError, toOsError } from '../os-error.js'
 import { explains } from '../../../tests/_helpers/explains.js'
 import { stepSync } from '../../../tests/_helpers/step.js'
 
@@ -21,20 +21,6 @@ describe('hasErrorCode', () => {
     ])
     stepSync('判定の結果を比べる', () => {
       expect(results).toEqual([true, true, false, false, false, false])
-    })
-  })
-})
-
-describe('isSystemCallError', () => {
-  it('syscall を持つシステムエラーのとき true、それ以外は false を返す', async () => {
-    await explains('`isSystemCallError` のテストです。`syscall` を持つシステムエラーの場合に `true` を返し、`syscall` を持たないエラーや `TypeError` の場合に `false` を返すことを確認します。')
-    const results = stepSync('いくつかのエラーを判定する', () => [
-      isSystemCallError(systemError('ENOENT', 'x', { syscall: 'open' })),
-      isSystemCallError(systemError('ERR_INVALID_ARG_TYPE', 'x')),
-      isSystemCallError(new TypeError('x')),
-    ])
-    stepSync('判定の結果を比べる', () => {
-      expect(results).toEqual([true, false, false])
     })
   })
 })

@@ -4,4 +4,3 @@ tool: project_unset
 arguments:
   key: aggregation_repo
 setup: {}
-github: []

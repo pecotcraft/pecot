@@ -4,4 +4,3 @@ tool: worktree_remove
 arguments:
   directory: .
 setup: {}
-github: []

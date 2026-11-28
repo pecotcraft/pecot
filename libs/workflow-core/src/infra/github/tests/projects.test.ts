@@ -4,8 +4,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { explains } from '../../../../tests/_helpers/explains.js'
 import { step } from '../../../../tests/_helpers/step.js'
-
-import type { ProjectFieldValueInput } from '../../../domain/attributes.js'
 import { JSON_NULL } from '../../../domain/json-null.js'
 import { GitHubAPIError, GitHubNotFoundError } from '../errors.js'
 import type { ProjectViewBody, ProjectViewTarget } from '../projects.js'
@@ -317,39 +315,6 @@ describe('アイテムの追加・更新・削除', () => {
     })
   })
 
-  it.for<{ readonly name: string, readonly value: ProjectFieldValueInput }>([
-    { name: 'text', value: { text: 'メモ' } },
-    { name: 'number', value: { number: 2.5 } },
-    { name: 'date', value: { date: '2026-12-01' } },
-    { name: 'singleSelectOptionId', value: { singleSelectOptionId: 'O_cli' } },
-    { name: 'multiSelectOptionIds', value: { multiSelectOptionIds: ['O_a', 'O_b'] } },
-    { name: 'iterationId', value: { iterationId: 'I_2' } },
-  ])('setProjectItemFieldValue は、$name の値を ProjectV2FieldValue の形のまま送信し、アイテムの ID を返す', async ({ value }) => {
-    await explains('`setProjectItemFieldValue` のテストです。テキスト・数値・日付・選択肢などの値を渡した場合に、`ProjectV2FieldValue` の形のまま送信し、アイテムの ID を返すことを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([graphqlData('UpdateProjectItemFieldValue', { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_item' } } })])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.setProjectItemFieldValue('PVT_proj', 'PVTI_item', 'FIELD_id', value)).toBe('PVTI_item')
-      expect(graphqlRequests(server)).toEqual([{
-        operation: 'UpdateProjectItemFieldValue',
-        variables: { projectId: 'PVT_proj', itemId: 'PVTI_item', fieldId: 'FIELD_id', value },
-      }])
-    })
-  })
-
-  it('setProjectItemFieldValue は、projectV2Item が null の場合に GitHubAPIError が発生する', async () => {
-    await explains('`setProjectItemFieldValue` の失敗時のテストです。応答の `projectV2Item` が `null` の場合は、`GitHubAPIError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([graphqlData('UpdateProjectItemFieldValue', { updateProjectV2ItemFieldValue: { projectV2Item: JSON_NULL } })])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.setProjectItemFieldValue('PVT_proj', 'PVTI_item', 'FIELD_id', { text: 'x' }))).toMatchObject(failure(GitHubAPIError, 'failed to update the field'))
-    })
-  })
-
   it('deleteProjectItem は、削除したアイテムの ID を返す', async () => {
     await explains('`deleteProjectItem` のテストです。アイテムを削除した場合に、削除したアイテムの ID を返すことを確認します。')
     const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
@@ -374,150 +339,35 @@ describe('アイテムの追加・更新・削除', () => {
   })
 })
 
-describe('getLinkedRepositories', () => {
-  const nodes = [
-    { owner: { login: 'owner1' }, name: 'repo1' },
-    JSON_NULL,
-    { owner: { login: 'owner2' }, name: 'repo2' },
-  ]
-
-  it('user のクエリが成功した場合は、organization のクエリを送信せず、null のノードを除いて返す', async () => {
-    await explains('`getLinkedRepositories` のテストです。`user` のクエリが成功した場合は、`organization` のクエリを送信せず、`null` のノードを除いたリポジトリを返すことを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([graphqlData('GetLinkedRepositoriesUser', { user: { projectV2: { repositories: { nodes } } } })])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.getLinkedRepositories('testuser', 1)).toEqual([{ owner: 'owner1', name: 'repo1' }, { owner: 'owner2', name: 'repo2' }])
-      expect(graphqlRequests(server)).toEqual([{ operation: 'GetLinkedRepositoriesUser', variables: { owner: 'testuser', projectNumber: 1 } }])
-    })
-  })
-
-  it('user が null の場合は、organization のクエリへ進む', async () => {
-    await explains('`getLinkedRepositories` のテストです。`user` が `null` の場合は、`organization` のクエリへ進み、そのリポジトリを返すことを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([
-        graphqlData('GetLinkedRepositoriesUser', { user: JSON_NULL }),
-        graphqlData('GetLinkedRepositoriesOrg', { organization: { projectV2: { repositories: { nodes: [{ owner: { login: 'org' }, name: 'repo' }] } } } }),
-      ])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.getLinkedRepositories('testorg', 1)).toEqual([{ owner: 'org', name: 'repo' }])
-      expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetLinkedRepositoriesUser', 'GetLinkedRepositoriesOrg'])
-    })
-  })
-
-  it('user のクエリが GraphQL のエラー（owner が organization の場合）でも、organization のクエリへ進む', async () => {
-    await explains('`getLinkedRepositories` のテストです。`user` のクエリが GraphQL のエラーになる場合も、`organization` のクエリへ進み、そのリポジトリを返すことを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([
-        graphqlError('GetLinkedRepositoriesUser', 'Could not resolve to a User with the login of \'testorg\'.'),
-        graphqlData('GetLinkedRepositoriesOrg', { organization: { projectV2: { repositories: { nodes: [{ owner: { login: 'org' }, name: 'repo' }] } } } }),
-      ])
-      return { client }
-    })
-    await step('結果を確かめる', async () => {
-      expect(await client.getLinkedRepositories('testorg', 1)).toEqual([{ owner: 'org', name: 'repo' }])
-    })
-  })
-
-  it('user と organization のどちらも存在しない場合は、空配列を返す', async () => {
-    await explains('`getLinkedRepositories` のテストです。`user` と `organization` のどちらも存在しない場合は、空配列を返すことを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([
-        graphqlData('GetLinkedRepositoriesUser', { user: JSON_NULL }),
-        graphqlData('GetLinkedRepositoriesOrg', { organization: JSON_NULL }),
-      ])
-      return { client }
-    })
-    await step('結果を確かめる', async () => {
-      expect(await client.getLinkedRepositories('unknown', 1)).toEqual([])
-    })
-  })
-
-  it('organization のクエリがエラーになる場合は、GitHubAPIError が発生する', async () => {
-    await explains('`getLinkedRepositories` の失敗時のテストです。`organization` のクエリがエラーになる場合は、`GitHubAPIError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([
-        graphqlData('GetLinkedRepositoriesUser', { user: JSON_NULL }),
-        graphqlError('GetLinkedRepositoriesOrg', 'Something broke'),
-      ])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.getLinkedRepositories('x', 1))).toMatchObject({ name: 'GitHubAPIError' })
-    })
-  })
-
-  it('getLinkedRepositoriesCached と linkedRepositories は、同じ引数の 2 回目からキャッシュを返す', async () => {
-    await explains('`getLinkedRepositoriesCached` と `linkedRepositories` のテストです。同じ引数で 2 回呼び出した場合は、2 回目からキャッシュを返し、GraphQL を 1 回しか送信しないことを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([graphqlData('GetLinkedRepositoriesUser', { user: { projectV2: { repositories: { nodes } } } })])
-      return { client, server }
-    })
-    const { first, second } = await step('getLinkedRepositoriesCached を呼ぶ', async () => {
-      const first = await client.getLinkedRepositoriesCached('testuser', 1)
-      const second = await client.linkedRepositories('testuser', 1)
-      return { first, second }
-    })
-    await step('送った要求を確かめる', () => {
-      expect(second).toEqual(first)
-      expect(second).toHaveLength(2)
-      expect(graphqlRequests(server)).toHaveLength(1)
-    })
-  })
-
-  it('キャッシュは、owner とプロジェクト番号の組ごとに別々に持つ', async () => {
-    await explains('`linkedRepositories` のキャッシュのテストです。`owner` が同じでもプロジェクト番号が異なる場合は、番号ごとに別のクエリを送信することを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([
-        graphqlData('GetLinkedRepositoriesUser', { user: { projectV2: { repositories: { nodes: [] } } } }, 2),
-      ])
-      return { client, server }
-    })
-    await step('linkedRepositories を呼ぶ', async () => {
-      await client.linkedRepositories('testuser', 1)
-      await client.linkedRepositories('testuser', 2)
-    })
-    await step('送った要求を確かめる', () => {
-      expect(graphqlRequests(server).map(({ variables }) => variables)).toEqual([
-        { owner: 'testuser', projectNumber: 1 },
-        { owner: 'testuser', projectNumber: 2 },
-      ])
-    })
-  })
-})
-
 describe('user のクエリの失敗の扱い', () => {
   it('状態コード 401 でも organization のクエリへ進み、そちらも 401 の場合は GitHubAuthError が発生する', async () => {
-    await explains('`getLinkedRepositories` のテストです。`user` のクエリが状態コード 401 になる場合も、`organization` のクエリへ進み、そちらも 401 であれば `GitHubAuthError` が発生することを確認します。')
+    await explains('`getProjectId` のテストです。`user` のクエリが状態コード 401 になる場合も、`organization` のクエリへ進み、そちらも 401 であれば `GitHubAuthError` が発生することを確認します。')
     const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
       const unauthorized = { status: 401, text: 'Bad credentials' }
       const { client, server } = await startClient([
-        { match: { operation: 'GetLinkedRepositoriesUser' }, respond: unauthorized, times: 1 },
-        { match: { operation: 'GetLinkedRepositoriesOrg' }, respond: unauthorized, times: 1 },
+        { match: { operation: 'GetProjectIdUser' }, respond: unauthorized, times: 1 },
+        { match: { operation: 'GetProjectIdOrg' }, respond: unauthorized, times: 1 },
       ])
       return { client, server }
     })
     await step('エラーと送った要求を確かめる', async () => {
-      expect(await rejection(client.getLinkedRepositories('o', 1))).toMatchObject({ name: 'GitHubAuthError' })
-      expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetLinkedRepositoriesUser', 'GetLinkedRepositoriesOrg'])
+      expect(await rejection(client.getProjectId('o', 1))).toMatchObject({ name: 'GitHubAuthError' })
+      expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetProjectIdUser', 'GetProjectIdOrg'])
     })
   })
 
   it('レート制限でも organization のクエリへ進み、そちらも同じ場合は GitHubRateLimitError が発生する', async () => {
-    await explains('`listProjects` のテストです。`user` のクエリがレート制限になる場合も、`organization` のクエリへ進み、そちらも同じであれば `GitHubRateLimitError` が発生することを確認します。')
+    await explains('`getProjectId` のテストです。`user` のクエリがレート制限になる場合も、`organization` のクエリへ進み、そちらも同じであれば `GitHubRateLimitError` が発生することを確認します。')
     const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
       const { client, server } = await startClient([
-        graphqlError('ListProjectsUser', 'API rate limit exceeded'),
-        graphqlError('ListProjectsOrg', 'API rate limit exceeded'),
+        graphqlError('GetProjectIdUser', 'API rate limit exceeded'),
+        graphqlError('GetProjectIdOrg', 'API rate limit exceeded'),
       ])
       return { client, server }
     })
     await step('エラーと送った要求を確かめる', async () => {
-      expect(await rejection(client.listProjects('o'))).toMatchObject({ name: 'GitHubRateLimitError' })
-      expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['ListProjectsUser', 'ListProjectsOrg'])
+      expect(await rejection(client.getProjectId('o', 1))).toMatchObject({ name: 'GitHubRateLimitError' })
+      expect(graphqlRequests(server).map(({ operation }) => operation)).toEqual(['GetProjectIdUser', 'GetProjectIdOrg'])
     })
   })
 })
@@ -789,52 +639,6 @@ describe('linkRepositoryToProject', () => {
   })
 })
 
-describe('listProjects', () => {
-  const projects = [
-    { number: 1, title: 'A', url: 'https://github.com/users/u/projects/1', id: 'PVT_1' },
-    JSON_NULL,
-    { number: 2, title: 'B', url: 'https://github.com/users/u/projects/2', id: 'PVT_2' },
-  ]
-
-  it('user のプロジェクトから null を除いて返し、first の既定値は 20 にする', async () => {
-    await explains('`listProjects` のテストです。`user` のプロジェクトから `null` を除いて返し、`first` の既定値が 20 であることを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([graphqlData('ListProjectsUser', { user: { projectsV2: { nodes: projects } } })])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.listProjects('u')).toEqual([projects[0], projects[2]])
-      expect(graphqlRequests(server)).toEqual([{ operation: 'ListProjectsUser', variables: { owner: 'u', first: 20 } }])
-    })
-  })
-
-  it('user が null の場合は、organization のプロジェクトを返し、first を変数として送信する', async () => {
-    await explains('`listProjects` のテストです。`user` が `null` の場合は、`organization` のプロジェクトを返し、`first` を変数として送信することを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([
-        graphqlData('ListProjectsUser', { user: JSON_NULL }),
-        graphqlData('ListProjectsOrg', { organization: { projectsV2: { nodes: [projects[0]] } } }),
-      ])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.listProjects('o', 5)).toEqual([projects[0]])
-      expect(graphqlRequests(server).map(({ variables }) => variables)).toEqual([{ owner: 'o', first: 5 }, { owner: 'o', first: 5 }])
-    })
-  })
-
-  it('user と organization のどちらも存在しない場合は、プロジェクトの一覧として空配列を返す', async () => {
-    await explains('`listProjects` のテストです。`user` と `organization` のどちらも存在しない場合は、空配列を返すことを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([graphqlData('ListProjectsUser', { user: JSON_NULL }), graphqlData('ListProjectsOrg', { organization: JSON_NULL })])
-      return { client }
-    })
-    await step('結果を確かめる', async () => {
-      expect(await client.listProjects('nobody')).toEqual([])
-    })
-  })
-})
-
 describe('getProjectFields', () => {
   const project = { id: 'PVT_1', title: 'P', url: 'https://github.com/users/u/projects/1', fields: { nodes: [{ id: 'F1', name: 'Status' }] } }
 
@@ -1009,112 +813,6 @@ describe('updateProjectFieldOptions', () => {
       expect(await rejection(client.updateProjectFieldOptions('PVTSSF_f1', options))).toMatchObject(
         failure(GitHubAPIError, 'GraphQL query error: {\'message\': \'GraphQL error\'}'),
       )
-    })
-  })
-})
-
-describe('getOwnerNodeId', () => {
-  it('user の Node ID を返し、login を変数として送信する', async () => {
-    await explains('`getOwnerNodeId` のテストです。`user` が存在する場合は、`login` を変数にして送信し、その Node ID を返すことを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([graphqlData('GetUserNodeId', { user: { id: 'U_kgDOtest123' } })])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.getOwnerNodeId('testuser')).toBe('U_kgDOtest123')
-      expect(graphqlRequests(server)).toEqual([{ operation: 'GetUserNodeId', variables: { login: 'testuser' } }])
-    })
-  })
-
-  it('user が null の場合は、organization の Node ID を返す', async () => {
-    await explains('`getOwnerNodeId` のテストです。`user` が `null` の場合は、`organization` のクエリへ進み、その Node ID を返すことを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([
-        graphqlData('GetUserNodeId', { user: JSON_NULL }),
-        graphqlData('GetOrgNodeId', { organization: { id: 'O_kgDOorg456' } }),
-      ])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.getOwnerNodeId('testorg')).toBe('O_kgDOorg456')
-      expect(graphqlRequests(server).map(({ variables }) => variables)).toEqual([{ login: 'testorg' }, { login: 'testorg' }])
-    })
-  })
-
-  it('user のクエリが GraphQL のエラー（owner が organization の場合）でも、organization の Node ID を返す', async () => {
-    await explains('`getOwnerNodeId` のテストです。`user` のクエリが GraphQL のエラーになる場合も、`organization` のクエリへ進み、その Node ID を返すことを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([
-        graphqlError('GetUserNodeId', 'Could not resolve to a User with the login of \'testorg\'.'),
-        graphqlData('GetOrgNodeId', { organization: { id: 'O_kgDOorg456' } }),
-      ])
-      return { client }
-    })
-    await step('結果を確かめる', async () => {
-      expect(await client.getOwnerNodeId('testorg')).toBe('O_kgDOorg456')
-    })
-  })
-
-  it('user のクエリが状態コード 401 でも organization のクエリへ進み、そちらも 401 の場合は GitHubAuthError が発生する', async () => {
-    await explains('`getOwnerNodeId` のテストです。`user` のクエリが状態コード 401 になる場合も、`organization` のクエリへ進み、そちらも 401 であれば `GitHubAuthError` が発生することを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([
-        { match: { operation: 'GetUserNodeId' }, respond: { status: 401, text: 'x' }, times: 1 },
-        { match: { operation: 'GetOrgNodeId' }, respond: { status: 401, text: 'x' }, times: 1 },
-      ])
-      return { client, server }
-    })
-    await step('エラーと送った要求を確かめる', async () => {
-      expect(await rejection(client.getOwnerNodeId('o'))).toMatchObject({ name: 'GitHubAuthError' })
-      expect(graphqlRequests(server)).toHaveLength(2)
-    })
-  })
-
-  it('user と organization のどちらも存在しない場合は、Node ID の取得で GitHubNotFoundError が発生する', async () => {
-    await explains('`getOwnerNodeId` の失敗時のテストです。`user` と `organization` のどちらも存在しない場合は、`GitHubNotFoundError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([graphqlData('GetUserNodeId', { user: JSON_NULL }), graphqlData('GetOrgNodeId', { organization: JSON_NULL })])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.getOwnerNodeId('nonexistent'))).toMatchObject(failure(GitHubNotFoundError, 'owner not found: nonexistent'))
-    })
-  })
-})
-
-describe('createProject', () => {
-  it('作成したプロジェクトを返し、ownerId と title を変数として送信する', async () => {
-    await explains('`createProject` のテストです。プロジェクトを作成した場合は、作成したプロジェクトを返し、`ownerId` と `title` を変数として送信することを確認します。')
-    const { created, client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const created = { id: 'PVT_kwHOtest123', number: 42, title: 'New Project', url: 'https://github.com/users/owner/projects/42' }
-      const { client, server } = await startClient([graphqlData('CreateProject', { createProjectV2: { projectV2: created } })])
-      return { created, client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.createProject('U_owner123', 'New Project')).toEqual(created)
-      expect(graphqlRequests(server)).toEqual([{ operation: 'CreateProject', variables: { ownerId: 'U_owner123', title: 'New Project' } }])
-    })
-  })
-
-  it('プロジェクトの作成で projectV2 が null の場合は、GitHubAPIError が発生する', async () => {
-    await explains('`createProject` の失敗時のテストです。応答の `projectV2` が `null` の場合は、`GitHubAPIError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([graphqlData('CreateProject', { createProjectV2: { projectV2: JSON_NULL } })])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.createProject('U_owner123', 'New Project'))).toMatchObject(failure(GitHubAPIError, 'failed to create the project'))
-    })
-  })
-
-  it('プロジェクトの作成で GraphQL のエラーの場合は、GitHubAPIError が発生する', async () => {
-    await explains('`createProject` の失敗時のテストです。GraphQL のエラーの場合は、`GitHubAPIError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([graphqlError('CreateProject', 'GraphQL error')])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.createProject('U_owner123', 'New Project'))).toMatchObject({ name: 'GitHubAPIError' })
     })
   })
 })

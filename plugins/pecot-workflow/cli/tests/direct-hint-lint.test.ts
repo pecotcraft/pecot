@@ -15,7 +15,6 @@ const PATHS: readonly (readonly [string, string])[] = [
   ['src/commands/project.ts', FIRST_PATH],
   ['src/commands/session.ts', path.join(ROOT, 'src', 'commands', 'session.ts')],
   ['src/infra/worktree.ts', path.join(ROOT, 'src', 'infra', 'worktree.ts')],
-  ['src/domain/issue-surface.ts', path.join(ROOT, 'src', 'domain', 'issue-surface.ts')],
 ]
 const TEST_PATH = path.join(ROOT, 'src', 'commands', 'tests', 'flag-hint.test.ts')
 

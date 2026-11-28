@@ -45,40 +45,10 @@ if [[ ! -f "$HOOKS_CONFIG" ]]; then
     fi
 fi
 
-# hosts.json が未作成なら sample からコピー
-HOSTS_CONFIG="${PECOT_DIR}/config/hosts.json"
-if [[ ! -f "$HOSTS_CONFIG" ]]; then
-    SAMPLE="${_HOOKS_ROOT}/config/hosts.json.sample"
-    if [[ -f "$SAMPLE" ]]; then
-        cp "$SAMPLE" "$HOSTS_CONFIG"
-    fi
-fi
-
-# .env が未作成なら sample からコピー
-ENV_CONFIG="${PECOT_DIR}/config/.env"
-if [[ ! -f "$ENV_CONFIG" ]]; then
-    SAMPLE="${_HOOKS_ROOT}/config/.env.sample"
-    if [[ -f "$SAMPLE" ]]; then
-        cp "$SAMPLE" "$ENV_CONFIG"
-    fi
-fi
-
 # hooks-config.json.sample を毎回同期
 SRC="${_HOOKS_ROOT}/hooks-config.json.sample"
 if [[ -f "$SRC" ]]; then
     cp "$SRC" "${PECOT_DIR}/config/hooks-config.json.sample"
-fi
-
-# hosts.json.sample を毎回同期
-SRC="${_HOOKS_ROOT}/config/hosts.json.sample"
-if [[ -f "$SRC" ]]; then
-    cp "$SRC" "${PECOT_DIR}/config/hosts.json.sample"
-fi
-
-# .env.sample を毎回同期
-SRC="${_HOOKS_ROOT}/config/.env.sample"
-if [[ -f "$SRC" ]]; then
-    cp "$SRC" "${PECOT_DIR}/config/.env.sample"
 fi
 
 # README.md を毎回同期

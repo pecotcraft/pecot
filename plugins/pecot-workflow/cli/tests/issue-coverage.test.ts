@@ -9,9 +9,8 @@ import { parse as parseYaml } from 'yaml'
 
 import { TOOLS } from '../src/commands/registry.js'
 import { ATTRIBUTE_HANDLERS } from '@pecot/workflow-core/domain/attributes.js'
-import type { IssueCoverage } from '../src/domain/issue-surface.js'
-import { checkIssueCoverage, issueCoverageSchema, issueSurfaceSchema } from '../src/domain/issue-surface.js'
-import { DEFAULT_API_VERSION } from '@pecot/workflow-core/infra/github/client.js'
+import type { IssueCoverage } from '@pecot/workflow-core/domain/issue-surface.js'
+import { checkIssueCoverage, issueCoverageSchema, issueSurfaceSchema } from '@pecot/workflow-core/domain/issue-surface.js'
 import { explains } from './_helpers/explains.js'
 
 const INTERFACE = path.resolve(import.meta.dirname, '../../interface')
@@ -38,11 +37,6 @@ describe('issue-coverage.yaml', () => {
   it('写しの全項目が一覧にあり、supported の handler・tool が CLI にあり、excluded に理由がある', async () => {
     await explains('GitHub の Issue の機能の写しと、担保の一覧（`issue-coverage.yaml`）の整合性のテストです。現在の一覧を検証した結果、問題が 1 件も報告されないことを確認します。')
     expect(problemsOf(coverage)).toEqual([])
-  })
-
-  it('写しの REST の版が、pecot が REST に送る DEFAULT_API_VERSION と同じ', async () => {
-    await explains('写しに記録した REST API の版のテストです。写しの `rest_api_version` が、pecot が REST の呼び出しに使う `DEFAULT_API_VERSION` と一致することを確認します。')
-    expect(surface.sources.rest_api_version).toBe(DEFAULT_API_VERSION)
   })
 
   it('一覧から supported の項目を 1 つ消すと、その id を挙げて落ちる', async () => {

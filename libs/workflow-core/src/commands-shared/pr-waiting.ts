@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない */
-// pr create と session finish の後に、head の Issue を待つ Issue（blocking）の列と札を、判定で動かす。
+// session finish の後に、head の Issue を待つ Issue（blocking）の列と札を、判定で動かす。
 // どの失敗も warning にとどめ、終了コードを変えない。
 import { setTimeout as delay } from 'node:timers/promises'
 
-import { homeRepositoryOf, workflowFieldId } from '../domain/config.js'
-import type { ProjectConfig } from '../domain/config.js'
+import { workflowFieldId } from '../domain/config.js'
 import { boardItemKey } from '../domain/format.js'
 import type { BoardItem } from '../domain/format.js'
 import type { BlockedByReference } from '../domain/issue-readout.js'
@@ -12,34 +11,19 @@ import { displayReference } from '../domain/readiness.js'
 import type { Prerequisite } from '../domain/readiness.js'
 import { createIssueReference, issueReferenceKey } from '../domain/reference-parser.js'
 import type { IssueReference } from '../domain/reference-parser.js'
-import type { RepositoryReference } from '../domain/repository-resolver.js'
 import { DependenciesUnsupportedError, GitHubNotFoundError } from '../infra/github/errors.js'
 import type { GitHubClient } from '../infra/github/index.js'
-import { applyJudgedMoves, BOARD_SYNC_WORKFLOW, judgeBoard, SYNCED_COLUMNS } from './board-judgment.js'
+import { applyJudgedMoves, judgeBoard, SYNCED_COLUMNS } from './board-judgment.js'
 import type { BoardContext, JudgedTarget } from './board-judgment.js'
 import { mapWithLimit } from './board-view.js'
 import { apiFailureMessage } from './github-client.js'
 import type { BoardMoveLine } from './issue-board.js'
 import type { FieldHintState } from './field-write-failure.js'
-import { createReadinessCache } from './issue-readiness.js'
 import type { JudgedIssue, ReadinessCache } from './issue-readiness.js'
-import type { Output } from './output.js'
 
 // GitHub は書いた直後の読み取りの一致を保証しない。読み直す前に、反映を待つ時間
 const RECHECK_DELAY_MILLISECONDS = 1500
 const READ_MAX_WORKERS = 8
-
-export interface CreatedPullRequest {
-  readonly repository: RepositoryReference
-  /**
-  head ブランチの末尾の番号の Issue
-  */
-  readonly issueNumber: number
-  /**
-  作った PR の番号。応答に無ければ undefined（読み直しの確かめを省く）
-  */
-  readonly pullRequest: number | undefined
-}
 
 /**
 待つ Issue の判定に、呼ぶ側の変化（作った PR・閉じた Issue）が出ているかの確かめ方
@@ -195,19 +179,4 @@ export async function moveIssuesWaitingFor(context: Readonly<BoardContext>, opti
     if (partial !== undefined) context.out.warning(partial)
   }
   return judged
-}
-
-/**
-pr create の後に、head の Issue を待つ Issue の列と札を動かす。作った PR が判定に出るまで 1 回だけ読み直す。
-動かした列と札（moved: と set: の行の値）を moves に足していき、それを返す。fieldHint は、in_review の書き込みと同じ印を渡す
-*/
-export async function moveWaitingIssues(out: Readonly<Output>, client: GitHubClient, config: ProjectConfig, created: CreatedPullRequest, fieldHint: FieldHintState, moves: BoardMoveLine[] = []): Promise<readonly BoardMoveLine[]> {
-  const context: BoardContext = { out, client, config, home: homeRepositoryOf(config) }
-  const head = createIssueReference(created.repository, created.issueNumber)
-  const check: WaitingCheck = {
-    isReflected: judged => created.pullRequest === undefined || (prerequisiteOf(judged, head)?.issue.pullRequests.some(pullRequest => pullRequest.number === created.pullRequest) ?? false),
-    unconfirmed: name => `could not confirm that GitHub reflects PR #${String(created.pullRequest)} in the readiness of ${name}; its column was not moved; run ${BOARD_SYNC_WORKFLOW} later to move it`,
-  }
-  await moveIssuesWaitingFor(context, { heads: [head], check, isDryRun: false, cache: createReadinessCache(), fieldHint }, moves)
-  return moves
 }

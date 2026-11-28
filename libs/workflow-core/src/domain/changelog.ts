@@ -2,7 +2,7 @@
 // ファイルは読まない。内容（文字列）を受けて値を返す。ファイルを読む側は infra/changelog-file.ts にある。
 // Python の re と同じ判定にする（\d は Unicode の 10 進数字、\s は str.isspace、$ は末尾の改行 1 つの前でも合う）。
 
-import { PecotError, BaseError } from './errors.js'
+import { PecotError } from './errors.js'
 import { PYTHON_LINE_BREAK, pythonStrip, splitCodePoints } from './python-format.js'
 
 export class ChangelogError extends PecotError {}
@@ -16,11 +16,6 @@ export class InvalidVersionError extends ChangelogError {}
 CHANGELOG.md にバージョン情報が存在しない
 */
 export class VersionNotFoundError extends ChangelogError {}
-
-/**
-CHANGELOG.md が存在しない。Python の FileNotFoundError に当たるので、PecotError ではない
-*/
-export class ChangelogFileNotFoundError extends BaseError {}
 
 export const DEFAULT_CHANGELOG_FILE = 'CHANGELOG.md'
 export const CHANGELOG_FALLBACK_FILES: readonly string[] = ['CHANGELOG.md', 'AIST-CHANGELOG.md']

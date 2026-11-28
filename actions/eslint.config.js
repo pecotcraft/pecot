@@ -114,7 +114,7 @@ export default defineConfig(
       // 依存の向き: 起動のファイル（src/<処理>.ts・src/entry.ts）→ src/commands → @pecot/workflow-core の一方向だけを許す
       'import-x/no-restricted-paths': ['error', {
         zones: [
-          { target: './src/commands', from: './src', except: ['./commands', './templates', './types'], message: 'commands から起動のファイル（src/<処理>.ts・src/entry.ts）への import 禁止 (依存方向違反)' },
+          { target: './src/commands', from: './src', except: ['./commands', './infra', './templates', './types'], message: 'commands から起動のファイル（src/<処理>.ts・src/entry.ts）への import 禁止 (依存方向違反)' },
         ],
       }],
     },

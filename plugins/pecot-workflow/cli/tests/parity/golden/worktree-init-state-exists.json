@@ -6,7 +6,6 @@
     "detail": "worktree config already exists\n  {{TMP}}/base/demo/.pecot/config/worktree-config.json\n  {{TMP}}/base/demo/.pecot/config/.worktreeignore"
   },
   "stderr": "",
-  "requests": [],
   "files": {
     ".pecot/config/.worktreeignore": ".pecot/\n",
     ".pecot/config/worktree-config.json": "{\n  \"version\": 3,\n  \"links\": [\n    {\n      \"path\": \"CLAUDE.local.md\",\n      \"target_repo\": \"demo\",\n      \"target_path\": \"CLAUDE.local.md\"\n    }\n  ]\n}\n"

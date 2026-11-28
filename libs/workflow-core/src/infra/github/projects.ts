@@ -1,10 +1,8 @@
 // GitHub Projects (v2) 操作の API。cli/core/github/projects.py の移植。
 // owner が user か organization かは分からないので、user のクエリを先に試し、失敗したら organization を試す。
 
-import type { ProjectFieldValueInput } from '../../domain/attributes.js'
 import { isJsonObject, jsonField } from '../../domain/json.js'
 import type { JsonObject } from '../../domain/json.js'
-import type { LinkedRepository } from '../../domain/config.js'
 import type { FieldOptionInput } from '../../domain/field-options.js'
 import { extractFieldValueById } from '../../domain/format.js'
 import type { BoardItem } from '../../domain/format.js'
@@ -15,35 +13,7 @@ import { LANE_FIELD_NAME } from '../../domain/lanes.js'
 import type { GraphqlOutcome, PathPredicate } from './client.js'
 import { asNotFoundError, GitHubAPIError, GitHubNotFoundError, isSchemaError } from './errors.js'
 import { asArray, asObject, isTruthy, requireString, truthyNodes } from './payload.js'
-import {
-  MUTATION_ADD_TO_PROJECT,
-  MUTATION_CLEAR_PROJECT_ITEM_FIELD,
-  MUTATION_CREATE_PROJECT,
-  MUTATION_CREATE_PROJECT_FIELD,
-  MUTATION_DELETE_PROJECT_FIELD,
-  MUTATION_DELETE_PROJECT_ITEM,
-  MUTATION_LINK_PROJECT_REPOSITORY,
-  MUTATION_RENAME_PROJECT_FIELD,
-  MUTATION_UPDATE_PROJECT_FIELD,
-  MUTATION_UPDATE_PROJECT_ITEM_FIELD,
-  MUTATION_UPDATE_PROJECT_ITEM_FIELD_VALUE,
-  QUERY_GET_ISSUE_BOARD_ITEM,
-  QUERY_GET_ISSUE_LANE,
-  QUERY_GET_ISSUE_PROJECT_ITEMS,
-  QUERY_GET_LINKED_REPOSITORIES_ORG,
-  QUERY_GET_LINKED_REPOSITORIES_USER,
-  QUERY_GET_ORG_NODE_ID,
-  QUERY_GET_PROJECT_FIELDS_ORG,
-  QUERY_GET_PROJECT_FIELDS_USER,
-  QUERY_GET_PROJECT_ID_ORG,
-  QUERY_GET_PROJECT_ID_USER,
-  QUERY_GET_PROJECT_VIEW_TARGET,
-  QUERY_GET_USER_NODE_ID,
-  QUERY_LIST_PROJECT_ITEMS,
-  QUERY_LIST_PROJECT_ITEMS_LEGACY,
-  QUERY_LIST_PROJECTS_ORG,
-  QUERY_LIST_PROJECTS_USER,
-} from './queries.js'
+import { MUTATION_ADD_TO_PROJECT, MUTATION_CREATE_PROJECT_FIELD, MUTATION_DELETE_PROJECT_FIELD, MUTATION_DELETE_PROJECT_ITEM, MUTATION_LINK_PROJECT_REPOSITORY, MUTATION_RENAME_PROJECT_FIELD, MUTATION_UPDATE_PROJECT_FIELD, MUTATION_UPDATE_PROJECT_ITEM_FIELD, QUERY_GET_ISSUE_BOARD_ITEM, QUERY_GET_ISSUE_PROJECT_ITEMS, QUERY_GET_PROJECT_FIELDS_ORG, QUERY_GET_PROJECT_FIELDS_USER, QUERY_GET_PROJECT_ID_ORG, QUERY_GET_PROJECT_ID_USER, QUERY_GET_PROJECT_VIEW_TARGET, QUERY_LIST_PROJECT_ITEMS, QUERY_LIST_PROJECT_ITEMS_LEGACY } from './queries.js'
 import { ReposApi } from './repos.js'
 import { encodePathSegment } from './rest-path.js'
 
@@ -138,7 +108,6 @@ function viewTargetOf(owner: string, number: number, ownerNode: JsonValue | unde
 }
 
 const MAX_ARCHIVED_CONSECUTIVE = 50
-const DEFAULT_PROJECT_LIMIT = 20
 
 // ワークフローのフィールドの値が Archived か。そのフィールドが無ければ false
 function isItemArchived(item: JsonValue, workflowFieldId: string): boolean {
@@ -148,13 +117,6 @@ function isItemArchived(item: JsonValue, workflowFieldId: string): boolean {
 // オブジェクトの要素だけを残す（null などは落とす）
 function objectsOf(items: readonly JsonValue[]): readonly JsonObject[] {
   return items.filter(item => isJsonObject(item))
-}
-
-function linkedRepositoriesOf(project: JsonValue | undefined): readonly LinkedRepository[] {
-  return truthyNodes(jsonField(project, 'repositories')).map(node => ({
-    owner: requireString(jsonField(jsonField(node, 'owner'), 'login'), 'repositories.nodes.owner.login'),
-    name: requireString(jsonField(node, 'name'), 'repositories.nodes.name'),
-  }))
 }
 
 export class ProjectsApi extends ReposApi {
@@ -279,24 +241,6 @@ export class ProjectsApi extends ReposApi {
   }
 
   /**
-  プロジェクトアイテムのフィールドに、種類ごとの値（ProjectV2FieldValue）を書き、アイテムの ID を返す
-  */
-  async setProjectItemFieldValue(projectId: string, itemId: string, fieldId: string, value: ProjectFieldValueInput): Promise<string> {
-    const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_ITEM_FIELD_VALUE, { projectId, itemId, fieldId, value })
-    const item = jsonField(jsonField(result, 'updateProjectV2ItemFieldValue'), 'projectV2Item')
-    if (!isTruthy(item)) throw new GitHubAPIError('failed to update the field')
-    return requireString(jsonField(item, 'id'), 'projectV2Item.id')
-  }
-
-  /**
-  プロジェクトアイテムのフィールドの値を消す
-  */
-  async clearProjectItemField(projectId: string, itemId: string, fieldId: string): Promise<void> {
-    const result = await this.executeGraphql(MUTATION_CLEAR_PROJECT_ITEM_FIELD, { projectId, itemId, fieldId })
-    if (!isTruthy(jsonField(jsonField(result, 'clearProjectV2ItemFieldValue'), 'projectV2Item'))) throw new GitHubAPIError('failed to clear the field')
-  }
-
-  /**
   プロジェクトボードからアイテムを削除し、削除したアイテムの ID を返す
   */
   async deleteProjectItem(projectId: string, itemId: string): Promise<string> {
@@ -304,39 +248,6 @@ export class ProjectsApi extends ReposApi {
     const deletedId = jsonField(jsonField(result, 'deleteProjectV2Item'), 'deletedItemId')
     if (!isTruthy(deletedId)) throw new GitHubAPIError('failed to delete the project item')
     return requireString(deletedId, 'deletedItemId')
-  }
-
-  /**
-  プロジェクトにリンクされたリポジトリの一覧。user 所有を先に試し、無ければ organization 所有を試す
-  */
-  async getLinkedRepositories(owner: string, projectNumber: number): Promise<readonly LinkedRepository[]> {
-    const variables = { owner, projectNumber }
-    const userResult = await this.queryAsUser(QUERY_GET_LINKED_REPOSITORIES_USER, variables)
-    const userProject = jsonField(jsonField(userResult, 'user'), 'projectV2')
-    if (isTruthy(userProject)) return linkedRepositoriesOf(userProject)
-
-    const orgResult = await this.executeGraphql(QUERY_GET_LINKED_REPOSITORIES_ORG, variables)
-    const organizationProject = jsonField(jsonField(orgResult, 'organization'), 'projectV2')
-    return isTruthy(organizationProject) ? linkedRepositoriesOf(organizationProject) : []
-  }
-
-  /**
-  リンクされたリポジトリの一覧（キャッシュ付き）。同じクライアントの中で同じ引数なら、2 回目以降はキャッシュを返す
-  */
-  async getLinkedRepositoriesCached(owner: string, projectNumber: number): Promise<readonly LinkedRepository[]> {
-    const cacheKey = `${owner}/${String(projectNumber)}`
-    const cached = this.linkedRepositoriesCache.get(cacheKey)
-    if (cached !== undefined) return cached
-    const repositories = await this.getLinkedRepositories(owner, projectNumber)
-    this.linkedRepositoriesCache.set(cacheKey, repositories)
-    return repositories
-  }
-
-  /**
-  RepositoryMembership（domain/config.ts）の実体。キャッシュ付きの一覧を返す
-  */
-  async linkedRepositories(owner: string, projectNumber: number): Promise<readonly LinkedRepository[]> {
-    return this.getLinkedRepositoriesCached(owner, projectNumber)
   }
 
   /**
@@ -392,17 +303,6 @@ export class ProjectsApi extends ReposApi {
   }
 
   /**
-  Issue の、指定のプロジェクトの Item の pecot-lane の値。Issue・Item・値のどれかが無ければ undefined
-  */
-  async getIssueLane(projectId: string, owner: string, repository: string, issueNumber: number): Promise<string | undefined> {
-    const result = await this.executeGraphql(QUERY_GET_ISSUE_LANE, { owner, repo: repository, number: issueNumber, laneFieldName: LANE_FIELD_NAME })
-    const issue = jsonField(jsonField(result, 'repository'), 'issue')
-    const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId)
-    const name = jsonField(jsonField(item, 'lane'), 'name')
-    return typeof name === 'string' ? name : undefined
-  }
-
-  /**
   プロジェクトアイテムで値が入っている単一選択フィールドの ID を取る。アイテムが見つからなければ空
   */
   async getItemSetFieldIds(projectId: string, owner: string, repository: string, issueNumber: number, itemId: string): Promise<ReadonlySet<string>> {
@@ -443,20 +343,6 @@ export class ProjectsApi extends ReposApi {
       }
       throw error
     }
-  }
-
-  /**
-  オーナーのプロジェクト一覧（number・title・url・id）。user 所有を先に試す
-  */
-  async listProjects(owner: string, limit = DEFAULT_PROJECT_LIMIT): Promise<readonly JsonObject[]> {
-    const variables = { owner, first: limit }
-    const userResult = await this.queryAsUser(QUERY_LIST_PROJECTS_USER, variables)
-    const userProjects = jsonField(jsonField(userResult, 'user'), 'projectsV2')
-    if (isTruthy(userProjects)) return objectsOf(truthyNodes(userProjects))
-
-    const orgResult = await this.executeGraphql(QUERY_LIST_PROJECTS_ORG, variables)
-    const organizationProjects = jsonField(jsonField(orgResult, 'organization'), 'projectsV2')
-    return isTruthy(organizationProjects) ? objectsOf(truthyNodes(organizationProjects)) : []
   }
 
   /**
@@ -512,31 +398,6 @@ export class ProjectsApi extends ReposApi {
     const updated = jsonField(jsonField(result, 'updateProjectV2Field'), 'projectV2Field')
     if (!isTruthy(updated)) throw new GitHubAPIError('failed to update the field')
     return asObject(updated)
-  }
-
-  /**
-  オーナー（user か organization）の GraphQL Node ID。user を先に試し、無ければ GitHubNotFoundError
-  */
-  async getOwnerNodeId(owner: string): Promise<string> {
-    const userResult = await this.queryAsUser(QUERY_GET_USER_NODE_ID, { login: owner })
-    const userId = jsonField(jsonField(userResult, 'user'), 'id')
-    if (isTruthy(userId)) return requireString(userId, 'user.id')
-
-    const orgResult = await this.executeGraphql(QUERY_GET_ORG_NODE_ID, { login: owner })
-    const organizationId = jsonField(jsonField(orgResult, 'organization'), 'id')
-    if (isTruthy(organizationId)) return requireString(organizationId, 'organization.id')
-
-    throw new GitHubNotFoundError(`owner not found: ${owner}`)
-  }
-
-  /**
-  GitHub Projects V2 を作り、作ったプロジェクト（id・number・title・url）を返す
-  */
-  async createProject(ownerId: string, title: string): Promise<JsonObject> {
-    const result = await this.executeGraphql(MUTATION_CREATE_PROJECT, { ownerId, title })
-    const project = jsonField(jsonField(result, 'createProjectV2'), 'projectV2')
-    if (!isTruthy(project)) throw new GitHubAPIError('failed to create the project')
-    return asObject(project)
   }
 
   /**

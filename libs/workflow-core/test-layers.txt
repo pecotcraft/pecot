@@ -7,6 +7,7 @@ unit src/commands-shared/tests/command-hint.test.ts
 unit src/commands-shared/tests/failure.test.ts
 unit src/commands-shared/tests/names.test.ts
 unit src/commands-shared/tests/output-settle.test.ts
+unit src/commands-shared/tests/readiness-json.test.ts
 unit src/commands-shared/tests/tracker-shared.test.ts
 integration src/infra/github/tests/
 unit src/infra/github/tests/errors.test.ts

@@ -1,11 +1,9 @@
-// Issue の着手の可否の読み取り。前提を読み、判定する。board show と issue show が使う。
+// Issue の着手の可否の読み取り。前提を読み、判定する。board sync・session finish・自動処理の着手の判定が使う。
 // 流れは getIssuePrerequisites → readWaitsForMerge → toIssueFacts → judgeReadiness。
-import { z } from 'zod'
 
 import { isLabelWrittenByAutomation } from '../domain/auto-result.js'
 import { findRepository, workflowFieldId } from '../domain/config.js'
 import type { ProjectConfig } from '../domain/config.js'
-import { JSON_NULL } from '../domain/json-null.js'
 import type { IssuePrerequisitesReadout, PullRequestReadout, TargetIssueReadout } from '../domain/issue-readout.js'
 import { readWaitsForMerge } from '../domain/prerequisites.js'
 import type { WaitsForMergeReadout } from '../domain/prerequisites.js'
@@ -184,26 +182,6 @@ export async function readIssueSnapshotWithReadout(client: Readonly<GitHubClient
 }
 
 /**
-前提の無い Issue の読み取り結果。一覧の値から作るので、API は呼ばない
-*/
-export function snapshotWithoutPrerequisites(config: ProjectConfig, input: { readonly title: string, readonly target: IssueFacts, readonly parent: IssueReference | undefined }): IssueSnapshot {
-  const { repository } = input.target.ref
-  return {
-    kind: 'snapshot',
-    ref: input.target.ref,
-    title: input.title,
-    target: input.target,
-    prerequisites: [],
-    titles: new Map(),
-    mismatches: [],
-    malformedReason: undefined,
-    parent: input.parent,
-    developmentBranch: findRepository(config, repository.owner, repository.repository)?.develop_branch,
-    labelWrittenByAutomation: false,
-  }
-}
-
-/**
 Issue の前提の辺（対象のキー → 前提のキー）。輪の検出に使う
 */
 export function prerequisiteKeys(snapshot: Readonly<IssueSnapshot>): readonly string[] {
@@ -338,66 +316,4 @@ export async function judgeAssuming(
   // 輪は前提の辺だけで決まり、状態の置き換えで変わらない
   const reason = judged.readiness?.reason
   return await judgeSnapshot(client, snapshot, cache, reason?.code === 'cycle' ? reason.cycle : undefined)
-}
-
-/**
-Issue 1 件の読み取りから判定までを通す。輪は呼ぶ側が渡す（issue show は輪を見ない）
-*/
-export async function readIssueReadiness(client: Readonly<GitHubClient>, config: ProjectConfig, reference: IssueReference, cache: ReadinessCache, cycle?: readonly string[], blockedByFirst?: number, shouldReadComments = false): Promise<IssueReadiness> {
-  const snapshot = await readIssueSnapshot(client, config, reference, blockedByFirst, shouldReadComments)
-  return snapshot.kind === 'unreadable' ? snapshot : await judgeSnapshot(client, snapshot, cache, cycle)
-}
-
-/**
-readinessJson の形。キーの並びは readinessJson と同じにする
-*/
-export const READINESS_JSON = z.strictObject({
-  kind: z.enum(['startable', 'stackable', 'blocked']).describe('Readiness judgment'),
-  stackOn: z.strictObject({
-    number: z.int().describe('Issue number to stack on'),
-    repository: z.string().describe('Repository of that Issue (owner/repo)'),
-    branch: z.string().describe('Branch to stack on'),
-  }).nullable().describe('Prerequisite to stack on (null unless stackable)'),
-  reason: z.string().nullable().describe('Code of the reason for blocked (null unless blocked)'),
-  text: z.string().describe('Readiness as shown in the Readiness line'),
-})
-
-export type ReadinessJson = z.input<typeof READINESS_JSON>
-
-/**
-board show の判定。前提を読めなかった Issue の kind は unknown
-*/
-export type BoardReadinessJson = Omit<ReadinessJson, 'kind'> & { readonly kind: ReadinessJson['kind'] | 'unknown' }
-
-/**
-JSON の出力に使う判定。reason は blocked のときだけの理由のコード、stackOn はスタック先
-*/
-export function readinessJson(readiness: Readonly<Readiness>, text: string): ReadinessJson {
-  const { stackOn } = readiness
-  return {
-    kind: readiness.kind,
-    stackOn: stackOn === undefined ? JSON_NULL : { number: stackOn.issue.number, repository: repositoryFullName(stackOn.issue.repository), branch: stackOn.branch },
-    reason: readiness.reason?.code ?? JSON_NULL,
-    text,
-  }
-}
-
-/**
-readIssueReadiness の、依存関係を持たない GHES を判定なしで通す形。GHES なら undefined を返し、onUnsupported に理由を渡す
-*/
-export async function readIssueReadinessIfSupported(
-  client: Readonly<GitHubClient>,
-  config: ProjectConfig,
-  reference: IssueReference,
-  cache: ReadinessCache,
-  onUnsupported?: (reason: string) => void,
-): Promise<IssueReadiness | undefined> {
-  try {
-    return await readIssueReadiness(client, config, reference, cache)
-  }
-  catch (error: unknown) {
-    if (!(error instanceof DependenciesUnsupportedError)) throw error
-    onUnsupported?.(error.message)
-    return undefined
-  }
 }

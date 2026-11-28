@@ -57,8 +57,8 @@ async function pidOf(sleeper: Readonly<Sleeper>): Promise<number> {
 }
 
 // 子ブランチを checkout し、親ブランチの今の remote の先頭で base の記録を書く
-async function openStacked(): Promise<Workspace> {
-  const workspace = await openWorkspace({ branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }] })
+function openStacked(): Workspace {
+  const workspace = openWorkspace({ branches: [{ name: LOWER, commits: [{ message: 'lower', files: { 'lower.txt': '1\n' } }] }] })
   workspace.git(['checkout', '-q', '-b', UPPER, `origin/${LOWER}`])
   const record = path.join(workspace.directory, stateFile('.pecot-base'))
   mkdirSync(path.dirname(record), { recursive: true })
@@ -226,7 +226,7 @@ it('pr_restack が fetch を待つ間、ping に答え、取り消すとリモ�
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
   await explains('`pr_restack` が `git fetch` の完了を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと接続のプロセスが終了し、状態が変化しないことを確認します。')
-  const workspace = await openStacked()
+  const workspace = openStacked()
   const sleeper = hangRemote(workspace)
   expect(await pingAndCancel({ name: 'pr_restack', arguments: {}, sleeper, directory: workspace.directory, state: () => readFileSync(path.join(workspace.directory, stateFile('.pecot-base')), 'utf8') + workspace.git(['rev-parse', 'HEAD']) })).toEqual(RESPONSIVE)
 })
@@ -235,7 +235,7 @@ it('pr_check が ls-remote を待つ間、ping に答え、取り消すとリモ
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
   await explains('`pr_check` が、remote とずれたスタックのブランチの直し方を決めるために `git ls-remote` を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと接続のプロセスが終了し、取り消した要求に応答を返さないことを確認します。')
-  const workspace = await openStacked()
+  const workspace = openStacked()
   workspace.git(['commit', '-q', '--allow-empty', '-m', 'pushed'])
   workspace.git(['push', '-q', '-u', 'origin', UPPER])
   workspace.git(['commit', '-q', '--amend', '--allow-empty', '-m', 'rewritten'])
@@ -249,7 +249,7 @@ it('session_finish が git pull を待つ間、ping に答え、取り消すと�
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
   await explains('`session_finish` が `git pull` の完了を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すとプロセスが終了し、ブランチの状態が変化しないことを確認します。')
-  const workspace = await openWorkspace({ branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }] })
+  const workspace = openWorkspace({ branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }] })
   const sleeper = hangRemote(workspace)
   const pullRequest = { number: 21, state: 'closed', draft: false, merged: true, body: 'Closes #12\n', html_url: 'https://ghes.example.com/acme/demo/pull/21', head: { ref: UPPER }, base: { ref: 'main' } }
   const reads = { pull_request: pullRequest, blocking: [{ issue: 'acme/demo/12', result: { issues: [] } }], children: [] }
@@ -260,7 +260,7 @@ it('pr_check の題の scope の確認が nx graph を待つ間、ping に答え
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
   await explains('`pr_check` が題の scope を確認するために `nx graph` を待っている間の、MCP サーバの応答のテストです。`nx` が応答しない場合は、`ping` へ時間内に答え、呼び出しを取り消すと `nx` のプロセスが終了し、次の呼び出しにすぐ答えることを確認します。')
-  const workspace = await openWorkspace({ config: { releaseType: 'nx' }, files: { 'nx.json': '{}\n' }, branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }] })
+  const workspace = openWorkspace({ config: { releaseType: 'nx' }, files: { 'nx.json': '{}\n' }, branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }] })
   const sleeper = writeSleeper(path.join(workspace.directory, 'node_modules', '.bin'), 'nx')
   const arguments_ = { method: 'create', owner: 'acme', repo: 'demo', title: 'feat(demo): #12 変更', head: UPPER, base: 'main', body: 'body\n\nCloses #12\n' }
   expect(await pingAndCancel({ name: 'pr_check', arguments: arguments_, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
@@ -270,7 +270,7 @@ it('worktree_add が setup_command を待つ間、ping に答え、取り消す�
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
   await explains('`worktree_add` が `setup_command` の完了を待っている間の、MCP サーバの応答のテストです。セットアップのコマンドが応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すとシェルの下で動くコマンドも終了することを確認します。')
-  const workspace = await openWorkspace({ files: { '.pecot/config/worktree-config.json': '{"version": 3, "links": []}\n', '.pecot/config/.worktreeignore': '.git/\n.pecot/\n' } })
+  const workspace = openWorkspace({ files: { '.pecot/config/worktree-config.json': '{"version": 3, "links": []}\n', '.pecot/config/.worktreeignore': '.git/\n.pecot/\n' } })
   setEnvironment({ DEVCONTAINER: '1', REMOTE_CONTAINERS: undefined, CODESPACES: undefined })
   const sleeper = writeSleeper(path.join(workspace.root, 'hang'), 'setup')
   expect(await pingAndCancel({ name: 'worktree_add', arguments: { directory: workspace.directory, setup: sleeper.script }, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)

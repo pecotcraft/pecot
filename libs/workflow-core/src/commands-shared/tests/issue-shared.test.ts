@@ -4,12 +4,7 @@ import { step, stepSync } from '../../../tests/_helpers/step.js'
 import { explains } from '../../../tests/_helpers/explains.js'
 
 import '../../../tests/_helpers/hint-commands.js'
-import {
-  exitInvalidStatus,
-  hasReportedTemplateTextViolations,
-  parseIssueReferenceOrExit,
-  runWithExit,
-} from '../issue-shared.js'
+import { hasReportedTemplateTextViolations, parseIssueReferenceOrExit, runWithExit } from '../issue-shared.js'
 import { CommandExit } from '../command-definition.js'
 import { createOutput } from '../output.js'
 import { capture } from '../../../tests/_helpers/captured-io.js'
@@ -54,17 +49,6 @@ describe('runWithExit', () => {
     await step('結果を確認する', async () => {
       await expect(runWithExit(boom)).rejects.toThrow('boom')
       expect(new CommandExit(2, 'invalid-input').exitCode).toBe(2)
-    })
-  })
-})
-
-describe('status の検証', () => {
-  it('定義に存在しない status を指定した場合は、有効な値を案内して止める', async () => {
-    await explains('無効な status を報告する関数（`exitInvalidStatus`）のテストです。`invalid status: foo` と有効な値の一覧を表示し、`CommandExit` が発生することを確認します。')
-    const { io, output } = stepSync('出力の捕捉を用意する', () => started())
-    stepSync('結果を確認する', () => {
-      expect(() => exitInvalidStatus(output, 'foo')).toThrow(CommandExit)
-      expect(io.err).toEqual(['error: invalid status: foo\n  valid values: backlog/pending/blocked/ready/active/in_review/archived\n'])
     })
   })
 })

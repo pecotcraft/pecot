@@ -1,4 +1,4 @@
-// queries.ts の先頭の 30 個が、Python の queries.py を記録した queries.json と逐語で一致することを固定する。
+// queries.ts の 21 個が、Python の queries.py を記録した queries.json と逐語で一致することを固定する。
 // 偽サーバの operation 対応表と矛盾しないことも固定する。
 import { parse, print } from 'graphql'
 import { describe, expect, it } from 'vitest'
@@ -20,10 +20,10 @@ function pascalCase(constantName: string): string {
 const exported = new Map(Object.entries(queries))
 
 describe('export', () => {
-  it('export する GraphQL の文の定数は 61 個になる', async () => {
-    await explains('`queries.ts` が export する GraphQL の文の定数の数のテストです。定数を追加した場合は、operation の対応表とこの個数を同時に更新する必要があるため、61 個になることを確認します。')
+  it('export する GraphQL の文の定数は 35 個になる', async () => {
+    await explains('`queries.ts` が export する GraphQL の文の定数の数のテストです。定数を追加した場合は、operation の対応表とこの個数を同時に更新する必要があるため、35 個になることを確認します。')
     stepSync('定数の数を比べる', () => {
-      expect(exported.size).toBe(61)
+      expect(exported.size).toBe(35)
     })
   })
 })
@@ -31,10 +31,10 @@ describe('export', () => {
 describe('queries.json との一致', () => {
   const recorded = queriesOutput()
 
-  it('Python から記録した 31 個の定数が、すべて export されている', async () => {
-    await explains('Python 版の `queries.py` を記録した `queries.json` のテストです。記録した 31 個の定数が、`queries.ts` からすべて export されていることを確認します。')
+  it('Python から記録した 21 個の定数が、すべて export されている', async () => {
+    await explains('Python 版の `queries.py` を記録した `queries.json` のテストです。記録した 21 個の定数が、`queries.ts` からすべて export されていることを確認します。')
     stepSync('記録した定数の数と、export に無い定数を比べる', () => {
-      expect(Object.keys(recorded)).toHaveLength(31)
+      expect(Object.keys(recorded)).toHaveLength(21)
       expect(Object.keys(recorded).filter(name => !exported.has(name))).toEqual([])
     })
   })

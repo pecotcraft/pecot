@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { explains } from '../../../tests/_helpers/explains.js'
 import { stepSync } from '../../../tests/_helpers/step.js'
 import { JSON_NULL } from '../json-null.js'
-import { boardItemKey, extractFieldValueById, extractFieldValueByName, fieldNameById, fieldNamesWithValues, formatBoardOutput, formatItemsJson, formatTableRow, transformItems } from '../format.js'
+import { boardItemKey, extractFieldValueById, extractFieldValueByName, fieldNameById, fieldNamesWithValues, formatBoardOutput, formatTableRow, transformItems } from '../format.js'
 import type { BoardItem } from '../format.js'
 import type { JsonValue } from '../python-format.js'
 
@@ -545,18 +545,6 @@ describe('formatBoardOutput の Readiness の列', () => {
       expect(first === undefined ? undefined : boardItemKey(first)).toBe('acme/app#5')
       expect(boardItemKey({ content: { number: 5 } })).toBeUndefined()
       expect(boardItemKey({ content: { repository: 'a/b' } })).toBeUndefined()
-    })
-  })
-})
-
-describe('formatItemsJson', () => {
-  it('items だけをキーに持つ JSON を返す', async () => {
-    await explains('ボードの項目を JSON にする、`formatItemsJson` のテストです。変換後の項目を渡した場合に、キーが `items` だけで、項目の件数と内容が保たれることを確認します。')
-    const output = stepSync('formatItemsJson を呼ぶ', () => formatItemsJson(transformItems(SAMPLE_RAW_ITEMS, 'F_wf')))
-    stepSync('結果を比べる', () => {
-      expect(Object.keys(output)).toEqual(['items'])
-      expect(output.items).toHaveLength(4)
-      expect(firstItem(output.items).workflow).toBe('Active')
     })
   })
 })

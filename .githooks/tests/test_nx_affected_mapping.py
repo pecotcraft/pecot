@@ -1511,11 +1511,11 @@ def _matches_by_segment(path: str, glob: str) -> bool:
 
 
 @allure.title(
-    "{src_dir} の .ts を持つディレクトリは、すべて pecot-workflow の sources の glob に含まれる"
+    "{src_dir} の .ts を持つディレクトリは、すべて pecot-workflow の sources の glob に載る"
 )
 @pytest.mark.parametrize("src_dir", ["cli/src", "../../libs/workflow-core/src"])
 def test_pecot_workflow_sources_list_every_directory_of_cli_node_src(src_dir: str) -> None:
-    """`targets.json` の `pecot-workflow` の `sources` のテストです。`tests` を除き、`.ts` を直下に持つディレクトリがすべて、`sources` のいずれかの glob に一致することを確認します。"""
+    """`targets.json` の `pecot-workflow` の `sources` のテストです。`tests` を除き、`.ts` を直下に持つディレクトリがすべて、`sources` のいずれかの glob に載ることを確認します。ディレクトリの一部のファイルだけを名指しする glob も、載っていると数えます。"""
     with allure.step("sources の glob と、.ts を持つディレクトリを集める"):
         sources = json.loads((_REPO_ROOT / "libs/interface-spec/targets.json").read_text("utf-8"))[
             "plugins"
@@ -1528,7 +1528,9 @@ def test_pecot_workflow_sources_list_every_directory_of_cli_node_src(src_dir: st
     with allure.step("どのディレクトリも sources の glob に載ることを確かめる"):
         assert directories, f"{src_dir} に .ts が無い"
         for directory in sorted(directories):
-            file = f"{directory.relative_to(_REPO_ROOT).as_posix()}/x.ts"
-            assert any(_matches_by_segment(file, glob) for glob in globs), (
-                f"{directory.relative_to(_REPO_ROOT).as_posix()} が targets.json の pecot-workflow の sources に無い"
-            )
+            relative = directory.relative_to(_REPO_ROOT).as_posix()
+            # 一部のファイルだけを名指しする glob も、そのディレクトリを載せたと数える。
+            assert any(
+                _matches_by_segment(f"{relative}/x.ts", glob) or posixpath.dirname(glob) == relative
+                for glob in globs
+            ), f"{relative} が targets.json の pecot-workflow の sources に無い"

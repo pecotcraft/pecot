@@ -81,65 +81,6 @@ describe('getBranchSha', () => {
   })
 })
 
-describe('getTagCommitSha', () => {
-  const TAG_PATH = '/repos/owner/repo/git/ref/tags/pecot-actions/v1.0.0'
-
-  it('軽量のタグは、ref の object.sha を返す', async () => {
-    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。軽量のタグの場合に、ref の `object.sha` をそのまま返し、ref だけを読むことを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([
-        restResponse('GET', TAG_PATH, { status: 200, body: { object: { sha: 'c0ffee', type: 'commit' } } }),
-      ])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.getTagCommitSha('owner', 'repo', 'pecot-actions/v1.0.0')).toBe('c0ffee')
-      expect(restRequests(server).map(({ path }) => path)).toEqual([TAG_PATH])
-    })
-  })
-
-  it('注釈付きのタグは、git/tags で commit まで辿る', async () => {
-    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。注釈付きのタグの場合に、`git/tags` を読んで commit の SHA まで辿ることを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([
-        restResponse('GET', TAG_PATH, { status: 200, body: { object: { sha: 't1', type: 'tag' } } }),
-        restResponse('GET', '/repos/owner/repo/git/tags/t1', { status: 200, body: { object: { sha: 'c0ffee', type: 'commit' } } }),
-      ])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.getTagCommitSha('owner', 'repo', 'pecot-actions/v1.0.0')).toBe('c0ffee')
-      expect(restRequests(server).map(({ path }) => path)).toEqual([TAG_PATH, '/repos/owner/repo/git/tags/t1'])
-    })
-  })
-
-  it('commit でないものを指すタグは GitHubAPIError', async () => {
-    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。タグが commit 以外を指す場合に、`GitHubAPIError` の例外が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([
-        restResponse('GET', TAG_PATH, { status: 200, body: { object: { sha: 'tree1', type: 'tree' } } }),
-      ])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.getTagCommitSha('owner', 'repo', 'pecot-actions/v1.0.0'))).toMatchObject(failure(GitHubAPIError, 'tag pecot-actions/v1.0.0 does not point to a commit'))
-    })
-  })
-
-  it('タグが無ければ GitHubNotFoundError', async () => {
-    await explains('タグの commit の SHA を読み取る `getTagCommitSha` のテストです。タグが存在しない場合に、`GitHubNotFoundError` の例外が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([
-        restResponse('GET', TAG_PATH, { status: 404, body: { message: 'Not Found' } }),
-      ])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.getTagCommitSha('owner', 'repo', 'pecot-actions/v1.0.0'))).toBeInstanceOf(GitHubNotFoundError)
-    })
-  })
-})
-
 describe('listWorkflowRunConclusions', () => {
   it('head_sha で絞った run の id と conclusion を返し、未完了の run の conclusion は空文字にする', async () => {
     await explains('ワークフローの実行結果を取得する `listWorkflowRunConclusions` のテストです。`head_sha` で絞り込んだ run の `id` と `conclusion` を返し、未完了の run の `conclusion` は空文字になることを確認します。')
@@ -347,44 +288,6 @@ describe('createLinkedBranch', () => {
   })
 })
 
-describe('deleteBranch', () => {
-  it('204 が返ると、何も返さずに終了する', async () => {
-    await explains('ブランチを削除する `deleteBranch` のテストです。204 が返った場合に、何も返さず、`DELETE /repos/owner/repo/git/refs/heads/feat/test-branch` を要求することを確認します。')
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([restResponse('DELETE', '/repos/owner/repo/git/refs/heads/feat/test-branch', { status: 204, text: '' })])
-      return { client, server }
-    })
-    await step('deleteBranch を呼ぶ', async () => {
-      await client.deleteBranch('owner', 'repo', 'feat/test-branch')
-    })
-    await step('送った要求を確かめる', () => {
-      expect(restRequests(server).map(({ method, path }) => [method, path])).toEqual([['DELETE', '/repos/owner/repo/git/refs/heads/feat/test-branch']])
-    })
-  })
-
-  it('存在しない ref を削除して 422 が返ると、GitHubAPIError を発生させる', async () => {
-    await explains('`deleteBranch` のテストです。存在しない ref で 422 が返った場合に、ステータスコードと応答本文を持つ `GitHubAPIError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([restResponse('DELETE', '/repos/owner/repo/git/refs/heads/nonexistent', { status: 422, text: 'Reference does not exist' })])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.deleteBranch('owner', 'repo', 'nonexistent'))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 422', { statusCode: 422, responseBody: 'Reference does not exist' }))
-    })
-  })
-
-  it('保護されたブランチを削除して 403 が返ると、access denied の GitHubAPIError を発生させる', async () => {
-    await explains('`deleteBranch` のテストです。保護されたブランチで 403 が返った場合に、`access denied` を持つ `GitHubAPIError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([restResponse('DELETE', '/repos/owner/repo/git/refs/heads/main', { status: 403, text: 'Cannot delete a protected branch' })])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      expect(await rejection(client.deleteBranch('owner', 'repo', 'main'))).toMatchObject(failure(GitHubAPIError, 'access denied', { statusCode: 403, responseBody: 'Cannot delete a protected branch' }))
-    })
-  })
-})
-
 describe('createRelease', () => {
   it('オプションを省略すると、target_commitish が main で draft と prerelease が false の本文を、Python と同じキー順で送信する', async () => {
     await explains('リリースを作成する `createRelease` のテストです。オプションを省略した場合に、`target_commitish` が `main`、`draft` と `prerelease` が `false` の本文を、Python と同じキー順で送信することを確認します。')
@@ -438,31 +341,6 @@ describe('createRelease', () => {
     })
     await step('エラーを確かめる', async () => {
       expect(await rejection(client.createRelease('owner', 'repo', 'v0.6.1', 'v0.6.1', 'notes'))).toMatchObject(failure(GitHubAPIError, 'GitHub API error: 422', { statusCode: 422, responseBody: 'Validation Failed' }))
-    })
-  })
-})
-
-describe('getRepositoryDefaultBranch', () => {
-  it.each(['main', 'master'])('default_branch が %s の場合は、その値を返す', async (branch) => {
-    await explains(`リポジトリの既定ブランチを取得する \`getRepositoryDefaultBranch\` のテストです。応答の \`default_branch\` が \`${branch}\` の場合に、その値を返すことを確認します。`)
-    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([restResponse('GET', '/repos/owner/repo', { status: 200, body: { name: 'repo', default_branch: branch } })])
-      return { client, server }
-    })
-    await step('送った要求を確かめる', async () => {
-      expect(await client.getRepositoryDefaultBranch('owner', 'repo')).toBe(branch)
-      expect(restRequests(server).map(({ path }) => path)).toEqual(['/repos/owner/repo'])
-    })
-  })
-
-  it('404 が返ると、GitHubNotFoundError を発生させる', async () => {
-    await explains('`getRepositoryDefaultBranch` のテストです。存在しないリポジトリで 404 が返った場合に、`GitHubNotFoundError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([restResponse('GET', '/repos/owner/nonexistent', { status: 404, text: 'Not Found' })])
-      return { client }
-    })
-    await step('エラーを確かめる', async () => {
-      await expect(client.getRepositoryDefaultBranch('owner', 'nonexistent')).rejects.toBeInstanceOf(GitHubNotFoundError)
     })
   })
 })
@@ -676,14 +554,14 @@ describe('URL のパスの符号化', () => {
   })
 
   it('リポジトリ名に URL の予約文字を含む場合は、エンコードして要求する', async () => {
-    await explains('`getRepositoryDefaultBranch` のテストです。リポジトリ名が `a?b` のように予約文字を含む場合に、`?` を `%3F` にエンコードして要求することを確認します。')
+    await explains('URL のパスのエンコードのテストです。リポジトリ名が `a?b` のように予約文字を含む場合に、`?` を `%3F` にエンコードして要求することを確認します。')
     const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client, server } = await startClient([restResponse('GET', '/repos/owner/a%3Fb', { status: 200, body: { default_branch: 'main' } })])
+      const { client, server } = await startClient([restResponse('GET', '/repos/owner/a%3Fb/git/ref/heads/main', { status: 200, body: { object: { sha: 's' } } })])
       return { client, server }
     })
     await step('送った要求を確かめる', async () => {
-      expect(await client.getRepositoryDefaultBranch('owner', 'a?b')).toBe('main')
-      expect(restRequests(server).map(request => request.path)).toEqual(['/repos/owner/a%3Fb'])
+      expect(await client.getBranchSha('owner', 'a?b', 'main')).toBe('s')
+      expect(restRequests(server).map(request => request.path)).toEqual(['/repos/owner/a%3Fb/git/ref/heads/main'])
     })
   })
 
@@ -694,24 +572,24 @@ describe('URL のパスの符号化', () => {
       return { client, server }
     })
     await step('エラーと送った要求を確かめる', async () => {
-      expect(await rejection(client.getRepositoryDefaultBranch('owner', repository))).toMatchObject(failure(GitHubAPIError, `name not usable in a URL path: ${repository}`))
+      expect(await rejection(client.getBranchSha('owner', repository, 'main'))).toMatchObject(failure(GitHubAPIError, `name not usable in a URL path: ${repository}`))
       expect(restRequests(server)).toEqual([])
     })
   })
 
   it('ブランチ名の記号はエンコードし、.. のセグメントは GitHubAPIError を発生させる', async () => {
-    await explains('`deleteBranch` のテストです。`!`・`\'`・`(`・`)`・`*` を含むブランチ名はエンコードして要求し、`..` のセグメントを含む名前の場合は `GitHubAPIError` が発生することを確認します。')
+    await explains('URL のパスのエンコードのテストです。`!`・`\'`・`(`・`)`・`*` を含むブランチ名はエンコードして要求し、`..` のセグメントを含む名前の場合は `GitHubAPIError` が発生することを確認します。')
     const { path, client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const path = '/repos/owner/repo/git/refs/heads/a%21%27%28%29%2A'
-      const { client, server } = await startClient([restResponse('DELETE', path, { status: 204, text: '' })])
+      const path = '/repos/owner/repo/git/ref/heads/a%21%27%28%29%2A'
+      const { client, server } = await startClient([restResponse('GET', path, { status: 200, body: { object: { sha: 's' } } })])
       return { path, client, server }
     })
-    await step('deleteBranch を呼ぶ', async () => {
-      await client.deleteBranch('owner', 'repo', 'a!\'()*')
+    await step('getBranchSha を呼ぶ', async () => {
+      await client.getBranchSha('owner', 'repo', 'a!\'()*')
     })
     await step('エラーと送った要求を確かめる', async () => {
       expect(restRequests(server).map(request => request.path)).toEqual([path])
-      expect(await rejection(client.deleteBranch('owner', 'repo', 'x/../y'))).toMatchObject(failure(GitHubAPIError, 'name not usable in a URL path: ..'))
+      expect(await rejection(client.getBranchSha('owner', 'repo', 'x/../y'))).toMatchObject(failure(GitHubAPIError, 'name not usable in a URL path: ..'))
     })
   })
 })

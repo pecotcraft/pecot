@@ -67,6 +67,9 @@ entries:
       - id: PT-AWS-S3-LS-01
         pattern: unwanted
         statement: もし認証が切れているなら、失敗の種別 auth-expired を返す
+      - id: PT-AWS-S3-LS-100
+        pattern: unwanted
+        statement: もし権限が足りないなら、失敗の種別 auth-error を返す
 common_behaviors:
   - id: PW-COMMON-01
     pattern: ubiquitous

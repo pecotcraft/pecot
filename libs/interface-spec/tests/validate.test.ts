@@ -34,13 +34,13 @@ const CASES: readonly (readonly [string, readonly string[]])[] = [
   ['pattern-mismatch', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE-01: statement does not match pattern "unwanted"`]],
   ['annotations', [`error: ${PT}/authored.yaml: PT-AWS-S3-CP: effects has kind "write" but annotations.readOnlyHint is true`]],
   ['behavior-id', [
-    `error: ${PT}/authored.yaml: common_behaviors[0].id: "PW-COMMON-01" must be "PT-COMMON-NN" (NN is 2 digits)`,
+    `error: ${PT}/authored.yaml: common_behaviors[0].id: "PW-COMMON-01" must be "PT-COMMON-NN" (NN is 2 or more digits)`,
     `error: ${PW}/authored.yaml: PW-COMMON-01: id: is also defined in ${PT}/authored.yaml`,
     `error: ${PW}/authored.yaml: PW-ISSUE-CREATE-01: id: is defined more than once`,
-    `error: ${PW}/authored.yaml: PW-ISSUE-QUICK: behaviors[0].id: "PW-ISSUE-QUICK-1" must be "PW-ISSUE-QUICK-NN" (NN is 2 digits)`,
+    `error: ${PW}/authored.yaml: PW-ISSUE-QUICK: behaviors[0].id: "PW-ISSUE-QUICK-1" must be "PW-ISSUE-QUICK-NN" (NN is 2 or more digits)`,
   ]],
   ['behavior-id-reverse', [
-    `error: ${PW}/authored.yaml: common_behaviors[0].id: "PT-COMMON-01" must be "PW-COMMON-NN" (NN is 2 digits)`,
+    `error: ${PW}/authored.yaml: common_behaviors[0].id: "PT-COMMON-01" must be "PW-COMMON-NN" (NN is 2 or more digits)`,
     `error: ${PW}/authored.yaml: PT-COMMON-01: id: is also defined in ${PT}/authored.yaml`,
   ]],
   ['format-unknown', [`error: ${PW}/authored.yaml: PW-ISSUE-CREATE: output.format: unknown value "bogus" (expected one of "text", "json", "none")`]],

@@ -6,7 +6,6 @@
     "detail": "acme/demo is not in any project config\n  available: ghes.example.com_acme_board_acme"
   },
   "stderr": "",
-  "requests": [],
   "files": {
     ".pecot/config/.worktreeignore": ".pecot/\n",
     ".pecot/config/projects/.active": "ghes.example.com_acme_board_acme.json\n",

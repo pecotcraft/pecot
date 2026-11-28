@@ -281,9 +281,9 @@ function annotationFindings(file: string, scope: string, entry: AuthoredEntry, g
   return findings
 }
 
-// 振る舞いの項目の ID は <idPrefix>-<2 桁の番号>。
+// 振る舞いの項目の ID は <idPrefix>-<2 桁以上の番号>。
 function isBehaviorId(id: string, idPrefix: string): boolean {
-  return id.startsWith(`${idPrefix}-`) && /^\d{2}$/u.test(id.slice(idPrefix.length + 1))
+  return id.startsWith(`${idPrefix}-`) && /^\d{2,}$/u.test(id.slice(idPrefix.length + 1))
 }
 
 function behaviorFindings(file: string, behaviors: readonly Behavior[], scope: string | undefined, idPrefix: string, list: string): Finding[] {
@@ -294,7 +294,7 @@ function behaviorFindings(file: string, behaviors: readonly Behavior[], scope: s
         file,
         ...(scope !== undefined && { scope }),
         field: `${list}[${String(index)}].id`,
-        reason: `${quote(behavior.id)} must be ${quote(`${idPrefix}-NN`)} (NN is 2 digits)`,
+        reason: `${quote(behavior.id)} must be ${quote(`${idPrefix}-NN`)} (NN is 2 or more digits)`,
       })
     }
     // 空の判定は zod の trim と同じ String.prototype.trim。

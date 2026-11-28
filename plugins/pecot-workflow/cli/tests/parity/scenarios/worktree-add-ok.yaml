@@ -74,4 +74,3 @@ setup:
         ローカル向けの指示
       .env.local: |
         TOKEN=sample
-github: []

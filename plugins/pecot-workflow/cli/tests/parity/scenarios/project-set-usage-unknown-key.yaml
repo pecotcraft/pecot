@@ -5,4 +5,3 @@ arguments:
   key: foo
   value: acme/roadmap
 setup: {}
-github: []

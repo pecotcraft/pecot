@@ -9,9 +9,9 @@ import type { JsonObject } from '../../domain/json.js'
 import { parseProjectConfig } from '../../domain/config.js'
 import type { ProjectConfig } from '../../domain/config.js'
 import type { BoardItem } from '../../domain/format.js'
-import { graphqlData, graphqlError, restResponse, startClient, useFakeGithub } from '../../infra/github/tests/fake-client.js'
-import { boardShowData, boardShowJson, boardShowMarkdown, boardShowResult, collectAlertStatuses, mapWithLimit, pruneArchivedItems, readBoard, warnOldFieldName } from '../board-view.js'
-import type { BoardRead, BoardShowView } from '../board-view.js'
+import { graphqlData, graphqlError, startClient, useFakeGithub } from '../../infra/github/tests/fake-client.js'
+import { mapWithLimit, pruneArchivedItems, readBoard, warnOldFieldName } from '../board-view.js'
+import type { BoardRead } from '../board-view.js'
 import { createOutput } from '../output.js'
 // 案内のコマンドの形を登録する
 import '../../../tests/_helpers/hint-commands.js'
@@ -20,8 +20,8 @@ useFakeGithub()
 
 type Json = JsonObject
 
-function config(repositories: readonly Json[] = [], extra: Json = {}): ProjectConfig {
-  return parseProjectConfig({ host: 'github.com', owner: 'acme', project: { number: 1, id: 'PVT_1', fields: { workflow: { id: 'PVTSSF_workflow', options: {} } } }, repositories, ...extra })
+function config(): ProjectConfig {
+  return parseProjectConfig({ host: 'github.com', owner: 'acme', project: { number: 1, id: 'PVT_1', fields: { workflow: { id: 'PVTSSF_workflow', options: {} } } }, repositories: [] })
 }
 
 function archived(index: number, id: BoardItem['id'] = `PVTI_${String(index)}`): BoardItem {
@@ -119,146 +119,6 @@ describe('pruneArchivedItems', () => {
     const result = await step('アーカイブ済みの項目を取り除く', async () => await pruneArchivedItems(createOutput(false, io), client, config(), archivedItems(), false))
     stepSync('結果を確認する', () => {
       expect({ result, err: io.err.join('') }).toEqual({ result: { deleted: 2, failed: 0 }, err: 'deleted: 2 archived items\n' })
-    })
-  })
-})
-
-describe('collectAlertStatuses', () => {
-  it('リポジトリごとの状態を登録した順に返し、取得に失敗したリポジトリはエラーの文字列で返す', async () => {
-    await explains('登録したリポジトリの Dependabot alert の状態を収集する処理のテストです。1 件目は取得に成功して状態を返し、2 件目は HTTP 500 で失敗してエラーの文字列を返すことを、登録した順に確認します。')
-    const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient([
-      restResponse('GET', '/repos/acme/a/dependabot/alerts', { status: 200, body: [] }),
-      restResponse('GET', '/repos/acme/b/dependabot/alerts', { status: 500, text: 'x' }),
-    ]))
-    await step('結果を確認する', async () => {
-      expect(await collectAlertStatuses(client, config([{ owner: 'acme', name: 'a' }, { owner: 'acme', name: 'b' }]))).toEqual([
-        { enabled: true, openCount: 0, maxSeverity: undefined, alertsUrl: 'https://github.com/acme/a/security/dependabot', openAlerts: [] },
-        'acme/b: GitHub API error: 500',
-      ])
-    })
-  })
-})
-
-describe('board show の表示', () => {
-  const repositories = [
-    { owner: 'acme', name: 'a', develop_branch: 'develop', release_branch: 'main', packages: [{ name: 'pkg', changelog: 'pkg/CHANGELOG.md' }], release_type: 'nx' },
-    { owner: 'acme', name: 'b', changelog_file: 'CHANGES.md' },
-    { owner: 'acme', name: 'c' },
-  ]
-  const view: BoardShowView = {
-    config: config(repositories, { aggregation_repo: 'acme/roadmap' }),
-    projectName: 'board',
-    statuses: [{ enabled: true, openCount: 3, maxSeverity: 'high', alertsUrl: 'https://github.com/acme/a/security/dependabot', openAlerts: [] }, { enabled: false, openCount: 0, maxSeverity: undefined, alertsUrl: 'u', openAlerts: [] }, 'boom'],
-    laneOptions: ['fe', 'be'],
-  }
-  const items: BoardItem[] = [
-    { id: 'PVTI_1', workflow: 'Ready', lane: 'fe', title: 'T1', content: { number: 1, url: 'https://github.com/acme/a/issues/1', labels: ['bug'], repository: 'acme/a' } },
-    { id: 'PVTI_2', workflow: 'Active', lane: null, title: 'T2', content: { number: 2, url: 'https://github.com/acme/a/pull/2', repository: 'acme/a' } },
-  ]
-
-  it('判定を取得できる場合は、項目に判定を付け、着手できる Ready の Issue を Lane ごとに集計する', async () => {
-    await explains('`board show` の表示用データを作成する処理のテストです。判定を渡した場合に、項目へ判定が付き、Lane ごとの件数と着手できる件数が集計され、リポジトリの alert とプロジェクトの情報が含まれることを確認します。')
-    const data = stepSync('一覧のデータを作る', () => boardShowData(view, items, item => item.content.number === 1 ? { kind: 'startable', stackOn: null, reason: null, text: 'ok' } : null))
-    stepSync('結果を確認する', () => {
-      expect({ items: data.board.items.map(item => item.readiness), lanes: data.lanes, repositories: data.repositories.map(repository => repository.dependabot_alerts), project: data.project }).toEqual({
-        items: [{ kind: 'startable', stackOn: null, reason: null, text: 'ok' }, null],
-        lanes: [{ name: 'fe', count: 1, startable: 1 }, { name: 'be', count: 0, startable: 0 }],
-        repositories: [{ enabled: true, open_count: 3, max_severity: 'high', alerts_url: 'https://github.com/acme/a/security/dependabot' }, { enabled: false, open_count: 0, max_severity: null, alerts_url: 'u' }, { error: 'boom' }],
-        project: { name: 'board', host: 'github.com', owner: 'acme', number: 1, aggregation_repo: 'acme/roadmap' },
-      })
-    })
-  })
-
-  it('判定と Lane の情報を渡さない場合は、項目に readiness を付けず、Lane の一覧を空にする', async () => {
-    await explains('`board show` の表示用データのテストです。判定と Lane の情報を渡さない場合に、項目に `readiness` が付かず、Lane の一覧が空になり、JSON の出力が表示用データと同じ内容になることを確認します。')
-    const data = stepSync('一覧のデータを作る', () => boardShowData({ ...view, laneOptions: undefined }, items))
-    const json = stepSync('一覧を JSON にする', (): unknown => JSON.parse(boardShowJson(data)))
-    const hasReadiness = data.board.items.some(item => Object.hasOwn(item, 'readiness'))
-    stepSync('結果を確認する', () => {
-      expect({ hasReadiness, lanes: data.lanes, json }).toEqual({ hasReadiness: false, lanes: [], json: structuredClone(data) })
-    })
-  })
-
-  it('取得した状態の数が登録したリポジトリの数より少ない場合は、例外が発生する', async () => {
-    await explains('Dependabot alert の状態の数が、登録したリポジトリの数より不足している場合のテストです。`no Dependabot alert status for repository #0` というメッセージの例外が発生することを確認します。')
-    stepSync('結果を確認する', () => {
-      expect(() => boardShowData({ ...view, statuses: [] }, items)).toThrow('no Dependabot alert status for repository #0')
-    })
-  })
-
-  it('MCP の data に、リリースの種類・パッケージ・CHANGELOG のファイルと、不一致の件数を追加する', async () => {
-    await explains('MCP ツールが返す `data` を作成する処理のテストです。リポジトリごとにリリースの種類・パッケージ・CHANGELOG のファイル名が追加され、渡した不一致の件数 4 が `mismatches` に入ることを確認します。')
-    const result = stepSync('一覧の結果を作る', () => boardShowResult(view, boardShowData(view, items), 4))
-    stepSync('結果を確認する', () => {
-      expect({ extras: result.repositories.map(({ release_type, packages, changelog_file }) => ({ release_type, packages, changelog_file })), mismatches: result.mismatches }).toEqual({
-        extras: [
-          { release_type: 'nx', packages: [{ name: 'pkg', changelog: 'pkg/CHANGELOG.md' }], changelog_file: undefined },
-          { release_type: 'single', packages: [], changelog_file: 'CHANGES.md' },
-          { release_type: 'single', packages: [], changelog_file: undefined },
-        ],
-        mismatches: 4,
-      })
-    })
-  })
-
-  it('Markdown に、リポジトリのブランチ・リリース・alert・パッケージの情報と、Lanes の表を出力する', async () => {
-    await explains('`board show` の Markdown を作成する処理のテストです。登録した 3 件のリポジトリの情報、絞り込みを示す見出し、Lanes の表が、定められた順序で出力されることを確認します。')
-    stepSync('結果を確認する', () => {
-      expect(boardShowMarkdown(view, 'acme/a', '(board)', [{ name: 'fe', count: 1, startable: 1 }, { name: null, count: 2, startable: 0 }])).toBe([
-        '# Project info',
-        '',
-        '## Overview',
-        '- Project: board',
-        '- Host: github.com',
-        '- Owner: acme',
-        '- Roadmap repo: `acme/roadmap`',
-        '',
-        '## Registered repositories',
-        '- acme/a (develop: develop, release: main)',
-        '    release_type: nx',
-        '    dependabot_alerts: open 3',
-        '    package: pkg → pkg/CHANGELOG.md',
-        '- acme/b',
-        '    release_type: single',
-        '    dependabot_alerts: disabled',
-        '    changelog: CHANGES.md',
-        '- acme/c',
-        '    release_type: single',
-        '    dependabot_alerts: fetch failed (boom)',
-        '',
-        '## Board status (filter: acme/a)',
-        '',
-        '(board)',
-        '',
-        '## Lanes',
-        '',
-        '| Lane | Issues | Startable |',
-        '|------|--------|-----------|',
-        '| fe | 1 | 1 |',
-        '| (none) | 2 | 0 |',
-      ].join('\n'))
-    })
-  })
-
-  it('リポジトリが登録されておらず絞り込みも指定しない場合は、none を表示し、見出しに絞り込みを含めない', async () => {
-    await explains('リポジトリが登録されていない場合の、Markdown のテストです。ロードマップのリポジトリと登録済みのリポジトリが `none` と表示され、見出しに絞り込みが含まれないことを確認します。')
-    stepSync('結果を確認する', () => {
-      expect(boardShowMarkdown({ config: config(), projectName: 'board', statuses: [] }, undefined, '(board)')).toBe([
-        '# Project info',
-        '',
-        '## Overview',
-        '- Project: board',
-        '- Host: github.com',
-        '- Owner: acme',
-        '- Roadmap repo: none',
-        '',
-        '## Registered repositories',
-        '- none',
-        '',
-        '## Board status',
-        '',
-        '(board)',
-      ].join('\n'))
     })
   })
 })

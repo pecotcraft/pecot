@@ -16,19 +16,7 @@ import { GitHubAPIError } from '../../infra/github/errors.js'
 import { CommandExit } from '../command-definition.js'
 import { createOutput } from '../output.js'
 import type { Output } from '../output.js'
-import {
-  buildRepository,
-  failApi,
-  fieldNodesOf,
-  hasWorkflowField,
-  lastFieldNamed,
-  missingRequiredOptions,
-  placeProjectConfig,
-  planWorkflowFieldOf,
-  reportConfigMove,
-  syncProjectConfig,
-  textOf,
-} from '../project-sync.js'
+import { buildRepository, failApi, fieldNodesOf, lastFieldNamed, missingRequiredOptions, placeProjectConfig, planWorkflowFieldOf, reportConfigMove, syncProjectConfig, textOf } from '../project-sync.js'
 import type { BoardSnapshot, SyncedProjectConfig } from '../project-sync.js'
 // 案内のコマンドの形を登録する
 import '../../../tests/_helpers/hint-commands.js'
@@ -142,17 +130,6 @@ describe('進行の欄の判定', () => {
         { kind: 'rename', from: 'pecot-workflow-acme', use: 'pecot-status' },
         { kind: 'create', use: 'pecot-status' },
       ])
-    })
-  })
-
-  it('現在の名前か旧い名前のフィールドが存在する場合だけ、ワークフローのフィールドが存在すると判定する', async () => {
-    await explains('ワークフローのフィールドが存在するかを判定する関数（`hasWorkflowField`）のテストです。現在の名前（`pecot-status`）か旧い名前のフィールドがあれば `true`、関係のないフィールドだけなら `false` を返すことを確認します。')
-    stepSync('結果を確認する', () => {
-      expect([
-        hasWorkflowField([{ name: 'pecot-status' }]),
-        hasWorkflowField([{ name: 'pecot-workflow-acme' }]),
-        hasWorkflowField([{ name: 'Status' }, { name: 3 }]),
-      ]).toEqual([true, true, false])
     })
   })
 

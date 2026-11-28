@@ -19,8 +19,6 @@ export const WORK_DIR = `${PECOT_DIR}/work`
 export const CONFIG_DIR = `${PECOT_DIR}/config`
 // CLI / hooks 専用の一時ファイル置き場
 export const TMP_DIR = `${PECOT_DIR}/tmp`
-// MCP の instructions が案内する、テンプレートの写しの置き場
-export const OUTPUT_DIR = `${TMP_DIR}/output`
 
 // .pecot/ 配下の生成物を git 管理外にする ignore（hook と pecot worktree が生成）
 export const PECOT_GITIGNORE_FILENAME = `${PECOT_DIR}/.gitignore`
@@ -94,30 +92,4 @@ export function projectRoot(options: Readonly<ProjectRootOptions> = {}): string 
   if (toplevel !== undefined) return toplevel
 
   throw new ProjectRootNotFoundError('project root not found: run inside a git repository or set the CLAUDE_PROJECT_DIR environment variable')
-}
-
-function normalizedDataDirectory(raw: string | undefined): string | undefined {
-  const value = raw?.replace(/[\r\n]+$/u, '')
-  return value === undefined || value === '' || value.startsWith('${') || !value.startsWith('/') ? undefined : value
-}
-
-const DATA_DIRECTORY_PROJECT = 'pecot-workflow'
-
-/**
-データ置き場。作らずに値を返す。有効な HOME と有効な XDG_DATA_HOME がどちらも無いときは undefined。
-
-解決順は固定で、infra/tests/paths.test.ts が固める。
-順序は CLAUDE_PLUGIN_DATA、PLUGIN_DATA、XDG_DATA_HOME、HOME。
-有効な値は、空でない絶対パスだけ。
-先頭が変数展開の書式（ドル記号と開き波括弧）の値は無効とする。
-末尾の改行と CR は落とす。
-XDG_DATA_HOME の下は `pecot/pecot-workflow`、HOME の下は `.local/share/pecot/pecot-workflow`
-*/
-export function dataDirectory(): string | undefined {
-  const client = normalizedDataDirectory(process.env['CLAUDE_PLUGIN_DATA']) ?? normalizedDataDirectory(process.env['PLUGIN_DATA'])
-  if (client !== undefined) return client
-  const xdg = normalizedDataDirectory(process.env['XDG_DATA_HOME'])
-  if (xdg !== undefined) return `${xdg}/pecot/${DATA_DIRECTORY_PROJECT}`
-  const home = normalizedDataDirectory(process.env['HOME'])
-  return home === undefined ? undefined : `${home}/.local/share/pecot/${DATA_DIRECTORY_PROJECT}`
 }
