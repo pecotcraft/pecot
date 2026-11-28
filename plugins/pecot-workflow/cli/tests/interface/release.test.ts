@@ -143,8 +143,10 @@ describe('release_check', () => {
       const changelog = '# Changelog\n\n## [0.2.0] - 2026-01-02\n\n- [docs][d]\n\n## [0.1.0] - 2026-01-01\n\n- 初回リリース\n\n[0.2.0]: https://example.com/v0.2.0\n[0.1.0]: https://example.com/v0.1.0\n[d]: https://example.com/docs\n'
       const notes = '- [docs][d]\n\n[d]: https://example.com/docs'
       const result = await check(project({ ...WITH_BRANCHES, files: { 'CHANGELOG.md': changelog } }), { body: notes })
-      expect(problemsOf(result)).toEqual([])
-      expect(result.structured['releaseNotes']).toBe(notes)
+      await step('problem が無く、リリースノートが使う定義だけを持つことを確かめる', () => {
+        expect(problemsOf(result)).toEqual([])
+        expect(result.structured['releaseNotes']).toBe(notes)
+      })
     })
 
     it('monorepo のリポジトリでは、パッケージ名を接頭辞にしたタグとそのパッケージの CHANGELOG で確かめる', async (context) => {
