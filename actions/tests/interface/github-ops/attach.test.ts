@@ -32,13 +32,13 @@ interface FakeGh {
 }
 
 // 偽の gh。pr view は body を出す。pr edit は記録を gh.seen に書き、stderr と終了コードを決める
-function fakeGh(options: { readonly stderr?: string, readonly exitCode?: number, readonly body?: string } = {}): FakeGh {
+function fakeGh(options: { readonly stderr?: string, readonly exitCode?: number, readonly body?: string, readonly viewExitCode?: number } = {}): FakeGh {
   const bin = makeTemporaryDirectory('pecot-attach-gh-')
   const seenFile = path.join(bin, 'gh.seen')
   const bodyFile = path.join(bin, 'gh.body')
   writeFileSync(bodyFile, `${options.body ?? '![shot](./shot.png)'}\n`)
   installFakeExecutable(bin, 'gh', [
-    `if [ "$2" = view ]; then cat '${bodyFile}'; exit 0; fi`,
+    `if [ "$2" = view ]; then cat '${bodyFile}'; printf '%s' '${options.stderr ?? ''}' >&2; exit ${String(options.viewExitCode ?? 0)}; fi`,
     String.raw`{ printf 'cwd=%s\n' "$PWD"; printf 'token=%s\n' "$GH_TOKEN"; printf 'host=%s\n' "$GH_HOST"; printf 'repo=%s\n' "$GH_REPO"; for f in *; do printf 'file:%s=%s\n' "$f" "$(cat "$f")"; done; } > '${seenFile}'`,
     `printf '%s' '${options.stderr ?? ''}' >&2`,
     `exit ${String(options.exitCode ?? 0)}`,
@@ -65,10 +65,10 @@ interface AttachRun {
   readonly runnerTemporary: string
 }
 
-async function attach(rules: readonly ResponseRule[], gh: Readonly<FakeGh>, options: { readonly attachToken?: string, readonly branch?: string } = {}): Promise<AttachRun> {
+async function attach(rules: readonly ResponseRule[], gh: Readonly<FakeGh>, options: { readonly attachToken?: string, readonly branch?: string, readonly runnerTemporary?: string } = {}): Promise<AttachRun> {
   const runnerTemporary = realpathSync(makeTemporaryDirectory('pecot-runner-temp-'))
   const result = await runOperation('pr-attach', { pr: 12, branch: options.branch ?? BRANCH }, rules, {
-    environment: { RUNNER_TEMP: runnerTemporary },
+    environment: { RUNNER_TEMP: options.runnerTemporary ?? runnerTemporary },
     inputs: { 'attach-token': options.attachToken ?? ATTACH_TOKEN },
     path: gh.bin,
   })
@@ -141,6 +141,7 @@ describe('github ops', () => {
     { name: 'サブツリーがある', entries: [file('shot.png', 'b1'), { path: 'nested', type: 'tree', mode: '040000', sha: 'f'.repeat(40) }], reason: 'nested is not a file' },
     { name: '受けない拡張子がある', entries: [file('shot.png', 'b1'), file('notes.txt', 'b3')], reason: 'notes.txt is not one of' },
     { name: '受けない名前がある', entries: [file('my shot.png', 'b1')], reason: 'my shot.png has a name other than' },
+    { name: '51 個の画像がある', entries: Array.from({ length: 51 }, (_, index) => file(`shot${String(index)}.png`, `b${String(index)}`)), reason: 'gh attaches at most 50' },
   ])('pr-attach のブランチに $name と、gh を起こさずに invalid-input を返し、ブランチを消す', async ({ entries, reason }, context) => {
     await verifies(context, 'PA-GITHUB-OPS-18')
     await explains('`pr-attach` の画像の形のテストです。一時ブランチの直下に載せられないものがある場合に、何も載せず、`invalid-input` を返してブランチを消すことを確認します。')
@@ -174,5 +175,75 @@ describe('github ops', () => {
     expect(result.line).toMatchObject({ ok: false, error: { kind: 'github-auth' } })
     expect(result.message).toContain('PECOT_ATTACH_TOKEN')
     expect(readFakeCalls(gh.bin, 'gh')).toEqual([])
+  })
+
+  it('pr-attach で gh pr view が失敗すると、gh pr edit を起こさずに github-api を返し、ブランチを消す', async (context) => {
+    await verifies(context, 'PA-GITHUB-OPS-18')
+    await explains('`pr-attach` の本文の読み取りの失敗のテストです。`gh pr view` が 0 以外で終わった場合に、`gh pr edit` を起こさず、`github-api` を返してブランチを消すことを確認します。')
+    const gh = fakeGh({ stderr: 'HTTP 401: Bad credentials', viewExitCode: 1 })
+    const { result } = await attach([referencesOf([[BRANCH, HEAD]]), treeOf([file('shot.png', 'b1')]), blob('b1', 'PNG-A'), deleted(BRANCH)], gh)
+    expect(result.code).toBe(1)
+    expect(result.line).toMatchObject({ ok: false, error: { kind: 'github-api' } })
+    expect(result.message).toContain('gh pr view failed (exit 1): HTTP 401: Bad credentials')
+    expect(readFakeCalls(gh.bin, 'gh').map(call => call[1])).toEqual(['view'])
+    expect(writesOf(result.github.requests())).toEqual([`DELETE ${REPO}/git/refs/heads/${BRANCH}`])
+  })
+
+  it('pr-attach で RUNNER_TEMP が空だと、画像を読まずに invalid-input を返し、ブランチを消す', async (context) => {
+    await verifies(context, 'PA-GITHUB-OPS-18')
+    await explains('`pr-attach` の実行環境のテストです。`RUNNER_TEMP` が空の場合に、画像を読まず gh も起こさずに `invalid-input` を返し、ブランチを消すことを確認します。')
+    const gh = fakeGh()
+    const { result } = await attach([referencesOf([[BRANCH, HEAD]]), deleted(BRANCH)], gh, { runnerTemporary: '' })
+    expect(result.code).toBe(1)
+    expect(result.line).toMatchObject({ ok: false, error: { kind: 'invalid-input' } })
+    expect(result.message).toContain('RUNNER_TEMP is not set')
+    expect(readFakeCalls(gh.bin, 'gh')).toEqual([])
+  })
+
+  it('pr-attach で渡したブランチが無いと、gh を起こさずに github-not-found を返す', async (context) => {
+    await verifies(context, 'PA-GITHUB-OPS-18')
+    await explains('`pr-attach` のブランチの不在のテストです。渡した `pecot-attach/` のブランチが存在しない場合に、gh を起こさずに `github-not-found` を返すことを確認します。')
+    const gh = fakeGh()
+    const { result } = await attach([referencesOf([]), deleted(BRANCH)], gh)
+    expect(result.code).toBe(1)
+    expect(result.line).toMatchObject({ ok: false, error: { kind: 'github-not-found' } })
+    expect(result.message).toContain(`branch not found: ${BRANCH}`)
+    expect(readFakeCalls(gh.bin, 'gh')).toEqual([])
+  })
+
+  it('pr-attach で古いブランチをほかの実行が先に消していると、消した一覧から外して続ける', async (context) => {
+    await verifies(context, 'PA-GITHUB-OPS-17')
+    await explains('`pr-attach` の後片付けのテストです。24 時間より古いブランチの削除が 422 で断られた場合は、消した一覧から外し、画像を載せて成功を返すことを確認します。')
+    const gh = fakeGh()
+    const old = 'pecot-attach/old00001'
+    const rules = [
+      referencesOf([[old, 'd'.repeat(40)], [BRANCH, HEAD]]),
+      commitAt('d'.repeat(40), 25),
+      restRule('DELETE', `${REPO}/git/refs/heads/${old}`, 422, { message: 'Reference does not exist' }),
+      treeOf([file('shot.png', 'b1')]),
+      blob('b1', 'PNG-A'),
+      deleted(BRANCH),
+    ]
+    const { result } = await attach(rules, gh)
+    expect(result.code).toBe(0)
+    expect(result.result).toMatchObject({ deleted_branches: [BRANCH] })
+  })
+
+  it('pr-attach で古いブランチの削除が 422 のほかで断られると、画像を載せずに失敗を返し、渡したブランチを消す', async (context) => {
+    await verifies(context, 'PA-GITHUB-OPS-18')
+    await explains('`pr-attach` の後片付けの失敗のテストです。24 時間より古いブランチの削除が 403 で断られた場合は、gh を起こさず `ok: false` を返し、渡したブランチを消すことを確認します。')
+    const gh = fakeGh()
+    const old = 'pecot-attach/old00001'
+    const rules = [
+      referencesOf([[old, 'd'.repeat(40)], [BRANCH, HEAD]]),
+      commitAt('d'.repeat(40), 25),
+      restRule('DELETE', `${REPO}/git/refs/heads/${old}`, 403, { message: 'Resource not accessible by integration' }),
+      deleted(BRANCH),
+    ]
+    const { result } = await attach(rules, gh)
+    expect(result.code).toBe(1)
+    expect(result.line).toMatchObject({ ok: false })
+    expect(readFakeCalls(gh.bin, 'gh')).toEqual([])
+    expect(requestLabels(result.github.requests())).toContain(`DELETE ${REPO}/git/refs/heads/${BRANCH}`)
   })
 })
