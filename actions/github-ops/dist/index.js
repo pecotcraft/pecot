@@ -1,7 +1,3 @@
-import { readFileSync, existsSync, writeFileSync, appendFileSync } from 'node:fs';
-import path from 'node:path';
-import process$1 from 'node:process';
-import { spawn, spawnSync } from 'node:child_process';
 import * as os from 'os';
 import os__default from 'os';
 import 'crypto';
@@ -36,11149 +32,10 @@ import require$$1$5 from 'node:dns';
 import require$$5$3 from 'string_decoder';
 import 'child_process';
 import 'timers';
-
-function getEnumValues(entries) {
-    const numericValues = Object.values(entries).filter((v) => typeof v === "number");
-    const values = Object.entries(entries)
-        .filter(([k, _]) => numericValues.indexOf(+k) === -1)
-        .map(([_, v]) => v);
-    return values;
-}
-function joinValues(array, separator = "|") {
-    return array.map((val) => stringifyPrimitive(val)).join(separator);
-}
-function jsonStringifyReplacer(_, value) {
-    if (typeof value === "bigint")
-        return value.toString();
-    return value;
-}
-// the accessor lives on a shared prototype: an own accessor makes every box a dictionary-mode object (~360 B and a slow load per read against ~100 B and an inlined getter here)
-class Cached {
-    constructor(getter) {
-        this._getter = getter;
-        this._value = undefined;
-    }
-    get value() {
-        const getter = this._getter;
-        if (getter !== undefined) {
-            this._value = getter();
-            this._getter = undefined;
-        }
-        return this._value;
-    }
-}
-function cached(getter) {
-    return new Cached(getter);
-}
-function nullish(input) {
-    return input === null || input === undefined;
-}
-function cleanRegex(source) {
-    const start = source.startsWith("^") ? 1 : 0;
-    const end = source.endsWith("$") ? source.length - 1 : source.length;
-    return source.slice(start, end);
-}
-function floatSafeRemainder(val, step) {
-    const ratio = val / step;
-    const roundedRatio = Math.round(ratio);
-    // `val` and `step` each round to a double before the division rounds again, so a true decimal multiple's quotient can sit up to 1.5 of these scaled epsilons from the integer. A 1x tolerance therefore rejected 2.03 as a multiple of 0.07; 4x covers the worst case with margin.
-    const tolerance = 4 * Number.EPSILON * Math.max(Math.abs(ratio), 1);
-    if (Math.abs(ratio - roundedRatio) < tolerance)
-        return 0;
-    return ratio - roundedRatio;
-}
-function assignProp(target, prop, value) {
-    Object.defineProperty(target, prop, {
-        value,
-        writable: true,
-        enumerable: true,
-        configurable: true,
-    });
-}
-/**
- * Whichever object a def's `shape` currently answers from: the one the caller passed until the first read, the frozen copy after it.
- *
- * Its keys and descriptors read without invoking anything, which is what lets a discriminated union check its discriminator, and the cycle walk read a shape, without resolving a getter that references the schema being constructed. A def that answers `shape` from an accessor of its own has none.
- */
-function rawShape(def) {
-    const desc = Object.getOwnPropertyDescriptor(def, "shape");
-    return desc?.get ? desc.get.raw : desc?.value;
-}
-// where a builder reads its source's keys and descriptors, resolving only a shape a def answers for itself. A shape resolves by object spread, so only its enumerable keys are ever part of it.
-function sourceShape(schema) {
-    return rawShape(schema._zod.def) ?? schema._zod.def.shape;
-}
-// a key whose value is not settled yet, self-caching so every read after the first gets the same one
-function deferProp(target, key, getter) {
-    Object.defineProperty(target, key, {
-        get() {
-            const value = getter();
-            assignProp(this, key, value);
-            return value;
-        },
-        enumerable: true,
-        configurable: true,
-    });
-}
-// Writes a settled key. A plain assignment is much cheaper than `defineProperty` and produces the same descriptor, but it runs whatever setter already answers to the key — an accessor this shape deferred, or an inherited one, which `__proto__` has on every object and prototype pollution can add for any name.
-function putProp(target, key, value) {
-    if (key in target)
-        assignProp(target, key, value);
-    else
-        target[key] = value;
-}
-/**
- * Copies `keys` of `source`'s shape onto `target`, each value passed through `wrap`.
- *
- * A key the source has resolved is copied through now, so the derived shape states it outright and nothing has to resolve it to learn what it holds. A key the source still defers stays deferred, and reads back through the source's own `shape`, so it resolves once and both shapes get that one schema.
- */
-function mirrorShape(target, source, keys, wrap) {
-    const raw = sourceShape(source);
-    for (const key of keys) {
-        const desc = Object.getOwnPropertyDescriptor(raw, key);
-        if (!desc.enumerable)
-            continue;
-        if (desc.get) {
-            deferProp(target, key, () => {
-                const value = source._zod.def.shape[key];
-                return wrap ? wrap(value, key) : value;
-            });
-        }
-        else
-            putProp(target, key, wrap ? wrap(desc.value, key) : desc.value);
-    }
-}
-// same, for a plain shape a caller passed rather than a schema's
-function mirrorProps(target, source) {
-    for (const key of Reflect.ownKeys(source)) {
-        const desc = Object.getOwnPropertyDescriptor(source, key);
-        if (!desc.enumerable)
-            continue;
-        if (desc.get)
-            deferProp(target, key, () => source[key]);
-        else
-            putProp(target, key, desc.value);
-    }
-}
-function mergeDefs(...defs) {
-    const mergedDescriptors = {};
-    for (const def of defs) {
-        const descriptors = Object.getOwnPropertyDescriptors(def);
-        Object.assign(mergedDescriptors, descriptors);
-    }
-    return Object.defineProperties({}, mergedDescriptors);
-}
-function esc(str) {
-    return JSON.stringify(str);
-}
-function slugify(input) {
-    return input
-        .toLowerCase()
-        .trim()
-        .replace(/[^\w\s-]/g, "")
-        .replace(/[\s_-]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-}
-const captureStackTrace = ("captureStackTrace" in Error ? Error.captureStackTrace : (..._args) => { });
-function isObject(data) {
-    return typeof data === "object" && data !== null && !Array.isArray(data);
-}
-const allowsEval = /* @__PURE__*/ cached(() => {
-    // Skip the probe under `jitless`: strict CSPs report the caught `new Function` as a `securitypolicyviolation` even though the throw is swallowed.
-    if (globalConfig.jitless) {
-        return false;
-    }
-    // @ts-ignore
-    if (typeof navigator !== "undefined" && navigator?.userAgent?.includes("Cloudflare")) {
-        return false;
-    }
-    try {
-        const F = Function;
-        new F("");
-        return true;
-    }
-    catch (_) {
-        return false;
-    }
-});
-function isPlainObject(o) {
-    if (isObject(o) === false)
-        return false;
-    // modified constructor
-    const ctor = o.constructor;
-    if (ctor === undefined)
-        return true;
-    if (typeof ctor !== "function")
-        return true;
-    // modified prototype
-    const prot = ctor.prototype;
-    if (isObject(prot) === false)
-        return false;
-    // ctor doesn't have static `isPrototypeOf`
-    if (Object.prototype.hasOwnProperty.call(prot, "isPrototypeOf") === false) {
-        return false;
-    }
-    return true;
-}
-function shallowClone(o) {
-    if (isPlainObject(o))
-        return { ...o };
-    if (Array.isArray(o))
-        return [...o];
-    if (o instanceof Map)
-        return new Map(o);
-    if (o instanceof Set)
-        return new Set(o);
-    return o;
-}
-const propertyKeyTypes = /* @__PURE__*/ new Set(["string", "number", "symbol"]);
-function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-// zod-specific utils
-function clone(inst, def, params) {
-    const cl = new inst._zod.constr(def ?? inst._zod.def);
-    if (!def || params?.parent)
-        cl._zod.parent = inst;
-    return cl;
-}
-function normalizeParams(_params) {
-    const params = _params;
-    if (!params)
-        return {};
-    if (typeof params === "string")
-        return { error: () => params };
-    if (params?.message !== undefined) {
-        if (params?.error !== undefined)
-            throw new Error("Cannot specify both `message` and `error` params");
-        params.error = params.message;
-    }
-    delete params.message;
-    if (typeof params.error === "string")
-        return { ...params, error: () => params.error };
-    return params;
-}
-function stringifyPrimitive(value) {
-    if (typeof value === "bigint")
-        return value.toString() + "n";
-    if (typeof value === "string")
-        return `"${value}"`;
-    return `${value}`;
-}
-function optionalKeys(shape) {
-    return Object.keys(shape).filter((k) => {
-        return shape[k]._zod.optin !== undefined && shape[k]._zod.optout === "optional";
-    });
-}
-
-const NUMBER_FORMAT_RANGES = /*@__PURE__*/ (() => ({
-    safeint: [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
-    int32: [-2147483648, 2147483647],
-    uint32: [0, 4294967295],
-    float32: [-34028234663852886e22, 3.4028234663852886e38],
-    float64: [-Number.MAX_VALUE, Number.MAX_VALUE],
-}))();
-const BIGINT_FORMAT_RANGES = {
-    int64: [/* @__PURE__*/ BigInt("-9223372036854775808"), /* @__PURE__*/ BigInt("9223372036854775807")],
-    uint64: [/* @__PURE__*/ BigInt(0), /* @__PURE__*/ BigInt("18446744073709551615")],
-};
-function pick(schema, mask) {
-    const currDef = schema._zod.def;
-    const checks = currDef.checks;
-    const hasChecks = checks && checks.length > 0;
-    if (hasChecks) {
-        throw new Error(".pick() cannot be used on object schemas containing refinements");
-    }
-    const newShape = {};
-    mirrorShape(newShape, schema, maskedKeys(schema, mask));
-    return clone(schema, mergeDefs(currDef, { shape: newShape, checks: [] }));
-}
-// the mask keys that select something, checked against the source's shape without resolving it
-function maskedKeys(schema, mask) {
-    const raw = sourceShape(schema);
-    const keys = [];
-    // `for...in` skips symbols, so a symbol in the mask would select nothing
-    for (const key of Reflect.ownKeys(mask)) {
-        if (!Object.getOwnPropertyDescriptor(raw, key)?.enumerable) {
-            throw new Error(`Unrecognized key: "${String(key)}"`);
-        }
-        if (mask[key])
-            keys.push(key);
-    }
-    return keys;
-}
-function omit(schema, mask) {
-    const currDef = schema._zod.def;
-    const checks = currDef.checks;
-    const hasChecks = checks && checks.length > 0;
-    if (hasChecks) {
-        throw new Error(".omit() cannot be used on object schemas containing refinements");
-    }
-    const omitted = new Set(maskedKeys(schema, mask));
-    const newShape = {};
-    mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)).filter((key) => !omitted.has(key)));
-    return clone(schema, mergeDefs(currDef, { shape: newShape, checks: [] }));
-}
-function extend(schema, shape) {
-    if (!isPlainObject(shape)) {
-        throw new Error("Invalid input to extend: expected a plain object");
-    }
-    const checks = schema._zod.def.checks;
-    const hasChecks = checks && checks.length > 0;
-    if (hasChecks) {
-        // Only throw if new shape overlaps with existing shape. Use getOwnPropertyDescriptor to check key existence without accessing values
-        const existingShape = sourceShape(schema);
-        for (const key of Reflect.ownKeys(shape)) {
-            if (Object.getOwnPropertyDescriptor(existingShape, key) !== undefined) {
-                throw new Error("Cannot overwrite keys on object schemas containing refinements. Use `.safeExtend()` instead.");
-            }
-        }
-    }
-    return clone(schema, mergeDefs(schema._zod.def, { shape: extended(schema, shape) }));
-}
-// the source's keys, then the caller's overlaid on top
-function extended(schema, shape) {
-    const newShape = {};
-    mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)));
-    mirrorProps(newShape, shape);
-    return newShape;
-}
-function safeExtend(schema, shape) {
-    if (!isPlainObject(shape)) {
-        throw new Error("Invalid input to safeExtend: expected a plain object");
-    }
-    return clone(schema, mergeDefs(schema._zod.def, { shape: extended(schema, shape) }));
-}
-function merge(a, b) {
-    if (!b?._zod?.def) {
-        throw new Error("Invalid input to merge: expected an object schema. To merge a plain shape, use `.extend()`.");
-    }
-    if (a._zod.def.checks?.length) {
-        throw new Error(".merge() cannot be used on object schemas containing refinements. Use .safeExtend() instead.");
-    }
-    const newShape = {};
-    mirrorShape(newShape, a, Reflect.ownKeys(sourceShape(a)));
-    mirrorShape(newShape, b, Reflect.ownKeys(sourceShape(b)));
-    const def = mergeDefs(a._zod.def, {
-        shape: newShape,
-        get catchall() {
-            return b._zod.def.catchall;
-        },
-        checks: b._zod.def.checks ?? [],
-    });
-    return clone(a, def);
-}
-function partial(Class, schema, mask, name = "partial") {
-    const currDef = schema._zod.def;
-    const checks = currDef.checks;
-    const hasChecks = checks && checks.length > 0;
-    if (hasChecks) {
-        throw new Error(`.${name}() cannot be used on object schemas containing refinements`);
-    }
-    const selected = mask ? new Set(maskedKeys(schema, mask)) : undefined;
-    const newShape = {};
-    mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), Class &&
-        ((value, key) => (selected && !selected.has(key) ? value : new Class({ type: "optional", innerType: value }))));
-    return clone(schema, mergeDefs(schema._zod.def, { shape: newShape, checks: [] }));
-}
-function required(Class, schema, mask) {
-    const selected = mask ? new Set(maskedKeys(schema, mask)) : undefined;
-    const newShape = {};
-    mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), (value, key) => 
-    // overwrite with non-optional
-    selected && !selected.has(key) ? value : new Class({ type: "nonoptional", innerType: value }));
-    return clone(schema, mergeDefs(schema._zod.def, { shape: newShape }));
-}
-// invalid_type | too_big | too_small | invalid_format | not_multiple_of | unrecognized_keys | invalid_union | invalid_key | invalid_element | invalid_value | custom
-function aborted(x, startIndex = 0) {
-    if (x.aborted === true)
-        return true;
-    for (let i = startIndex; i < x.issues.length; i++) {
-        if (x.issues[i]?.continue !== true) {
-            return true;
-        }
-    }
-    return false;
-}
-// Checks for explicit abort (continue === false), as opposed to implicit abort (continue === undefined). Used to respect `abort: true` in .refine() even for checks that have a `when` function.
-function explicitlyAborted(x, startIndex = 0) {
-    if (x.aborted === true)
-        return true;
-    for (let i = startIndex; i < x.issues.length; i++) {
-        if (x.issues[i]?.continue === false) {
-            return true;
-        }
-    }
-    return false;
-}
-function prefixIssues(path, issues) {
-    return issues.map((iss) => {
-        var _a;
-        (_a = iss).path ?? (_a.path = []);
-        iss.path.unshift(path);
-        return iss;
-    });
-}
-function unwrapMessage(message) {
-    return typeof message === "string" ? message : message?.message;
-}
-/* A check holds no link back to the schema it is attached to — the same check instance is shared by every clone of that schema — so the owner is stamped onto the issues a check just raised, at the only point where both are in scope. Runs on the failure path only; `start` is the issue count from before the check ran. */
-/** The leading size checks of `defChecks` that set an upper bound, each paired with it. */
-function sizeCaps(defChecks) {
-    const caps = [];
-    for (const ch of defChecks ?? []) {
-        const d = ch._zod.def;
-        // a later check may rewrite the value
-        if (!/_(length|size)$|_equals$/.test(d.check))
-            break;
-        const max = d.maximum ?? d.length ?? d.size;
-        if (max >= 0)
-            caps.push([max, ch]);
-    }
-    return caps;
-}
-function attachSchema(issues, start, inst) {
-    var _a;
-    for (let i = start; i < issues.length; i++) {
-        (_a = issues[i]).schema ?? (_a.schema = inst);
-    }
-}
-function finalizeIssue(iss, ctx, config) {
-    var _a;
-    // A schema that raised an issue itself owns it outright, and outranks any stamp an enclosing check left in `attachSchema`. String formats and z.custom() are schema and check at once, so when they act as a check they defer to that stamp instead.
-    const traits = iss.inst?._zod?.traits;
-    if (traits?.has("$ZodType")) {
-        if (traits.has("$ZodCheck"))
-            (_a = iss).schema ?? (_a.schema = iss.inst);
-        else
-            iss.schema = iss.inst;
-    }
-    // Decreasing specificity, first map to return a message wins. `inst` is whatever raised the issue, so a check's own map outranks the owning schema's.
-    const schemaError = iss.schema !== iss.inst ? iss.schema?._zod.def?.error : undefined;
-    const message = iss.message
-        ? iss.message
-        : (unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ??
-            unwrapMessage(schemaError?.(iss)) ??
-            unwrapMessage(ctx?.error?.(iss)) ??
-            unwrapMessage(config.customError?.(iss)) ??
-            unwrapMessage(config.localeError?.(iss)) ??
-            "Invalid input");
-    // an explicit own-key copy beats object rest with excluded keys, which v8 routes through a generic runtime call; Object.keys rather than for-in so an issue pushed with a prototype does not leak inherited keys, and an own __proto__ key is dropped rather than assigned through the setter
-    const full = {};
-    for (const k of Object.keys(iss)) {
-        if (k === "inst" || k === "schema" || k === "continue" || k === "input" || k === "__proto__")
-            continue;
-        full[k] = iss[k];
-    }
-    full.path ?? (full.path = []);
-    full.message = message;
-    if (ctx?.reportInput) {
-        full.input = iss.input;
-    }
-    return full;
-}
-const highSurrogate = /[\uD800-\uDBFF]/;
-// Code points in `str`: a surrogate pair counts once, a lone surrogate as itself. Hand-rolled because the string iterator allocates and runs ~250x slower on this path; the regex probe exits ~50x quicker for a string with no astral characters.
-function codePointLength(str) {
-    const units = str.length;
-    if (!highSurrogate.test(str))
-        return units;
-    let count = units;
-    for (let i = 0; i < units - 1; i++) {
-        if ((str.charCodeAt(i) & 0xfc00) === 0xd800 && (str.charCodeAt(i + 1) & 0xfc00) === 0xdc00) {
-            count--;
-            i++;
-        }
-    }
-    return count;
-}
-function getLengthableOrigin(input) {
-    if (Array.isArray(input))
-        return "array";
-    if (typeof input === "string")
-        return "string";
-    return "unknown";
-}
-function parsedType(data) {
-    const t = typeof data;
-    switch (t) {
-        case "number": {
-            return Number.isNaN(data) ? "nan" : "number";
-        }
-        case "object": {
-            if (data === null) {
-                return "null";
-            }
-            if (Array.isArray(data)) {
-                return "array";
-            }
-            const obj = data;
-            if (obj && Object.getPrototypeOf(obj) !== Object.prototype && "constructor" in obj && obj.constructor) {
-                return obj.constructor.name;
-            }
-        }
-    }
-    return t;
-}
-function issue(...args) {
-    const [iss, input, inst] = args;
-    if (typeof iss === "string") {
-        return {
-            message: iss,
-            code: "custom",
-            input,
-            inst,
-        };
-    }
-    return { ...iss };
-}
-//////////    PROTOTYPE INSTALLERS     //////////
-//
-// Members live on the prototype and materialize per instance on first read, which keeps own-property count under the step where V8 stops using inline slots. Changing anything here means re-measuring runtime, memory and bundle size together — see "The three axes" in AGENTS.md.
-/**
- * Installs a trait's members on its prototype. Each value builds that member for the instance on first read; the built value shadows the accessor as an own property, so a detached `const { parse } = schema` keeps working.
- *
- * Call this from a `proto` initializer, which runs once per prototype — never per instance.
- */
-function members(proto, table) {
-    for (const key in table) {
-        const desc = Object.getOwnPropertyDescriptor(table, key);
-        // a getter installs as written, so it stays live: `description` reads through to the registry on every access. not enumerable: an object literal's is, and a prototype member never was
-        if (desc.get)
-            Object.defineProperty(proto, key, { ...desc, enumerable: false });
-        // a method materializes bound on first read, which is what keeps a detached member working: `const opt = schema.optional; opt()`
-        else
-            defineBound(proto, key, desc.value);
-    }
-}
-/** Shadows a prototype member with an own value, so a getter that builds from the instance runs once. */
-function own(inst, key, value, enumerable = true) {
-    Object.defineProperty(inst, key, { configurable: true, writable: true, enumerable, value });
-    return value;
-}
-/** Like {@link own}, for a member that was never an own data property and has to stay out of `Object.keys`. */
-function hide(inst, key, value) {
-    return own(inst, key, value, false);
-}
-/** Adds members a table derives from the instance: each builds on first read and shadows as own data, and assignment shadows the same way, as when these were own properties. */
-function derived(computes, table) {
-    for (const key in computes) {
-        const compute = computes[key];
-        // an object literal's accessor is configurable and enumerable, and `members` copies the descriptor as written
-        Object.defineProperty(table, key, {
-            configurable: true,
-            enumerable: true,
-            get() {
-                return own(this, key, compute(this));
-            },
-            set(value) {
-                own(this, key, value);
-            },
-        });
-    }
-    return table;
-}
-function defineBound(proto, key, fn) {
-    Object.defineProperty(proto, key, {
-        configurable: true,
-        get() {
-            // vitest's spyOn calls a prototype getter bare to find the function it wraps, so a nullish receiver answers the raw method
-            return this == null ? fn : own(this, key, fn.bind(this));
-        },
-        set(value) {
-            own(this, key, value);
-        },
-    });
-}
-/** Returns the prototype to install on, or `undefined` if this group is already installed on it. */
-function claim(inst, sentinel) {
-    const proto = Object.getPrototypeOf(inst);
-    // Runs on every construction, so `in` rather than the costlier `hasOwnProperty.call`. Sentinels are keys the group itself defines.
-    return sentinel in proto ? undefined : proto;
-}
-// The internals whose init chain is installing. A second call for the same one is a derived constructor overriding its base, so it must not construct another schema in between or the override is dropped.
-let installing;
-// Set while a getter is running, so a value that resolved through a recursion break is not memoized. One shared descriptor shadows the key for the duration, which costs no per-key allocation.
-let broke = false;
-const breaker = {
-    configurable: true,
-    get() {
-        broke = true;
-        return undefined;
-    },
-};
-/**
- * Installs a lazily-derived internal on the `_zod` prototype of `inst`'s
- * constructor, computed from the internals object itself and cached there on
- * first read. One accessor per constructor rather than one per instance.
- */
-function defineLazyInternal(inst, key, compute) {
-    const proto = Object.getPrototypeOf(inst._zod);
-    if (key in proto && installing !== inst._zod) {
-        // A repeat construction: everything is installed already. Cleared here so the reference is not held past the first construction of every type.
-        installing = undefined;
-        return;
-    }
-    installing = inst._zod;
-    Object.defineProperty(proto, key, {
-        configurable: true,
-        get() {
-            // Shadowed before computing so a re-entrant read from a recursive schema resolves to undefined instead of running the getter again.
-            Object.defineProperty(this, key, breaker);
-            const outer = broke;
-            broke = false;
-            try {
-                const value = compute(this);
-                // A result that resolved through a recursion break is recomputed once the graph is complete; everything else memoizes, undefined included.
-                if (broke)
-                    delete this[key];
-                else
-                    Object.defineProperty(this, key, { configurable: true, writable: true, value });
-                broke = broke || outer;
-                return value;
-            }
-            catch (err) {
-                // A compute that threw memoizes nothing, so a later read runs it again and fails the same way. The shadow goes with it, since leaving it installed would answer undefined for every later read.
-                delete this[key];
-                broke = broke || outer;
-                throw err;
-            }
-        },
-        set(value) {
-            Object.defineProperty(this, key, { configurable: true, writable: true, value });
-        },
-    });
-}
-/**
- * Installs `key` on `inst`'s prototype, computed by `make` on first read and cached there as an own
- * data property. One accessor per constructor rather than one per instance, because an own accessor
- * puts every instance after the first into v8 dictionary mode. The key doubles as the sentinel.
- */
-function installLazyProp(inst, key, make, enumerable) {
-    const proto = claim(inst, key);
-    if (!proto)
-        return;
-    Object.defineProperty(proto, key, {
-        configurable: true,
-        get() {
-            // Shadowed before computing, so a re-entrant read from a self-referential shape resolves to undefined instead of running the getter again. A data property rather than an accessor: an own accessor is the dictionary-mode transition this exists to avoid.
-            const desc = { configurable: true, writable: true, enumerable, value: undefined };
-            Object.defineProperty(this, key, desc);
-            // a compute that throws leaves the shadow behind, so later reads answer undefined instead of re-throwing; `defineLazy` did the same, and `defineLazyInternal`'s delete-on-catch would cost bytes in every bundle for a case only a throwing user getter reaches
-            desc.value = make(this);
-            Object.defineProperty(this, key, desc);
-            return desc.value;
-        },
-        set(value) {
-            Object.defineProperty(this, key, { configurable: true, writable: true, enumerable, value });
-        },
-    });
-}
-/** Marks the thunk `_catch` synthesises for a constant catch value. `Function.length` cannot tell that thunk from a user callback — rest and defaulted parameters both report arity 0 — and a user callback reads `ctx.error`, whose issues only finalize correctly against the caller's per-parse error map. Provenance can say what arity cannot. A plain string key rather than `Symbol.for`, whose call at module scope no bundler can prove pure — the same shape that anchored `urlCanParse` into every build. */
-const CONSTANT_CATCH = "~constantCatch";
-/** Wraps a constant catch value in a thunk tagged with {@link CONSTANT_CATCH}. */
-function constantCatch(value) {
-    const fn = () => value;
-    fn[CONSTANT_CATCH] = true;
-    return fn;
-}
-
-var _a$1;
-/* Shared descriptor for installing `_zod`; defineProperty reads it
- * synchronously, so reusing one object avoids a per-instance allocation. */
-const _zodDesc = { value: undefined, enumerable: false };
-// null where suppressing the capture would be unrecoverable: `parse()` puts the frames back with `captureStackTrace`, so without it the throw would lose its stack. also latched to null once `stackTraceLimit` proves unassignable, which a realm can do at any point by hardening Error
-let _E = "captureStackTrace" in Error ? Error : null;
-// v8 captures a stack trace inside the Error constructor, which dominates a failed parse; costs only the frames, and parse() restores those. the constructor must RUN: Object.create is cheaper and passes instanceof, but Error.isError and util.types.isNativeError check an internal slot
-function newError(Definition) {
-    const E = _E;
-    if (E) {
-        const saved = E.stackTraceLimit;
-        if (typeof saved === "number") {
-            try {
-                E.stackTraceLimit = 0;
-            }
-            catch {
-                _E = null;
-                return new Definition();
-            }
-            try {
-                return new Definition();
-            }
-            finally {
-                E.stackTraceLimit = saved;
-            }
-        }
-    }
-    return new Definition();
-}
-function $constructor(name, initializer, 
-/** This trait's members, installed once on every prototype that composes it. They cannot be declared in the initializer above: that runs per instance, and the prototype is shared. */
-proto, params) {
-    // Prototype for this constructor's `_zod` internals. Lazily-derived fields (`values`, `pattern`, `optin`, …) install here once rather than as an accessor on every instance.
-    const zodProto = {};
-    // Assigning the fields in the constructor body is what gives instances in-object slots; building the object literally and reparenting it costs a second allocation and a generic property copy.
-    function Internals(def) {
-        this.def = def;
-        this.constr = _;
-        this.traits = new Set();
-    }
-    Internals.prototype = zodProto;
-    const protoMembers = proto;
-    // One trait's members land on every prototype whose chain composes it, so the answer is per prototype rather than per trait.
-    const initialized = protoMembers && new WeakSet();
-    function init(inst, def) {
-        if (!inst._zod) {
-            _zodDesc.value = new Internals(def);
-            try {
-                Object.defineProperty(inst, "_zod", _zodDesc);
-            }
-            finally {
-                // Cleared even on throw, so the shared descriptor never leaks one instance's internals into the next.
-                _zodDesc.value = undefined;
-            }
-        }
-        else if (inst._zod.traits.has(name)) {
-            return;
-        }
-        inst._zod.traits.add(name);
-        initializer(inst, def);
-        if (initialized) {
-            // `super(def)` from a user subclass gives `this` a prototype the subclass owns, and installing there would overwrite whatever the subclass declared. `constr` built the instance, so its prototype is the one below the subclass's that should carry the members. A receiver whose chain never reaches that prototype installs on its own, which for a plain object handed straight to `init` means `Object.prototype` — unchanged from before.
-            const own = Object.getPrototypeOf(inst);
-            const ctorProto = inst._zod.constr.prototype;
-            let up = own;
-            while (up && up !== ctorProto)
-                up = Object.getPrototypeOf(up);
-            const target = up ?? own;
-            if (!initialized.has(target)) {
-                initialized.add(target);
-                members(target, protoMembers);
-            }
-        }
-        // support prototype modifications; for-in avoids the array allocation of Object.keys on the (usually empty) prototype
-        const proto = _.prototype;
-        for (const k in proto) {
-            if (!Object.prototype.hasOwnProperty.call(proto, k))
-                continue;
-            if (!(k in inst)) {
-                inst[k] = proto[k].bind(inst);
-            }
-        }
-    }
-    // doesn't work if Parent has a constructor with arguments
-    const Parent = params?.Parent ?? Object;
-    class Definition extends Parent {
-    }
-    Object.defineProperty(Definition, "name", { value: name });
-    function _(def) {
-        const inst = params?.Parent ? newError(Definition) : this;
-        init(inst, def);
-        const deferred = inst._zod.deferred;
-        if (deferred) {
-            for (const fn of deferred) {
-                fn();
-            }
-            // Released: initializers run once, and the list would otherwise be retained for the schema's lifetime.
-            inst._zod.deferred = undefined;
-        }
-        // Global post-processor hook. Internal: installed by `import "zod/compile"` to enable AOT compilation for every constructed schema. Runs last, once the instance is fully built, because it hands the instance to compile(). The post-processor is expected to be reentrancy-guarded by its own implementation.
-        const pp = globalThis.__zod_globalConfig?.postProcessor;
-        if (pp)
-            pp(inst);
-        return inst;
-    }
-    Object.defineProperty(_, "init", { value: init });
-    Object.defineProperty(_, Symbol.hasInstance, {
-        value: (inst) => {
-            if (params?.Parent && inst instanceof params.Parent)
-                return true;
-            return inst?._zod?.traits?.has(name);
-        },
-    });
-    Object.defineProperty(_, "name", { value: name });
-    return _;
-}
-class $ZodAsyncError extends Error {
-    constructor() {
-        super(`Encountered Promise during synchronous parse. Use .parseAsync() instead.`);
-    }
-}
-class $ZodEncodeError extends Error {
-    constructor(name) {
-        super(`Encountered unidirectional transform during encode: ${name}`);
-        this.name = "ZodEncodeError";
-    }
-}
-(_a$1 = globalThis).__zod_globalConfig ?? (_a$1.__zod_globalConfig = {});
-const globalConfig = globalThis.__zod_globalConfig;
-function config(newConfig) {
-    if (newConfig)
-        Object.assign(globalConfig, newConfig);
-    return globalConfig;
-}
-
-/* Computing the message eagerly is expensive (pretty-printed JSON of all
- * issues), so defer it until first read. The accessor functions and
- * descriptors are shared across instances to keep error construction
- * cheap; the computed message is cached on the internals object. The
- * setter preserves plain assignment semantics for consumers that
- * overwrite `message`. */
-function _getMessage() {
-    const internals = this._zod;
-    internals.message ?? (internals.message = JSON.stringify(internals.def, jsonStringifyReplacer, 2));
-    return internals.message;
-}
-function _setMessage(value) {
-    this._zod.message = value;
-}
-const _messageDesc = {
-    get: _getMessage,
-    set: _setMessage,
-    enumerable: true,
-    configurable: true,
-};
-const _issuesDesc = { value: undefined, enumerable: false };
-/* Prototypes that already carry the lazy `toString`. Seeded with the
- * intrinsics so that `init` on a foreign object — it accepts any object —
- * can never install an accessor onto a prototype we do not own. */
-const _installedToString = /* @__PURE__ */ new WeakSet([Object.prototype, Error.prototype]);
-const initializer$1 = (inst, def) => {
-    inst.name = "$ZodError";
-    // `_zod` is already non-enumerable: $constructor's init defined it with this same descriptor
-    _issuesDesc.value = def;
-    Object.defineProperty(inst, "issues", _issuesDesc);
-    // Clear the shared slot; a retained `value` pins the last error's issues.
-    _issuesDesc.value = undefined;
-    Object.defineProperty(inst, "message", _messageDesc);
-    /* `toString` lives as a non-enumerable lazy getter on the shared
-     * prototype; on first access it caches a per-instance closure so
-     * detached usage still works. */
-    const proto = Object.getPrototypeOf(inst);
-    if (!_installedToString.has(proto)) {
-        _installedToString.add(proto);
-        Object.defineProperty(proto, "toString", {
-            configurable: true,
-            enumerable: false,
-            get() {
-                const value = () => this.message;
-                Object.defineProperty(this, "toString", { value, configurable: true, writable: true });
-                return value;
-            },
-            set(value) {
-                Object.defineProperty(this, "toString", { value, configurable: true, writable: true });
-            },
-        });
-    }
-};
-const $ZodError = $constructor("$ZodError", initializer$1);
-/** Get-or-create `obj[key]` as an own data property. A path segment naming an inherited member
- * ("toString", "constructor") would otherwise read through to the prototype, and assigning
- * "__proto__" would hit the setter instead of creating a key. */
-function node(obj, key, make) {
-    if (!Object.prototype.hasOwnProperty.call(obj, key)) {
-        if (key === "__proto__") {
-            Object.defineProperty(obj, key, { value: make(), writable: true, enumerable: true, configurable: true });
-        }
-        else {
-            obj[key] = make();
-        }
-    }
-    return obj[key];
-}
-function flattenError(error, mapper = (issue) => issue.message) {
-    const fieldErrors = {};
-    const formErrors = [];
-    for (const sub of error.issues) {
-        if (sub.path.length > 0) {
-            node(fieldErrors, sub.path[0], () => []).push(mapper(sub));
-        }
-        else {
-            formErrors.push(mapper(sub));
-        }
-    }
-    return { formErrors, fieldErrors };
-}
-function formatError(error, mapper = (issue) => issue.message) {
-    const fieldErrors = { _errors: [] };
-    const processError = (error, path = []) => {
-        for (const issue of error.issues) {
-            if (issue.code === "invalid_union" && issue.errors.length) {
-                issue.errors.map((issues) => processError({ issues }, [...path, ...issue.path]));
-            }
-            else if (issue.code === "invalid_key") {
-                processError({ issues: issue.issues }, [...path, ...issue.path]);
-            }
-            else if (issue.code === "invalid_element") {
-                processError({ issues: issue.issues }, [...path, ...issue.path]);
-            }
-            else {
-                const fullpath = [...path, ...issue.path];
-                if (fullpath.length === 0) {
-                    fieldErrors._errors.push(mapper(issue));
-                }
-                else {
-                    let curr = fieldErrors;
-                    let i = 0;
-                    while (i < fullpath.length) {
-                        const el = fullpath[i];
-                        const terminal = i === fullpath.length - 1;
-                        // `_errors` is reserved by this legacy format, so merge a matching path segment into the current node instead of treating its array as a child.
-                        if (el === "_errors") {
-                            if (terminal)
-                                curr._errors.push(mapper(issue));
-                            i++;
-                            continue;
-                        }
-                        // A path element may collide with an inherited property name such as
-                        // "__proto__" or "constructor". Truthiness checks read the prototype
-                        // (so no node is created, then ._errors.push throws), and bracket
-                        // assignment of "__proto__" hits the setter instead of creating an
-                        // own key. Guard the read with hasOwnProperty and create the node
-                        // with defineProperty so any path element becomes a real own key.
-                        if (!Object.prototype.hasOwnProperty.call(curr, el)) {
-                            Object.defineProperty(curr, el, {
-                                value: { _errors: [] },
-                                enumerable: true,
-                                writable: true,
-                                configurable: true,
-                            });
-                        }
-                        const node = curr[el];
-                        if (terminal) {
-                            node._errors.push(mapper(issue));
-                        }
-                        curr = node;
-                        i++;
-                    }
-                }
-            }
-        }
-    };
-    processError(error);
-    return fieldErrors;
-}
-/** Format a ZodError as a human-readable string in the following form.
- *
- * From
- *
- * ```ts
- * ZodError {
- *   issues: [
- *     {
- *       expected: 'string',
- *       code: 'invalid_type',
- *       path: [ 'username' ],
- *       message: 'Invalid input: expected string'
- *     },
- *     {
- *       expected: 'number',
- *       code: 'invalid_type',
- *       path: [ 'favoriteNumbers', 1 ],
- *       message: 'Invalid input: expected number'
- *     }
- *   ];
- * }
- * ```
- *
- * to
- *
- * ```
- * username
- *   ✖ Expected number, received string at "username
- * favoriteNumbers[0]
- *   ✖ Invalid input: expected number
- * ```
- */
-function toDotPath(_path) {
-    const segs = [];
-    const path = _path.map((seg) => (typeof seg === "object" ? seg.key : seg));
-    for (const seg of path) {
-        if (typeof seg === "number")
-            segs.push(`[${seg}]`);
-        else if (typeof seg === "symbol")
-            segs.push(`[${JSON.stringify(String(seg))}]`);
-        else if (/[^\w$]/.test(seg))
-            segs.push(`[${JSON.stringify(seg)}]`);
-        else {
-            if (segs.length)
-                segs.push(".");
-            segs.push(seg);
-        }
-    }
-    return segs.join("");
-}
-function prettifyError(error) {
-    const lines = [];
-    // sort by path length
-    const issues = [...error.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
-    // Process each issue
-    for (const issue of issues) {
-        lines.push(`✖ ${issue.message}`);
-        if (issue.path?.length)
-            lines.push(`  → at ${toDotPath(issue.path)}`);
-    }
-    // Convert Map to formatted string
-    return lines.join("\n");
-}
-
-// Always both keys, so the `_params` read site in `_parse` sees one object shape rather than two.
-function finalizeParams(callee, params) {
-    return { callee: params?.callee ?? callee, Err: params?.Err };
-}
-const _parse = (_Err) => {
-    const fn = (schema, value, _ctx, _params) => {
-        const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
-        const result = schema._zod.run({ value, issues: [] }, ctx);
-        if (result instanceof Promise) {
-            throw new $ZodAsyncError();
-        }
-        if (result.issues.length) {
-            const e = new (_params?.Err ?? _Err)(result.issues.map((iss) => finalizeIssue(iss, ctx, config())));
-            captureStackTrace(e, _params?.callee ?? fn);
-            throw e;
-        }
-        return result.value;
-    };
-    return fn;
-};
-const _parseAsync = (_Err) => {
-    const fn = async (schema, value, _ctx, params) => {
-        const ctx = _ctx ? { ..._ctx, async: true } : { async: true };
-        let result = schema._zod.run({ value, issues: [] }, ctx);
-        if (result instanceof Promise)
-            result = await result;
-        if (result.issues.length) {
-            const e = new (params?.Err ?? _Err)(result.issues.map((iss) => finalizeIssue(iss, ctx, config())));
-            captureStackTrace(e, params?.callee ?? fn);
-            throw e;
-        }
-        return result.value;
-    };
-    return fn;
-};
-const _safeParse = (_Err) => (schema, value, _ctx) => {
-    const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
-    const result = schema._zod.run({ value, issues: [] }, ctx);
-    if (result instanceof Promise) {
-        throw new $ZodAsyncError();
-    }
-    return result.issues.length ? failure(_Err, result.issues, ctx) : { success: true, data: result.value };
-};
-// the error is built on the first read of `error`: finalizing the issues and constructing the instance is most of a failing parse, and a caller that only branches on `success` never pays it. a getter in the literal keeps this small; the alternative, one shared accessor descriptor plus a hidden state slot, reads ~15% faster but costs ~75 B gzipped in every bundle
-function failure(Err, issues, ctx) {
-    let error;
-    return {
-        success: false,
-        get error() {
-            if (!error) {
-                error = new Err(issues.map((iss) => finalizeIssue(iss, ctx, config())));
-                // finalizeIssue drops `input`, so the built error holds nothing; keeping the raw issues past this point pins the parsed value for the life of the result
-                issues = undefined;
-                ctx = undefined;
-            }
-            return error;
-        },
-        set error(e) {
-            error = e;
-            // a replacement makes the getter's branch unreachable, so the captures have to go here too
-            issues = undefined;
-            ctx = undefined;
-        },
-    };
-}
-const _safeParseAsync = (_Err) => async (schema, value, _ctx) => {
-    const ctx = _ctx ? { ..._ctx, async: true } : { async: true };
-    let result = schema._zod.run({ value, issues: [] }, ctx);
-    if (result instanceof Promise)
-        result = await result;
-    return result.issues.length ? failure(_Err, result.issues, ctx) : { success: true, data: result.value };
-};
-// registry mirrors of the compiler's sentinels, so this module never imports the compiler
-const COMPILE_INVALID = /* @__PURE__ */ Symbol.for("zod.compile.invalid");
-const COMPILE_FALLBACK = /* @__PURE__ */ Symbol.for("zod.compile.fallback");
-// Deliberately tiny, because v8 will not inline a body carrying the fallback's object literals and throw. Everything that is not the compiled happy path lives in validateFallback, and that split is worth ~35% on a compiled schema.
-const validate = ((schema, value, _ctx) => {
-    const validator = schema._zod.bag.validator;
-    if (validator !== undefined) {
-        if (validator(value) !== COMPILE_INVALID)
-            return true;
-        // a definite sentinel means the runtime would reject, so skip the re-parse; a ctx can still change the answer
-        if (validator.definite === true && _ctx === undefined)
-            return false;
-    }
-    return validateFallback(schema, value, _ctx);
-});
-function validateFallback(schema, value, _ctx) {
-    const ctx = _ctx
-        ? { ..._ctx, async: false, abortEarly: true }
-        : { async: false, abortEarly: true };
-    const fallbackRun = schema._zod.bag.fallbackRun;
-    let result;
-    if (fallbackRun) {
-        // skip nested fast paths on the fallback, so user callbacks keep the at-most-twice bound
-        ctx[COMPILE_FALLBACK] = true;
-        result = fallbackRun({ value, issues: [] }, ctx);
-    }
-    else {
-        result = schema._zod.run({ value, issues: [] }, ctx);
-    }
-    if (result instanceof Promise) {
-        throw new $ZodAsyncError();
-    }
-    return result.issues.length === 0;
-}
-// no fast path: the compiler keeps async parses on the runtime, because a promise-returning callback that is not declared async compiles to a throw
-const validateAsync$1 = async (schema, value, _ctx) => {
-    const ctx = _ctx
-        ? { ..._ctx, async: true, abortEarly: true }
-        : { async: true, abortEarly: true };
-    let result = schema._zod.run({ value, issues: [] }, ctx);
-    if (result instanceof Promise)
-        result = await result;
-    return result.issues.length === 0;
-};
-const _encode = (_Err) => {
-    const parse = _parse(_Err);
-    const fn = (schema, value, _ctx, _params) => {
-        const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-        return parse(schema, value, ctx, finalizeParams(fn, _params));
-    };
-    return fn;
-};
-const _decode = (_Err) => {
-    const parse = _parse(_Err);
-    const fn = (schema, value, _ctx, _params) => {
-        return parse(schema, value, _ctx, finalizeParams(fn, _params));
-    };
-    return fn;
-};
-const _encodeAsync = (_Err) => {
-    const parseAsync = _parseAsync(_Err);
-    const fn = async (schema, value, _ctx, _params) => {
-        const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-        return (await parseAsync(schema, value, ctx, finalizeParams(fn, _params)));
-    };
-    return fn;
-};
-const _decodeAsync = (_Err) => {
-    const parseAsync = _parseAsync(_Err);
-    const fn = async (schema, value, _ctx, _params) => {
-        return await parseAsync(schema, value, _ctx, finalizeParams(fn, _params));
-    };
-    return fn;
-};
-const _safeEncode = (_Err) => (schema, value, _ctx) => {
-    const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-    return _safeParse(_Err)(schema, value, ctx);
-};
-const _safeDecode = (_Err) => (schema, value, _ctx) => {
-    return _safeParse(_Err)(schema, value, _ctx);
-};
-const _safeEncodeAsync = (_Err) => async (schema, value, _ctx) => {
-    const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
-    return _safeParseAsync(_Err)(schema, value, ctx);
-};
-const _safeDecodeAsync = (_Err) => async (schema, value, _ctx) => {
-    return _safeParseAsync(_Err)(schema, value, _ctx);
-};
-
-/**
- * @deprecated CUID v1 is deprecated by its authors due to information leakage
- * (timestamps embedded in the id). Use {@link cuid2} instead.
- * See https://github.com/paralleldrive/cuid.
- */
-const cuid = /^[cC][0-9a-z]{6,}$/;
-const cuid2 = /^[0-9a-z]+$/;
-const ulid = /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/;
-const xid = /^[0-9a-vA-V]{20}$/;
-const ksuid = /^[A-Za-z0-9]{27}$/;
-const nanoid = /^[a-zA-Z0-9_-]{21}$/;
-function nanoidOfLength(length) {
-    return new RegExp(`^[a-zA-Z0-9_-]{${length}}$`);
-}
-/** ISO 8601-1 duration regex. Does not support the 8601-2 extensions like negative durations or fractional/negative components. */
-const duration = /^P(?:(\d+W)|(?!.*W)(?=\d|T\d)(\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+([.,]\d+)?S)?)?)$/;
-/** A regex for any UUID-like identifier: 8-4-4-4-12 hex pattern */
-const guid = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
-/** Returns a regex for validating an RFC 9562/4122 UUID.
- *
- * @param version Optionally specify a version 1-8. If no version is specified, all versions are supported. */
-const uuid = (version) => {
-    if (!version)
-        return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
-    return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
-};
-/** Practical email validation */
-const email = /^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/;
-// from https://thekevinscott.com/emojis-in-javascript/#writing-a-regular-expression
-// Single character class, not an alternation: the two properties overlap (U+1F9B0-U+1F9B3), so `(A|B)+` backtracks exponentially on a failed match. The leading lookahead then demands one anchor — a pictograph, a regional indicator, or the enclosing keycap — because `\p{Emoji_Component}` on its own covers ASCII digits, `#`, `*`, ZWJ, variation selectors and skin tone modifiers, none of which is an emoji without a base.
-const _emoji$1 = `^(?=[\\s\\S]*[\\p{Extended_Pictographic}\\p{Regional_Indicator}\\u20E3])[\\p{Extended_Pictographic}\\p{Emoji_Component}]+$`;
-function emoji() {
-    return new RegExp(_emoji$1, "u");
-}
-const ipv4 = /^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$/;
-const ipv6 = /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$/;
-const cidrv4 = /^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\/([0-9]|[1-2][0-9]|3[0-2])$/;
-const cidrv6 = /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))\/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$/;
-// https://stackoverflow.com/questions/7860392/determine-if-string-is-in-base64-using-javascript
-const base64 = /^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$/;
-const base64url = /^(?:[A-Za-z0-9_-]{4})*(?:[A-Za-z0-9_-]{2,3})?$/;
-const httpProtocol = /^https?$/;
-// https://blog.stevenlevithan.com/archives/validate-phone-number#r4-3 (regex sans spaces) E.164: leading digit must be 1-9; total digits (excluding '+') between 7-15
-const e164 = /^\+[1-9]\d{6,14}$/;
-const dateSource = `(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))`;
-
-function anchor(source) {
-    return new RegExp(`^${source}$`);
-}
-const date = /*@__PURE__*/ anchor(dateSource);
-function timeSource(args) {
-    const hhmm = `(?:[01]\\d|2[0-3]):[0-5]\\d`;
-    const regex = typeof args.precision === "number"
-        ? args.precision === -1
-            ? `${hhmm}`
-            : args.precision === 0
-                ? `${hhmm}:[0-5]\\d`
-                : `${hhmm}:[0-5]\\d\\.\\d{${args.precision}}`
-        : args.seconds
-            ? `${hhmm}:[0-5]\\d(?:\\.\\d+)?`
-            : `${hhmm}(?::[0-5]\\d(?:\\.\\d+)?)?`;
-    return regex;
-}
-function time(args) {
-    return new RegExp(`^${timeSource(args)}$`);
-}
-// Adapted from https://stackoverflow.com/a/3143231
-function datetime(args) {
-    const opts = ["Z"];
-    // if (args.offset) opts.push(`([+-]\\d{2}:\\d{2})`);
-    if (args.offset)
-        opts.push(`([+-](?:[01]\\d|2[0-3]):[0-5]\\d)`);
-    // RFC 3339 mandates seconds wherever the time carries a `Z` or an offset, so only the unqualified form `local` adds may omit them
-    const qualified = `${timeSource({ precision: args.precision, seconds: true })}(?:${opts.join("|")})`;
-    const timeRegex = args.local ? `${qualified}|${timeSource({ precision: args.precision })}` : qualified;
-    return new RegExp(`^${dateSource}T(?:${timeRegex})$`);
-}
-// the unbounded form of `string()` as a literal, so every plain string shares one instance instead of building its own
-const anyString = /^[\s\S]{0,}$/;
-const integer = /^-?\d+$/;
-const number$1 = /^-?\d+(?:\.\d+)?$/;
-const boolean$1 = /^(?:true|false)$/i;
-// regex for string with no uppercase letters
-const lowercase = /^[^A-Z]*$/;
-// regex for string with no lowercase letters
-const uppercase = /^[^a-z]*$/;
-
-// import { $ZodType } from "./schemas.js";
-const $ZodCheck = /*@__PURE__*/ $constructor("$ZodCheck", (inst, def) => {
-    var _a;
-    inst._zod ?? (inst._zod = {});
-    inst._zod.def = def;
-    (_a = inst._zod).onattach ?? (_a.onattach = []);
-});
-/** Default `when` for length-based checks: run only on non-nullish values with a `length`. */
-const _whenHasLength = (payload) => {
-    const val = payload.value;
-    return !nullish(val) && val.length !== undefined;
-};
-const numericOriginMap = {
-    number: "number",
-    bigint: "bigint",
-    object: "date",
-};
-const $ZodCheckLessThan = /*@__PURE__*/ $constructor("$ZodCheckLessThan", (inst, def) => {
-    $ZodCheck.init(inst, def);
-    const origin = numericOriginMap[typeof def.value];
-    inst._zod.check = (payload) => {
-        if (def.inclusive ? payload.value <= def.value : payload.value < def.value) {
-            return;
-        }
-        payload.issues.push({
-            origin: numericOriginMap[typeof payload.value] ?? origin,
-            code: "too_big",
-            maximum: typeof def.value === "object" ? def.value.getTime() : def.value,
-            input: payload.value,
-            inclusive: def.inclusive,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodCheckGreaterThan = /*@__PURE__*/ $constructor("$ZodCheckGreaterThan", (inst, def) => {
-    $ZodCheck.init(inst, def);
-    const origin = numericOriginMap[typeof def.value];
-    inst._zod.check = (payload) => {
-        if (def.inclusive ? payload.value >= def.value : payload.value > def.value) {
-            return;
-        }
-        payload.issues.push({
-            origin: numericOriginMap[typeof payload.value] ?? origin,
-            code: "too_small",
-            minimum: typeof def.value === "object" ? def.value.getTime() : def.value,
-            input: payload.value,
-            inclusive: def.inclusive,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodCheckMultipleOf = 
-/*@__PURE__*/ $constructor("$ZodCheckMultipleOf", (inst, def) => {
-    $ZodCheck.init(inst, def);
-    inst._zod.check = (payload) => {
-        if (typeof payload.value !== typeof def.value)
-            throw new Error("Cannot mix number and bigint in multiple_of check.");
-        const isMultiple = typeof payload.value === "bigint"
-            ? // `value % 0n` throws, and nothing is a multiple of zero — the number branch already fails this way via NaN
-                def.value !== BigInt(0) && payload.value % def.value === BigInt(0)
-            : floatSafeRemainder(payload.value, def.value) === 0;
-        if (isMultiple)
-            return;
-        payload.issues.push({
-            origin: typeof payload.value,
-            code: "not_multiple_of",
-            divisor: def.value,
-            input: payload.value,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodCheckNumberFormat = /*@__PURE__*/ $constructor("$ZodCheckNumberFormat", (inst, def) => {
-    $ZodCheck.init(inst, def); // no format checks
-    def.format = def.format || "float64";
-    const isInt = def.format?.includes("int");
-    const origin = isInt ? "int" : "number";
-    const [minimum, maximum] = NUMBER_FORMAT_RANGES[def.format];
-    inst._zod.check = (payload) => {
-        const input = payload.value;
-        if (isInt) {
-            if (!Number.isInteger(input)) {
-                // invalid_format issue
-                // payload.issues.push({
-                //   expected: def.format,
-                //   format: def.format,
-                //   code: "invalid_format",
-                //   input,
-                //   inst,
-                // });
-                // invalid_type issue
-                payload.issues.push({
-                    expected: origin,
-                    format: def.format,
-                    code: "invalid_type",
-                    continue: false,
-                    input,
-                    inst,
-                });
-                return;
-                // not_multiple_of issue
-                // payload.issues.push({
-                //   code: "not_multiple_of",
-                //   origin: "number",
-                //   input,
-                //   inst,
-                //   divisor: 1,
-                // });
-            }
-            if (!Number.isSafeInteger(input)) {
-                if (input > 0) {
-                    // too_big
-                    payload.issues.push({
-                        input,
-                        code: "too_big",
-                        maximum: Number.MAX_SAFE_INTEGER,
-                        note: "Integers must be within the safe integer range.",
-                        inst,
-                        origin,
-                        inclusive: true,
-                        continue: !def.abort,
-                    });
-                }
-                else {
-                    // too_small
-                    payload.issues.push({
-                        input,
-                        code: "too_small",
-                        minimum: Number.MIN_SAFE_INTEGER,
-                        note: "Integers must be within the safe integer range.",
-                        inst,
-                        origin,
-                        inclusive: true,
-                        continue: !def.abort,
-                    });
-                }
-                return;
-            }
-        }
-        if (input < minimum) {
-            payload.issues.push({
-                origin: "number",
-                input,
-                code: "too_small",
-                minimum,
-                inclusive: true,
-                inst,
-                continue: !def.abort,
-            });
-        }
-        if (input > maximum) {
-            payload.issues.push({
-                origin: "number",
-                input,
-                code: "too_big",
-                maximum,
-                inclusive: true,
-                inst,
-                continue: !def.abort,
-            });
-        }
-    };
-});
-const $ZodCheckMaxLength = /*@__PURE__*/ $constructor("$ZodCheckMaxLength", (inst, def) => {
-    var _a;
-    $ZodCheck.init(inst, def);
-    (_a = inst._zod.def).when ?? (_a.when = _whenHasLength);
-    inst._zod.check = (payload) => {
-        const input = payload.value;
-        const units = input.length;
-        // Strings are measured in Unicode code points, not UTF-16 units. A code point is at most two units, so a string that already fits in units fits in code points; only an overflow has to be counted.
-        const length = typeof input === "string" && units > def.maximum ? codePointLength(input) : units;
-        if (length <= def.maximum)
-            return;
-        const origin = getLengthableOrigin(input);
-        payload.issues.push({
-            origin,
-            code: "too_big",
-            maximum: def.maximum,
-            inclusive: true,
-            input,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodCheckMinLength = /*@__PURE__*/ $constructor("$ZodCheckMinLength", (inst, def) => {
-    var _a;
-    $ZodCheck.init(inst, def);
-    (_a = inst._zod.def).when ?? (_a.when = _whenHasLength);
-    inst._zod.check = (payload) => {
-        const input = payload.value;
-        const units = input.length;
-        // A code point is one or two UTF-16 units, so fewer units than the floor can never reach it and twice the floor always clears it. Only in between is the exact count in doubt.
-        const length = typeof input === "string" && units >= def.minimum && units < def.minimum * 2
-            ? codePointLength(input)
-            : units;
-        if (length >= def.minimum)
-            return;
-        const origin = getLengthableOrigin(input);
-        payload.issues.push({
-            origin,
-            code: "too_small",
-            minimum: def.minimum,
-            inclusive: true,
-            input,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodCheckLengthEquals = /*@__PURE__*/ $constructor("$ZodCheckLengthEquals", (inst, def) => {
-    var _a;
-    $ZodCheck.init(inst, def);
-    (_a = inst._zod.def).when ?? (_a.when = _whenHasLength);
-    inst._zod.check = (payload) => {
-        const input = payload.value;
-        const units = input.length;
-        // A code point is one or two UTF-16 units, so outside `[length, length * 2]` units the target is missed either way — and missed in the same direction in both measures.
-        const length = typeof input === "string" && units >= def.length && units <= def.length * 2
-            ? codePointLength(input)
-            : units;
-        if (length === def.length)
-            return;
-        const origin = getLengthableOrigin(input);
-        const tooBig = length > def.length;
-        payload.issues.push({
-            origin,
-            ...(tooBig ? { code: "too_big", maximum: def.length } : { code: "too_small", minimum: def.length }),
-            inclusive: true,
-            exact: true,
-            input: payload.value,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodCheckStringFormat = /*@__PURE__*/ $constructor("$ZodCheckStringFormat", (inst, def) => {
-    var _a, _b;
-    $ZodCheck.init(inst, def);
-    if (def.pattern)
-        (_a = inst._zod).check ?? (_a.check = (payload) => {
-            def.pattern.lastIndex = 0;
-            if (def.pattern.test(payload.value))
-                return;
-            payload.issues.push({
-                origin: "string",
-                code: "invalid_format",
-                format: def.format,
-                input: payload.value,
-                ...(def.pattern ? { pattern: def.pattern.toString() } : {}),
-                inst,
-                continue: !def.abort,
-            });
-        });
-    else
-        (_b = inst._zod).check ?? (_b.check = () => { });
-});
-const $ZodCheckRegex = /*@__PURE__*/ $constructor("$ZodCheckRegex", (inst, def) => {
-    $ZodCheckStringFormat.init(inst, def);
-    inst._zod.check = (payload) => {
-        def.pattern.lastIndex = 0;
-        if (def.pattern.test(payload.value))
-            return;
-        payload.issues.push({
-            origin: "string",
-            code: "invalid_format",
-            format: "regex",
-            input: payload.value,
-            pattern: def.pattern.toString(),
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodCheckLowerCase = /*@__PURE__*/ $constructor("$ZodCheckLowerCase", (inst, def) => {
-    def.pattern ?? (def.pattern = lowercase);
-    $ZodCheckStringFormat.init(inst, def);
-});
-const $ZodCheckUpperCase = /*@__PURE__*/ $constructor("$ZodCheckUpperCase", (inst, def) => {
-    def.pattern ?? (def.pattern = uppercase);
-    $ZodCheckStringFormat.init(inst, def);
-});
-const $ZodCheckIncludes = /*@__PURE__*/ $constructor("$ZodCheckIncludes", (inst, def) => {
-    $ZodCheck.init(inst, def);
-    const escapedRegex = escapeRegex(def.includes);
-    // `String.prototype.includes(sub, position)` matches `sub` at `position`
-    // OR LATER, so the pattern must allow at least `position` leading chars
-    // (`{N,}`), not exactly `position` chars (`{N}`).
-    const pattern = new RegExp(typeof def.position === "number" ? `^.{${def.position},}${escapedRegex}` : escapedRegex);
-    def.pattern = pattern;
-    inst._zod.check = (payload) => {
-        if (payload.value.includes(def.includes, def.position))
-            return;
-        payload.issues.push({
-            origin: "string",
-            code: "invalid_format",
-            format: "includes",
-            includes: def.includes,
-            input: payload.value,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodCheckStartsWith = /*@__PURE__*/ $constructor("$ZodCheckStartsWith", (inst, def) => {
-    $ZodCheck.init(inst, def);
-    const pattern = new RegExp(`^${escapeRegex(def.prefix)}.*`);
-    def.pattern ?? (def.pattern = pattern);
-    inst._zod.check = (payload) => {
-        if (payload.value.startsWith(def.prefix))
-            return;
-        payload.issues.push({
-            origin: "string",
-            code: "invalid_format",
-            format: "starts_with",
-            prefix: def.prefix,
-            input: payload.value,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodCheckEndsWith = /*@__PURE__*/ $constructor("$ZodCheckEndsWith", (inst, def) => {
-    $ZodCheck.init(inst, def);
-    const pattern = new RegExp(`.*${escapeRegex(def.suffix)}$`);
-    def.pattern ?? (def.pattern = pattern);
-    inst._zod.check = (payload) => {
-        if (payload.value.endsWith(def.suffix))
-            return;
-        payload.issues.push({
-            origin: "string",
-            code: "invalid_format",
-            format: "ends_with",
-            suffix: def.suffix,
-            input: payload.value,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodCheckOverwrite = /*@__PURE__*/ $constructor("$ZodCheckOverwrite", (inst, def) => {
-    $ZodCheck.init(inst, def);
-    inst._zod.check = (payload) => {
-        payload.value = def.tx(payload.value);
-    };
-});
-
-class Doc {
-    constructor(args = [], closed = {}) {
-        this.content = [];
-        this.indent = 0;
-        this.args = args;
-        this.closed = closed;
-    }
-    // the compiler catches a child's throw and keeps writing into this doc, so the indent has to unwind with it
-    indented(fn) {
-        this.indent += 1;
-        try {
-            fn(this);
-        }
-        finally {
-            this.indent -= 1;
-        }
-    }
-    write(arg) {
-        if (typeof arg === "function") {
-            arg(this, { execution: "sync" });
-            arg(this, { execution: "async" });
-            return;
-        }
-        const content = arg;
-        const lines = content.split("\n").filter((x) => x);
-        const minIndent = Math.min(...lines.map((x) => x.length - x.trimStart().length));
-        const dedented = lines.map((x) => x.slice(minIndent)).map((x) => " ".repeat(this.indent * 2) + x);
-        for (const line of dedented) {
-            this.content.push(line);
-        }
-    }
-    compile() {
-        const F = Function;
-        const content = this?.content ?? [``];
-        const factory = new F(...Object.keys(this.closed), `return function (${this.args.join(", ")}) {\n${content.join("\n")}\n};`);
-        return factory(...Object.values(this.closed));
-    }
-}
-
-const version = {
-    major: 4,
-    minor: 6,
-    patch: 7,
-};
-
-const $ZodType = /*@__PURE__*/ $constructor("$ZodType", (inst, def) => {
-    var _a;
-    inst ?? (inst = {});
-    inst._zod.def = def; // set _def property
-    inst._zod.bag = inst._zod.bag || {}; // initialize _bag object
-    inst._zod.version = version;
-    const defChecks = inst._zod.def.checks;
-    // if inst is itself a checks.$ZodCheck, run it as a check
-    const checks = inst._zod.traits.has("$ZodCheck")
-        ? [inst, ...(defChecks ?? [])]
-        : defChecks?.length
-            ? [...defChecks]
-            : [];
-    for (const ch of checks) {
-        for (const fn of ch._zod.onattach) {
-            fn(inst);
-        }
-    }
-    if (checks.length === 0) {
-        // deferred initializer inst._zod.parse is not yet defined
-        (_a = inst._zod).deferred ?? (_a.deferred = []);
-        inst._zod.deferred?.push(() => {
-            inst._zod.run = inst._zod.parse;
-        });
-    }
-    else {
-        const runChecks = (payload, checks, ctx) => {
-            if (payload.memo)
-                return payload;
-            let isAborted = aborted(payload);
-            let asyncResult;
-            for (const ch of checks) {
-                if (ch._zod.def.when) {
-                    if (explicitlyAborted(payload))
-                        continue;
-                    const shouldRun = ch._zod.def.when(payload);
-                    if (!shouldRun)
-                        continue;
-                }
-                else if (isAborted) {
-                    continue;
-                }
-                const currLen = payload.issues.length;
-                const _ = ch._zod.check(payload);
-                if (_ instanceof Promise && ctx?.async === false) {
-                    throw new $ZodAsyncError();
-                }
-                if (asyncResult || _ instanceof Promise) {
-                    asyncResult = (asyncResult ?? Promise.resolve()).then(async () => {
-                        await _;
-                        const nextLen = payload.issues.length;
-                        if (nextLen === currLen)
-                            return;
-                        attachSchema(payload.issues, currLen, inst);
-                        if (!isAborted)
-                            isAborted = aborted(payload, currLen);
-                    });
-                }
-                else {
-                    const nextLen = payload.issues.length;
-                    if (nextLen === currLen)
-                        continue;
-                    attachSchema(payload.issues, currLen, inst);
-                    if (!isAborted)
-                        isAborted = aborted(payload, currLen);
-                }
-            }
-            if (asyncResult) {
-                return asyncResult.then(() => {
-                    return payload;
-                });
-            }
-            return payload;
-        };
-        const handleCanaryResult = (canary, payload, ctx) => {
-            // abort if the canary is aborted
-            if (aborted(canary)) {
-                canary.aborted = true;
-                return canary;
-            }
-            // run checks first, then
-            const checkResult = runChecks(payload, checks, ctx);
-            if (checkResult instanceof Promise) {
-                if (ctx.async === false)
-                    throw new $ZodAsyncError();
-                return checkResult.then((checkResult) => inst._zod.parse(checkResult, ctx));
-            }
-            return inst._zod.parse(checkResult, ctx);
-        };
-        inst._zod.run = (payload, ctx) => {
-            if (ctx.skipChecks) {
-                return inst._zod.parse(payload, ctx);
-            }
-            if (ctx.direction === "backward") {
-                // run canary initial pass (no checks)
-                const canary = inst._zod.parse({ value: payload.value, issues: [] }, { ...ctx, skipChecks: true });
-                if (canary instanceof Promise) {
-                    return canary.then((canary) => {
-                        return handleCanaryResult(canary, payload, ctx);
-                    });
-                }
-                return handleCanaryResult(canary, payload, ctx);
-            }
-            // forward
-            const result = inst._zod.parse(payload, ctx);
-            if (result instanceof Promise) {
-                if (ctx.async === false)
-                    throw new $ZodAsyncError();
-                return result.then((result) => runChecks(result, checks, ctx));
-            }
-            return runChecks(result, checks, ctx);
-        };
-    }
-}, {
-    // Wrappers extend this by installing a richer factory over it; reading it eagerly would defeat the laziness.
-    get "~standard"() {
-        return hide(this, "~standard", standardProps(this));
-    },
-    set "~standard"(value) {
-        own(this, "~standard", value);
-    },
-});
-/** The Standard Schema surface for `inst`. Shared so wrappers can extend it without forcing it. */
-// a Standard Schema result only reports issues, so a failure finalizes them straight off the raw payload: no ZodError, and no lazy result to read through
-const toStandardResult = (r, ctx) => r.issues.length ? { issues: r.issues.map((iss) => finalizeIssue(iss, ctx, config())) } : { value: r.value };
-async function validateAsync(inst, value) {
-    const ctx = { async: true };
-    return toStandardResult((await inst._zod.run({ value, issues: [] }, ctx)), ctx);
-}
-function standardProps(inst) {
-    return {
-        validate: (value) => {
-            const ctx = { async: false };
-            try {
-                const r = inst._zod.run({ value, issues: [] }, ctx);
-                if (!(r instanceof Promise))
-                    return toStandardResult(r, ctx);
-            }
-            catch (_) { }
-            // async function so a synchronously throwing check rejects instead of escaping validate
-            return validateAsync(inst, value);
-        },
-        vendor: "zod",
-        version: 1,
-    };
-}
-const $ZodString = /*@__PURE__*/ $constructor("$ZodString", (inst, def) => {
-    $ZodType.init(inst, def);
-    // a format's own pattern, else unbounded; a template literal derives the check-aware form itself
-    inst._zod.pattern = def.pattern ?? anyString;
-    inst._zod.parse = (payload, _) => {
-        if (def.coerce)
-            try {
-                payload.value = String(payload.value);
-            }
-            catch (_) { }
-        if (typeof payload.value === "string")
-            return payload;
-        payload.issues.push({
-            expected: "string",
-            code: "invalid_type",
-            input: payload.value,
-            inst,
-        });
-        return payload;
-    };
-});
-const $ZodStringFormat = /*@__PURE__*/ $constructor("$ZodStringFormat", (inst, def) => {
-    // check initialization must come first
-    $ZodCheckStringFormat.init(inst, def);
-    $ZodString.init(inst, def);
-});
-const $ZodGUID = /*@__PURE__*/ $constructor("$ZodGUID", (inst, def) => {
-    def.pattern ?? (def.pattern = guid);
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodUUID = /*@__PURE__*/ $constructor("$ZodUUID", (inst, def) => {
-    if (def.version) {
-        const versionMap = {
-            v1: 1,
-            v2: 2,
-            v3: 3,
-            v4: 4,
-            v5: 5,
-            v6: 6,
-            v7: 7,
-            v8: 8,
-        };
-        const v = versionMap[def.version];
-        if (v === undefined)
-            throw new Error(`Invalid UUID version: "${def.version}"`);
-        def.pattern ?? (def.pattern = uuid(v));
-    }
-    else
-        def.pattern ?? (def.pattern = uuid());
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodEmail = /*@__PURE__*/ $constructor("$ZodEmail", (inst, def) => {
-    def.pattern ?? (def.pattern = email);
-    $ZodStringFormat.init(inst, def);
-});
-/** The `://` guard rejected the input before the URL constructor saw it. */
-const URL_BAD_FORMAT = 1;
-/** The URL parser rejected the input. */
-const URL_UNPARSEABLE = 2;
-function canParseURL(input) {
-    try {
-        if (typeof URL !== "undefined" && typeof URL.canParse === "function")
-            return URL.canParse(input);
-        new URL(input);
-        return true;
-    }
-    catch {
-        return false;
-    }
-}
-function validateURL(trimmed, def) {
-    if (!("normalize" in def) && !("hostname" in def) && !("protocol" in def)) {
-        return canParseURL(trimmed) || URL_UNPARSEABLE;
-    }
-    return parseURLObject(trimmed, def);
-}
-/** Parses a URL while preserving the non-normalizing HTTP guard. */
-function parseURLObject(trimmed, def) {
-    // When normalize is off, require :// for http/https URLs. This prevents strings like "http:example.com" or "https:/path" from being silently accepted
-    if (!def.normalize && def.protocol?.source === httpProtocol.source && !/^https?:\/\//i.test(trimmed)) {
-        return URL_BAD_FORMAT;
-    }
-    try {
-        if (typeof URL !== "undefined") {
-            const URLStatic = URL;
-            if (typeof URLStatic.parse === "function")
-                return URLStatic.parse(trimmed) ?? URL_UNPARSEABLE;
-        }
-        // @ts-ignore
-        return new URL(trimmed);
-    }
-    catch {
-        return URL_UNPARSEABLE;
-    }
-}
-const asciiTabOrNewline = /[\t\n\r]/g;
-/** The URL parser deletes every ASCII tab, LF and CR from its input before it parses, so `new URL("https://exa\nmple.com")` reports on `example.com`. Applying the same deletion to the returned value closes the half of that divergence which can move the host; the parser's other rewrite, stripping C0 controls at the edges, cannot. */
-function stripTabAndNewline(value) {
-    return value.replace(asciiTabOrNewline, "");
-}
-function urlHostnameOk(url, hostname) {
-    hostname.lastIndex = 0;
-    return hostname.test(url.hostname);
-}
-function urlProtocolOk(url, protocol) {
-    protocol.lastIndex = 0;
-    return protocol.test(url.protocol.endsWith(":") ? url.protocol.slice(0, -1) : url.protocol);
-}
-const $ZodURL = /*@__PURE__*/ $constructor("$ZodURL", (inst, def) => {
-    $ZodStringFormat.init(inst, def);
-    inst._zod.check = (payload) => {
-        try {
-            // Trim whitespace from input
-            const trimmed = payload.value.trim();
-            const url = validateURL(trimmed, def);
-            if (url === URL_BAD_FORMAT) {
-                payload.issues.push({
-                    code: "invalid_format",
-                    format: "url",
-                    note: "Invalid URL format",
-                    input: payload.value,
-                    inst,
-                    continue: !def.abort,
-                });
-                return;
-            }
-            if (url === URL_UNPARSEABLE) {
-                payload.issues.push({
-                    code: "invalid_format",
-                    format: "url",
-                    input: payload.value,
-                    inst,
-                    continue: !def.abort,
-                });
-                return;
-            }
-            if (url === true) {
-                payload.value = stripTabAndNewline(trimmed);
-                return;
-            }
-            if (def.hostname && !urlHostnameOk(url, def.hostname)) {
-                payload.issues.push({
-                    code: "invalid_format",
-                    format: "url",
-                    note: "Invalid hostname",
-                    pattern: def.hostname.source,
-                    input: payload.value,
-                    inst,
-                    continue: !def.abort,
-                });
-            }
-            if (def.protocol && !urlProtocolOk(url, def.protocol)) {
-                payload.issues.push({
-                    code: "invalid_format",
-                    format: "url",
-                    note: "Invalid protocol",
-                    pattern: def.protocol.source,
-                    input: payload.value,
-                    inst,
-                    continue: !def.abort,
-                });
-            }
-            // Set the output value based on normalize flag
-            payload.value = def.normalize ? url.href : stripTabAndNewline(trimmed);
-            return;
-        }
-        catch (_) {
-            payload.issues.push({
-                code: "invalid_format",
-                format: "url",
-                input: payload.value,
-                inst,
-                continue: !def.abort,
-            });
-        }
-    };
-});
-const $ZodEmoji = /*@__PURE__*/ $constructor("$ZodEmoji", (inst, def) => {
-    def.pattern ?? (def.pattern = emoji());
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodNanoID = /*@__PURE__*/ $constructor("$ZodNanoID", (inst, def) => {
-    if (def.length !== undefined && (!Number.isInteger(def.length) || def.length < 1))
-        throw new Error(`Invalid nanoid length: ${def.length}`);
-    def.pattern ?? (def.pattern = def.length === undefined ? nanoid : nanoidOfLength(def.length));
-    $ZodStringFormat.init(inst, def);
-});
-/**
- * @deprecated CUID v1 is deprecated by its authors due to information leakage
- * (timestamps embedded in the id). Use {@link $ZodCUID2} instead.
- * See https://github.com/paralleldrive/cuid.
- */
-const $ZodCUID = /*@__PURE__*/ $constructor("$ZodCUID", (inst, def) => {
-    def.pattern ?? (def.pattern = cuid);
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodCUID2 = /*@__PURE__*/ $constructor("$ZodCUID2", (inst, def) => {
-    def.pattern ?? (def.pattern = cuid2);
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodULID = /*@__PURE__*/ $constructor("$ZodULID", (inst, def) => {
-    def.pattern ?? (def.pattern = ulid);
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodXID = /*@__PURE__*/ $constructor("$ZodXID", (inst, def) => {
-    def.pattern ?? (def.pattern = xid);
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodKSUID = /*@__PURE__*/ $constructor("$ZodKSUID", (inst, def) => {
-    def.pattern ?? (def.pattern = ksuid);
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodISODateTime = /*@__PURE__*/ $constructor("$ZodISODateTime", (inst, def) => {
-    def.pattern ?? (def.pattern = datetime(def));
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodISODate = /*@__PURE__*/ $constructor("$ZodISODate", (inst, def) => {
-    def.pattern ?? (def.pattern = date);
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodISOTime = /*@__PURE__*/ $constructor("$ZodISOTime", (inst, def) => {
-    def.pattern ?? (def.pattern = time(def));
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodISODuration = /*@__PURE__*/ $constructor("$ZodISODuration", (inst, def) => {
-    def.pattern ?? (def.pattern = duration);
-    $ZodStringFormat.init(inst, def);
-});
-const $ZodIPv4 = /*@__PURE__*/ $constructor("$ZodIPv4", (inst, def) => {
-    def.pattern ?? (def.pattern = ipv4);
-    $ZodStringFormat.init(inst, def);
-});
-/** An IPv6 address is written with hex digits, colons and dots, and nothing else. The guard is what makes the check below an IPv6 check: `new URL("http://[...]")` parses an authority, not an address, so `@` and `\` re-delimit it and `"::@1\\"` validates against the host `0.0.0.1`. The URL parser also deletes ASCII tab, LF and CR rather than failing, which is how `"::1\n"` validated as `::1`. */
-const ipv6Alphabet = /^[0-9a-fA-F:.]+$/;
-function isValidIPv6(value) {
-    if (!ipv6Alphabet.test(value))
-        return false;
-    return canParseURL(`http://[${value}]`);
-}
-const $ZodIPv6 = /*@__PURE__*/ $constructor("$ZodIPv6", (inst, def) => {
-    def.pattern ?? (def.pattern = ipv6);
-    $ZodStringFormat.init(inst, def);
-    inst._zod.check = (payload) => {
-        if (!isValidIPv6(payload.value)) {
-            payload.issues.push({
-                code: "invalid_format",
-                format: "ipv6",
-                input: payload.value,
-                inst,
-                continue: !def.abort,
-            });
-        }
-    };
-});
-const $ZodCIDRv4 = /*@__PURE__*/ $constructor("$ZodCIDRv4", (inst, def) => {
-    def.pattern ?? (def.pattern = cidrv4);
-    $ZodStringFormat.init(inst, def);
-});
-function isValidCIDRv6(value) {
-    const parts = value.split("/");
-    if (parts.length !== 2)
-        return false;
-    const [address, prefix] = parts;
-    if (!prefix)
-        return false;
-    const prefixNum = Number(prefix);
-    if (`${prefixNum}` !== prefix)
-        return false;
-    if (prefixNum < 0 || prefixNum > 128)
-        return false;
-    return isValidIPv6(address);
-}
-const $ZodCIDRv6 = /*@__PURE__*/ $constructor("$ZodCIDRv6", (inst, def) => {
-    def.pattern ?? (def.pattern = cidrv6); // not used for validation
-    $ZodStringFormat.init(inst, def);
-    inst._zod.check = (payload) => {
-        if (!isValidCIDRv6(payload.value)) {
-            payload.issues.push({
-                code: "invalid_format",
-                format: "cidrv6",
-                input: payload.value,
-                inst,
-                continue: !def.abort,
-            });
-        }
-    };
-});
-//////////////////////////////   ZodBase64   //////////////////////////////
-function isValidBase64(data) {
-    if (data === "")
-        return true;
-    // atob ignores whitespace, so reject it up front.
-    if (/\s/.test(data))
-        return false;
-    if (data.length % 4 !== 0)
-        return false;
-    try {
-        // @ts-ignore
-        atob(data);
-        return true;
-    }
-    catch {
-        return false;
-    }
-}
-// lax on purpose: the quantified regexes.base64 overflows the regex stack on multi-MB input and its leading ^$| alternation leaks through template-literal composition; isValidBase64 enforces length and padding
-const base64Charset = /^[0-9a-zA-Z+/]*={0,2}$/;
-const $ZodBase64 = /*@__PURE__*/ $constructor("$ZodBase64", (inst, def) => {
-    def.pattern ?? (def.pattern = base64Charset);
-    $ZodStringFormat.init(inst, def);
-    inst._zod.check = (payload) => {
-        if (isValidBase64(payload.value))
-            return;
-        payload.issues.push({
-            code: "invalid_format",
-            format: "base64",
-            input: payload.value,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-//////////////////////////////   ZodBase64URL   //////////////////////////////
-// lax on purpose: the quantified regexes.base64url overflows the regex stack on multi-MB input; isValidBase64 enforces length on the padded string
-const base64urlCharset = /^[A-Za-z0-9_-]*$/;
-function isValidBase64URL(data) {
-    if (!base64urlCharset.test(data))
-        return false;
-    const base64 = data.replace(/[-_]/g, (c) => (c === "-" ? "+" : "/"));
-    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
-    return isValidBase64(padded);
-}
-const $ZodBase64URL = /*@__PURE__*/ $constructor("$ZodBase64URL", (inst, def) => {
-    def.pattern ?? (def.pattern = base64urlCharset);
-    $ZodStringFormat.init(inst, def);
-    inst._zod.check = (payload) => {
-        if (isValidBase64URL(payload.value))
-            return;
-        payload.issues.push({
-            code: "invalid_format",
-            format: "base64url",
-            input: payload.value,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodE164 = /*@__PURE__*/ $constructor("$ZodE164", (inst, def) => {
-    def.pattern ?? (def.pattern = e164);
-    $ZodStringFormat.init(inst, def);
-});
-//////////////////////////////   ZodJWT   //////////////////////////////
-function isValidJWT(token, algorithm = null) {
-    try {
-        const tokensParts = token.split(".");
-        if (tokensParts.length !== 3)
-            return false;
-        const [header] = tokensParts;
-        if (!header)
-            return false;
-        // @ts-ignore
-        const parsedHeader = JSON.parse(atob(header));
-        if ("typ" in parsedHeader && parsedHeader?.typ !== "JWT")
-            return false;
-        if (!parsedHeader.alg)
-            return false;
-        if (algorithm && (!("alg" in parsedHeader) || parsedHeader.alg !== algorithm))
-            return false;
-        return true;
-    }
-    catch {
-        return false;
-    }
-}
-const $ZodJWT = /*@__PURE__*/ $constructor("$ZodJWT", (inst, def) => {
-    $ZodStringFormat.init(inst, def);
-    inst._zod.check = (payload) => {
-        if (isValidJWT(payload.value, def.alg))
-            return;
-        payload.issues.push({
-            code: "invalid_format",
-            format: "jwt",
-            input: payload.value,
-            inst,
-            continue: !def.abort,
-        });
-    };
-});
-const $ZodNumber = /*@__PURE__*/ $constructor("$ZodNumber", (inst, def) => {
-    $ZodType.init(inst, def);
-    inst._zod.pattern = number$1;
-    inst._zod.parse = (payload, _ctx) => {
-        if (def.coerce)
-            try {
-                payload.value = Number(payload.value);
-            }
-            catch (_) { }
-        const input = payload.value;
-        if (typeof input === "number" && !Number.isNaN(input) && Number.isFinite(input)) {
-            return payload;
-        }
-        const received = typeof input === "number"
-            ? Number.isNaN(input)
-                ? "NaN"
-                : !Number.isFinite(input)
-                    ? String(input)
-                    : undefined
-            : undefined;
-        payload.issues.push({
-            expected: "number",
-            code: "invalid_type",
-            input,
-            inst,
-            ...(received ? { received } : {}),
-        });
-        return payload;
-    };
-});
-const $ZodNumberFormat = /*@__PURE__*/ $constructor("$ZodNumberFormat", (inst, def) => {
-    $ZodCheckNumberFormat.init(inst, def);
-    $ZodNumber.init(inst, def); // no format checks
-});
-const $ZodBoolean = /*@__PURE__*/ $constructor("$ZodBoolean", (inst, def) => {
-    $ZodType.init(inst, def);
-    inst._zod.pattern = boolean$1;
-    inst._zod.parse = (payload, _ctx) => {
-        if (def.coerce)
-            try {
-                payload.value = Boolean(payload.value);
-            }
-            catch (_) { }
-        const input = payload.value;
-        if (typeof input === "boolean")
-            return payload;
-        payload.issues.push({
-            expected: "boolean",
-            code: "invalid_type",
-            input,
-            inst,
-        });
-        return payload;
-    };
-});
-const $ZodUnknown = /*@__PURE__*/ $constructor("$ZodUnknown", (inst, def) => {
-    $ZodType.init(inst, def);
-    inst._zod.parse = (payload) => payload;
-});
-const $ZodNever = /*@__PURE__*/ $constructor("$ZodNever", (inst, def) => {
-    $ZodType.init(inst, def);
-    inst._zod.parse = (payload, _ctx) => {
-        payload.issues.push({
-            expected: "never",
-            code: "invalid_type",
-            input: payload.value,
-            inst,
-        });
-        return payload;
-    };
-});
-// an oversized container fails its leading size checks before any element is parsed
-function capSize(inst, size) {
-    const caps = sizeCaps(inst._zod.def.checks);
-    if (!caps.length)
-        return;
-    const cap = Math.min(...caps.map((c) => c[0]));
-    const parse = inst._zod.parse;
-    inst._zod.parse = (payload, ctx) => {
-        const n = size(payload.value);
-        if (n > cap && !ctx?.skipChecks && ctx?.direction !== "backward") {
-            for (const [max, ch] of sizeCaps(inst._zod.def.checks)) {
-                if (n > max && ch._zod.def.when(payload)) {
-                    const start = payload.issues.length;
-                    ch._zod.check(payload);
-                    // the value is still the raw input, so no later check may read it
-                    payload.issues[start].continue = false;
-                    attachSchema(payload.issues, start, inst);
-                    return payload;
-                }
-            }
-        }
-        return parse(payload, ctx);
-    };
-}
-const arraySize = (input) => (Array.isArray(input) ? input.length : -1);
-function handleArrayResult(result, final, index) {
-    if (result.issues.length) {
-        final.issues.push(...prefixIssues(index, result.issues));
-    }
-    final.value[index] = result.value;
-}
-const $ZodArray = /*@__PURE__*/ $constructor("$ZodArray", (inst, def) => {
-    $ZodType.init(inst, def);
-    const memo = globalConfig.memoizer;
-    memo?.attach(inst);
-    inst._zod.parse = (payload, ctx) => {
-        const input = payload.value;
-        if (!Array.isArray(input)) {
-            payload.issues.push({
-                expected: "array",
-                code: "invalid_type",
-                input,
-                inst,
-            });
-            return payload;
-        }
-        payload.value = memo ? memo.alloc(inst, payload, Array(input.length), ctx) : Array(input.length);
-        const proms = [];
-        const abortEarly = ctx?.abortEarly;
-        for (let i = 0; i < input.length; i++) {
-            const item = input[i];
-            const result = def.element._zod.run({
-                value: item,
-                issues: [],
-            }, ctx);
-            if (result instanceof Promise) {
-                proms.push(result.then((result) => handleArrayResult(result, payload, i)));
-            }
-            else {
-                handleArrayResult(result, payload, i);
-                // the element's payload is authoritative here, since handleArrayResult forwards every issue; an object's is not, because it drops a failed absent optional
-                if (abortEarly && result.issues.length !== 0 && aborted(result))
-                    break;
-            }
-        }
-        if (proms.length) {
-            return Promise.all(proms).then(() => payload);
-        }
-        return payload; //handleArrayResultsAsync(parseResults, final);
-    };
-    capSize(inst, arraySize);
-});
-function handlePropertyResult(result, final, key, input, optin, optout) {
-    const isPresent = key in input;
-    const isOptionalOut = optout === "optional";
-    // The middle rung means "absence permitted, nothing supplied in its place", so an absent key contributes nothing — whatever the schema made of `undefined` is invented, not substituted. Only `optional` reaches this with a value: `defaulted` substitutes, and a schema that isn't optional-out has to keep the key.
-    if (!isPresent && isOptionalOut && optin === "optional") {
-        return;
-    }
-    if (result.issues.length) {
-        // For optional-in/out schemas, ignore errors on absent keys.
-        if (optin !== undefined && isOptionalOut && !isPresent) {
-            return;
-        }
-        final.issues.push(...prefixIssues(key, result.issues));
-    }
-    if (!isPresent && optin === undefined) {
-        if (!result.issues.length) {
-            final.issues.push({
-                code: "invalid_type",
-                expected: "nonoptional",
-                input: undefined,
-                path: [key],
-            });
-        }
-        return;
-    }
-    if (result.value === undefined) {
-        if (isPresent || (optin === "defaulted" && !isOptionalOut)) {
-            final.value[key] = undefined;
-        }
-    }
-    else {
-        final.value[key] = result.value;
-    }
-}
-// one shared instance; a fresh [] per schema cost 56 bytes retained
-const NO_SYMBOL_KEYS = [];
-function normalizeDef(def) {
-    const keys = Object.keys(def.shape);
-    const ownSymbols = Object.getOwnPropertySymbols(def.shape);
-    const symbolKeys = ownSymbols.length ? ownSymbols : NO_SYMBOL_KEYS;
-    // aliases `keys` when there are no symbols, so a string-only shape keeps one array
-    const allKeys = symbolKeys.length ? [...keys, ...symbolKeys] : keys;
-    for (const k of allKeys) {
-        if (!def.shape?.[k]?._zod?.traits?.has("$ZodType")) {
-            throw new Error(`Invalid element at key "${String(k)}": expected a Zod schema`);
-        }
-    }
-    const okeys = optionalKeys(def.shape);
-    return {
-        ...def,
-        allKeys,
-        symbolKeys,
-        // string-only: handleCatchall matches it against `for...in`, which never yields a symbol
-        keySet: new Set(keys),
-        numKeys: keys.length,
-        optionalKeys: new Set(okeys),
-    };
-}
-function handleCatchall(proms, input, payload, ctx, def, inst, abortEarly) {
-    const unrecognized = [];
-    const keySet = def.keySet;
-    const _catchall = def.catchall._zod;
-    const t = _catchall.def.type;
-    const optin = _catchall.optin;
-    const optout = _catchall.optout;
-    // starts at 0, not the current length: the shape phase already ran and may have aborted
-    let seen = 0;
-    for (const key in input) {
-        if (abortEarly && payload.issues.length !== seen) {
-            if (aborted(payload, seen))
-                break;
-            seen = payload.issues.length;
-        }
-        // Must precede the __proto__ branch: a declared key is not unrecognized, even though the shape loop deliberately strips __proto__ from the parsed output.
-        if (keySet.has(key))
-            continue;
-        // Don't copy an undeclared __proto__ into the result; assignment to a plain {} would replace the result prototype. But in strict mode it is still an unknown key, so report it before skipping.
-        if (key === "__proto__") {
-            if (t === "never")
-                unrecognized.push(key);
-            continue;
-        }
-        if (t === "never") {
-            unrecognized.push(key);
-            continue;
-        }
-        const r = _catchall.run({ value: input[key], issues: [] }, ctx);
-        if (r instanceof Promise) {
-            proms.push(r.then((r) => handlePropertyResult(r, payload, key, input, optin, optout)));
-        }
-        else {
-            handlePropertyResult(r, payload, key, input, optin, optout);
-        }
-    }
-    if (unrecognized.length) {
-        payload.issues.push({
-            code: "unrecognized_keys",
-            keys: unrecognized,
-            input,
-            inst,
-            // Describes the shape of the input, not the validity of the parsed value, so it never aborts. The parse still fails; the schema's own checks just get to run first, and an enclosing intersection can reconcile the key against a sibling operand.
-            continue: true,
-        });
-    }
-    if (!proms.length)
-        return payload;
-    return Promise.all(proms).then(() => {
-        return payload;
-    });
-}
-const $ZodObject = /*@__PURE__*/ $constructor("$ZodObject", (inst, def) => {
-    // requires cast because technically $ZodObject doesn't extend
-    $ZodType.init(inst, def);
-    const desc = Object.getOwnPropertyDescriptor(def, "shape");
-    // a cloned def carries its source's accessor, which knows the shape it answers from; adopting that keeps the clone's keys readable without running it
-    const sh = desc?.get ? desc.get.raw : (def.shape ?? {});
-    if (sh) {
-        // Freezes the shape on first read, so its getters resolve once and every later read sees the same schemas.
-        const get = () => {
-            const newSh = { ...sh };
-            Object.defineProperty(def, "shape", { value: newSh });
-            get.raw = newSh;
-            return newSh;
-        };
-        get.raw = sh;
-        Object.defineProperty(def, "shape", { get });
-    }
-    const _normalized = cached(() => normalizeDef(def));
-    defineLazyInternal(inst, "propValues", (zod) => {
-        const shape = zod.def.shape;
-        const propValues = {};
-        for (const key in shape) {
-            const field = shape[key]._zod;
-            if (field.values) {
-                if (!Object.prototype.hasOwnProperty.call(propValues, key)) {
-                    assignProp(propValues, key, new Set());
-                }
-                for (const v of field.values)
-                    propValues[key].add(v);
-                // An omittable slot reads back as undefined at a discriminator lookup, so it has to claim undefined: two options that can both omit the key are not discriminable on it.
-                if (field.optin !== undefined)
-                    propValues[key].add(undefined);
-            }
-        }
-        return propValues;
-    });
-    const isObject$1 = isObject;
-    const catchall = def.catchall;
-    let value;
-    const memo = globalConfig.memoizer;
-    memo?.attach(inst);
-    inst._zod.parse = (payload, ctx) => {
-        value ?? (value = _normalized.value);
-        const input = payload.value;
-        if (!isObject$1(input)) {
-            payload.issues.push({
-                expected: "object",
-                code: "invalid_type",
-                input,
-                inst,
-            });
-            return payload;
-        }
-        payload.value = memo ? memo.alloc(inst, payload, {}, ctx) : {};
-        const proms = [];
-        const shape = value.shape;
-        const abortEarly = ctx?.abortEarly;
-        let seen = payload.issues.length;
-        for (const key of value.allKeys) {
-            if (abortEarly && payload.issues.length !== seen) {
-                if (aborted(payload, seen))
-                    break;
-                seen = payload.issues.length;
-            }
-            if (key === "__proto__")
-                continue;
-            const el = shape[key];
-            const optin = el._zod.optin;
-            const optout = el._zod.optout;
-            const r = el._zod.run({ value: input[key], issues: [] }, ctx);
-            if (r instanceof Promise) {
-                proms.push(r.then((r) => handlePropertyResult(r, payload, key, input, optin, optout)));
-            }
-            else {
-                handlePropertyResult(r, payload, key, input, optin, optout);
-            }
-        }
-        if (!catchall) {
-            return proms.length ? Promise.all(proms).then(() => payload) : payload;
-        }
-        return handleCatchall(proms, input, payload, ctx, _normalized.value, inst, abortEarly === true);
-    };
-});
-const $ZodObjectJIT = /*@__PURE__*/ $constructor("$ZodObjectJIT", (inst, def) => {
-    // requires cast because technically $ZodObject doesn't extend
-    $ZodObject.init(inst, def);
-    const superParse = inst._zod.parse;
-    const _normalized = cached(() => normalizeDef(def));
-    const memo = globalConfig.memoizer;
-    const generateFastpass = (shape) => {
-        const normalized = _normalized.value;
-        const syms = normalized.symbolKeys;
-        // a symbol has no source literal, so it is read as `syms[i]` off the closed-over scope
-        const doc = new Doc(["payload", "ctx"], { shape, inst, memo, syms });
-        const parseStr = (k) => `shape[${k}]._zod.run({ value: input[${k}], issues: [] }, ctx)`;
-        // prefixes in place, like util.prefixIssues. newResult must land before the early return: a catchall runs after this and would otherwise write onto the caller's input
-        const prefixStr = (id, k) => `
-          let ${id}_ab = false;
-          for (let i = 0; i < ${id}.issues.length; i++) {
-            const iss = ${id}.issues[i];
-            iss.path = iss.path ? [${k}, ...iss.path] : [${k}];
-            payload.issues.push(iss);
-            if (iss.continue !== true) ${id}_ab = true;
-          }
-          if (${id}_ab && ctx && ctx.abortEarly) {
-            payload.value = newResult;
-            return payload;
-          }`;
-        doc.write(`const input = payload.value;`);
-        const ids = Object.create(null);
-        let counter = 0;
-        for (const key of normalized.allKeys) {
-            ids[key] = `key_${counter++}`;
-        }
-        // A: preserve key order {
-        doc.write(memo ? `const newResult = memo.alloc(inst, payload, {}, ctx);` : `const newResult = {};`);
-        for (const key of normalized.allKeys) {
-            if (key === "__proto__")
-                continue;
-            const id = ids[key];
-            const k = typeof key === "symbol" ? `syms[${syms.indexOf(key)}]` : esc(key);
-            const isPresent = `${k} in input`;
-            const schema = shape[key];
-            const optin = schema?._zod?.optin;
-            const isOptionalIn = optin !== undefined;
-            const isOptionalOut = schema?._zod?.optout === "optional";
-            doc.write(`const ${id} = ${parseStr(k)};`);
-            if (isOptionalIn && isOptionalOut) {
-                // For optional-in/out schemas, ignore errors on absent keys — and, like the interpreted path, drop the value produced alongside them. The middle rung goes further: it permits absence without supplying anything in its place, so an absent key contributes nothing at all.
-                const assign = optin === "optional" ? `${id}_present` : `${id}.value !== undefined || ${id}_present`;
-                doc.write(`
-        const ${id}_present = ${isPresent};
-        if (!${id}.issues.length || ${id}_present) {
-          if (${id}.issues.length) {${prefixStr(id, k)}
-          }
-
-          if (${assign}) {
-            newResult[${k}] = ${id}.value;
-          }
-        }
-
-      `);
-            }
-            else if (!isOptionalIn) {
-                doc.write(`
-        const ${id}_present = ${isPresent};
-        if (${id}.issues.length) {${prefixStr(id, k)}
-        }
-        if (!${id}_present && !${id}.issues.length) {
-          payload.issues.push({
-            code: "invalid_type",
-            expected: "nonoptional",
-            input: undefined,
-            path: [${k}]
-          });
-          if (ctx && ctx.abortEarly) {
-            payload.value = newResult;
-            return payload;
-          }
-        }
-
-        if (${id}_present) {
-          newResult[${k}] = ${id}.value;
-        }
-
-      `);
-            }
-            else {
-                doc.write(`
-        if (${id}.issues.length) {${prefixStr(id, k)}
-        }
-      `);
-                if (optin === "defaulted") {
-                    doc.write(`newResult[${k}] = ${id}.value;`);
-                }
-                else {
-                    doc.write(`
-        if (${id}.value !== undefined || ${isPresent}) {
-          newResult[${k}] = ${id}.value;
-        }
-      `);
-                }
-            }
-        }
-        doc.write(`payload.value = newResult;`);
-        doc.write(`return payload;`);
-        // closing `shape` in is what pays: turbofan specializes the parser against that one shape object, so every `shape[k]._zod.run` folds to a known callee. as a parameter it stays a generic load and measures 13% slower even with the forwarding frame gone
-        return doc.compile();
-    };
-    let fastpass;
-    const isObject$1 = isObject;
-    const jit = !globalConfig.jitless;
-    const allowsEval$1 = allowsEval;
-    const fastEnabled = jit && allowsEval$1.value; // && !def.catchall;
-    const catchall = def.catchall;
-    let value;
-    inst._zod.parse = (payload, ctx) => {
-        value ?? (value = _normalized.value);
-        const input = payload.value;
-        if (!isObject$1(input)) {
-            payload.issues.push({
-                expected: "object",
-                code: "invalid_type",
-                input,
-                inst,
-            });
-            return payload;
-        }
-        if (jit && fastEnabled && ctx?.async === false && ctx.jitless !== true) {
-            // always synchronous
-            if (!fastpass)
-                fastpass = generateFastpass(def.shape);
-            payload = fastpass(payload, ctx);
-            if (!catchall)
-                return payload;
-            return handleCatchall([], input, payload, ctx, value, inst, ctx?.abortEarly === true);
-        }
-        return superParse(payload, ctx);
-    };
-});
-function handleUnionResults(results, final, inst, ctx) {
-    for (const result of results) {
-        if (result.issues.length === 0) {
-            final.value = result.value;
-            return final;
-        }
-    }
-    const nonaborted = results.filter((r) => !aborted(r));
-    if (nonaborted.length === 1) {
-        final.value = nonaborted[0].value;
-        return nonaborted[0];
-    }
-    final.issues.push({
-        code: "invalid_union",
-        input: final.value,
-        inst,
-        errors: results.map((result) => result.issues.map((iss) => finalizeIssue(iss, ctx, config()))),
-    });
-    return final;
-}
-const $ZodUnion = /*@__PURE__*/ $constructor("$ZodUnion", (inst, def) => {
-    $ZodType.init(inst, def);
-    defineLazyInternal(inst, "optin", (zod) => zod.def.options.some((o) => o._zod.optin === "defaulted")
-        ? "defaulted"
-        : zod.def.options.some((o) => o._zod.optin !== undefined)
-            ? "optional"
-            : undefined);
-    defineLazyInternal(inst, "optout", (zod) => zod.def.options.some((o) => o._zod.optout === "optional") ? "optional" : undefined);
-    defineLazyInternal(inst, "values", (zod) => {
-        if (zod.def.options.every((o) => o._zod.values)) {
-            return new Set(zod.def.options.flatMap((option) => Array.from(option._zod.values)));
-        }
-        return undefined;
-    });
-    defineLazyInternal(inst, "pattern", (zod) => {
-        if (zod.def.options.every((o) => o._zod.pattern)) {
-            const patterns = zod.def.options.map((o) => o._zod.pattern);
-            return new RegExp(`^(${patterns.map((p) => cleanRegex(p.source)).join("|")})$`);
-        }
-        return undefined;
-    });
-    const first = def.options.length === 1 ? def.options[0]._zod.run : null;
-    inst._zod.parse = (payload, ctx) => {
-        if (first) {
-            return first(payload, ctx);
-        }
-        let async = false;
-        const results = [];
-        for (const option of def.options) {
-            const result = option._zod.run({
-                value: payload.value,
-                issues: [],
-            }, ctx);
-            if (result instanceof Promise) {
-                results.push(result);
-                async = true;
-            }
-            else {
-                if (result.issues.length === 0)
-                    return result;
-                results.push(result);
-            }
-        }
-        if (!async)
-            return handleUnionResults(results, payload, inst, ctx);
-        return Promise.all(results).then((results) => {
-            return handleUnionResults(results, payload, inst, ctx);
-        });
-    };
-});
-const $ZodIntersection = /*@__PURE__*/ $constructor("$ZodIntersection", (inst, def) => {
-    $ZodType.init(inst, def);
-    inst._zod.parse = (payload, ctx) => {
-        const input = payload.value;
-        const left = def.left._zod.run({ value: input, issues: [] }, ctx);
-        const right = def.right._zod.run({ value: input, issues: [] }, ctx);
-        const async = left instanceof Promise || right instanceof Promise;
-        if (async) {
-            return Promise.all([left, right]).then(([left, right]) => {
-                return handleIntersectionResults(payload, left, right);
-            });
-        }
-        return handleIntersectionResults(payload, left, right);
-    };
-});
-function mergeValues(a, b) {
-    // const aType = parse.t(a);
-    // const bType = parse.t(b);
-    if (a === b) {
-        return { valid: true, data: a };
-    }
-    if (a instanceof Date && b instanceof Date && +a === +b) {
-        return { valid: true, data: a };
-    }
-    if (isPlainObject(a) && isPlainObject(b)) {
-        const bKeys = Object.keys(b);
-        const sharedKeys = Object.keys(a).filter((key) => bKeys.indexOf(key) !== -1);
-        const newObj = { ...a, ...b };
-        if (Object.prototype.hasOwnProperty.call(newObj, "__proto__"))
-            delete newObj.__proto__;
-        for (const key of sharedKeys) {
-            if (key === "__proto__")
-                continue;
-            const sharedValue = mergeValues(a[key], b[key]);
-            if (!sharedValue.valid) {
-                return {
-                    valid: false,
-                    mergeErrorPath: [key, ...sharedValue.mergeErrorPath],
-                };
-            }
-            newObj[key] = sharedValue.data;
-        }
-        return { valid: true, data: newObj };
-    }
-    if (Array.isArray(a) && Array.isArray(b)) {
-        if (a.length !== b.length) {
-            return { valid: false, mergeErrorPath: [] };
-        }
-        const newArray = [];
-        for (let index = 0; index < a.length; index++) {
-            const itemA = a[index];
-            const itemB = b[index];
-            const sharedValue = mergeValues(itemA, itemB);
-            if (!sharedValue.valid) {
-                return {
-                    valid: false,
-                    mergeErrorPath: [index, ...sharedValue.mergeErrorPath],
-                };
-            }
-            newArray.push(sharedValue.data);
-        }
-        return { valid: true, data: newArray };
-    }
-    return { valid: false, mergeErrorPath: [] };
-}
-function handleIntersectionResults(result, left, right) {
-    // Track which side(s) reject each key. A key rejection is reported only when BOTH sides reject it, so a key owned by one branch survives the other's key schema. strictObject reports these as unrecognized_keys; a record with an open key schema reports one invalid_key per key.
-    const unrecKeys = new Map();
-    let unrecIssue;
-    const keyIssues = new Map();
-    const collect = (iss, side) => {
-        let keys;
-        if (iss.code === "unrecognized_keys" && !iss.path?.length) {
-            unrecIssue ?? (unrecIssue = iss);
-            keys = iss.keys;
-        }
-        else if (iss.code === "invalid_key" && iss.origin === "record" && iss.path?.length === 1) {
-            const k = String(iss.path[0]);
-            if (!keyIssues.has(k))
-                keyIssues.set(k, iss);
-            keys = [k];
-        }
-        else {
-            return false;
-        }
-        for (const k of keys) {
-            if (!unrecKeys.has(k))
-                unrecKeys.set(k, {});
-            unrecKeys.get(k)[side] = true;
-        }
-        return true;
-    };
-    for (const iss of left.issues) {
-        if (!collect(iss, "l"))
-            result.issues.push(iss);
-    }
-    for (const iss of right.issues) {
-        if (!collect(iss, "r"))
-            result.issues.push(iss);
-    }
-    // Report only keys rejected by BOTH sides
-    const bothKeys = [...unrecKeys].filter(([, f]) => f.l && f.r).map(([k]) => k);
-    if (bothKeys.length) {
-        const aggregated = unrecIssue ? bothKeys.filter((k) => unrecIssue.keys.includes(k)) : [];
-        if (aggregated.length)
-            result.issues.push({ ...unrecIssue, keys: aggregated });
-        for (const k of bothKeys) {
-            if (!aggregated.includes(k) && keyIssues.has(k))
-                result.issues.push(keyIssues.get(k));
-        }
-    }
-    const merged = mergeValues(left.value, right.value);
-    if (!merged.valid) {
-        if (aborted(result))
-            return result;
-        throw new Error(`Unmergable intersection. Error path: ` + `${JSON.stringify(merged.mergeErrorPath)}`);
-    }
-    result.value = merged.data;
-    return result;
-}
-const $ZodRecord = /*@__PURE__*/ $constructor("$ZodRecord", (inst, def) => {
-    $ZodType.init(inst, def);
-    const memo = globalConfig.memoizer;
-    memo?.attach(inst);
-    inst._zod.parse = (payload, ctx) => {
-        const input = payload.value;
-        if (!isPlainObject(input)) {
-            payload.issues.push({
-                expected: "record",
-                code: "invalid_type",
-                input,
-                inst,
-            });
-            return payload;
-        }
-        // no guard in either loop below: a record's invalid_key aborts but an enclosing intersection can reconcile it, so a stopped loop hides keys the sibling does not own and the intersection then rejects nothing
-        const proms = [];
-        const values = def.keyType._zod.values;
-        if (values && !def.partial) {
-            payload.value = memo ? memo.alloc(inst, payload, {}, ctx) : {};
-            const recordKeys = new Set();
-            for (const key of values) {
-                if (typeof key === "string" || typeof key === "number" || typeof key === "symbol") {
-                    recordKeys.add(typeof key === "number" ? key.toString() : key);
-                    // A declared __proto__ is stripped but is not an unrecognized key.
-                    if (key === "__proto__")
-                        continue;
-                    const keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
-                    if (keyResult instanceof Promise) {
-                        throw new Error("Async schemas not supported in object keys currently");
-                    }
-                    if (keyResult.issues.length) {
-                        payload.issues.push({
-                            code: "invalid_key",
-                            origin: "record",
-                            issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config())),
-                            input: key,
-                            path: [key],
-                            inst,
-                        });
-                        continue;
-                    }
-                    const outKey = keyResult.value;
-                    if (outKey === "__proto__")
-                        continue;
-                    const result = def.valueType._zod.run({ value: input[key], issues: [] }, ctx);
-                    if (result instanceof Promise) {
-                        proms.push(result.then((result) => {
-                            if (result.issues.length) {
-                                payload.issues.push(...prefixIssues(key, result.issues));
-                            }
-                            payload.value[outKey] = result.value;
-                        }));
-                    }
-                    else {
-                        if (result.issues.length) {
-                            payload.issues.push(...prefixIssues(key, result.issues));
-                        }
-                        payload.value[outKey] = result.value;
-                    }
-                }
-            }
-            let unrecognized;
-            for (const key in input) {
-                if (!recordKeys.has(key)) {
-                    if (def.mode === "loose") {
-                        // skip __proto__ so it can't replace the result prototype via the assignment setter on the plain {} we build into
-                        if (key === "__proto__")
-                            continue;
-                        payload.value[key] = input[key];
-                    }
-                    else {
-                        unrecognized = unrecognized ?? [];
-                        unrecognized.push(key);
-                    }
-                }
-            }
-            if (unrecognized && unrecognized.length > 0) {
-                payload.issues.push({
-                    code: "unrecognized_keys",
-                    input,
-                    inst,
-                    keys: unrecognized,
-                    continue: true,
-                });
-            }
-        }
-        else {
-            payload.value = memo ? memo.alloc(inst, payload, {}, ctx) : {};
-            // An enumerable key schema declares which keys the record owns, so a key outside the set is unrecognized. A non-enumerable one (regex, refine) is a constraint every key must satisfy, so a failing key is invalid. Only the former is reconcilable against the other side of an intersection.
-            let unrecognized;
-            // Reflect.ownKeys for Symbol-key support; filter non-enumerable to match z.object()
-            for (const key of Reflect.ownKeys(input)) {
-                if (key === "__proto__")
-                    continue;
-                if (!Object.prototype.propertyIsEnumerable.call(input, key))
-                    continue;
-                let keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
-                if (keyResult instanceof Promise) {
-                    throw new Error("Async schemas not supported in object keys currently");
-                }
-                // Numeric string fallback: if key is a numeric string and failed, retry with Number(key). This handles z.number(), z.literal([1, 2, 3]), and unions containing numeric literals
-                const checkNumericKey = typeof key === "string" && number$1.test(key) && keyResult.issues.length;
-                if (checkNumericKey) {
-                    const retryResult = def.keyType._zod.run({ value: Number(key), issues: [] }, ctx);
-                    if (retryResult instanceof Promise) {
-                        throw new Error("Async schemas not supported in object keys currently");
-                    }
-                    if (retryResult.issues.length === 0) {
-                        keyResult = retryResult;
-                    }
-                }
-                if (keyResult.issues.length) {
-                    if (def.mode === "loose") {
-                        // Pass through unchanged
-                        payload.value[key] = input[key];
-                    }
-                    else if (values) {
-                        unrecognized = unrecognized ?? [];
-                        unrecognized.push(key);
-                    }
-                    else {
-                        // Default "strict" behavior: error on invalid key
-                        payload.issues.push({
-                            code: "invalid_key",
-                            origin: "record",
-                            issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config())),
-                            input: key,
-                            path: [key],
-                            inst,
-                        });
-                    }
-                    continue;
-                }
-                // the guard above tests the raw input key, but the key schema can normalize an ordinary key into __proto__; re-check the key we actually write under
-                const outKey = keyResult.value;
-                if (outKey === "__proto__")
-                    continue;
-                const result = def.valueType._zod.run({ value: input[key], issues: [] }, ctx);
-                if (result instanceof Promise) {
-                    proms.push(result.then((result) => {
-                        if (result.issues.length) {
-                            payload.issues.push(...prefixIssues(key, result.issues));
-                        }
-                        payload.value[outKey] = result.value;
-                    }));
-                }
-                else {
-                    if (result.issues.length) {
-                        payload.issues.push(...prefixIssues(key, result.issues));
-                    }
-                    payload.value[outKey] = result.value;
-                }
-            }
-            if (unrecognized && unrecognized.length > 0) {
-                payload.issues.push({
-                    code: "unrecognized_keys",
-                    input,
-                    inst,
-                    keys: unrecognized,
-                    continue: true,
-                });
-            }
-        }
-        if (proms.length) {
-            return Promise.all(proms).then(() => payload);
-        }
-        return payload;
-    };
-});
-const $ZodEnum = /*@__PURE__*/ $constructor("$ZodEnum", (inst, def) => {
-    $ZodType.init(inst, def);
-    const values = getEnumValues(def.entries);
-    const valuesSet = new Set(values);
-    inst._zod.values = valuesSet;
-    defineLazyInternal(inst, "pattern", (zod) => {
-        const patternValues = getEnumValues(zod.def.entries).filter((k) => propertyKeyTypes.has(typeof k));
-        // unmatchable fallback, RE2-safe: an empty alternation would compile to /^()$/, which matches ""
-        return new RegExp(patternValues.length ? `^(${patternValues.map((o) => escapeRegex(o.toString())).join("|")})$` : "^[^\\s\\S]$");
-    });
-    inst._zod.parse = (payload, _ctx) => {
-        const input = payload.value;
-        if (valuesSet.has(input)) {
-            return payload;
-        }
-        payload.issues.push({
-            code: "invalid_value",
-            values,
-            input,
-            inst,
-        });
-        return payload;
-    };
-});
-const $ZodTransform = /*@__PURE__*/ $constructor("$ZodTransform", (inst, def) => {
-    $ZodType.init(inst, def);
-    inst._zod.optin = "optional";
-    globalConfig.memoizer?.guard(inst);
-    inst._zod.parse = (payload, ctx) => {
-        if (ctx.direction === "backward") {
-            throw new $ZodEncodeError(inst.constructor.name);
-        }
-        const _out = def.transform(payload.value, payload);
-        if (ctx.async) {
-            const output = _out instanceof Promise ? _out : Promise.resolve(_out);
-            return output.then((output) => {
-                payload.value = output;
-                return payload;
-            });
-        }
-        if (_out instanceof Promise) {
-            throw new $ZodAsyncError();
-        }
-        payload.value = _out;
-        return payload;
-    };
-});
-function handleOptionalResult(payload, result) {
-    // A substituting schema that still failed has no usable answer; yield undefined. Its issues are simply dropped: it ran on a payload of its own, so there is no shared array to truncate and nothing of the caller's to lose with it.
-    payload.value = result.issues.length ? undefined : result.value;
-    return payload;
-}
-const $ZodOptional = /*@__PURE__*/ $constructor("$ZodOptional", (inst, def) => {
-    $ZodType.init(inst, def);
-    // .optional() propagates absence rather than substituting for it, so a defaulted inner keeps its rung.
-    defineLazyInternal(inst, "optin", (zod) => zod.def.innerType._zod.optin === "defaulted" ? "defaulted" : "optional");
-    inst._zod.optout = "optional";
-    defineLazyInternal(inst, "values", (zod) => {
-        const values = zod.def.innerType._zod.values;
-        return values ? new Set([...values, undefined]) : undefined;
-    });
-    defineLazyInternal(inst, "pattern", (zod) => {
-        const pattern = zod.def.innerType._zod.pattern;
-        return pattern ? new RegExp(`^(${cleanRegex(pattern.source)})?$`) : undefined;
-    });
-    inst._zod.parse = (payload, ctx) => {
-        if (payload.value === undefined) {
-            // Only the top rung substitutes a value for absence; everything else leaves it intact, which is what .optional() means.
-            if (def.innerType._zod.optin !== "defaulted")
-                return payload;
-            // Its own payload, for the same reason $ZodCatch gets one: a pipe forwards an unrecognized key through the caller's issues array, and this must not read that as the substituting schema failing and drop it.
-            const result = def.innerType._zod.run({ value: payload.value, issues: [] }, ctx);
-            if (result instanceof Promise)
-                return result.then((result) => handleOptionalResult(payload, result));
-            return handleOptionalResult(payload, result);
-        }
-        return def.innerType._zod.run(payload, ctx);
-    };
-});
-const $ZodExactOptional = /*@__PURE__*/ $constructor("$ZodExactOptional", (inst, def) => {
-    // Call parent init - inherits optin/optout = "optional"
-    $ZodOptional.init(inst, def);
-    // Override values/pattern to NOT add undefined
-    defineLazyInternal(inst, "values", (zod) => zod.def.innerType._zod.values);
-    defineLazyInternal(inst, "pattern", (zod) => zod.def.innerType._zod.pattern);
-    // Override parse to just delegate (no undefined handling)
-    inst._zod.parse = (payload, ctx) => {
-        return def.innerType._zod.run(payload, ctx);
-    };
-});
-const $ZodNullable = /*@__PURE__*/ $constructor("$ZodNullable", (inst, def) => {
-    $ZodType.init(inst, def);
-    defineLazyInternal(inst, "optin", (zod) => zod.def.innerType._zod.optin);
-    defineLazyInternal(inst, "optout", (zod) => zod.def.innerType._zod.optout);
-    defineLazyInternal(inst, "pattern", (zod) => {
-        const pattern = zod.def.innerType._zod.pattern;
-        return pattern ? new RegExp(`^(${cleanRegex(pattern.source)}|null)$`) : undefined;
-    });
-    defineLazyInternal(inst, "values", (zod) => {
-        return zod.def.innerType._zod.values ? new Set([...zod.def.innerType._zod.values, null]) : undefined;
-    });
-    inst._zod.parse = (payload, ctx) => {
-        // Forward direction (decode): allow null to pass through
-        if (payload.value === null)
-            return payload;
-        return def.innerType._zod.run(payload, ctx);
-    };
-});
-const $ZodDefault = /*@__PURE__*/ $constructor("$ZodDefault", (inst, def) => {
-    $ZodType.init(inst, def);
-    // inst._zod.qin = "true";
-    inst._zod.optin = "defaulted";
-    defineLazyInternal(inst, "values", (zod) => zod.def.innerType._zod.values);
-    inst._zod.parse = (payload, ctx) => {
-        if (ctx.direction === "backward") {
-            return def.innerType._zod.run(payload, ctx);
-        }
-        // Forward direction (decode): apply defaults for undefined input
-        if (payload.value === undefined) {
-            payload.value = def.defaultValue;
-            /**
-             * $ZodDefault returns the default value immediately in forward direction.
-             * It doesn't pass the default value into the validator ("prefault"). There's no reason to pass the default value through validation. The validity of the default is enforced by TypeScript statically. Otherwise, it's the responsibility of the user to ensure the default is valid. In the case of pipes with divergent in/out types, you can specify the default on the `in` schema of your ZodPipe to set a "prefault" for the pipe.   */
-            return payload;
-        }
-        // Forward direction: continue with default handling
-        const result = def.innerType._zod.run(payload, ctx);
-        if (result instanceof Promise) {
-            return result.then((result) => handleDefaultResult(result, def));
-        }
-        return handleDefaultResult(result, def);
-    };
-});
-function handleDefaultResult(payload, def) {
-    if (payload.value === undefined) {
-        payload.value = def.defaultValue;
-    }
-    return payload;
-}
-const $ZodPrefault = /*@__PURE__*/ $constructor("$ZodPrefault", (inst, def) => {
-    $ZodType.init(inst, def);
-    inst._zod.optin = "defaulted";
-    defineLazyInternal(inst, "values", (zod) => zod.def.innerType._zod.values);
-    inst._zod.parse = (payload, ctx) => {
-        if (ctx.direction === "backward") {
-            return def.innerType._zod.run(payload, ctx);
-        }
-        // Forward direction (decode): apply prefault for undefined input
-        if (payload.value === undefined) {
-            payload.value = def.defaultValue;
-        }
-        return def.innerType._zod.run(payload, ctx);
-    };
-});
-const $ZodNonOptional = /*@__PURE__*/ $constructor("$ZodNonOptional", (inst, def) => {
-    $ZodType.init(inst, def);
-    defineLazyInternal(inst, "values", (zod) => {
-        const v = zod.def.innerType._zod.values;
-        return v ? new Set([...v].filter((x) => x !== undefined)) : undefined;
-    });
-    inst._zod.parse = (payload, ctx) => {
-        const result = def.innerType._zod.run(payload, ctx);
-        if (result instanceof Promise) {
-            return result.then((result) => handleNonOptionalResult(result, inst));
-        }
-        return handleNonOptionalResult(result, inst);
-    };
-});
-function handleNonOptionalResult(payload, inst) {
-    if (!payload.issues.length && payload.value === undefined) {
-        payload.issues.push({
-            code: "invalid_type",
-            expected: "nonoptional",
-            input: payload.value,
-            inst,
-        });
-    }
-    return payload;
-}
-function handleCatchResult(payload, result, def, ctx) {
-    if (!result.issues.length) {
-        payload.value = result.value;
-        // The value carries up, so the flag describing it has to carry with it: a back-edge into a node still being parsed must not be frozen by an enclosing readonly, and its checks belong to the node itself. Guarded so the ordinary case adds no own property.
-        if (result.memo)
-            payload.memo = true;
-        return payload;
-    }
-    // Spread the inner's own payload, not ours: `value` has to stay the input the catch was handed, and the inner ran on a payload of its own so its issues are already private to this call.
-    payload.value = def.catchValue({
-        ...result,
-        value: payload.value,
-        error: {
-            issues: result.issues.map((iss) => finalizeIssue(iss, ctx, config())),
-        },
-        input: payload.value,
-    });
-    return payload;
-}
-const $ZodCatch = /*@__PURE__*/ $constructor("$ZodCatch", (inst, def) => {
-    $ZodType.init(inst, def);
-    defineLazyInternal(inst, "optin", (zod) => zod.def.innerType._zod.optin === "defaulted" ? "defaulted" : "optional");
-    defineLazyInternal(inst, "optout", (zod) => zod.def.innerType._zod.optout);
-    defineLazyInternal(inst, "values", (zod) => zod.def.innerType._zod.values);
-    inst._zod.parse = (payload, ctx) => {
-        if (ctx.direction === "backward") {
-            return def.innerType._zod.run(payload, ctx);
-        }
-        // Forward direction (decode): apply catch logic
-        const result = def.innerType._zod.run({ value: payload.value, issues: [] }, ctx);
-        if (result instanceof Promise) {
-            return result.then((result) => handleCatchResult(payload, result, def, ctx));
-        }
-        return handleCatchResult(payload, result, def, ctx);
-    };
-});
-const $ZodPipe = /*@__PURE__*/ $constructor("$ZodPipe", (inst, def) => {
-    $ZodType.init(inst, def);
-    defineLazyInternal(inst, "values", (zod) => zod.def.in._zod.values);
-    defineLazyInternal(inst, "optin", (zod) => zod.def.in._zod.optin);
-    defineLazyInternal(inst, "optout", (zod) => zod.def.out._zod.optout);
-    defineLazyInternal(inst, "propValues", (zod) => zod.def.in._zod.propValues);
-    inst._zod.parse = (payload, ctx) => {
-        if (ctx.direction === "backward") {
-            const right = def.out._zod.run(payload, ctx);
-            if (right instanceof Promise) {
-                return right.then((right) => handlePipeResult(right, def.in, ctx));
-            }
-            return handlePipeResult(right, def.in, ctx);
-        }
-        const left = def.in._zod.run(payload, ctx);
-        if (left instanceof Promise) {
-            return left.then((left) => handlePipeResult(left, def.out, ctx));
-        }
-        return handlePipeResult(left, def.out, ctx);
-    };
-});
-function handlePipeResult(left, next, ctx) {
-    // Any issue stops the pipe, so a failing refinement never feeds its transform. An unrecognized key is the exception: it describes the input's extra properties, not the value being piped, and an enclosing intersection may yet reconcile it.
-    if (left.issues.some((iss) => iss.code !== "unrecognized_keys")) {
-        // prevent further checks
-        left.aborted = true;
-        return left;
-    }
-    return next._zod.run({ value: left.value, issues: left.issues }, ctx);
-}
-const $ZodPreprocess = /*@__PURE__*/ $constructor("$ZodPreprocess", (inst, def) => {
-    $ZodPipe.init(inst, def);
-});
-const $ZodReadonly = /*@__PURE__*/ $constructor("$ZodReadonly", (inst, def) => {
-    $ZodType.init(inst, def);
-    defineLazyInternal(inst, "propValues", (zod) => zod.def.innerType._zod.propValues);
-    defineLazyInternal(inst, "values", (zod) => zod.def.innerType._zod.values);
-    defineLazyInternal(inst, "optin", (zod) => zod.def.innerType?._zod?.optin);
-    defineLazyInternal(inst, "optout", (zod) => zod.def.innerType?._zod?.optout);
-    inst._zod.parse = (payload, ctx) => {
-        if (ctx.direction === "backward") {
-            return def.innerType._zod.run(payload, ctx);
-        }
-        const result = def.innerType._zod.run(payload, ctx);
-        if (result instanceof Promise) {
-            return result.then(handleReadonlyResult);
-        }
-        return handleReadonlyResult(result);
-    };
-});
-function handleReadonlyResult(payload) {
-    // A repeat visit hands back a node that is still being built; freezing it here would make the rest of its keys fail to assign.
-    if (!payload.memo)
-        payload.value = Object.freeze(payload.value);
-    return payload;
-}
-const $ZodCustom = /*@__PURE__*/ $constructor("$ZodCustom", (inst, def) => {
-    $ZodCheck.init(inst, def);
-    $ZodType.init(inst, def);
-    inst._zod.parse = (payload, _) => {
-        return payload;
-    };
-    inst._zod.check = (payload) => {
-        const input = payload.value;
-        const r = def.fn(input);
-        if (r instanceof Promise) {
-            return r.then((r) => handleRefineResult(r, payload, input, inst));
-        }
-        handleRefineResult(r, payload, input, inst);
-        return;
-    };
-});
-function handleRefineResult(result, payload, input, inst) {
-    if (!result) {
-        const _iss = {
-            code: "custom",
-            input,
-            inst, // incorporates params.error into issue reporting
-            path: [...(inst._zod.def.path ?? [])], // incorporates params.error into issue reporting
-            continue: !inst._zod.def.abort,
-            // params: inst._zod.def.params,
-        };
-        if (inst._zod.def.params)
-            _iss.params = inst._zod.def.params;
-        payload.issues.push(issue(_iss));
-    }
-}
-
-class $ZodCyclicError extends Error {
-    constructor() {
-        super(`Cannot parse a reference cycle that closes through a transform`);
-        this.name = "ZodCyclicError";
-    }
-}
-/** Keyed off the context object every schema in one parse call already shares. */
-const STATE = "~memo";
-const NO_ISSUES = [];
-// a value a cycle can close through
-function isRef(value) {
-    return value !== null && typeof value === "object";
-}
-// Receivers prefix paths in place, so the cache and every hand-out need their own copies.
-function cloneIssues(issues) {
-    return issues.map((iss) => (iss.path ? { ...iss, path: iss.path.slice() } : { ...iss }));
-}
-const recursive = /*@__PURE__*/ new WeakMap();
-/** What the walk established, in order of certainty: ordered so the strongest answer among children wins. */
-const NONE = 0;
-const ASSUMED = 1;
-const PROVEN = 2;
-/** Whether this schema's subtree contains a cycle, so one parse can re-enter it. */
-function isRecursive(inst, stack, resolve) {
-    const cached = recursive.get(inst);
-    if (cached !== undefined)
-        return cached ? PROVEN : NONE;
-    // Relative to the walk in progress, so not cached.
-    if (stack.has(inst))
-        return PROVEN;
-    stack.add(inst);
-    let result = NONE;
-    const check = (child) => {
-        if (result !== PROVEN && child?._zod) {
-            const answer = isRecursive(child, stack);
-            if (answer > result)
-                result = answer;
-        }
-    };
-    // `Reflect.ownKeys` rather than `Object.keys`, so a cycle through a declared symbol key is still seen
-    const shape = (sh, spread) => {
-        let answer = NONE;
-        for (const key of Reflect.ownKeys(sh)) {
-            const desc = Object.getOwnPropertyDescriptor(sh, key);
-            // an object resolves its shape by spread, so a key it does not enumerate is never parsed; `z.properties` reads every own key and so keeps them all
-            if (!desc.enumerable)
-                continue;
-            // resolving runs user code, and a factory mints a fresh subtree per read, so an edge the walk can't follow counts as a cycle
-            const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack) : NONE;
-            if (child > answer)
-                answer = child;
-        }
-        return answer;
-    };
-    const merge = (answer) => {
-        if (answer > result)
-            result = answer;
-    };
-    const def = inst._zod.def;
-    const kind = def.type;
-    switch (kind) {
-        case "object": {
-            const raw = rawShape(def);
-            // a def with no raw shape answers `shape` from an accessor of its own, and running that can mint a whole fresh subtree
-            merge(raw ? shape(raw) : ASSUMED);
-            check(def.catchall);
-            break;
-        }
-        case "array":
-            check(def.element);
-            break;
-        case "tuple":
-            for (const el of def.items)
-                check(el);
-            check(def.rest);
-            break;
-        case "record":
-        case "map":
-            check(def.keyType);
-            check(def.valueType);
-            break;
-        case "set":
-            check(def.valueType);
-            break;
-        case "union":
-            for (const el of def.options)
-                check(el);
-            break;
-        case "intersection":
-            check(def.left);
-            check(def.right);
-            break;
-        case "optional":
-        case "nullable":
-        case "default":
-        case "prefault":
-        case "catch":
-        case "readonly":
-        case "nonoptional":
-        case "promise":
-        case "success":
-            check(def.innerType);
-            break;
-        case "pipe":
-            check(def.in);
-            check(def.out);
-            break;
-        case "function":
-            check(def.input);
-            check(def.output);
-            break;
-        // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
-        case "lazy": {
-            const inner = def._cachedInner ?? (undefined);
-            // walked with resolution off: one hop sees past the deferral, and a lazy that yields only another unresolved lazy is generative, so it stops there
-            merge(inner ? isRecursive(inner, stack) : ASSUMED);
-            break;
-        }
-        // a leaf by choice: `parts` are regex fragments, not data positions
-        case "template_literal":
-        // leaves
-        case "string":
-        case "number":
-        case "int":
-        case "boolean":
-        case "bigint":
-        case "symbol":
-        case "undefined":
-        case "null":
-        case "void":
-        case "never":
-        case "any":
-        case "unknown":
-        case "date":
-        case "nan":
-        case "enum":
-        case "literal":
-        case "file":
-        case "transform":
-        case "custom":
-            break;
-        default: {
-            // a user-defined kind can still hold children, and only its author knows where, so fall back to scanning the def — skipping accessors, since reading one can run user code
-            for (const key in def) {
-                const desc = Object.getOwnPropertyDescriptor(def, key);
-                if (!desc || desc.get)
-                    continue;
-                const value = desc.value;
-                if (!value || typeof value !== "object")
-                    continue;
-                if (value._zod)
-                    check(value);
-                else if (Array.isArray(value))
-                    for (const el of value)
-                        check(el);
-            }
-        }
-    }
-    stack.delete(inst);
-    return settle(inst, result);
-}
-/** An assumed answer must not outlive the resolution that settles it, so only a certain one is cached. */
-function settle(inst, answer) {
-    if (answer !== ASSUMED)
-        recursive.set(inst, answer === PROVEN);
-    return answer;
-}
-function bucketFor(state, inst) {
-    let bucket = state.buckets.get(inst);
-    if (!bucket) {
-        bucket = new WeakMap();
-        state.buckets.set(inst, bucket);
-    }
-    return bucket;
-}
-// Set immediately before delegating to core and cleared immediately after, so `alloc` registers only for a visit this module is driving.
-let handoff;
-// Allocated but unfinished entries. `alloc` and the matching pop both happen in the synchronous part of a parse, so they nest even when children are async, and one stack serves every schema.
-const open$1 = [];
-const memo = {
-    alloc(_inst, payload, empty) {
-        const bucket = handoff;
-        if (!bucket)
-            return empty;
-        handoff = undefined;
-        const entry = { value: empty, issues: null };
-        bucket.set(payload.value, entry);
-        open$1.push(entry);
-        return empty;
-    },
-    guard(inst) {
-        var _a;
-        (_a = inst._zod).deferred ?? (_a.deferred = []);
-        inst._zod.deferred.push(() => {
-            const base = inst._zod.parse;
-            const wrapped = (payload, ctx) => {
-                // The value is a placeholder a back-edge is still waiting on, so the cycle closes through this transform. Its output can't exist in time to bind.
-                if (ctx.direction !== "backward" && isBackEdge(ctx, payload.value))
-                    throw new $ZodCyclicError();
-                return base(payload, ctx);
-            };
-            inst._zod.parse = wrapped;
-            if (inst._zod.run === base)
-                inst._zod.run = wrapped;
-        });
-    },
-    attach(inst) {
-        var _a;
-        let isRecursiveInst;
-        let rechecked = false;
-        // a recursive schema is re-entered many times per parse and its bucket never changes
-        let lastCtx;
-        let lastBucket;
-        // Wraps `parse` in a deferred so it sees the container's final parse. Core's own deferred copies `parse` into `run` when there are no checks, and it ran first, so `run` is patched to match; with checks, `run` reads `parse` dynamically.
-        (_a = inst._zod).deferred ?? (_a.deferred = []);
-        inst._zod.deferred.push(() => {
-            const base = inst._zod.parse;
-            const wrapped = (payload, ctx) => {
-                if (isRecursiveInst === undefined) {
-                    const walked = isRecursive(inst, new Set());
-                    if (walked === NONE) {
-                        // Nothing here can ever fire, so take it back out.
-                        inst._zod.parse = base;
-                        if (inst._zod.run === wrapped)
-                            inst._zod.run = base;
-                        return base(payload, ctx);
-                    }
-                    // this parse resolves the deferred edges on its own path, so ask once more before latching
-                    if (walked === PROVEN || rechecked)
-                        isRecursiveInst = true;
-                    else
-                        rechecked = true;
-                }
-                const input = payload.value;
-                if (!isRef(input))
-                    return base(payload, ctx);
-                let state = ctx[STATE];
-                if (!state) {
-                    state = { buckets: new WeakMap(), backEdges: undefined };
-                    ctx[STATE] = state;
-                }
-                let bucket;
-                if (lastCtx === ctx) {
-                    bucket = lastBucket;
-                }
-                else {
-                    bucket = bucketFor(state, inst);
-                    lastCtx = ctx;
-                    lastBucket = bucket;
-                }
-                const hit = bucket.get(input);
-                if (hit) {
-                    payload.value = hit.value;
-                    if (hit.issues) {
-                        if (hit.issues.length)
-                            payload.issues.push(...cloneIssues(hit.issues));
-                    }
-                    else {
-                        // Still being parsed: its own checks cover it, so skip them here.
-                        payload.memo = true;
-                        state.backEdges ?? (state.backEdges = new WeakSet());
-                        state.backEdges.add(hit.value);
-                    }
-                    return payload;
-                }
-                handoff = bucket;
-                const depth = open$1.length;
-                const result = base(payload, ctx);
-                handoff = undefined;
-                // A container that rejected its input outright allocated nothing.
-                const entry = open$1.length > depth ? open$1.pop() : undefined;
-                // Both paths written out so the sync one allocates no closure. It runs once per node, and capturing here cost more than everything else combined.
-                if (result instanceof Promise) {
-                    return result.then((r) => {
-                        if (entry)
-                            entry.issues = r.issues.length ? cloneIssues(r.issues) : NO_ISSUES;
-                        return r;
-                    });
-                }
-                if (entry)
-                    entry.issues = result.issues.length ? cloneIssues(result.issues) : NO_ISSUES;
-                return result;
-            };
-            inst._zod.parse = wrapped;
-            if (inst._zod.run === base)
-                inst._zod.run = wrapped;
-        });
-    },
-};
-/** The memoizer that gives containers cycle support. `zod` installs it by default; `zod/mini` opts in with `config({ memoizer: memoizer() })`. */
-function memoizer() {
-    return memo;
-}
-/** Whether this value is a node a back-edge resolved to before it finished. */
-function isBackEdge(ctx, value) {
-    const backEdges = ctx[STATE]?.backEdges;
-    return backEdges !== undefined && isRef(value) && backEdges.has(value);
-}
-
-const error$1 = () => {
-    const Sizable = {
-        string: { unit: "characters", verb: "to have" },
-        file: { unit: "bytes", verb: "to have" },
-        array: { unit: "items", verb: "to have" },
-        set: { unit: "items", verb: "to have" },
-        map: { unit: "entries", verb: "to have" },
-    };
-    function getSizing(origin) {
-        return Sizable[origin] ?? null;
-    }
-    const FormatDictionary = {
-        regex: "input",
-        email: "email address",
-        url: "URL",
-        emoji: "emoji",
-        uuid: "UUID",
-        uuidv4: "UUIDv4",
-        uuidv6: "UUIDv6",
-        nanoid: "nanoid",
-        guid: "GUID",
-        cuid: "cuid",
-        cuid2: "cuid2",
-        ulid: "ULID",
-        xid: "XID",
-        ksuid: "KSUID",
-        datetime: "ISO datetime",
-        date: "ISO date",
-        time: "ISO time",
-        duration: "ISO duration",
-        ipv4: "IPv4 address",
-        ipv6: "IPv6 address",
-        mac: "MAC address",
-        cidrv4: "IPv4 range",
-        cidrv6: "IPv6 range",
-        base64: "base64-encoded string",
-        base64url: "base64url-encoded string",
-        json_string: "JSON string",
-        e164: "E.164 number",
-        currency_code: "currency code",
-        credit_card: "credit card number",
-        iban: "IBAN",
-        jwt: "JWT",
-        template_literal: "input",
-    };
-    // type names: missing keys = do not translate (use raw value via ?? fallback)
-    const TypeDictionary = {
-        // Compatibility: "nan" -> "NaN" for display
-        nan: "NaN",
-        // All other type names omitted - they fall back to raw values via ?? operator
-    };
-    function getTypeName(type, input) {
-        if (type === "number" && typeof input === "number" && !Number.isFinite(input)) {
-            return String(input);
-        }
-        return TypeDictionary[type] ?? type;
-    }
-    return (issue) => {
-        switch (issue.code) {
-            case "invalid_type": {
-                const expected = getTypeName(issue.expected);
-                const receivedType = parsedType(issue.input);
-                const received = getTypeName(receivedType, issue.input);
-                return `Invalid input: expected ${expected}, received ${received}`;
-            }
-            case "invalid_value":
-                if (issue.values.length === 1)
-                    return `Invalid input: expected ${stringifyPrimitive(issue.values[0])}`;
-                return `Invalid option: expected one of ${joinValues(issue.values, "|")}`;
-            case "too_big": {
-                const adj = issue.exact ? "exactly " : issue.inclusive ? "<=" : "<";
-                const sizing = getSizing(issue.origin);
-                if (sizing)
-                    return `Too big: expected ${issue.origin ?? "value"} to have ${adj}${issue.maximum.toString()} ${sizing.unit ?? "elements"}`;
-                return `Too big: expected ${issue.origin ?? "value"} to be ${adj}${issue.maximum.toString()}`;
-            }
-            case "too_small": {
-                const adj = issue.exact ? "exactly " : issue.inclusive ? ">=" : ">";
-                const sizing = getSizing(issue.origin);
-                if (sizing) {
-                    return `Too small: expected ${issue.origin} to have ${adj}${issue.minimum.toString()} ${sizing.unit}`;
-                }
-                return `Too small: expected ${issue.origin} to be ${adj}${issue.minimum.toString()}`;
-            }
-            case "invalid_format": {
-                const _issue = issue;
-                if (_issue.format === "starts_with") {
-                    return `Invalid string: must start with "${_issue.prefix}"`;
-                }
-                if (_issue.format === "ends_with")
-                    return `Invalid string: must end with "${_issue.suffix}"`;
-                if (_issue.format === "includes")
-                    return `Invalid string: must include "${_issue.includes}"`;
-                if (_issue.format === "regex")
-                    return `Invalid string: must match pattern ${_issue.pattern}`;
-                return `Invalid ${FormatDictionary[_issue.format] ?? issue.format}`;
-            }
-            case "not_multiple_of":
-                return `Invalid number: must be a multiple of ${issue.divisor}`;
-            case "unrecognized_keys":
-                return `Unrecognized key${issue.keys.length > 1 ? "s" : ""}: ${joinValues(issue.keys, ", ")}`;
-            case "invalid_key":
-                return `Invalid key in ${issue.origin}`;
-            case "invalid_union":
-                if (issue.options && Array.isArray(issue.options) && issue.options.length > 0) {
-                    const opts = issue.options.map((o) => `'${o}'`).join(" | ");
-                    return `Invalid discriminator value. Expected ${opts}`;
-                }
-                if (issue.inclusive === false) {
-                    return "Invalid input: more than one option matched";
-                }
-                return "Invalid input";
-            case "invalid_element":
-                return `Invalid value in ${issue.origin}`;
-            default:
-                return `Invalid input`;
-        }
-    };
-};
-function en () {
-    return {
-        localeError: error$1(),
-    };
-}
-
-var _a;
-class $ZodRegistry {
-    constructor() {
-        this._map = new WeakMap();
-        this._idmap = new Map();
-    }
-    add(schema, ..._meta) {
-        const meta = _meta[0];
-        this._map.set(schema, meta);
-        if (meta && typeof meta === "object" && "id" in meta) {
-            this._idmap.set(meta.id, schema);
-        }
-        return this;
-    }
-    clear() {
-        this._map = new WeakMap();
-        this._idmap = new Map();
-        return this;
-    }
-    remove(schema) {
-        const meta = this._map.get(schema);
-        if (meta && typeof meta === "object" && "id" in meta) {
-            this._idmap.delete(meta.id);
-        }
-        this._map.delete(schema);
-        return this;
-    }
-    get(schema) {
-        // return this._map.get(schema) as any;
-        // inherit metadata
-        const p = schema._zod.parent;
-        if (p) {
-            const pm = { ...(this.get(p) ?? {}) };
-            delete pm.id; // do not inherit id
-            const f = { ...pm, ...this._map.get(schema) };
-            return Object.keys(f).length ? f : undefined;
-        }
-        return this._map.get(schema);
-    }
-    has(schema) {
-        return this._map.has(schema);
-    }
-}
-// registries
-function registry() {
-    return new $ZodRegistry();
-}
-(_a = globalThis).__zod_globalRegistry ?? (_a.__zod_globalRegistry = registry());
-const globalRegistry = globalThis.__zod_globalRegistry;
-
-function snapshotChecks(def) {
-    if (def.checks)
-        def.checks = [...def.checks];
-    return def;
-}
-// @__NO_SIDE_EFFECTS__
-function _string(Class, params) {
-    return new Class(snapshotChecks({ type: "string", ...normalizeParams(params) }));
-}
-// @__NO_SIDE_EFFECTS__
-function _email(Class, params) {
-    return new Class({
-        type: "string",
-        format: "email",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _guid(Class, params) {
-    return new Class({
-        type: "string",
-        format: "guid",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _uuid(Class, params) {
-    return new Class({
-        type: "string",
-        format: "uuid",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _uuidv4(Class, params) {
-    return new Class({
-        type: "string",
-        format: "uuid",
-        check: "string_format",
-        abort: false,
-        version: "v4",
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _uuidv6(Class, params) {
-    return new Class({
-        type: "string",
-        format: "uuid",
-        check: "string_format",
-        abort: false,
-        version: "v6",
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _uuidv7(Class, params) {
-    return new Class({
-        type: "string",
-        format: "uuid",
-        check: "string_format",
-        abort: false,
-        version: "v7",
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _url(Class, params) {
-    return new Class({
-        type: "string",
-        format: "url",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _emoji(Class, params) {
-    return new Class({
-        type: "string",
-        format: "emoji",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _nanoid(Class, params) {
-    return new Class({
-        type: "string",
-        format: "nanoid",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-/**
- * @deprecated CUID v1 is deprecated by its authors due to information leakage
- * (timestamps embedded in the id). Use {@link _cuid2} instead.
- * See https://github.com/paralleldrive/cuid.
- */
-// @__NO_SIDE_EFFECTS__
-function _cuid(Class, params) {
-    return new Class({
-        type: "string",
-        format: "cuid",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _cuid2(Class, params) {
-    return new Class({
-        type: "string",
-        format: "cuid2",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _ulid(Class, params) {
-    return new Class({
-        type: "string",
-        format: "ulid",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _xid(Class, params) {
-    return new Class({
-        type: "string",
-        format: "xid",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _ksuid(Class, params) {
-    return new Class({
-        type: "string",
-        format: "ksuid",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _ipv4(Class, params) {
-    return new Class({
-        type: "string",
-        format: "ipv4",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _ipv6(Class, params) {
-    return new Class({
-        type: "string",
-        format: "ipv6",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _cidrv4(Class, params) {
-    return new Class({
-        type: "string",
-        format: "cidrv4",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _cidrv6(Class, params) {
-    return new Class({
-        type: "string",
-        format: "cidrv6",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _base64(Class, params) {
-    return new Class({
-        type: "string",
-        format: "base64",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _base64url(Class, params) {
-    return new Class({
-        type: "string",
-        format: "base64url",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _e164(Class, params) {
-    return new Class({
-        type: "string",
-        format: "e164",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _jwt(Class, params) {
-    return new Class({
-        type: "string",
-        format: "jwt",
-        check: "string_format",
-        abort: false,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _isoDateTime(Class, params) {
-    return new Class({
-        type: "string",
-        format: "datetime",
-        check: "string_format",
-        offset: false,
-        local: false,
-        precision: null,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _isoDate(Class, params) {
-    return new Class({
-        type: "string",
-        format: "date",
-        check: "string_format",
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _isoTime(Class, params) {
-    return new Class({
-        type: "string",
-        format: "time",
-        check: "string_format",
-        precision: null,
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _isoDuration(Class, params) {
-    return new Class({
-        type: "string",
-        format: "duration",
-        check: "string_format",
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _number(Class, params) {
-    return new Class(snapshotChecks({ type: "number", checks: [], ...normalizeParams(params) }));
-}
-// @__NO_SIDE_EFFECTS__
-function _int(Class, params) {
-    return new Class({
-        type: "number",
-        check: "number_format",
-        abort: false,
-        format: "safeint",
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _boolean(Class, params) {
-    return new Class({
-        type: "boolean",
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _unknown(Class) {
-    return new Class({
-        type: "unknown",
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _never(Class, params) {
-    return new Class({
-        type: "never",
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _lt(value, params) {
-    return new $ZodCheckLessThan({
-        check: "less_than",
-        ...normalizeParams(params),
-        value,
-        inclusive: false,
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _lte(value, params) {
-    return new $ZodCheckLessThan({
-        check: "less_than",
-        ...normalizeParams(params),
-        value,
-        inclusive: true,
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _gt(value, params) {
-    return new $ZodCheckGreaterThan({
-        check: "greater_than",
-        ...normalizeParams(params),
-        value,
-        inclusive: false,
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _gte(value, params) {
-    return new $ZodCheckGreaterThan({
-        check: "greater_than",
-        ...normalizeParams(params),
-        value,
-        inclusive: true,
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _multipleOf(value, params) {
-    return new $ZodCheckMultipleOf({
-        check: "multiple_of",
-        ...normalizeParams(params),
-        value,
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _maxLength(maximum, params) {
-    const ch = new $ZodCheckMaxLength({
-        check: "max_length",
-        ...normalizeParams(params),
-        maximum,
-    });
-    return ch;
-}
-// @__NO_SIDE_EFFECTS__
-function _minLength(minimum, params) {
-    return new $ZodCheckMinLength({
-        check: "min_length",
-        ...normalizeParams(params),
-        minimum,
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _length(length, params) {
-    return new $ZodCheckLengthEquals({
-        check: "length_equals",
-        ...normalizeParams(params),
-        length,
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _regex(pattern, params) {
-    return new $ZodCheckRegex({
-        check: "string_format",
-        format: "regex",
-        ...normalizeParams(params),
-        pattern,
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _lowercase(params) {
-    return new $ZodCheckLowerCase({
-        check: "string_format",
-        format: "lowercase",
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _uppercase(params) {
-    return new $ZodCheckUpperCase({
-        check: "string_format",
-        format: "uppercase",
-        ...normalizeParams(params),
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _includes(includes, params) {
-    return new $ZodCheckIncludes({
-        check: "string_format",
-        format: "includes",
-        ...normalizeParams(params),
-        includes,
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _startsWith(prefix, params) {
-    return new $ZodCheckStartsWith({
-        check: "string_format",
-        format: "starts_with",
-        ...normalizeParams(params),
-        prefix,
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _endsWith(suffix, params) {
-    return new $ZodCheckEndsWith({
-        check: "string_format",
-        format: "ends_with",
-        ...normalizeParams(params),
-        suffix,
-    });
-}
-// @__NO_SIDE_EFFECTS__
-function _overwrite(tx) {
-    return new $ZodCheckOverwrite({
-        check: "overwrite",
-        tx,
-    });
-}
-// normalize
-// @__NO_SIDE_EFFECTS__
-function _normalize(form) {
-    return _overwrite((input) => input.normalize(form));
-}
-// trim
-// @__NO_SIDE_EFFECTS__
-function _trim() {
-    return _overwrite((input) => input.trim());
-}
-// toLowerCase
-// @__NO_SIDE_EFFECTS__
-function _toLowerCase() {
-    return _overwrite((input) => input.toLowerCase());
-}
-// toUpperCase
-// @__NO_SIDE_EFFECTS__
-function _toUpperCase() {
-    return _overwrite((input) => input.toUpperCase());
-}
-// slugify
-// @__NO_SIDE_EFFECTS__
-function _slugify() {
-    return _overwrite((input) => slugify(input));
-}
-// @__NO_SIDE_EFFECTS__
-function _array(Class, element, params) {
-    return new Class({
-        type: "array",
-        element,
-        // get element() {
-        //   return element;
-        // },
-        ...normalizeParams(params),
-    });
-}
-// same as _custom but defaults to abort:false
-// @__NO_SIDE_EFFECTS__
-function _refine(Class, fn, _params) {
-    const schema = new Class({
-        type: "custom",
-        check: "custom",
-        fn: fn,
-        ...normalizeParams(_params),
-    });
-    return schema;
-}
-// @__NO_SIDE_EFFECTS__
-function _superRefine(fn, params) {
-    const ch = _check((payload) => {
-        payload.addIssue = (issue$1) => {
-            if (typeof issue$1 === "string") {
-                payload.issues.push(issue(issue$1, payload.value, ch._zod.def));
-            }
-            else {
-                // for Zod 3 backwards compatibility
-                const _issue = issue$1;
-                if (_issue.fatal)
-                    _issue.continue = false;
-                _issue.code ?? (_issue.code = "custom");
-                if (!("input" in _issue))
-                    _issue.input = payload.value;
-                _issue.inst ?? (_issue.inst = ch);
-                _issue.continue ?? (_issue.continue = !ch._zod.def.abort); // abort is always undefined, so this is always true...
-                payload.issues.push(issue(_issue));
-            }
-        };
-        return fn(payload.value, payload);
-    }, params);
-    return ch;
-}
-// @__NO_SIDE_EFFECTS__
-function _check(fn, params) {
-    const ch = new $ZodCheck({
-        check: "custom",
-        ...normalizeParams(params),
-    });
-    ch._zod.check = fn;
-    return ch;
-}
-
-function assignProps(target, ...sources) {
-    for (const source of sources) {
-        for (const key of Reflect.ownKeys(source)) {
-            if (Object.prototype.propertyIsEnumerable.call(source, key)) {
-                assignProp(target, key, source[key]);
-            }
-        }
-    }
-    return target;
-}
-// function initializeContext<T extends schemas.$ZodType>(inputs: JSONSchemaGeneratorParams<T>): ToJSONSchemaContext<T> {
-//   return {
-//     processor: inputs.processor,
-//     metadataRegistry: inputs.metadata ?? globalRegistry,
-//     target: inputs.target ?? "draft-2020-12",
-//     unrepresentable: inputs.unrepresentable ?? "throw",
-//   };
-// }
-function initializeContext(params) {
-    // Normalize target: convert old non-hyphenated versions to hyphenated versions
-    let target = params?.target ?? "draft-2020-12";
-    if (target === "draft-4")
-        target = "draft-04";
-    if (target === "draft-7")
-        target = "draft-07";
-    return {
-        processors: params.processors ?? {},
-        metadataRegistry: params?.metadata ?? globalRegistry,
-        target,
-        unrepresentable: params?.unrepresentable ?? "throw",
-        override: params?.override ?? (() => { }),
-        io: params?.io ?? "output",
-        counter: 0,
-        seen: new Map(),
-        sharedDefsExtractedFor: undefined,
-        sharedEmitDoneFor: undefined,
-        cycles: params?.cycles ?? "ref",
-        reused: params?.reused ?? "inline",
-        intersections: [],
-        deferred: [],
-        external: params?.external ?? undefined,
-    };
-}
-/**
- * Applies the `unrepresentable` setting at a site that has no JSON Schema equivalent. Throws
- * `message` unless the setting (or the handler's return value) says otherwise. Returns `true` if a
- * custom JSON Schema was written into `json`, in which case the caller must not write its own.
- */
-function handleUnrepresentable(schema, ctx, json, params, message) {
-    const result = typeof ctx.unrepresentable === "function"
-        ? ctx.unrepresentable({ zodSchema: schema, path: params.path, message })
-        : ctx.unrepresentable;
-    if (result === "any")
-        return false;
-    if (result === undefined || result === "throw")
-        throw new Error(message);
-    Object.assign(json, result);
-    return true;
-}
-// never rename this back to `process`: bundler polyfills inject a top-level `const process` that a lexical declaration of the same name collides with (#6397)
-function processSchema(schema, ctx, _params = { path: [], schemaPath: [] }) {
-    var _a;
-    const def = schema._zod.def;
-    // check for schema in seens
-    const seen = ctx.seen.get(schema);
-    if (seen) {
-        seen.count++;
-        // check if cycle
-        const isCycle = _params.schemaPath.includes(schema);
-        if (isCycle) {
-            seen.cycle = _params.path;
-        }
-        return seen.schema;
-    }
-    // initialize
-    const result = { schema: {}, count: 1, cycle: undefined, path: _params.path };
-    ctx.seen.set(schema, result);
-    ctx.sharedDefsExtractedFor = undefined;
-    ctx.sharedEmitDoneFor = undefined;
-    // custom method overrides default behavior
-    const overrideSchema = schema._zod.toJSONSchema?.();
-    if (overrideSchema) {
-        result.schema = overrideSchema;
-    }
-    else {
-        const params = {
-            ..._params,
-            schemaPath: [..._params.schemaPath, schema],
-            path: _params.path,
-        };
-        if (schema._zod.processJSONSchema) {
-            schema._zod.processJSONSchema(ctx, result.schema, params);
-        }
-        else {
-            const _json = result.schema;
-            const processor = ctx.processors[def.type];
-            if (!processor) {
-                throw new Error(`[toJSONSchema]: Non-representable type encountered: ${def.type}`);
-            }
-            processor(schema, ctx, _json, params);
-        }
-        const parent = schema._zod.parent;
-        if (parent) {
-            // Also set ref if processor didn't (for inheritance)
-            if (!result.ref)
-                result.ref = parent;
-            processSchema(parent, ctx, params);
-            ctx.seen.get(parent).isParent = true;
-        }
-    }
-    // metadata
-    const meta = ctx.metadataRegistry.get(schema);
-    if (meta)
-        assignProps(result.schema, meta);
-    if (ctx.io === "input" && isTransforming(schema)) {
-        // examples/defaults only apply to output type of pipe
-        delete result.schema.examples;
-        delete result.schema.default;
-    }
-    // set prefault as default
-    if (ctx.io === "input" && "_prefault" in result.schema)
-        (_a = result.schema).default ?? (_a.default = result.schema._prefault);
-    delete result.schema._prefault;
-    // pulling fresh from ctx.seen in case it was overwritten
-    const _result = ctx.seen.get(schema);
-    return _result.schema;
-}
-// Escape a reference token for use in a JSON Pointer fragment (RFC 6901): `~` becomes `~0` and `/` becomes `~1`. The `~` replacement must run first.
-function encodeJSONPointerSegment(segment) {
-    return segment.replace(/~/g, "~0").replace(/\//g, "~1");
-}
-function extractDefs(ctx, schema
-// params: EmitParams
-) {
-    // iterate over seen map;
-    const root = ctx.seen.get(schema);
-    if (!root)
-        throw new Error("Unprocessed schema. This is a bug in Zod.");
-    // With `external` set, every registered schema resolves through the external branch of `makeURI`, so the root branch below produces the same ref the external branch would — this pass is identical whichever schema it is called with, and only needs to run once.
-    if (ctx.external && ctx.sharedDefsExtractedFor === ctx.external)
-        return;
-    // Track ids to detect duplicates across different schemas
-    const idToSchema = new Map();
-    for (const entry of ctx.seen.entries()) {
-        const id = ctx.metadataRegistry.get(entry[0])?.id;
-        if (id) {
-            const existing = idToSchema.get(id);
-            if (existing && existing !== entry[0]) {
-                throw new Error(`Duplicate schema id "${id}" detected during JSON Schema conversion. Two different schemas cannot share the same id when converted together.`);
-            }
-            idToSchema.set(id, entry[0]);
-        }
-    }
-    // returns a ref to the schema defId will be empty if the ref points to an external schema (or #)
-    const makeURI = (entry) => {
-        // comparing the seen objects because sometimes multiple schemas map to the same seen object. e.g. lazy
-        // external is configured
-        const defsSegment = ctx.target === "draft-2020-12" ? "$defs" : "definitions";
-        if (ctx.external) {
-            const externalId = ctx.external.registry.get(entry[0])?.id; // ?? "__shared";// `__schema${ctx.counter++}`;
-            // check if schema is in the external registry
-            const uriGenerator = ctx.external.uri ?? ((id) => id);
-            if (externalId) {
-                return { ref: uriGenerator(externalId) };
-            }
-            // otherwise, add to __shared
-            const id = entry[1].defId ?? entry[1].schema.id ?? `schema${ctx.counter++}`;
-            entry[1].defId = id; // set defId so it will be reused if needed
-            return { defId: id, ref: `${uriGenerator("__shared")}#/${defsSegment}/${encodeJSONPointerSegment(id)}` };
-        }
-        const uriPrefix = `#`;
-        const defUriPrefix = `${uriPrefix}/${defsSegment}/`;
-        // an id-less root has nowhere to be extracted to, so it stays inline and self-references as `#`
-        if (entry[1] === root && !entry[1].schema.id) {
-            return { ref: uriPrefix };
-        }
-        // self-contained schema
-        const defId = entry[1].schema.id ?? `__schema${ctx.counter++}`;
-        return { defId, ref: defUriPrefix + encodeJSONPointerSegment(defId) };
-    };
-    // stored cached version in `def` property remove all properties, set $ref
-    const extractToDef = (entry) => {
-        // if the schema is already a reference, do not extract it
-        if (entry[1].schema.$ref) {
-            return;
-        }
-        const seen = entry[1];
-        const { ref, defId } = makeURI(entry);
-        seen.def = { ...seen.schema };
-        // defId won't be set if the schema is a reference to an external schema or if the schema is the root schema
-        if (defId)
-            seen.defId = defId;
-        // wipe away all properties except $ref
-        const schema = seen.schema;
-        for (const key in schema) {
-            delete schema[key];
-        }
-        schema.$ref = ref;
-    };
-    // throw on cycles
-    // break cycles
-    if (ctx.cycles === "throw") {
-        for (const entry of ctx.seen.entries()) {
-            const seen = entry[1];
-            if (seen.cycle) {
-                throw new Error("Cycle detected: " +
-                    `#/${seen.cycle?.join("/")}/<root>` +
-                    '\n\nSet the `cycles` parameter to `"ref"` to resolve cyclical schemas with defs.');
-            }
-        }
-    }
-    // extract schemas into $defs
-    for (const entry of ctx.seen.entries()) {
-        const seen = entry[1];
-        // convert root schema to # $ref
-        if (schema === entry[0]) {
-            extractToDef(entry); // this has special handling for the root schema
-            continue;
-        }
-        // extract schemas that are in the external registry
-        if (ctx.external) {
-            const ext = ctx.external.registry.get(entry[0])?.id;
-            if (schema !== entry[0] && ext) {
-                extractToDef(entry);
-                continue;
-            }
-        }
-        // extract schemas with `id` meta
-        const id = ctx.metadataRegistry.get(entry[0])?.id;
-        if (id) {
-            extractToDef(entry);
-            continue;
-        }
-        // break cycles
-        if (seen.cycle) {
-            // any
-            extractToDef(entry);
-            continue;
-        }
-        // extract reused schemas
-        if (seen.count > 1) {
-            if (ctx.reused === "ref") {
-                extractToDef(entry);
-            }
-        }
-    }
-    if (ctx.external)
-        ctx.sharedDefsExtractedFor = ctx.external;
-}
-/** Rewrites `anyOf: [{type: "a"}, {type: "b"}]` to `type: ["a", "b"]`, which every JSON Schema draft treats as equivalent and most consumers render far better for the nullable case. Only branches that are a bare type assertion qualify — anything carrying a constraint, `$ref`, `const` or metadata is left alone. Runs after `flattenRef`, so a branch an override decorated or `$defs` extraction turned into a `$ref` is no longer bare and correctly stays in `anyOf`. `oneOf` is excluded: `integer` and `number` overlap, so "exactly one" and "at least one" are not the same there. OpenAPI 3.0 is excluded: its `type` must be a single string. */
-function compactTypeUnion(schema) {
-    const options = schema.anyOf;
-    if (!Array.isArray(options) || options.length === 0 || schema.type !== undefined)
-        return;
-    const types = [];
-    for (const option of options) {
-        if (!option || typeof option !== "object")
-            return;
-        // A branch that is itself a compactible union folds into this one — nested `anyOf` and a flat `type` array say the same thing. Compacting it first also makes the result independent of the order this pass walks the seen map in.
-        compactTypeUnion(option);
-        const keys = Object.keys(option);
-        if (keys.length !== 1 || keys[0] !== "type")
-            return;
-        const type = option.type;
-        for (const member of Array.isArray(type) ? type : [type]) {
-            if (typeof member !== "string")
-                return;
-            if (!types.includes(member))
-                types.push(member);
-        }
-    }
-    delete schema.anyOf;
-    // A `type` array must be non-empty and unique (metaschema); a single member is spelled as a bare string.
-    schema.type = types.length === 1 ? types[0] : types;
-}
-/** Keywords `foldIntersection` knows how to combine. Anything else — `$ref`, `patternProperties`,
- * an annotation like `description` — makes a member unfoldable, so a constraint this does not
- * understand leaves the `allOf` alone instead of being silently dropped or misattributed. */
-const FOLDABLE_KEYS = new Set(["type", "properties", "required", "additionalProperties"]);
-const UNION_KEYS = ["oneOf", "anyOf"];
-/** A member's constraint on a key it does not declare itself. A `catchall` states one; `false`, an absent `additionalProperties`, and the empty schema a loose object emits state nothing. */
-function undeclaredConstraint(member) {
-    const extra = member.additionalProperties;
-    if (extra === undefined || extra === false || typeof extra !== "object" || extra === null)
-        return null;
-    return Object.keys(extra).length ? extra : null;
-}
-/** Combines object members into the single object they describe together, or returns `null` if any of them carries a keyword outside {@link FOLDABLE_KEYS}. */
-function foldObjects(members) {
-    const objects = [];
-    for (const member of members) {
-        // A boolean subschema is legal JSON Schema and carries no keywords to fold.
-        if (typeof member !== "object" || member.type !== "object")
-            return null;
-        for (const key in member) {
-            if (!FOLDABLE_KEYS.has(key))
-                return null;
-        }
-        objects.push(member);
-    }
-    const properties = {};
-    const required = new Set();
-    for (const object of objects) {
-        for (const key in object.properties) {
-            // `in` would report a `__proto__` key as already present via the prototype chain and skip it.
-            if (Object.prototype.hasOwnProperty.call(properties, key))
-                continue;
-            // Every member constrains this key: the ones that declare it say how, and a `catchall` member constrains it too even though it does not name it. The key has to satisfy all of them, which is the same intersection one level down.
-            const parts = [];
-            for (const other of objects) {
-                const part = other.properties?.[key] ?? undeclaredConstraint(other);
-                if (part === null || part === undefined)
-                    continue;
-                if (!parts.some((seen) => JSON.stringify(seen) === JSON.stringify(part)))
-                    parts.push(part);
-            }
-            const merged = parts.length === 1
-                ? parts[0]
-                : (foldObjects(parts) ?? { allOf: parts });
-            assignProp(properties, key, merged);
-        }
-        for (const key of object.required ?? [])
-            required.add(key);
-    }
-    const folded = { type: "object", properties };
-    if (required.size)
-        folded.required = [...required];
-    // A key no member declares is rejected only when every member rejects it, so the fold is closed only when every member is. Otherwise it carries whatever the `catchall` members demand of such a key.
-    if (objects.every((object) => object.additionalProperties === false)) {
-        folded.additionalProperties = false;
-    }
-    else {
-        const constraints = [];
-        for (const object of objects) {
-            const constraint = undeclaredConstraint(object);
-            if (constraint && !constraints.some((seen) => JSON.stringify(seen) === JSON.stringify(constraint)))
-                constraints.push(constraint);
-        }
-        if (constraints.length === 1)
-            folded.additionalProperties = constraints[0];
-        else if (constraints.length > 1)
-            folded.additionalProperties = { allOf: constraints };
-    }
-    return folded;
-}
-/** `additionalProperties` in an `allOf` member sees only that member's own `properties`, so two
- * closed object members reject each other's keys and the schema validates nothing. Zod's parser
- * pools the key sets instead — `handleIntersectionResults` reports a key as unrecognized only when
- * *every* side rejects it — so the emitted schema has to pool them too, and folding the members
- * into one object is the encoding that says so on every target.
- *
- * This runs from `finalize`, after `extractDefs`, which is what keeps it clear of the `$ref`
- * machinery: a member extracted into `$defs` is already a `$ref` by now and declines to fold, so it
- * keeps its reference and its own closedness rather than being inlined as a stale copy. */
-function foldIntersection(json) {
-    const allOf = json.allOf;
-    if (!Array.isArray(allOf) || allOf.length < 2)
-        return;
-    // An `override` runs before this pass and may have written object keywords onto the intersection itself. Those are deliberate, so decline rather than overwrite them.
-    for (const key of FOLDABLE_KEYS)
-        if (key in json)
-            return;
-    // An intersection distributes over a union: `A & (X | Y)` is `(A & X) | (A & Y)`. Only the first union is distributed over; a second one stays among the members every branch folds against, where it fails the object check and declines the whole intersection rather than multiplying out.
-    const unions = allOf.filter((m) => UNION_KEYS.some((k) => Array.isArray(m[k])));
-    let folded = null;
-    if (!unions.length) {
-        folded = foldObjects(allOf);
-    }
-    else {
-        const union = unions[0];
-        const keyword = UNION_KEYS.find((k) => Array.isArray(union[k]));
-        if (Object.keys(union).length !== 1)
-            return;
-        const rest = allOf.filter((m) => m !== union);
-        const branches = union[keyword].map((branch) => foldObjects([...rest, branch]));
-        if (branches.some((b) => !b))
-            return;
-        folded = { [keyword]: branches };
-    }
-    if (!folded)
-        return;
-    delete json.allOf;
-    assignProps(json, folded);
-}
-function finalize(ctx, schema) {
-    const root = ctx.seen.get(schema);
-    if (!root)
-        throw new Error("Unprocessed schema. This is a bug in Zod.");
-    // flatten refs - inherit properties from parent schemas
-    const flattenRef = (zodSchema) => {
-        const seen = ctx.seen.get(zodSchema);
-        // already processed
-        if (seen.ref === null)
-            return;
-        const schema = seen.def ?? seen.schema;
-        const _cached = { ...schema };
-        const ref = seen.ref;
-        seen.ref = null; // prevent infinite recursion
-        if (ref) {
-            flattenRef(ref);
-            const refSeen = ctx.seen.get(ref);
-            const refSchema = refSeen.schema;
-            // merge referenced schema into current
-            if (refSchema.$ref && (ctx.target === "draft-07" || ctx.target === "draft-04" || ctx.target === "openapi-3.0")) {
-                // older drafts can't combine $ref with other properties
-                schema.allOf = schema.allOf ?? [];
-                schema.allOf.push(refSchema);
-            }
-            else {
-                assignProps(schema, refSchema);
-            }
-            // restore child's own properties (child wins)
-            assignProps(schema, _cached);
-            const isParentRef = zodSchema._zod.parent === ref;
-            // For parent chain, child is a refinement - remove parent-only properties
-            if (isParentRef) {
-                for (const key in schema) {
-                    if (key === "$ref" || key === "allOf")
-                        continue;
-                    if (!(key in _cached)) {
-                        delete schema[key];
-                    }
-                }
-            }
-            // When ref was extracted to $defs, remove properties that match the definition
-            if (refSchema.$ref && refSeen.def) {
-                for (const key in schema) {
-                    if (key === "$ref" || key === "allOf")
-                        continue;
-                    if (key in refSeen.def && JSON.stringify(schema[key]) === JSON.stringify(refSeen.def[key])) {
-                        delete schema[key];
-                    }
-                }
-            }
-        }
-        // If parent was extracted (has $ref), propagate $ref to this schema. This handles cases like: readonly().meta({id}).describe() where processor sets ref to innerType but parent should be referenced
-        const parent = zodSchema._zod.parent;
-        if (parent && parent !== ref) {
-            // Ensure parent is processed first so its def has inherited properties
-            flattenRef(parent);
-            const parentSeen = ctx.seen.get(parent);
-            if (parentSeen?.schema.$ref) {
-                schema.$ref = parentSeen.schema.$ref;
-                // De-duplicate with parent's definition
-                if (parentSeen.def) {
-                    for (const key in schema) {
-                        if (key === "$ref" || key === "allOf")
-                            continue;
-                        if (key in parentSeen.def && JSON.stringify(schema[key]) === JSON.stringify(parentSeen.def[key])) {
-                            delete schema[key];
-                        }
-                    }
-                }
-            }
-        }
-        // execute overrides
-        ctx.override({
-            zodSchema: zodSchema,
-            jsonSchema: schema,
-            path: seen.path ?? [],
-        });
-    };
-    // Flattening walks the whole map and clears each `ref` as it goes, so a second call over the same map is a no-op scan. Skip it outright once it has run for a registry conversion.
-    if (!ctx.external || ctx.sharedEmitDoneFor !== ctx.external) {
-        for (const entry of [...ctx.seen.entries()].reverse()) {
-            flattenRef(entry[0]);
-        }
-        if (ctx.target !== "openapi-3.0") {
-            for (const entry of ctx.seen.entries()) {
-                compactTypeUnion(entry[1].def ?? entry[1].schema);
-            }
-        }
-        for (const rewrite of ctx.deferred)
-            rewrite();
-        // After flattening, every member that was extracted is a `$ref`, so the fold sees the final shape. A schema that inherits an intersection — through `z.lazy`, or any `ref` chain — holds the same `allOf` array, so fold by array identity to catch every copy.
-        if (ctx.intersections.length) {
-            const carriers = new Map();
-            for (const seen of ctx.seen.values()) {
-                for (const json of [seen.schema, seen.def]) {
-                    const allOf = json?.allOf;
-                    if (!Array.isArray(allOf))
-                        continue;
-                    const existing = carriers.get(allOf);
-                    if (existing)
-                        existing.push(json);
-                    else
-                        carriers.set(allOf, [json]);
-                }
-            }
-            for (const allOf of ctx.intersections) {
-                for (const json of carriers.get(allOf) ?? [])
-                    foldIntersection(json);
-            }
-        }
-    }
-    const result = {};
-    if (ctx.target === "draft-2020-12") {
-        result.$schema = "https://json-schema.org/draft/2020-12/schema";
-    }
-    else if (ctx.target === "draft-07") {
-        result.$schema = "http://json-schema.org/draft-07/schema#";
-    }
-    else if (ctx.target === "draft-04") {
-        result.$schema = "http://json-schema.org/draft-04/schema#";
-    }
-    else if (ctx.target === "openapi-3.0") ;
-    else ;
-    if (ctx.external?.uri) {
-        const id = ctx.external.registry.get(schema)?.id;
-        if (!id)
-            throw new Error("Schema is missing an `id` property");
-        result.$id = ctx.external.uri(id);
-    }
-    // when the root was extracted into $defs, `root.schema` is the `$ref` wrapper and `root.def` is the body that now lives under $defs
-    assignProps(result, root.defId ? root.schema : (root.def ?? root.schema));
-    // The `id` in `.meta()` is a Zod-specific registration tag used to extract schemas into $defs — it is not user-facing JSON Schema metadata. Strip it from the output body where it would otherwise leak. The id is preserved implicitly via the $defs key (and via $ref paths).
-    const rootMetaId = ctx.metadataRegistry.get(schema)?.id;
-    if (rootMetaId !== undefined && result.id === rootMetaId)
-        delete result.id;
-    // build defs object. With `external`, `defs` is the shared object every schema writes into, so the same entries are reassigned on every call. Without it, `defs` is fresh per call and must be rebuilt.
-    const defs = ctx.external?.defs ?? {};
-    if (!ctx.external || ctx.sharedEmitDoneFor !== ctx.external) {
-        for (const entry of ctx.seen.entries()) {
-            const seen = entry[1];
-            if (seen.def && seen.defId) {
-                if (seen.def.id === seen.defId)
-                    delete seen.def.id;
-                assignProp(defs, seen.defId, seen.def);
-            }
-        }
-    }
-    if (ctx.external)
-        ctx.sharedEmitDoneFor = ctx.external;
-    // set definitions in result
-    if (ctx.external) ;
-    else {
-        if (Object.keys(defs).length > 0) {
-            if (ctx.target === "draft-2020-12") {
-                result.$defs = defs;
-            }
-            else {
-                result.definitions = defs;
-            }
-        }
-    }
-    try {
-        // this "finalizes" this schema and ensures all cycles are removed each call to finalize() is functionally independent though the seen map is shared
-        const finalized = JSON.parse(JSON.stringify(result));
-        Object.defineProperty(finalized, "~standard", {
-            value: {
-                ...schema["~standard"],
-                jsonSchema: {
-                    input: createStandardJSONSchemaMethod(schema, "input", ctx.processors),
-                    output: createStandardJSONSchemaMethod(schema, "output", ctx.processors),
-                },
-            },
-            enumerable: false,
-            writable: false,
-        });
-        return finalized;
-    }
-    catch (_err) {
-        throw new Error("Error converting schema to JSON.");
-    }
-}
-function isTransforming(_schema, _ctx) {
-    const ctx = _ctx ?? { seen: new Set() };
-    if (ctx.seen.has(_schema))
-        return false;
-    ctx.seen.add(_schema);
-    const def = _schema._zod.def;
-    if (def.type === "transform")
-        return true;
-    if (def.type === "array")
-        return isTransforming(def.element, ctx);
-    if (def.type === "set")
-        return isTransforming(def.valueType, ctx);
-    if (def.type === "lazy")
-        return isTransforming(def.getter(), ctx);
-    if (def.type === "promise" ||
-        def.type === "optional" ||
-        def.type === "nonoptional" ||
-        def.type === "nullable" ||
-        def.type === "readonly" ||
-        def.type === "default" ||
-        def.type === "prefault" ||
-        def.type === "catch") {
-        return isTransforming(def.innerType, ctx);
-    }
-    if (def.type === "intersection") {
-        return isTransforming(def.left, ctx) || isTransforming(def.right, ctx);
-    }
-    if (def.type === "record" || def.type === "map") {
-        return isTransforming(def.keyType, ctx) || isTransforming(def.valueType, ctx);
-    }
-    if (def.type === "pipe") {
-        if (_schema._zod.traits.has("$ZodCodec"))
-            return true;
-        return isTransforming(def.in, ctx) || isTransforming(def.out, ctx);
-    }
-    if (def.type === "object") {
-        for (const key in def.shape) {
-            if (isTransforming(def.shape[key], ctx))
-                return true;
-        }
-        return false;
-    }
-    if (def.type === "union") {
-        for (const option of def.options) {
-            if (isTransforming(option, ctx))
-                return true;
-        }
-        return false;
-    }
-    if (def.type === "tuple") {
-        for (const item of def.items) {
-            if (isTransforming(item, ctx))
-                return true;
-        }
-        if (def.rest && isTransforming(def.rest, ctx))
-            return true;
-        return false;
-    }
-    return false;
-}
-/**
- * Creates a toJSONSchema method for a schema instance.
- * This encapsulates the logic of initializing context, processing, extracting defs, and finalizing.
- */
-const createToJSONSchemaMethod = (schema, processors = {}) => (params) => {
-    const ctx = initializeContext({ ...params, processors });
-    processSchema(schema, ctx);
-    extractDefs(ctx, schema);
-    return finalize(ctx, schema);
-};
-const createStandardJSONSchemaMethod = (schema, io, processors = {}) => (params) => {
-    const { libraryOptions, target } = params ?? {};
-    const ctx = initializeContext({ ...(libraryOptions ?? {}), target, io, processors });
-    processSchema(schema, ctx);
-    extractDefs(ctx, schema);
-    return finalize(ctx, schema);
-};
-
-const narrowMin = (agg, key, value) => {
-    if (agg[key] === undefined || value > agg[key])
-        agg[key] = value;
-};
-const narrowMax = (agg, key, value) => {
-    if (agg[key] === undefined || value < agg[key])
-        agg[key] = value;
-};
-const narrowBoth = (agg, value) => {
-    narrowMin(agg, "minimum", value);
-    narrowMax(agg, "maximum", value);
-};
-const addDivisor = (agg, value) => {
-    agg.multipleOf ?? (agg.multipleOf = []);
-    if (!agg.multipleOf.includes(value))
-        agg.multipleOf.push(value);
-};
-const addPattern = (agg, pattern) => {
-    agg.patterns ?? (agg.patterns = new Set());
-    agg.patterns.add(pattern);
-};
-const intersectMime = (agg, mime) => {
-    agg.mime = agg.mime ? agg.mime.filter((m) => mime.includes(m)) : [...mime];
-};
-// last-wins, matching the bag's historical write order; the flag keeps an integer format from being lost to a later float one
-const setFormat = (agg, format) => {
-    agg.format = format;
-    if (format.includes("int"))
-        agg.isInt = true;
-};
-const minContributor = (agg, def) => narrowMin(agg, "minimum", def.minimum);
-const maxContributor = (agg, def) => narrowMax(agg, "maximum", def.maximum);
-const formatContributor = (ranges) => (agg, def) => {
-    setFormat(agg, def.format);
-    const [minimum, maximum] = ranges[def.format];
-    narrowMin(agg, "minimum", minimum);
-    narrowMax(agg, "maximum", maximum);
-};
-const contributors = {
-    greater_than: (agg, def) => narrowMin(agg, def.inclusive ? "minimum" : "exclusiveMinimum", def.value),
-    less_than: (agg, def) => narrowMax(agg, def.inclusive ? "maximum" : "exclusiveMaximum", def.value),
-    multiple_of: (agg, def) => addDivisor(agg, def.value),
-    number_format: formatContributor(NUMBER_FORMAT_RANGES),
-    bigint_format: formatContributor(BIGINT_FORMAT_RANGES),
-    min_length: minContributor,
-    max_length: maxContributor,
-    length_equals: (agg, def) => narrowBoth(agg, def.length),
-    min_size: minContributor,
-    max_size: maxContributor,
-    size_equals: (agg, def) => narrowBoth(agg, def.size),
-    string_format: (agg, def) => {
-        setFormat(agg, def.format);
-        if (def.pattern)
-            addPattern(agg, def.pattern);
-        if (def.format === "base64" || def.format === "base64url")
-            agg.contentEncoding = def.format;
-        if (def.local || def.precision === -1)
-            agg.laxFormat = true;
-    },
-    mime_type: (agg, def) => intersectMime(agg, def.mime),
-};
-function aggregateChecks(schema) {
-    const agg = {};
-    const def = schema._zod.def;
-    // a format schema is its own first check, same rule as $ZodType init
-    const list = schema._zod.traits.has("$ZodCheck")
-        ? [schema, ...(def.checks ?? [])]
-        : (def.checks ?? []);
-    for (const ch of list)
-        contributors[ch._zod.def.check]?.(agg, ch._zod.def);
-    // reconcile with the bag so third-party onattach contributions still land; first-party residue is never tighter than the fold, so merging it back is idempotent for one and additive for the other
-    const bag = schema._zod.bag;
-    if (bag.minimum !== undefined)
-        narrowMin(agg, "minimum", bag.minimum);
-    if (bag.exclusiveMinimum !== undefined)
-        narrowMin(agg, "exclusiveMinimum", bag.exclusiveMinimum);
-    if (bag.maximum !== undefined)
-        narrowMax(agg, "maximum", bag.maximum);
-    if (bag.exclusiveMaximum !== undefined)
-        narrowMax(agg, "exclusiveMaximum", bag.exclusiveMaximum);
-    if (bag.multipleOf !== undefined)
-        addDivisor(agg, bag.multipleOf);
-    if (bag.format !== undefined) {
-        agg.format ?? (agg.format = bag.format);
-        if (bag.format.includes("int"))
-            agg.isInt = true;
-    }
-    if (bag.mime)
-        intersectMime(agg, bag.mime);
-    for (const pattern of bag.patterns ?? [])
-        addPattern(agg, pattern);
-    return agg;
-}
-const formatMap = {
-    guid: "uuid",
-    url: "uri",
-    datetime: "date-time",
-    json_string: "json-string",
-    regex: "", // do not set
-};
-// ==================== SIMPLE TYPE PROCESSORS ====================
-// the runtime patterns are lax so parse paths never overflow the regex stack; the emitted schema swaps in the exact block forms, which zod itself never executes
-const exactPatterns = new Map([
-    [base64Charset, base64],
-    [base64urlCharset, base64url],
-]);
-const exactPattern = (p) => exactPatterns.get(p) ?? p;
-const stringProcessor = (schema, ctx, _json, _params) => {
-    const json = _json;
-    json.type = "string";
-    const { minimum, maximum, format, patterns, contentEncoding, laxFormat } = aggregateChecks(schema);
-    if (typeof minimum === "number")
-        json.minLength = minimum;
-    if (typeof maximum === "number")
-        json.maxLength = maximum;
-    // custom pattern overrides format
-    if (format) {
-        json.format = formatMap[format] ?? format;
-        if (json.format === "")
-            delete json.format; // empty format is not valid
-        // `z.iso.time()` is never full-time, and `laxFormat` carries the datetime shapes that also accept what their keyword forbids
-        if (format === "time" || laxFormat) {
-            delete json.format;
-        }
-    }
-    if (contentEncoding)
-        json.contentEncoding = contentEncoding;
-    if (patterns && patterns.size > 0) {
-        const patternList = [...patterns].map(exactPattern);
-        if (patternList.length === 1)
-            json.pattern = patternList[0].source;
-        else if (patternList.length > 1) {
-            json.allOf = [
-                ...patternList.map((regex) => ({
-                    ...(ctx.target === "draft-07" || ctx.target === "draft-04" || ctx.target === "openapi-3.0"
-                        ? { type: "string" }
-                        : {}),
-                    pattern: regex.source,
-                })),
-            ];
-        }
-    }
-};
-const numberProcessor = (schema, ctx, _json, params) => {
-    const json = _json;
-    const { minimum, maximum, multipleOf, exclusiveMaximum, exclusiveMinimum, isInt } = aggregateChecks(schema);
-    json.type = isInt ? "integer" : "number";
-    // when both minimum and exclusiveMinimum exist, pick the more restrictive one
-    const exMin = typeof exclusiveMinimum === "number" && exclusiveMinimum >= (minimum ?? Number.NEGATIVE_INFINITY);
-    const exMax = typeof exclusiveMaximum === "number" && exclusiveMaximum <= (maximum ?? Number.POSITIVE_INFINITY);
-    const legacy = ctx.target === "draft-04" || ctx.target === "openapi-3.0";
-    if (exMin) {
-        if (legacy) {
-            json.minimum = exclusiveMinimum;
-            json.exclusiveMinimum = true;
-        }
-        else {
-            json.exclusiveMinimum = exclusiveMinimum;
-        }
-    }
-    else if (typeof minimum === "number") {
-        json.minimum = minimum;
-    }
-    if (exMax) {
-        if (legacy) {
-            json.maximum = exclusiveMaximum;
-            json.exclusiveMaximum = true;
-        }
-        else {
-            json.exclusiveMaximum = exclusiveMaximum;
-        }
-    }
-    else if (typeof maximum === "number") {
-        json.maximum = maximum;
-    }
-    if (multipleOf) {
-        // JSON Schema requires a divisor strictly greater than zero, and a non-finite one does not survive JSON at all. A negative divisor accepts exactly what its absolute value accepts, so it still maps; zero, NaN and Infinity have no keyword form.
-        const divisors = new Set();
-        for (const divisor of multipleOf) {
-            if (Number.isFinite(divisor) && divisor !== 0)
-                divisors.add(Math.abs(divisor));
-            else
-                handleUnrepresentable(schema, ctx, json, params, `A multipleOf divisor of ${divisor} cannot be represented in JSON Schema`);
-        }
-        // chained divisors are a conjunction the keyword cannot carry alone, so extras ride an allOf, same as stacked patterns
-        const [first, ...rest] = divisors;
-        if (first !== undefined)
-            json.multipleOf = first;
-        if (rest.length)
-            json.allOf = [...(json.allOf ?? []), ...rest.map((m) => ({ multipleOf: m }))];
-    }
-};
-const booleanProcessor = (_schema, _ctx, json, _params) => {
-    json.type = "boolean";
-};
-const neverProcessor = (_schema, _ctx, json, _params) => {
-    json.not = {};
-};
-const unknownProcessor = (_schema, _ctx, _json, _params) => {
-    // empty schema accepts anything
-};
-const enumProcessor = (schema, _ctx, json, _params) => {
-    const def = schema._zod.def;
-    const values = getEnumValues(def.entries);
-    // an empty enum accepts nothing, same as z.never()
-    if (values.length === 0) {
-        json.not = {};
-        return;
-    }
-    // Number enums can have both string and number values
-    if (values.every((v) => typeof v === "number"))
-        json.type = "number";
-    if (values.every((v) => typeof v === "string"))
-        json.type = "string";
-    json.enum = values;
-};
-const customProcessor = (schema, ctx, json, params) => {
-    handleUnrepresentable(schema, ctx, json, params, "Custom types cannot be represented in JSON Schema");
-};
-const transformProcessor = (schema, ctx, json, params) => {
-    handleUnrepresentable(schema, ctx, json, params, "Transforms cannot be represented in JSON Schema");
-};
-// ==================== COMPOSITE TYPE PROCESSORS ====================
-const arrayProcessor = (schema, ctx, _json, params) => {
-    const json = _json;
-    const def = schema._zod.def;
-    const { minimum, maximum } = aggregateChecks(schema);
-    if (typeof minimum === "number")
-        json.minItems = minimum;
-    if (typeof maximum === "number")
-        json.maxItems = maximum;
-    json.type = "array";
-    json.items = processSchema(def.element, ctx, {
-        ...params,
-        path: [...params.path, "items"],
-    });
-};
-// Transform and catch set `optin = "optional"` at runtime so the parser lets them observe an
-// absent key, but their declared input type stays required. An input JSON Schema describes the
-// declared type, so resolve past them to the schema that actually carries the optionality.
-// Used by both `objectProcessor` (for `required`) and `tupleProcessor` (for `minItems`); see
-// wiki/optionality.md, "The JSON Schema emitter reads the *static* value".
-function inputOptin(schema) {
-    const def = schema._zod.def;
-    if (def.type === "pipe" && def.in._zod.traits.has("$ZodTransform")) {
-        return inputOptin(def.out);
-    }
-    if (def.type === "catch") {
-        return inputOptin(def.innerType);
-    }
-    return schema._zod.optin;
-}
-const objectProcessor = (schema, ctx, _json, params) => {
-    const json = _json;
-    const def = schema._zod.def;
-    const shape = def.shape;
-    // dropping it while still emitting `additionalProperties: false` would emit a schema that rejects data this one requires
-    const symbolKeys = Object.getOwnPropertySymbols(shape);
-    if (symbolKeys.length &&
-        handleUnrepresentable(schema, ctx, json, params, "Symbol keys cannot be represented in JSON Schema")) {
-        return;
-    }
-    json.type = "object";
-    json.properties = {};
-    for (const key in shape) {
-        // assignProp so a __proto__ key becomes an own property instead of hitting the inherited setter on the plain {} we build into
-        assignProp(json.properties, key, processSchema(shape[key], ctx, {
-            ...params,
-            path: [...params.path, "properties", key],
-        }));
-    }
-    // required keys
-    const requiredKeys = [];
-    for (const key of Object.keys(shape)) {
-        const field = def.shape[key];
-        if (ctx.io === "input" ? inputOptin(field) === undefined : field._zod.optout === undefined) {
-            requiredKeys.push(key);
-        }
-    }
-    if (requiredKeys.length > 0) {
-        json.required = requiredKeys;
-    }
-    // catchall
-    if (def.catchall?._zod.def.type === "never") {
-        // strict
-        json.additionalProperties = false;
-    }
-    else if (!def.catchall) {
-        // regular
-        if (ctx.io === "output")
-            json.additionalProperties = false;
-    }
-    else if (def.catchall) {
-        json.additionalProperties = processSchema(def.catchall, ctx, {
-            ...params,
-            path: [...params.path, "additionalProperties"],
-        });
-    }
-};
-const unionProcessor = (schema, ctx, json, params) => {
-    const def = schema._zod.def;
-    // Exclusive unions (inclusive === false) use oneOf (exactly one match) instead of anyOf (one or more matches). This includes both z.xor() and discriminated unions
-    const isExclusive = def.inclusive === false;
-    const options = def.options.map((x, i) => processSchema(x, ctx, {
-        ...params,
-        path: [...params.path, isExclusive ? "oneOf" : "anyOf", i],
-    }));
-    if (isExclusive) {
-        json.oneOf = options;
-    }
-    else {
-        json.anyOf = options;
-    }
-};
-const intersectionProcessor = (schema, ctx, json, params) => {
-    const def = schema._zod.def;
-    const a = processSchema(def.left, ctx, {
-        ...params,
-        path: [...params.path, "allOf", 0],
-    });
-    const b = processSchema(def.right, ctx, {
-        ...params,
-        path: [...params.path, "allOf", 1],
-    });
-    const isSimpleIntersection = (val) => "allOf" in val && Object.keys(val).length === 1;
-    const allOf = [
-        ...(isSimpleIntersection(a) ? a.allOf : [a]),
-        ...(isSimpleIntersection(b) ? b.allOf : [b]),
-    ];
-    json.allOf = allOf;
-    // Recorded innermost first, so a nested intersection has already folded by the time this one is considered. The array is the handle rather than the schema, because a wrapper that inherits this schema shares the same array; `finalize` folds every object holding it. See `foldIntersection`.
-    ctx.intersections.push(allOf);
-};
-/** JSON object keys are always strings, so a numeric record key schema is re-expressed over the
- * numeric-string form the record parser matches. Deferred to `finalize`, after the flatten: a key
- * behind a wrapper only carries its own `type` before then, and a union key only has its branches.
- *
- * A numeric bound cannot apply to a property name, so `minimum` and its siblings are dropped rather
- * than carried over: keeping them beside `type: "string"` reproduces the match-nothing schema this
- * exists to fix. A key that carries one therefore emits wider than the record parses — `z.record(z.number().min(5), V)`
- * accepts `"3"` — which is the deliberate trade, since throwing on it would reject an ordinary schema
- * outright. */
-function stringifyKeyNames(bySchema, json, visited) {
-    // an extracted key that rewrites cannot go on sharing its definition — the string form a key position needs is not the number form every other reference wants — so it inlines. One that does not rewrite keeps the `$ref`.
-    if (json.$ref) {
-        // a recursive key holds its own reference inside its definition, so a node already on the path is left alone rather than resolved again
-        if (visited.has(json))
-            return json;
-        visited.add(json);
-        const def = bySchema.get(json)?.def;
-        if (!def)
-            return json;
-        const inlined = stringifyKeyNames(bySchema, def, visited);
-        return inlined === def ? json : inlined;
-    }
-    for (const keyword of ["anyOf", "oneOf"]) {
-        const branches = json[keyword];
-        if (!Array.isArray(branches))
-            continue;
-        const mapped = branches.map((branch) => stringifyKeyNames(bySchema, branch, visited));
-        // rebuilding regardless would detach a key that had nothing to re-express, dropping its `$ref` and leaking the internal `id`
-        if (mapped.some((branch, i) => branch !== branches[i]))
-            json = { ...json, [keyword]: mapped };
-    }
-    // a member that already admits a string leaves the key unconstrained, so the node's own type re-expresses only when every member is numeric
-    const types = Array.isArray(json.type) ? json.type : [json.type];
-    const numericType = !types.includes("string") && types.some((t) => t === "number" || t === "integer");
-    // a heterogeneous key carries no type at all, so its numeric members are caught here instead
-    const values = json.enum ?? (json.const !== undefined ? [json.const] : undefined);
-    if (!numericType && !values?.some((v) => typeof v === "number"))
-        return json;
-    const { minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf, format, id, ...rest } = json;
-    if (rest.enum)
-        rest.enum = rest.enum.map((v) => (typeof v === "number" ? String(v) : v));
-    else if (typeof rest.const === "number")
-        rest.const = String(rest.const);
-    // a heterogeneous key keeps its absent type: the stringified members already say what a key may be
-    if (!numericType)
-        return rest;
-    rest.type = "string";
-    if (!values)
-        rest.pattern = (types.includes("number") ? number$1 : integer).source;
-    return rest;
-}
-/** Every record of one conversion, so the carriers are found in a single pass rather than once per record. */
-const pendingRecords = new WeakMap();
-function rewriteKeyNames(ctx) {
-    // an extracted key is resolved by the object `extractToDef` left in its place, so the map is built once rather than searched per reference. `_zod.toJSONSchema` can hand the same object to two schemas, so the first entry carrying a body wins, as a search would have found it.
-    const bySchema = new Map();
-    for (const entry of ctx.seen.values()) {
-        if (entry.def && !bySchema.has(entry.schema))
-            bySchema.set(entry.schema, entry);
-    }
-    const rewrites = new Map();
-    for (const record of pendingRecords.get(ctx) ?? []) {
-        const seen = ctx.seen.get(record);
-        const names = (seen?.def ?? seen?.schema)?.propertyNames;
-        if (!names || names === true || rewrites.has(names))
-            continue;
-        const rewritten = stringifyKeyNames(bySchema, names, new Set());
-        if (rewritten !== names)
-            rewrites.set(names, rewritten);
-    }
-    if (!rewrites.size)
-        return;
-    // the flatten has already copied each record's own properties onto every wrapper by reference, and an extracted body is another such copy, so every carrier holding a rewritten key is updated together
-    for (const entry of ctx.seen.values()) {
-        for (const carrier of [entry.schema, entry.def]) {
-            const rewritten = carrier && rewrites.get(carrier.propertyNames);
-            if (rewritten)
-                carrier.propertyNames = rewritten;
-        }
-    }
-}
-const recordProcessor = (schema, ctx, _json, params) => {
-    const json = _json;
-    const def = schema._zod.def;
-    json.type = "object";
-    // For looseRecord with regex patterns, use patternProperties. This correctly represents "only validate keys matching the pattern" semantics and composes well with allOf (intersections)
-    const keyType = def.keyType;
-    const patterns = aggregateChecks(keyType).patterns;
-    if (def.mode === "loose" && patterns && patterns.size > 0) {
-        // Use patternProperties for looseRecord with regex patterns
-        const valueSchema = processSchema(def.valueType, ctx, {
-            ...params,
-            path: [...params.path, "patternProperties", "*"],
-        });
-        json.patternProperties = {};
-        for (const pattern of patterns) {
-            assignProp(json.patternProperties, exactPattern(pattern).source, valueSchema);
-        }
-    }
-    else {
-        // Default behavior: use propertyNames + additionalProperties
-        if (ctx.target === "draft-07" || ctx.target === "draft-2020-12") {
-            json.propertyNames = processSchema(def.keyType, ctx, {
-                ...params,
-                path: [...params.path, "propertyNames"],
-            });
-            let pending = pendingRecords.get(ctx);
-            if (!pending) {
-                pending = [];
-                pendingRecords.set(ctx, pending);
-                ctx.deferred.push(() => rewriteKeyNames(ctx));
-            }
-            pending.push(schema);
-        }
-        json.additionalProperties = processSchema(def.valueType, ctx, {
-            ...params,
-            path: [...params.path, "additionalProperties"],
-        });
-    }
-    // Add required for keys with discrete values (enum, literal, etc.)
-    const keyValues = keyType._zod.values;
-    // Every key shares one value schema, so an optional-in value makes the whole key set omittable on input. Output keeps them: the exhaustive branch assigns every key, even one whose value came back undefined.
-    const omittableOnInput = ctx.io === "input" && inputOptin(def.valueType) !== undefined;
-    if (keyValues && !def.partial && !omittableOnInput) {
-        const validKeyValues = [...keyValues].filter((v) => typeof v === "string" || typeof v === "number");
-        if (validKeyValues.length > 0) {
-            json.required = validKeyValues.map(String);
-        }
-    }
-};
-const nullableProcessor = (schema, ctx, json, params) => {
-    const def = schema._zod.def;
-    const inner = processSchema(def.innerType, ctx, params);
-    const seen = ctx.seen.get(schema);
-    if (ctx.target === "openapi-3.0") {
-        seen.ref = def.innerType;
-        json.nullable = true;
-    }
-    else {
-        json.anyOf = [inner, { type: "null" }];
-    }
-};
-const nonoptionalProcessor = (schema, ctx, _json, params) => {
-    const def = schema._zod.def;
-    processSchema(def.innerType, ctx, params);
-    const seen = ctx.seen.get(schema);
-    seen.ref = def.innerType;
-};
-/** Round-trips a default value through JSON so the emitted schema is guaranteed to be valid JSON.
- * A BigInt has no reliable encoding, so it goes through `unrepresentable` like any other
- * unrepresentable value. Returns a sentinel when the caller must not write a default of its own. */
-const UNREPRESENTABLE_DEFAULT = Symbol();
-function serializeDefaultValue(value, schema, ctx, json, params) {
-    let unrepresentable = false;
-    const serialized = JSON.stringify(value, (_, val) => {
-        if (typeof val !== "bigint")
-            return val;
-        unrepresentable = true;
-        return null;
-    });
-    if (!unrepresentable)
-        return JSON.parse(serialized);
-    handleUnrepresentable(schema, ctx, json, params, "BigInt defaults cannot be represented in JSON Schema");
-    return UNREPRESENTABLE_DEFAULT;
-}
-const defaultProcessor = (schema, ctx, json, params) => {
-    const def = schema._zod.def;
-    processSchema(def.innerType, ctx, params);
-    const seen = ctx.seen.get(schema);
-    seen.ref = def.innerType;
-    const value = serializeDefaultValue(def.defaultValue, schema, ctx, json, params);
-    if (value !== UNREPRESENTABLE_DEFAULT)
-        json.default = value;
-};
-const prefaultProcessor = (schema, ctx, json, params) => {
-    const def = schema._zod.def;
-    processSchema(def.innerType, ctx, params);
-    const seen = ctx.seen.get(schema);
-    seen.ref = def.innerType;
-    if (ctx.io !== "input")
-        return;
-    const value = serializeDefaultValue(def.defaultValue, schema, ctx, json, params);
-    if (value !== UNREPRESENTABLE_DEFAULT)
-        json._prefault = value;
-};
-const catchProcessor = (schema, ctx, json, params) => {
-    const def = schema._zod.def;
-    processSchema(def.innerType, ctx, params);
-    const seen = ctx.seen.get(schema);
-    seen.ref = def.innerType;
-    let catchValue;
-    try {
-        catchValue = def.catchValue(undefined);
-    }
-    catch {
-        handleUnrepresentable(schema, ctx, json, params, "Dynamic catch values are not supported in JSON Schema");
-        return;
-    }
-    json.default = catchValue;
-};
-const pipeProcessor = (schema, ctx, _json, params) => {
-    const def = schema._zod.def;
-    const inIsTransform = def.in._zod.traits.has("$ZodTransform");
-    const innerType = ctx.io === "input" ? (inIsTransform ? def.out : def.in) : def.out;
-    processSchema(innerType, ctx, params);
-    const seen = ctx.seen.get(schema);
-    seen.ref = innerType;
-};
-const readonlyProcessor = (schema, ctx, json, params) => {
-    const def = schema._zod.def;
-    processSchema(def.innerType, ctx, params);
-    const seen = ctx.seen.get(schema);
-    seen.ref = def.innerType;
-    json.readOnly = true;
-};
-const optionalProcessor = (schema, ctx, _json, params) => {
-    const def = schema._zod.def;
-    processSchema(def.innerType, ctx, params);
-    const seen = ctx.seen.get(schema);
-    seen.ref = def.innerType;
-};
-
-/* Prototypes that already carry the lazy helper methods. Seeded with the
- * intrinsics so that `init` on a foreign object — it accepts any object —
- * can never install an accessor onto a prototype we do not own. */
-const _installedErrorProtos = /* @__PURE__ */ new WeakSet([Object.prototype, Error.prototype]);
-/* Helper methods live as non-enumerable lazy getters on the shared
- * prototype instead of own properties on every instance. On first
- * access the getter allocates the per-instance closure and caches it
- * as a non-enumerable own property, so detached usage still works and
- * the allocation only happens for methods actually touched. */
-function _lazyMethod(proto, key, make) {
-    Object.defineProperty(proto, key, {
-        configurable: true,
-        enumerable: false,
-        get() {
-            const value = make(this);
-            Object.defineProperty(this, key, { value, configurable: true, writable: true });
-            return value;
-        },
-        set(value) {
-            Object.defineProperty(this, key, { value, configurable: true, writable: true });
-        },
-    });
-}
-const initializer = (inst, issues) => {
-    $ZodError.init(inst, issues);
-    inst.name = "ZodError";
-    const proto = Object.getPrototypeOf(inst);
-    if (_installedErrorProtos.has(proto))
-        return;
-    _installedErrorProtos.add(proto);
-    _lazyMethod(proto, "format", (self) => (mapper) => formatError(self, mapper));
-    _lazyMethod(proto, "flatten", (self) => (mapper) => flattenError(self, mapper));
-    _lazyMethod(proto, "addIssue", (self) => (issue) => {
-        self.issues.push(issue);
-        self.message = JSON.stringify(self.issues, jsonStringifyReplacer, 2);
-    });
-    _lazyMethod(proto, "addIssues", (self) => (issues) => {
-        self.issues.push(...issues);
-        self.message = JSON.stringify(self.issues, jsonStringifyReplacer, 2);
-    });
-    Object.defineProperty(proto, "isEmpty", {
-        configurable: true,
-        enumerable: false,
-        get() {
-            return this.issues.length === 0;
-        },
-    });
-};
-const ZodRealError = /*@__PURE__*/ $constructor("ZodError", initializer, undefined, {
-    Parent: Error,
-});
-// /** @deprecated Use `z.core.$ZodErrorMapCtx` instead. */
-// export type ErrorMapCtx = core.$ZodErrorMapCtx;
-
-const parse$1 = /* @__PURE__ */ _parse(ZodRealError);
-const parseAsync = /* @__PURE__ */ _parseAsync(ZodRealError);
-const safeParse = /* @__PURE__ */ _safeParse(ZodRealError);
-const safeParseAsync = /* @__PURE__ */ _safeParseAsync(ZodRealError);
-// Codec functions
-const encode = /* @__PURE__ */ _encode(ZodRealError);
-const decode = /* @__PURE__ */ _decode(ZodRealError);
-const encodeAsync = /* @__PURE__ */ _encodeAsync(ZodRealError);
-const decodeAsync = /* @__PURE__ */ _decodeAsync(ZodRealError);
-const safeEncode = /* @__PURE__ */ _safeEncode(ZodRealError);
-const safeDecode = /* @__PURE__ */ _safeDecode(ZodRealError);
-const safeEncodeAsync = /* @__PURE__ */ _safeEncodeAsync(ZodRealError);
-const safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync(ZodRealError);
-
-// Register English as the default locale on first ZodType construction. Hooked into the `ZodType` `$constructor` (rather than a top-level `config(en())` in `external.ts`) so bundlers honoring `sideEffects: false` can't tree-shake it out — see #5953, #5725. An explicit `z.config(z.locales.xx())` call wins regardless of order, since this only sets the default when none is present.
-function _ensureDefaultLocale() {
-    if (!globalConfig.localeError)
-        config(en());
-}
-// the default memoizer is read by the core container init, which runs before `ZodType.init`, so each container calls this first
-function _ensureDefaultMemoizer() {
-    if (!globalConfig.memoizer)
-        config({ memoizer: memoizer() });
-}
-const ZodType = /*@__PURE__*/ $constructor("ZodType", (inst, def) => {
-    _ensureDefaultLocale();
-    $ZodType.init(inst, def);
-    inst.def = def;
-    inst.type = def.type;
-    return inst;
-}, {
-    check(...chks) {
-        const def = this.def;
-        return this.clone(mergeDefs(def, {
-            checks: [
-                ...(def.checks ?? []),
-                ...chks.map((ch) => typeof ch === "function" ? { _zod: { check: ch, def: { check: "custom" }, onattach: [] } } : ch),
-            ],
-        }), { parent: true });
-    },
-    with(...chks) {
-        return this.check(...chks);
-    },
-    clone(def, params) {
-        return clone(this, def, params);
-    },
-    brand() {
-        return this;
-    },
-    register(reg, meta) {
-        reg.add(this, meta);
-        return this;
-    },
-    refine(check, params) {
-        return this.check(refine(check, params));
-    },
-    superRefine(refinement, params) {
-        return this.check(superRefine(refinement, params));
-    },
-    overwrite(fn) {
-        return this.check(_overwrite(fn));
-    },
-    optional() {
-        return optional(this);
-    },
-    exactOptional() {
-        return exactOptional(this);
-    },
-    nullable() {
-        return nullable(this);
-    },
-    nullish() {
-        return optional(nullable(this));
-    },
-    nonoptional(params) {
-        return nonoptional(this, params);
-    },
-    array() {
-        return array(this);
-    },
-    or(arg) {
-        return union([this, arg]);
-    },
-    and(arg) {
-        return intersection(this, arg);
-    },
-    transform(tx) {
-        return pipe(this, transform(tx));
-    },
-    default(d) {
-        return _default(this, d);
-    },
-    prefault(d) {
-        return prefault(this, d);
-    },
-    catch(params) {
-        return _catch(this, params);
-    },
-    pipe(target) {
-        return pipe(this, target);
-    },
-    readonly() {
-        return readonly(this);
-    },
-    describe(description) {
-        const cl = this.clone();
-        globalRegistry.add(cl, { description });
-        return cl;
-    },
-    meta(...args) {
-        // overloaded: meta() returns the registered metadata, meta(data) returns a clone with `data` registered. The mapped type picks up the second overload, so we accept variadic any-args and return `any` to satisfy both at runtime.
-        if (args.length === 0)
-            return globalRegistry.get(this);
-        const cl = this.clone();
-        globalRegistry.add(cl, args[0]);
-        return cl;
-    },
-    isOptional() {
-        return this.safeParse(undefined).success;
-    },
-    isNullable() {
-        return this.safeParse(null).success;
-    },
-    apply(fn, ...args) {
-        return args.length === 0 ? fn(this) : fn(this, ...args);
-    },
-    // Overrides core's `~standard` to add `jsonSchema`. Must stay a prototype entry: redefining it per instance demotes instances to dictionary mode.
-    get "~standard"() {
-        return hide(this, "~standard", {
-            ...standardProps(this),
-            jsonSchema: {
-                input: createStandardJSONSchemaMethod(this, "input"),
-                output: createStandardJSONSchemaMethod(this, "output"),
-            },
-        });
-    },
-    set "~standard"(value) {
-        own(this, "~standard", value);
-    },
-    parse: function _parse(data, params) {
-        return parse$1(this, data, params, { callee: _parse });
-    },
-    parseAsync: async function _parseAsync(data, params) {
-        return await parseAsync(this, data, params, { callee: _parseAsync });
-    },
-    safeParse(data, params) {
-        return safeParse(this, data, params);
-    },
-    async safeParseAsync(data, params) {
-        return safeParseAsync(this, data, params);
-    },
-    // `spa` is an alias: same function object as `safeParseAsync`, as before.
-    get spa() {
-        return this?.safeParseAsync;
-    },
-    set spa(value) {
-        own(this, "spa", value);
-    },
-    validate(data, params) {
-        return validate(this, data, params);
-    },
-    validateAsync(data, params) {
-        return validateAsync$1(this, data, params);
-    },
-    encode: function _encode(data, params) {
-        return encode(this, data, params, { callee: _encode });
-    },
-    decode: function _decode(data, params) {
-        return decode(this, data, params, { callee: _decode });
-    },
-    encodeAsync: async function _encodeAsync(data, params) {
-        return await encodeAsync(this, data, params, { callee: _encodeAsync });
-    },
-    decodeAsync: async function _decodeAsync(data, params) {
-        return await decodeAsync(this, data, params, { callee: _decodeAsync });
-    },
-    safeEncode(data, params) {
-        return safeEncode(this, data, params);
-    },
-    safeDecode(data, params) {
-        return safeDecode(this, data, params);
-    },
-    async safeEncodeAsync(data, params) {
-        return safeEncodeAsync(this, data, params);
-    },
-    async safeDecodeAsync(data, params) {
-        return safeDecodeAsync(this, data, params);
-    },
-    toJSONSchema(params) {
-        return createToJSONSchemaMethod(this, {})(params);
-    },
-    // Reads through to the registry on every access, so it must not cache.
-    get description() {
-        return globalRegistry.get(this)?.description;
-    },
-    // No setter: `schema._def = x` throws, as it did when `_def` was a non-writable own property.
-    get _def() {
-        return this._zod.def;
-    },
-});
-/** @internal */
-const _ZodString = /*@__PURE__*/ $constructor("_ZodString", (inst, def) => {
-    $ZodString.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => stringProcessor(inst, ctx, json);
-}, 
-/*@__PURE__*/ derived({
-    format: (inst) => aggregateChecks(inst).format ?? null,
-    minLength: (inst) => aggregateChecks(inst).minimum ?? null,
-    maxLength: (inst) => aggregateChecks(inst).maximum ?? null,
-}, {
-    regex(...args) {
-        return this.check(_regex(...args));
-    },
-    includes(...args) {
-        return this.check(_includes(...args));
-    },
-    startsWith(...args) {
-        return this.check(_startsWith(...args));
-    },
-    endsWith(...args) {
-        return this.check(_endsWith(...args));
-    },
-    min(...args) {
-        return this.check(_minLength(...args));
-    },
-    max(...args) {
-        return this.check(_maxLength(...args));
-    },
-    length(...args) {
-        return this.check(_length(...args));
-    },
-    nonempty(...args) {
-        return this.check(_minLength(1, ...args));
-    },
-    lowercase(params) {
-        return this.check(_lowercase(params));
-    },
-    uppercase(params) {
-        return this.check(_uppercase(params));
-    },
-    trim() {
-        return this.check(_trim());
-    },
-    normalize(...args) {
-        return this.check(_normalize(...args));
-    },
-    toLowerCase() {
-        return this.check(_toLowerCase());
-    },
-    toUpperCase() {
-        return this.check(_toUpperCase());
-    },
-    slugify() {
-        return this.check(_slugify());
-    },
-}));
-const ZodString = /*@__PURE__*/ $constructor("ZodString", (inst, def) => {
-    $ZodString.init(inst, def);
-    _ZodString.init(inst, def);
-}, {
-    email(params) {
-        return this.check(_email(ZodEmail, params));
-    },
-    url(params) {
-        return this.check(_url(ZodURL, params));
-    },
-    jwt(params) {
-        return this.check(_jwt(ZodJWT, params));
-    },
-    emoji(params) {
-        return this.check(_emoji(ZodEmoji, params));
-    },
-    guid(params) {
-        return this.check(_guid(ZodGUID, params));
-    },
-    uuid(params) {
-        return this.check(_uuid(ZodUUID, params));
-    },
-    uuidv4(params) {
-        return this.check(_uuidv4(ZodUUID, params));
-    },
-    uuidv6(params) {
-        return this.check(_uuidv6(ZodUUID, params));
-    },
-    uuidv7(params) {
-        return this.check(_uuidv7(ZodUUID, params));
-    },
-    nanoid(params) {
-        return this.check(_nanoid(ZodNanoID, params));
-    },
-    cuid(params) {
-        return this.check(_cuid(ZodCUID, params));
-    },
-    cuid2(params) {
-        return this.check(_cuid2(ZodCUID2, params));
-    },
-    ulid(params) {
-        return this.check(_ulid(ZodULID, params));
-    },
-    base64(params) {
-        return this.check(_base64(ZodBase64, params));
-    },
-    base64url(params) {
-        return this.check(_base64url(ZodBase64URL, params));
-    },
-    xid(params) {
-        return this.check(_xid(ZodXID, params));
-    },
-    ksuid(params) {
-        return this.check(_ksuid(ZodKSUID, params));
-    },
-    ipv4(params) {
-        return this.check(_ipv4(ZodIPv4, params));
-    },
-    ipv6(params) {
-        return this.check(_ipv6(ZodIPv6, params));
-    },
-    cidrv4(params) {
-        return this.check(_cidrv4(ZodCIDRv4, params));
-    },
-    cidrv6(params) {
-        return this.check(_cidrv6(ZodCIDRv6, params));
-    },
-    e164(params) {
-        return this.check(_e164(ZodE164, params));
-    },
-    datetime(params) {
-        return this.check(_isoDateTime(ZodISODateTime, params));
-    },
-    date(params) {
-        return this.check(_isoDate(ZodISODate, params));
-    },
-    time(params) {
-        return this.check(_isoTime(ZodISOTime, params));
-    },
-    duration(params) {
-        return this.check(_isoDuration(ZodISODuration, params));
-    },
-});
-function string(params) {
-    return _string(ZodString, params);
-}
-const ZodStringFormat = /*@__PURE__*/ $constructor("ZodStringFormat", (inst, def) => {
-    $ZodStringFormat.init(inst, def);
-    _ZodString.init(inst, def);
-});
-const ZodISODateTime = /*@__PURE__*/ $constructor("ZodISODateTime", (inst, def) => {
-    $ZodISODateTime.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodISODate = /*@__PURE__*/ $constructor("ZodISODate", (inst, def) => {
-    $ZodISODate.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodISOTime = /*@__PURE__*/ $constructor("ZodISOTime", (inst, def) => {
-    $ZodISOTime.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodISODuration = /*@__PURE__*/ $constructor("ZodISODuration", (inst, def) => {
-    $ZodISODuration.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodEmail = /*@__PURE__*/ $constructor("ZodEmail", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodEmail.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodGUID = /*@__PURE__*/ $constructor("ZodGUID", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodGUID.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodUUID = /*@__PURE__*/ $constructor("ZodUUID", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodUUID.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodURL = /*@__PURE__*/ $constructor("ZodURL", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodURL.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodEmoji = /*@__PURE__*/ $constructor("ZodEmoji", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodEmoji.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodNanoID = /*@__PURE__*/ $constructor("ZodNanoID", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodNanoID.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-/**
- * @deprecated CUID v1 is deprecated by its authors due to information leakage
- * (timestamps embedded in the id). Use {@link ZodCUID2} instead.
- * See https://github.com/paralleldrive/cuid.
- */
-const ZodCUID = /*@__PURE__*/ $constructor("ZodCUID", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodCUID.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodCUID2 = /*@__PURE__*/ $constructor("ZodCUID2", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodCUID2.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodULID = /*@__PURE__*/ $constructor("ZodULID", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodULID.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodXID = /*@__PURE__*/ $constructor("ZodXID", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodXID.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodKSUID = /*@__PURE__*/ $constructor("ZodKSUID", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodKSUID.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodIPv4 = /*@__PURE__*/ $constructor("ZodIPv4", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodIPv4.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodIPv6 = /*@__PURE__*/ $constructor("ZodIPv6", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodIPv6.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodCIDRv4 = /*@__PURE__*/ $constructor("ZodCIDRv4", (inst, def) => {
-    $ZodCIDRv4.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodCIDRv6 = /*@__PURE__*/ $constructor("ZodCIDRv6", (inst, def) => {
-    $ZodCIDRv6.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodBase64 = /*@__PURE__*/ $constructor("ZodBase64", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodBase64.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodBase64URL = /*@__PURE__*/ $constructor("ZodBase64URL", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodBase64URL.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodE164 = /*@__PURE__*/ $constructor("ZodE164", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodE164.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodJWT = /*@__PURE__*/ $constructor("ZodJWT", (inst, def) => {
-    // ZodStringFormat.init(inst, def);
-    $ZodJWT.init(inst, def);
-    ZodStringFormat.init(inst, def);
-});
-const ZodNumber = /*@__PURE__*/ $constructor("ZodNumber", (inst, def) => {
-    $ZodNumber.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => numberProcessor(inst, ctx, json, params);
-    inst.isFinite = true;
-}, 
-/*@__PURE__*/ derived({
-    minValue: (inst) => {
-        const { minimum, exclusiveMinimum } = aggregateChecks(inst);
-        return Math.max(minimum ?? Number.NEGATIVE_INFINITY, exclusiveMinimum ?? Number.NEGATIVE_INFINITY);
-    },
-    maxValue: (inst) => {
-        const { maximum, exclusiveMaximum } = aggregateChecks(inst);
-        return Math.min(maximum ?? Number.POSITIVE_INFINITY, exclusiveMaximum ?? Number.POSITIVE_INFINITY);
-    },
-    isInt: (inst) => {
-        const { isInt, multipleOf } = aggregateChecks(inst);
-        return !!isInt || !!multipleOf?.some(Number.isSafeInteger);
-    },
-    format: (inst) => aggregateChecks(inst).format ?? null,
-}, {
-    gt(value, params) {
-        return this.check(_gt(value, params));
-    },
-    gte(value, params) {
-        return this.check(_gte(value, params));
-    },
-    min(value, params) {
-        return this.check(_gte(value, params));
-    },
-    lt(value, params) {
-        return this.check(_lt(value, params));
-    },
-    lte(value, params) {
-        return this.check(_lte(value, params));
-    },
-    max(value, params) {
-        return this.check(_lte(value, params));
-    },
-    int(params) {
-        return this.check(int(params));
-    },
-    safe(params) {
-        return this.check(int(params));
-    },
-    positive(params) {
-        return this.check(_gt(0, params));
-    },
-    nonnegative(params) {
-        return this.check(_gte(0, params));
-    },
-    negative(params) {
-        return this.check(_lt(0, params));
-    },
-    nonpositive(params) {
-        return this.check(_lte(0, params));
-    },
-    multipleOf(value, params) {
-        return this.check(_multipleOf(value, params));
-    },
-    step(value, params) {
-        return this.check(_multipleOf(value, params));
-    },
-    finite() {
-        return this;
-    },
-}));
-function number(params) {
-    return _number(ZodNumber, params);
-}
-const ZodNumberFormat = /*@__PURE__*/ $constructor("ZodNumberFormat", (inst, def) => {
-    $ZodNumberFormat.init(inst, def);
-    ZodNumber.init(inst, def);
-});
-function int(params) {
-    return _int(ZodNumberFormat, params);
-}
-const ZodBoolean = /*@__PURE__*/ $constructor("ZodBoolean", (inst, def) => {
-    $ZodBoolean.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => booleanProcessor(inst, ctx, json);
-});
-function boolean(params) {
-    return _boolean(ZodBoolean, params);
-}
-const ZodUnknown = /*@__PURE__*/ $constructor("ZodUnknown", (inst, def) => {
-    $ZodUnknown.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => unknownProcessor();
-});
-function unknown() {
-    return _unknown(ZodUnknown);
-}
-const ZodNever = /*@__PURE__*/ $constructor("ZodNever", (inst, def) => {
-    $ZodNever.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => neverProcessor(inst, ctx, json);
-});
-function never(params) {
-    return _never(ZodNever, params);
-}
-const ZodArray = /*@__PURE__*/ $constructor("ZodArray", (inst, def) => {
-    _ensureDefaultMemoizer();
-    $ZodArray.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => arrayProcessor(inst, ctx, json, params);
-    inst.element = def.element;
-}, {
-    min(n, params) {
-        return this.check(_minLength(n, params));
-    },
-    nonempty(params) {
-        return this.check(_minLength(1, params));
-    },
-    max(n, params) {
-        return this.check(_maxLength(n, params));
-    },
-    length(n, params) {
-        return this.check(_length(n, params));
-    },
-    unwrap() {
-        return this.element;
-    },
-});
-function array(element, params) {
-    return _array(ZodArray, element, params);
-}
-const ZodObject = /*@__PURE__*/ $constructor("ZodObject", (inst, def) => {
-    _ensureDefaultMemoizer();
-    $ZodObjectJIT.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => objectProcessor(inst, ctx, json, params);
-    installLazyProp(inst, "shape", (self) => self._zod.def.shape, false);
-}, {
-    keyof() {
-        return _enum(Object.keys(this._zod.def.shape));
-    },
-    catchall(catchall) {
-        // `mergeDefs` rather than a spread: spreading reads `shape`, and resolving it can mint a whole fresh subtree
-        return this.clone(mergeDefs(this._zod.def, { catchall: catchall }));
-    },
-    passthrough() {
-        return this.clone(mergeDefs(this._zod.def, { catchall: unknown() }));
-    },
-    loose() {
-        return this.clone(mergeDefs(this._zod.def, { catchall: unknown() }));
-    },
-    strict() {
-        return this.clone(mergeDefs(this._zod.def, { catchall: never() }));
-    },
-    strip() {
-        return this.clone(mergeDefs(this._zod.def, { catchall: undefined }));
-    },
-    extend(incoming) {
-        return extend(this, incoming);
-    },
-    safeExtend(incoming) {
-        return safeExtend(this, incoming);
-    },
-    merge(other) {
-        return merge(this, other);
-    },
-    pick(mask) {
-        return pick(this, mask);
-    },
-    omit(mask) {
-        return omit(this, mask);
-    },
-    partial(...args) {
-        return partial(ZodOptional, this, args[0]);
-    },
-    exactPartial(...args) {
-        return partial(ZodExactOptional, this, args[0], "exactPartial");
-    },
-    required(...args) {
-        return required(ZodNonOptional, this, args[0]);
-    },
-});
-function object(shape, params) {
-    const def = {
-        type: "object",
-        shape: shape ?? {},
-        ...normalizeParams(params),
-    };
-    return new ZodObject(def);
-}
-// strictObject
-function strictObject(shape, params) {
-    return new ZodObject({
-        type: "object",
-        shape,
-        catchall: never(),
-        ...normalizeParams(params),
-    });
-}
-const ZodUnion = /*@__PURE__*/ $constructor("ZodUnion", (inst, def) => {
-    $ZodUnion.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => unionProcessor(inst, ctx, json, params);
-    inst.options = def.options;
-});
-function union(options, params) {
-    return new ZodUnion({
-        type: "union",
-        options: options,
-        ...normalizeParams(params),
-    });
-}
-const ZodIntersection = /*@__PURE__*/ $constructor("ZodIntersection", (inst, def) => {
-    $ZodIntersection.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => intersectionProcessor(inst, ctx, json, params);
-});
-function intersection(left, right) {
-    return new ZodIntersection({
-        type: "intersection",
-        left: left,
-        right: right,
-    });
-}
-const ZodRecord = /*@__PURE__*/ $constructor("ZodRecord", (inst, def) => {
-    _ensureDefaultMemoizer();
-    $ZodRecord.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => recordProcessor(inst, ctx, json, params);
-    inst.keyType = def.keyType;
-    inst.valueType = def.valueType;
-});
-function record(keyType, valueType, params) {
-    // v3-compat: z.record(valueType, params?) — defaults keyType to z.string()
-    if (!valueType || !valueType._zod) {
-        return new ZodRecord({
-            type: "record",
-            keyType: string(),
-            valueType: keyType,
-            ...normalizeParams(valueType),
-        });
-    }
-    return new ZodRecord({
-        type: "record",
-        keyType,
-        valueType: valueType,
-        ...normalizeParams(params),
-    });
-}
-const ZodEnum = /*@__PURE__*/ $constructor("ZodEnum", (inst, def) => {
-    $ZodEnum.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => enumProcessor(inst, ctx, json);
-    inst.enum = def.entries;
-    // reuse the parsed value set so a numeric TS enum's reverse-mapping keys stay out
-    inst.options = [...inst._zod.values];
-    const keys = new Set(Object.keys(def.entries));
-    inst.extract = (values, params) => {
-        const newEntries = {};
-        for (const value of values) {
-            if (keys.has(value)) {
-                newEntries[value] = def.entries[value];
-            }
-            else
-                throw new Error(`Key ${value} not found in enum`);
-        }
-        return new ZodEnum({
-            ...def,
-            checks: [],
-            ...normalizeParams(params),
-            entries: newEntries,
-        });
-    };
-    inst.exclude = (values, params) => {
-        const newEntries = { ...def.entries };
-        for (const value of values) {
-            if (keys.has(value)) {
-                delete newEntries[value];
-            }
-            else
-                throw new Error(`Key ${value} not found in enum`);
-        }
-        return new ZodEnum({
-            ...def,
-            checks: [],
-            ...normalizeParams(params),
-            entries: newEntries,
-        });
-    };
-});
-function _enum(values, params) {
-    const entries = Array.isArray(values) ? Object.fromEntries(values.map((v) => [v, v])) : values;
-    return new ZodEnum({
-        type: "enum",
-        entries,
-        ...normalizeParams(params),
-    });
-}
-const ZodTransform = /*@__PURE__*/ $constructor("ZodTransform", (inst, def) => {
-    _ensureDefaultMemoizer();
-    $ZodTransform.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => transformProcessor(inst, ctx, json, params);
-    inst._zod.parse = (payload, _ctx) => {
-        if (_ctx.direction === "backward") {
-            throw new $ZodEncodeError(inst.constructor.name);
-        }
-        payload.addIssue = (issue$1) => {
-            if (typeof issue$1 === "string") {
-                payload.issues.push(issue(issue$1, payload.value, def));
-            }
-            else {
-                // for Zod 3 backwards compatibility
-                const _issue = issue$1;
-                if (_issue.fatal)
-                    _issue.continue = false;
-                _issue.code ?? (_issue.code = "custom");
-                if (!("input" in _issue))
-                    _issue.input = payload.value;
-                _issue.inst ?? (_issue.inst = inst);
-                // _issue.continue ??= true;
-                payload.issues.push(issue(_issue));
-            }
-        };
-        const output = def.transform(payload.value, payload);
-        if (output instanceof Promise) {
-            return output.then((output) => {
-                payload.value = output;
-                return payload;
-            });
-        }
-        payload.value = output;
-        return payload;
-    };
-});
-function transform(fn) {
-    return new ZodTransform({
-        type: "transform",
-        transform: fn,
-    });
-}
-const ZodOptional = /*@__PURE__*/ $constructor("ZodOptional", (inst, def) => {
-    $ZodOptional.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => optionalProcessor(inst, ctx, json, params);
-    inst.unwrap = () => inst._zod.def.innerType;
-});
-function optional(innerType) {
-    return new ZodOptional({
-        type: "optional",
-        innerType: innerType,
-    });
-}
-const ZodExactOptional = /*@__PURE__*/ $constructor("ZodExactOptional", (inst, def) => {
-    $ZodExactOptional.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => optionalProcessor(inst, ctx, json, params);
-    inst.unwrap = () => inst._zod.def.innerType;
-});
-function exactOptional(innerType) {
-    return new ZodExactOptional({
-        type: "optional",
-        innerType: innerType,
-    });
-}
-const ZodNullable = /*@__PURE__*/ $constructor("ZodNullable", (inst, def) => {
-    $ZodNullable.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => nullableProcessor(inst, ctx, json, params);
-    inst.unwrap = () => inst._zod.def.innerType;
-});
-function nullable(innerType) {
-    return new ZodNullable({
-        type: "nullable",
-        innerType: innerType,
-    });
-}
-const ZodDefault = /*@__PURE__*/ $constructor("ZodDefault", (inst, def) => {
-    $ZodDefault.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => defaultProcessor(inst, ctx, json, params);
-    inst.unwrap = () => inst._zod.def.innerType;
-    inst.removeDefault = inst.unwrap;
-});
-function _default(innerType, defaultValue) {
-    return new ZodDefault({
-        type: "default",
-        innerType: innerType,
-        get defaultValue() {
-            return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
-        },
-    });
-}
-const ZodPrefault = /*@__PURE__*/ $constructor("ZodPrefault", (inst, def) => {
-    $ZodPrefault.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => prefaultProcessor(inst, ctx, json, params);
-    inst.unwrap = () => inst._zod.def.innerType;
-});
-function prefault(innerType, defaultValue) {
-    return new ZodPrefault({
-        type: "prefault",
-        innerType: innerType,
-        get defaultValue() {
-            return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
-        },
-    });
-}
-const ZodNonOptional = /*@__PURE__*/ $constructor("ZodNonOptional", (inst, def) => {
-    $ZodNonOptional.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => nonoptionalProcessor(inst, ctx, json, params);
-    inst.unwrap = () => inst._zod.def.innerType;
-});
-function nonoptional(innerType, params) {
-    return new ZodNonOptional({
-        type: "nonoptional",
-        innerType: innerType,
-        ...normalizeParams(params),
-    });
-}
-const ZodCatch = /*@__PURE__*/ $constructor("ZodCatch", (inst, def) => {
-    $ZodCatch.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => catchProcessor(inst, ctx, json, params);
-    inst.unwrap = () => inst._zod.def.innerType;
-    inst.removeCatch = inst.unwrap;
-});
-function _catch(innerType, catchValue) {
-    return new ZodCatch({
-        type: "catch",
-        innerType: innerType,
-        catchValue: (typeof catchValue === "function" ? catchValue : constantCatch(catchValue)),
-    });
-}
-const ZodPipe = /*@__PURE__*/ $constructor("ZodPipe", (inst, def) => {
-    $ZodPipe.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => pipeProcessor(inst, ctx, json, params);
-    inst.in = def.in;
-    inst.out = def.out;
-});
-function pipe(in_, out) {
-    return new ZodPipe({
-        type: "pipe",
-        in: in_,
-        out: out,
-        // ...util.normalizeParams(params),
-    });
-}
-const ZodPreprocess = /*@__PURE__*/ $constructor("ZodPreprocess", (inst, def) => {
-    ZodPipe.init(inst, def);
-    $ZodPreprocess.init(inst, def);
-});
-const ZodReadonly = /*@__PURE__*/ $constructor("ZodReadonly", (inst, def) => {
-    $ZodReadonly.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => readonlyProcessor(inst, ctx, json, params);
-    inst.unwrap = () => inst._zod.def.innerType;
-});
-function readonly(innerType) {
-    return new ZodReadonly({
-        type: "readonly",
-        innerType: innerType,
-    });
-}
-const ZodCustom = /*@__PURE__*/ $constructor("ZodCustom", (inst, def) => {
-    $ZodCustom.init(inst, def);
-    ZodType.init(inst, def);
-    inst._zod.processJSONSchema = (ctx, json, params) => customProcessor(inst, ctx, json, params);
-});
-function refine(fn, _params = {}) {
-    return _refine(ZodCustom, fn, _params);
-}
-// superRefine
-function superRefine(fn, params) {
-    return _superRefine(fn, params);
-}
-// preprocess
-function preprocess(fn, schema) {
-    return new ZodPreprocess({
-        type: "pipe",
-        in: transform(fn),
-        out: schema,
-    });
-}
-
-// リポの Actions の secret・variable の名前を読む。workflow doctor と、actions の処理が共有する。
-// 読めた一覧の名前を合わせる。読めなかった一覧があれば complete を false にする
-function mergeNames(lists) {
-    return { names: new Set(lists.flatMap(list => list ?? [])), complete: !lists.includes(undefined) };
-}
-/**
-リポの secret と variable の名前。持ち主が Organization なら、organization の分も読む
-*/
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない
-async function readSettingNames(client, owner, repository) {
-    const ownerType = await client.getRepositoryOwnerType(owner, repository);
-    const scopes = ownerType === 'Organization' ? ['repository', 'organization'] : ['repository'];
-    const [secrets, variables] = await Promise.all([
-        Promise.all(scopes.map(async (scope) => await client.listActionsSecretNames(owner, repository, scope))),
-        Promise.all(scopes.map(async (scope) => await client.listActionsVariableNames(owner, repository, scope))),
-    ]);
-    return { secrets: mergeNames(secrets), variables: mergeNames(variables) };
-}
-
-// CLI の例外の基底。
-//
-// 階層は 2 系統ある。どちらも BaseError を共通の基底にする。
-// - PecotError 系は、利用者に見せる独自の例外。
-//   Python の core/errors.py の PecotError と同じ階層で、各モジュールの独自例外が継承する。
-// - Python の組み込み例外に当たる系は、PecotError を継承せず BaseError を直接継承する。
-//   InvalidValueError は ValueError、OsError は OSError、GitCommandError は CalledProcessError に当たる。
-//   TransportFailure、GraphqlFailure、UsageError などもこの系統。
-//   最上位で拾う側（commands/failure.ts）が、この 2 系統を区別して扱う。
-/**
-name をクラス名にし、cause を受け取る共通の基底
-*/
-class BaseError extends Error {
-    constructor(message, options) {
-        super(message, options);
-        this.name = new.target.name;
-    }
-}
-class PecotError extends BaseError {
-}
-/**
-MCP の要求が取り消され、待っていた子プロセスや要求を止めた。message は取り消しの理由
-*/
-class CancelledError extends BaseError {
-}
-/**
-プロジェクトルートが見つからない
-*/
-class ProjectRootNotFoundError extends PecotError {
-}
-/**
-値の形式が不正（Python の ValueError に当たる）。PecotError ではない
-*/
-class InvalidValueError extends BaseError {
-}
-
-// Python の CLI が出していた文言を作る関数。
-// 前後比較で文言を揃えるため、Python と同じ書式を写す。
-//
-// 持つもの:
-//   - JSON 値の repr は pythonRepr。
-//   - str のメソッドに当たる関数は pythonStrip と parsePythonInteger。
-//   - HTTP クライアントの状態の文は formatHttpStatusError。
-//   - 検証ライブラリの ValidationError の文は formatValidationError。
-//   - OSError の文は formatOsError。
-//
-// JSON.parse は整数と実数を区別しない。そのため 2.0 は「2」と出る（Python は 2.0）。
-// オブジェクトのキーは JS の順序（整数風のキーが先頭）になり、Python の挿入順とは違うことがある。
-// Python の str.isspace() が真の文字。JS の trim() が落とす文字から U+FEFF を除き、U+001C〜U+001F と U+0085 を足したもの
-function isPythonWhitespace(character) {
-    const code = character.codePointAt(0) ?? 0;
-    return (character.trim() === '' && code !== 0xFE_FF) || (code >= 0x1C && code <= 0x1F) || code === 0x85;
-}
-/**
-universal newlines と同じ。`\r\n` と `\r` を `\n` に揃える（Python の text=True・read_text()）
-*/
-function normalizeNewlines(text) {
-    return text.replaceAll(/\r\n?/gu, '\n');
-}
-/**
-文字列をコードポイントに分ける。Python の len・スライスと同じ単位（UTF-16 の単位ではない）
-*/
-function splitCodePoints(text) {
-    // eslint-disable-next-line @typescript-eslint/no-misused-spread -- Python の len と同じコードポイント単位で数えるため
-    return [...text];
-}
-/**
-str.strip() と同じ
-*/
-function pythonStrip(text) {
-    let start = 0;
-    let end = text.length;
-    while (start < end && isPythonWhitespace(text.charAt(start)))
-        start += 1;
-    while (end > start && isPythonWhitespace(text.charAt(end - 1)))
-        end -= 1;
-    return text.slice(start, end);
-}
-const NON_PRINTABLE = /[\p{Cc}\p{Cf}\p{Cs}\p{Co}\p{Cn}\p{Zl}\p{Zp}\p{Zs}]/u;
-function escapeCodePoint(character) {
-    const code = character.codePointAt(0) ?? 0;
-    if (code < 0x1_00)
-        return String.raw `\x${code.toString(16).padStart(2, '0')}`;
-    if (code < 0x1_00_00)
-        return String.raw `\u${code.toString(16).padStart(4, '0')}`;
-    return String.raw `\U${code.toString(16).padStart(8, '0')}`;
-}
-function escapeCharacter(character, quote) {
-    switch (character) {
-        case quote:
-        case '\\': {
-            return `\\${character}`;
-        }
-        case '\n': {
-            return String.raw `\n`;
-        }
-        case '\r': {
-            return String.raw `\r`;
-        }
-        case '\t': {
-            return String.raw `\t`;
-        }
-        case ' ': {
-            return character;
-        }
-        default: {
-            return NON_PRINTABLE.test(character) ? escapeCodePoint(character) : character;
-        }
-    }
-}
-/**
-repr(str) と同じ。引用符は、' を含み " を含まないときだけ "
-*/
-function pythonStringRepr(text) {
-    const quote = text.includes('\'') && !text.includes('"') ? '"' : '\'';
-    let result = '';
-    for (const character of splitCodePoints(text)) {
-        result += escapeCharacter(character, quote);
-    }
-    return `${quote}${result}${quote}`;
-}
-/**
-repr(float) と同じ。指数表記になるのは、10 進の小数点位置が 16 を超える・-3 未満のとき
-*/
-function pythonFloatRepr(value) {
-    if (Number.isNaN(value))
-        return 'nan';
-    if (!Number.isFinite(value))
-        return value > 0 ? 'inf' : '-inf';
-    if (value === 0)
-        return Object.is(value, -0) ? '-0.0' : '0.0';
-    const sign = value < 0 ? '-' : '';
-    const [mantissa = '', exponentText = '0'] = Math.abs(value).toExponential().split('e', 2);
-    const digits = mantissa.replace('.', '');
-    const exponent = Number(exponentText);
-    const pointPosition = exponent + 1;
-    if (pointPosition > -4 && pointPosition <= 16) {
-        if (pointPosition <= 0)
-            return `${sign}0.${'0'.repeat(-pointPosition)}${digits}`;
-        if (digits.length <= pointPosition)
-            return `${sign}${digits}${'0'.repeat(pointPosition - digits.length)}.0`;
-        return `${sign}${digits.slice(0, pointPosition)}.${digits.slice(pointPosition)}`;
-    }
-    const fraction = digits.length > 1 ? `.${digits.slice(1)}` : '';
-    const exponentSign = exponent < 0 ? '-' : '+';
-    return `${sign}${digits.slice(0, 1)}${fraction}e${exponentSign}${String(Math.abs(exponent)).padStart(2, '0')}`;
-}
-function isJsonArray(value) {
-    return Array.isArray(value);
-}
-/**
-JSON 値の repr。整数値の数は int、それ以外は float の書式にする
-*/
-function pythonRepr(value) {
-    if (value === null)
-        return 'None';
-    if (typeof value === 'boolean')
-        return value ? 'True' : 'False';
-    if (typeof value === 'number')
-        return Number.isSafeInteger(value) ? String(value) : pythonFloatRepr(value);
-    if (typeof value === 'string')
-        return pythonStringRepr(value);
-    if (isJsonArray(value))
-        return `[${value.map(item => pythonRepr(item)).join(', ')}]`;
-    return `{${Object.entries(value).map(([key, item]) => `${pythonStringRepr(key)}: ${pythonRepr(item)}`).join(', ')}}`;
-}
-/**
-type(value).__name__ に当たる名前
-*/
-function pythonTypeName(value) {
-    if (value === null || value === undefined)
-        return 'NoneType';
-    if (typeof value === 'boolean')
-        return 'bool';
-    if (typeof value === 'number')
-        return Number.isSafeInteger(value) ? 'int' : 'float';
-    if (typeof value === 'string')
-        return 'str';
-    return isJsonArray(value) ? 'list' : 'dict';
-}
-const STATUS_CLASS_LABELS = new Map([
-    [1, 'Informational response'],
-    [3, 'Redirect response'],
-    [4, 'Client error'],
-    [5, 'Server error'],
-]);
-const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
-/**
-2xx 以外の応答に対する、HTTP クライアントの raise_for_status の文
-*/
-function formatHttpStatusError(failure) {
-    const { statusCode, url, location } = failure;
-    const reason = failure.statusText;
-    const label = STATUS_CLASS_LABELS.get(Math.trunc(statusCode / 100)) ?? 'Invalid status code';
-    const lines = [`${label} '${String(statusCode)} ${reason}' for url '${url}'`];
-    if (location !== undefined && REDIRECT_STATUSES.has(statusCode))
-        lines.push(`Redirect location: '${location}'`);
-    lines.push(`For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/${String(statusCode)}`);
-    return lines.join('\n');
-}
-const ERRNO_TABLE = new Map([
-    ['EPERM', [1, 'Operation not permitted']],
-    ['ENOENT', [2, 'No such file or directory']],
-    ['EIO', [5, 'Input/output error']],
-    ['EBADF', [9, 'Bad file descriptor']],
-    ['EACCES', [13, 'Permission denied']],
-    ['EBUSY', [16, 'Device or resource busy']],
-    ['EEXIST', [17, 'File exists']],
-    ['EXDEV', [18, 'Invalid cross-device link']],
-    ['ENOTDIR', [20, 'Not a directory']],
-    ['EISDIR', [21, 'Is a directory']],
-    ['EINVAL', [22, 'Invalid argument']],
-    ['EMFILE', [24, 'Too many open files']],
-    ['ENOSPC', [28, 'No space left on device']],
-    ['EROFS', [30, 'Read-only file system']],
-    ['ENAMETOOLONG', [36, 'File name too long']],
-    ['ENOTEMPTY', [39, 'Directory not empty']],
-    ['ELOOP', [40, 'Too many levels of symbolic links']],
-]);
-/**
-OSError の文（`[Errno 2] No such file or directory: 'x'`）。errno の code が表に無いときは undefined
-*/
-function formatOsError(failure) {
-    const entry = failure.code === undefined ? undefined : ERRNO_TABLE.get(failure.code);
-    if (entry === undefined)
-        return undefined;
-    const [errno, text] = entry;
-    const head = `[Errno ${String(errno)}] ${text}`;
-    if (failure.path === undefined)
-        return head;
-    const destination = failure.dest === undefined ? '' : ` -> ${pythonStringRepr(failure.dest)}`;
-    return `${head}: ${pythonStringRepr(failure.path)}${destination}`;
-}
-
-// JSON の値を読む補助。型の絞り込み、フィールドの読み取り、JSON 文字列の読み込みの置き場。
-// 同じ補助を各所に書かないよう、domain と infra はここから import する。
-/**
-配列でも null でもないオブジェクトか
-*/
-function isJsonObject(value) {
-    return typeof value === 'object' && value !== null && !isJsonArray(value);
-}
-/**
-オブジェクトの自身のキーの値。オブジェクトでない、またはキーが無ければ undefined。
-キーに prototype の名前が来ても、継承した値は返さない
-*/
-function jsonField(value, key) {
-    return isJsonObject(value) ? new Map(Object.entries(value)).get(key) : undefined;
-}
-/**
-JSON 文字列を読む。構文が不正なら undefined
-*/
-function tryParseJsonText(text) {
-    try {
-        // eslint-disable-next-line no-restricted-syntax -- JSON.parse の結果は定義上 JsonValue
-        return JSON.parse(text);
-    }
-    catch (error) {
-        if (error instanceof SyntaxError)
-            return undefined;
-        throw error;
-    }
-}
-/**
-JSON 文字列を読む。不正なら InvalidValueError。
-文言は JSON パーサーのもので、Python の JSONDecodeError の文とは違う
-*/
-function parseJsonText(text) {
-    try {
-        // eslint-disable-next-line no-restricted-syntax -- JSON.parse の結果は定義上 JsonValue
-        return JSON.parse(text);
-    }
-    catch (error) {
-        if (error instanceof SyntaxError)
-            throw new InvalidValueError(error.message, { cause: error });
-        throw error;
-    }
-}
-
-// 出力の文に添える、次に呼ぶツールの案内。案内はツールの path と入力のデータで持ち、ツール名と入力の呼び方（`call x with a: "b"`）に描く。
-// ツールの形（入力名）は commands/registry.ts と hint-catalog.ts が registerHintCommands で登録する。
-const catalog = new Map();
-function registerHintCommands(shapes) {
-    for (const shape of shapes)
-        catalog.set(shape.name, shape);
-}
-function commandHint(path, input = {}) {
-    return { kind: 'command', path, input };
-}
-function placeholder(name) {
-    return { placeholder: name };
-}
-/**
-案内の前置き。`call <ツール>`
-*/
-const RUN_COLON = 'call ';
-function isHint(value) {
-    return typeof value === 'object' && value !== null && 'kind' in value;
-}
-/**
-タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'list'])}\``
-*/
-function hinted(strings, ...values) {
-    return strings.flatMap((text, index) => {
-        const value = values.at(index);
-        if (index >= values.length)
-            return [text];
-        if (isHintedText(value))
-            return [text, ...value];
-        return [text, isHint(value) ? value : String(value)];
-    });
-}
-function shapeOf(path) {
-    const shape = catalog.get(path.join('_'));
-    if (shape === undefined)
-        throw new TypeError(`案内のツール '${path.join('_')}' が定義に無い`);
-    return shape;
-}
-function assertInput(shape, name) {
-    if (!shape.inputs.includes(name))
-        throw new TypeError(`案内の入力 '${name}' が '${shape.name}' の定義に無い`);
-}
-function isList(value) {
-    return Array.isArray(value);
-}
-function isPlaceholder(value) {
-    return typeof value === 'object' && !isList(value);
-}
-function valueText(value) {
-    if (isPlaceholder(value))
-        return `<${value.placeholder}>`;
-    return typeof value === 'string' || isList(value) ? JSON.stringify(value) : String(value);
-}
-function formatCommand(hint) {
-    const shape = shapeOf(hint.path);
-    const entries = Object.entries(hint.input);
-    for (const [name] of entries)
-        assertInput(shape, name);
-    const tool = hint.path.join('_');
-    return entries.length === 0 ? tool : `${tool} with ${entries.map(([name, value]) => `${name}: ${valueText(value)}`).join(', ')}`;
-}
-/**
-案内 1 つをツールの呼び方にする。定義に無い path・入力名は TypeError
-*/
-function formatHint(hint) {
-    if (hint.kind === 'command')
-        return formatCommand(hint);
-    if (hint.kind === 'input')
-        assertInput(shapeOf(hint.path), hint.name);
-    const name = hint.kind === 'input' ? hint.name : 'repo';
-    return hint.value === undefined ? name : `${name}: ${valueText(hint.value)}`;
-}
-function formatHinted(text) {
-    return typeof text === 'string' ? text : text.map(part => typeof part === 'string' ? part : formatHint(part)).join('');
-}
-function isHintedText(value) {
-    return Array.isArray(value) && value.every((part) => typeof part === 'string' || isHint(part));
-}
-/**
-例外が持つ案内（hintedText）。無ければ undefined
-*/
-function hintedTextOf(error) {
-    if (typeof error !== 'object' || error === null || !('hintedText' in error))
-        return undefined;
-    const { hintedText } = error;
-    return isHintedText(hintedText) ? hintedText : undefined;
-}
-
-// プロジェクト設定（.pecot/config/projects/*.json）のモデルと判定。ファイルの読み書きは infra/config-store.ts が行う。
-//
-// モデルは zod の schema で表す。読んだ値は読み取り専用（凍結）で、更新はコピーを作る。
-// 検証エラーは、Python の CLI が出していた書式（表題は元のクラス名）の ValidationFailure にして投げる。
-// 値が無いこと（null・未指定）は、読んだ後はどちらも undefined になり、保存では出さない。
-const WorkflowStatusSchema = _enum(['backlog', 'pending', 'blocked', 'ready', 'active', 'in_review', 'archived']);
-WorkflowStatusSchema.options;
-const NAME_PATTERN = /^[\w.-]+$/u;
-const AGGREGATION_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/u;
-/**
-オブジェクトの schema。型が違うときの issue の message に、元のクラス名を入れる
-*/
-function model(name, shape) {
-    return object(shape, { error: () => name });
-}
-/**
-`X | None = None` に当たる文字列。null と未指定は、どちらも undefined にする
-*/
-const optionalString = string().nullish().transform(value => value ?? undefined);
-// int の lax な変換。bool は 0・1、前後の空白・符号・数字の間の `_`・小数部が 0 だけの文字列は整数にする。
-// 変換できない値はそのまま渡し、z.int() が型の誤りにする。
-function convertToInteger(value) {
-    if (typeof value === 'boolean')
-        return value ? 1 : 0;
-    if (typeof value !== 'string')
-        return value;
-    const text = pythonStrip(value);
-    const isUnderscoreSeparatedDigits = text.replace(/^[+-]/u, '').split('_').every(group => /^\d+$/u.test(group));
-    if (isUnderscoreSeparatedDigits)
-        return Number(text.replaceAll('_', ''));
-    if (/^[+-]?\d+\.0+$/u.test(text))
-        return Number(text.slice(0, text.indexOf('.'))) + 0; // -0 を 0 にする
-    return value;
-}
-const laxInteger = preprocess(convertToInteger, int());
-const FieldOptionsSchema = model('FieldOptions', {
-    id: string(),
-    options: record(string(), string()).readonly(),
-}).readonly();
-const ProjectFieldsSchema = model('ProjectFields', {
-    workflow: FieldOptionsSchema,
-    status: FieldOptionsSchema.nullish().transform(value => value ?? undefined),
-}).readonly();
-const ProjectSchema = model('Project', {
-    number: laxInteger,
-    id: string(),
-    board_url: optionalString,
-    fields: ProjectFieldsSchema,
-}).readonly();
-const PackageSchema = model('Package', {
-    name: string().min(1, { abort: true }).regex(NAME_PATTERN),
-    changelog: string().min(1),
-}).readonly();
-const ReleaseTypeSchema = _enum(['single', 'multi', 'nx']);
-/**
-release_type の取れる値（single・multi・nx）
-*/
-ReleaseTypeSchema.options;
-const RepositorySchema = model('Repository', {
-    owner: string(),
-    name: string(),
-    develop_branch: optionalString,
-    release_branch: optionalString,
-    changelog_file: optionalString,
-    packages: array(PackageSchema).readonly().nullish().transform(value => value ?? undefined),
-    release_type: ReleaseTypeSchema.nullish().transform(value => value ?? undefined),
-}).superRefine((repository, context) => {
-    // monorepo 構成（packages あり）では CHANGELOG は package ごとに管理するので、リポ全体の changelog_file は意味を持たない
-    const hasPackages = repository.packages !== undefined && repository.packages.length > 0;
-    if (hasPackages && repository.changelog_file !== undefined && repository.changelog_file !== '') {
-        context.addIssue({
-            code: 'custom',
-            message: 'Value error, changelog_file and packages cannot be set together; in a monorepo, use packages[].changelog instead',
-            params: { type: 'value_error' },
-        });
-    }
-}).readonly();
-model('ProjectConfig', {
-    host: string(),
-    owner: string(),
-    project: ProjectSchema,
-    repositories: array(RepositorySchema).readonly().default([]),
-    aggregation_repo: string().superRefine((value, context) => {
-        if (!AGGREGATION_REPOSITORY_PATTERN.test(value)) {
-            context.addIssue({
-                code: 'custom',
-                message: `Value error, aggregation_repo must be in 'owner/repo' form: ${pythonStringRepr(value)}`,
-                params: { type: 'value_error' },
-            });
-        }
-    }).nullish().transform(value => value ?? undefined),
-}).readonly();
-class ConfigError extends PecotError {
-}
-
-// GitHub API 操作の例外。Python の cli/core/github/errors.py と同じ階層にする。
-/**
-GitHub API 操作エラーの基底
-*/
-class GitHubAPIError extends PecotError {
-    statusCode;
-    responseBody;
-    errorType;
-    constructor(message, detail = {}) {
-        super(message, detail.cause === undefined ? undefined : { cause: detail.cause });
-        this.statusCode = detail.statusCode;
-        this.responseBody = detail.responseBody;
-        this.errorType = detail.errorType;
-    }
-}
-/**
-認証エラー（401 Unauthorized）。トークンが無効または期限切れのときに起きる
-*/
-class GitHubAuthError extends GitHubAPIError {
-}
-/**
-リソースが見つからない（404 Not Found）。指定したリポジトリ・Issue・プロジェクトが無いときに起きる
-*/
-class GitHubNotFoundError extends GitHubAPIError {
-}
-/**
-レート制限エラー（403 Forbidden で rate limit を超えたとき）
-*/
-class GitHubRateLimitError extends GitHubAPIError {
-}
-/**
-Issue の依存関係（blockedBy など）に対応しない GHES（3.19 より前）のエラー。スキーマの失敗を、ほかの GitHubAPIError と見分けるために使う
-*/
-class DependenciesUnsupportedError extends GitHubAPIError {
-}
-/**
-GraphQL の errors の NOT_FOUND を GitHubNotFoundError にする。文は変えない。GitHub は無い Issue を data の null でなくこの形で返すことがある
-*/
-function asNotFoundError(error) {
-    return error instanceof GitHubAPIError && !(error instanceof GitHubNotFoundError) && error.errorType === 'NOT_FOUND'
-        ? new GitHubNotFoundError(error.message, { cause: error, errorType: error.errorType })
-        : error;
-}
-const SCHEMA_ERROR_PHRASES = ['Cannot query field', 'doesn\'t exist', 'Unknown field'];
-/**
-古い GHES が、対応しないフィールドに返すスキーマの失敗か
-*/
-function isSchemaError(error) {
-    return error instanceof GitHubAPIError && SCHEMA_ERROR_PHRASES.some(phrase => error.message.includes(phrase));
-}
-
-// OS のエラー（Python の OSError に当たる）。文言は Python の `[Errno 2] No such file or directory: 'x'` に揃える。
-class OsError extends BaseError {
-    code;
-    path;
-    constructor(message, code, path, options) {
-        super(message, options);
-        this.code = code;
-        this.path = path;
-    }
-}
-/**
-Node のシステムエラー（code が `E` で始まる文字列）か
-*/
-function hasErrorCode(error) {
-    return error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code.startsWith('E');
-}
-function isFileNotFound(error) {
-    return hasErrorCode(error) && error.code === 'ENOENT';
-}
-/**
-Node のシステムエラーを OsError にする。errno の表に無い code は元の message を使う。EISDIR のように path を持たないエラーには fallbackPath を付ける。システムエラーでなければそのまま返す
-*/
-function toOsError(error, fallbackPath) {
-    if (!hasErrorCode(error))
-        return error;
-    const errorPath = error.path ?? fallbackPath;
-    const message = formatOsError({ code: error.code, path: errorPath, dest: error.dest }) ?? error.message;
-    return new OsError(message, error.code, errorPath, { cause: error });
-}
-
-/**
-例外が持つ子プロセスの生の出力（log）。無いか空なら undefined
-*/
-function logOf(error) {
-    if (typeof error !== 'object' || error === null || !('log' in error))
-        return undefined;
-    const { log } = error;
-    return typeof log === 'string' && log.trim() !== '' ? log : undefined;
-}
-
-// ツールの出力の行をそろえる共通の関数。
-//
-// 行の形は specs/021-cli-output-functions/contracts/output-lines.md が決める。
-// コマンドは操作（動詞と対象）を 1 つ作り、実行の前に planned を、実行の後に done を呼ぶ。
-// 期待の行は tests/output/cases.json に置き、Python の側と同じ値を共有する。
-/**
-操作の動詞。自由な文字列を受け取らない
-*/
-_enum(['create', 'update', 'delete', 'add', 'remove', 'close', 'reopen', 'merge', 'move', 'rename', 'set', 'skip', 'unchanged']);
-/**
-動詞の過去分詞。done の前置きになる
-*/
-function pastOf(verb) {
-    switch (verb) {
-        case 'create': {
-            return 'created';
-        }
-        case 'update': {
-            return 'updated';
-        }
-        case 'delete': {
-            return 'deleted';
-        }
-        case 'add': {
-            return 'added';
-        }
-        case 'remove': {
-            return 'removed';
-        }
-        case 'close': {
-            return 'closed';
-        }
-        case 'reopen': {
-            return 'reopened';
-        }
-        case 'merge': {
-            return 'merged';
-        }
-        case 'move': {
-            return 'moved';
-        }
-        case 'rename': {
-            return 'renamed';
-        }
-        case 'set': {
-            return 'set';
-        }
-        case 'skip': {
-            return 'skipped';
-        }
-        case 'unchanged': {
-            return 'unchanged';
-        }
-    }
-}
-/**
-warning の行の前置き。MCP の側はこれで stderr から warning の文を拾う
-*/
-const WARNING_PREFIX = 'warning: ';
-const ERROR_PREFIX = 'error: ';
-/**
-末尾の改行を取り除き、2 行目以降の先頭に空白 2 つを付け、末尾に改行を 1 つ付ける
-*/
-function formatMessage(prefix, message) {
-    const lines = message.replace(/\n+$/, '').split('\n');
-    return `${prefix}${lines.join('\n  ')}\n`;
-}
-function render(message) {
-    return formatHinted(message);
-}
-function createOutput(isDryRun, io) {
-    const writeResult = (line, aside) => {
-        io.stderr(`${line}\n`);
-        if (aside !== true)
-            io.resultLine?.(line);
-    };
-    return {
-        planned: ({ verb, target, aside }) => {
-            return;
-        },
-        done: ({ verb, target, aside }) => {
-            writeResult(`${pastOf(verb)}: ${target}`, aside);
-        },
-        warning: (message) => {
-            const text = render(message);
-            io.stderr(formatMessage(WARNING_PREFIX, text));
-            io.warning?.(formatMessage('', text).trimEnd());
-        },
-        error: (message) => {
-            const text = render(message);
-            io.stderr(formatMessage(ERROR_PREFIX, text));
-            io.error?.(formatMessage('', text).trimEnd());
-        },
-        detail: (message) => {
-            const text = formatMessage('', render(message)).trimEnd();
-            if (text !== '')
-                io.error?.(text);
-        },
-        log: (text) => {
-            if (text.trim() !== '')
-                io.log?.(text);
-        },
-        count: (label, value) => {
-            io.stderr(`count: ${label}: ${value === undefined ? 'unknown' : String(value)}\n`);
-        },
-        data: (text) => {
-            io.stdout(text.endsWith('\n') ? text : `${text}\n`);
-        },
-        result(fields) {
-            io.data?.(fields);
-        },
-        signal: io.signal,
-    };
-}
-/**
-確認が要る所で止めた（Python の click の Abort）。
-code を持たせない（link の処理は code を持つ例外を握るため、これは握られずに最上位まで届く）
-*/
-class AbortedError extends Error {
-    constructor() {
-        super('Aborted.');
-        this.name = 'AbortedError';
-    }
-}
-
-// 入力の誤り。ツールの結果の文は例外の文そのもので、終了コードは 2。
-class UsageError extends BaseError {
-}
-
-// コマンドが捕まえなかった例外を、最上位で `error: <message>` の行と終了コード 1 にする（Python の PecotError の網と同じ）。
-// 値の誤り（InvalidValueError）と OS のエラーも同じ行にする。上のどれでもない例外はプログラムの誤りなので、伝える。
-const FAILURE_EXIT_CODE = 1;
-/**
-最上位で error の行にできる例外か
-*/
-function isReportableFailure(error) {
-    return error instanceof PecotError || error instanceof InvalidValueError || error instanceof OsError;
-}
-function reportFailure(error, io) {
-    const out = createOutput(false, io);
-    const log = logOf(error);
-    if (log !== undefined)
-        out.log(log);
-    out.error(hintedTextOf(error) ?? error.message);
-}
-// 子クラスを親より先に並べる
-const KIND_BY_CLASS = [
-    [UsageError, 'invalid-input'],
-    [InvalidValueError, 'invalid-input'],
-    [AbortedError, 'aborted'],
-    [GitHubAuthError, 'github-auth'],
-    [GitHubNotFoundError, 'github-not-found'],
-    [GitHubRateLimitError, 'github-rate-limit'],
-    [GitHubAPIError, 'github-api'],
-    [ConfigError, 'config-invalid'],
-    [ProjectRootNotFoundError, 'project-root-not-found'],
-];
-/**
-例外のクラスから失敗の原因の名前を決める。表に無いものは other
-*/
-function kindOfFailure(error) {
-    return KIND_BY_CLASS.find(([type]) => error instanceof type)?.[1] ?? 'other';
-}
-
-const state = { mode: 'inherit' };
-function childStdin() {
-    return state.mode;
-}
-
-// 待つ時間の長い子プロセスを、イベントループを止めずに動かす。時間切れと MCP の要求の取り消しで、子をプロセスグループごと止める。
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- Node の型が mutable */
-/**
-子の標準出力・標準エラーを溜める上限。出力が大きい git（log・diff 等）でも切れない大きさにし、超えた分は捨てる
-*/
-const MAX_OUTPUT_BYTES = 1024 * 1024 * 1024;
-/**
-止めるときに SIGTERM を送ってから SIGKILL を送るまでの猶予。git が lock ファイルを片付ける時間
-*/
-const KILL_GRACE_MILLISECONDS = 1000;
-const running = new Set();
-// 別のセッションの子には端末のシグナルが届かないので、受けたらグループへ送ってから既定の動きに戻す
-const FORWARDED_SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT'];
-function createCapture() {
-    const chunks = [];
-    let captured = 0;
-    return {
-        push: (chunk) => {
-            const room = MAX_OUTPUT_BYTES - captured;
-            if (room <= 0)
-                return;
-            const kept = chunk.subarray(0, Math.min(room, chunk.length));
-            captured += kept.length;
-            chunks.push(kept);
-        },
-        text: () => normalizeNewlines(Buffer.concat(chunks).toString('utf8')),
-    };
-}
-function reasonText(reason) {
-    if (typeof reason === 'string')
-        return reason;
-    return reason instanceof Error ? reason.message : String(reason);
-}
-/**
-signal の取り消しの理由を持つ CancelledError
-*/
-function cancelledBy(signal) {
-    return new CancelledError(reasonText(signal.reason));
-}
-// 子はグループの頭なので、負の pid で孫（git-remote-https・フック・シェルの下のコマンド）にも送る
-function signalGroup(child, signal) {
-    if (child.pid === undefined)
-        return;
-    try {
-        process.kill(-child.pid, signal);
-    }
-    catch {
-        // 既に終わっている
-    }
-}
-// SIGTERM で片付けの機会を渡し、猶予の後も残っていれば SIGKILL で止める
-function terminateGroup(child) {
-    signalGroup(child, 'SIGTERM');
-    setTimeout(() => {
-        signalGroup(child, 'SIGKILL');
-    }, KILL_GRACE_MILLISECONDS).unref();
-}
-/**
-子プロセスを動かし、終わるのを待つ。起動に失敗（ENOENT など）したら OsError を投げる。
-子が 0 で終わっていれば、取り消しと重なっても成功の結果を返す
-*/
-async function runProcess(command, arguments_, options = {}) {
-    const { signal } = options;
-    if (signal?.aborted === true)
-        throw cancelledBy(signal);
-    const timeout = options.timeoutMilliseconds === undefined ? undefined : AbortSignal.timeout(options.timeoutMilliseconds);
-    // 時間切れのとき、フックなどの孫までまとめて止めるため、子を自分のグループの頭にする
-    const child = spawn(command, [...arguments_], {
-        cwd: options.cwd,
-        env: options.env,
-        shell: options.shell,
-        stdio: [options.stdin ?? childStdin(), 'pipe', 'pipe'],
-        detached: true,
-    });
-    running.add(child);
-    const stdout = createCapture();
-    const stderr = createCapture();
-    child.stdout.on('data', stdout.push);
-    child.stderr.on('data', stderr.push);
-    return await new Promise((resolve, reject) => {
-        let stopped;
-        let isSettled = false;
-        const hasExited = () => child.exitCode !== null || child.signalCode !== null;
-        const onTimeout = () => {
-            stop('timed-out');
-        };
-        const onAbort = () => {
-            stop('cancelled');
-        };
-        const forward = (received) => {
-            signalGroup(child, received);
-            finish();
-            process.kill(process.pid, received);
-        };
-        const finish = () => {
-            isSettled = true;
-            running.delete(child);
-            timeout?.removeEventListener('abort', onTimeout);
-            signal?.removeEventListener('abort', onAbort);
-            for (const name of FORWARDED_SIGNALS)
-                process.removeListener(name, forward);
-        };
-        const settle = (exitCode, exitSignal) => {
-            if (isSettled)
-                return;
-            finish();
-            if (stopped === 'cancelled' && signal !== undefined) {
-                reject(cancelledBy(signal));
-                return;
-            }
-            resolve({ exitCode, signal: exitSignal, stdout: stdout.text(), stderr: stderr.text(), isTimedOut: stopped === 'timed-out' });
-        };
-        // 止めた後は close を待たない。パイプを握った孫が残ると、close は孫が終わるまで来ない
-        const settleOnExit = () => {
-            child.stdout.destroy();
-            child.stderr.destroy();
-            settle(child.exitCode, child.signalCode);
-        };
-        const stop = (reason) => {
-            if (isSettled || stopped !== undefined)
-                return;
-            terminateGroup(child);
-            // 子が先に終わっていれば、その結果を返す。0 で終わっていない取り消しだけは、続きを動かさないために投げる
-            if (hasExited()) {
-                if (reason === 'cancelled' && child.exitCode !== 0)
-                    stopped = reason;
-                settleOnExit();
-                return;
-            }
-            stopped = reason;
-        };
-        timeout?.addEventListener('abort', onTimeout, { once: true });
-        signal?.addEventListener('abort', onAbort, { once: true });
-        for (const name of FORWARDED_SIGNALS)
-            process.on(name, forward);
-        child.once('error', (error) => {
-            if (isSettled)
-                return;
-            finish();
-            const converted = toOsError(error);
-            reject(converted instanceof Error ? converted : error);
-        });
-        child.once('exit', (exitCode) => {
-            if (stopped === undefined)
-                return;
-            // 止める前に 0 で終わっていた（止めるのと終わるのが重なった）なら成功とする
-            if (exitCode === 0)
-                stopped = undefined;
-            settleOnExit();
-        });
-        child.once('close', (exitCode, exitSignal) => {
-            settle(exitCode, exitSignal);
-        });
-    });
-}
-
-// git コマンド実行の唯一の窓口。git の subprocess 呼び出しはすべて runGit か runGitAsync を経由する。
-// 値を返す helper（gitToplevel 等）は、失敗時に undefined を返す。
-/**
-時間切れで止めたときの exitCode
-*/
-const GIT_TIMED_OUT = -2;
-function isTimedOut(error) {
-    return error !== undefined && 'code' in error && error.code === 'ETIMEDOUT';
-}
-/**
-check 付きの実行が非 0 で終わった（Python の CalledProcessError に当たる）
-*/
-class GitCommandError extends BaseError {
-    exitCode;
-    stdout;
-    stderr;
-    constructor(arguments_, result) {
-        super(`Command ${pythonRepr(['git', ...arguments_])} returned non-zero exit status ${String(result.exitCode)}.`);
-        this.exitCode = result.exitCode;
-        this.stdout = result.stdout;
-        this.stderr = result.stderr;
-    }
-}
-function withoutGitVariables() {
-    // interface-env: none
-    return Object.fromEntries(Object.entries(process.env).filter((entry) => entry[1] !== undefined && !entry[0].startsWith('GIT_')));
-}
-/**
-git を実行する。標準出力・標準エラーは改行を \n に揃えた文字列で返す。
-git や作業ディレクトリが見つからなければ OsError（code ENOENT）を投げる
-*/
-function runGit(arguments_, options = {}) {
-    // interface-env: none
-    const base = options.stripGitEnvironment === true ? withoutGitVariables() : (options.env === undefined ? undefined : process.env);
-    const result = spawnSync('git', [...arguments_], {
-        cwd: options.cwd,
-        env: base === undefined ? undefined : { ...base, ...options.env },
-        encoding: 'utf8',
-        maxBuffer: MAX_OUTPUT_BYTES,
-        stdio: [childStdin(), 'pipe', 'pipe'],
-        ...(options.timeoutMilliseconds !== undefined && { timeout: options.timeoutMilliseconds, killSignal: 'SIGKILL' }),
-    });
-    if (isTimedOut(result.error))
-        return { exitCode: GIT_TIMED_OUT, stdout: normalizeNewlines(result.stdout), stderr: normalizeNewlines(result.stderr) };
-    if (result.error !== undefined) {
-        // spawnSync の ENOENT は path が `git` で入る。cwd が無いときも同じ ENOENT になる
-        throw toOsError(result.error);
-    }
-    const gitResult = { exitCode: result.status ?? -1, stdout: normalizeNewlines(result.stdout), stderr: normalizeNewlines(result.stderr) };
-    if (options.check === true && gitResult.exitCode !== 0)
-        throw new GitCommandError(arguments_, gitResult);
-    return gitResult;
-}
-/**
-標準出力を削らずに返す。非 0 終了・git が無いときは undefined
-*/
-function gitStdout(arguments_, options = {}) {
-    try {
-        return runGit(arguments_, { ...options, check: true }).stdout;
-    }
-    catch (error) {
-        if (error instanceof GitCommandError || isFileNotFound(error))
-            return undefined;
-        throw error;
-    }
-}
-function runForValue(arguments_, options) {
-    const stdout = gitStdout(arguments_, options);
-    return stdout === undefined ? undefined : pythonStrip(stdout);
-}
-/**
-git リポジトリ（ワークツリー）のルート。git の外・git が無いときは undefined
-*/
-function gitToplevel(options = {}) {
-    return runForValue(['rev-parse', '--show-toplevel'], options);
-}
-
-/* eslint-disable security/detect-non-literal-fs-filename -- パスは呼び出し側が決める。ここは解決だけ */
-// pecot リポジトリ基準のパス解決。`.pecot/` 配下のパス定義の唯一の置き場。
-// projectRoot() でプロジェクトルートを解決する。
-// プロジェクトルート基準の相対パス
-const PECOT_DIR = '.pecot';
-// 設定ファイルの置き場
-const CONFIG_DIR = `${PECOT_DIR}/config`;
-/**
-パス文字列を Python の Path と同じ形にする（空のセグメントと `.` を落とし、末尾のスラッシュを落とす）
-*/
-function normalizePath(text) {
-    const segments = text.split('/').filter(segment => segment !== '' && segment !== '.');
-    return `${text.startsWith('/') ? '/' : ''}${segments.join('/')}` || '.';
-}
-function currentDirectory(options) {
-    try {
-        return options.cwd ?? process.cwd();
-    }
-    catch (error) {
-        // 作業ディレクトリが消えているとき
-        if (hasErrorCode(error))
-            return undefined;
-        throw error;
-    }
-}
-/**
-プロジェクトルートを取得する。
-1. CLAUDE_PROJECT_DIR があれば使う（テスト上書き用）。
-2. なければ git rev-parse --show-toplevel で解決する（GIT_* を除いて実行する）。
-
-どれも得られなければ ProjectRootNotFoundError
-*/
-function projectRoot(options = {}) {
-    const fromEnvironment = process.env['CLAUDE_PROJECT_DIR'];
-    if (fromEnvironment !== undefined && fromEnvironment !== '')
-        return normalizePath(fromEnvironment);
-    const cwd = currentDirectory(options);
-    // git push 等のフック内では GIT_DIR 等が設定され、作業ディレクトリの代わりに参照される。
-    // そのため GIT_* を除いて作業ディレクトリ基準で解決する
-    const toplevel = gitToplevel({ cwd, stripGitEnvironment: true });
-    if (toplevel !== undefined)
-        return toplevel;
-    throw new ProjectRootNotFoundError('project root not found: run inside a git repository or set the CLAUDE_PROJECT_DIR environment variable');
-}
-
-/* eslint-disable security/detect-non-literal-fs-filename -- パスは呼び出し側が決める。この関数は読むだけ */
-// テキストファイルの読み書き。Python の `read_text()`（UTF-8・universal newlines）と同じ挙動にする。
-// BOM は Python の utf-8 と同じく残す。不正なバイトは置き換えず例外にする
-const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
-/**
-UTF-8 として読めないファイル。Python の UnicodeDecodeError に当たり、OsError ではない
-*/
-class TextDecodeError extends BaseError {
-}
-/**
-UTF-8 で読み、改行（\r\n・\r）は \n に揃える。読めなければ Python の OSError と同じ文の OsError。
-不正な UTF-8 は TextDecodeError
-*/
-function readTextFile(file) {
-    let bytes;
-    try {
-        bytes = readFileSync(file);
-    }
-    catch (error) {
-        throw toOsError(error, file);
-    }
-    try {
-        return normalizeNewlines(UTF8_DECODER.decode(bytes));
-    }
-    catch (error) {
-        throw new TextDecodeError(`'utf-8' codec can't decode file: ${file}`, { cause: error });
-    }
-}
-
-/* eslint-disable security/detect-non-literal-fs-filename -- パスはプロジェクトルート配下の設定ディレクトリと、呼び出し側が渡す設定ファイル */
-// プロジェクト設定（`.pecot/config/projects/*.json`）の読み書き。モデルと判定は domain/config.ts にある。
-/**
-設定ディレクトリ（`{プロジェクトルート}/.pecot/config`）
-*/
-function configDirectory() {
-    return path.join(projectRoot(), CONFIG_DIR);
-}
-
-/* eslint-disable security/detect-non-literal-fs-filename -- パスは設定ディレクトリ配下のファイルと、呼び出し側が渡す .env */
-// GitHub トークン解決に使うホスト設定と .env の読み書き。cli/core/github/auth.py の移植。
-/**
-str(value) と同じ。文字列はそのまま、それ以外は repr
-*/
-function pythonString(value) {
-    return typeof value === 'string' ? value : pythonRepr(value);
-}
-// ホスト設定のキャッシュ（モジュールレベル）
-const hostsCache = { value: undefined };
-/**
-環境変数の値。無ければ undefined。
-
-名前が実行時に決まるので、環境変数の名前を添字で直接書く形では読めない。
-名前の元は、hosts.json の env_var、ホストから作る `PECOT_GITHUB_<HOST>_TOKEN`、ROOT_ENV_VAR_MAP。
-環境変数の宣言の確認（.githooks/tests/test_nx_env_inputs.py）は、この読み方を検出できない。
-宣言できない代わりに、テストが結果をトークンの値に依存させない。
-テストは token を明示して渡すか、トークンの変数を自分で設定する。
-トークンの変数を外す隔離は tests/_helpers/environment.ts の useIsolatedEnvironment が行う。
-*/
-function environmentValue(name) {
-    // interface-env: PECOT_GITHUB_*_TOKEN GITHUB_COM_TOKEN
-    return new Map(Object.entries(process.env)).get(name);
-}
-/**
-ホスト設定をロードする（キャッシュ付き）。
-設定ディレクトリの hosts.json を読む。ファイルが無ければ空の設定。
-最上位が JSON のオブジェクトでないときは、空の設定として扱う
-*/
-function loadHostsConfig() {
-    if (hostsCache.value !== undefined)
-        return hostsCache.value;
-    const hostsFile = path.join(configDirectory(), 'hosts.json');
-    let loaded = { hosts: {} };
-    if (existsSync(hostsFile)) {
-        const parsed = parseJsonText(readTextFile(hostsFile));
-        loaded = isJsonObject(parsed) ? parsed : {};
-    }
-    hostsCache.value = loaded;
-    return loaded;
-}
-/**
-ホストの設定（env_var・token_url・description・scopes）。無い、または空のオブジェクトなら undefined
-*/
-function getHostConfig(host) {
-    const hosts = jsonField(loadHostsConfig(), 'hosts');
-    const entry = isJsonObject(hosts) ? jsonField(hosts, host) : undefined;
-    return isJsonObject(entry) && Object.keys(entry).length > 0 ? entry : undefined;
-}
-// Python の dict の添字参照が KeyError になる所。str(KeyError) と同じ文にする
-function requiredField(config, key) {
-    const value = jsonField(config, key);
-    if (value === undefined)
-        throw new InvalidValueError(pythonStringRepr(key));
-    return value;
-}
-/**
-hosts.json に定義が無いときの既定の環境変数名。hosts.json.sample・.env.sample と同じ名前。
-hosts.json はリポに含まれないため、Actions などの新しい checkout ではこの名前を使う
-*/
-const DEFAULT_ENV_VAR_MAP = new Map([
-    ['github.com', 'PECOT_GITHUB_COM_TOKEN'],
-]);
-/**
-ホストに対応する環境変数名。hosts.json の定義、既定の対応、`PECOT_GITHUB_<HOST>_TOKEN`（ドットはアンダースコア）の順に使う
-*/
-function getEnvironmentVariableName(host) {
-    const hostConfig = getHostConfig(host);
-    return hostConfig === undefined
-        ? DEFAULT_ENV_VAR_MAP.get(host) ?? `PECOT_GITHUB_${host.toUpperCase().replaceAll('.', '_')}_TOKEN`
-        : pythonString(requiredField(hostConfig, 'env_var'));
-}
-// ルート .env の変数名マッピング（ホスト → ルート .env の変数名）。MCP ラッパーと同じトークンソースを参照するための定義
-const ROOT_ENV_VAR_MAP = new Map([
-    ['github.com', 'GITHUB_COM_TOKEN'],
-]);
-/**
-環境変数ファイルを読み、実行中の環境に設定する。Python の load_env_file と同じく環境を書き換える。
-KEY=VALUE 形式で、空行と # で始まる行は飛ばす。既にある環境変数は上書きしない
-*/
-function loadEnvironmentFile(file) {
-    if (!existsSync(file))
-        return;
-    for (const rawLine of readTextFile(file).split('\n')) {
-        const line = pythonStrip(rawLine);
-        if (line === '' || line.startsWith('#'))
-            continue;
-        const separator = line.indexOf('=');
-        if (separator === -1)
-            continue;
-        const key = pythonStrip(line.slice(0, separator));
-        const value = pythonStrip(line.slice(separator + 1));
-        // interface-env: none
-        if (key !== '' && !Object.hasOwn(process.env, key))
-            Reflect.set(process.env, key, value);
-    }
-}
-/**
-トークンの取得先 URL（hosts.json の token_url、無ければ設定画面の URL）
-*/
-function tokenUrlFor(host) {
-    const hostConfig = getHostConfig(host);
-    return hostConfig === undefined ? `https://${host}/settings/tokens` : pythonString(requiredField(hostConfig, 'token_url'));
-}
-/**
-hosts.json の scopes。無い、または配列でないときは空
-*/
-function scopesFor(host) {
-    const hostConfig = getHostConfig(host);
-    const scopes = hostConfig === undefined ? undefined : jsonField(hostConfig, 'scopes');
-    return isJsonArray(scopes) ? scopes.map(scope => pythonString(scope)) : [];
-}
-function environmentEntry(host) {
-    const hostConfig = getHostConfig(host);
-    const description = hostConfig === undefined ? host : pythonString(requiredField(hostConfig, 'description'));
-    const scopes = scopesFor(host);
-    const scopesComment = scopes.length > 0 ? `# 必要なスコープ: ${scopes.join(', ')}` : '';
-    return `\n# ${description}\n# 取得先: ${tokenUrlFor(host)}\n${scopesComment}\n${getEnvironmentVariableName(host)}=\n`;
-}
-const ENVIRONMENT_FILE_HEADER = `# pecot-cli 認証設定
-# 各トークンの値を設定してください
-#
-# トークン作成時は必要なスコープを付与してください
-`;
-/**
-認証用の .env を生成または更新して、そのパスを返す。
-無ければ新規作成する。あるときは、ホストの環境変数名が書かれていない場合だけ追記する。
-設定ディレクトリが無ければ何も書かずに undefined を返す（.gitignore の無い clone にトークンのファイルを置かない）
-*/
-function ensureEnvironmentFile(host) {
-    const directory = configDirectory();
-    if (!existsSync(directory))
-        return undefined;
-    const file = path.join(directory, '.env');
-    const name = getEnvironmentVariableName(host);
-    const entry = environmentEntry(host);
-    try {
-        if (!existsSync(file))
-            writeFileSync(file, ENVIRONMENT_FILE_HEADER + entry, 'utf8');
-        else if (!readTextFile(file).includes(name))
-            appendFileSync(file, entry, 'utf8');
-    }
-    catch (error) {
-        throw toOsError(error);
-    }
-    return file;
-}
-
-// JSON の null を表す定数。GraphQL の変数や JSON の出力に null が要る箇所は、これを使う。
-// `unicorn/no-null` を外すのはここ 1 か所だけにする。
-// eslint-disable-next-line unicorn/no-null -- JSON の null を表す唯一の定数
-const JSON_NULL = null;
-
-// GitHub の応答（REST の JSON と GraphQL の data）を読む補助。
-// Python の dict.get と as_dict に当たる。形が合わないときは、辞書や配列を空として読む。
-// 必須の値が無い、または型が違うときは GitHubAPIError にする（Python は KeyError で落ちる所）。
-const EMPTY_OBJECT = {};
-const EMPTY_ARRAY = [];
-/**
-as_dict と同じ。オブジェクトでなければ空のオブジェクト
-*/
-function asObject(value) {
-    return isJsonObject(value) ? value : EMPTY_OBJECT;
-}
-/**
-配列でなければ空の配列
-*/
-function asArray(value) {
-    return isJsonArray(value) ? value : EMPTY_ARRAY;
-}
-/**
-Python の真偽値と同じ。None・False・0・空文字・空の配列・空の辞書は偽
-*/
-function isTruthy(value) {
-    if (value === undefined || value === null || value === false || value === 0 || value === '')
-        return false;
-    if (isJsonArray(value))
-        return value.length > 0;
-    if (typeof value === 'object')
-        return Object.keys(value).length > 0;
-    return true;
-}
-/**
-`value.get(key, [])` の `nodes` の読み方。真偽値が偽の要素（None・空の辞書）を落とした配列
-*/
-function truthyNodes(value) {
-    return asArray(jsonField(value, 'nodes')).filter(node => isTruthy(node));
-}
-function throwMalformed(path) {
-    throw new GitHubAPIError(`malformed GitHub response: ${path}`);
-}
-/**
-必須の文字列。無い、または文字列でなければ GitHubAPIError
-*/
-function requireString(value, path) {
-    return typeof value === 'string' ? value : throwMalformed(path);
-}
-/**
-必須の数。無い、または数でなければ GitHubAPIError
-*/
-function requireNumber(value, path) {
-    return typeof value === 'number' ? value : throwMalformed(path);
-}
-/**
-文字列か null。無いときと文字列以外は null
-*/
-function stringOrNull(value) {
-    return typeof value === 'string' ? value : JSON_NULL;
-}
-/**
-数か null。無いときと数以外は null
-*/
-function numberOrNull(value) {
-    return typeof value === 'number' ? value : JSON_NULL;
-}
-/**
-必須の値（null でもよい）。キーが無ければ GitHubAPIError
-*/
-function requireValue(value, path) {
-    return value === undefined ? throwMalformed(path) : value;
-}
-/**
-Issue の subIssues.totalCount。無いときは 0
-*/
-function subIssuesTotal(issue) {
-    const total = jsonField(jsonField(issue, 'subIssues'), 'totalCount');
-    return typeof total === 'number' ? total : 0;
-}
-
-// GitHub API クライアントの基底（認証・REST と GraphQL の実行・エラー変換）。cli/core/github/client.py の移植。
-// issues・pulls・projects・repos の操作はこの基底に足す。
-//
-// Python は httpx と gql で送っていた。ここでは fetch で送り、次の点を揃える。
-// - redirect: 'manual' で呼ぶ。301 などは成功にせず、Python と同じ失敗にする。
-// - URL は文字列の連結で作る。new URL は GHE の base（/api/v3）を落とす。
-// - 失敗の文は httpx と gql の文言を写す。
-const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost']);
-const MAX_PORT = 65_535;
-// Python の TOKEN_FALLBACK_WARNING と同じ文。前置きと字下げを含まない
-const TOKEN_FALLBACK_WARNING = 'the token in the environment variable is invalid (401 Unauthorized); fell back to gh auth token\n'
-    + 'update or remove the token in .env';
-function isControlOrSpace(character) {
-    return (character.codePointAt(0) ?? 0) <= 0x20;
-}
-function trimTrailingSlashes(text) {
-    let end = text.length;
-    while (end > 0 && text.charAt(end - 1) === '/')
-        end -= 1;
-    return text.slice(0, end);
-}
-/**
-urlsplit(raw) の結果が、ループバックの http URL（query・fragment・userinfo なし）かを判定する。
-host は new URL で正規化せず、元の文字列の authority で比べる。
-そのため `127.1`・`0x7f.0.0.1` は拒否し、`HTTP://LOCALHOST:5` は受ける（urlsplit が scheme と host を小文字にする）。
-空の query と fragment（クエリ記号やハッシュだけの末尾）は受ける
-*/
-function isLoopbackHttpUrl(raw) {
-    let start = 0;
-    while (start < raw.length && isControlOrSpace(raw.charAt(start)))
-        start += 1;
-    const url = raw.slice(start).replaceAll(/[\t\n\r]/gu, '');
-    const scheme = /^([A-Za-z][\d+.A-Za-z-]*):/u.exec(url);
-    if (scheme?.[1]?.toLowerCase() !== 'http')
-        return false;
-    const rest = url.slice(scheme[0].length);
-    if (!rest.startsWith('//'))
-        return false;
-    const afterSlashes = rest.slice(2);
-    const delimiter = afterSlashes.search(/[#/?]/u);
-    const netloc = delimiter === -1 ? afterSlashes : afterSlashes.slice(0, delimiter);
-    const tail = delimiter === -1 ? '' : afterSlashes.slice(delimiter);
-    const fragmentStart = tail.indexOf('#');
-    const fragment = fragmentStart === -1 ? '' : tail.slice(fragmentStart + 1);
-    const beforeFragment = fragmentStart === -1 ? tail : tail.slice(0, fragmentStart);
-    const queryStart = beforeFragment.indexOf('?');
-    const query = queryStart === -1 ? '' : beforeFragment.slice(queryStart + 1);
-    // userinfo があるもの、IPv6 の角括弧があるものは、ループバックの 2 つのいずれでもない
-    if (query !== '' || fragment !== '' || /[@[\]]/u.test(netloc))
-        return false;
-    const portStart = netloc.indexOf(':');
-    const hostname = (portStart === -1 ? netloc : netloc.slice(0, portStart)).toLowerCase();
-    if (!LOOPBACK_HOSTS.has(hostname))
-        return false;
-    if (portStart === -1)
-        return true;
-    const port = netloc.slice(portStart + 1);
-    return port === '' || (/^\d+$/u.test(port) && Number(port) <= MAX_PORT);
-}
-/**
-PECOT_GITHUB_API_URL を検証して返す。未設定・空文字なら undefined。
-前後比較のテストが GitHub の代わりに偽サーバへ向けるための差し替え口。
-ループバックの http URL だけを受け付け、それ以外は InvalidValueError。末尾の `/` は落とす
-*/
-function resolveApiUrlOverride() {
-    const raw = process.env['PECOT_GITHUB_API_URL'] ?? '';
-    if (raw === '')
-        return undefined;
-    if (!isLoopbackHttpUrl(raw)) {
-        throw new InvalidValueError(`PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: ${raw}`);
-    }
-    return trimTrailingSlashes(raw);
-}
-const DEFAULT_API_VERSION = '2022-11-28';
-/**
-送信の失敗（接続できない・時間切れ）。Python の httpx の例外に当たり、PecotError ではない
-*/
-class TransportFailure extends BaseError {
-}
-function errorCode(error) {
-    return error instanceof Error && 'code' in error && typeof error.code === 'string' ? error.code : undefined;
-}
-const SOCKET_FAILURES = new Map([
-    ['ECONNREFUSED', '[Errno 111] Connection refused'],
-    ['ECONNRESET', '[Errno 104] Connection reset by peer'],
-    ['ENOTFOUND', '[Errno -2] Name or service not known'],
-    ['EAI_AGAIN', '[Errno -3] Temporary failure in name resolution'],
-]);
-/**
-fetch の失敗の文。接続の失敗は errno の文、時間切れは httpx の ReadTimeout の文（timed out）にする。
-それ以外は例外の文そのもの
-*/
-function describeTransportFailure(error) {
-    if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError'))
-        return 'timed out';
-    const cause = error instanceof Error ? error.cause : undefined;
-    const code = errorCode(cause) ?? errorCode(error);
-    const known = code === undefined ? undefined : SOCKET_FAILURES.get(code);
-    if (known !== undefined)
-        return known;
-    if (cause instanceof Error)
-        return cause.message;
-    return error instanceof Error ? error.message : String(error);
-}
-// urllib.parse.quote_plus と同じ。英数字と `_.-~` 以外は UTF-8 の %XX にし、空白は `+`
-function quotePlus(text) {
-    let result = '';
-    const bytes = new TextEncoder().encode(text);
-    for (const byte of bytes) {
-        const character = String.fromCodePoint(byte);
-        if (/[\w.~-]/u.test(character))
-            result += character;
-        else if (byte === 0x20)
-            result += '+';
-        else
-            result += `%${byte.toString(16).toUpperCase().padStart(2, '0')}`;
-    }
-    return result;
-}
-function queryValueText(value) {
-    if (value === undefined)
-        return '';
-    if (typeof value === 'boolean')
-        return value ? 'true' : 'false';
-    return String(value);
-}
-const ABSOLUTE_URL = /^[A-Za-z][\d+.A-Za-z-]*:\/\//u;
-function buildUrl(base, target, parameters) {
-    const url = ABSOLUTE_URL.test(target) ? target : `${base}/${target.replace(/^\/+/u, '')}`;
-    if (parameters === undefined)
-        return url;
-    const query = Object.entries(parameters).map(([key, value]) => `${quotePlus(key)}=${quotePlus(queryValueText(value))}`).join('&');
-    // params を指定すると、URL に書かれたクエリは置き換わる。空の params は URL のクエリを消す（httpx と同じ）
-    const queryStart = url.indexOf('?');
-    const withoutQuery = queryStart === -1 ? url : url.slice(0, queryStart);
-    return query === '' ? withoutQuery : `${withoutQuery}?${query}`;
-}
-const LINK_STRIP = new Set([' ', '\'', '"']);
-function stripCharacters(text, characters) {
-    let start = 0;
-    let end = text.length;
-    while (start < end && characters.has(text.charAt(start)))
-        start += 1;
-    while (end > start && characters.has(text.charAt(end - 1)))
-        end -= 1;
-    return text.slice(start, end);
-}
-// `key=value;key=value` を読む。要素が `=` で 2 つに割れなければ、そこで打ち切る
-function parseLinkParameters(text) {
-    const parameters = new Map();
-    for (const parameter of text.split(';')) {
-        const pieces = parameter.split('=');
-        if (pieces.length !== 2)
-            return parameters;
-        parameters.set(stripCharacters(pieces[0] ?? '', LINK_STRIP), stripCharacters(pieces[1] ?? '', LINK_STRIP));
-    }
-    return parameters;
-}
-/**
-Link ヘッダを httpx の Response.links と同じ規則で読む。キーは rel、無ければ url
-*/
-function parseLinks(header = '') {
-    const links = new Map();
-    const value = stripCharacters(header, LINK_STRIP);
-    if (value === '')
-        return links;
-    const urlStrip = new Set([...LINK_STRIP, '<', '>']);
-    for (const part of value.split(/, *</u)) {
-        const semicolon = part.indexOf(';');
-        const url = stripCharacters(semicolon === -1 ? part : part.slice(0, semicolon), urlStrip);
-        const relation = parseLinkParameters(semicolon === -1 ? '' : part.slice(semicolon + 1)).get('rel');
-        links.set(relation === undefined || relation === '' ? url : relation, { url, rel: relation });
-    }
-    return links;
-}
-/**
-REST の応答。Python の httpx.Response のうち、呼び出し側が使う部分
-*/
-class RestResponse {
-    headers;
-    statusCode;
-    statusText;
-    url;
-    text;
-    constructor(init) {
-        this.statusCode = init.statusCode;
-        this.statusText = init.statusText;
-        this.url = init.url;
-        this.text = init.text;
-        this.headers = init.headers;
-    }
-    /**
-    状態コードが 2xx
-    */
-    get isSuccess() {
-        return this.statusCode >= 200 && this.statusCode < 300;
-    }
-    /**
-    ヘッダの値。名前は大文字小文字を区別しない
-    */
-    header(name) {
-        return this.headers.get(name.toLowerCase());
-    }
-    /**
-    Link ヘッダ。キーは rel（無ければ url）
-    */
-    get links() {
-        return parseLinks(this.header('link'));
-    }
-    /**
-    本文を JSON として読む。不正なら InvalidValueError
-    */
-    json() {
-        return parseJsonText(this.text);
-    }
-}
-/**
-gql の例外に当たる。分類には文ではなく、応答の状態コードと errors の type を使う
-*/
-class GraphqlFailure extends BaseError {
-    statusCode;
-    errorType;
-    constructor(message, detail = {}) {
-        super(message, detail.cause === undefined ? undefined : { cause: detail.cause });
-        this.statusCode = detail.statusCode;
-        this.errorType = detail.errorType;
-    }
-}
-// errors[0] が辞書で type が文字列なら、その type
-function firstErrorType(errors) {
-    const first = isJsonArray(errors) ? errors.at(0) : errors;
-    const type = isJsonObject(first) ? first['type'] : undefined;
-    return typeof type === 'string' ? type : undefined;
-}
-// gql の str_first_element。list は先頭、str は先頭の 1 文字、dict などは全体
-function firstErrorText(errors) {
-    if (isJsonArray(errors)) {
-        const first = errors.at(0);
-        return first === undefined ? '' : pythonString(first);
-    }
-    return pythonString(typeof errors === 'string' ? splitCodePoints(errors).slice(0, 1).join('') : errors);
-}
-// data があり、errors のすべてが道筋を持って isTolerated を満たすとき、その errors。それ以外は undefined
-function toleratedErrors(errors, data, isTolerated) {
-    if (isTolerated === undefined || !isJsonObject(data) || !isJsonArray(errors) || errors.length === 0)
-        return undefined;
-    const objects = errors.filter(error => isJsonObject(error));
-    const areAllTolerated = objects.length === errors.length && objects.every((error) => {
-        const path = error['path'];
-        return isJsonArray(path) && isTolerated(path);
-    });
-    return areAllTolerated ? objects : undefined;
-}
-// 認証エラーの判定。文に 401 が入っていても（Issue 番号の 401 など）、認証エラーにはしない
-function isUnauthorized(failure) {
-    return failure.statusCode === 401 || failure.errorType === 'UNAUTHORIZED';
-}
-/**
-レート制限の判定は、REST と GraphQL でこの 1 つを使う。
-状態が 429、GitHub の種類が RATE_LIMITED、または文に rate limit を含むとき
-*/
-function isRateLimited(signal) {
-    return signal.statusCode === 429 || signal.errorType === 'RATE_LIMITED' || signal.text.toLowerCase().includes('rate limit');
-}
-function toGraphqlFailure(error) {
-    if (error instanceof GraphqlFailure)
-        return error;
-    return new GraphqlFailure(error instanceof Error ? error.message : pythonRepr(String(error)), { cause: error });
-}
-const DEFAULT_TIMEOUT_MILLISECONDS = 30_000;
-// gh auth token は手元の資格情報を読むだけで、ネットワークを使わない。
-// OS のキーチェーンの解錠待ちを見込んで 10 秒にする。それ以上かかるなら、無応答として認証エラーに倒す
-const DEFAULT_GH_TIMEOUT_MILLISECONDS = 10_000;
-/**
-GitHub API クライアント（REST と GraphQL）。github.com と GHES に対応する。
-
-トークンの優先順位は、token の指定、config/.env、ルート .env、gh auth token の順。
-issues・pulls・projects・repos の操作は、次のメソッドを使って作る。
-restJson・restObject・restRequest・handleHttpError・executeGraphql。
-*/
-class GitHubClientBase {
-    diagnostics;
-    usedFallback = false;
-    signal;
-    ghToken;
-    host;
-    token;
-    timeoutMilliseconds;
-    ghTimeoutMilliseconds;
-    apiUrl;
-    graphqlUrl;
-    constructor(options) {
-        this.diagnostics = options.diagnostics;
-        this.host = options.host ?? 'github.com';
-        this.ghTimeoutMilliseconds = options.ghTimeoutMilliseconds ?? DEFAULT_GH_TIMEOUT_MILLISECONDS;
-        this.signal = options.signal;
-        // gh auth token は子プロセスを待つので、構築では読まず ensureToken に回す。空はまだ読んでいない印
-        this.token = options.token === undefined || options.token === '' ? this.tokenFromEnvironment(this.host) ?? '' : options.token;
-        this.timeoutMilliseconds = options.timeoutMilliseconds ?? DEFAULT_TIMEOUT_MILLISECONDS;
-        const override = resolveApiUrlOverride();
-        if (override !== undefined) {
-            this.apiUrl = override;
-            this.graphqlUrl = `${override}/graphql`;
-        }
-        else if (this.host === 'github.com') {
-            this.apiUrl = 'https://api.github.com';
-            this.graphqlUrl = 'https://api.github.com/graphql';
-        }
-        else {
-            this.apiUrl = `https://${this.host}/api/v3`;
-            this.graphqlUrl = `https://${this.host}/api/graphql`;
-        }
-    }
-    failAuthentication(host) {
-        throw new GitHubAuthError(this.authErrorMessage(host));
-    }
-    async loadGhToken() {
-        this.token = await this.tokenFromGh(this.host) ?? this.failAuthentication(this.host);
-    }
-    tokenFromEnvironment(host) {
-        loadEnvironmentFile(path.join(configDirectory(), '.env'));
-        const token = environmentValue(getEnvironmentVariableName(host));
-        if (token !== undefined && token !== '')
-            return token;
-        loadEnvironmentFile(path.join(projectRoot(), '.env'));
-        const rootName = ROOT_ENV_VAR_MAP.get(host);
-        if (rootName === undefined)
-            return undefined;
-        const rootToken = environmentValue(rootName);
-        return rootToken === undefined || rootToken === '' ? undefined : rootToken;
-    }
-    async tokenFromGh(host) {
-        const arguments_ = host === 'github.com' ? ['auth', 'token'] : ['auth', 'token', '-h', host];
-        let token = '';
-        try {
-            const result = await runProcess('gh', arguments_, { stdin: 'ignore', timeoutMilliseconds: this.ghTimeoutMilliseconds, signal: this.signal });
-            token = result.exitCode === 0 && !result.isTimedOut ? pythonStrip(result.stdout) : '';
-        }
-        catch (error) {
-            // 取り消しは認証の失敗にしない（authErrorMessage が .env を作るため）。gh が無いときは読めなかった扱い
-            if (error instanceof CancelledError)
-                throw error;
-        }
-        return token.length === 0 ? undefined : token;
-    }
-    /**
-    認証エラーの文を作る。.env が無ければ生成し、あるときはホストの変数が無ければ追記する。
-    設定ディレクトリが無く .env を作れないときは、gh auth login と起動前の環境変数を案内する
-    */
-    authErrorMessage(host) {
-        const file = ensureEnvironmentFile(host);
-        const scopes = scopesFor(host);
-        const scopesLine = scopes.length > 0 ? `   required scopes: ${scopes.join(', ')}` : '';
-        if (file === undefined) {
-            return [
-                'authentication error: could not get a GitHub API token',
-                '',
-                'authenticate with the GitHub CLI:',
-                `   gh auth login -h ${host}`,
-                '',
-                'or set a token in an environment variable:',
-                `1. get a token: ${tokenUrlFor(host)}`,
-                ...(scopesLine === '' ? [] : [scopesLine]),
-                `2. set it in ${getEnvironmentVariableName(host)} before starting pecot (for the MCP server, before starting the session)`,
-            ].join('\n');
-        }
-        return `authentication error: could not get a GitHub API token
-
-${file} was generated. Set the token as follows:
-
-1. get a token: ${tokenUrlFor(host)}
-${scopesLine}
-
-2. edit ${file} and set the token in ${getEnvironmentVariableName(host)}
-
-or authenticate with the GitHub CLI:
-   gh auth login -h ${host}`;
-    }
-    // github.com は Bearer、GHE Server は token（gh CLI 互換）
-    requestHeaders(apiVersion = DEFAULT_API_VERSION) {
-        return {
-            'Authorization': `${this.host === 'github.com' ? 'Bearer' : 'token'} ${this.token}`,
-            'Accept': 'application/vnd.github+json',
-            'X-GitHub-Api-Version': apiVersion,
-        };
-    }
-    /**
-    env のトークンが失効したとき、gh auth token に 1 回だけ切り替える。切り替えたら true
-    */
-    async retryWithFallbackToken() {
-        if (this.usedFallback)
-            return false;
-        this.usedFallback = true;
-        const newToken = await this.tokenFromGh(this.host);
-        if (newToken === undefined || newToken === this.token)
-            return false;
-        this.diagnostics.warning(TOKEN_FALLBACK_WARNING);
-        this.token = newToken;
-        return true;
-    }
-    async send(method, url, headers, body) {
-        try {
-            const response = await fetch(url, {
-                method,
-                headers,
-                ...(body !== undefined && { body }),
-                redirect: 'manual',
-                signal: this.signal === undefined
-                    ? AbortSignal.timeout(this.timeoutMilliseconds)
-                    : AbortSignal.any([AbortSignal.timeout(this.timeoutMilliseconds), this.signal]),
-            });
-            const text = await response.text();
-            return new RestResponse({
-                statusCode: response.status,
-                statusText: response.statusText,
-                url: response.url === '' ? url : response.url,
-                text,
-                headers: new Map(response.headers),
-            });
-        }
-        catch (error) {
-            this.throwIfCancelled();
-            throw new TransportFailure(describeTransportFailure(error), { cause: error });
-        }
-    }
-    // 取り消しは時間切れ（AbortError）と名前で分けられないので、signal で見分ける
-    throwIfCancelled() {
-        if (this.signal?.aborted === true)
-            throw cancelledBy(this.signal);
-    }
-    async sendRest(method, url, options) {
-        await this.ensureToken();
-        const { json } = options;
-        const base = this.requestHeaders(options.apiVersion);
-        const headers = json === undefined ? base : { ...base, 'Content-Type': 'application/json' };
-        return this.send(method, url, headers, json === undefined ? undefined : JSON.stringify(json));
-    }
-    // gql の HTTPXTransport.execute と同じ 4 つの失敗の文を作る。成功したら data と、許した errors
-    async sendGraphql(query, variables, isTolerated) {
-        let response;
-        try {
-            response = await this.send('POST', this.graphqlUrl, { ...this.requestHeaders(), 'Content-Type': 'application/json' }, JSON.stringify({ query, variables }));
-        }
-        catch (error) {
-            this.throwIfCancelled();
-            throw new GraphqlFailure(error instanceof Error ? error.message : String(error), { cause: error });
-        }
-        const { statusCode } = response;
-        // JSON でない応答。2xx 以外は httpx の状態の文、2xx は gql の文
-        const raiseResponseError = (reason) => {
-            if (!response.isSuccess) {
-                throw new GraphqlFailure(formatHttpStatusError({
-                    statusCode: response.statusCode,
-                    statusText: response.statusText,
-                    url: response.url,
-                    location: response.header('location'),
-                }), { statusCode });
-            }
-            throw new GraphqlFailure(`Server did not return a GraphQL result: ${reason}: ${response.text}`, { statusCode });
-        };
-        let result;
-        try {
-            result = response.json();
-        }
-        catch {
-            return raiseResponseError('Not a JSON answer');
-        }
-        // "errors" not in result and "data" not in result。オブジェクトはキーの有無、配列と文字列は「含まない」とみなす
-        if (result === null || typeof result === 'number' || typeof result === 'boolean') {
-            throw new GraphqlFailure(`argument of type '${pythonTypeName(result)}' is not a container or iterable`, { statusCode });
-        }
-        const object = isJsonObject(result) ? result : {};
-        if (!Object.hasOwn(object, 'errors') && !Object.hasOwn(object, 'data')) {
-            return raiseResponseError('No "data" or "errors" keys in answer');
-        }
-        // errors は status を問わず先頭の要素の文になる。許す errors（isTolerated）だけで data もあるときは、data と一緒に返す
-        const errors = object['errors'];
-        const data = object['data'];
-        const tolerated = toleratedErrors(errors, data, isTolerated);
-        if (tolerated === undefined && errors !== undefined && isTruthy(errors))
-            throw new GraphqlFailure(firstErrorText(errors), { statusCode, errorType: firstErrorType(errors) });
-        if (data === undefined || data === null)
-            throw new GraphqlFailure('Transport returned an ExecutionResult without data or errors', { statusCode });
-        return { data: isJsonObject(data) ? data : {}, errors: tolerated ?? [] };
-    }
-    classifyGraphqlFailure(failure) {
-        const { message } = failure;
-        const detail = { cause: failure, errorType: failure.errorType };
-        if (isUnauthorized(failure))
-            return new GitHubAuthError(`GraphQL authentication error: ${message}`, detail);
-        if (isRateLimited({ statusCode: failure.statusCode, errorType: failure.errorType, text: message })) {
-            return new GitHubRateLimitError(`GraphQL rate limit error: ${message}`, detail);
-        }
-        return new GitHubAPIError(`GraphQL query error: ${message}`, detail);
-    }
-    async runGraphql(query, variables, isTolerated) {
-        // 認証の失敗と取り消しを、GraphQL の失敗に包まないよう try の外で待つ
-        await this.ensureToken();
-        try {
-            return await this.sendGraphql(query, variables, isTolerated);
-        }
-        catch (error) {
-            this.throwIfCancelled();
-            const failure = toGraphqlFailure(error);
-            if (!isUnauthorized(failure))
-                throw this.classifyGraphqlFailure(failure);
-            if (!await this.retryWithFallbackToken())
-                throw new GitHubAuthError(`GraphQL authentication error: ${failure.message}`, { cause: failure });
-            try {
-                return await this.sendGraphql(query, variables, isTolerated);
-            }
-            catch (retryError) {
-                this.throwIfCancelled();
-                throw this.classifyGraphqlFailure(toGraphqlFailure(retryError));
-            }
-        }
-    }
-    // 絶対 URL（Link ヘッダの next など）は、API と同じ origin だけを辿る。
-    // 別のホストへ Authorization を付けて送らないため
-    assertSameOrigin(target) {
-        if (!ABSOLUTE_URL.test(target))
-            return;
-        if (URL.canParse(target) && new URL(target).origin === new URL(this.apiUrl).origin)
-            return;
-        throw new GitHubAPIError(`refusing to follow a URL on a different host than the API: ${target}`);
-    }
-    /**
-    トークンが無ければ gh auth token を 1 回だけ読む。読めなければ GitHubAuthError、取り消されたら CancelledError
-    */
-    async ensureToken() {
-        if (this.token !== '')
-            return;
-        this.ghToken ??= this.loadGhToken();
-        await this.ghToken;
-    }
-    /**
-    REST の要求（401 のときは gh auth token に切り替えて 1 回だけ再試行する）。
-    target は `/user` のようなパス（base の後ろにつなぐ）か、`https://` で始まる絶対 URL（Link ヘッダの next など）。
-    失敗の状態コードは例外にせず、そのまま返す。呼び出し側が isSuccess を見て handleHttpError に渡す
-    */
-    async restRequest(method, target, options = {}) {
-        this.assertSameOrigin(target);
-        const url = buildUrl(this.apiUrl, target, options.params);
-        const response = await this.sendRest(method, url, options);
-        return response.statusCode === 401 && await this.retryWithFallbackToken() ? this.sendRest(method, url, options) : response;
-    }
-    /**
-    REST の要求を送り、成功した応答の JSON を返す。失敗の応答は handleHttpError の例外にする。
-    本文が無い応答（204 など）には使わない
-    */
-    async restJson(method, target, options = {}) {
-        const response = await this.restRequest(method, target, options);
-        if (!response.isSuccess)
-            this.handleHttpError(response);
-        return response.json();
-    }
-    /**
-    restJson の結果をオブジェクトとして返す（オブジェクトでなければ空のオブジェクト。Python の as_dict と同じ）
-    */
-    async restObject(method, target, options = {}) {
-        return asObject(await this.restJson(method, target, options));
-    }
-    /**
-    HTTP エラーの応答を、状態コード別の例外にして投げる
-    */
-    handleHttpError(response) {
-        const detail = { statusCode: response.statusCode, responseBody: response.text };
-        if (response.statusCode === 401) {
-            throw new GitHubAuthError('authentication failed: check the token', detail);
-        }
-        if (response.statusCode === 404) {
-            throw new GitHubNotFoundError(`resource not found: ${response.url}`, detail);
-        }
-        if (response.statusCode === 429 || (response.statusCode === 403 && isRateLimited({ statusCode: 403, text: response.text }))) {
-            throw new GitHubRateLimitError('API rate limit reached', detail);
-        }
-        if (response.statusCode === 403) {
-            throw new GitHubAPIError('access denied', detail);
-        }
-        throw new GitHubAPIError(`GitHub API error: ${String(response.statusCode)}`, detail);
-    }
-    /**
-    GraphQL を実行する。失敗は応答の状態コードと errors の type で分類する。
-    状態が 401（または type が UNAUTHORIZED）は GitHubAuthError。gh auth token に 1 回切り替えて再試行する。
-    レート制限は GitHubRateLimitError、それ以外は GitHubAPIError
-    */
-    async executeGraphql(query, variables = {}) {
-        const { data } = await this.runGraphql(query, variables);
-        return data;
-    }
-    /**
-    executeGraphql の、部分エラーを許す版。data があり、errors のすべてが isTolerated を満たすとき、例外にせず data と errors を返す。
-    それ以外の errors は executeGraphql と同じ例外になる
-    */
-    async executeGraphqlTolerating(query, variables, isTolerated) {
-        return this.runGraphql(query, variables, isTolerated);
-    }
-}
-
-// GitHub GraphQL API のクエリ・mutation 文字列。
-// 先頭の 30 個は cli/core/github/queries.py を gql が送る形で写し、一致は infra/github/tests/queries.test.ts が固定する。
-// 末尾の blocked by 関係の 4 個は Python に無く、graphql-js の print の出力の形で書く。
-// 着手の判定に使う、Issue の依存関係・種別・親のフィールド。Issue の依存関係に対応しない GHES では通らない
-const ISSUE_READINESS_FIELDS = `
-              issueType {
-                name
-              }
-              subIssues(first: 1) {
-                totalCount
-              }
-              parent {
-                number
-                repository {
-                  owner {
-                    login
-                  }
-                  name
-                }
-              }
-              blockedBy(first: 1) {
-                totalCount
-              }`;
-// 一覧のクエリ。operationName が空なら無名。readinessFields は Issue の枝に足すフィールド
-function listProjectItemsQuery(operationName, readinessFields) {
-    return `query${operationName === '' ? ' ' : ` ${operationName}`}($projectId: ID!, $cursor: String, $laneFieldName: String!) {
-  node(id: $projectId) {
-    ... on ProjectV2 {
-      items(first: 100, after: $cursor) {
-        nodes {
-          id
-          updatedAt
-          fieldValues(first: 10) {
-            nodes {
-              ... on ProjectV2ItemFieldSingleSelectValue {
-                field {
-                  ... on ProjectV2SingleSelectField {
-                    id
-                    name
-                  }
-                }
-                name
-              }
-            }
-          }
-          lane: fieldValueByName(name: $laneFieldName) {
-            ... on ProjectV2ItemFieldSingleSelectValue {
-              name
-            }
-          }
-          content {
-            ... on Issue {
-              id
-              number
-              title
-              state
-              url${readinessFields}
-              labels(first: 10) {
-                nodes {
-                  name
-                }
-              }
-              repository {
-                owner {
-                  login
-                }
-                name
-              }
-            }
-            ... on PullRequest {
-              id
-              number
-              title
-              state
-              url
-              repository {
-                owner {
-                  login
-                }
-                name
-              }
-            }
-          }
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-      laneField: field(name: $laneFieldName) {
-        ... on ProjectV2SingleSelectField {
-          options {
-            name
-          }
-        }
-      }
-    }
-  }
-}`;
-}
-// プロジェクトアイテム一覧取得（ページネーション対応）
-const QUERY_LIST_PROJECT_ITEMS = listProjectItemsQuery('', ISSUE_READINESS_FIELDS);
-// 上の一覧から、Issue の依存関係に対応しない GHES で通らないフィールドを除いたもの
-const QUERY_LIST_PROJECT_ITEMS_LEGACY = listProjectItemsQuery('ListProjectItemsLegacy', '');
-// Issue Node ID・タイトル取得
-const QUERY_GET_ISSUE_NODE_ID = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      id
-      title
-    }
-  }
-}`;
-// プロジェクトNode ID取得（user版）
-const QUERY_GET_PROJECT_ID_USER = `query ($owner: String!, $projectNumber: Int!) {
-  user(login: $owner) {
-    projectV2(number: $projectNumber) {
-      id
-    }
-  }
-}`;
-// プロジェクトNode ID取得（organization版）
-const QUERY_GET_PROJECT_ID_ORG = `query ($owner: String!, $projectNumber: Int!) {
-  organization(login: $owner) {
-    projectV2(number: $projectNumber) {
-      id
-    }
-  }
-}`;
-// リポジトリNode ID取得
-const QUERY_GET_REPOSITORY_ID = `query ($owner: String!, $name: String!) {
-  repository(owner: $owner, name: $name) {
-    id
-  }
-}`;
-// プロジェクトにリポジトリをリンク
-const MUTATION_LINK_PROJECT_REPOSITORY = `mutation ($projectId: ID!, $repositoryId: ID!) {
-  linkProjectV2ToRepository(
-    input: { projectId: $projectId, repositoryId: $repositoryId }
-  ) {
-    repository {
-      id
-      nameWithOwner
-    }
-  }
-}`;
-// ボードにアイテム追加
-const MUTATION_ADD_TO_PROJECT = `mutation ($projectId: ID!, $contentId: ID!) {
-  addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
-    item {
-      id
-    }
-  }
-}`;
-// プロジェクトアイテムフィールド更新
-const MUTATION_UPDATE_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-  updateProjectV2ItemFieldValue(
-    input: {
-      projectId: $projectId
-      itemId: $itemId
-      fieldId: $fieldId
-      value: { singleSelectOptionId: $optionId }
-    }
-  ) {
-    projectV2Item {
-      id
-    }
-  }
-}`;
-// プロジェクトアイテム削除
-const MUTATION_DELETE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
-  deleteProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
-    deletedItemId
-  }
-}`;
-// サブIssue紐づけ
-const MUTATION_ADD_SUB_ISSUE = `mutation ($parentId: ID!, $childId: ID!) {
-  addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) {
-    issue {
-      number
-    }
-    subIssue {
-      number
-    }
-  }
-}`;
-// リンクブランチ作成（Issueに紐づいたブランチ）
-const MUTATION_CREATE_LINKED_BRANCH = `mutation CreateLinkedBranch($input: CreateLinkedBranchInput!) {
-  createLinkedBranch(input: $input) {
-    linkedBranch {
-      ref {
-        name
-        prefix
-      }
-    }
-  }
-}`;
-// リンクブランチを作れなかったときの、作り先のリポと同じ名前の ref。id は Repository か Issue の Node ID
-const QUERY_GET_BRANCH_REF_BY_NODE = `query ($id: ID!, $qualifiedName: String!) {
-  node(id: $id) {
-    ... on Repository {
-      nameWithOwner
-      ref(qualifiedName: $qualifiedName) {
-        name
-      }
-    }
-    ... on Issue {
-      repository {
-        nameWithOwner
-        ref(qualifiedName: $qualifiedName) {
-          name
-        }
-      }
-    }
-  }
-}`;
-// Issue の Node ID と、つながったブランチ。件数は gh issue develop の ListLinkedBranches と同じ
-const QUERY_GET_ISSUE_LINKED_BRANCHES = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      id
-      linkedBranches(first: 30) {
-        nodes {
-          ref {
-            name
-            repository {
-              nameWithOwner
-            }
-          }
-        }
-      }
-    }
-  }
-}`;
-// Issue番号からプロジェクトアイテム取得（高速版）
-const QUERY_GET_ISSUE_PROJECT_ITEMS = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      projectItems(first: 20) {
-        nodes {
-          id
-          isArchived
-          project {
-            id
-          }
-          fieldValues(first: 20) {
-            nodes {
-              ... on ProjectV2ItemFieldSingleSelectValue {
-                field {
-                  ... on ProjectV2SingleSelectField {
-                    id
-                  }
-                }
-              }
-            }
-          }
-          status: fieldValueByName(name: "Status") {
-            ... on ProjectV2ItemFieldSingleSelectValue {
-              name
-              field {
-                ... on ProjectV2SingleSelectField {
-                  id
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}`;
-// プロジェクトフィールド取得（user版）
-const QUERY_GET_PROJECT_FIELDS_USER = `query ($owner: String!, $projectNumber: Int!) {
-  user(login: $owner) {
-    projectV2(number: $projectNumber) {
-      id
-      title
-      url
-      fields(first: 50) {
-        nodes {
-          ... on ProjectV2SingleSelectField {
-            id
-            databaseId
-            name
-            options {
-              id
-              name
-              color
-              description
-            }
-          }
-          ... on ProjectV2Field {
-            id
-            name
-          }
-        }
-      }
-      views(first: 1) {
-        nodes {
-          number
-        }
-      }
-    }
-  }
-}`;
-// プロジェクトフィールド取得（organization版）
-const QUERY_GET_PROJECT_FIELDS_ORG = `query ($owner: String!, $projectNumber: Int!) {
-  organization(login: $owner) {
-    projectV2(number: $projectNumber) {
-      id
-      title
-      url
-      fields(first: 50) {
-        nodes {
-          ... on ProjectV2SingleSelectField {
-            id
-            databaseId
-            name
-            options {
-              id
-              name
-              color
-              description
-            }
-          }
-          ... on ProjectV2Field {
-            id
-            name
-          }
-        }
-      }
-      views(first: 1) {
-        nodes {
-          number
-        }
-      }
-    }
-  }
-}`;
-// プロジェクトフィールド作成（SingleSelect用）
-const MUTATION_CREATE_PROJECT_FIELD = `mutation ($projectId: ID!, $name: String!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
-  createProjectV2Field(
-    input: {
-      projectId: $projectId
-      dataType: SINGLE_SELECT
-      name: $name
-      singleSelectOptions: $options
-    }
-  ) {
-    projectV2Field {
-      ... on ProjectV2SingleSelectField {
-        id
-        name
-        options {
-          id
-          name
-        }
-      }
-    }
-  }
-}`;
-// プロジェクトフィールドの改名。選択肢を渡さないので、選択肢の ID と各 Item の値は残る
-const MUTATION_RENAME_PROJECT_FIELD = `mutation ($fieldId: ID!, $name: String!) {
-  updateProjectV2Field(input: { fieldId: $fieldId, name: $name }) {
-    projectV2Field {
-      ... on ProjectV2SingleSelectField {
-        id
-        name
-      }
-    }
-  }
-}`;
-// プロジェクトフィールドの削除。フィールドの値も消え、戻らない
-const MUTATION_DELETE_PROJECT_FIELD = `mutation ($fieldId: ID!) {
-  deleteProjectV2Field(input: { fieldId: $fieldId }) {
-    projectV2Field {
-      ... on ProjectV2FieldCommon {
-        id
-        name
-      }
-    }
-  }
-}`;
-// プロジェクトフィールドの選択肢の置き換え（SingleSelect用。一覧の全体を送る）
-const MUTATION_UPDATE_PROJECT_FIELD = `mutation ($fieldId: ID!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
-  updateProjectV2Field(
-    input: { fieldId: $fieldId, singleSelectOptions: $options }
-  ) {
-    projectV2Field {
-      ... on ProjectV2SingleSelectField {
-        id
-        name
-        options {
-          id
-          name
-        }
-      }
-    }
-  }
-}`;
-// Issue 種別判定用クエリ（軽量・Epic 判定専用）
-// Phase2: issueType.name == "Epic" を一次判定
-const QUERY_GET_ISSUE_KIND = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      number
-      state
-      issueType {
-        name
-      }
-      subIssues(first: 1) {
-        totalCount
-      }
-    }
-  }
-}`;
-// issueType フィールド非対応 GHES 向けのフォールバック（Phase1 単独）
-const QUERY_GET_ISSUE_KIND_PHASE1 = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      number
-      state
-      subIssues(first: 1) {
-        totalCount
-      }
-    }
-  }
-}`;
-// Issue詳細取得のクエリ。blockedByCount は前提の件数のフィールド。Issue の依存関係に対応しない GHES では通らない
-function getIssueSlimQuery(operationName, blockedByCount) {
-    return `query${operationName === '' ? ' ' : ` ${operationName}`}($owner: String!, $repo: String!, $number: Int!, $commentLimit: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      number
-      state
-      title
-      body
-      comments(last: $commentLimit) {
-        totalCount
-        nodes {
-          author {
-            login
-          }
-          createdAt
-          body
-        }
-      }
-      parent {
-        number
-        title
-        state
-        repository {
-          owner {
-            login
-          }
-          name
-        }
-      }
-      subIssues(first: 20) {
-        nodes {
-          number
-          state
-          title
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-      linkedBranches(first: 10) {
-        nodes {
-          ref {
-            name
-          }
-        }
-      }
-      timelineItems(itemTypes: [CONNECTED_EVENT, CROSS_REFERENCED_EVENT], first: 20) {
-        nodes {
-          ... on ConnectedEvent {
-            subject {
-              ... on PullRequest {
-                number
-                title
-                state
-              }
-            }
-          }
-          ... on CrossReferencedEvent {
-            source {
-              ... on PullRequest {
-                number
-                title
-                state
-              }
-            }
-          }
-        }
-      }${blockedByCount}
-    }
-  }
-}`;
-}
-// Issue詳細取得（スリム版 - 必要なフィールドのみ。前提の件数つき）
-const QUERY_GET_ISSUE_SLIM = getIssueSlimQuery('', `
-      blockedBy(first: 1) {
-        totalCount
-      }`);
-// 上のクエリから、前提の件数を除いたもの。Issue の依存関係を持たない GHES で読み直すのに使う
-const QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY = getIssueSlimQuery('GetIssueSlimWithoutBlockedBy', '');
-// session finish が読む PR。closing issues のリポと、既定ブランチの名前を足す
-const QUERY_GET_PULL_REQUEST_FOR_FINISH = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      body
-      headRefName
-      baseRefName
-      isDraft
-      closingIssuesReferences(first: 10) {
-        nodes {
-          number
-          repository {
-            name
-            owner {
-              login
-            }
-          }
-        }
-      }
-      baseRepository {
-        defaultBranchRef {
-          name
-        }
-      }
-    }
-  }
-}`;
-// open の PR の一覧。dependabot の PR の待ち状態の判定に使う。ページを辿る
-// 入れ子の connection が多く、ノード数の上限に近づくので first は 25 にしている。
-// timelineItems は、2 種のイベントを合わせて last: N だと force-push が多いときに片方が押し出されるため、
-// 種類ごとに別名で最後の 1 件だけを取る。
-const QUERY_LIST_OPEN_PULL_REQUESTS = `query ($owner: String!, $repo: String!, $after: String) {
-  repository(owner: $owner, name: $repo) {
-    pullRequests(
-      first: 25
-      states: OPEN
-      after: $after
-      orderBy: { field: CREATED_AT, direction: ASC }
-    ) {
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-      nodes {
-        number
-        title
-        url
-        createdAt
-        author {
-          __typename
-          login
-        }
-        isInMergeQueue
-        autoMergeRequest {
-          enabledAt
-        }
-        mergeable
-        baseRef {
-          target {
-            ... on Commit {
-              committedDate
-            }
-          }
-        }
-        firstCommits: commits(first: 1) {
-          nodes {
-            commit {
-              message
-              signature {
-                isValid
-              }
-              author {
-                user {
-                  login
-                }
-              }
-            }
-          }
-        }
-        headCommits: commits(last: 1) {
-          nodes {
-            commit {
-              statusCheckRollup {
-                state
-              }
-            }
-          }
-        }
-        lastForcePush: timelineItems(last: 1, itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT]) {
-          nodes {
-            ... on HeadRefForcePushedEvent {
-              createdAt
-            }
-          }
-        }
-        lastDequeue: timelineItems(last: 1, itemTypes: [REMOVED_FROM_MERGE_QUEUE_EVENT]) {
-          nodes {
-            ... on RemovedFromMergeQueueEvent {
-              createdAt
-            }
-          }
-        }
-      }
-    }
-  }
-}`;
-// 前提（blocked by）を付ける。issueId が待つ側、blockingIssueId が前提
-const MUTATION_ADD_BLOCKED_BY = `mutation ($issueId: ID!, $blockingIssueId: ID!) {
-  addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingIssueId }) {
-    issue {
-      number
-    }
-    blockingIssue {
-      number
-    }
-  }
-}`;
-// 前提（blocked by）を外す
-const MUTATION_REMOVE_BLOCKED_BY = `mutation ($issueId: ID!, $blockingIssueId: ID!) {
-  removeBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingIssueId }) {
-    issue {
-      number
-    }
-    blockingIssue {
-      number
-    }
-  }
-}`;
-const PULL_REQUEST_FIELDS = `fragment PullRequestFields on PullRequest {
-  number
-  state
-  headRefName
-  baseRefName
-  isDraft
-  isCrossRepository
-  repository {
-    owner {
-      login
-    }
-    name
-  }
-}`;
-const PREREQUISITE_ISSUE_FIELDS = `fragment PrerequisiteIssueFields on Issue {
-  id
-  number
-  state
-  title
-  repository {
-    owner {
-      login
-    }
-    name
-  }
-  issueType {
-    name
-  }
-  subIssues(first: 1) {
-    totalCount
-  }
-  projectItems(first: 20, includeArchived: false) {
-    totalCount
-    nodes {
-      project {
-        id
-      }
-      fieldValues(first: 20) {
-        nodes {
-          ...SingleSelectValueFields
-        }
-      }
-      label: fieldValueByName(name: $labelFieldName) {
-        ...SingleSelectValueFields
-      }
-    }
-  }
-  linkedBranches(first: 10) {
-    totalCount
-    nodes {
-      ref {
-        name
-        associatedPullRequests(first: 10) {
-          totalCount
-          nodes {
-            ...PullRequestFields
-          }
-        }
-      }
-    }
-  }
-  closedByPullRequestsReferences(first: 10, includeClosedPrs: true) {
-    totalCount
-    nodes {
-      ...PullRequestFields
-    }
-  }
-}`;
-const SINGLE_SELECT_VALUE_FIELDS = `fragment SingleSelectValueFields on ProjectV2ItemFieldValue {
-  ... on ProjectV2ItemFieldSingleSelectValue {
-    name
-    optionId
-    field {
-      ... on ProjectV2SingleSelectField {
-        id
-        name
-      }
-    }
-  }
-}`;
-// Issue と、その前提（blockedBy）を 1 回で読む。PR は 2 つの読み口（リンクしたブランチと Development 欄）から集める
-const QUERY_GET_ISSUE_PREREQUISITES = `query ($owner: String!, $repo: String!, $number: Int!, $labelFieldName: String!, $blockedByFirst: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      ...PrerequisiteIssueFields
-      body
-      parent {
-        number
-        repository {
-          owner {
-            login
-          }
-          name
-        }
-      }
-      blockedBy(first: $blockedByFirst) {
-        totalCount
-        nodes {
-          ...PrerequisiteIssueFields
-        }
-      }
-    }
-  }
-}
-
-${PREREQUISITE_ISSUE_FIELDS}
-
-${SINGLE_SELECT_VALUE_FIELDS}
-
-${PULL_REQUEST_FIELDS}`;
-// head のブランチ名で PR を引く（open・closed・merged。新しい順）
-const QUERY_LIST_PULL_REQUESTS_BY_HEAD = `query ($owner: String!, $repo: String!, $headRefName: String!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequests(
-      headRefName: $headRefName
-      states: [OPEN, CLOSED, MERGED]
-      first: 20
-      orderBy: { field: CREATED_AT, direction: DESC }
-    ) {
-      pageInfo {
-        hasNextPage
-      }
-      nodes {
-        ...PullRequestFields
-      }
-    }
-  }
-}
-
-${PULL_REQUEST_FIELDS}`;
-const BLOCKED_BY_REFERENCE_FIELDS = `fragment BlockedByReferenceFields on Issue {
-  id
-  number
-  state
-  repository {
-    owner {
-      login
-    }
-    name
-  }
-}`;
-// その Issue を前提にしている Issue（blocking）の参照。PR を作った後に、待つ側の Issue を絞るために読む
-const QUERY_GET_ISSUE_BLOCKING_REFERENCES = `query ($owner: String!, $repo: String!, $number: Int!, $blockingFirst: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      blocking(first: $blockingFirst) {
-        totalCount
-        nodes {
-          ...BlockedByReferenceFields
-        }
-      }
-    }
-  }
-}
-
-${BLOCKED_BY_REFERENCE_FIELDS}`;
-// Issue 1 件の、指定のプロジェクトの項目と進行の列。ボード全体を読まずに、列を動かす対象を読む
-const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      number
-      title
-      state
-      url
-      repository {
-        owner {
-          login
-        }
-        name
-      }
-      projectItems(first: 20, includeArchived: false) {
-        nodes {
-          id
-          project {
-            id
-          }
-          fieldValues(first: 20) {
-            nodes {
-              ... on ProjectV2ItemFieldSingleSelectValue {
-                field {
-                  ... on ProjectV2SingleSelectField {
-                    id
-                    name
-                  }
-                }
-                name
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}`;
-// Lanes のビューを作る先。所有者の種類と個人の数値の id（REST のパス）、ビューの名前、欄の databaseId
-const QUERY_GET_PROJECT_VIEW_TARGET = `query ($owner: String!, $projectNumber: Int!) {
-  repositoryOwner(login: $owner) {
-    __typename
-    ... on User {
-      databaseId
-    }
-    ... on ProjectV2Owner {
-      projectV2(number: $projectNumber) {
-        url
-        views(first: 50) {
-          nodes {
-            number
-            name
-          }
-        }
-        fields(first: 50) {
-          nodes {
-            ... on ProjectV2SingleSelectField {
-              databaseId
-              name
-            }
-          }
-        }
-      }
-    }
-  }
-}`;
-
-// 前提の読み取り（QUERY_GET_ISSUE_PREREQUISITES など）の応答を、domain/issue-readout.ts の形にする。
-function readRepository(node, path) {
-    const repository = jsonField(node, 'repository');
-    return {
-        owner: requireString(jsonField(jsonField(repository, 'owner'), 'login'), `${path}.repository.owner.login`),
-        repository: requireString(jsonField(repository, 'name'), `${path}.repository.name`),
-    };
-}
-function readState(node, allowed, path) {
-    const state = requireString(jsonField(node, 'state'), `${path}.state`);
-    const matched = allowed.find(candidate => candidate === state);
-    if (matched === undefined)
-        throw new GitHubAPIError(`malformed GitHub response: ${path}.state (${state})`);
-    return matched;
-}
-/**
-PR のノード 1 つ。`... on PullRequest` の型でない node は空で届くので、undefined を返す。
-PR なのに number が無ければ GitHubAPIError
-*/
-function readPullRequest(node) {
-    if (!isTruthy(node))
-        return undefined;
-    const path = 'pullRequest';
-    return {
-        number: requireNumber(jsonField(node, 'number'), `${path}.number`),
-        repository: readRepository(node, path),
-        state: readState(node, ['OPEN', 'CLOSED', 'MERGED'], path),
-        headRefName: requireString(jsonField(node, 'headRefName'), `${path}.headRefName`),
-        baseRefName: requireString(jsonField(node, 'baseRefName'), `${path}.baseRefName`),
-        isDraft: jsonField(node, 'isDraft') === true,
-        isCrossRepository: jsonField(node, 'isCrossRepository') === true,
-    };
-}
-function readPullRequests(nodes) {
-    return nodes.map(node => readPullRequest(node)).filter(pullRequest => pullRequest !== undefined);
-}
-function readLinkedBranches(issue) {
-    return truthyNodes(jsonField(issue, 'linkedBranches'))
-        .filter(branch => isTruthy(jsonField(branch, 'ref')))
-        .map((branch) => {
-        const reference = jsonField(branch, 'ref');
-        return {
-            name: requireString(jsonField(reference, 'name'), 'linkedBranch.ref.name'),
-            pullRequests: readPullRequests(truthyNodes(jsonField(reference, 'associatedPullRequests'))),
-        };
-    });
-}
-function readFieldValue(value, fieldName) {
-    const fieldId = jsonField(jsonField(value, 'field'), 'id');
-    const optionId = jsonField(value, 'optionId');
-    const optionName = jsonField(value, 'name');
-    return typeof fieldId === 'string' && typeof optionId === 'string' && typeof optionName === 'string' ? { fieldId, fieldName, optionId, optionName } : undefined;
-}
-// 進行の欄は ID で探す。fieldName にはボード上の今の名前を入れる
-function readColumnValue(item, columnFieldId) {
-    const value = truthyNodes(jsonField(item, 'fieldValues')).find(node => jsonField(jsonField(node, 'field'), 'id') === columnFieldId);
-    const name = jsonField(jsonField(value, 'field'), 'name');
-    return readFieldValue(value, typeof name === 'string' ? name : '');
-}
-// 設定のプロジェクトのアイテムだけを見る。同じ Issue が載る別のボードの値は読まない
-function readProjectFieldValues(issue, projectId, fieldNames) {
-    return truthyNodes(jsonField(issue, 'projectItems'))
-        .flatMap(item => jsonField(jsonField(item, 'project'), 'id') === projectId
-        ? [readColumnValue(item, fieldNames.columnFieldId), readFieldValue(jsonField(item, 'label'), fieldNames.labelFieldName)]
-        : [])
-        .filter(value => value !== undefined);
-}
-function readIssue(issue, projectId, fieldNames) {
-    const issueType = jsonField(jsonField(issue, 'issueType'), 'name');
-    const number = requireNumber(jsonField(issue, 'number'), 'issue.number');
-    return {
-        id: requireString(jsonField(issue, 'id'), 'issue.id'),
-        repository: readRepository(issue, 'issue'),
-        number,
-        state: readState(issue, ['OPEN', 'CLOSED'], 'issue'),
-        title: requireString(jsonField(issue, 'title'), 'issue.title'),
-        issueType: typeof issueType === 'string' ? issueType : JSON_NULL,
-        subIssuesTotal: subIssuesTotal(issue),
-        projectFieldValues: readProjectFieldValues(issue, projectId, fieldNames),
-        linkedBranches: readLinkedBranches(issue),
-        closingPullRequests: readPullRequests(truthyNodes(jsonField(issue, 'closedByPullRequestsReferences'))),
-    };
-}
-// 件数が totalCount に足りない connection の説明。足りていれば undefined
-function shortfall(connection, name, where) {
-    const total = jsonField(connection, 'totalCount');
-    const returned = asArray(jsonField(connection, 'nodes')).length;
-    return typeof total === 'number' && returned < total ? `${name} of ${where} returned ${String(returned)} of ${String(total)}` : undefined;
-}
-// 件数の上限で取りこぼした connection の説明。取りこぼしたまま判定すると、済んだ前提を未完と誤るため
-function connectionShortfalls(issue) {
-    const { owner: login, repository } = readRepository(issue, 'issue');
-    const where = `${login}/${repository}#${String(requireNumber(jsonField(issue, 'number'), 'issue.number'))}`;
-    const linkedBranches = jsonField(issue, 'linkedBranches');
-    return [
-        shortfall(jsonField(issue, 'projectItems'), 'projectItems', where),
-        shortfall(linkedBranches, 'linkedBranches', where),
-        ...truthyNodes(linkedBranches).map(branch => shortfall(jsonField(jsonField(branch, 'ref'), 'associatedPullRequests'), 'associatedPullRequests', where)),
-        shortfall(jsonField(issue, 'closedByPullRequestsReferences'), 'closedByPullRequestsReferences', where),
-    ].filter(reason => reason !== undefined);
-}
-/**
-対象の Issue の blockedBy を読む。次のどれかなら read-failed（理由つき）。
-取りこぼしたまま前提なしと読むと、ブロック中の Issue を着手できると誤るため
-- 部分エラー（errors）で blockedBy が読めなかった
-- blockedBy が null、null の node がある、件数が totalCount に足りない
-- 対象か前提の Issue の connection が、件数の上限で取りこぼされている
-*/
-function readBlockedBy(target, projectId, fieldNames, errorMessages = []) {
-    if (errorMessages.length > 0)
-        return { kind: 'read-failed', reason: `blockedBy could not be read: ${errorMessages.join('; ')}` };
-    const blockedBy = jsonField(target, 'blockedBy');
-    if (!isTruthy(blockedBy))
-        return { kind: 'read-failed', reason: 'blockedBy is null' };
-    const total = requireNumber(jsonField(blockedBy, 'totalCount'), 'issue.blockedBy.totalCount');
-    const nodes = asArray(jsonField(blockedBy, 'nodes'));
-    if (nodes.some(node => !isTruthy(node)))
-        return { kind: 'read-failed', reason: 'blockedBy has a null node' };
-    if (nodes.length < total)
-        return { kind: 'read-failed', reason: `blockedBy returned ${String(nodes.length)} of ${String(total)} issues` };
-    const [gap] = [target, ...nodes].flatMap(issue => connectionShortfalls(issue));
-    return gap === undefined ? { kind: 'ok', issues: nodes.map(node => readIssue(node, projectId, fieldNames)) } : { kind: 'read-failed', reason: gap };
-}
-/**
-前提 1 件の参照（node ID・番号・リポ・状態）。node は BlockedByReferenceFields の形
-*/
-function readIssueReference(node) {
-    return {
-        id: requireString(jsonField(node, 'id'), 'blockedBy.nodes.id'),
-        repository: readRepository(node, 'blockedBy.nodes'),
-        number: requireNumber(jsonField(node, 'number'), 'blockedBy.nodes.number'),
-        state: readState(node, ['OPEN', 'CLOSED'], 'blockedBy.nodes'),
-    };
-}
-
-// 出力フォーマット関数。ボード表示や Issue 一覧の整形を担当する。
-//
-// 入力は GitHub の GraphQL 応答（JSON）をそのまま受ける。
-// 入力の読み取りでは、キーが無いことと null を同じ「無い」として扱う。
-// transformItems の出力では、無い値を JSON_NULL にする。Python の CLI の JSON と同じ null が出る。
-// 辞書の値を取る（辞書でなければ undefined）。null は無いものとして扱う
-function member(value, key) {
-    return jsonField(value, key) ?? undefined;
-}
-// `nodes` の配列を取る（無ければ空）
-function nodesMember(value) {
-    const found = member(value, 'nodes');
-    return isJsonArray(found) ? found : [];
-}
-function stringMember(value, key) {
-    const found = member(value, key);
-    return typeof found === 'string' ? found : '';
-}
-// Python の真偽判定で偽になる値（null・false・0・空文字・空の配列・空の辞書）
-function isEmptyValue(value) {
-    if (value === undefined || value === null || value === false || value === 0 || value === '')
-        return true;
-    if (Array.isArray(value))
-        return value.length === 0;
-    return isJsonObject(value) && Object.keys(value).length === 0;
-}
-// fieldValues のうち、フィールドが条件に合う最初のノード
-function findFieldValue(item, isTarget) {
-    return nodesMember(member(item, 'fieldValues')).find(node => !isEmptyValue(node) && isTarget(member(node, 'field')));
-}
-function valueName(node) {
-    const name = member(node, 'name');
-    return typeof name === 'string' ? name : undefined;
-}
-/**
-GraphQL の戻り値から、ID の合う単一選択のフィールドの値を抽出する。見つからなければ undefined
-*/
-function extractFieldValueById(item, fieldId) {
-    return valueName(findFieldValue(item, field => stringMember(field, 'id') === fieldId));
-}
-
-// pecot-lane（利用者が Issue を分類するのに使う任意の欄）の名前と、一覧の集計。
-/**
-分類の欄のフィールド名
-*/
-const LANE_FIELD_NAME = 'pecot-lane';
-
-// REST の URL に連結するパスの符号化。owner・リポジトリ名・ブランチ名は、セグメントごとに符号化する。
-// `.` と `..` のセグメントは、`%2E` で書いても URL の解釈でパスを辿る意味になる。
-// だから送らず、GitHubAPIError で止める。
-// encodeURIComponent が符号化しない記号のうち、httpx が符号化するもの
-const EXTRA_RESERVED = new Map([['!', '%21'], ['\'', '%27'], ['(', '%28'], [')', '%29'], ['*', '%2A']]);
-/**
-パスの 1 セグメントを符号化する。encodeURIComponent が残す `!'()*` も符号化する。
-`.` と `..` は GitHubAPIError
-*/
-function encodePathSegment(segment) {
-    if (segment === '.' || segment === '..')
-        throw new GitHubAPIError(`name not usable in a URL path: ${segment}`);
-    return splitCodePoints(encodeURIComponent(segment))
-        .map(character => EXTRA_RESERVED.get(character) ?? character)
-        .join('');
-}
-/**
-`/repos/<owner>/<repository>`
-*/
-function repositoryPath(owner, repository) {
-    return `/repos/${encodePathSegment(owner)}/${encodePathSegment(repository)}`;
-}
-/**
-スラッシュ区切りのパス（ブランチ名など）を、セグメントごとに符号化する。スラッシュは残す
-*/
-function encodePath(path) {
-    return path.split('/').map(segment => encodePathSegment(segment)).join('/');
-}
-
-// リポジトリ・ブランチ・リリース操作の API。cli/core/github/repos.py の移植。
-const ALERTS_PER_PAGE = 100;
-// 一覧の per_page の上限。secret は 100、変数は 30（REST の文書）
-const SECRETS_PER_PAGE = 100;
-const VARIABLES_PER_PAGE = 30;
-const NO_CONTENT = 204;
-const FORBIDDEN = 403;
-const NOT_FOUND = 404;
-class ReposApi extends GitHubClientBase {
-    // 名前だけを返し、変数の値は外へ渡さない。読めない（403・404）ときは undefined
-    async listNamesOrUndefined(path, perPage, itemsKey) {
-        let items;
-        try {
-            items = await this.listAll(path, { per_page: perPage }, itemsKey);
-        }
-        catch (error) {
-            if (error instanceof GitHubAPIError && (error.statusCode === FORBIDDEN || error.statusCode === NOT_FOUND) && !(error instanceof GitHubRateLimitError))
-                return undefined;
-            throw error;
-        }
-        return items.map(item => jsonField(item, 'name')).filter(name => typeof name === 'string');
-    }
-    // GitHub は同じ名前のブランチがあっても errors を返さず linkedBranch を null にするので、作り先のリポを読んで理由を書く
-    async linkedBranchFailure(id, name) {
-        let repository;
-        let hasBranch = false;
-        try {
-            const node = jsonField(await this.executeGraphql(QUERY_GET_BRANCH_REF_BY_NODE, { id, qualifiedName: `refs/heads/${name}` }), 'node');
-            const target = jsonField(node, 'repository') ?? node;
-            const fullName = jsonField(target, 'nameWithOwner');
-            repository = typeof fullName === 'string' ? fullName : undefined;
-            hasBranch = repository !== undefined && isTruthy(jsonField(target, 'ref'));
-        }
-        catch (error) {
-            if (!(error instanceof GitHubAPIError))
-                throw error;
-        }
-        return hasBranch
-            ? `GitHub did not create the linked branch: a branch named ${name} already exists in ${repository ?? ''}. Use another branch name, or delete that branch if nothing uses it`
-            : `GitHub did not create the linked branch ${name} and gave no reason: check the branches of ${repository ?? 'the repository'} for the same name, and that the token can write its contents`;
-    }
-    /**
-    Link ヘッダの next を最後まで辿る。2 ページ目以降は next の絶対 URL を使い、params を再送すると cursor と二重になる
-    */
-    async listAll(path, firstParameters, itemsKey) {
-        const items = [];
-        let target = path;
-        let parameters = firstParameters;
-        for (;;) {
-            const response = await this.restRequest('GET', target, { params: parameters });
-            if (!response.isSuccess)
-                this.handleHttpError(response);
-            // 応答が `{ total_count, <itemsKey>: [...] }` の形の一覧は、キーで配列を取り出す
-            const body = response.json();
-            items.push(...asArray(itemsKey === undefined ? body : jsonField(body, itemsKey)));
-            const next = response.links.get('next');
-            if (next === undefined)
-                return items;
-            target = next.url;
-            parameters = undefined;
-        }
-    }
-    /**
-    GraphQL の点数の上限・使用量・残り・窓の切り替わり（REST の /rate_limit。点数を使わない）。読めない・形が違うときは undefined
-    */
-    async getGraphqlRateLimit() {
-        let body;
-        try {
-            body = await this.restJson('GET', '/rate_limit');
-        }
-        catch (error) {
-            if (error instanceof GitHubAPIError)
-                return undefined;
-            throw error;
-        }
-        const graphql = jsonField(jsonField(body, 'resources'), 'graphql');
-        const limit = jsonField(graphql, 'limit');
-        const used = jsonField(graphql, 'used');
-        const remaining = jsonField(graphql, 'remaining');
-        const reset = jsonField(graphql, 'reset');
-        return typeof limit === 'number' && typeof used === 'number' && typeof remaining === 'number' && typeof reset === 'number' ? { limit, used, remaining, reset } : undefined;
-    }
-    /**
-    リポジトリの GraphQL Node ID。見つからなければ GitHubNotFoundError
-    */
-    async getRepositoryId(owner, name) {
-        const result = await this.executeGraphql(QUERY_GET_REPOSITORY_ID, { owner, name });
-        const repository = jsonField(result, 'repository');
-        if (!isTruthy(repository))
-            throw new GitHubNotFoundError(`repository not found: ${owner}/${name}`);
-        return requireString(jsonField(repository, 'id'), 'repository.id');
-    }
-    /**
-    利用者のリポへの権限（REST の collaborators の permission）。maintain は write、triage は read で返る
-    */
-    async getCollaboratorPermission(owner, repository, user) {
-        const result = await this.restObject('GET', `${repositoryPath(owner, repository)}/collaborators/${encodePathSegment(user)}/permission`);
-        return requireString(jsonField(result, 'permission'), 'permission');
-    }
-    /**
-    ブランチの最新 commit の SHA（REST）。見つからなければ GitHubNotFoundError
-    */
-    async getBranchSha(owner, repository, branch) {
-        const reference = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/git/ref/heads/${encodePath(branch)}`), 'object');
-        return requireString(jsonField(reference, 'sha'), 'object.sha');
-    }
-    /**
-    head_sha の workflow の run の id と conclusion。終わっていない run の conclusion は空。先頭の 100 件だけ読む
-    */
-    async listWorkflowRunConclusions(owner, repository, headSha) {
-        const runs = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/actions/runs`, { params: { head_sha: headSha, per_page: 100 } }), 'workflow_runs');
-        return asArray(runs).map((run, index) => {
-            const conclusion = jsonField(run, 'conclusion');
-            return { id: requireNumber(jsonField(run, 'id'), `workflow_runs[${String(index)}].id`), conclusion: typeof conclusion === 'string' ? conclusion : '' };
-        });
-    }
-    /**
-    head が base より進んでいる commit の数（REST の compare の ahead_by）。手元の git を使わない。
-    per_page=1 で commit の一覧を削っても、ahead_by は変わらない
-    */
-    async countCommitsAhead(owner, repository, base, head) {
-        const comparison = await this.restJson('GET', `${repositoryPath(owner, repository)}/compare/${encodePath(base)}...${encodePath(head)}`, { params: { per_page: 1 } });
-        const ahead = jsonField(comparison, 'ahead_by');
-        if (typeof ahead !== 'number' || !Number.isSafeInteger(ahead))
-            throw new GitHubAPIError('could not read ahead_by from the compare response');
-        return ahead;
-    }
-    /**
-    Issue に紐づいたブランチを作り、その名前を返す（gh issue develop と同等）。
-    repositoryId を省くと、Issue と同じリポジトリになる
-    */
-    async createLinkedBranch(issueId, oid, name, repositoryId) {
-        const input = {
-            issueId,
-            oid,
-            name,
-            ...(repositoryId !== undefined && repositoryId !== '' && { repositoryId }),
-        };
-        const result = await this.executeGraphql(MUTATION_CREATE_LINKED_BRANCH, { input });
-        const linkedBranch = jsonField(jsonField(result, 'createLinkedBranch'), 'linkedBranch');
-        if (!isTruthy(linkedBranch))
-            throw new GitHubAPIError(await this.linkedBranchFailure(repositoryId === undefined || repositoryId === '' ? issueId : repositoryId, name));
-        return requireString(jsonField(jsonField(linkedBranch, 'ref'), 'name'), 'linkedBranch.ref.name');
-    }
-    /**
-    base と head の分かれ目の commit の SHA（REST の compare の merge_base_commit）
-    */
-    async getMergeBase(owner, repository, base, head) {
-        const comparison = await this.restJson('GET', `${repositoryPath(owner, repository)}/compare/${encodePath(base)}...${encodePath(head)}`, { params: { per_page: 1 } });
-        return requireString(jsonField(jsonField(comparison, 'merge_base_commit'), 'sha'), 'merge_base_commit.sha');
-    }
-    /**
-    GitHub のリリースを作る。target_commitish を指定するので、タグも自動で作られる
-    */
-    async createRelease(owner, repository, tagName, name, body, options = {}) {
-        const data = {
-            tag_name: tagName,
-            name,
-            body,
-            target_commitish: options.targetCommitish ?? 'main',
-            draft: options.draft ?? false,
-            prerelease: options.prerelease ?? false,
-        };
-        return this.restObject('POST', `${repositoryPath(owner, repository)}/releases`, { json: data });
-    }
-    /**
-    Actions の secret の名前の一覧。scope が organization なら、organization の secret のうち、このリポに渡るもの
-    */
-    async listActionsSecretNames(owner, repository, scope) {
-        const kind = scope === 'organization' ? 'organization-secrets' : 'secrets';
-        return await this.listNamesOrUndefined(`${repositoryPath(owner, repository)}/actions/${kind}`, SECRETS_PER_PAGE, 'secrets');
-    }
-    /**
-    Actions の変数の名前の一覧。scope が organization なら、organization の変数のうち、このリポに渡るもの
-    */
-    async listActionsVariableNames(owner, repository, scope) {
-        const kind = scope === 'organization' ? 'organization-variables' : 'variables';
-        return await this.listNamesOrUndefined(`${repositoryPath(owner, repository)}/actions/${kind}`, VARIABLES_PER_PAGE, 'variables');
-    }
-    /**
-    リポジトリの設定（`GET /repos/{owner}/{repo}` を 1 回読む）
-    */
-    async getRepositorySettings(owner, repository) {
-        const repositoryInfo = await this.restJson('GET', repositoryPath(owner, repository));
-        const autoDelete = jsonField(repositoryInfo, 'delete_branch_on_merge');
-        const ownerType = jsonField(jsonField(repositoryInfo, 'owner'), 'type');
-        return {
-            deleteBranchOnMerge: typeof autoDelete === 'boolean' ? autoDelete : undefined,
-            defaultBranch: requireString(jsonField(repositoryInfo, 'default_branch'), 'default_branch'),
-            ownerType: typeof ownerType === 'string' ? ownerType : undefined,
-        };
-    }
-    /**
-    リポジトリの持ち主の種類（`User`・`Organization`）。読めない形なら undefined
-    */
-    async getRepositoryOwnerType(owner, repository) {
-        const repositoryInfo = await this.restJson('GET', repositoryPath(owner, repository));
-        const type = jsonField(jsonField(repositoryInfo, 'owner'), 'type');
-        return typeof type === 'string' ? type : undefined;
-    }
-    /**
-    open な Dependabot alert を全件取得する（REST）。
-    alerts が無効（403）などで取得できなければ GitHubAPIError
-    */
-    async listOpenDependabotAlerts(owner, repository) {
-        return this.listAll(`${repositoryPath(owner, repository)}/dependabot/alerts`, { state: 'open', per_page: ALERTS_PER_PAGE });
-    }
-    /**
-    open な code scanning alert を全件取得する（REST）。ref は付けず、既定ブランチが対象になる。
-    GHAS が無い（403）・解析が無い（404）などで取得できなければ GitHubAPIError
-    */
-    async listOpenCodeScanningAlerts(owner, repository) {
-        return this.listAll(`${repositoryPath(owner, repository)}/code-scanning/alerts`, { state: 'open', per_page: ALERTS_PER_PAGE });
-    }
-    /**
-    open な secret scanning alert を全件取得する（REST）。secret の値が応答に載らないよう、hide_secret を必ず付ける。
-    secret scanning が無効（404）などで取得できなければ GitHubAPIError
-    */
-    async listOpenSecretScanningAlerts(owner, repository) {
-        return this.listAll(`${repositoryPath(owner, repository)}/secret-scanning/alerts`, { state: 'open', hide_secret: 'true', per_page: ALERTS_PER_PAGE });
-    }
-    /**
-    リポジトリの secret scanning の状態（enabled・disabled）。
-    security_and_analysis は admin 権限が無いと応答に載らない。載っていなければ undefined
-    */
-    async getSecretScanningStatus(owner, repository) {
-        const analysis = jsonField(await this.restJson('GET', repositoryPath(owner, repository)), 'security_and_analysis');
-        const status = jsonField(jsonField(analysis, 'secret_scanning'), 'status');
-        return typeof status === 'string' ? status : undefined;
-    }
-    /**
-    リポジトリで Dependabot alerts が有効かを返す（REST）。
-    vulnerability-alerts は有効で 204、無効で 404 を返す。それ以外の応答は GitHubAPIError
-    */
-    async isDependabotAlertsEnabled(owner, repository) {
-        const response = await this.restRequest('GET', `${repositoryPath(owner, repository)}/vulnerability-alerts`);
-        if (response.statusCode === NO_CONTENT)
-            return true;
-        if (response.statusCode === NOT_FOUND)
-            return false;
-        return this.handleHttpError(response);
-    }
-}
-
-// GitHub Projects (v2) 操作の API。cli/core/github/projects.py の移植。
-// owner が user か organization かは分からないので、user のクエリを先に試し、失敗したら organization を試す。
-// 着手の判定に足したフィールドの名前が出るスキーマの失敗（`Field 'x' doesn't exist` と `Cannot query field "x"`）
-const READINESS_FIELD_ERROR = /(?:Field '|field ")(?:issueType|subIssues|parent|blockedBy)['"]/u;
-// ProjectV2.field(name:) は、その名前のフィールドが無いと null と NOT_FOUND の errors を返す
-function isLaneFieldPath(path) {
-    return path.length === 2 && path[0] === 'node' && path[1] === 'laneField';
-}
-function laneOptionsOf(field) {
-    const options = jsonField(field, 'options');
-    return isJsonArray(options) ? options.map(option => jsonField(option, 'name')).filter(name => typeof name === 'string') : undefined;
-}
-function viewTargetOf(owner, number, ownerNode) {
-    const typename = jsonField(ownerNode, '__typename');
-    if (typename !== 'User' && typename !== 'Organization')
-        throw new GitHubAPIError(`unexpected owner type: ${typeof typename === 'string' ? typename : 'none'}`);
-    const project = jsonField(ownerNode, 'projectV2');
-    if (!isTruthy(project))
-        throw new GitHubNotFoundError(`project not found: ${owner}/projects/${String(number)}`);
-    const views = [];
-    const viewNodes = truthyNodes(jsonField(project, 'views'));
-    for (const view of viewNodes) {
-        const viewNumber = jsonField(view, 'number');
-        const name = jsonField(view, 'name');
-        if (typeof viewNumber === 'number' && typeof name === 'string')
-            views.push({ number: viewNumber, name });
-    }
-    const fieldDatabaseIds = new Map();
-    const fieldNodes = truthyNodes(jsonField(project, 'fields'));
-    for (const field of fieldNodes) {
-        const name = jsonField(field, 'name');
-        const databaseId = jsonField(field, 'databaseId');
-        if (typeof name === 'string' && typeof databaseId === 'number')
-            fieldDatabaseIds.set(name, databaseId);
-    }
-    const userId = jsonField(ownerNode, 'databaseId');
-    return { owner, number, ownerKind: typename, userId: typeof userId === 'number' ? userId : undefined, url: requireString(jsonField(project, 'url'), 'projectV2.url'), views, fieldDatabaseIds };
-}
-const MAX_ARCHIVED_CONSECUTIVE = 50;
-// ワークフローのフィールドの値が Archived か。そのフィールドが無ければ false
-function isItemArchived(item, workflowFieldId) {
-    return extractFieldValueById(item, workflowFieldId)?.toLowerCase() === 'archived';
-}
-// オブジェクトの要素だけを残す（null などは落とす）
-function objectsOf(items) {
-    return items.filter(item => isJsonObject(item));
-}
-class ProjectsApi extends ReposApi {
-    // user のクエリ。GitHub の失敗は、認証エラーとレート制限も含めて undefined にし、org のクエリへ進む。
-    // Python と同じ動き
-    async queryAsUser(query, variables) {
-        try {
-            return await this.executeGraphql(query, variables);
-        }
-        catch (error) {
-            if (error instanceof GitHubAPIError)
-                return undefined;
-            throw error;
-        }
-    }
-    /**
-    Issue を読むクエリ。無い Issue・リポジトリの NOT_FOUND を GitHubNotFoundError にする
-    */
-    async queryIssue(query, variables) {
-        try {
-            return await this.executeGraphql(query, variables);
-        }
-        catch (error) {
-            throw asNotFoundError(error);
-        }
-    }
-    /**
-    queryIssue の、部分エラーを許す版
-    */
-    async queryIssueTolerating(query, variables, isTolerated) {
-        try {
-            return await this.executeGraphqlTolerating(query, variables, isTolerated);
-        }
-        catch (error) {
-            throw asNotFoundError(error);
-        }
-    }
-    /**
-    プロジェクトボードのアイテムを取得する（ページネーション対応）
-    */
-    async listProjectItems(projectId, options = {}) {
-        const { limit, excludeArchived = false, workflowFieldId = '', onLegacy, onLaneOptions } = options;
-        let query = QUERY_LIST_PROJECT_ITEMS;
-        let allItems = [];
-        let cursor = JSON_NULL;
-        let archivedConsecutive = 0;
-        for (;;) {
-            let result;
-            try {
-                const outcome = await this.executeGraphqlTolerating(query, { projectId, cursor, laneFieldName: LANE_FIELD_NAME }, isLaneFieldPath);
-                result = outcome.data;
-            }
-            catch (error) {
-                // 古い GHES は blockedBy などを知らない。足す前のクエリで先頭から読み直す
-                if (query === QUERY_LIST_PROJECT_ITEMS_LEGACY || !isSchemaError(error) || !READINESS_FIELD_ERROR.test(error.message))
-                    throw error;
-                query = QUERY_LIST_PROJECT_ITEMS_LEGACY;
-                allItems = [];
-                cursor = JSON_NULL;
-                archivedConsecutive = 0;
-                onLegacy?.();
-                continue;
-            }
-            const node = jsonField(result, 'node');
-            if (!isTruthy(node))
-                break;
-            if (cursor === JSON_NULL)
-                onLaneOptions?.(laneOptionsOf(jsonField(node, 'laneField')));
-            const itemsData = asObject(jsonField(node, 'items'));
-            const nodes = asArray(jsonField(itemsData, 'nodes'));
-            if (excludeArchived) {
-                for (const item of nodes) {
-                    if (isItemArchived(item, workflowFieldId)) {
-                        archivedConsecutive += 1;
-                    }
-                    else {
-                        allItems.push(item);
-                        archivedConsecutive = 0;
-                    }
-                    if (archivedConsecutive >= MAX_ARCHIVED_CONSECUTIVE)
-                        return objectsOf(allItems);
-                }
-            }
-            else {
-                allItems.push(...nodes);
-            }
-            if (limit !== undefined && limit > 0 && allItems.length >= limit) {
-                allItems = allItems.slice(0, limit);
-                break;
-            }
-            const pageInfo = asObject(jsonField(itemsData, 'pageInfo'));
-            if (!isTruthy(pageInfo['hasNextPage']))
-                break;
-            // 次のページがあるのに cursor が無いと、先頭から取り直して終わらない
-            const endCursor = pageInfo['endCursor'];
-            if (typeof endCursor !== 'string')
-                throw new GitHubAPIError('could not get the cursor for the next page');
-            cursor = endCursor;
-        }
-        return objectsOf(allItems);
-    }
-    /**
-    Issue をプロジェクトボードに追加し、作られたアイテムの ID を返す
-    */
-    async addToProject(projectId, contentId) {
-        const result = await this.executeGraphql(MUTATION_ADD_TO_PROJECT, { projectId, contentId });
-        const item = jsonField(jsonField(result, 'addProjectV2ItemById'), 'item');
-        if (!isTruthy(item))
-            throw new GitHubAPIError('failed to add the item to the project');
-        return requireString(jsonField(item, 'id'), 'item.id');
-    }
-    /**
-    プロジェクトアイテムの SingleSelect フィールドの値を更新し、アイテムの ID を返す
-    */
-    async updateProjectItemField(projectId, itemId, fieldId, optionId) {
-        const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_ITEM_FIELD, { projectId, itemId, fieldId, optionId });
-        const item = jsonField(jsonField(result, 'updateProjectV2ItemFieldValue'), 'projectV2Item');
-        if (!isTruthy(item))
-            throw new GitHubAPIError('failed to update the field');
-        return requireString(jsonField(item, 'id'), 'projectV2Item.id');
-    }
-    /**
-    プロジェクトボードからアイテムを削除し、削除したアイテムの ID を返す
-    */
-    async deleteProjectItem(projectId, itemId) {
-        const result = await this.executeGraphql(MUTATION_DELETE_PROJECT_ITEM, { projectId, itemId });
-        const deletedId = jsonField(jsonField(result, 'deleteProjectV2Item'), 'deletedItemId');
-        if (!isTruthy(deletedId))
-            throw new GitHubAPIError('failed to delete the project item');
-        return requireString(deletedId, 'deletedItemId');
-    }
-    /**
-    プロジェクト番号から GraphQL Node ID を取る。user 所有を先に試す。無ければ GitHubNotFoundError
-    */
-    async getProjectId(owner, projectNumber) {
-        const variables = { owner, projectNumber };
-        const userResult = await this.queryAsUser(QUERY_GET_PROJECT_ID_USER, variables);
-        const userProject = jsonField(jsonField(userResult, 'user'), 'projectV2');
-        if (isTruthy(userProject))
-            return requireString(jsonField(userProject, 'id'), 'projectV2.id');
-        const orgResult = await this.executeGraphql(QUERY_GET_PROJECT_ID_ORG, variables);
-        const organizationProject = jsonField(jsonField(orgResult, 'organization'), 'projectV2');
-        if (isTruthy(organizationProject))
-            return requireString(jsonField(organizationProject, 'id'), 'projectV2.id');
-        throw new GitHubNotFoundError(`project not found: ${owner}/projects/${String(projectNumber)}`);
-    }
-    /**
-    Issue 番号から、指定のプロジェクトの中のアイテム ID を取る。
-    Issue から直接引くので、全アイテムの走査は要らない。Issue やリポジトリが無い、またはプロジェクトに無ければ undefined
-    */
-    async getItemIdByIssue(projectId, owner, repository, issueNumber) {
-        const result = await this.queryIssue(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber });
-        const issue = jsonField(jsonField(result, 'repository'), 'issue');
-        const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId);
-        return item === undefined ? undefined : requireString(jsonField(item, 'id'), 'projectItems.nodes.id');
-    }
-    /**
-    Issue 1 件の、指定のプロジェクトの項目を、readBoard の一覧の項目と同じ形で返す（札は含めない）。
-    workflow は進行の列の値で、空なら null。Issue やリポジトリが無い、またはプロジェクトに無ければ undefined
-    */
-    async getIssueBoardItem(projectId, owner, repository, issueNumber, workflowFieldId) {
-        const result = await this.executeGraphql(QUERY_GET_ISSUE_BOARD_ITEM, { owner, repo: repository, number: issueNumber });
-        const issue = jsonField(jsonField(result, 'repository'), 'issue');
-        if (!isTruthy(issue))
-            return undefined;
-        const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId);
-        if (item === undefined)
-            return undefined;
-        const workflow = extractFieldValueById(item, workflowFieldId);
-        const owning = jsonField(issue, 'repository');
-        return {
-            id: requireString(jsonField(item, 'id'), 'projectItems.nodes.id'),
-            workflow: typeof workflow === 'string' ? workflow : JSON_NULL,
-            title: jsonField(issue, 'title') ?? '',
-            content: {
-                number: jsonField(issue, 'number') ?? JSON_NULL,
-                state: jsonField(issue, 'state') ?? JSON_NULL,
-                url: jsonField(issue, 'url') ?? JSON_NULL,
-                repository: `${requireString(jsonField(jsonField(owning, 'owner'), 'login'), 'issue.repository.owner.login')}/${requireString(jsonField(owning, 'name'), 'issue.repository.name')}`,
-            },
-        };
-    }
-    /**
-    プロジェクトアイテムで値が入っている単一選択フィールドの ID を取る。アイテムが見つからなければ空
-    */
-    async getItemSetFieldIds(projectId, owner, repository, issueNumber, itemId) {
-        const result = await this.queryIssue(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber });
-        const issue = jsonField(jsonField(result, 'repository'), 'issue');
-        const fieldIds = new Set();
-        const items = truthyNodes(jsonField(issue, 'projectItems'));
-        for (const item of items) {
-            if (jsonField(item, 'id') !== itemId || jsonField(jsonField(item, 'project'), 'id') !== projectId)
-                continue;
-            const values = truthyNodes(jsonField(item, 'fieldValues'));
-            for (const value of values) {
-                const fieldId = jsonField(jsonField(value, 'field'), 'id');
-                if (typeof fieldId === 'string')
-                    fieldIds.add(fieldId);
-            }
-        }
-        return fieldIds;
-    }
-    /**
-    プロジェクトにリポジトリをリンクする。
-    リンクした（linked）、既にリンク済み（already_linked）、失敗（failed）のいずれも例外にせず結果で返す
-    */
-    async linkRepositoryToProject(owner, projectNumber, repositoryOwner, repositoryName) {
-        try {
-            const projectId = await this.getProjectId(owner, projectNumber);
-            const repositoryId = await this.getRepositoryId(repositoryOwner, repositoryName);
-            const result = await this.executeGraphql(MUTATION_LINK_PROJECT_REPOSITORY, { projectId, repositoryId });
-            const linked = jsonField(jsonField(result, 'linkProjectV2ToRepository'), 'repository');
-            return isTruthy(linked) ? { status: 'linked', detail: '' } : { status: 'failed', detail: 'unexpected response' };
-        }
-        catch (error) {
-            if (error instanceof GitHubNotFoundError)
-                return { status: 'failed', detail: error.message };
-            if (error instanceof GitHubAPIError) {
-                const lowered = error.message.toLowerCase();
-                const isAlreadyLinked = lowered.includes('already linked') || lowered.includes('already exists');
-                return { status: isAlreadyLinked ? 'already_linked' : 'failed', detail: error.message };
-            }
-            throw error;
-        }
-    }
-    /**
-    プロジェクトの情報（id・title・url・fields）。user 所有を先に試す。見つからなければ undefined
-    */
-    async getProjectFields(owner, projectNumber) {
-        const variables = { owner, projectNumber };
-        const userResult = await this.queryAsUser(QUERY_GET_PROJECT_FIELDS_USER, variables);
-        const userProject = jsonField(jsonField(userResult, 'user'), 'projectV2');
-        if (isTruthy(userProject))
-            return asObject(userProject);
-        const orgResult = await this.executeGraphql(QUERY_GET_PROJECT_FIELDS_ORG, variables);
-        const organizationProject = jsonField(jsonField(orgResult, 'organization'), 'projectV2');
-        return isTruthy(organizationProject) ? asObject(organizationProject) : undefined;
-    }
-    /**
-    プロジェクトに SingleSelect フィールドを作り、作ったフィールド（id・name・options）を返す
-    */
-    async createProjectField(projectId, name, options) {
-        const result = await this.executeGraphql(MUTATION_CREATE_PROJECT_FIELD, { projectId, name, options });
-        const created = jsonField(jsonField(result, 'createProjectV2Field'), 'projectV2Field');
-        if (!isTruthy(created))
-            throw new GitHubAPIError('failed to create the field');
-        return asObject(created);
-    }
-    /**
-    フィールドの名前だけを変え、更新後のフィールド（id・name）を返す
-    */
-    async renameProjectField(fieldId, name) {
-        const result = await this.executeGraphql(MUTATION_RENAME_PROJECT_FIELD, { fieldId, name });
-        const updated = jsonField(jsonField(result, 'updateProjectV2Field'), 'projectV2Field');
-        if (!isTruthy(updated))
-            throw new GitHubAPIError('failed to rename the field');
-        return asObject(updated);
-    }
-    /**
-    フィールドを消し、消したフィールド（id・name）を返す。各 Item の値も消え、戻らない
-    */
-    async deleteProjectField(fieldId) {
-        const result = await this.executeGraphql(MUTATION_DELETE_PROJECT_FIELD, { fieldId });
-        const deleted = jsonField(jsonField(result, 'deleteProjectV2Field'), 'projectV2Field');
-        if (!isTruthy(deleted))
-            throw new GitHubAPIError('failed to delete the field');
-        return asObject(deleted);
-    }
-    /**
-    SingleSelect フィールドの選択肢を、渡した一覧に置き換え、更新後のフィールド（id・name・options）を返す。
-    既存の選択肢は id を付けて渡す（外すと選択肢が作り直され、カードの値が消える）
-    */
-    async updateProjectFieldOptions(fieldId, options) {
-        const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_FIELD, { fieldId, options });
-        const updated = jsonField(jsonField(result, 'updateProjectV2Field'), 'projectV2Field');
-        if (!isTruthy(updated))
-            throw new GitHubAPIError('failed to update the field');
-        return asObject(updated);
-    }
-    /**
-    ビューを作る先（所有者の種類・ビュー・欄の databaseId）を読む。所有者かボードが無ければ GitHubNotFoundError
-    */
-    async getProjectViewTarget(owner, projectNumber) {
-        const result = await this.executeGraphql(QUERY_GET_PROJECT_VIEW_TARGET, { owner, projectNumber });
-        const ownerNode = jsonField(result, 'repositoryOwner');
-        if (!isTruthy(ownerNode))
-            throw new GitHubNotFoundError(`owner not found: ${owner}`);
-        return viewTargetOf(owner, projectNumber, ownerNode);
-    }
-    /**
-    REST でボードにビューを作り、作ったビューを返す。組織のボードのパスの先頭は /orgs/{org}。個人のボードでは /users/{user_id}
-    */
-    async createProjectView(target, body) {
-        let ownerPath = `/orgs/${encodePathSegment(target.owner)}`;
-        if (target.ownerKind === 'User') {
-            if (target.userId === undefined)
-                throw new GitHubAPIError(`could not read the user id of ${target.owner}`);
-            ownerPath = `/users/${String(target.userId)}`;
-        }
-        const json = { name: body.name, layout: body.layout, vertical_group_by: [...body.vertical_group_by], group_by: [...body.group_by] };
-        return this.restObject('POST', `${ownerPath}/projectsV2/${String(target.number)}/views`, { json });
-    }
-}
-
-// Issue 操作の API。cli/core/github/issues.py の移植。
-// 返す値のキー名は、Python の辞書と同じ snake_case にする（CLI の JSON 出力がそのまま使う）。
-const ISSUES_PER_PAGE = 100;
-const DEFAULT_COMMENT_LIMIT = 5;
-/**
-前提を 1 回で読む件数の上限
-*/
-const MAX_BLOCKED_BY = 50;
-// issueType フィールドに対応しない GHES が返すスキーマの失敗
-function isIssueTypeSchemaError(error) {
-    return isSchemaError(error) && error.message.includes('issueType');
-}
-const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required';
-// 依存関係のフィールド（blockedBy・blocking・addBlockedBy・removeBlockedBy）と issueType に対応しない GHES（3.19 より前）。
-// そのスキーマの失敗なら、分かる失敗に替える
-function asDependenciesError(error) {
-    return isSchemaError(error) && /blockedBy|blocking|issueType/iu.test(error.message) ? new DependenciesUnsupportedError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error;
-}
-// 部分エラーのうち、対象の Issue の blockedBy の下のもの
-function isBlockedByPath(path) {
-    return path[0] === 'repository' && path[1] === 'issue' && path[2] === 'blockedBy';
-}
-// 部分エラーのうち、対象の Issue の blocking の下のもの
-function isBlockingPath(path) {
-    return path[0] === 'repository' && path[1] === 'issue' && path[2] === 'blocking';
-}
-// GitHub は無い Issue・リポを、data の null と、その道筋の NOT_FOUND の errors で返す。null を見て GitHubNotFoundError にする
-function isIssueOrRepositoryPath(path) {
-    return path[0] === 'repository' && (path.length === 1 || (path[1] === 'issue' && path.length === 2));
-}
-// blockedBy（または blocking）の connection を参照にする。件数が足りないのは呼ぶ側が見るので、ここでは失敗にしない
-function readBlockedByReferences(connection, field = 'blockedBy') {
-    if (!isTruthy(connection))
-        return { kind: 'read-failed', reason: `${field} is null` };
-    const nodes = asArray(jsonField(connection, 'nodes'));
-    if (nodes.some(node => !isTruthy(node)))
-        return { kind: 'read-failed', reason: `${field} has a null node` };
-    const issues = nodes.map(node => readIssueReference(node));
-    return { kind: 'ok', total: requireNumber(jsonField(connection, 'totalCount'), `${field}.totalCount`), issues };
-}
-function numberOrUndefined(value) {
-    return typeof value === 'number' ? value : undefined;
-}
-function stringOrEmpty(value) {
-    return typeof value === 'string' ? value : '';
-}
-// 見つからないときは GitHubNotFoundError。repository と issue の 2 段で確かめる
-function issueNode(result, owner, repository, number) {
-    const repositoryNode = jsonField(result, 'repository');
-    if (!isTruthy(repositoryNode))
-        throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`);
-    const issue = jsonField(repositoryNode, 'issue');
-    if (!isTruthy(issue))
-        throw new GitHubNotFoundError(`Issue not found: ${owner}/${repository}/${String(number)}`);
-    return requireValue(issue, 'issue');
-}
-// 対象の Issue の親の参照。親が無い、またはリポジトリが読めない応答なら null
-function readParentReference(issue) {
-    const parent = jsonField(issue, 'parent');
-    if (!isTruthy(parent))
-        return JSON_NULL;
-    const repository = jsonField(parent, 'repository');
-    const owner = stringOrNull(jsonField(jsonField(repository, 'owner'), 'login'));
-    const name = stringOrNull(jsonField(repository, 'name'));
-    const number = jsonField(parent, 'number');
-    return owner === JSON_NULL || name === JSON_NULL || typeof number !== 'number' ? JSON_NULL : { repository: { owner, repository: name }, number };
-}
-function formatParent(parent) {
-    if (!isTruthy(parent))
-        return JSON_NULL;
-    const repository = asObject(jsonField(parent, 'repository'));
-    return {
-        number: requireNumber(jsonField(parent, 'number'), 'parent.number'),
-        title: requireString(jsonField(parent, 'title'), 'parent.title'),
-        state: requireString(jsonField(parent, 'state'), 'parent.state'),
-        owner: stringOrNull(jsonField(repository['owner'], 'login')),
-        repo: stringOrNull(repository['name']),
-    };
-}
-function text(value) {
-    return typeof value === 'string' ? value : '';
-}
-/**
-timelineItems からリンクされた PR を取り出す。
-ConnectedEvent は subject、CrossReferencedEvent は source に PR がある。PR 番号で重複を除く
-*/
-function extractLinkedPullRequests(timelineItems) {
-    const seen = new Set();
-    const pullRequests = [];
-    for (const node of truthyNodes(timelineItems)) {
-        const subject = jsonField(node, 'subject');
-        const pullRequest = isTruthy(subject) ? subject : jsonField(node, 'source');
-        if (!isTruthy(pullRequest))
-            continue;
-        const number = numberOrNull(jsonField(pullRequest, 'number'));
-        if (number === null || number === 0 || seen.has(number))
-            continue;
-        seen.add(number);
-        pullRequests.push({
-            number,
-            title: stringOrEmpty(jsonField(pullRequest, 'title')),
-            state: stringOrEmpty(jsonField(pullRequest, 'state')),
-        });
-    }
-    return pullRequests;
-}
-function readSubIssueNodes(connection) {
-    return truthyNodes(connection).map(sub => ({
-        number: requireNumber(jsonField(sub, 'number'), 'subIssue.number'),
-        state: requireString(jsonField(sub, 'state'), 'subIssue.state'),
-        title: requireString(jsonField(sub, 'title'), 'subIssue.title'),
-    }));
-}
-class IssuesApi extends ProjectsApi {
-    async executeDependencyMutation(mutation, variables) {
-        try {
-            await this.executeGraphql(mutation, variables);
-        }
-        catch (error) {
-            throw asDependenciesError(error);
-        }
-    }
-    // issueType フィールド非対応の GHES 用の判定
-    async getIssueKindPhase1(owner, repository, number) {
-        const result = await this.executeGraphql(QUERY_GET_ISSUE_KIND_PHASE1, { owner, repo: repository, number });
-        const issue = issueNode(result, owner, repository, number);
-        return {
-            number: requireNumber(jsonField(issue, 'number'), 'issue.number'),
-            state: requireString(jsonField(issue, 'state'), 'issue.state'),
-            issue_type: JSON_NULL,
-            sub_issues_total: subIssuesTotal(issue),
-        };
-    }
-    // GetIssueSlim の応答の issue。前提の件数に対応しない GHES は、件数なしのクエリで読み直す
-    async fetchSlimIssue(owner, repository, number, commentLimit) {
-        const variables = { owner, repo: repository, number, commentLimit };
-        let result;
-        try {
-            result = await this.queryIssue(QUERY_GET_ISSUE_SLIM, variables);
-        }
-        catch (error) {
-            if (!isSchemaError(error) || !/blockedBy/iu.test(error.message))
-                throw error;
-            result = await this.queryIssue(QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY, variables);
-        }
-        return issueNode(result, owner, repository, number);
-    }
-    /**
-    Issue を作る。labels が空なら送らない。extras は指定のあるものだけを送る
-    */
-    async createIssue(owner, repository, title, body = '', labels, extras = {}) {
-        const data = {
-            title,
-            body,
-            ...(labels !== undefined && labels.length > 0 && { labels }),
-            ...(extras.assignees !== undefined && { assignees: extras.assignees }),
-            ...(extras.milestone !== undefined && { milestone: extras.milestone }),
-            ...(extras.type !== undefined && { type: extras.type }),
-        };
-        return this.restObject('POST', `${repositoryPath(owner, repository)}/issues`, { json: data });
-    }
-    /**
-    Issue にコメントを足す
-    */
-    async addIssueComment(owner, repository, number, body) {
-        return this.restObject('POST', `${repositoryPath(owner, repository)}/issues/${String(number)}/comments`, { json: { body } });
-    }
-    /**
-    Issue・PR のコメントを全件取る（REST）
-    */
-    async listIssueComments(owner, repository, number) {
-        return this.listAll(`${repositoryPath(owner, repository)}/issues/${String(number)}/comments`, { per_page: ISSUES_PER_PAGE });
-    }
-    /**
-    Issue・PR のコメントを全件取り、本文・書き手・書いた人とリポの関係・作った時刻・URL を返す。順は REST と同じ ID の昇順
-    */
-    async listIssueCommentRecords(owner, repository, number) {
-        const comments = await this.listIssueComments(owner, repository, number);
-        return comments.filter(comment => isJsonObject(comment)).map((comment) => {
-            const user = jsonField(comment, 'user');
-            return {
-                body: text(jsonField(comment, 'body')),
-                userType: text(jsonField(user, 'type')),
-                login: text(jsonField(user, 'login')),
-                authorAssociation: text(jsonField(comment, 'author_association')),
-                createdAt: text(jsonField(comment, 'created_at')),
-                url: text(jsonField(comment, 'html_url')),
-            };
-        });
-    }
-    /**
-    Issue・PR のコメントを全件取り、本文と書き手の種類（`user.type`）だけを返す。順は REST と同じ ID の昇順
-    */
-    async listIssueCommentReadings(owner, repository, number) {
-        const records = await this.listIssueCommentRecords(owner, repository, number);
-        return records.map(({ body, userType }) => ({ body, userType }));
-    }
-    /**
-    Issue・PR からラベルを外す。付いていなければ（404）'absent'、ほかの失敗は GitHubAPIError
-    */
-    async removeIssueLabel(owner, repository, number, name) {
-        const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/issues/${String(number)}/labels/${encodePathSegment(name)}`);
-        if (response.statusCode === 404)
-            return 'absent';
-        if (!response.isSuccess)
-            this.handleHttpError(response);
-        return 'removed';
-    }
-    /**
-    Issue 番号から GraphQL Node ID を取る。見つからなければ GitHubNotFoundError
-    */
-    async getIssueNodeId(owner, repository, number) {
-        const issue = await this.getIssueNodeIdAndTitle(owner, repository, number);
-        return issue.id;
-    }
-    /**
-    Issue 番号から GraphQL Node ID とタイトルを、1 回のクエリで取る
-    */
-    async getIssueNodeIdAndTitle(owner, repository, number) {
-        const result = await this.queryIssue(QUERY_GET_ISSUE_NODE_ID, { owner, repo: repository, number });
-        const issue = issueNode(result, owner, repository, number);
-        return {
-            id: requireString(jsonField(issue, 'id'), 'issue.id'),
-            title: stringOrEmpty(jsonField(issue, 'title')),
-        };
-    }
-    /**
-    Issue の Node ID と、Issue のリポにある、つながったブランチの名前。見つからなければ GitHubNotFoundError
-    */
-    async getIssueLinkedBranches(owner, repository, number) {
-        const result = await this.queryIssue(QUERY_GET_ISSUE_LINKED_BRANCHES, { owner, repo: repository, number });
-        const issue = issueNode(result, owner, repository, number);
-        const fullName = `${owner}/${repository}`.toLowerCase();
-        const branches = truthyNodes(jsonField(issue, 'linkedBranches'))
-            .map(branch => jsonField(branch, 'ref'))
-            .filter(reference => stringOrNull(jsonField(jsonField(reference, 'repository'), 'nameWithOwner'))?.toLowerCase() === fullName)
-            .map(reference => requireString(jsonField(reference, 'name'), 'linkedBranch.ref.name'));
-        return { id: requireString(jsonField(issue, 'id'), 'issue.id'), branches };
-    }
-    /**
-    サブ Issue を紐づける。紐づけ結果は親と子の Issue 番号
-    */
-    async addSubIssue(parentIssueId, childIssueId) {
-        const result = await this.executeGraphql(MUTATION_ADD_SUB_ISSUE, { parentId: parentIssueId, childId: childIssueId });
-        const linkResult = jsonField(result, 'addSubIssue');
-        const parent = jsonField(linkResult, 'issue');
-        const child = jsonField(linkResult, 'subIssue');
-        if (!isTruthy(parent) || !isTruthy(child))
-            throw new GitHubAPIError('failed to link the sub-issue');
-        return {
-            parent_number: requireNumber(jsonField(parent, 'number'), 'issue.number'),
-            child_number: requireNumber(jsonField(child, 'number'), 'subIssue.number'),
-        };
-    }
-    /**
-    前提（blocked by）を付ける。issueId が待つ側、blockingIssueId が前提（どちらも node ID）。
-    GitHub の拒否（輪・件数の上限など）は HTTP 200 の VALIDATION で返り、GitHubAPIError になる。
-    Issue の依存関係に対応しない GHES（3.19 より前）も GitHubAPIError
-    */
-    async addBlockedBy(issueId, blockingIssueId) {
-        await this.executeDependencyMutation(MUTATION_ADD_BLOCKED_BY, { issueId, blockingIssueId });
-    }
-    /**
-    前提（blocked by）を外す。addBlockedBy と同じ失敗をする
-    */
-    async removeBlockedBy(issueId, blockingIssueId) {
-        await this.executeDependencyMutation(MUTATION_REMOVE_BLOCKED_BY, { issueId, blockingIssueId });
-    }
-    /**
-    Issue と、その前提（blockedBy 先頭 blockedByFirst 件）を 1 回のクエリで読む。ボードの値は projectId のものだけ。
-    blockedBy の部分エラーと、件数の上限による取りこぼしは、例外にせず blockedBy の read-failed で返す（呼ぶ側は判定の入力にする）。
-    Issue の依存関係に対応しない GHES（3.19 より前）、blockedBy 以外の失敗は GitHubAPIError
-    */
-    async getIssuePrerequisites(owner, repository, number, projectId, fieldNames, blockedByFirst = MAX_BLOCKED_BY) {
-        const variables = { owner, repo: repository, number, labelFieldName: fieldNames.labelFieldName, blockedByFirst };
-        let outcome;
-        try {
-            outcome = await this.queryIssueTolerating(QUERY_GET_ISSUE_PREREQUISITES, variables, isBlockedByPath);
-        }
-        catch (error) {
-            throw asDependenciesError(error);
-        }
-        const { data, errors } = outcome;
-        const issue = issueNode(data, owner, repository, number);
-        const messages = errors.map(error => stringOrEmpty(jsonField(error, 'message')));
-        return {
-            issue: { ...readIssue(issue, projectId, fieldNames), body: requireString(jsonField(issue, 'body'), 'issue.body'), parent: readParentReference(issue) },
-            blockedBy: readBlockedBy(issue, projectId, fieldNames, messages),
-        };
-    }
-    /**
-    その Issue を前提にしている Issue（blocking 先頭 blockingFirst 件）の参照と、全体の件数を読む。
-    total が issues の数より多ければ、読めなかった分がある。blocking の部分エラーと null の node は read-failed。
-    Issue の依存関係に対応しない GHES は DependenciesUnsupportedError
-    */
-    async getIssueBlockingReferences(owner, repository, number, blockingFirst = MAX_BLOCKED_BY) {
-        let outcome;
-        try {
-            const variables = { owner, repo: repository, number, blockingFirst };
-            outcome = await this.executeGraphqlTolerating(QUERY_GET_ISSUE_BLOCKING_REFERENCES, variables, path => isBlockingPath(path) || isIssueOrRepositoryPath(path));
-        }
-        catch (error) {
-            throw asDependenciesError(error);
-        }
-        const issue = issueNode(outcome.data, owner, repository, number);
-        const messages = outcome.errors.filter(error => isBlockingPath(asArray(error['path']))).map(error => stringOrEmpty(jsonField(error, 'message')));
-        return messages.length > 0 ? { kind: 'read-failed', reason: `blocking could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blocking'), 'blocking');
-    }
-    /**
-    Issue 種別を軽く取る。issueType フィールドに対応しない GHES では、subIssues だけで判定する
-    */
-    async getIssueKind(owner, repository, number) {
-        const variables = { owner, repo: repository, number };
-        let result;
-        try {
-            result = await this.executeGraphql(QUERY_GET_ISSUE_KIND, variables);
-        }
-        catch (error) {
-            if (isIssueTypeSchemaError(error)) {
-                return this.getIssueKindPhase1(owner, repository, number);
-            }
-            throw error;
-        }
-        const issue = issueNode(result, owner, repository, number);
-        return {
-            number: requireNumber(jsonField(issue, 'number'), 'issue.number'),
-            state: requireString(jsonField(issue, 'state'), 'issue.state'),
-            issue_type: stringOrNull(jsonField(jsonField(issue, 'issueType'), 'name')),
-            sub_issues_total: subIssuesTotal(issue),
-        };
-    }
-    /**
-    Issue の詳細を取る（GraphQL）。親・サブ Issue・リンクブランチ・リンク PR を 1 回のクエリで取る
-    */
-    async getIssueSlim(owner, repository, number, commentLimit = DEFAULT_COMMENT_LIMIT) {
-        const issue = await this.fetchSlimIssue(owner, repository, number, commentLimit);
-        return {
-            number: requireNumber(jsonField(issue, 'number'), 'issue.number'),
-            state: requireString(jsonField(issue, 'state'), 'issue.state'),
-            title: requireString(jsonField(issue, 'title'), 'issue.title'),
-            body: requireString(jsonField(issue, 'body'), 'issue.body'),
-            comments: {
-                total_count: requireNumber(jsonField(jsonField(issue, 'comments'), 'totalCount'), 'issue.comments.totalCount'),
-                nodes: truthyNodes(jsonField(issue, 'comments')).map(comment => ({
-                    author: isTruthy(jsonField(comment, 'author')) ? requireString(jsonField(jsonField(comment, 'author'), 'login'), 'comment.author.login') : 'ghost',
-                    created_at: requireString(jsonField(comment, 'createdAt'), 'comment.createdAt'),
-                    body: requireString(jsonField(comment, 'body'), 'comment.body'),
-                })),
-            },
-            parent: formatParent(jsonField(issue, 'parent')),
-            sub_issues: readSubIssueNodes(jsonField(issue, 'subIssues')),
-            linked_branches: truthyNodes(jsonField(issue, 'linkedBranches'))
-                .filter(branch => isTruthy(jsonField(branch, 'ref')))
-                .map(branch => requireString(jsonField(jsonField(branch, 'ref'), 'name'), 'linkedBranch.ref.name')),
-            linked_prs: extractLinkedPullRequests(jsonField(issue, 'timelineItems')),
-            blockedByCount: numberOrUndefined(jsonField(jsonField(issue, 'blockedBy'), 'totalCount')),
-        };
-    }
-    /**
-    Issue を閉じる。stateReason は completed か not_planned
-    */
-    async closeIssue(owner, repository, number, stateReason = 'completed') {
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, {
-            json: { state: 'closed', state_reason: stateReason },
-        });
-    }
-    /**
-    ラベルの付いた Issue を open・closed の両方で全件取る（REST）。Pull Request は除く
-    */
-    async listIssuesByLabel(owner, repository, label) {
-        const items = await this.listAll(`${repositoryPath(owner, repository)}/issues`, { state: 'all', labels: label, per_page: ISSUES_PER_PAGE });
-        return items.filter(item => !(isJsonObject(item) && 'pull_request' in item));
-    }
-    /**
-    Issue の本文を丸ごと置き換える。本文が上限を超える 422 は GitHubAPIError
-    */
-    async updateIssueBody(owner, repository, number, body) {
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, { json: { body } });
-    }
-}
-
-// Pull Request 操作の API。cli/core/github/pulls.py の移植。
-// 返す値のキー名は、Python の辞書と同じ snake_case にする（CLI の JSON 出力がそのまま使う）。
-const REVIEW_COMMENTS_PER_PAGE = 100;
-/**
-Stacks API が求める X-GitHub-Api-Version（https://docs.github.com/en/rest/pulls/stacks）
-*/
-const STACKS_API_VERSION = '2026-03-10';
-function requiresBoolean(value, path) {
-    return typeof value === 'boolean' ? value : throwMalformed(path);
-}
-function readStack(value) {
-    if (!isJsonObject(value))
-        throwMalformed('stack');
-    const pullRequests = jsonField(value, 'pull_requests');
-    if (!isJsonArray(pullRequests))
-        throwMalformed('stack.pull_requests');
-    return {
-        number: requireNumber(jsonField(value, 'number'), 'stack.number'),
-        pullRequests: pullRequests.map(pullRequest => requireNumber(jsonField(pullRequest, 'number'), 'stack.pull_requests.number')),
-    };
-}
-// 番号の型を問わずに、その PR を含むか。数でない番号でも含めば、readStack が形の誤りとして止める
-function hasPullRequestNumber(stack, pullRequestNumber) {
-    const pullRequests = jsonField(stack, 'pull_requests');
-    return isJsonArray(pullRequests) && pullRequests.some((pullRequest) => {
-        const number = jsonField(pullRequest, 'number');
-        return number === pullRequestNumber || number === String(pullRequestNumber);
-    });
-}
-function isDependabotAuthor(node) {
-    if (!isJsonObject(node))
-        return false;
-    const author = jsonField(node, 'author');
-    return jsonField(author, '__typename') === 'Bot' && jsonField(author, 'login') === 'dependabot';
-}
-class PullsApi extends IssuesApi {
-    // PR の取得クエリを実行し、pullRequest ノードを返す
-    async fetchPullRequest(query, owner, repository, number) {
-        const result = await this.executeGraphql(query, { owner, repo: repository, number });
-        const repositoryNode = jsonField(result, 'repository');
-        if (!isTruthy(repositoryNode))
-            throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`);
-        const pullRequest = jsonField(repositoryNode, 'pullRequest');
-        if (!isTruthy(pullRequest))
-            throw new GitHubNotFoundError(`PR not found: ${owner}/${repository}/${String(number)}`);
-        return requireValue(pullRequest, 'pullRequest');
-    }
-    /**
-    head のブランチ名で PR を引く（open・closed・merged。新しい順に先頭 20 件）。
-    20 件に収まらないときは hasNextPage が真。リポが無ければ GitHubNotFoundError
-    */
-    async listPullRequestsByHead(owner, repository, headReferenceName) {
-        const result = await this.executeGraphql(QUERY_LIST_PULL_REQUESTS_BY_HEAD, { owner, repo: repository, headRefName: headReferenceName });
-        const repositoryNode = jsonField(result, 'repository');
-        if (!isTruthy(repositoryNode))
-            throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`);
-        const connection = jsonField(repositoryNode, 'pullRequests');
-        return {
-            pullRequests: readPullRequests(truthyNodes(connection)),
-            hasNextPage: jsonField(jsonField(connection, 'pageInfo'), 'hasNextPage') === true,
-        };
-    }
-    /**
-    session finish が閉じる Issue を決めるのに使う PR を読む（GraphQL）。PR が無ければ GitHubNotFoundError
-    */
-    async getPullRequestForFinish(owner, repository, number) {
-        const pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_FINISH, owner, repository, number);
-        const defaultBranch = jsonField(jsonField(jsonField(pullRequest, 'baseRepository'), 'defaultBranchRef'), 'name');
-        return {
-            state: requireString(jsonField(pullRequest, 'state'), 'pullRequest.state'),
-            body: requireString(jsonField(pullRequest, 'body'), 'pullRequest.body'),
-            head_ref: requireString(jsonField(pullRequest, 'headRefName'), 'pullRequest.headRefName'),
-            base_ref: requireString(jsonField(pullRequest, 'baseRefName'), 'pullRequest.baseRefName'),
-            is_draft: requiresBoolean(jsonField(pullRequest, 'isDraft'), 'pullRequest.isDraft'),
-            closing_issues: truthyNodes(jsonField(pullRequest, 'closingIssuesReferences')).map((issue) => {
-                const issueRepository = jsonField(issue, 'repository');
-                return {
-                    owner: requireString(jsonField(jsonField(issueRepository, 'owner'), 'login'), 'closingIssue.repository.owner.login'),
-                    repository: requireString(jsonField(issueRepository, 'name'), 'closingIssue.repository.name'),
-                    number: requireNumber(jsonField(issue, 'number'), 'closingIssue.number'),
-                };
-            }),
-            default_branch: typeof defaultBranch === 'string' ? defaultBranch : undefined,
-        };
-    }
-    /**
-    その PR が入っているスタックを読む。入っていなければ undefined。
-    スタックの機能が無いリポは GitHubNotFoundError
-    */
-    async getStackOfPullRequest(owner, repository, pullRequestNumber) {
-        const stacks = await this.restJson('GET', `${repositoryPath(owner, repository)}/stacks`, {
-            params: { pull_request: pullRequestNumber },
-            apiVersion: STACKS_API_VERSION,
-        });
-        if (!isJsonArray(stacks))
-            throwMalformed('stacks');
-        // 関係の無いスタックの形の誤りで登録を止めないよう、探している PR を含むものだけ厳しく読む
-        const found = stacks.find(stack => hasPullRequestNumber(stack, pullRequestNumber));
-        return found === undefined ? undefined : readStack(found);
-    }
-    /**
-    スタックを作る。pullRequestNumbers は親から子の順
-    */
-    async createStack(owner, repository, pullRequestNumbers) {
-        return readStack(await this.restJson('POST', `${repositoryPath(owner, repository)}/stacks`, {
-            json: { pull_requests: [...pullRequestNumbers] },
-            apiVersion: STACKS_API_VERSION,
-        }));
-    }
-    /**
-    既にあるスタックの一番上に PR を足す。pullRequestNumbers は下からの順
-    */
-    async addToStack(owner, repository, stackNumber, pullRequestNumbers) {
-        return readStack(await this.restJson('POST', `${repositoryPath(owner, repository)}/stacks/${String(stackNumber)}/add`, {
-            json: { pull_requests: [...pullRequestNumbers] },
-            apiVersion: STACKS_API_VERSION,
-        }));
-    }
-    /**
-    PR の state（REST の `open`・`closed`）
-    */
-    async getPullRequestState(owner, repository, number) {
-        const pullRequest = await this.restObject('GET', `${repositoryPath(owner, repository)}/pulls/${String(number)}`);
-        return requireString(pullRequest['state'], 'state');
-    }
-    /**
-    PR のレビューのコメント（行に付いたインラインコメント）を全件取る（REST）
-    */
-    async listPullRequestReviewComments(owner, repository, number) {
-        return this.listAll(`${repositoryPath(owner, repository)}/pulls/${String(number)}/comments`, { per_page: REVIEW_COMMENTS_PER_PAGE });
-    }
-    /**
-    open の dependabot の PR を全件取る（GraphQL）。pullRequests に author の引数が無いので、全ページを辿ってから絞る。
-    GraphQL のノードをそのまま返す
-    */
-    async listOpenDependabotPullRequests(owner, repository) {
-        const nodes = [];
-        let after = JSON_NULL;
-        for (;;) {
-            const result = await this.executeGraphql(QUERY_LIST_OPEN_PULL_REQUESTS, { owner, repo: repository, after });
-            const connection = jsonField(jsonField(result, 'repository'), 'pullRequests');
-            // null を PR 0 件と読むと、sync が待つ PR は無いと判断して Tracker を閉じてしまう
-            if (!isJsonObject(connection))
-                throw new GitHubAPIError('the PR list response has no repository.pullRequests');
-            const pageNodes = jsonField(connection, 'nodes');
-            if (!isJsonArray(pageNodes))
-                throw new GitHubAPIError('nodes in the PR list response is not an array');
-            nodes.push(...pageNodes.filter(node => isTruthy(node)));
-            const pageInfo = asObject(jsonField(connection, 'pageInfo'));
-            if (!isTruthy(pageInfo['hasNextPage']))
-                break;
-            const cursor = pageInfo['endCursor'];
-            if (typeof cursor !== 'string' || cursor === '')
-                throw new GitHubAPIError('the next page of the PR list has no endCursor');
-            after = cursor;
-        }
-        return nodes.filter(node => isDependabotAuthor(node));
-    }
-}
-
-// GitHub API クライアント（REST と GraphQL、github.com と GHES に対応）。cli/core/github/__init__.py の移植。
-//
-// Python は IssuesAPI・ProjectsAPI・PullsAPI・ReposAPI の多重継承で合成していた。
-// TypeScript は継承を一直線につなぐ。基底 → repos → projects → issues → pulls の順で、各ファイルが前のクラスを拡張する。
-// この順は合成のための並びで、操作の依存を表さない。
-// 操作どうしの実際の依存は projects が repos の getRepositoryId を呼ぶ 1 本だけ。
-/**
-GitHub API クライアント。操作は責務別のクラスから合成する。
-
-使い方は次のとおり。
-- 作る: `new GitHubClient({ host: 'ghes.example.com', diagnostics })`。
-- 呼ぶ: `await client.getIssueSlim('owner', 'repo', 123)`。
-*/
-class GitHubClient extends PullsApi {
-}
-
-// MCP のツールの定義の型と defineTool()。ツールのファイルが import する。
-// registry.ts が TOOLS を持つために各ツールのファイルを import するので、循環を避けて定義をここに分ける。全ツールの入力に repo を合成する。
-/**
-ツールの途中で、決めた終了コードで止めるための例外。defineTool が包む run の 1 か所で捕まえて、戻り値の終了コードにする。
-`error:` の行は出さない（出す行は投げる前に書く）ので、PecotError・InvalidValueError・OsError・UsageError は継がない
-*/
-class CommandExit extends BaseError {
-    exitCode;
-    kind;
-    constructor(exitCode, kind) {
-        super(`exit ${String(exitCode)}`);
-        this.exitCode = exitCode;
-        this.kind = kind;
-    }
-}
-/**
-全ツールの入力に足す repo
-*/
-const GLOBAL_SHAPE = { repo: string().optional().describe('Target repository, given explicitly as \'owner/repo\'') };
-object(GLOBAL_SHAPE);
-
-// コマンドが error の行を出して止める処理と、対象のリポから設定を選ぶ処理。全コマンドが共有する。
-/**
-アクティブなプロジェクトが無いときの案内
-*/
-hinted `no active project\n${RUN_COLON}${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`;
-/**
-対象のリポから設定を選ぶ `project` の入力。board sync の `project` と同じ名前の読み方
-*/
-string().optional().describe('Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them');
-
-/**
-host 向けのクライアントを作る。host が undefined なら既定のホスト。環境にトークンが無いときは、最初の要求の前に gh auth token を読む
-*/
-function createGitHubClient(out, host) {
-    return new GitHubClient({ host, diagnostics: out, signal: out.signal });
-}
-
-/**
-base を省くと、リポの既定のブランチから作る。ブランチ名は GitHub が付けた名前を返す。
-gh issue develop と同じく、同じ名前のブランチが Issue につながっていれば作らずに返し、sha は base との分かれ目にする
-*/
-async function linkIssueBranch(client, target) {
-    const { owner, repository } = target;
-    const settings = target.base === undefined ? await client.getRepositorySettings(owner, repository) : undefined;
-    const base = target.base ?? settings?.defaultBranch ?? '';
-    const issue = await client.getIssueLinkedBranches(owner, repository, target.issue);
-    if (issue.branches.includes(target.branch)) {
-        return { issue: target.issue, branch: target.branch, base, sha: await client.getMergeBase(owner, repository, base, target.branch) };
-    }
-    const sha = await client.getBranchSha(owner, repository, base);
-    const branch = await client.createLinkedBranch(issue.id, sha, target.branch);
-    return { issue: target.issue, branch, base, sha };
-}
-
-// github-ops の operation の params の形。actions の github-ops と、書く前のチェック（pecot-workflow）が同じものを使う
-const NUMBER = number().int().min(1);
-const NAME = string().min(1);
-const REPOSITORY = string().refine(value => /^[\w.-]+\/[\w.-]+$/u.test(value), 'owner/repo');
-const OPTION = strictObject({
-    name: NAME,
-    color: string().min(1).optional(),
-    description: string().optional(),
-});
-/**
-project-fields の changes の 1 件
-*/
-const FIELD_CHANGE = union([
-    strictObject({ action: _enum(['create']), name: NAME, options: array(OPTION).min(1) }),
-    strictObject({ action: _enum(['rename']), name: NAME, to: NAME }),
-    strictObject({ action: _enum(['delete']), name: NAME }),
-    strictObject({ action: _enum(['set-options']), name: NAME, options: array(OPTION).min(1) }),
-]);
-const LINK_BRANCH_PARAMS = strictObject({ issue: NUMBER, branch: NAME, base: NAME.optional() });
-const STACK_REGISTER_PARAMS = strictObject({ pr: NUMBER, parent_pr: NUMBER });
-const PROJECT_FIELDS_PARAMS = strictObject({ project: NUMBER, changes: array(FIELD_CHANGE).min(1) });
-const PROJECT_VIEW_PARAMS = strictObject({ project: NUMBER, name: NAME, column: NAME, row: NAME });
-const PROJECT_LINK_PARAMS = strictObject({ project: NUMBER, repo: REPOSITORY.optional() });
-const NO_PARAMS = strictObject({});
-const RELEASE_CREATE_PARAMS = strictObject({
-    tag: NAME,
-    sha: string().refine(value => /^[\da-f]{40}$/u.test(value), 'a full commit SHA'),
-    body: string(),
-    name: NAME.optional(),
-    prerelease: boolean().default(false),
-});
-
-/**
-前提を待つ Issue を pecot が置く列
-*/
-const BLOCKED_SPEC = {
-    option: { name: 'Blocked', color: 'GRAY', description: 'Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.' },
-    isOptional: true,
-    placement: [{ after: 'Backlog' }, { before: 'Ready' }],
-};
-/**
-人の判断を待つ Issue の札。既定の Status の末尾に足す
-*/
-const NEEDS_ATTENTION_SPEC = {
-    option: { name: 'Needs Attention'},
-    isOptional: true,
-};
-/**
-workflow フィールドの選択肢の定義。作る順でもある
-*/
-const WORKFLOW_FIELD_SPECS = [
-    { option: { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved here from Ready or Backlog when deprioritized.' } },
-    { option: { name: 'Backlog', color: 'RED', description: 'Items waiting to be planned. Not for direct work - break down into smaller tasks first.' } },
-    BLOCKED_SPEC,
-    { option: { name: 'Ready', color: 'GREEN', description: 'Tasks ready for implementation. AI agent picks from here and moves to Active on start.' } },
-    { option: { name: 'Active', color: 'BLUE', description: 'Currently being worked on. One active task per worktree - track progress and updates here.' } },
-    { option: { name: 'In Review', color: 'YELLOW', description: 'Pull request created and waiting for review. Moves to Archived after merge is completed.' } },
-    { option: { name: 'Archived', color: 'PURPLE', description: 'Completed or cancelled items. Moved here after the issue is closed or no longer needed.' } },
-];
-
-// project の各コマンドが共有する部分。失敗の行、フィールドの検証、読んだボードからの設定ファイルの同期。
-/**
-プロジェクトの情報から fields.nodes を取る
-*/
-function fieldNodesOf(projectInfo) {
-    return asArray(jsonField(jsonField(projectInfo, 'fields'), 'nodes'));
-}
-function keyEntry(name, isOptional) {
-    return { key: name.toLowerCase().replaceAll(' ', '_'), label: name.toLowerCase(), isOptional };
-}
-// 設定ファイルのキーの順（保存の JSON のキーの順になる）。isOptional は選択肢の定義の値を使う
-const WORKFLOW_KEY_ORDER = ['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived'];
-WORKFLOW_KEY_ORDER.map(name => keyEntry(name, WORKFLOW_FIELD_SPECS.some(spec => spec.option.name === name && spec.isOptional === true)));
-[keyEntry('Todo', true), keyEntry('In Progress', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)];
-
-// PR をスタックに登録するときの判断。API を呼ばない純粋な関数で、pr create と actions の処理が共有する。
-/**
-親 PR・子 PR とそれぞれの今のスタックから、登録の判断を返す。GitHub は一番上にしか足せない
-*/
-function planStackRegistration(parent, child, parentStack, childStack) {
-    if (childStack !== undefined) {
-        const parentIndex = childStack.pullRequests.indexOf(parent);
-        return parentIndex !== -1 && childStack.pullRequests[parentIndex + 1] === child
-            ? { kind: 'already', stack: childStack }
-            : { kind: 'conflict', reason: `PR #${String(child)} is already in stack #${String(childStack.number)}` };
-    }
-    if (parentStack === undefined)
-        return { kind: 'create', pullRequests: [parent, child] };
-    const top = parentStack.pullRequests.at(-1);
-    return top === parent
-        ? { kind: 'add', stackNumber: parentStack.number, pullRequests: [child] }
-        : { kind: 'conflict', reason: `PR #${String(parent)} is not the top of stack #${String(parentStack.number)} (top: PR #${String(top)})` };
-}
-
-// API エラーの message に、応答本文 JSON の message と errors[].message を添える。GitHub API の失敗の説明の、唯一の実装。
-function textOf(value) {
-    return typeof value === 'string' && pythonStrip(value) !== '' ? pythonStrip(value) : undefined;
-}
-function errorMessages(errors) {
-    if (!Array.isArray(errors))
-        return [];
-    const items = errors;
-    return items.map(item => textOf(jsonField(item, 'message')));
-}
-/**
-API の失敗の message に、応答本文の詳細を添える。GitHubAPIError と DependabotFailure をそのまま渡せる。
-本文が JSON でない（HTML 等）か、添える文が無いときは message のまま返す。
-422 では理由が errors[].message にだけ入ることがある
-*/
-function describeApiError(failure) {
-    const body = tryParseJsonText(failure.responseBody ?? '');
-    if (!isJsonObject(body))
-        return failure.message;
-    const details = [textOf(body['message']), ...errorMessages(body['errors'])].filter(detail => detail !== undefined);
-    return details.length === 0 ? failure.message : `${failure.message} ${details.join(' ')}`;
-}
-
-// 導入先のリポに置くワークフローの雛形の一覧と、版・利用者の行・要る設定の判定。
-const AGENT_ANTHROPIC_VARIABLES = ['FEDERATION_RULE_ID', 'ORGANIZATION_ID', 'SERVICE_ACCOUNT_ID', 'WORKSPACE_ID']
-    .map(suffix => ({ kind: 'variable', name: `PECOT_AGENT_ANTHROPIC_${suffix}` }));
-const APP_CLIENT_ID = { kind: 'variable', name: 'PECOT_AGENT_APP_CLIENT_ID' };
-const APP_PRIVATE_KEY = { kind: 'secret', name: 'PECOT_AGENT_APP_PRIVATE_KEY' };
-const MODEL_AUTH_REQUIREMENT = {
-    type: 'anyOf',
-    options: [[{ kind: 'secret', name: 'CLAUDE_CODE_OAUTH_TOKEN' }], AGENT_ANTHROPIC_VARIABLES],
-    missing: 'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*',
-};
-/**
-エージェント用の認証。自動処理が同じ名前で読む（spec 027 の data-model の「エージェント用の認証」）
-*/
-const AGENT_REQUIREMENTS = [
-    { type: 'when', when: APP_CLIENT_ID, require: APP_PRIVATE_KEY, missing: 'secret PECOT_AGENT_APP_PRIVATE_KEY' },
-    MODEL_AUTH_REQUIREMENT,
-];
-/**
-自動処理は自前の App を必須にする（spec 023 の data-model の「エージェント用の認証」）。必須の 1 つの名前は、候補 1 つの anyOf で書く
-*/
-const AUTO_REQUIREMENTS = [
-    { type: 'anyOf', options: [[APP_CLIENT_ID]], missing: 'variable PECOT_AGENT_APP_CLIENT_ID' },
-    { type: 'anyOf', options: [[APP_PRIVATE_KEY]], missing: 'secret PECOT_AGENT_APP_PRIVATE_KEY' },
-    MODEL_AUTH_REQUIREMENT,
-];
-/**
-github-ops は自前の App だけを使い、モデルの認証は要らない。AUTO_REQUIREMENTS の先頭 2 行と同じ形
-*/
-const GITHUB_OPS_REQUIREMENTS = [
-    { type: 'anyOf', options: [[APP_CLIENT_ID]], missing: 'variable PECOT_AGENT_APP_CLIENT_ID' },
-    { type: 'anyOf', options: [[APP_PRIVATE_KEY]], missing: 'secret PECOT_AGENT_APP_PRIVATE_KEY' },
-];
-/**
-ボードの同期は App か PAT のどちらかの組を使う（雛形の先頭のコメント）
-*/
-const BOARD_SYNC_REQUIREMENTS = [
-    {
-        type: 'anyOf',
-        options: [
-            [{ kind: 'variable', name: 'PECOT_BOARD_SYNC_APP_CLIENT_ID' }, { kind: 'secret', name: 'PECOT_BOARD_SYNC_APP_PRIVATE_KEY' }],
-            [{ kind: 'variable', name: 'PECOT_BOARD_SYNC_USE_PAT' }, { kind: 'secret', name: 'PECOT_BOARD_SYNC_TOKEN' }],
-        ],
-        missing: 'variable PECOT_BOARD_SYNC_APP_CLIENT_ID and secret PECOT_BOARD_SYNC_APP_PRIVATE_KEY, or variable PECOT_BOARD_SYNC_USE_PAT and secret PECOT_BOARD_SYNC_TOKEN',
-    },
-];
-/**
-雛形の一覧。雛形を足すときは行を足す
-*/
-const WORKFLOW_TEMPLATES = [
-    { name: 'board-sync', templateFile: 'pecot-board-sync.yml', destination: '.github/workflows/pecot-board-sync.yml', requirements: BOARD_SYNC_REQUIREMENTS, claudeApp: false },
-    { name: 'review', templateFile: 'pecot-review.yml', destination: '.github/workflows/pecot-review.yml', requirements: AGENT_REQUIREMENTS, claudeApp: true },
-    { name: 'handoff', templateFile: 'pecot-handoff.yml', destination: '.github/workflows/pecot-handoff.yml', requirements: AGENT_REQUIREMENTS, claudeApp: false },
-    { name: 'auto', templateFile: 'pecot-auto.yml', destination: '.github/workflows/pecot-auto.yml', requirements: AUTO_REQUIREMENTS, claudeApp: false },
-    { name: 'github-ops', templateFile: 'pecot-github-ops.yml', destination: '.github/workflows/pecot-github-ops.yml', requirements: GITHUB_OPS_REQUIREMENTS, claudeApp: false },
-];
-const VERSION_MARKER = /^# pecot-workflow-template: (\S+) (\d+)\s*$/u;
-/**
-1 行目の `# pecot-workflow-template: <名前> <版>` を読む。無ければ undefined
-*/
-function readTemplateVersion(text) {
-    const match = VERSION_MARKER.exec(text.split('\n', 1)[0] ?? '');
-    return match === null ? undefined : { name: match[1] ?? '', version: Number(match[2]) };
-}
-// eslint-disable-next-line security/detect-unsafe-regex -- 行ごとに当てる。繰り返す群は空白と `- ` だけで、再試行は行の長さに比例して増えない
-const PECOT_ACTION_TAG = /^(\s*(?:-\s+)?uses:\s*)pecotcraft\/pecot\/actions\/([a-z][a-z-]*)@(pecot-actions\/v\S+)\s*$/u;
-// eslint-disable-next-line security/detect-unsafe-regex -- 各行の先頭に錨がある。省ける群は空白と `- ` だけで、ほかの群は固定の文字列
-const PECOT_ACTION_USE = /^\s*(?:-\s+)?uses:\s*(?:pecotcraft\/pecot\/actions\/|\.\/(?:\.pecot-actions\/)?actions\/)/mu;
-const NPX_WORKFLOW_MCP = /\bnpx\b.*@pecot\/workflow-mcp\b/u;
-/**
-タグで pecot の action を指す行を、出てくる順に返す
-*/
-function pecotActionReferences(text) {
-    return text.split('\n').flatMap((line) => {
-        const match = PECOT_ACTION_TAG.exec(line);
-        return match === null ? [] : { action: match[2] ?? '', tag: match[3] ?? '' };
-    });
-}
-/**
-`@pecot/workflow-mcp` を npx で呼ぶ行。pecot の action に移す前の雛形にある
-*/
-function npxWorkflowMcpLines(text) {
-    return text.split('\n').filter(line => NPX_WORKFLOW_MCP.test(line) && !line.trimStart().startsWith('#'));
-}
-/**
-pecot の action を uses で呼ぶ行があるか
-*/
-function hasPecotActionStep(text) {
-    return PECOT_ACTION_USE.test(text);
-}
-
-// github-ops。公式の MCP に手の無い GitHub の操作を 1 つ行い、結果を PECOT_RESULT の 1 行で返す。
-// 何を書くかは呼ぶ側（pecot-workflow の計算）が決める。この処理は渡された中身を書くか、読んだ値を返すだけにする。
-/* eslint-disable security/detect-non-literal-fs-filename -- 読むのは .github/workflows の決まった名前だけ */
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
-const GITHUB_OPS_INPUT = strictObject({
-    operation: string(),
-    request_id: string(),
-    params: string(),
-});
-/**
-結果の行の先頭。スキルは job のログからこの行を探す
-*/
-const RESULT_PREFIX = 'PECOT_RESULT';
-/**
-GitHub が断ったのではなく、渡された中身では書けないと action が決めたときの失敗
-*/
-class OperationRefused extends Error {
-    kind;
-    constructor(kind, message) {
-        super(message);
-        this.kind = kind;
-    }
-}
-function operation(parameters, run) {
-    return { params: parameters, run };
-}
-const DEFAULT_COLOR = 'GRAY';
-// link-branch
-async function linkBranch(parameters, context) {
-    const { client, owner, repository } = context;
-    const { issue, branch, base, sha } = await linkIssueBranch(client, { owner, repository, ...parameters });
-    return { issue, branch, base, sha };
-}
-// stack-register
-async function registerStack(parameters, context) {
-    const { client, owner, repository } = context;
-    const parentStack = await client.getStackOfPullRequest(owner, repository, parameters.parent_pr);
-    const childStack = await client.getStackOfPullRequest(owner, repository, parameters.pr);
-    const plan = planStackRegistration(parameters.parent_pr, parameters.pr, parentStack, childStack);
-    switch (plan.kind) {
-        case 'conflict': {
-            throw new OperationRefused('order-conflict', plan.reason);
-        }
-        case 'already': {
-            return { change: 'unchanged', number: plan.stack.number, pull_requests: [...plan.stack.pullRequests] };
-        }
-        case 'create': {
-            const created = await client.createStack(owner, repository, plan.pullRequests);
-            return { change: 'created', number: created.number, pull_requests: [...created.pullRequests] };
-        }
-        case 'add': {
-            const added = await client.addToStack(owner, repository, plan.stackNumber, plan.pullRequests);
-            return { change: 'added', number: added.number, pull_requests: [...added.pullRequests] };
-        }
-    }
-}
-async function readBoardFields(client, owner, project) {
-    const info = await client.getProjectFields(owner, project);
-    if (info === undefined)
-        throw new GitHubNotFoundError(`project not found: ${owner} #${String(project)}`);
-    const fields = fieldNodesOf(info).filter((field) => typeof jsonField(field, 'name') === 'string');
-    return { projectId: requireString(info['id'], 'projectV2.id'), fields };
-}
-function fieldNamed(fields, name) {
-    const found = fields.find(field => field['name'] === name);
-    if (found === undefined)
-        throw new GitHubNotFoundError(`field not found on the board: ${name}`);
-    return found;
-}
-/**
-渡した選択肢に、名前の合う既存の選択肢の ID・色・説明を引き継ぐ。ID を外すと選択肢が作り直され、カードの値が消える
-*/
-function mergeOptions(existing, given) {
-    return given.map((option) => {
-        const current = existing.find(item => jsonField(item, 'name') === option.name);
-        const id = jsonField(current, 'id');
-        const color = option.color ?? jsonField(current, 'color');
-        const description = option.description ?? jsonField(current, 'description');
-        return {
-            ...typeof id === 'string' && { id },
-            name: option.name,
-            color: typeof color === 'string' ? color : DEFAULT_COLOR,
-            description: typeof description === 'string' ? description : '',
-        };
-    });
-}
-async function applyFieldChange(client, board, change) {
-    switch (change.action) {
-        case 'create': {
-            if (board.fields.some(field => field['name'] === change.name))
-                throw new OperationRefused('already-exists', `field already exists on the board: ${change.name}`);
-            await client.createProjectField(board.projectId, change.name, mergeOptions([], change.options));
-            return;
-        }
-        case 'rename': {
-            await client.renameProjectField(requireString(fieldNamed(board.fields, change.name)['id'], 'field.id'), change.to);
-            return;
-        }
-        case 'delete': {
-            await client.deleteProjectField(requireString(fieldNamed(board.fields, change.name)['id'], 'field.id'));
-            return;
-        }
-        case 'set-options': {
-            const field = fieldNamed(board.fields, change.name);
-            if (!Array.isArray(field['options']))
-                throw new OperationRefused('invalid-input', `field is not a single select field: ${change.name}`);
-            await client.updateProjectFieldOptions(requireString(field['id'], 'field.id'), mergeOptions(asArray(field['options']), change.options));
-        }
-    }
-}
-function fieldSummary(field) {
-    const options = field['options'];
-    return {
-        name: requireString(field['name'], 'field.name'),
-        id: requireString(field['id'], 'field.id'),
-        ...Array.isArray(options) && { options: asArray(options).map(option => ({ name: requireString(jsonField(option, 'name'), 'option.name'), id: requireString(jsonField(option, 'id'), 'option.id') })) },
-    };
-}
-async function changeProjectFields(parameters, context) {
-    const { client, owner } = context;
-    // 1 つ書くたびに読み直し、次の変更が前の変更の後の欄を名前で引けるようにする
-    for (const change of parameters.changes)
-        await applyFieldChange(client, await readBoardFields(client, owner, parameters.project), change);
-    const after = await readBoardFields(client, owner, parameters.project);
-    return { project: parameters.project, applied: parameters.changes.length, fields: after.fields.map(field => fieldSummary(field)) };
-}
-// project-view
-async function createProjectView(parameters, context) {
-    const { client, owner } = context;
-    const target = await client.getProjectViewTarget(owner, parameters.project);
-    const existing = target.views.find(view => view.name === parameters.name);
-    if (existing !== undefined)
-        return { created: false, number: existing.number, url: `${target.url}/views/${String(existing.number)}` };
-    const databaseId = (name) => {
-        const id = target.fieldDatabaseIds.get(name);
-        if (id === undefined)
-            throw new GitHubNotFoundError(`single select field not found on the board: ${name}`);
-        return id;
-    };
-    const view = await client.createProjectView(target, { name: parameters.name, layout: 'board', vertical_group_by: [databaseId(parameters.column)], group_by: [databaseId(parameters.row)] });
-    const number = requireNumber(view['number'], 'view.number');
-    const url = view['html_url'];
-    return { created: true, number, url: typeof url === 'string' ? url : `${target.url}/views/${String(number)}` };
-}
-// project-link
-async function linkProject(parameters, context) {
-    const { client, owner, repository } = context;
-    const [repositoryOwner = owner, repositoryName = repository] = parameters.repo?.split('/') ?? [];
-    const result = await client.linkRepositoryToProject(owner, parameters.project, repositoryOwner, repositoryName);
-    // linkRepositoryToProject は断られても例外にしないので、ここで失敗にする
-    if (result.status === 'failed')
-        throw new OperationRefused('github-api', result.detail);
-    return { project: parameters.project, repo: `${repositoryOwner}/${repositoryName}`, status: result.status };
-}
-// repo-settings
-async function readRepositorySettings(_parameters, context) {
-    const { client, owner, repository } = context;
-    const settings = await client.getRepositorySettings(owner, repository);
-    // merge の設定は contents: write の無い token では返らない。値の無い成功にせず、token の不足として返す
-    if (settings.deleteBranchOnMerge === undefined)
-        throw new OperationRefused('github-auth', 'delete_branch_on_merge was not returned; the token needs contents: write');
-    return {
-        delete_branch_on_merge: settings.deleteBranchOnMerge,
-        default_branch: settings.defaultBranch,
-        ...settings.ownerType !== undefined && { owner_type: settings.ownerType },
-    };
-}
-// workflow-doctor
-function settingListOf(list) {
-    return { names: [...list.names].toSorted((left, right) => left.localeCompare(right)), complete: list.complete };
-}
-function installedWorkflow(workspace, destination) {
-    const file = path.join(workspace, destination);
-    if (!existsSync(file))
-        return { path: destination, present: false };
-    const text = readFileSync(file, 'utf8');
-    const version = readTemplateVersion(text);
-    return {
-        path: destination,
-        present: true,
-        ...version !== undefined && { template: version.name, version: version.version },
-        has_pecot_action_step: hasPecotActionStep(text),
-        pecot_actions: pecotActionReferences(text).map(reference => ({ action: reference.action, tag: reference.tag })),
-        npx_lines: [...npxWorkflowMcpLines(text)],
-    };
-}
-async function readWorkflowSetup(_parameters, context) {
-    const { client, owner, repository, workspace } = context;
-    const names = await readSettingNames(client, owner, repository);
-    return {
-        secrets: settingListOf(names.secrets),
-        variables: settingListOf(names.variables),
-        workflows: WORKFLOW_TEMPLATES.map(template => installedWorkflow(workspace, template.destination)),
-    };
-}
-// release-create
-async function createRelease(parameters, context) {
-    const { client, owner, repository } = context;
-    const release = await client.createRelease(owner, repository, parameters.tag, parameters.name ?? parameters.tag, parameters.body, { targetCommitish: parameters.sha, prerelease: parameters.prerelease });
-    const url = release['html_url'];
-    return { id: requireNumber(release['id'], 'release.id'), tag: requireString(release['tag_name'], 'release.tag_name'), ...typeof url === 'string' && { url } };
-}
-/**
-operation の一覧。鍵は雛形の choice と同じ順にする
-*/
-const OPERATIONS = {
-    'link-branch': operation(LINK_BRANCH_PARAMS, linkBranch),
-    'stack-register': operation(STACK_REGISTER_PARAMS, registerStack),
-    'project-fields': operation(PROJECT_FIELDS_PARAMS, changeProjectFields),
-    'project-view': operation(PROJECT_VIEW_PARAMS, createProjectView),
-    'project-link': operation(PROJECT_LINK_PARAMS, linkProject),
-    'repo-settings': operation(NO_PARAMS, readRepositorySettings),
-    'workflow-doctor': operation(NO_PARAMS, readWorkflowSetup),
-    'release-create': operation(RELEASE_CREATE_PARAMS, createRelease),
-};
-function isOperationName(name) {
-    return Object.hasOwn(OPERATIONS, name);
-}
-function invalidInput(message) {
-    return { kind: 'invalid-input', message };
-}
-function failureOf(error) {
-    if (error instanceof OperationRefused)
-        return { kind: error.kind, message: error.message };
-    if (error instanceof TransportFailure)
-        return { kind: 'github-api', message: error.message };
-    if (error instanceof GitHubAPIError)
-        return { kind: kindOfFailure(error), message: describeApiError(error) };
-    return { kind: kindOfFailure(error), message: error instanceof Error ? error.message : String(error) };
-}
-function parseJson(text) {
-    try {
-        const value = JSON.parse(text);
-        return { ok: true, value };
-    }
-    catch {
-        return { ok: false };
-    }
-}
-function repositoryOf() {
-    const [owner, repository, ...rest] = (process$1.env['GITHUB_REPOSITORY'] ?? '').split('/');
-    return owner === undefined || owner === '' || repository === undefined || repository === '' || rest.length > 0 ? undefined : [owner, repository];
-}
-function hostOf() {
-    return URL.parse(process$1.env['GITHUB_SERVER_URL'] ?? '')?.hostname ?? 'github.com';
-}
-async function perform(input, io) {
-    if (!isOperationName(input.operation))
-        return { ok: false, error: invalidInput(`unknown operation: ${input.operation} (choose one of ${Object.keys(OPERATIONS).join(', ')})`) };
-    const parsedJson = parseJson(input.params === '' ? '{}' : input.params);
-    if (!parsedJson.ok)
-        return { ok: false, error: invalidInput('params is not JSON') };
-    const selected = OPERATIONS[input.operation];
-    const parameters = selected.params.safeParse(parsedJson.value);
-    if (!parameters.success)
-        return { ok: false, error: invalidInput(`invalid params for ${input.operation}: ${prettifyError(parameters.error)}`) };
-    const repository = repositoryOf();
-    if (repository === undefined)
-        return { ok: false, error: invalidInput('GITHUB_REPOSITORY is not owner/repo') };
-    const client = createGitHubClient(createOutput(false, io), hostOf());
-    const context = { client, owner: repository[0], repository: repository[1], workspace: process$1.env['GITHUB_WORKSPACE'] ?? process$1.cwd() };
-    try {
-        return { ok: true, result: await selected.run(parameters.data, context) };
-    }
-    catch (error) {
-        return { ok: false, error: failureOf(error) };
-    }
-}
-/**
-operation を 1 つ行い、成否にかかわらず PECOT_RESULT の行を 1 つ出す。失敗なら 1 を返して step を失敗にする
-*/
-async function runGithubOps(input, io) {
-    const outcome = await perform(input, io);
-    const line = outcome.ok
-        ? { operation: input.operation, request_id: input.request_id, ok: true, result: outcome.result }
-        : { operation: input.operation, request_id: input.request_id, ok: false, error: outcome.error };
-    io.stdout(`${RESULT_PREFIX} ${JSON.stringify(line)}\n`);
-    if (outcome.ok)
-        return 0;
-    io.stderr(`error: ${outcome.error.message}\n`);
-    return 1;
-}
+import { readFileSync, existsSync, writeFileSync, appendFileSync, mkdtempSync, rmSync } from 'node:fs';
+import path from 'node:path';
+import process$1 from 'node:process';
+import { spawn, spawnSync } from 'node:child_process';
 
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -35261,11 +24118,11 @@ function requireUtil$2 () {
 	return util$2;
 }
 
-var parse;
+var parse$1;
 var hasRequiredParse;
 
 function requireParse () {
-	if (hasRequiredParse) return parse;
+	if (hasRequiredParse) return parse$1;
 	hasRequiredParse = 1;
 
 	const { maxNameValuePairSize, maxAttributeValueSize } = requireConstants$1();
@@ -35572,11 +24429,11 @@ function requireParse () {
 	  return parseUnparsedAttributes(unparsedAttributes, cookieAttributeList)
 	}
 
-	parse = {
+	parse$1 = {
 	  parseSetCookie,
 	  parseUnparsedAttributes
 	};
-	return parse;
+	return parse$1;
 }
 
 var cookies;
@@ -39773,7 +28630,7 @@ const { access, appendFile, writeFile } = promises;
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-const { chmod, copyFile, lstat, mkdir, open, readdir, rename, rm, rmdir, stat, symlink, unlink } = fs.promises;
+const { chmod, copyFile, lstat, mkdir, open: open$1, readdir, rename, rm, rmdir, stat, symlink, unlink } = fs.promises;
 // export const {open} = 'fs'
 process.platform === 'win32';
 fs.constants.O_RDONLY;
@@ -39900,15 +28757,11339 @@ function getInput(name, options) {
  */
 function setFailed(message) {
     process.exitCode = ExitCode.Failure;
-    error(message);
+    error$1(message);
 }
 /**
  * Adds an error issue
  * @param message error issue message. Errors will be converted to string via toString()
  * @param properties optional properties to add to the annotation.
  */
-function error(message, properties = {}) {
+function error$1(message, properties = {}) {
     issueCommand('error', toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+}
+
+function getEnumValues(entries) {
+    const numericValues = Object.values(entries).filter((v) => typeof v === "number");
+    const values = Object.entries(entries)
+        .filter(([k, _]) => numericValues.indexOf(+k) === -1)
+        .map(([_, v]) => v);
+    return values;
+}
+function joinValues(array, separator = "|") {
+    return array.map((val) => stringifyPrimitive(val)).join(separator);
+}
+function jsonStringifyReplacer(_, value) {
+    if (typeof value === "bigint")
+        return value.toString();
+    return value;
+}
+// the accessor lives on a shared prototype: an own accessor makes every box a dictionary-mode object (~360 B and a slow load per read against ~100 B and an inlined getter here)
+class Cached {
+    constructor(getter) {
+        this._getter = getter;
+        this._value = undefined;
+    }
+    get value() {
+        const getter = this._getter;
+        if (getter !== undefined) {
+            this._value = getter();
+            this._getter = undefined;
+        }
+        return this._value;
+    }
+}
+function cached(getter) {
+    return new Cached(getter);
+}
+function nullish(input) {
+    return input === null || input === undefined;
+}
+function cleanRegex(source) {
+    const start = source.startsWith("^") ? 1 : 0;
+    const end = source.endsWith("$") ? source.length - 1 : source.length;
+    return source.slice(start, end);
+}
+function floatSafeRemainder(val, step) {
+    const ratio = val / step;
+    const roundedRatio = Math.round(ratio);
+    // `val` and `step` each round to a double before the division rounds again, so a true decimal multiple's quotient can sit up to 1.5 of these scaled epsilons from the integer. A 1x tolerance therefore rejected 2.03 as a multiple of 0.07; 4x covers the worst case with margin.
+    const tolerance = 4 * Number.EPSILON * Math.max(Math.abs(ratio), 1);
+    if (Math.abs(ratio - roundedRatio) < tolerance)
+        return 0;
+    return ratio - roundedRatio;
+}
+function assignProp(target, prop, value) {
+    Object.defineProperty(target, prop, {
+        value,
+        writable: true,
+        enumerable: true,
+        configurable: true,
+    });
+}
+/**
+ * Whichever object a def's `shape` currently answers from: the one the caller passed until the first read, the frozen copy after it.
+ *
+ * Its keys and descriptors read without invoking anything, which is what lets a discriminated union check its discriminator, and the cycle walk read a shape, without resolving a getter that references the schema being constructed. A def that answers `shape` from an accessor of its own has none.
+ */
+function rawShape(def) {
+    const desc = Object.getOwnPropertyDescriptor(def, "shape");
+    return desc?.get ? desc.get.raw : desc?.value;
+}
+// where a builder reads its source's keys and descriptors, resolving only a shape a def answers for itself. A shape resolves by object spread, so only its enumerable keys are ever part of it.
+function sourceShape(schema) {
+    return rawShape(schema._zod.def) ?? schema._zod.def.shape;
+}
+// a key whose value is not settled yet, self-caching so every read after the first gets the same one
+function deferProp(target, key, getter) {
+    Object.defineProperty(target, key, {
+        get() {
+            const value = getter();
+            assignProp(this, key, value);
+            return value;
+        },
+        enumerable: true,
+        configurable: true,
+    });
+}
+// Writes a settled key. A plain assignment is much cheaper than `defineProperty` and produces the same descriptor, but it runs whatever setter already answers to the key — an accessor this shape deferred, or an inherited one, which `__proto__` has on every object and prototype pollution can add for any name.
+function putProp(target, key, value) {
+    if (key in target)
+        assignProp(target, key, value);
+    else
+        target[key] = value;
+}
+/**
+ * Copies `keys` of `source`'s shape onto `target`, each value passed through `wrap`.
+ *
+ * A key the source has resolved is copied through now, so the derived shape states it outright and nothing has to resolve it to learn what it holds. A key the source still defers stays deferred, and reads back through the source's own `shape`, so it resolves once and both shapes get that one schema.
+ */
+function mirrorShape(target, source, keys, wrap) {
+    const raw = sourceShape(source);
+    for (const key of keys) {
+        const desc = Object.getOwnPropertyDescriptor(raw, key);
+        if (!desc.enumerable)
+            continue;
+        if (desc.get) {
+            deferProp(target, key, () => {
+                const value = source._zod.def.shape[key];
+                return wrap ? wrap(value, key) : value;
+            });
+        }
+        else
+            putProp(target, key, wrap ? wrap(desc.value, key) : desc.value);
+    }
+}
+// same, for a plain shape a caller passed rather than a schema's
+function mirrorProps(target, source) {
+    for (const key of Reflect.ownKeys(source)) {
+        const desc = Object.getOwnPropertyDescriptor(source, key);
+        if (!desc.enumerable)
+            continue;
+        if (desc.get)
+            deferProp(target, key, () => source[key]);
+        else
+            putProp(target, key, desc.value);
+    }
+}
+function mergeDefs(...defs) {
+    const mergedDescriptors = {};
+    for (const def of defs) {
+        const descriptors = Object.getOwnPropertyDescriptors(def);
+        Object.assign(mergedDescriptors, descriptors);
+    }
+    return Object.defineProperties({}, mergedDescriptors);
+}
+function esc(str) {
+    return JSON.stringify(str);
+}
+function slugify(input) {
+    return input
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/[\s_-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+}
+const captureStackTrace = ("captureStackTrace" in Error ? Error.captureStackTrace : (..._args) => { });
+function isObject(data) {
+    return typeof data === "object" && data !== null && !Array.isArray(data);
+}
+const allowsEval = /* @__PURE__*/ cached(() => {
+    // Skip the probe under `jitless`: strict CSPs report the caught `new Function` as a `securitypolicyviolation` even though the throw is swallowed.
+    if (globalConfig.jitless) {
+        return false;
+    }
+    // @ts-ignore
+    if (typeof navigator !== "undefined" && navigator?.userAgent?.includes("Cloudflare")) {
+        return false;
+    }
+    try {
+        const F = Function;
+        new F("");
+        return true;
+    }
+    catch (_) {
+        return false;
+    }
+});
+function isPlainObject(o) {
+    if (isObject(o) === false)
+        return false;
+    // modified constructor
+    const ctor = o.constructor;
+    if (ctor === undefined)
+        return true;
+    if (typeof ctor !== "function")
+        return true;
+    // modified prototype
+    const prot = ctor.prototype;
+    if (isObject(prot) === false)
+        return false;
+    // ctor doesn't have static `isPrototypeOf`
+    if (Object.prototype.hasOwnProperty.call(prot, "isPrototypeOf") === false) {
+        return false;
+    }
+    return true;
+}
+function shallowClone(o) {
+    if (isPlainObject(o))
+        return { ...o };
+    if (Array.isArray(o))
+        return [...o];
+    if (o instanceof Map)
+        return new Map(o);
+    if (o instanceof Set)
+        return new Set(o);
+    return o;
+}
+const propertyKeyTypes = /* @__PURE__*/ new Set(["string", "number", "symbol"]);
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+// zod-specific utils
+function clone(inst, def, params) {
+    const cl = new inst._zod.constr(def ?? inst._zod.def);
+    if (!def || params?.parent)
+        cl._zod.parent = inst;
+    return cl;
+}
+function normalizeParams(_params) {
+    const params = _params;
+    if (!params)
+        return {};
+    if (typeof params === "string")
+        return { error: () => params };
+    if (params?.message !== undefined) {
+        if (params?.error !== undefined)
+            throw new Error("Cannot specify both `message` and `error` params");
+        params.error = params.message;
+    }
+    delete params.message;
+    if (typeof params.error === "string")
+        return { ...params, error: () => params.error };
+    return params;
+}
+function stringifyPrimitive(value) {
+    if (typeof value === "bigint")
+        return value.toString() + "n";
+    if (typeof value === "string")
+        return `"${value}"`;
+    return `${value}`;
+}
+function optionalKeys(shape) {
+    return Object.keys(shape).filter((k) => {
+        return shape[k]._zod.optin !== undefined && shape[k]._zod.optout === "optional";
+    });
+}
+
+const NUMBER_FORMAT_RANGES = /*@__PURE__*/ (() => ({
+    safeint: [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+    int32: [-2147483648, 2147483647],
+    uint32: [0, 4294967295],
+    float32: [-34028234663852886e22, 3.4028234663852886e38],
+    float64: [-Number.MAX_VALUE, Number.MAX_VALUE],
+}))();
+const BIGINT_FORMAT_RANGES = {
+    int64: [/* @__PURE__*/ BigInt("-9223372036854775808"), /* @__PURE__*/ BigInt("9223372036854775807")],
+    uint64: [/* @__PURE__*/ BigInt(0), /* @__PURE__*/ BigInt("18446744073709551615")],
+};
+function pick(schema, mask) {
+    const currDef = schema._zod.def;
+    const checks = currDef.checks;
+    const hasChecks = checks && checks.length > 0;
+    if (hasChecks) {
+        throw new Error(".pick() cannot be used on object schemas containing refinements");
+    }
+    const newShape = {};
+    mirrorShape(newShape, schema, maskedKeys(schema, mask));
+    return clone(schema, mergeDefs(currDef, { shape: newShape, checks: [] }));
+}
+// the mask keys that select something, checked against the source's shape without resolving it
+function maskedKeys(schema, mask) {
+    const raw = sourceShape(schema);
+    const keys = [];
+    // `for...in` skips symbols, so a symbol in the mask would select nothing
+    for (const key of Reflect.ownKeys(mask)) {
+        if (!Object.getOwnPropertyDescriptor(raw, key)?.enumerable) {
+            throw new Error(`Unrecognized key: "${String(key)}"`);
+        }
+        if (mask[key])
+            keys.push(key);
+    }
+    return keys;
+}
+function omit(schema, mask) {
+    const currDef = schema._zod.def;
+    const checks = currDef.checks;
+    const hasChecks = checks && checks.length > 0;
+    if (hasChecks) {
+        throw new Error(".omit() cannot be used on object schemas containing refinements");
+    }
+    const omitted = new Set(maskedKeys(schema, mask));
+    const newShape = {};
+    mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)).filter((key) => !omitted.has(key)));
+    return clone(schema, mergeDefs(currDef, { shape: newShape, checks: [] }));
+}
+function extend(schema, shape) {
+    if (!isPlainObject(shape)) {
+        throw new Error("Invalid input to extend: expected a plain object");
+    }
+    const checks = schema._zod.def.checks;
+    const hasChecks = checks && checks.length > 0;
+    if (hasChecks) {
+        // Only throw if new shape overlaps with existing shape. Use getOwnPropertyDescriptor to check key existence without accessing values
+        const existingShape = sourceShape(schema);
+        for (const key of Reflect.ownKeys(shape)) {
+            if (Object.getOwnPropertyDescriptor(existingShape, key) !== undefined) {
+                throw new Error("Cannot overwrite keys on object schemas containing refinements. Use `.safeExtend()` instead.");
+            }
+        }
+    }
+    return clone(schema, mergeDefs(schema._zod.def, { shape: extended(schema, shape) }));
+}
+// the source's keys, then the caller's overlaid on top
+function extended(schema, shape) {
+    const newShape = {};
+    mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)));
+    mirrorProps(newShape, shape);
+    return newShape;
+}
+function safeExtend(schema, shape) {
+    if (!isPlainObject(shape)) {
+        throw new Error("Invalid input to safeExtend: expected a plain object");
+    }
+    return clone(schema, mergeDefs(schema._zod.def, { shape: extended(schema, shape) }));
+}
+function merge(a, b) {
+    if (!b?._zod?.def) {
+        throw new Error("Invalid input to merge: expected an object schema. To merge a plain shape, use `.extend()`.");
+    }
+    if (a._zod.def.checks?.length) {
+        throw new Error(".merge() cannot be used on object schemas containing refinements. Use .safeExtend() instead.");
+    }
+    const newShape = {};
+    mirrorShape(newShape, a, Reflect.ownKeys(sourceShape(a)));
+    mirrorShape(newShape, b, Reflect.ownKeys(sourceShape(b)));
+    const def = mergeDefs(a._zod.def, {
+        shape: newShape,
+        get catchall() {
+            return b._zod.def.catchall;
+        },
+        checks: b._zod.def.checks ?? [],
+    });
+    return clone(a, def);
+}
+function partial(Class, schema, mask, name = "partial") {
+    const currDef = schema._zod.def;
+    const checks = currDef.checks;
+    const hasChecks = checks && checks.length > 0;
+    if (hasChecks) {
+        throw new Error(`.${name}() cannot be used on object schemas containing refinements`);
+    }
+    const selected = mask ? new Set(maskedKeys(schema, mask)) : undefined;
+    const newShape = {};
+    mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), Class &&
+        ((value, key) => (selected && !selected.has(key) ? value : new Class({ type: "optional", innerType: value }))));
+    return clone(schema, mergeDefs(schema._zod.def, { shape: newShape, checks: [] }));
+}
+function required(Class, schema, mask) {
+    const selected = mask ? new Set(maskedKeys(schema, mask)) : undefined;
+    const newShape = {};
+    mirrorShape(newShape, schema, Reflect.ownKeys(sourceShape(schema)), (value, key) => 
+    // overwrite with non-optional
+    selected && !selected.has(key) ? value : new Class({ type: "nonoptional", innerType: value }));
+    return clone(schema, mergeDefs(schema._zod.def, { shape: newShape }));
+}
+// invalid_type | too_big | too_small | invalid_format | not_multiple_of | unrecognized_keys | invalid_union | invalid_key | invalid_element | invalid_value | custom
+function aborted(x, startIndex = 0) {
+    if (x.aborted === true)
+        return true;
+    for (let i = startIndex; i < x.issues.length; i++) {
+        if (x.issues[i]?.continue !== true) {
+            return true;
+        }
+    }
+    return false;
+}
+// Checks for explicit abort (continue === false), as opposed to implicit abort (continue === undefined). Used to respect `abort: true` in .refine() even for checks that have a `when` function.
+function explicitlyAborted(x, startIndex = 0) {
+    if (x.aborted === true)
+        return true;
+    for (let i = startIndex; i < x.issues.length; i++) {
+        if (x.issues[i]?.continue === false) {
+            return true;
+        }
+    }
+    return false;
+}
+function prefixIssues(path, issues) {
+    return issues.map((iss) => {
+        var _a;
+        (_a = iss).path ?? (_a.path = []);
+        iss.path.unshift(path);
+        return iss;
+    });
+}
+function unwrapMessage(message) {
+    return typeof message === "string" ? message : message?.message;
+}
+/* A check holds no link back to the schema it is attached to — the same check instance is shared by every clone of that schema — so the owner is stamped onto the issues a check just raised, at the only point where both are in scope. Runs on the failure path only; `start` is the issue count from before the check ran. */
+/** The leading size checks of `defChecks` that set an upper bound, each paired with it. */
+function sizeCaps(defChecks) {
+    const caps = [];
+    for (const ch of defChecks ?? []) {
+        const d = ch._zod.def;
+        // a later check may rewrite the value
+        if (!/_(length|size)$|_equals$/.test(d.check))
+            break;
+        const max = d.maximum ?? d.length ?? d.size;
+        if (max >= 0)
+            caps.push([max, ch]);
+    }
+    return caps;
+}
+function attachSchema(issues, start, inst) {
+    var _a;
+    for (let i = start; i < issues.length; i++) {
+        (_a = issues[i]).schema ?? (_a.schema = inst);
+    }
+}
+function finalizeIssue(iss, ctx, config) {
+    var _a;
+    // A schema that raised an issue itself owns it outright, and outranks any stamp an enclosing check left in `attachSchema`. String formats and z.custom() are schema and check at once, so when they act as a check they defer to that stamp instead.
+    const traits = iss.inst?._zod?.traits;
+    if (traits?.has("$ZodType")) {
+        if (traits.has("$ZodCheck"))
+            (_a = iss).schema ?? (_a.schema = iss.inst);
+        else
+            iss.schema = iss.inst;
+    }
+    // Decreasing specificity, first map to return a message wins. `inst` is whatever raised the issue, so a check's own map outranks the owning schema's.
+    const schemaError = iss.schema !== iss.inst ? iss.schema?._zod.def?.error : undefined;
+    const message = iss.message
+        ? iss.message
+        : (unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ??
+            unwrapMessage(schemaError?.(iss)) ??
+            unwrapMessage(ctx?.error?.(iss)) ??
+            unwrapMessage(config.customError?.(iss)) ??
+            unwrapMessage(config.localeError?.(iss)) ??
+            "Invalid input");
+    // an explicit own-key copy beats object rest with excluded keys, which v8 routes through a generic runtime call; Object.keys rather than for-in so an issue pushed with a prototype does not leak inherited keys, and an own __proto__ key is dropped rather than assigned through the setter
+    const full = {};
+    for (const k of Object.keys(iss)) {
+        if (k === "inst" || k === "schema" || k === "continue" || k === "input" || k === "__proto__")
+            continue;
+        full[k] = iss[k];
+    }
+    full.path ?? (full.path = []);
+    full.message = message;
+    if (ctx?.reportInput) {
+        full.input = iss.input;
+    }
+    return full;
+}
+const highSurrogate = /[\uD800-\uDBFF]/;
+// Code points in `str`: a surrogate pair counts once, a lone surrogate as itself. Hand-rolled because the string iterator allocates and runs ~250x slower on this path; the regex probe exits ~50x quicker for a string with no astral characters.
+function codePointLength(str) {
+    const units = str.length;
+    if (!highSurrogate.test(str))
+        return units;
+    let count = units;
+    for (let i = 0; i < units - 1; i++) {
+        if ((str.charCodeAt(i) & 0xfc00) === 0xd800 && (str.charCodeAt(i + 1) & 0xfc00) === 0xdc00) {
+            count--;
+            i++;
+        }
+    }
+    return count;
+}
+function getLengthableOrigin(input) {
+    if (Array.isArray(input))
+        return "array";
+    if (typeof input === "string")
+        return "string";
+    return "unknown";
+}
+function parsedType(data) {
+    const t = typeof data;
+    switch (t) {
+        case "number": {
+            return Number.isNaN(data) ? "nan" : "number";
+        }
+        case "object": {
+            if (data === null) {
+                return "null";
+            }
+            if (Array.isArray(data)) {
+                return "array";
+            }
+            const obj = data;
+            if (obj && Object.getPrototypeOf(obj) !== Object.prototype && "constructor" in obj && obj.constructor) {
+                return obj.constructor.name;
+            }
+        }
+    }
+    return t;
+}
+function issue(...args) {
+    const [iss, input, inst] = args;
+    if (typeof iss === "string") {
+        return {
+            message: iss,
+            code: "custom",
+            input,
+            inst,
+        };
+    }
+    return { ...iss };
+}
+//////////    PROTOTYPE INSTALLERS     //////////
+//
+// Members live on the prototype and materialize per instance on first read, which keeps own-property count under the step where V8 stops using inline slots. Changing anything here means re-measuring runtime, memory and bundle size together — see "The three axes" in AGENTS.md.
+/**
+ * Installs a trait's members on its prototype. Each value builds that member for the instance on first read; the built value shadows the accessor as an own property, so a detached `const { parse } = schema` keeps working.
+ *
+ * Call this from a `proto` initializer, which runs once per prototype — never per instance.
+ */
+function members(proto, table) {
+    for (const key in table) {
+        const desc = Object.getOwnPropertyDescriptor(table, key);
+        // a getter installs as written, so it stays live: `description` reads through to the registry on every access. not enumerable: an object literal's is, and a prototype member never was
+        if (desc.get)
+            Object.defineProperty(proto, key, { ...desc, enumerable: false });
+        // a method materializes bound on first read, which is what keeps a detached member working: `const opt = schema.optional; opt()`
+        else
+            defineBound(proto, key, desc.value);
+    }
+}
+/** Shadows a prototype member with an own value, so a getter that builds from the instance runs once. */
+function own(inst, key, value, enumerable = true) {
+    Object.defineProperty(inst, key, { configurable: true, writable: true, enumerable, value });
+    return value;
+}
+/** Like {@link own}, for a member that was never an own data property and has to stay out of `Object.keys`. */
+function hide(inst, key, value) {
+    return own(inst, key, value, false);
+}
+/** Adds members a table derives from the instance: each builds on first read and shadows as own data, and assignment shadows the same way, as when these were own properties. */
+function derived(computes, table) {
+    for (const key in computes) {
+        const compute = computes[key];
+        // an object literal's accessor is configurable and enumerable, and `members` copies the descriptor as written
+        Object.defineProperty(table, key, {
+            configurable: true,
+            enumerable: true,
+            get() {
+                return own(this, key, compute(this));
+            },
+            set(value) {
+                own(this, key, value);
+            },
+        });
+    }
+    return table;
+}
+function defineBound(proto, key, fn) {
+    Object.defineProperty(proto, key, {
+        configurable: true,
+        get() {
+            // vitest's spyOn calls a prototype getter bare to find the function it wraps, so a nullish receiver answers the raw method
+            return this == null ? fn : own(this, key, fn.bind(this));
+        },
+        set(value) {
+            own(this, key, value);
+        },
+    });
+}
+/** Returns the prototype to install on, or `undefined` if this group is already installed on it. */
+function claim(inst, sentinel) {
+    const proto = Object.getPrototypeOf(inst);
+    // Runs on every construction, so `in` rather than the costlier `hasOwnProperty.call`. Sentinels are keys the group itself defines.
+    return sentinel in proto ? undefined : proto;
+}
+// The internals whose init chain is installing. A second call for the same one is a derived constructor overriding its base, so it must not construct another schema in between or the override is dropped.
+let installing;
+// Set while a getter is running, so a value that resolved through a recursion break is not memoized. One shared descriptor shadows the key for the duration, which costs no per-key allocation.
+let broke = false;
+const breaker = {
+    configurable: true,
+    get() {
+        broke = true;
+        return undefined;
+    },
+};
+/**
+ * Installs a lazily-derived internal on the `_zod` prototype of `inst`'s
+ * constructor, computed from the internals object itself and cached there on
+ * first read. One accessor per constructor rather than one per instance.
+ */
+function defineLazyInternal(inst, key, compute) {
+    const proto = Object.getPrototypeOf(inst._zod);
+    if (key in proto && installing !== inst._zod) {
+        // A repeat construction: everything is installed already. Cleared here so the reference is not held past the first construction of every type.
+        installing = undefined;
+        return;
+    }
+    installing = inst._zod;
+    Object.defineProperty(proto, key, {
+        configurable: true,
+        get() {
+            // Shadowed before computing so a re-entrant read from a recursive schema resolves to undefined instead of running the getter again.
+            Object.defineProperty(this, key, breaker);
+            const outer = broke;
+            broke = false;
+            try {
+                const value = compute(this);
+                // A result that resolved through a recursion break is recomputed once the graph is complete; everything else memoizes, undefined included.
+                if (broke)
+                    delete this[key];
+                else
+                    Object.defineProperty(this, key, { configurable: true, writable: true, value });
+                broke = broke || outer;
+                return value;
+            }
+            catch (err) {
+                // A compute that threw memoizes nothing, so a later read runs it again and fails the same way. The shadow goes with it, since leaving it installed would answer undefined for every later read.
+                delete this[key];
+                broke = broke || outer;
+                throw err;
+            }
+        },
+        set(value) {
+            Object.defineProperty(this, key, { configurable: true, writable: true, value });
+        },
+    });
+}
+/**
+ * Installs `key` on `inst`'s prototype, computed by `make` on first read and cached there as an own
+ * data property. One accessor per constructor rather than one per instance, because an own accessor
+ * puts every instance after the first into v8 dictionary mode. The key doubles as the sentinel.
+ */
+function installLazyProp(inst, key, make, enumerable) {
+    const proto = claim(inst, key);
+    if (!proto)
+        return;
+    Object.defineProperty(proto, key, {
+        configurable: true,
+        get() {
+            // Shadowed before computing, so a re-entrant read from a self-referential shape resolves to undefined instead of running the getter again. A data property rather than an accessor: an own accessor is the dictionary-mode transition this exists to avoid.
+            const desc = { configurable: true, writable: true, enumerable, value: undefined };
+            Object.defineProperty(this, key, desc);
+            // a compute that throws leaves the shadow behind, so later reads answer undefined instead of re-throwing; `defineLazy` did the same, and `defineLazyInternal`'s delete-on-catch would cost bytes in every bundle for a case only a throwing user getter reaches
+            desc.value = make(this);
+            Object.defineProperty(this, key, desc);
+            return desc.value;
+        },
+        set(value) {
+            Object.defineProperty(this, key, { configurable: true, writable: true, enumerable, value });
+        },
+    });
+}
+/** Marks the thunk `_catch` synthesises for a constant catch value. `Function.length` cannot tell that thunk from a user callback — rest and defaulted parameters both report arity 0 — and a user callback reads `ctx.error`, whose issues only finalize correctly against the caller's per-parse error map. Provenance can say what arity cannot. A plain string key rather than `Symbol.for`, whose call at module scope no bundler can prove pure — the same shape that anchored `urlCanParse` into every build. */
+const CONSTANT_CATCH = "~constantCatch";
+/** Wraps a constant catch value in a thunk tagged with {@link CONSTANT_CATCH}. */
+function constantCatch(value) {
+    const fn = () => value;
+    fn[CONSTANT_CATCH] = true;
+    return fn;
+}
+
+var _a$1;
+/* Shared descriptor for installing `_zod`; defineProperty reads it
+ * synchronously, so reusing one object avoids a per-instance allocation. */
+const _zodDesc = { value: undefined, enumerable: false };
+// null where suppressing the capture would be unrecoverable: `parse()` puts the frames back with `captureStackTrace`, so without it the throw would lose its stack. also latched to null once `stackTraceLimit` proves unassignable, which a realm can do at any point by hardening Error
+let _E = "captureStackTrace" in Error ? Error : null;
+// v8 captures a stack trace inside the Error constructor, which dominates a failed parse; costs only the frames, and parse() restores those. the constructor must RUN: Object.create is cheaper and passes instanceof, but Error.isError and util.types.isNativeError check an internal slot
+function newError(Definition) {
+    const E = _E;
+    if (E) {
+        const saved = E.stackTraceLimit;
+        if (typeof saved === "number") {
+            try {
+                E.stackTraceLimit = 0;
+            }
+            catch {
+                _E = null;
+                return new Definition();
+            }
+            try {
+                return new Definition();
+            }
+            finally {
+                E.stackTraceLimit = saved;
+            }
+        }
+    }
+    return new Definition();
+}
+function $constructor(name, initializer, 
+/** This trait's members, installed once on every prototype that composes it. They cannot be declared in the initializer above: that runs per instance, and the prototype is shared. */
+proto, params) {
+    // Prototype for this constructor's `_zod` internals. Lazily-derived fields (`values`, `pattern`, `optin`, …) install here once rather than as an accessor on every instance.
+    const zodProto = {};
+    // Assigning the fields in the constructor body is what gives instances in-object slots; building the object literally and reparenting it costs a second allocation and a generic property copy.
+    function Internals(def) {
+        this.def = def;
+        this.constr = _;
+        this.traits = new Set();
+    }
+    Internals.prototype = zodProto;
+    const protoMembers = proto;
+    // One trait's members land on every prototype whose chain composes it, so the answer is per prototype rather than per trait.
+    const initialized = protoMembers && new WeakSet();
+    function init(inst, def) {
+        if (!inst._zod) {
+            _zodDesc.value = new Internals(def);
+            try {
+                Object.defineProperty(inst, "_zod", _zodDesc);
+            }
+            finally {
+                // Cleared even on throw, so the shared descriptor never leaks one instance's internals into the next.
+                _zodDesc.value = undefined;
+            }
+        }
+        else if (inst._zod.traits.has(name)) {
+            return;
+        }
+        inst._zod.traits.add(name);
+        initializer(inst, def);
+        if (initialized) {
+            // `super(def)` from a user subclass gives `this` a prototype the subclass owns, and installing there would overwrite whatever the subclass declared. `constr` built the instance, so its prototype is the one below the subclass's that should carry the members. A receiver whose chain never reaches that prototype installs on its own, which for a plain object handed straight to `init` means `Object.prototype` — unchanged from before.
+            const own = Object.getPrototypeOf(inst);
+            const ctorProto = inst._zod.constr.prototype;
+            let up = own;
+            while (up && up !== ctorProto)
+                up = Object.getPrototypeOf(up);
+            const target = up ?? own;
+            if (!initialized.has(target)) {
+                initialized.add(target);
+                members(target, protoMembers);
+            }
+        }
+        // support prototype modifications; for-in avoids the array allocation of Object.keys on the (usually empty) prototype
+        const proto = _.prototype;
+        for (const k in proto) {
+            if (!Object.prototype.hasOwnProperty.call(proto, k))
+                continue;
+            if (!(k in inst)) {
+                inst[k] = proto[k].bind(inst);
+            }
+        }
+    }
+    // doesn't work if Parent has a constructor with arguments
+    const Parent = params?.Parent ?? Object;
+    class Definition extends Parent {
+    }
+    Object.defineProperty(Definition, "name", { value: name });
+    function _(def) {
+        const inst = params?.Parent ? newError(Definition) : this;
+        init(inst, def);
+        const deferred = inst._zod.deferred;
+        if (deferred) {
+            for (const fn of deferred) {
+                fn();
+            }
+            // Released: initializers run once, and the list would otherwise be retained for the schema's lifetime.
+            inst._zod.deferred = undefined;
+        }
+        // Global post-processor hook. Internal: installed by `import "zod/compile"` to enable AOT compilation for every constructed schema. Runs last, once the instance is fully built, because it hands the instance to compile(). The post-processor is expected to be reentrancy-guarded by its own implementation.
+        const pp = globalThis.__zod_globalConfig?.postProcessor;
+        if (pp)
+            pp(inst);
+        return inst;
+    }
+    Object.defineProperty(_, "init", { value: init });
+    Object.defineProperty(_, Symbol.hasInstance, {
+        value: (inst) => {
+            if (params?.Parent && inst instanceof params.Parent)
+                return true;
+            return inst?._zod?.traits?.has(name);
+        },
+    });
+    Object.defineProperty(_, "name", { value: name });
+    return _;
+}
+class $ZodAsyncError extends Error {
+    constructor() {
+        super(`Encountered Promise during synchronous parse. Use .parseAsync() instead.`);
+    }
+}
+class $ZodEncodeError extends Error {
+    constructor(name) {
+        super(`Encountered unidirectional transform during encode: ${name}`);
+        this.name = "ZodEncodeError";
+    }
+}
+(_a$1 = globalThis).__zod_globalConfig ?? (_a$1.__zod_globalConfig = {});
+const globalConfig = globalThis.__zod_globalConfig;
+function config(newConfig) {
+    if (newConfig)
+        Object.assign(globalConfig, newConfig);
+    return globalConfig;
+}
+
+/* Computing the message eagerly is expensive (pretty-printed JSON of all
+ * issues), so defer it until first read. The accessor functions and
+ * descriptors are shared across instances to keep error construction
+ * cheap; the computed message is cached on the internals object. The
+ * setter preserves plain assignment semantics for consumers that
+ * overwrite `message`. */
+function _getMessage() {
+    const internals = this._zod;
+    internals.message ?? (internals.message = JSON.stringify(internals.def, jsonStringifyReplacer, 2));
+    return internals.message;
+}
+function _setMessage(value) {
+    this._zod.message = value;
+}
+const _messageDesc = {
+    get: _getMessage,
+    set: _setMessage,
+    enumerable: true,
+    configurable: true,
+};
+const _issuesDesc = { value: undefined, enumerable: false };
+/* Prototypes that already carry the lazy `toString`. Seeded with the
+ * intrinsics so that `init` on a foreign object — it accepts any object —
+ * can never install an accessor onto a prototype we do not own. */
+const _installedToString = /* @__PURE__ */ new WeakSet([Object.prototype, Error.prototype]);
+const initializer$1 = (inst, def) => {
+    inst.name = "$ZodError";
+    // `_zod` is already non-enumerable: $constructor's init defined it with this same descriptor
+    _issuesDesc.value = def;
+    Object.defineProperty(inst, "issues", _issuesDesc);
+    // Clear the shared slot; a retained `value` pins the last error's issues.
+    _issuesDesc.value = undefined;
+    Object.defineProperty(inst, "message", _messageDesc);
+    /* `toString` lives as a non-enumerable lazy getter on the shared
+     * prototype; on first access it caches a per-instance closure so
+     * detached usage still works. */
+    const proto = Object.getPrototypeOf(inst);
+    if (!_installedToString.has(proto)) {
+        _installedToString.add(proto);
+        Object.defineProperty(proto, "toString", {
+            configurable: true,
+            enumerable: false,
+            get() {
+                const value = () => this.message;
+                Object.defineProperty(this, "toString", { value, configurable: true, writable: true });
+                return value;
+            },
+            set(value) {
+                Object.defineProperty(this, "toString", { value, configurable: true, writable: true });
+            },
+        });
+    }
+};
+const $ZodError = $constructor("$ZodError", initializer$1);
+/** Get-or-create `obj[key]` as an own data property. A path segment naming an inherited member
+ * ("toString", "constructor") would otherwise read through to the prototype, and assigning
+ * "__proto__" would hit the setter instead of creating a key. */
+function node(obj, key, make) {
+    if (!Object.prototype.hasOwnProperty.call(obj, key)) {
+        if (key === "__proto__") {
+            Object.defineProperty(obj, key, { value: make(), writable: true, enumerable: true, configurable: true });
+        }
+        else {
+            obj[key] = make();
+        }
+    }
+    return obj[key];
+}
+function flattenError(error, mapper = (issue) => issue.message) {
+    const fieldErrors = {};
+    const formErrors = [];
+    for (const sub of error.issues) {
+        if (sub.path.length > 0) {
+            node(fieldErrors, sub.path[0], () => []).push(mapper(sub));
+        }
+        else {
+            formErrors.push(mapper(sub));
+        }
+    }
+    return { formErrors, fieldErrors };
+}
+function formatError(error, mapper = (issue) => issue.message) {
+    const fieldErrors = { _errors: [] };
+    const processError = (error, path = []) => {
+        for (const issue of error.issues) {
+            if (issue.code === "invalid_union" && issue.errors.length) {
+                issue.errors.map((issues) => processError({ issues }, [...path, ...issue.path]));
+            }
+            else if (issue.code === "invalid_key") {
+                processError({ issues: issue.issues }, [...path, ...issue.path]);
+            }
+            else if (issue.code === "invalid_element") {
+                processError({ issues: issue.issues }, [...path, ...issue.path]);
+            }
+            else {
+                const fullpath = [...path, ...issue.path];
+                if (fullpath.length === 0) {
+                    fieldErrors._errors.push(mapper(issue));
+                }
+                else {
+                    let curr = fieldErrors;
+                    let i = 0;
+                    while (i < fullpath.length) {
+                        const el = fullpath[i];
+                        const terminal = i === fullpath.length - 1;
+                        // `_errors` is reserved by this legacy format, so merge a matching path segment into the current node instead of treating its array as a child.
+                        if (el === "_errors") {
+                            if (terminal)
+                                curr._errors.push(mapper(issue));
+                            i++;
+                            continue;
+                        }
+                        // A path element may collide with an inherited property name such as
+                        // "__proto__" or "constructor". Truthiness checks read the prototype
+                        // (so no node is created, then ._errors.push throws), and bracket
+                        // assignment of "__proto__" hits the setter instead of creating an
+                        // own key. Guard the read with hasOwnProperty and create the node
+                        // with defineProperty so any path element becomes a real own key.
+                        if (!Object.prototype.hasOwnProperty.call(curr, el)) {
+                            Object.defineProperty(curr, el, {
+                                value: { _errors: [] },
+                                enumerable: true,
+                                writable: true,
+                                configurable: true,
+                            });
+                        }
+                        const node = curr[el];
+                        if (terminal) {
+                            node._errors.push(mapper(issue));
+                        }
+                        curr = node;
+                        i++;
+                    }
+                }
+            }
+        }
+    };
+    processError(error);
+    return fieldErrors;
+}
+/** Format a ZodError as a human-readable string in the following form.
+ *
+ * From
+ *
+ * ```ts
+ * ZodError {
+ *   issues: [
+ *     {
+ *       expected: 'string',
+ *       code: 'invalid_type',
+ *       path: [ 'username' ],
+ *       message: 'Invalid input: expected string'
+ *     },
+ *     {
+ *       expected: 'number',
+ *       code: 'invalid_type',
+ *       path: [ 'favoriteNumbers', 1 ],
+ *       message: 'Invalid input: expected number'
+ *     }
+ *   ];
+ * }
+ * ```
+ *
+ * to
+ *
+ * ```
+ * username
+ *   ✖ Expected number, received string at "username
+ * favoriteNumbers[0]
+ *   ✖ Invalid input: expected number
+ * ```
+ */
+function toDotPath(_path) {
+    const segs = [];
+    const path = _path.map((seg) => (typeof seg === "object" ? seg.key : seg));
+    for (const seg of path) {
+        if (typeof seg === "number")
+            segs.push(`[${seg}]`);
+        else if (typeof seg === "symbol")
+            segs.push(`[${JSON.stringify(String(seg))}]`);
+        else if (/[^\w$]/.test(seg))
+            segs.push(`[${JSON.stringify(seg)}]`);
+        else {
+            if (segs.length)
+                segs.push(".");
+            segs.push(seg);
+        }
+    }
+    return segs.join("");
+}
+function prettifyError(error) {
+    const lines = [];
+    // sort by path length
+    const issues = [...error.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
+    // Process each issue
+    for (const issue of issues) {
+        lines.push(`✖ ${issue.message}`);
+        if (issue.path?.length)
+            lines.push(`  → at ${toDotPath(issue.path)}`);
+    }
+    // Convert Map to formatted string
+    return lines.join("\n");
+}
+
+// Always both keys, so the `_params` read site in `_parse` sees one object shape rather than two.
+function finalizeParams(callee, params) {
+    return { callee: params?.callee ?? callee, Err: params?.Err };
+}
+const _parse = (_Err) => {
+    const fn = (schema, value, _ctx, _params) => {
+        const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
+        const result = schema._zod.run({ value, issues: [] }, ctx);
+        if (result instanceof Promise) {
+            throw new $ZodAsyncError();
+        }
+        if (result.issues.length) {
+            const e = new (_params?.Err ?? _Err)(result.issues.map((iss) => finalizeIssue(iss, ctx, config())));
+            captureStackTrace(e, _params?.callee ?? fn);
+            throw e;
+        }
+        return result.value;
+    };
+    return fn;
+};
+const _parseAsync = (_Err) => {
+    const fn = async (schema, value, _ctx, params) => {
+        const ctx = _ctx ? { ..._ctx, async: true } : { async: true };
+        let result = schema._zod.run({ value, issues: [] }, ctx);
+        if (result instanceof Promise)
+            result = await result;
+        if (result.issues.length) {
+            const e = new (params?.Err ?? _Err)(result.issues.map((iss) => finalizeIssue(iss, ctx, config())));
+            captureStackTrace(e, params?.callee ?? fn);
+            throw e;
+        }
+        return result.value;
+    };
+    return fn;
+};
+const _safeParse = (_Err) => (schema, value, _ctx) => {
+    const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
+    const result = schema._zod.run({ value, issues: [] }, ctx);
+    if (result instanceof Promise) {
+        throw new $ZodAsyncError();
+    }
+    return result.issues.length ? failure(_Err, result.issues, ctx) : { success: true, data: result.value };
+};
+// the error is built on the first read of `error`: finalizing the issues and constructing the instance is most of a failing parse, and a caller that only branches on `success` never pays it. a getter in the literal keeps this small; the alternative, one shared accessor descriptor plus a hidden state slot, reads ~15% faster but costs ~75 B gzipped in every bundle
+function failure(Err, issues, ctx) {
+    let error;
+    return {
+        success: false,
+        get error() {
+            if (!error) {
+                error = new Err(issues.map((iss) => finalizeIssue(iss, ctx, config())));
+                // finalizeIssue drops `input`, so the built error holds nothing; keeping the raw issues past this point pins the parsed value for the life of the result
+                issues = undefined;
+                ctx = undefined;
+            }
+            return error;
+        },
+        set error(e) {
+            error = e;
+            // a replacement makes the getter's branch unreachable, so the captures have to go here too
+            issues = undefined;
+            ctx = undefined;
+        },
+    };
+}
+const _safeParseAsync = (_Err) => async (schema, value, _ctx) => {
+    const ctx = _ctx ? { ..._ctx, async: true } : { async: true };
+    let result = schema._zod.run({ value, issues: [] }, ctx);
+    if (result instanceof Promise)
+        result = await result;
+    return result.issues.length ? failure(_Err, result.issues, ctx) : { success: true, data: result.value };
+};
+// registry mirrors of the compiler's sentinels, so this module never imports the compiler
+const COMPILE_INVALID = /* @__PURE__ */ Symbol.for("zod.compile.invalid");
+const COMPILE_FALLBACK = /* @__PURE__ */ Symbol.for("zod.compile.fallback");
+// Deliberately tiny, because v8 will not inline a body carrying the fallback's object literals and throw. Everything that is not the compiled happy path lives in validateFallback, and that split is worth ~35% on a compiled schema.
+const validate = ((schema, value, _ctx) => {
+    const validator = schema._zod.bag.validator;
+    if (validator !== undefined) {
+        if (validator(value) !== COMPILE_INVALID)
+            return true;
+        // a definite sentinel means the runtime would reject, so skip the re-parse; a ctx can still change the answer
+        if (validator.definite === true && _ctx === undefined)
+            return false;
+    }
+    return validateFallback(schema, value, _ctx);
+});
+function validateFallback(schema, value, _ctx) {
+    const ctx = _ctx
+        ? { ..._ctx, async: false, abortEarly: true }
+        : { async: false, abortEarly: true };
+    const fallbackRun = schema._zod.bag.fallbackRun;
+    let result;
+    if (fallbackRun) {
+        // skip nested fast paths on the fallback, so user callbacks keep the at-most-twice bound
+        ctx[COMPILE_FALLBACK] = true;
+        result = fallbackRun({ value, issues: [] }, ctx);
+    }
+    else {
+        result = schema._zod.run({ value, issues: [] }, ctx);
+    }
+    if (result instanceof Promise) {
+        throw new $ZodAsyncError();
+    }
+    return result.issues.length === 0;
+}
+// no fast path: the compiler keeps async parses on the runtime, because a promise-returning callback that is not declared async compiles to a throw
+const validateAsync$1 = async (schema, value, _ctx) => {
+    const ctx = _ctx
+        ? { ..._ctx, async: true, abortEarly: true }
+        : { async: true, abortEarly: true };
+    let result = schema._zod.run({ value, issues: [] }, ctx);
+    if (result instanceof Promise)
+        result = await result;
+    return result.issues.length === 0;
+};
+const _encode = (_Err) => {
+    const parse = _parse(_Err);
+    const fn = (schema, value, _ctx, _params) => {
+        const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
+        return parse(schema, value, ctx, finalizeParams(fn, _params));
+    };
+    return fn;
+};
+const _decode = (_Err) => {
+    const parse = _parse(_Err);
+    const fn = (schema, value, _ctx, _params) => {
+        return parse(schema, value, _ctx, finalizeParams(fn, _params));
+    };
+    return fn;
+};
+const _encodeAsync = (_Err) => {
+    const parseAsync = _parseAsync(_Err);
+    const fn = async (schema, value, _ctx, _params) => {
+        const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
+        return (await parseAsync(schema, value, ctx, finalizeParams(fn, _params)));
+    };
+    return fn;
+};
+const _decodeAsync = (_Err) => {
+    const parseAsync = _parseAsync(_Err);
+    const fn = async (schema, value, _ctx, _params) => {
+        return await parseAsync(schema, value, _ctx, finalizeParams(fn, _params));
+    };
+    return fn;
+};
+const _safeEncode = (_Err) => (schema, value, _ctx) => {
+    const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
+    return _safeParse(_Err)(schema, value, ctx);
+};
+const _safeDecode = (_Err) => (schema, value, _ctx) => {
+    return _safeParse(_Err)(schema, value, _ctx);
+};
+const _safeEncodeAsync = (_Err) => async (schema, value, _ctx) => {
+    const ctx = _ctx ? { ..._ctx, direction: "backward" } : { direction: "backward" };
+    return _safeParseAsync(_Err)(schema, value, ctx);
+};
+const _safeDecodeAsync = (_Err) => async (schema, value, _ctx) => {
+    return _safeParseAsync(_Err)(schema, value, _ctx);
+};
+
+/**
+ * @deprecated CUID v1 is deprecated by its authors due to information leakage
+ * (timestamps embedded in the id). Use {@link cuid2} instead.
+ * See https://github.com/paralleldrive/cuid.
+ */
+const cuid = /^[cC][0-9a-z]{6,}$/;
+const cuid2 = /^[0-9a-z]+$/;
+const ulid = /^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$/;
+const xid = /^[0-9a-vA-V]{20}$/;
+const ksuid = /^[A-Za-z0-9]{27}$/;
+const nanoid = /^[a-zA-Z0-9_-]{21}$/;
+function nanoidOfLength(length) {
+    return new RegExp(`^[a-zA-Z0-9_-]{${length}}$`);
+}
+/** ISO 8601-1 duration regex. Does not support the 8601-2 extensions like negative durations or fractional/negative components. */
+const duration = /^P(?:(\d+W)|(?!.*W)(?=\d|T\d)(\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+([.,]\d+)?S)?)?)$/;
+/** A regex for any UUID-like identifier: 8-4-4-4-12 hex pattern */
+const guid = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
+/** Returns a regex for validating an RFC 9562/4122 UUID.
+ *
+ * @param version Optionally specify a version 1-8. If no version is specified, all versions are supported. */
+const uuid = (version) => {
+    if (!version)
+        return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
+    return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
+};
+/** Practical email validation */
+const email = /^(?:[A-Za-z0-9_'+\-]+\.)*[A-Za-z0-9_'+\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/;
+// from https://thekevinscott.com/emojis-in-javascript/#writing-a-regular-expression
+// Single character class, not an alternation: the two properties overlap (U+1F9B0-U+1F9B3), so `(A|B)+` backtracks exponentially on a failed match. The leading lookahead then demands one anchor — a pictograph, a regional indicator, or the enclosing keycap — because `\p{Emoji_Component}` on its own covers ASCII digits, `#`, `*`, ZWJ, variation selectors and skin tone modifiers, none of which is an emoji without a base.
+const _emoji$1 = `^(?=[\\s\\S]*[\\p{Extended_Pictographic}\\p{Regional_Indicator}\\u20E3])[\\p{Extended_Pictographic}\\p{Emoji_Component}]+$`;
+function emoji() {
+    return new RegExp(_emoji$1, "u");
+}
+const ipv4 = /^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])$/;
+const ipv6 = /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$/;
+const cidrv4 = /^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]|[0-9])\/([0-9]|[1-2][0-9]|3[0-2])$/;
+const cidrv6 = /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))\/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$/;
+// https://stackoverflow.com/questions/7860392/determine-if-string-is-in-base64-using-javascript
+const base64 = /^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$/;
+const base64url = /^(?:[A-Za-z0-9_-]{4})*(?:[A-Za-z0-9_-]{2,3})?$/;
+const httpProtocol = /^https?$/;
+// https://blog.stevenlevithan.com/archives/validate-phone-number#r4-3 (regex sans spaces) E.164: leading digit must be 1-9; total digits (excluding '+') between 7-15
+const e164 = /^\+[1-9]\d{6,14}$/;
+const dateSource = `(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))`;
+
+function anchor(source) {
+    return new RegExp(`^${source}$`);
+}
+const date = /*@__PURE__*/ anchor(dateSource);
+function timeSource(args) {
+    const hhmm = `(?:[01]\\d|2[0-3]):[0-5]\\d`;
+    const regex = typeof args.precision === "number"
+        ? args.precision === -1
+            ? `${hhmm}`
+            : args.precision === 0
+                ? `${hhmm}:[0-5]\\d`
+                : `${hhmm}:[0-5]\\d\\.\\d{${args.precision}}`
+        : args.seconds
+            ? `${hhmm}:[0-5]\\d(?:\\.\\d+)?`
+            : `${hhmm}(?::[0-5]\\d(?:\\.\\d+)?)?`;
+    return regex;
+}
+function time(args) {
+    return new RegExp(`^${timeSource(args)}$`);
+}
+// Adapted from https://stackoverflow.com/a/3143231
+function datetime(args) {
+    const opts = ["Z"];
+    // if (args.offset) opts.push(`([+-]\\d{2}:\\d{2})`);
+    if (args.offset)
+        opts.push(`([+-](?:[01]\\d|2[0-3]):[0-5]\\d)`);
+    // RFC 3339 mandates seconds wherever the time carries a `Z` or an offset, so only the unqualified form `local` adds may omit them
+    const qualified = `${timeSource({ precision: args.precision, seconds: true })}(?:${opts.join("|")})`;
+    const timeRegex = args.local ? `${qualified}|${timeSource({ precision: args.precision })}` : qualified;
+    return new RegExp(`^${dateSource}T(?:${timeRegex})$`);
+}
+// the unbounded form of `string()` as a literal, so every plain string shares one instance instead of building its own
+const anyString = /^[\s\S]{0,}$/;
+const integer = /^-?\d+$/;
+const number$1 = /^-?\d+(?:\.\d+)?$/;
+const boolean$1 = /^(?:true|false)$/i;
+// regex for string with no uppercase letters
+const lowercase = /^[^A-Z]*$/;
+// regex for string with no lowercase letters
+const uppercase = /^[^a-z]*$/;
+
+// import { $ZodType } from "./schemas.js";
+const $ZodCheck = /*@__PURE__*/ $constructor("$ZodCheck", (inst, def) => {
+    var _a;
+    inst._zod ?? (inst._zod = {});
+    inst._zod.def = def;
+    (_a = inst._zod).onattach ?? (_a.onattach = []);
+});
+/** Default `when` for length-based checks: run only on non-nullish values with a `length`. */
+const _whenHasLength = (payload) => {
+    const val = payload.value;
+    return !nullish(val) && val.length !== undefined;
+};
+const numericOriginMap = {
+    number: "number",
+    bigint: "bigint",
+    object: "date",
+};
+const $ZodCheckLessThan = /*@__PURE__*/ $constructor("$ZodCheckLessThan", (inst, def) => {
+    $ZodCheck.init(inst, def);
+    const origin = numericOriginMap[typeof def.value];
+    inst._zod.check = (payload) => {
+        if (def.inclusive ? payload.value <= def.value : payload.value < def.value) {
+            return;
+        }
+        payload.issues.push({
+            origin: numericOriginMap[typeof payload.value] ?? origin,
+            code: "too_big",
+            maximum: typeof def.value === "object" ? def.value.getTime() : def.value,
+            input: payload.value,
+            inclusive: def.inclusive,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodCheckGreaterThan = /*@__PURE__*/ $constructor("$ZodCheckGreaterThan", (inst, def) => {
+    $ZodCheck.init(inst, def);
+    const origin = numericOriginMap[typeof def.value];
+    inst._zod.check = (payload) => {
+        if (def.inclusive ? payload.value >= def.value : payload.value > def.value) {
+            return;
+        }
+        payload.issues.push({
+            origin: numericOriginMap[typeof payload.value] ?? origin,
+            code: "too_small",
+            minimum: typeof def.value === "object" ? def.value.getTime() : def.value,
+            input: payload.value,
+            inclusive: def.inclusive,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodCheckMultipleOf = 
+/*@__PURE__*/ $constructor("$ZodCheckMultipleOf", (inst, def) => {
+    $ZodCheck.init(inst, def);
+    inst._zod.check = (payload) => {
+        if (typeof payload.value !== typeof def.value)
+            throw new Error("Cannot mix number and bigint in multiple_of check.");
+        const isMultiple = typeof payload.value === "bigint"
+            ? // `value % 0n` throws, and nothing is a multiple of zero — the number branch already fails this way via NaN
+                def.value !== BigInt(0) && payload.value % def.value === BigInt(0)
+            : floatSafeRemainder(payload.value, def.value) === 0;
+        if (isMultiple)
+            return;
+        payload.issues.push({
+            origin: typeof payload.value,
+            code: "not_multiple_of",
+            divisor: def.value,
+            input: payload.value,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodCheckNumberFormat = /*@__PURE__*/ $constructor("$ZodCheckNumberFormat", (inst, def) => {
+    $ZodCheck.init(inst, def); // no format checks
+    def.format = def.format || "float64";
+    const isInt = def.format?.includes("int");
+    const origin = isInt ? "int" : "number";
+    const [minimum, maximum] = NUMBER_FORMAT_RANGES[def.format];
+    inst._zod.check = (payload) => {
+        const input = payload.value;
+        if (isInt) {
+            if (!Number.isInteger(input)) {
+                // invalid_format issue
+                // payload.issues.push({
+                //   expected: def.format,
+                //   format: def.format,
+                //   code: "invalid_format",
+                //   input,
+                //   inst,
+                // });
+                // invalid_type issue
+                payload.issues.push({
+                    expected: origin,
+                    format: def.format,
+                    code: "invalid_type",
+                    continue: false,
+                    input,
+                    inst,
+                });
+                return;
+                // not_multiple_of issue
+                // payload.issues.push({
+                //   code: "not_multiple_of",
+                //   origin: "number",
+                //   input,
+                //   inst,
+                //   divisor: 1,
+                // });
+            }
+            if (!Number.isSafeInteger(input)) {
+                if (input > 0) {
+                    // too_big
+                    payload.issues.push({
+                        input,
+                        code: "too_big",
+                        maximum: Number.MAX_SAFE_INTEGER,
+                        note: "Integers must be within the safe integer range.",
+                        inst,
+                        origin,
+                        inclusive: true,
+                        continue: !def.abort,
+                    });
+                }
+                else {
+                    // too_small
+                    payload.issues.push({
+                        input,
+                        code: "too_small",
+                        minimum: Number.MIN_SAFE_INTEGER,
+                        note: "Integers must be within the safe integer range.",
+                        inst,
+                        origin,
+                        inclusive: true,
+                        continue: !def.abort,
+                    });
+                }
+                return;
+            }
+        }
+        if (input < minimum) {
+            payload.issues.push({
+                origin: "number",
+                input,
+                code: "too_small",
+                minimum,
+                inclusive: true,
+                inst,
+                continue: !def.abort,
+            });
+        }
+        if (input > maximum) {
+            payload.issues.push({
+                origin: "number",
+                input,
+                code: "too_big",
+                maximum,
+                inclusive: true,
+                inst,
+                continue: !def.abort,
+            });
+        }
+    };
+});
+const $ZodCheckMaxLength = /*@__PURE__*/ $constructor("$ZodCheckMaxLength", (inst, def) => {
+    var _a;
+    $ZodCheck.init(inst, def);
+    (_a = inst._zod.def).when ?? (_a.when = _whenHasLength);
+    inst._zod.check = (payload) => {
+        const input = payload.value;
+        const units = input.length;
+        // Strings are measured in Unicode code points, not UTF-16 units. A code point is at most two units, so a string that already fits in units fits in code points; only an overflow has to be counted.
+        const length = typeof input === "string" && units > def.maximum ? codePointLength(input) : units;
+        if (length <= def.maximum)
+            return;
+        const origin = getLengthableOrigin(input);
+        payload.issues.push({
+            origin,
+            code: "too_big",
+            maximum: def.maximum,
+            inclusive: true,
+            input,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodCheckMinLength = /*@__PURE__*/ $constructor("$ZodCheckMinLength", (inst, def) => {
+    var _a;
+    $ZodCheck.init(inst, def);
+    (_a = inst._zod.def).when ?? (_a.when = _whenHasLength);
+    inst._zod.check = (payload) => {
+        const input = payload.value;
+        const units = input.length;
+        // A code point is one or two UTF-16 units, so fewer units than the floor can never reach it and twice the floor always clears it. Only in between is the exact count in doubt.
+        const length = typeof input === "string" && units >= def.minimum && units < def.minimum * 2
+            ? codePointLength(input)
+            : units;
+        if (length >= def.minimum)
+            return;
+        const origin = getLengthableOrigin(input);
+        payload.issues.push({
+            origin,
+            code: "too_small",
+            minimum: def.minimum,
+            inclusive: true,
+            input,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodCheckLengthEquals = /*@__PURE__*/ $constructor("$ZodCheckLengthEquals", (inst, def) => {
+    var _a;
+    $ZodCheck.init(inst, def);
+    (_a = inst._zod.def).when ?? (_a.when = _whenHasLength);
+    inst._zod.check = (payload) => {
+        const input = payload.value;
+        const units = input.length;
+        // A code point is one or two UTF-16 units, so outside `[length, length * 2]` units the target is missed either way — and missed in the same direction in both measures.
+        const length = typeof input === "string" && units >= def.length && units <= def.length * 2
+            ? codePointLength(input)
+            : units;
+        if (length === def.length)
+            return;
+        const origin = getLengthableOrigin(input);
+        const tooBig = length > def.length;
+        payload.issues.push({
+            origin,
+            ...(tooBig ? { code: "too_big", maximum: def.length } : { code: "too_small", minimum: def.length }),
+            inclusive: true,
+            exact: true,
+            input: payload.value,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodCheckStringFormat = /*@__PURE__*/ $constructor("$ZodCheckStringFormat", (inst, def) => {
+    var _a, _b;
+    $ZodCheck.init(inst, def);
+    if (def.pattern)
+        (_a = inst._zod).check ?? (_a.check = (payload) => {
+            def.pattern.lastIndex = 0;
+            if (def.pattern.test(payload.value))
+                return;
+            payload.issues.push({
+                origin: "string",
+                code: "invalid_format",
+                format: def.format,
+                input: payload.value,
+                ...(def.pattern ? { pattern: def.pattern.toString() } : {}),
+                inst,
+                continue: !def.abort,
+            });
+        });
+    else
+        (_b = inst._zod).check ?? (_b.check = () => { });
+});
+const $ZodCheckRegex = /*@__PURE__*/ $constructor("$ZodCheckRegex", (inst, def) => {
+    $ZodCheckStringFormat.init(inst, def);
+    inst._zod.check = (payload) => {
+        def.pattern.lastIndex = 0;
+        if (def.pattern.test(payload.value))
+            return;
+        payload.issues.push({
+            origin: "string",
+            code: "invalid_format",
+            format: "regex",
+            input: payload.value,
+            pattern: def.pattern.toString(),
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodCheckLowerCase = /*@__PURE__*/ $constructor("$ZodCheckLowerCase", (inst, def) => {
+    def.pattern ?? (def.pattern = lowercase);
+    $ZodCheckStringFormat.init(inst, def);
+});
+const $ZodCheckUpperCase = /*@__PURE__*/ $constructor("$ZodCheckUpperCase", (inst, def) => {
+    def.pattern ?? (def.pattern = uppercase);
+    $ZodCheckStringFormat.init(inst, def);
+});
+const $ZodCheckIncludes = /*@__PURE__*/ $constructor("$ZodCheckIncludes", (inst, def) => {
+    $ZodCheck.init(inst, def);
+    const escapedRegex = escapeRegex(def.includes);
+    // `String.prototype.includes(sub, position)` matches `sub` at `position`
+    // OR LATER, so the pattern must allow at least `position` leading chars
+    // (`{N,}`), not exactly `position` chars (`{N}`).
+    const pattern = new RegExp(typeof def.position === "number" ? `^.{${def.position},}${escapedRegex}` : escapedRegex);
+    def.pattern = pattern;
+    inst._zod.check = (payload) => {
+        if (payload.value.includes(def.includes, def.position))
+            return;
+        payload.issues.push({
+            origin: "string",
+            code: "invalid_format",
+            format: "includes",
+            includes: def.includes,
+            input: payload.value,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodCheckStartsWith = /*@__PURE__*/ $constructor("$ZodCheckStartsWith", (inst, def) => {
+    $ZodCheck.init(inst, def);
+    const pattern = new RegExp(`^${escapeRegex(def.prefix)}.*`);
+    def.pattern ?? (def.pattern = pattern);
+    inst._zod.check = (payload) => {
+        if (payload.value.startsWith(def.prefix))
+            return;
+        payload.issues.push({
+            origin: "string",
+            code: "invalid_format",
+            format: "starts_with",
+            prefix: def.prefix,
+            input: payload.value,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodCheckEndsWith = /*@__PURE__*/ $constructor("$ZodCheckEndsWith", (inst, def) => {
+    $ZodCheck.init(inst, def);
+    const pattern = new RegExp(`.*${escapeRegex(def.suffix)}$`);
+    def.pattern ?? (def.pattern = pattern);
+    inst._zod.check = (payload) => {
+        if (payload.value.endsWith(def.suffix))
+            return;
+        payload.issues.push({
+            origin: "string",
+            code: "invalid_format",
+            format: "ends_with",
+            suffix: def.suffix,
+            input: payload.value,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodCheckOverwrite = /*@__PURE__*/ $constructor("$ZodCheckOverwrite", (inst, def) => {
+    $ZodCheck.init(inst, def);
+    inst._zod.check = (payload) => {
+        payload.value = def.tx(payload.value);
+    };
+});
+
+class Doc {
+    constructor(args = [], closed = {}) {
+        this.content = [];
+        this.indent = 0;
+        this.args = args;
+        this.closed = closed;
+    }
+    // the compiler catches a child's throw and keeps writing into this doc, so the indent has to unwind with it
+    indented(fn) {
+        this.indent += 1;
+        try {
+            fn(this);
+        }
+        finally {
+            this.indent -= 1;
+        }
+    }
+    write(arg) {
+        if (typeof arg === "function") {
+            arg(this, { execution: "sync" });
+            arg(this, { execution: "async" });
+            return;
+        }
+        const content = arg;
+        const lines = content.split("\n").filter((x) => x);
+        const minIndent = Math.min(...lines.map((x) => x.length - x.trimStart().length));
+        const dedented = lines.map((x) => x.slice(minIndent)).map((x) => " ".repeat(this.indent * 2) + x);
+        for (const line of dedented) {
+            this.content.push(line);
+        }
+    }
+    compile() {
+        const F = Function;
+        const content = this?.content ?? [``];
+        const factory = new F(...Object.keys(this.closed), `return function (${this.args.join(", ")}) {\n${content.join("\n")}\n};`);
+        return factory(...Object.values(this.closed));
+    }
+}
+
+const version = {
+    major: 4,
+    minor: 6,
+    patch: 7,
+};
+
+const $ZodType = /*@__PURE__*/ $constructor("$ZodType", (inst, def) => {
+    var _a;
+    inst ?? (inst = {});
+    inst._zod.def = def; // set _def property
+    inst._zod.bag = inst._zod.bag || {}; // initialize _bag object
+    inst._zod.version = version;
+    const defChecks = inst._zod.def.checks;
+    // if inst is itself a checks.$ZodCheck, run it as a check
+    const checks = inst._zod.traits.has("$ZodCheck")
+        ? [inst, ...(defChecks ?? [])]
+        : defChecks?.length
+            ? [...defChecks]
+            : [];
+    for (const ch of checks) {
+        for (const fn of ch._zod.onattach) {
+            fn(inst);
+        }
+    }
+    if (checks.length === 0) {
+        // deferred initializer inst._zod.parse is not yet defined
+        (_a = inst._zod).deferred ?? (_a.deferred = []);
+        inst._zod.deferred?.push(() => {
+            inst._zod.run = inst._zod.parse;
+        });
+    }
+    else {
+        const runChecks = (payload, checks, ctx) => {
+            if (payload.memo)
+                return payload;
+            let isAborted = aborted(payload);
+            let asyncResult;
+            for (const ch of checks) {
+                if (ch._zod.def.when) {
+                    if (explicitlyAborted(payload))
+                        continue;
+                    const shouldRun = ch._zod.def.when(payload);
+                    if (!shouldRun)
+                        continue;
+                }
+                else if (isAborted) {
+                    continue;
+                }
+                const currLen = payload.issues.length;
+                const _ = ch._zod.check(payload);
+                if (_ instanceof Promise && ctx?.async === false) {
+                    throw new $ZodAsyncError();
+                }
+                if (asyncResult || _ instanceof Promise) {
+                    asyncResult = (asyncResult ?? Promise.resolve()).then(async () => {
+                        await _;
+                        const nextLen = payload.issues.length;
+                        if (nextLen === currLen)
+                            return;
+                        attachSchema(payload.issues, currLen, inst);
+                        if (!isAborted)
+                            isAborted = aborted(payload, currLen);
+                    });
+                }
+                else {
+                    const nextLen = payload.issues.length;
+                    if (nextLen === currLen)
+                        continue;
+                    attachSchema(payload.issues, currLen, inst);
+                    if (!isAborted)
+                        isAborted = aborted(payload, currLen);
+                }
+            }
+            if (asyncResult) {
+                return asyncResult.then(() => {
+                    return payload;
+                });
+            }
+            return payload;
+        };
+        const handleCanaryResult = (canary, payload, ctx) => {
+            // abort if the canary is aborted
+            if (aborted(canary)) {
+                canary.aborted = true;
+                return canary;
+            }
+            // run checks first, then
+            const checkResult = runChecks(payload, checks, ctx);
+            if (checkResult instanceof Promise) {
+                if (ctx.async === false)
+                    throw new $ZodAsyncError();
+                return checkResult.then((checkResult) => inst._zod.parse(checkResult, ctx));
+            }
+            return inst._zod.parse(checkResult, ctx);
+        };
+        inst._zod.run = (payload, ctx) => {
+            if (ctx.skipChecks) {
+                return inst._zod.parse(payload, ctx);
+            }
+            if (ctx.direction === "backward") {
+                // run canary initial pass (no checks)
+                const canary = inst._zod.parse({ value: payload.value, issues: [] }, { ...ctx, skipChecks: true });
+                if (canary instanceof Promise) {
+                    return canary.then((canary) => {
+                        return handleCanaryResult(canary, payload, ctx);
+                    });
+                }
+                return handleCanaryResult(canary, payload, ctx);
+            }
+            // forward
+            const result = inst._zod.parse(payload, ctx);
+            if (result instanceof Promise) {
+                if (ctx.async === false)
+                    throw new $ZodAsyncError();
+                return result.then((result) => runChecks(result, checks, ctx));
+            }
+            return runChecks(result, checks, ctx);
+        };
+    }
+}, {
+    // Wrappers extend this by installing a richer factory over it; reading it eagerly would defeat the laziness.
+    get "~standard"() {
+        return hide(this, "~standard", standardProps(this));
+    },
+    set "~standard"(value) {
+        own(this, "~standard", value);
+    },
+});
+/** The Standard Schema surface for `inst`. Shared so wrappers can extend it without forcing it. */
+// a Standard Schema result only reports issues, so a failure finalizes them straight off the raw payload: no ZodError, and no lazy result to read through
+const toStandardResult = (r, ctx) => r.issues.length ? { issues: r.issues.map((iss) => finalizeIssue(iss, ctx, config())) } : { value: r.value };
+async function validateAsync(inst, value) {
+    const ctx = { async: true };
+    return toStandardResult((await inst._zod.run({ value, issues: [] }, ctx)), ctx);
+}
+function standardProps(inst) {
+    return {
+        validate: (value) => {
+            const ctx = { async: false };
+            try {
+                const r = inst._zod.run({ value, issues: [] }, ctx);
+                if (!(r instanceof Promise))
+                    return toStandardResult(r, ctx);
+            }
+            catch (_) { }
+            // async function so a synchronously throwing check rejects instead of escaping validate
+            return validateAsync(inst, value);
+        },
+        vendor: "zod",
+        version: 1,
+    };
+}
+const $ZodString = /*@__PURE__*/ $constructor("$ZodString", (inst, def) => {
+    $ZodType.init(inst, def);
+    // a format's own pattern, else unbounded; a template literal derives the check-aware form itself
+    inst._zod.pattern = def.pattern ?? anyString;
+    inst._zod.parse = (payload, _) => {
+        if (def.coerce)
+            try {
+                payload.value = String(payload.value);
+            }
+            catch (_) { }
+        if (typeof payload.value === "string")
+            return payload;
+        payload.issues.push({
+            expected: "string",
+            code: "invalid_type",
+            input: payload.value,
+            inst,
+        });
+        return payload;
+    };
+});
+const $ZodStringFormat = /*@__PURE__*/ $constructor("$ZodStringFormat", (inst, def) => {
+    // check initialization must come first
+    $ZodCheckStringFormat.init(inst, def);
+    $ZodString.init(inst, def);
+});
+const $ZodGUID = /*@__PURE__*/ $constructor("$ZodGUID", (inst, def) => {
+    def.pattern ?? (def.pattern = guid);
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodUUID = /*@__PURE__*/ $constructor("$ZodUUID", (inst, def) => {
+    if (def.version) {
+        const versionMap = {
+            v1: 1,
+            v2: 2,
+            v3: 3,
+            v4: 4,
+            v5: 5,
+            v6: 6,
+            v7: 7,
+            v8: 8,
+        };
+        const v = versionMap[def.version];
+        if (v === undefined)
+            throw new Error(`Invalid UUID version: "${def.version}"`);
+        def.pattern ?? (def.pattern = uuid(v));
+    }
+    else
+        def.pattern ?? (def.pattern = uuid());
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodEmail = /*@__PURE__*/ $constructor("$ZodEmail", (inst, def) => {
+    def.pattern ?? (def.pattern = email);
+    $ZodStringFormat.init(inst, def);
+});
+/** The `://` guard rejected the input before the URL constructor saw it. */
+const URL_BAD_FORMAT = 1;
+/** The URL parser rejected the input. */
+const URL_UNPARSEABLE = 2;
+function canParseURL(input) {
+    try {
+        if (typeof URL !== "undefined" && typeof URL.canParse === "function")
+            return URL.canParse(input);
+        new URL(input);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+function validateURL(trimmed, def) {
+    if (!("normalize" in def) && !("hostname" in def) && !("protocol" in def)) {
+        return canParseURL(trimmed) || URL_UNPARSEABLE;
+    }
+    return parseURLObject(trimmed, def);
+}
+/** Parses a URL while preserving the non-normalizing HTTP guard. */
+function parseURLObject(trimmed, def) {
+    // When normalize is off, require :// for http/https URLs. This prevents strings like "http:example.com" or "https:/path" from being silently accepted
+    if (!def.normalize && def.protocol?.source === httpProtocol.source && !/^https?:\/\//i.test(trimmed)) {
+        return URL_BAD_FORMAT;
+    }
+    try {
+        if (typeof URL !== "undefined") {
+            const URLStatic = URL;
+            if (typeof URLStatic.parse === "function")
+                return URLStatic.parse(trimmed) ?? URL_UNPARSEABLE;
+        }
+        // @ts-ignore
+        return new URL(trimmed);
+    }
+    catch {
+        return URL_UNPARSEABLE;
+    }
+}
+const asciiTabOrNewline = /[\t\n\r]/g;
+/** The URL parser deletes every ASCII tab, LF and CR from its input before it parses, so `new URL("https://exa\nmple.com")` reports on `example.com`. Applying the same deletion to the returned value closes the half of that divergence which can move the host; the parser's other rewrite, stripping C0 controls at the edges, cannot. */
+function stripTabAndNewline(value) {
+    return value.replace(asciiTabOrNewline, "");
+}
+function urlHostnameOk(url, hostname) {
+    hostname.lastIndex = 0;
+    return hostname.test(url.hostname);
+}
+function urlProtocolOk(url, protocol) {
+    protocol.lastIndex = 0;
+    return protocol.test(url.protocol.endsWith(":") ? url.protocol.slice(0, -1) : url.protocol);
+}
+const $ZodURL = /*@__PURE__*/ $constructor("$ZodURL", (inst, def) => {
+    $ZodStringFormat.init(inst, def);
+    inst._zod.check = (payload) => {
+        try {
+            // Trim whitespace from input
+            const trimmed = payload.value.trim();
+            const url = validateURL(trimmed, def);
+            if (url === URL_BAD_FORMAT) {
+                payload.issues.push({
+                    code: "invalid_format",
+                    format: "url",
+                    note: "Invalid URL format",
+                    input: payload.value,
+                    inst,
+                    continue: !def.abort,
+                });
+                return;
+            }
+            if (url === URL_UNPARSEABLE) {
+                payload.issues.push({
+                    code: "invalid_format",
+                    format: "url",
+                    input: payload.value,
+                    inst,
+                    continue: !def.abort,
+                });
+                return;
+            }
+            if (url === true) {
+                payload.value = stripTabAndNewline(trimmed);
+                return;
+            }
+            if (def.hostname && !urlHostnameOk(url, def.hostname)) {
+                payload.issues.push({
+                    code: "invalid_format",
+                    format: "url",
+                    note: "Invalid hostname",
+                    pattern: def.hostname.source,
+                    input: payload.value,
+                    inst,
+                    continue: !def.abort,
+                });
+            }
+            if (def.protocol && !urlProtocolOk(url, def.protocol)) {
+                payload.issues.push({
+                    code: "invalid_format",
+                    format: "url",
+                    note: "Invalid protocol",
+                    pattern: def.protocol.source,
+                    input: payload.value,
+                    inst,
+                    continue: !def.abort,
+                });
+            }
+            // Set the output value based on normalize flag
+            payload.value = def.normalize ? url.href : stripTabAndNewline(trimmed);
+            return;
+        }
+        catch (_) {
+            payload.issues.push({
+                code: "invalid_format",
+                format: "url",
+                input: payload.value,
+                inst,
+                continue: !def.abort,
+            });
+        }
+    };
+});
+const $ZodEmoji = /*@__PURE__*/ $constructor("$ZodEmoji", (inst, def) => {
+    def.pattern ?? (def.pattern = emoji());
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodNanoID = /*@__PURE__*/ $constructor("$ZodNanoID", (inst, def) => {
+    if (def.length !== undefined && (!Number.isInteger(def.length) || def.length < 1))
+        throw new Error(`Invalid nanoid length: ${def.length}`);
+    def.pattern ?? (def.pattern = def.length === undefined ? nanoid : nanoidOfLength(def.length));
+    $ZodStringFormat.init(inst, def);
+});
+/**
+ * @deprecated CUID v1 is deprecated by its authors due to information leakage
+ * (timestamps embedded in the id). Use {@link $ZodCUID2} instead.
+ * See https://github.com/paralleldrive/cuid.
+ */
+const $ZodCUID = /*@__PURE__*/ $constructor("$ZodCUID", (inst, def) => {
+    def.pattern ?? (def.pattern = cuid);
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodCUID2 = /*@__PURE__*/ $constructor("$ZodCUID2", (inst, def) => {
+    def.pattern ?? (def.pattern = cuid2);
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodULID = /*@__PURE__*/ $constructor("$ZodULID", (inst, def) => {
+    def.pattern ?? (def.pattern = ulid);
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodXID = /*@__PURE__*/ $constructor("$ZodXID", (inst, def) => {
+    def.pattern ?? (def.pattern = xid);
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodKSUID = /*@__PURE__*/ $constructor("$ZodKSUID", (inst, def) => {
+    def.pattern ?? (def.pattern = ksuid);
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodISODateTime = /*@__PURE__*/ $constructor("$ZodISODateTime", (inst, def) => {
+    def.pattern ?? (def.pattern = datetime(def));
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodISODate = /*@__PURE__*/ $constructor("$ZodISODate", (inst, def) => {
+    def.pattern ?? (def.pattern = date);
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodISOTime = /*@__PURE__*/ $constructor("$ZodISOTime", (inst, def) => {
+    def.pattern ?? (def.pattern = time(def));
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodISODuration = /*@__PURE__*/ $constructor("$ZodISODuration", (inst, def) => {
+    def.pattern ?? (def.pattern = duration);
+    $ZodStringFormat.init(inst, def);
+});
+const $ZodIPv4 = /*@__PURE__*/ $constructor("$ZodIPv4", (inst, def) => {
+    def.pattern ?? (def.pattern = ipv4);
+    $ZodStringFormat.init(inst, def);
+});
+/** An IPv6 address is written with hex digits, colons and dots, and nothing else. The guard is what makes the check below an IPv6 check: `new URL("http://[...]")` parses an authority, not an address, so `@` and `\` re-delimit it and `"::@1\\"` validates against the host `0.0.0.1`. The URL parser also deletes ASCII tab, LF and CR rather than failing, which is how `"::1\n"` validated as `::1`. */
+const ipv6Alphabet = /^[0-9a-fA-F:.]+$/;
+function isValidIPv6(value) {
+    if (!ipv6Alphabet.test(value))
+        return false;
+    return canParseURL(`http://[${value}]`);
+}
+const $ZodIPv6 = /*@__PURE__*/ $constructor("$ZodIPv6", (inst, def) => {
+    def.pattern ?? (def.pattern = ipv6);
+    $ZodStringFormat.init(inst, def);
+    inst._zod.check = (payload) => {
+        if (!isValidIPv6(payload.value)) {
+            payload.issues.push({
+                code: "invalid_format",
+                format: "ipv6",
+                input: payload.value,
+                inst,
+                continue: !def.abort,
+            });
+        }
+    };
+});
+const $ZodCIDRv4 = /*@__PURE__*/ $constructor("$ZodCIDRv4", (inst, def) => {
+    def.pattern ?? (def.pattern = cidrv4);
+    $ZodStringFormat.init(inst, def);
+});
+function isValidCIDRv6(value) {
+    const parts = value.split("/");
+    if (parts.length !== 2)
+        return false;
+    const [address, prefix] = parts;
+    if (!prefix)
+        return false;
+    const prefixNum = Number(prefix);
+    if (`${prefixNum}` !== prefix)
+        return false;
+    if (prefixNum < 0 || prefixNum > 128)
+        return false;
+    return isValidIPv6(address);
+}
+const $ZodCIDRv6 = /*@__PURE__*/ $constructor("$ZodCIDRv6", (inst, def) => {
+    def.pattern ?? (def.pattern = cidrv6); // not used for validation
+    $ZodStringFormat.init(inst, def);
+    inst._zod.check = (payload) => {
+        if (!isValidCIDRv6(payload.value)) {
+            payload.issues.push({
+                code: "invalid_format",
+                format: "cidrv6",
+                input: payload.value,
+                inst,
+                continue: !def.abort,
+            });
+        }
+    };
+});
+//////////////////////////////   ZodBase64   //////////////////////////////
+function isValidBase64(data) {
+    if (data === "")
+        return true;
+    // atob ignores whitespace, so reject it up front.
+    if (/\s/.test(data))
+        return false;
+    if (data.length % 4 !== 0)
+        return false;
+    try {
+        // @ts-ignore
+        atob(data);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+// lax on purpose: the quantified regexes.base64 overflows the regex stack on multi-MB input and its leading ^$| alternation leaks through template-literal composition; isValidBase64 enforces length and padding
+const base64Charset = /^[0-9a-zA-Z+/]*={0,2}$/;
+const $ZodBase64 = /*@__PURE__*/ $constructor("$ZodBase64", (inst, def) => {
+    def.pattern ?? (def.pattern = base64Charset);
+    $ZodStringFormat.init(inst, def);
+    inst._zod.check = (payload) => {
+        if (isValidBase64(payload.value))
+            return;
+        payload.issues.push({
+            code: "invalid_format",
+            format: "base64",
+            input: payload.value,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+//////////////////////////////   ZodBase64URL   //////////////////////////////
+// lax on purpose: the quantified regexes.base64url overflows the regex stack on multi-MB input; isValidBase64 enforces length on the padded string
+const base64urlCharset = /^[A-Za-z0-9_-]*$/;
+function isValidBase64URL(data) {
+    if (!base64urlCharset.test(data))
+        return false;
+    const base64 = data.replace(/[-_]/g, (c) => (c === "-" ? "+" : "/"));
+    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+    return isValidBase64(padded);
+}
+const $ZodBase64URL = /*@__PURE__*/ $constructor("$ZodBase64URL", (inst, def) => {
+    def.pattern ?? (def.pattern = base64urlCharset);
+    $ZodStringFormat.init(inst, def);
+    inst._zod.check = (payload) => {
+        if (isValidBase64URL(payload.value))
+            return;
+        payload.issues.push({
+            code: "invalid_format",
+            format: "base64url",
+            input: payload.value,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodE164 = /*@__PURE__*/ $constructor("$ZodE164", (inst, def) => {
+    def.pattern ?? (def.pattern = e164);
+    $ZodStringFormat.init(inst, def);
+});
+//////////////////////////////   ZodJWT   //////////////////////////////
+function isValidJWT(token, algorithm = null) {
+    try {
+        const tokensParts = token.split(".");
+        if (tokensParts.length !== 3)
+            return false;
+        const [header] = tokensParts;
+        if (!header)
+            return false;
+        // @ts-ignore
+        const parsedHeader = JSON.parse(atob(header));
+        if ("typ" in parsedHeader && parsedHeader?.typ !== "JWT")
+            return false;
+        if (!parsedHeader.alg)
+            return false;
+        if (algorithm && (!("alg" in parsedHeader) || parsedHeader.alg !== algorithm))
+            return false;
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+const $ZodJWT = /*@__PURE__*/ $constructor("$ZodJWT", (inst, def) => {
+    $ZodStringFormat.init(inst, def);
+    inst._zod.check = (payload) => {
+        if (isValidJWT(payload.value, def.alg))
+            return;
+        payload.issues.push({
+            code: "invalid_format",
+            format: "jwt",
+            input: payload.value,
+            inst,
+            continue: !def.abort,
+        });
+    };
+});
+const $ZodNumber = /*@__PURE__*/ $constructor("$ZodNumber", (inst, def) => {
+    $ZodType.init(inst, def);
+    inst._zod.pattern = number$1;
+    inst._zod.parse = (payload, _ctx) => {
+        if (def.coerce)
+            try {
+                payload.value = Number(payload.value);
+            }
+            catch (_) { }
+        const input = payload.value;
+        if (typeof input === "number" && !Number.isNaN(input) && Number.isFinite(input)) {
+            return payload;
+        }
+        const received = typeof input === "number"
+            ? Number.isNaN(input)
+                ? "NaN"
+                : !Number.isFinite(input)
+                    ? String(input)
+                    : undefined
+            : undefined;
+        payload.issues.push({
+            expected: "number",
+            code: "invalid_type",
+            input,
+            inst,
+            ...(received ? { received } : {}),
+        });
+        return payload;
+    };
+});
+const $ZodNumberFormat = /*@__PURE__*/ $constructor("$ZodNumberFormat", (inst, def) => {
+    $ZodCheckNumberFormat.init(inst, def);
+    $ZodNumber.init(inst, def); // no format checks
+});
+const $ZodBoolean = /*@__PURE__*/ $constructor("$ZodBoolean", (inst, def) => {
+    $ZodType.init(inst, def);
+    inst._zod.pattern = boolean$1;
+    inst._zod.parse = (payload, _ctx) => {
+        if (def.coerce)
+            try {
+                payload.value = Boolean(payload.value);
+            }
+            catch (_) { }
+        const input = payload.value;
+        if (typeof input === "boolean")
+            return payload;
+        payload.issues.push({
+            expected: "boolean",
+            code: "invalid_type",
+            input,
+            inst,
+        });
+        return payload;
+    };
+});
+const $ZodUnknown = /*@__PURE__*/ $constructor("$ZodUnknown", (inst, def) => {
+    $ZodType.init(inst, def);
+    inst._zod.parse = (payload) => payload;
+});
+const $ZodNever = /*@__PURE__*/ $constructor("$ZodNever", (inst, def) => {
+    $ZodType.init(inst, def);
+    inst._zod.parse = (payload, _ctx) => {
+        payload.issues.push({
+            expected: "never",
+            code: "invalid_type",
+            input: payload.value,
+            inst,
+        });
+        return payload;
+    };
+});
+// an oversized container fails its leading size checks before any element is parsed
+function capSize(inst, size) {
+    const caps = sizeCaps(inst._zod.def.checks);
+    if (!caps.length)
+        return;
+    const cap = Math.min(...caps.map((c) => c[0]));
+    const parse = inst._zod.parse;
+    inst._zod.parse = (payload, ctx) => {
+        const n = size(payload.value);
+        if (n > cap && !ctx?.skipChecks && ctx?.direction !== "backward") {
+            for (const [max, ch] of sizeCaps(inst._zod.def.checks)) {
+                if (n > max && ch._zod.def.when(payload)) {
+                    const start = payload.issues.length;
+                    ch._zod.check(payload);
+                    // the value is still the raw input, so no later check may read it
+                    payload.issues[start].continue = false;
+                    attachSchema(payload.issues, start, inst);
+                    return payload;
+                }
+            }
+        }
+        return parse(payload, ctx);
+    };
+}
+const arraySize = (input) => (Array.isArray(input) ? input.length : -1);
+function handleArrayResult(result, final, index) {
+    if (result.issues.length) {
+        final.issues.push(...prefixIssues(index, result.issues));
+    }
+    final.value[index] = result.value;
+}
+const $ZodArray = /*@__PURE__*/ $constructor("$ZodArray", (inst, def) => {
+    $ZodType.init(inst, def);
+    const memo = globalConfig.memoizer;
+    memo?.attach(inst);
+    inst._zod.parse = (payload, ctx) => {
+        const input = payload.value;
+        if (!Array.isArray(input)) {
+            payload.issues.push({
+                expected: "array",
+                code: "invalid_type",
+                input,
+                inst,
+            });
+            return payload;
+        }
+        payload.value = memo ? memo.alloc(inst, payload, Array(input.length), ctx) : Array(input.length);
+        const proms = [];
+        const abortEarly = ctx?.abortEarly;
+        for (let i = 0; i < input.length; i++) {
+            const item = input[i];
+            const result = def.element._zod.run({
+                value: item,
+                issues: [],
+            }, ctx);
+            if (result instanceof Promise) {
+                proms.push(result.then((result) => handleArrayResult(result, payload, i)));
+            }
+            else {
+                handleArrayResult(result, payload, i);
+                // the element's payload is authoritative here, since handleArrayResult forwards every issue; an object's is not, because it drops a failed absent optional
+                if (abortEarly && result.issues.length !== 0 && aborted(result))
+                    break;
+            }
+        }
+        if (proms.length) {
+            return Promise.all(proms).then(() => payload);
+        }
+        return payload; //handleArrayResultsAsync(parseResults, final);
+    };
+    capSize(inst, arraySize);
+});
+function handlePropertyResult(result, final, key, input, optin, optout) {
+    const isPresent = key in input;
+    const isOptionalOut = optout === "optional";
+    // The middle rung means "absence permitted, nothing supplied in its place", so an absent key contributes nothing — whatever the schema made of `undefined` is invented, not substituted. Only `optional` reaches this with a value: `defaulted` substitutes, and a schema that isn't optional-out has to keep the key.
+    if (!isPresent && isOptionalOut && optin === "optional") {
+        return;
+    }
+    if (result.issues.length) {
+        // For optional-in/out schemas, ignore errors on absent keys.
+        if (optin !== undefined && isOptionalOut && !isPresent) {
+            return;
+        }
+        final.issues.push(...prefixIssues(key, result.issues));
+    }
+    if (!isPresent && optin === undefined) {
+        if (!result.issues.length) {
+            final.issues.push({
+                code: "invalid_type",
+                expected: "nonoptional",
+                input: undefined,
+                path: [key],
+            });
+        }
+        return;
+    }
+    if (result.value === undefined) {
+        if (isPresent || (optin === "defaulted" && !isOptionalOut)) {
+            final.value[key] = undefined;
+        }
+    }
+    else {
+        final.value[key] = result.value;
+    }
+}
+// one shared instance; a fresh [] per schema cost 56 bytes retained
+const NO_SYMBOL_KEYS = [];
+function normalizeDef(def) {
+    const keys = Object.keys(def.shape);
+    const ownSymbols = Object.getOwnPropertySymbols(def.shape);
+    const symbolKeys = ownSymbols.length ? ownSymbols : NO_SYMBOL_KEYS;
+    // aliases `keys` when there are no symbols, so a string-only shape keeps one array
+    const allKeys = symbolKeys.length ? [...keys, ...symbolKeys] : keys;
+    for (const k of allKeys) {
+        if (!def.shape?.[k]?._zod?.traits?.has("$ZodType")) {
+            throw new Error(`Invalid element at key "${String(k)}": expected a Zod schema`);
+        }
+    }
+    const okeys = optionalKeys(def.shape);
+    return {
+        ...def,
+        allKeys,
+        symbolKeys,
+        // string-only: handleCatchall matches it against `for...in`, which never yields a symbol
+        keySet: new Set(keys),
+        numKeys: keys.length,
+        optionalKeys: new Set(okeys),
+    };
+}
+function handleCatchall(proms, input, payload, ctx, def, inst, abortEarly) {
+    const unrecognized = [];
+    const keySet = def.keySet;
+    const _catchall = def.catchall._zod;
+    const t = _catchall.def.type;
+    const optin = _catchall.optin;
+    const optout = _catchall.optout;
+    // starts at 0, not the current length: the shape phase already ran and may have aborted
+    let seen = 0;
+    for (const key in input) {
+        if (abortEarly && payload.issues.length !== seen) {
+            if (aborted(payload, seen))
+                break;
+            seen = payload.issues.length;
+        }
+        // Must precede the __proto__ branch: a declared key is not unrecognized, even though the shape loop deliberately strips __proto__ from the parsed output.
+        if (keySet.has(key))
+            continue;
+        // Don't copy an undeclared __proto__ into the result; assignment to a plain {} would replace the result prototype. But in strict mode it is still an unknown key, so report it before skipping.
+        if (key === "__proto__") {
+            if (t === "never")
+                unrecognized.push(key);
+            continue;
+        }
+        if (t === "never") {
+            unrecognized.push(key);
+            continue;
+        }
+        const r = _catchall.run({ value: input[key], issues: [] }, ctx);
+        if (r instanceof Promise) {
+            proms.push(r.then((r) => handlePropertyResult(r, payload, key, input, optin, optout)));
+        }
+        else {
+            handlePropertyResult(r, payload, key, input, optin, optout);
+        }
+    }
+    if (unrecognized.length) {
+        payload.issues.push({
+            code: "unrecognized_keys",
+            keys: unrecognized,
+            input,
+            inst,
+            // Describes the shape of the input, not the validity of the parsed value, so it never aborts. The parse still fails; the schema's own checks just get to run first, and an enclosing intersection can reconcile the key against a sibling operand.
+            continue: true,
+        });
+    }
+    if (!proms.length)
+        return payload;
+    return Promise.all(proms).then(() => {
+        return payload;
+    });
+}
+const $ZodObject = /*@__PURE__*/ $constructor("$ZodObject", (inst, def) => {
+    // requires cast because technically $ZodObject doesn't extend
+    $ZodType.init(inst, def);
+    const desc = Object.getOwnPropertyDescriptor(def, "shape");
+    // a cloned def carries its source's accessor, which knows the shape it answers from; adopting that keeps the clone's keys readable without running it
+    const sh = desc?.get ? desc.get.raw : (def.shape ?? {});
+    if (sh) {
+        // Freezes the shape on first read, so its getters resolve once and every later read sees the same schemas.
+        const get = () => {
+            const newSh = { ...sh };
+            Object.defineProperty(def, "shape", { value: newSh });
+            get.raw = newSh;
+            return newSh;
+        };
+        get.raw = sh;
+        Object.defineProperty(def, "shape", { get });
+    }
+    const _normalized = cached(() => normalizeDef(def));
+    defineLazyInternal(inst, "propValues", (zod) => {
+        const shape = zod.def.shape;
+        const propValues = {};
+        for (const key in shape) {
+            const field = shape[key]._zod;
+            if (field.values) {
+                if (!Object.prototype.hasOwnProperty.call(propValues, key)) {
+                    assignProp(propValues, key, new Set());
+                }
+                for (const v of field.values)
+                    propValues[key].add(v);
+                // An omittable slot reads back as undefined at a discriminator lookup, so it has to claim undefined: two options that can both omit the key are not discriminable on it.
+                if (field.optin !== undefined)
+                    propValues[key].add(undefined);
+            }
+        }
+        return propValues;
+    });
+    const isObject$1 = isObject;
+    const catchall = def.catchall;
+    let value;
+    const memo = globalConfig.memoizer;
+    memo?.attach(inst);
+    inst._zod.parse = (payload, ctx) => {
+        value ?? (value = _normalized.value);
+        const input = payload.value;
+        if (!isObject$1(input)) {
+            payload.issues.push({
+                expected: "object",
+                code: "invalid_type",
+                input,
+                inst,
+            });
+            return payload;
+        }
+        payload.value = memo ? memo.alloc(inst, payload, {}, ctx) : {};
+        const proms = [];
+        const shape = value.shape;
+        const abortEarly = ctx?.abortEarly;
+        let seen = payload.issues.length;
+        for (const key of value.allKeys) {
+            if (abortEarly && payload.issues.length !== seen) {
+                if (aborted(payload, seen))
+                    break;
+                seen = payload.issues.length;
+            }
+            if (key === "__proto__")
+                continue;
+            const el = shape[key];
+            const optin = el._zod.optin;
+            const optout = el._zod.optout;
+            const r = el._zod.run({ value: input[key], issues: [] }, ctx);
+            if (r instanceof Promise) {
+                proms.push(r.then((r) => handlePropertyResult(r, payload, key, input, optin, optout)));
+            }
+            else {
+                handlePropertyResult(r, payload, key, input, optin, optout);
+            }
+        }
+        if (!catchall) {
+            return proms.length ? Promise.all(proms).then(() => payload) : payload;
+        }
+        return handleCatchall(proms, input, payload, ctx, _normalized.value, inst, abortEarly === true);
+    };
+});
+const $ZodObjectJIT = /*@__PURE__*/ $constructor("$ZodObjectJIT", (inst, def) => {
+    // requires cast because technically $ZodObject doesn't extend
+    $ZodObject.init(inst, def);
+    const superParse = inst._zod.parse;
+    const _normalized = cached(() => normalizeDef(def));
+    const memo = globalConfig.memoizer;
+    const generateFastpass = (shape) => {
+        const normalized = _normalized.value;
+        const syms = normalized.symbolKeys;
+        // a symbol has no source literal, so it is read as `syms[i]` off the closed-over scope
+        const doc = new Doc(["payload", "ctx"], { shape, inst, memo, syms });
+        const parseStr = (k) => `shape[${k}]._zod.run({ value: input[${k}], issues: [] }, ctx)`;
+        // prefixes in place, like util.prefixIssues. newResult must land before the early return: a catchall runs after this and would otherwise write onto the caller's input
+        const prefixStr = (id, k) => `
+          let ${id}_ab = false;
+          for (let i = 0; i < ${id}.issues.length; i++) {
+            const iss = ${id}.issues[i];
+            iss.path = iss.path ? [${k}, ...iss.path] : [${k}];
+            payload.issues.push(iss);
+            if (iss.continue !== true) ${id}_ab = true;
+          }
+          if (${id}_ab && ctx && ctx.abortEarly) {
+            payload.value = newResult;
+            return payload;
+          }`;
+        doc.write(`const input = payload.value;`);
+        const ids = Object.create(null);
+        let counter = 0;
+        for (const key of normalized.allKeys) {
+            ids[key] = `key_${counter++}`;
+        }
+        // A: preserve key order {
+        doc.write(memo ? `const newResult = memo.alloc(inst, payload, {}, ctx);` : `const newResult = {};`);
+        for (const key of normalized.allKeys) {
+            if (key === "__proto__")
+                continue;
+            const id = ids[key];
+            const k = typeof key === "symbol" ? `syms[${syms.indexOf(key)}]` : esc(key);
+            const isPresent = `${k} in input`;
+            const schema = shape[key];
+            const optin = schema?._zod?.optin;
+            const isOptionalIn = optin !== undefined;
+            const isOptionalOut = schema?._zod?.optout === "optional";
+            doc.write(`const ${id} = ${parseStr(k)};`);
+            if (isOptionalIn && isOptionalOut) {
+                // For optional-in/out schemas, ignore errors on absent keys — and, like the interpreted path, drop the value produced alongside them. The middle rung goes further: it permits absence without supplying anything in its place, so an absent key contributes nothing at all.
+                const assign = optin === "optional" ? `${id}_present` : `${id}.value !== undefined || ${id}_present`;
+                doc.write(`
+        const ${id}_present = ${isPresent};
+        if (!${id}.issues.length || ${id}_present) {
+          if (${id}.issues.length) {${prefixStr(id, k)}
+          }
+
+          if (${assign}) {
+            newResult[${k}] = ${id}.value;
+          }
+        }
+
+      `);
+            }
+            else if (!isOptionalIn) {
+                doc.write(`
+        const ${id}_present = ${isPresent};
+        if (${id}.issues.length) {${prefixStr(id, k)}
+        }
+        if (!${id}_present && !${id}.issues.length) {
+          payload.issues.push({
+            code: "invalid_type",
+            expected: "nonoptional",
+            input: undefined,
+            path: [${k}]
+          });
+          if (ctx && ctx.abortEarly) {
+            payload.value = newResult;
+            return payload;
+          }
+        }
+
+        if (${id}_present) {
+          newResult[${k}] = ${id}.value;
+        }
+
+      `);
+            }
+            else {
+                doc.write(`
+        if (${id}.issues.length) {${prefixStr(id, k)}
+        }
+      `);
+                if (optin === "defaulted") {
+                    doc.write(`newResult[${k}] = ${id}.value;`);
+                }
+                else {
+                    doc.write(`
+        if (${id}.value !== undefined || ${isPresent}) {
+          newResult[${k}] = ${id}.value;
+        }
+      `);
+                }
+            }
+        }
+        doc.write(`payload.value = newResult;`);
+        doc.write(`return payload;`);
+        // closing `shape` in is what pays: turbofan specializes the parser against that one shape object, so every `shape[k]._zod.run` folds to a known callee. as a parameter it stays a generic load and measures 13% slower even with the forwarding frame gone
+        return doc.compile();
+    };
+    let fastpass;
+    const isObject$1 = isObject;
+    const jit = !globalConfig.jitless;
+    const allowsEval$1 = allowsEval;
+    const fastEnabled = jit && allowsEval$1.value; // && !def.catchall;
+    const catchall = def.catchall;
+    let value;
+    inst._zod.parse = (payload, ctx) => {
+        value ?? (value = _normalized.value);
+        const input = payload.value;
+        if (!isObject$1(input)) {
+            payload.issues.push({
+                expected: "object",
+                code: "invalid_type",
+                input,
+                inst,
+            });
+            return payload;
+        }
+        if (jit && fastEnabled && ctx?.async === false && ctx.jitless !== true) {
+            // always synchronous
+            if (!fastpass)
+                fastpass = generateFastpass(def.shape);
+            payload = fastpass(payload, ctx);
+            if (!catchall)
+                return payload;
+            return handleCatchall([], input, payload, ctx, value, inst, ctx?.abortEarly === true);
+        }
+        return superParse(payload, ctx);
+    };
+});
+function handleUnionResults(results, final, inst, ctx) {
+    for (const result of results) {
+        if (result.issues.length === 0) {
+            final.value = result.value;
+            return final;
+        }
+    }
+    const nonaborted = results.filter((r) => !aborted(r));
+    if (nonaborted.length === 1) {
+        final.value = nonaborted[0].value;
+        return nonaborted[0];
+    }
+    final.issues.push({
+        code: "invalid_union",
+        input: final.value,
+        inst,
+        errors: results.map((result) => result.issues.map((iss) => finalizeIssue(iss, ctx, config()))),
+    });
+    return final;
+}
+const $ZodUnion = /*@__PURE__*/ $constructor("$ZodUnion", (inst, def) => {
+    $ZodType.init(inst, def);
+    defineLazyInternal(inst, "optin", (zod) => zod.def.options.some((o) => o._zod.optin === "defaulted")
+        ? "defaulted"
+        : zod.def.options.some((o) => o._zod.optin !== undefined)
+            ? "optional"
+            : undefined);
+    defineLazyInternal(inst, "optout", (zod) => zod.def.options.some((o) => o._zod.optout === "optional") ? "optional" : undefined);
+    defineLazyInternal(inst, "values", (zod) => {
+        if (zod.def.options.every((o) => o._zod.values)) {
+            return new Set(zod.def.options.flatMap((option) => Array.from(option._zod.values)));
+        }
+        return undefined;
+    });
+    defineLazyInternal(inst, "pattern", (zod) => {
+        if (zod.def.options.every((o) => o._zod.pattern)) {
+            const patterns = zod.def.options.map((o) => o._zod.pattern);
+            return new RegExp(`^(${patterns.map((p) => cleanRegex(p.source)).join("|")})$`);
+        }
+        return undefined;
+    });
+    const first = def.options.length === 1 ? def.options[0]._zod.run : null;
+    inst._zod.parse = (payload, ctx) => {
+        if (first) {
+            return first(payload, ctx);
+        }
+        let async = false;
+        const results = [];
+        for (const option of def.options) {
+            const result = option._zod.run({
+                value: payload.value,
+                issues: [],
+            }, ctx);
+            if (result instanceof Promise) {
+                results.push(result);
+                async = true;
+            }
+            else {
+                if (result.issues.length === 0)
+                    return result;
+                results.push(result);
+            }
+        }
+        if (!async)
+            return handleUnionResults(results, payload, inst, ctx);
+        return Promise.all(results).then((results) => {
+            return handleUnionResults(results, payload, inst, ctx);
+        });
+    };
+});
+const $ZodIntersection = /*@__PURE__*/ $constructor("$ZodIntersection", (inst, def) => {
+    $ZodType.init(inst, def);
+    inst._zod.parse = (payload, ctx) => {
+        const input = payload.value;
+        const left = def.left._zod.run({ value: input, issues: [] }, ctx);
+        const right = def.right._zod.run({ value: input, issues: [] }, ctx);
+        const async = left instanceof Promise || right instanceof Promise;
+        if (async) {
+            return Promise.all([left, right]).then(([left, right]) => {
+                return handleIntersectionResults(payload, left, right);
+            });
+        }
+        return handleIntersectionResults(payload, left, right);
+    };
+});
+function mergeValues(a, b) {
+    // const aType = parse.t(a);
+    // const bType = parse.t(b);
+    if (a === b) {
+        return { valid: true, data: a };
+    }
+    if (a instanceof Date && b instanceof Date && +a === +b) {
+        return { valid: true, data: a };
+    }
+    if (isPlainObject(a) && isPlainObject(b)) {
+        const bKeys = Object.keys(b);
+        const sharedKeys = Object.keys(a).filter((key) => bKeys.indexOf(key) !== -1);
+        const newObj = { ...a, ...b };
+        if (Object.prototype.hasOwnProperty.call(newObj, "__proto__"))
+            delete newObj.__proto__;
+        for (const key of sharedKeys) {
+            if (key === "__proto__")
+                continue;
+            const sharedValue = mergeValues(a[key], b[key]);
+            if (!sharedValue.valid) {
+                return {
+                    valid: false,
+                    mergeErrorPath: [key, ...sharedValue.mergeErrorPath],
+                };
+            }
+            newObj[key] = sharedValue.data;
+        }
+        return { valid: true, data: newObj };
+    }
+    if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length) {
+            return { valid: false, mergeErrorPath: [] };
+        }
+        const newArray = [];
+        for (let index = 0; index < a.length; index++) {
+            const itemA = a[index];
+            const itemB = b[index];
+            const sharedValue = mergeValues(itemA, itemB);
+            if (!sharedValue.valid) {
+                return {
+                    valid: false,
+                    mergeErrorPath: [index, ...sharedValue.mergeErrorPath],
+                };
+            }
+            newArray.push(sharedValue.data);
+        }
+        return { valid: true, data: newArray };
+    }
+    return { valid: false, mergeErrorPath: [] };
+}
+function handleIntersectionResults(result, left, right) {
+    // Track which side(s) reject each key. A key rejection is reported only when BOTH sides reject it, so a key owned by one branch survives the other's key schema. strictObject reports these as unrecognized_keys; a record with an open key schema reports one invalid_key per key.
+    const unrecKeys = new Map();
+    let unrecIssue;
+    const keyIssues = new Map();
+    const collect = (iss, side) => {
+        let keys;
+        if (iss.code === "unrecognized_keys" && !iss.path?.length) {
+            unrecIssue ?? (unrecIssue = iss);
+            keys = iss.keys;
+        }
+        else if (iss.code === "invalid_key" && iss.origin === "record" && iss.path?.length === 1) {
+            const k = String(iss.path[0]);
+            if (!keyIssues.has(k))
+                keyIssues.set(k, iss);
+            keys = [k];
+        }
+        else {
+            return false;
+        }
+        for (const k of keys) {
+            if (!unrecKeys.has(k))
+                unrecKeys.set(k, {});
+            unrecKeys.get(k)[side] = true;
+        }
+        return true;
+    };
+    for (const iss of left.issues) {
+        if (!collect(iss, "l"))
+            result.issues.push(iss);
+    }
+    for (const iss of right.issues) {
+        if (!collect(iss, "r"))
+            result.issues.push(iss);
+    }
+    // Report only keys rejected by BOTH sides
+    const bothKeys = [...unrecKeys].filter(([, f]) => f.l && f.r).map(([k]) => k);
+    if (bothKeys.length) {
+        const aggregated = unrecIssue ? bothKeys.filter((k) => unrecIssue.keys.includes(k)) : [];
+        if (aggregated.length)
+            result.issues.push({ ...unrecIssue, keys: aggregated });
+        for (const k of bothKeys) {
+            if (!aggregated.includes(k) && keyIssues.has(k))
+                result.issues.push(keyIssues.get(k));
+        }
+    }
+    const merged = mergeValues(left.value, right.value);
+    if (!merged.valid) {
+        if (aborted(result))
+            return result;
+        throw new Error(`Unmergable intersection. Error path: ` + `${JSON.stringify(merged.mergeErrorPath)}`);
+    }
+    result.value = merged.data;
+    return result;
+}
+const $ZodRecord = /*@__PURE__*/ $constructor("$ZodRecord", (inst, def) => {
+    $ZodType.init(inst, def);
+    const memo = globalConfig.memoizer;
+    memo?.attach(inst);
+    inst._zod.parse = (payload, ctx) => {
+        const input = payload.value;
+        if (!isPlainObject(input)) {
+            payload.issues.push({
+                expected: "record",
+                code: "invalid_type",
+                input,
+                inst,
+            });
+            return payload;
+        }
+        // no guard in either loop below: a record's invalid_key aborts but an enclosing intersection can reconcile it, so a stopped loop hides keys the sibling does not own and the intersection then rejects nothing
+        const proms = [];
+        const values = def.keyType._zod.values;
+        if (values && !def.partial) {
+            payload.value = memo ? memo.alloc(inst, payload, {}, ctx) : {};
+            const recordKeys = new Set();
+            for (const key of values) {
+                if (typeof key === "string" || typeof key === "number" || typeof key === "symbol") {
+                    recordKeys.add(typeof key === "number" ? key.toString() : key);
+                    // A declared __proto__ is stripped but is not an unrecognized key.
+                    if (key === "__proto__")
+                        continue;
+                    const keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
+                    if (keyResult instanceof Promise) {
+                        throw new Error("Async schemas not supported in object keys currently");
+                    }
+                    if (keyResult.issues.length) {
+                        payload.issues.push({
+                            code: "invalid_key",
+                            origin: "record",
+                            issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config())),
+                            input: key,
+                            path: [key],
+                            inst,
+                        });
+                        continue;
+                    }
+                    const outKey = keyResult.value;
+                    if (outKey === "__proto__")
+                        continue;
+                    const result = def.valueType._zod.run({ value: input[key], issues: [] }, ctx);
+                    if (result instanceof Promise) {
+                        proms.push(result.then((result) => {
+                            if (result.issues.length) {
+                                payload.issues.push(...prefixIssues(key, result.issues));
+                            }
+                            payload.value[outKey] = result.value;
+                        }));
+                    }
+                    else {
+                        if (result.issues.length) {
+                            payload.issues.push(...prefixIssues(key, result.issues));
+                        }
+                        payload.value[outKey] = result.value;
+                    }
+                }
+            }
+            let unrecognized;
+            for (const key in input) {
+                if (!recordKeys.has(key)) {
+                    if (def.mode === "loose") {
+                        // skip __proto__ so it can't replace the result prototype via the assignment setter on the plain {} we build into
+                        if (key === "__proto__")
+                            continue;
+                        payload.value[key] = input[key];
+                    }
+                    else {
+                        unrecognized = unrecognized ?? [];
+                        unrecognized.push(key);
+                    }
+                }
+            }
+            if (unrecognized && unrecognized.length > 0) {
+                payload.issues.push({
+                    code: "unrecognized_keys",
+                    input,
+                    inst,
+                    keys: unrecognized,
+                    continue: true,
+                });
+            }
+        }
+        else {
+            payload.value = memo ? memo.alloc(inst, payload, {}, ctx) : {};
+            // An enumerable key schema declares which keys the record owns, so a key outside the set is unrecognized. A non-enumerable one (regex, refine) is a constraint every key must satisfy, so a failing key is invalid. Only the former is reconcilable against the other side of an intersection.
+            let unrecognized;
+            // Reflect.ownKeys for Symbol-key support; filter non-enumerable to match z.object()
+            for (const key of Reflect.ownKeys(input)) {
+                if (key === "__proto__")
+                    continue;
+                if (!Object.prototype.propertyIsEnumerable.call(input, key))
+                    continue;
+                let keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
+                if (keyResult instanceof Promise) {
+                    throw new Error("Async schemas not supported in object keys currently");
+                }
+                // Numeric string fallback: if key is a numeric string and failed, retry with Number(key). This handles z.number(), z.literal([1, 2, 3]), and unions containing numeric literals
+                const checkNumericKey = typeof key === "string" && number$1.test(key) && keyResult.issues.length;
+                if (checkNumericKey) {
+                    const retryResult = def.keyType._zod.run({ value: Number(key), issues: [] }, ctx);
+                    if (retryResult instanceof Promise) {
+                        throw new Error("Async schemas not supported in object keys currently");
+                    }
+                    if (retryResult.issues.length === 0) {
+                        keyResult = retryResult;
+                    }
+                }
+                if (keyResult.issues.length) {
+                    if (def.mode === "loose") {
+                        // Pass through unchanged
+                        payload.value[key] = input[key];
+                    }
+                    else if (values) {
+                        unrecognized = unrecognized ?? [];
+                        unrecognized.push(key);
+                    }
+                    else {
+                        // Default "strict" behavior: error on invalid key
+                        payload.issues.push({
+                            code: "invalid_key",
+                            origin: "record",
+                            issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config())),
+                            input: key,
+                            path: [key],
+                            inst,
+                        });
+                    }
+                    continue;
+                }
+                // the guard above tests the raw input key, but the key schema can normalize an ordinary key into __proto__; re-check the key we actually write under
+                const outKey = keyResult.value;
+                if (outKey === "__proto__")
+                    continue;
+                const result = def.valueType._zod.run({ value: input[key], issues: [] }, ctx);
+                if (result instanceof Promise) {
+                    proms.push(result.then((result) => {
+                        if (result.issues.length) {
+                            payload.issues.push(...prefixIssues(key, result.issues));
+                        }
+                        payload.value[outKey] = result.value;
+                    }));
+                }
+                else {
+                    if (result.issues.length) {
+                        payload.issues.push(...prefixIssues(key, result.issues));
+                    }
+                    payload.value[outKey] = result.value;
+                }
+            }
+            if (unrecognized && unrecognized.length > 0) {
+                payload.issues.push({
+                    code: "unrecognized_keys",
+                    input,
+                    inst,
+                    keys: unrecognized,
+                    continue: true,
+                });
+            }
+        }
+        if (proms.length) {
+            return Promise.all(proms).then(() => payload);
+        }
+        return payload;
+    };
+});
+const $ZodEnum = /*@__PURE__*/ $constructor("$ZodEnum", (inst, def) => {
+    $ZodType.init(inst, def);
+    const values = getEnumValues(def.entries);
+    const valuesSet = new Set(values);
+    inst._zod.values = valuesSet;
+    defineLazyInternal(inst, "pattern", (zod) => {
+        const patternValues = getEnumValues(zod.def.entries).filter((k) => propertyKeyTypes.has(typeof k));
+        // unmatchable fallback, RE2-safe: an empty alternation would compile to /^()$/, which matches ""
+        return new RegExp(patternValues.length ? `^(${patternValues.map((o) => escapeRegex(o.toString())).join("|")})$` : "^[^\\s\\S]$");
+    });
+    inst._zod.parse = (payload, _ctx) => {
+        const input = payload.value;
+        if (valuesSet.has(input)) {
+            return payload;
+        }
+        payload.issues.push({
+            code: "invalid_value",
+            values,
+            input,
+            inst,
+        });
+        return payload;
+    };
+});
+const $ZodTransform = /*@__PURE__*/ $constructor("$ZodTransform", (inst, def) => {
+    $ZodType.init(inst, def);
+    inst._zod.optin = "optional";
+    globalConfig.memoizer?.guard(inst);
+    inst._zod.parse = (payload, ctx) => {
+        if (ctx.direction === "backward") {
+            throw new $ZodEncodeError(inst.constructor.name);
+        }
+        const _out = def.transform(payload.value, payload);
+        if (ctx.async) {
+            const output = _out instanceof Promise ? _out : Promise.resolve(_out);
+            return output.then((output) => {
+                payload.value = output;
+                return payload;
+            });
+        }
+        if (_out instanceof Promise) {
+            throw new $ZodAsyncError();
+        }
+        payload.value = _out;
+        return payload;
+    };
+});
+function handleOptionalResult(payload, result) {
+    // A substituting schema that still failed has no usable answer; yield undefined. Its issues are simply dropped: it ran on a payload of its own, so there is no shared array to truncate and nothing of the caller's to lose with it.
+    payload.value = result.issues.length ? undefined : result.value;
+    return payload;
+}
+const $ZodOptional = /*@__PURE__*/ $constructor("$ZodOptional", (inst, def) => {
+    $ZodType.init(inst, def);
+    // .optional() propagates absence rather than substituting for it, so a defaulted inner keeps its rung.
+    defineLazyInternal(inst, "optin", (zod) => zod.def.innerType._zod.optin === "defaulted" ? "defaulted" : "optional");
+    inst._zod.optout = "optional";
+    defineLazyInternal(inst, "values", (zod) => {
+        const values = zod.def.innerType._zod.values;
+        return values ? new Set([...values, undefined]) : undefined;
+    });
+    defineLazyInternal(inst, "pattern", (zod) => {
+        const pattern = zod.def.innerType._zod.pattern;
+        return pattern ? new RegExp(`^(${cleanRegex(pattern.source)})?$`) : undefined;
+    });
+    inst._zod.parse = (payload, ctx) => {
+        if (payload.value === undefined) {
+            // Only the top rung substitutes a value for absence; everything else leaves it intact, which is what .optional() means.
+            if (def.innerType._zod.optin !== "defaulted")
+                return payload;
+            // Its own payload, for the same reason $ZodCatch gets one: a pipe forwards an unrecognized key through the caller's issues array, and this must not read that as the substituting schema failing and drop it.
+            const result = def.innerType._zod.run({ value: payload.value, issues: [] }, ctx);
+            if (result instanceof Promise)
+                return result.then((result) => handleOptionalResult(payload, result));
+            return handleOptionalResult(payload, result);
+        }
+        return def.innerType._zod.run(payload, ctx);
+    };
+});
+const $ZodExactOptional = /*@__PURE__*/ $constructor("$ZodExactOptional", (inst, def) => {
+    // Call parent init - inherits optin/optout = "optional"
+    $ZodOptional.init(inst, def);
+    // Override values/pattern to NOT add undefined
+    defineLazyInternal(inst, "values", (zod) => zod.def.innerType._zod.values);
+    defineLazyInternal(inst, "pattern", (zod) => zod.def.innerType._zod.pattern);
+    // Override parse to just delegate (no undefined handling)
+    inst._zod.parse = (payload, ctx) => {
+        return def.innerType._zod.run(payload, ctx);
+    };
+});
+const $ZodNullable = /*@__PURE__*/ $constructor("$ZodNullable", (inst, def) => {
+    $ZodType.init(inst, def);
+    defineLazyInternal(inst, "optin", (zod) => zod.def.innerType._zod.optin);
+    defineLazyInternal(inst, "optout", (zod) => zod.def.innerType._zod.optout);
+    defineLazyInternal(inst, "pattern", (zod) => {
+        const pattern = zod.def.innerType._zod.pattern;
+        return pattern ? new RegExp(`^(${cleanRegex(pattern.source)}|null)$`) : undefined;
+    });
+    defineLazyInternal(inst, "values", (zod) => {
+        return zod.def.innerType._zod.values ? new Set([...zod.def.innerType._zod.values, null]) : undefined;
+    });
+    inst._zod.parse = (payload, ctx) => {
+        // Forward direction (decode): allow null to pass through
+        if (payload.value === null)
+            return payload;
+        return def.innerType._zod.run(payload, ctx);
+    };
+});
+const $ZodDefault = /*@__PURE__*/ $constructor("$ZodDefault", (inst, def) => {
+    $ZodType.init(inst, def);
+    // inst._zod.qin = "true";
+    inst._zod.optin = "defaulted";
+    defineLazyInternal(inst, "values", (zod) => zod.def.innerType._zod.values);
+    inst._zod.parse = (payload, ctx) => {
+        if (ctx.direction === "backward") {
+            return def.innerType._zod.run(payload, ctx);
+        }
+        // Forward direction (decode): apply defaults for undefined input
+        if (payload.value === undefined) {
+            payload.value = def.defaultValue;
+            /**
+             * $ZodDefault returns the default value immediately in forward direction.
+             * It doesn't pass the default value into the validator ("prefault"). There's no reason to pass the default value through validation. The validity of the default is enforced by TypeScript statically. Otherwise, it's the responsibility of the user to ensure the default is valid. In the case of pipes with divergent in/out types, you can specify the default on the `in` schema of your ZodPipe to set a "prefault" for the pipe.   */
+            return payload;
+        }
+        // Forward direction: continue with default handling
+        const result = def.innerType._zod.run(payload, ctx);
+        if (result instanceof Promise) {
+            return result.then((result) => handleDefaultResult(result, def));
+        }
+        return handleDefaultResult(result, def);
+    };
+});
+function handleDefaultResult(payload, def) {
+    if (payload.value === undefined) {
+        payload.value = def.defaultValue;
+    }
+    return payload;
+}
+const $ZodPrefault = /*@__PURE__*/ $constructor("$ZodPrefault", (inst, def) => {
+    $ZodType.init(inst, def);
+    inst._zod.optin = "defaulted";
+    defineLazyInternal(inst, "values", (zod) => zod.def.innerType._zod.values);
+    inst._zod.parse = (payload, ctx) => {
+        if (ctx.direction === "backward") {
+            return def.innerType._zod.run(payload, ctx);
+        }
+        // Forward direction (decode): apply prefault for undefined input
+        if (payload.value === undefined) {
+            payload.value = def.defaultValue;
+        }
+        return def.innerType._zod.run(payload, ctx);
+    };
+});
+const $ZodNonOptional = /*@__PURE__*/ $constructor("$ZodNonOptional", (inst, def) => {
+    $ZodType.init(inst, def);
+    defineLazyInternal(inst, "values", (zod) => {
+        const v = zod.def.innerType._zod.values;
+        return v ? new Set([...v].filter((x) => x !== undefined)) : undefined;
+    });
+    inst._zod.parse = (payload, ctx) => {
+        const result = def.innerType._zod.run(payload, ctx);
+        if (result instanceof Promise) {
+            return result.then((result) => handleNonOptionalResult(result, inst));
+        }
+        return handleNonOptionalResult(result, inst);
+    };
+});
+function handleNonOptionalResult(payload, inst) {
+    if (!payload.issues.length && payload.value === undefined) {
+        payload.issues.push({
+            code: "invalid_type",
+            expected: "nonoptional",
+            input: payload.value,
+            inst,
+        });
+    }
+    return payload;
+}
+function handleCatchResult(payload, result, def, ctx) {
+    if (!result.issues.length) {
+        payload.value = result.value;
+        // The value carries up, so the flag describing it has to carry with it: a back-edge into a node still being parsed must not be frozen by an enclosing readonly, and its checks belong to the node itself. Guarded so the ordinary case adds no own property.
+        if (result.memo)
+            payload.memo = true;
+        return payload;
+    }
+    // Spread the inner's own payload, not ours: `value` has to stay the input the catch was handed, and the inner ran on a payload of its own so its issues are already private to this call.
+    payload.value = def.catchValue({
+        ...result,
+        value: payload.value,
+        error: {
+            issues: result.issues.map((iss) => finalizeIssue(iss, ctx, config())),
+        },
+        input: payload.value,
+    });
+    return payload;
+}
+const $ZodCatch = /*@__PURE__*/ $constructor("$ZodCatch", (inst, def) => {
+    $ZodType.init(inst, def);
+    defineLazyInternal(inst, "optin", (zod) => zod.def.innerType._zod.optin === "defaulted" ? "defaulted" : "optional");
+    defineLazyInternal(inst, "optout", (zod) => zod.def.innerType._zod.optout);
+    defineLazyInternal(inst, "values", (zod) => zod.def.innerType._zod.values);
+    inst._zod.parse = (payload, ctx) => {
+        if (ctx.direction === "backward") {
+            return def.innerType._zod.run(payload, ctx);
+        }
+        // Forward direction (decode): apply catch logic
+        const result = def.innerType._zod.run({ value: payload.value, issues: [] }, ctx);
+        if (result instanceof Promise) {
+            return result.then((result) => handleCatchResult(payload, result, def, ctx));
+        }
+        return handleCatchResult(payload, result, def, ctx);
+    };
+});
+const $ZodPipe = /*@__PURE__*/ $constructor("$ZodPipe", (inst, def) => {
+    $ZodType.init(inst, def);
+    defineLazyInternal(inst, "values", (zod) => zod.def.in._zod.values);
+    defineLazyInternal(inst, "optin", (zod) => zod.def.in._zod.optin);
+    defineLazyInternal(inst, "optout", (zod) => zod.def.out._zod.optout);
+    defineLazyInternal(inst, "propValues", (zod) => zod.def.in._zod.propValues);
+    inst._zod.parse = (payload, ctx) => {
+        if (ctx.direction === "backward") {
+            const right = def.out._zod.run(payload, ctx);
+            if (right instanceof Promise) {
+                return right.then((right) => handlePipeResult(right, def.in, ctx));
+            }
+            return handlePipeResult(right, def.in, ctx);
+        }
+        const left = def.in._zod.run(payload, ctx);
+        if (left instanceof Promise) {
+            return left.then((left) => handlePipeResult(left, def.out, ctx));
+        }
+        return handlePipeResult(left, def.out, ctx);
+    };
+});
+function handlePipeResult(left, next, ctx) {
+    // Any issue stops the pipe, so a failing refinement never feeds its transform. An unrecognized key is the exception: it describes the input's extra properties, not the value being piped, and an enclosing intersection may yet reconcile it.
+    if (left.issues.some((iss) => iss.code !== "unrecognized_keys")) {
+        // prevent further checks
+        left.aborted = true;
+        return left;
+    }
+    return next._zod.run({ value: left.value, issues: left.issues }, ctx);
+}
+const $ZodPreprocess = /*@__PURE__*/ $constructor("$ZodPreprocess", (inst, def) => {
+    $ZodPipe.init(inst, def);
+});
+const $ZodReadonly = /*@__PURE__*/ $constructor("$ZodReadonly", (inst, def) => {
+    $ZodType.init(inst, def);
+    defineLazyInternal(inst, "propValues", (zod) => zod.def.innerType._zod.propValues);
+    defineLazyInternal(inst, "values", (zod) => zod.def.innerType._zod.values);
+    defineLazyInternal(inst, "optin", (zod) => zod.def.innerType?._zod?.optin);
+    defineLazyInternal(inst, "optout", (zod) => zod.def.innerType?._zod?.optout);
+    inst._zod.parse = (payload, ctx) => {
+        if (ctx.direction === "backward") {
+            return def.innerType._zod.run(payload, ctx);
+        }
+        const result = def.innerType._zod.run(payload, ctx);
+        if (result instanceof Promise) {
+            return result.then(handleReadonlyResult);
+        }
+        return handleReadonlyResult(result);
+    };
+});
+function handleReadonlyResult(payload) {
+    // A repeat visit hands back a node that is still being built; freezing it here would make the rest of its keys fail to assign.
+    if (!payload.memo)
+        payload.value = Object.freeze(payload.value);
+    return payload;
+}
+const $ZodCustom = /*@__PURE__*/ $constructor("$ZodCustom", (inst, def) => {
+    $ZodCheck.init(inst, def);
+    $ZodType.init(inst, def);
+    inst._zod.parse = (payload, _) => {
+        return payload;
+    };
+    inst._zod.check = (payload) => {
+        const input = payload.value;
+        const r = def.fn(input);
+        if (r instanceof Promise) {
+            return r.then((r) => handleRefineResult(r, payload, input, inst));
+        }
+        handleRefineResult(r, payload, input, inst);
+        return;
+    };
+});
+function handleRefineResult(result, payload, input, inst) {
+    if (!result) {
+        const _iss = {
+            code: "custom",
+            input,
+            inst, // incorporates params.error into issue reporting
+            path: [...(inst._zod.def.path ?? [])], // incorporates params.error into issue reporting
+            continue: !inst._zod.def.abort,
+            // params: inst._zod.def.params,
+        };
+        if (inst._zod.def.params)
+            _iss.params = inst._zod.def.params;
+        payload.issues.push(issue(_iss));
+    }
+}
+
+class $ZodCyclicError extends Error {
+    constructor() {
+        super(`Cannot parse a reference cycle that closes through a transform`);
+        this.name = "ZodCyclicError";
+    }
+}
+/** Keyed off the context object every schema in one parse call already shares. */
+const STATE = "~memo";
+const NO_ISSUES = [];
+// a value a cycle can close through
+function isRef(value) {
+    return value !== null && typeof value === "object";
+}
+// Receivers prefix paths in place, so the cache and every hand-out need their own copies.
+function cloneIssues(issues) {
+    return issues.map((iss) => (iss.path ? { ...iss, path: iss.path.slice() } : { ...iss }));
+}
+const recursive = /*@__PURE__*/ new WeakMap();
+/** What the walk established, in order of certainty: ordered so the strongest answer among children wins. */
+const NONE = 0;
+const ASSUMED = 1;
+const PROVEN = 2;
+/** Whether this schema's subtree contains a cycle, so one parse can re-enter it. */
+function isRecursive(inst, stack, resolve) {
+    const cached = recursive.get(inst);
+    if (cached !== undefined)
+        return cached ? PROVEN : NONE;
+    // Relative to the walk in progress, so not cached.
+    if (stack.has(inst))
+        return PROVEN;
+    stack.add(inst);
+    let result = NONE;
+    const check = (child) => {
+        if (result !== PROVEN && child?._zod) {
+            const answer = isRecursive(child, stack);
+            if (answer > result)
+                result = answer;
+        }
+    };
+    // `Reflect.ownKeys` rather than `Object.keys`, so a cycle through a declared symbol key is still seen
+    const shape = (sh, spread) => {
+        let answer = NONE;
+        for (const key of Reflect.ownKeys(sh)) {
+            const desc = Object.getOwnPropertyDescriptor(sh, key);
+            // an object resolves its shape by spread, so a key it does not enumerate is never parsed; `z.properties` reads every own key and so keeps them all
+            if (!desc.enumerable)
+                continue;
+            // resolving runs user code, and a factory mints a fresh subtree per read, so an edge the walk can't follow counts as a cycle
+            const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack) : NONE;
+            if (child > answer)
+                answer = child;
+        }
+        return answer;
+    };
+    const merge = (answer) => {
+        if (answer > result)
+            result = answer;
+    };
+    const def = inst._zod.def;
+    const kind = def.type;
+    switch (kind) {
+        case "object": {
+            const raw = rawShape(def);
+            // a def with no raw shape answers `shape` from an accessor of its own, and running that can mint a whole fresh subtree
+            merge(raw ? shape(raw) : ASSUMED);
+            check(def.catchall);
+            break;
+        }
+        case "array":
+            check(def.element);
+            break;
+        case "tuple":
+            for (const el of def.items)
+                check(el);
+            check(def.rest);
+            break;
+        case "record":
+        case "map":
+            check(def.keyType);
+            check(def.valueType);
+            break;
+        case "set":
+            check(def.valueType);
+            break;
+        case "union":
+            for (const el of def.options)
+                check(el);
+            break;
+        case "intersection":
+            check(def.left);
+            check(def.right);
+            break;
+        case "optional":
+        case "nullable":
+        case "default":
+        case "prefault":
+        case "catch":
+        case "readonly":
+        case "nonoptional":
+        case "promise":
+        case "success":
+            check(def.innerType);
+            break;
+        case "pipe":
+            check(def.in);
+            check(def.out);
+            break;
+        case "function":
+            check(def.input);
+            check(def.output);
+            break;
+        // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
+        case "lazy": {
+            const inner = def._cachedInner ?? (undefined);
+            // walked with resolution off: one hop sees past the deferral, and a lazy that yields only another unresolved lazy is generative, so it stops there
+            merge(inner ? isRecursive(inner, stack) : ASSUMED);
+            break;
+        }
+        // a leaf by choice: `parts` are regex fragments, not data positions
+        case "template_literal":
+        // leaves
+        case "string":
+        case "number":
+        case "int":
+        case "boolean":
+        case "bigint":
+        case "symbol":
+        case "undefined":
+        case "null":
+        case "void":
+        case "never":
+        case "any":
+        case "unknown":
+        case "date":
+        case "nan":
+        case "enum":
+        case "literal":
+        case "file":
+        case "transform":
+        case "custom":
+            break;
+        default: {
+            // a user-defined kind can still hold children, and only its author knows where, so fall back to scanning the def — skipping accessors, since reading one can run user code
+            for (const key in def) {
+                const desc = Object.getOwnPropertyDescriptor(def, key);
+                if (!desc || desc.get)
+                    continue;
+                const value = desc.value;
+                if (!value || typeof value !== "object")
+                    continue;
+                if (value._zod)
+                    check(value);
+                else if (Array.isArray(value))
+                    for (const el of value)
+                        check(el);
+            }
+        }
+    }
+    stack.delete(inst);
+    return settle(inst, result);
+}
+/** An assumed answer must not outlive the resolution that settles it, so only a certain one is cached. */
+function settle(inst, answer) {
+    if (answer !== ASSUMED)
+        recursive.set(inst, answer === PROVEN);
+    return answer;
+}
+function bucketFor(state, inst) {
+    let bucket = state.buckets.get(inst);
+    if (!bucket) {
+        bucket = new WeakMap();
+        state.buckets.set(inst, bucket);
+    }
+    return bucket;
+}
+// Set immediately before delegating to core and cleared immediately after, so `alloc` registers only for a visit this module is driving.
+let handoff;
+// Allocated but unfinished entries. `alloc` and the matching pop both happen in the synchronous part of a parse, so they nest even when children are async, and one stack serves every schema.
+const open = [];
+const memo = {
+    alloc(_inst, payload, empty) {
+        const bucket = handoff;
+        if (!bucket)
+            return empty;
+        handoff = undefined;
+        const entry = { value: empty, issues: null };
+        bucket.set(payload.value, entry);
+        open.push(entry);
+        return empty;
+    },
+    guard(inst) {
+        var _a;
+        (_a = inst._zod).deferred ?? (_a.deferred = []);
+        inst._zod.deferred.push(() => {
+            const base = inst._zod.parse;
+            const wrapped = (payload, ctx) => {
+                // The value is a placeholder a back-edge is still waiting on, so the cycle closes through this transform. Its output can't exist in time to bind.
+                if (ctx.direction !== "backward" && isBackEdge(ctx, payload.value))
+                    throw new $ZodCyclicError();
+                return base(payload, ctx);
+            };
+            inst._zod.parse = wrapped;
+            if (inst._zod.run === base)
+                inst._zod.run = wrapped;
+        });
+    },
+    attach(inst) {
+        var _a;
+        let isRecursiveInst;
+        let rechecked = false;
+        // a recursive schema is re-entered many times per parse and its bucket never changes
+        let lastCtx;
+        let lastBucket;
+        // Wraps `parse` in a deferred so it sees the container's final parse. Core's own deferred copies `parse` into `run` when there are no checks, and it ran first, so `run` is patched to match; with checks, `run` reads `parse` dynamically.
+        (_a = inst._zod).deferred ?? (_a.deferred = []);
+        inst._zod.deferred.push(() => {
+            const base = inst._zod.parse;
+            const wrapped = (payload, ctx) => {
+                if (isRecursiveInst === undefined) {
+                    const walked = isRecursive(inst, new Set());
+                    if (walked === NONE) {
+                        // Nothing here can ever fire, so take it back out.
+                        inst._zod.parse = base;
+                        if (inst._zod.run === wrapped)
+                            inst._zod.run = base;
+                        return base(payload, ctx);
+                    }
+                    // this parse resolves the deferred edges on its own path, so ask once more before latching
+                    if (walked === PROVEN || rechecked)
+                        isRecursiveInst = true;
+                    else
+                        rechecked = true;
+                }
+                const input = payload.value;
+                if (!isRef(input))
+                    return base(payload, ctx);
+                let state = ctx[STATE];
+                if (!state) {
+                    state = { buckets: new WeakMap(), backEdges: undefined };
+                    ctx[STATE] = state;
+                }
+                let bucket;
+                if (lastCtx === ctx) {
+                    bucket = lastBucket;
+                }
+                else {
+                    bucket = bucketFor(state, inst);
+                    lastCtx = ctx;
+                    lastBucket = bucket;
+                }
+                const hit = bucket.get(input);
+                if (hit) {
+                    payload.value = hit.value;
+                    if (hit.issues) {
+                        if (hit.issues.length)
+                            payload.issues.push(...cloneIssues(hit.issues));
+                    }
+                    else {
+                        // Still being parsed: its own checks cover it, so skip them here.
+                        payload.memo = true;
+                        state.backEdges ?? (state.backEdges = new WeakSet());
+                        state.backEdges.add(hit.value);
+                    }
+                    return payload;
+                }
+                handoff = bucket;
+                const depth = open.length;
+                const result = base(payload, ctx);
+                handoff = undefined;
+                // A container that rejected its input outright allocated nothing.
+                const entry = open.length > depth ? open.pop() : undefined;
+                // Both paths written out so the sync one allocates no closure. It runs once per node, and capturing here cost more than everything else combined.
+                if (result instanceof Promise) {
+                    return result.then((r) => {
+                        if (entry)
+                            entry.issues = r.issues.length ? cloneIssues(r.issues) : NO_ISSUES;
+                        return r;
+                    });
+                }
+                if (entry)
+                    entry.issues = result.issues.length ? cloneIssues(result.issues) : NO_ISSUES;
+                return result;
+            };
+            inst._zod.parse = wrapped;
+            if (inst._zod.run === base)
+                inst._zod.run = wrapped;
+        });
+    },
+};
+/** The memoizer that gives containers cycle support. `zod` installs it by default; `zod/mini` opts in with `config({ memoizer: memoizer() })`. */
+function memoizer() {
+    return memo;
+}
+/** Whether this value is a node a back-edge resolved to before it finished. */
+function isBackEdge(ctx, value) {
+    const backEdges = ctx[STATE]?.backEdges;
+    return backEdges !== undefined && isRef(value) && backEdges.has(value);
+}
+
+const error = () => {
+    const Sizable = {
+        string: { unit: "characters", verb: "to have" },
+        file: { unit: "bytes", verb: "to have" },
+        array: { unit: "items", verb: "to have" },
+        set: { unit: "items", verb: "to have" },
+        map: { unit: "entries", verb: "to have" },
+    };
+    function getSizing(origin) {
+        return Sizable[origin] ?? null;
+    }
+    const FormatDictionary = {
+        regex: "input",
+        email: "email address",
+        url: "URL",
+        emoji: "emoji",
+        uuid: "UUID",
+        uuidv4: "UUIDv4",
+        uuidv6: "UUIDv6",
+        nanoid: "nanoid",
+        guid: "GUID",
+        cuid: "cuid",
+        cuid2: "cuid2",
+        ulid: "ULID",
+        xid: "XID",
+        ksuid: "KSUID",
+        datetime: "ISO datetime",
+        date: "ISO date",
+        time: "ISO time",
+        duration: "ISO duration",
+        ipv4: "IPv4 address",
+        ipv6: "IPv6 address",
+        mac: "MAC address",
+        cidrv4: "IPv4 range",
+        cidrv6: "IPv6 range",
+        base64: "base64-encoded string",
+        base64url: "base64url-encoded string",
+        json_string: "JSON string",
+        e164: "E.164 number",
+        currency_code: "currency code",
+        credit_card: "credit card number",
+        iban: "IBAN",
+        jwt: "JWT",
+        template_literal: "input",
+    };
+    // type names: missing keys = do not translate (use raw value via ?? fallback)
+    const TypeDictionary = {
+        // Compatibility: "nan" -> "NaN" for display
+        nan: "NaN",
+        // All other type names omitted - they fall back to raw values via ?? operator
+    };
+    function getTypeName(type, input) {
+        if (type === "number" && typeof input === "number" && !Number.isFinite(input)) {
+            return String(input);
+        }
+        return TypeDictionary[type] ?? type;
+    }
+    return (issue) => {
+        switch (issue.code) {
+            case "invalid_type": {
+                const expected = getTypeName(issue.expected);
+                const receivedType = parsedType(issue.input);
+                const received = getTypeName(receivedType, issue.input);
+                return `Invalid input: expected ${expected}, received ${received}`;
+            }
+            case "invalid_value":
+                if (issue.values.length === 1)
+                    return `Invalid input: expected ${stringifyPrimitive(issue.values[0])}`;
+                return `Invalid option: expected one of ${joinValues(issue.values, "|")}`;
+            case "too_big": {
+                const adj = issue.exact ? "exactly " : issue.inclusive ? "<=" : "<";
+                const sizing = getSizing(issue.origin);
+                if (sizing)
+                    return `Too big: expected ${issue.origin ?? "value"} to have ${adj}${issue.maximum.toString()} ${sizing.unit ?? "elements"}`;
+                return `Too big: expected ${issue.origin ?? "value"} to be ${adj}${issue.maximum.toString()}`;
+            }
+            case "too_small": {
+                const adj = issue.exact ? "exactly " : issue.inclusive ? ">=" : ">";
+                const sizing = getSizing(issue.origin);
+                if (sizing) {
+                    return `Too small: expected ${issue.origin} to have ${adj}${issue.minimum.toString()} ${sizing.unit}`;
+                }
+                return `Too small: expected ${issue.origin} to be ${adj}${issue.minimum.toString()}`;
+            }
+            case "invalid_format": {
+                const _issue = issue;
+                if (_issue.format === "starts_with") {
+                    return `Invalid string: must start with "${_issue.prefix}"`;
+                }
+                if (_issue.format === "ends_with")
+                    return `Invalid string: must end with "${_issue.suffix}"`;
+                if (_issue.format === "includes")
+                    return `Invalid string: must include "${_issue.includes}"`;
+                if (_issue.format === "regex")
+                    return `Invalid string: must match pattern ${_issue.pattern}`;
+                return `Invalid ${FormatDictionary[_issue.format] ?? issue.format}`;
+            }
+            case "not_multiple_of":
+                return `Invalid number: must be a multiple of ${issue.divisor}`;
+            case "unrecognized_keys":
+                return `Unrecognized key${issue.keys.length > 1 ? "s" : ""}: ${joinValues(issue.keys, ", ")}`;
+            case "invalid_key":
+                return `Invalid key in ${issue.origin}`;
+            case "invalid_union":
+                if (issue.options && Array.isArray(issue.options) && issue.options.length > 0) {
+                    const opts = issue.options.map((o) => `'${o}'`).join(" | ");
+                    return `Invalid discriminator value. Expected ${opts}`;
+                }
+                if (issue.inclusive === false) {
+                    return "Invalid input: more than one option matched";
+                }
+                return "Invalid input";
+            case "invalid_element":
+                return `Invalid value in ${issue.origin}`;
+            default:
+                return `Invalid input`;
+        }
+    };
+};
+function en () {
+    return {
+        localeError: error(),
+    };
+}
+
+var _a;
+class $ZodRegistry {
+    constructor() {
+        this._map = new WeakMap();
+        this._idmap = new Map();
+    }
+    add(schema, ..._meta) {
+        const meta = _meta[0];
+        this._map.set(schema, meta);
+        if (meta && typeof meta === "object" && "id" in meta) {
+            this._idmap.set(meta.id, schema);
+        }
+        return this;
+    }
+    clear() {
+        this._map = new WeakMap();
+        this._idmap = new Map();
+        return this;
+    }
+    remove(schema) {
+        const meta = this._map.get(schema);
+        if (meta && typeof meta === "object" && "id" in meta) {
+            this._idmap.delete(meta.id);
+        }
+        this._map.delete(schema);
+        return this;
+    }
+    get(schema) {
+        // return this._map.get(schema) as any;
+        // inherit metadata
+        const p = schema._zod.parent;
+        if (p) {
+            const pm = { ...(this.get(p) ?? {}) };
+            delete pm.id; // do not inherit id
+            const f = { ...pm, ...this._map.get(schema) };
+            return Object.keys(f).length ? f : undefined;
+        }
+        return this._map.get(schema);
+    }
+    has(schema) {
+        return this._map.has(schema);
+    }
+}
+// registries
+function registry() {
+    return new $ZodRegistry();
+}
+(_a = globalThis).__zod_globalRegistry ?? (_a.__zod_globalRegistry = registry());
+const globalRegistry = globalThis.__zod_globalRegistry;
+
+function snapshotChecks(def) {
+    if (def.checks)
+        def.checks = [...def.checks];
+    return def;
+}
+// @__NO_SIDE_EFFECTS__
+function _string(Class, params) {
+    return new Class(snapshotChecks({ type: "string", ...normalizeParams(params) }));
+}
+// @__NO_SIDE_EFFECTS__
+function _email(Class, params) {
+    return new Class({
+        type: "string",
+        format: "email",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _guid(Class, params) {
+    return new Class({
+        type: "string",
+        format: "guid",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _uuid(Class, params) {
+    return new Class({
+        type: "string",
+        format: "uuid",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _uuidv4(Class, params) {
+    return new Class({
+        type: "string",
+        format: "uuid",
+        check: "string_format",
+        abort: false,
+        version: "v4",
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _uuidv6(Class, params) {
+    return new Class({
+        type: "string",
+        format: "uuid",
+        check: "string_format",
+        abort: false,
+        version: "v6",
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _uuidv7(Class, params) {
+    return new Class({
+        type: "string",
+        format: "uuid",
+        check: "string_format",
+        abort: false,
+        version: "v7",
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _url(Class, params) {
+    return new Class({
+        type: "string",
+        format: "url",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _emoji(Class, params) {
+    return new Class({
+        type: "string",
+        format: "emoji",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _nanoid(Class, params) {
+    return new Class({
+        type: "string",
+        format: "nanoid",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+/**
+ * @deprecated CUID v1 is deprecated by its authors due to information leakage
+ * (timestamps embedded in the id). Use {@link _cuid2} instead.
+ * See https://github.com/paralleldrive/cuid.
+ */
+// @__NO_SIDE_EFFECTS__
+function _cuid(Class, params) {
+    return new Class({
+        type: "string",
+        format: "cuid",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _cuid2(Class, params) {
+    return new Class({
+        type: "string",
+        format: "cuid2",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _ulid(Class, params) {
+    return new Class({
+        type: "string",
+        format: "ulid",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _xid(Class, params) {
+    return new Class({
+        type: "string",
+        format: "xid",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _ksuid(Class, params) {
+    return new Class({
+        type: "string",
+        format: "ksuid",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _ipv4(Class, params) {
+    return new Class({
+        type: "string",
+        format: "ipv4",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _ipv6(Class, params) {
+    return new Class({
+        type: "string",
+        format: "ipv6",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _cidrv4(Class, params) {
+    return new Class({
+        type: "string",
+        format: "cidrv4",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _cidrv6(Class, params) {
+    return new Class({
+        type: "string",
+        format: "cidrv6",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _base64(Class, params) {
+    return new Class({
+        type: "string",
+        format: "base64",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _base64url(Class, params) {
+    return new Class({
+        type: "string",
+        format: "base64url",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _e164(Class, params) {
+    return new Class({
+        type: "string",
+        format: "e164",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _jwt(Class, params) {
+    return new Class({
+        type: "string",
+        format: "jwt",
+        check: "string_format",
+        abort: false,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _isoDateTime(Class, params) {
+    return new Class({
+        type: "string",
+        format: "datetime",
+        check: "string_format",
+        offset: false,
+        local: false,
+        precision: null,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _isoDate(Class, params) {
+    return new Class({
+        type: "string",
+        format: "date",
+        check: "string_format",
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _isoTime(Class, params) {
+    return new Class({
+        type: "string",
+        format: "time",
+        check: "string_format",
+        precision: null,
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _isoDuration(Class, params) {
+    return new Class({
+        type: "string",
+        format: "duration",
+        check: "string_format",
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _number(Class, params) {
+    return new Class(snapshotChecks({ type: "number", checks: [], ...normalizeParams(params) }));
+}
+// @__NO_SIDE_EFFECTS__
+function _int(Class, params) {
+    return new Class({
+        type: "number",
+        check: "number_format",
+        abort: false,
+        format: "safeint",
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _boolean(Class, params) {
+    return new Class({
+        type: "boolean",
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _unknown(Class) {
+    return new Class({
+        type: "unknown",
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _never(Class, params) {
+    return new Class({
+        type: "never",
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _lt(value, params) {
+    return new $ZodCheckLessThan({
+        check: "less_than",
+        ...normalizeParams(params),
+        value,
+        inclusive: false,
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _lte(value, params) {
+    return new $ZodCheckLessThan({
+        check: "less_than",
+        ...normalizeParams(params),
+        value,
+        inclusive: true,
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _gt(value, params) {
+    return new $ZodCheckGreaterThan({
+        check: "greater_than",
+        ...normalizeParams(params),
+        value,
+        inclusive: false,
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _gte(value, params) {
+    return new $ZodCheckGreaterThan({
+        check: "greater_than",
+        ...normalizeParams(params),
+        value,
+        inclusive: true,
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _multipleOf(value, params) {
+    return new $ZodCheckMultipleOf({
+        check: "multiple_of",
+        ...normalizeParams(params),
+        value,
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _maxLength(maximum, params) {
+    const ch = new $ZodCheckMaxLength({
+        check: "max_length",
+        ...normalizeParams(params),
+        maximum,
+    });
+    return ch;
+}
+// @__NO_SIDE_EFFECTS__
+function _minLength(minimum, params) {
+    return new $ZodCheckMinLength({
+        check: "min_length",
+        ...normalizeParams(params),
+        minimum,
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _length(length, params) {
+    return new $ZodCheckLengthEquals({
+        check: "length_equals",
+        ...normalizeParams(params),
+        length,
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _regex(pattern, params) {
+    return new $ZodCheckRegex({
+        check: "string_format",
+        format: "regex",
+        ...normalizeParams(params),
+        pattern,
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _lowercase(params) {
+    return new $ZodCheckLowerCase({
+        check: "string_format",
+        format: "lowercase",
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _uppercase(params) {
+    return new $ZodCheckUpperCase({
+        check: "string_format",
+        format: "uppercase",
+        ...normalizeParams(params),
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _includes(includes, params) {
+    return new $ZodCheckIncludes({
+        check: "string_format",
+        format: "includes",
+        ...normalizeParams(params),
+        includes,
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _startsWith(prefix, params) {
+    return new $ZodCheckStartsWith({
+        check: "string_format",
+        format: "starts_with",
+        ...normalizeParams(params),
+        prefix,
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _endsWith(suffix, params) {
+    return new $ZodCheckEndsWith({
+        check: "string_format",
+        format: "ends_with",
+        ...normalizeParams(params),
+        suffix,
+    });
+}
+// @__NO_SIDE_EFFECTS__
+function _overwrite(tx) {
+    return new $ZodCheckOverwrite({
+        check: "overwrite",
+        tx,
+    });
+}
+// normalize
+// @__NO_SIDE_EFFECTS__
+function _normalize(form) {
+    return _overwrite((input) => input.normalize(form));
+}
+// trim
+// @__NO_SIDE_EFFECTS__
+function _trim() {
+    return _overwrite((input) => input.trim());
+}
+// toLowerCase
+// @__NO_SIDE_EFFECTS__
+function _toLowerCase() {
+    return _overwrite((input) => input.toLowerCase());
+}
+// toUpperCase
+// @__NO_SIDE_EFFECTS__
+function _toUpperCase() {
+    return _overwrite((input) => input.toUpperCase());
+}
+// slugify
+// @__NO_SIDE_EFFECTS__
+function _slugify() {
+    return _overwrite((input) => slugify(input));
+}
+// @__NO_SIDE_EFFECTS__
+function _array(Class, element, params) {
+    return new Class({
+        type: "array",
+        element,
+        // get element() {
+        //   return element;
+        // },
+        ...normalizeParams(params),
+    });
+}
+// same as _custom but defaults to abort:false
+// @__NO_SIDE_EFFECTS__
+function _refine(Class, fn, _params) {
+    const schema = new Class({
+        type: "custom",
+        check: "custom",
+        fn: fn,
+        ...normalizeParams(_params),
+    });
+    return schema;
+}
+// @__NO_SIDE_EFFECTS__
+function _superRefine(fn, params) {
+    const ch = _check((payload) => {
+        payload.addIssue = (issue$1) => {
+            if (typeof issue$1 === "string") {
+                payload.issues.push(issue(issue$1, payload.value, ch._zod.def));
+            }
+            else {
+                // for Zod 3 backwards compatibility
+                const _issue = issue$1;
+                if (_issue.fatal)
+                    _issue.continue = false;
+                _issue.code ?? (_issue.code = "custom");
+                if (!("input" in _issue))
+                    _issue.input = payload.value;
+                _issue.inst ?? (_issue.inst = ch);
+                _issue.continue ?? (_issue.continue = !ch._zod.def.abort); // abort is always undefined, so this is always true...
+                payload.issues.push(issue(_issue));
+            }
+        };
+        return fn(payload.value, payload);
+    }, params);
+    return ch;
+}
+// @__NO_SIDE_EFFECTS__
+function _check(fn, params) {
+    const ch = new $ZodCheck({
+        check: "custom",
+        ...normalizeParams(params),
+    });
+    ch._zod.check = fn;
+    return ch;
+}
+
+function assignProps(target, ...sources) {
+    for (const source of sources) {
+        for (const key of Reflect.ownKeys(source)) {
+            if (Object.prototype.propertyIsEnumerable.call(source, key)) {
+                assignProp(target, key, source[key]);
+            }
+        }
+    }
+    return target;
+}
+// function initializeContext<T extends schemas.$ZodType>(inputs: JSONSchemaGeneratorParams<T>): ToJSONSchemaContext<T> {
+//   return {
+//     processor: inputs.processor,
+//     metadataRegistry: inputs.metadata ?? globalRegistry,
+//     target: inputs.target ?? "draft-2020-12",
+//     unrepresentable: inputs.unrepresentable ?? "throw",
+//   };
+// }
+function initializeContext(params) {
+    // Normalize target: convert old non-hyphenated versions to hyphenated versions
+    let target = params?.target ?? "draft-2020-12";
+    if (target === "draft-4")
+        target = "draft-04";
+    if (target === "draft-7")
+        target = "draft-07";
+    return {
+        processors: params.processors ?? {},
+        metadataRegistry: params?.metadata ?? globalRegistry,
+        target,
+        unrepresentable: params?.unrepresentable ?? "throw",
+        override: params?.override ?? (() => { }),
+        io: params?.io ?? "output",
+        counter: 0,
+        seen: new Map(),
+        sharedDefsExtractedFor: undefined,
+        sharedEmitDoneFor: undefined,
+        cycles: params?.cycles ?? "ref",
+        reused: params?.reused ?? "inline",
+        intersections: [],
+        deferred: [],
+        external: params?.external ?? undefined,
+    };
+}
+/**
+ * Applies the `unrepresentable` setting at a site that has no JSON Schema equivalent. Throws
+ * `message` unless the setting (or the handler's return value) says otherwise. Returns `true` if a
+ * custom JSON Schema was written into `json`, in which case the caller must not write its own.
+ */
+function handleUnrepresentable(schema, ctx, json, params, message) {
+    const result = typeof ctx.unrepresentable === "function"
+        ? ctx.unrepresentable({ zodSchema: schema, path: params.path, message })
+        : ctx.unrepresentable;
+    if (result === "any")
+        return false;
+    if (result === undefined || result === "throw")
+        throw new Error(message);
+    Object.assign(json, result);
+    return true;
+}
+// never rename this back to `process`: bundler polyfills inject a top-level `const process` that a lexical declaration of the same name collides with (#6397)
+function processSchema(schema, ctx, _params = { path: [], schemaPath: [] }) {
+    var _a;
+    const def = schema._zod.def;
+    // check for schema in seens
+    const seen = ctx.seen.get(schema);
+    if (seen) {
+        seen.count++;
+        // check if cycle
+        const isCycle = _params.schemaPath.includes(schema);
+        if (isCycle) {
+            seen.cycle = _params.path;
+        }
+        return seen.schema;
+    }
+    // initialize
+    const result = { schema: {}, count: 1, cycle: undefined, path: _params.path };
+    ctx.seen.set(schema, result);
+    ctx.sharedDefsExtractedFor = undefined;
+    ctx.sharedEmitDoneFor = undefined;
+    // custom method overrides default behavior
+    const overrideSchema = schema._zod.toJSONSchema?.();
+    if (overrideSchema) {
+        result.schema = overrideSchema;
+    }
+    else {
+        const params = {
+            ..._params,
+            schemaPath: [..._params.schemaPath, schema],
+            path: _params.path,
+        };
+        if (schema._zod.processJSONSchema) {
+            schema._zod.processJSONSchema(ctx, result.schema, params);
+        }
+        else {
+            const _json = result.schema;
+            const processor = ctx.processors[def.type];
+            if (!processor) {
+                throw new Error(`[toJSONSchema]: Non-representable type encountered: ${def.type}`);
+            }
+            processor(schema, ctx, _json, params);
+        }
+        const parent = schema._zod.parent;
+        if (parent) {
+            // Also set ref if processor didn't (for inheritance)
+            if (!result.ref)
+                result.ref = parent;
+            processSchema(parent, ctx, params);
+            ctx.seen.get(parent).isParent = true;
+        }
+    }
+    // metadata
+    const meta = ctx.metadataRegistry.get(schema);
+    if (meta)
+        assignProps(result.schema, meta);
+    if (ctx.io === "input" && isTransforming(schema)) {
+        // examples/defaults only apply to output type of pipe
+        delete result.schema.examples;
+        delete result.schema.default;
+    }
+    // set prefault as default
+    if (ctx.io === "input" && "_prefault" in result.schema)
+        (_a = result.schema).default ?? (_a.default = result.schema._prefault);
+    delete result.schema._prefault;
+    // pulling fresh from ctx.seen in case it was overwritten
+    const _result = ctx.seen.get(schema);
+    return _result.schema;
+}
+// Escape a reference token for use in a JSON Pointer fragment (RFC 6901): `~` becomes `~0` and `/` becomes `~1`. The `~` replacement must run first.
+function encodeJSONPointerSegment(segment) {
+    return segment.replace(/~/g, "~0").replace(/\//g, "~1");
+}
+function extractDefs(ctx, schema
+// params: EmitParams
+) {
+    // iterate over seen map;
+    const root = ctx.seen.get(schema);
+    if (!root)
+        throw new Error("Unprocessed schema. This is a bug in Zod.");
+    // With `external` set, every registered schema resolves through the external branch of `makeURI`, so the root branch below produces the same ref the external branch would — this pass is identical whichever schema it is called with, and only needs to run once.
+    if (ctx.external && ctx.sharedDefsExtractedFor === ctx.external)
+        return;
+    // Track ids to detect duplicates across different schemas
+    const idToSchema = new Map();
+    for (const entry of ctx.seen.entries()) {
+        const id = ctx.metadataRegistry.get(entry[0])?.id;
+        if (id) {
+            const existing = idToSchema.get(id);
+            if (existing && existing !== entry[0]) {
+                throw new Error(`Duplicate schema id "${id}" detected during JSON Schema conversion. Two different schemas cannot share the same id when converted together.`);
+            }
+            idToSchema.set(id, entry[0]);
+        }
+    }
+    // returns a ref to the schema defId will be empty if the ref points to an external schema (or #)
+    const makeURI = (entry) => {
+        // comparing the seen objects because sometimes multiple schemas map to the same seen object. e.g. lazy
+        // external is configured
+        const defsSegment = ctx.target === "draft-2020-12" ? "$defs" : "definitions";
+        if (ctx.external) {
+            const externalId = ctx.external.registry.get(entry[0])?.id; // ?? "__shared";// `__schema${ctx.counter++}`;
+            // check if schema is in the external registry
+            const uriGenerator = ctx.external.uri ?? ((id) => id);
+            if (externalId) {
+                return { ref: uriGenerator(externalId) };
+            }
+            // otherwise, add to __shared
+            const id = entry[1].defId ?? entry[1].schema.id ?? `schema${ctx.counter++}`;
+            entry[1].defId = id; // set defId so it will be reused if needed
+            return { defId: id, ref: `${uriGenerator("__shared")}#/${defsSegment}/${encodeJSONPointerSegment(id)}` };
+        }
+        const uriPrefix = `#`;
+        const defUriPrefix = `${uriPrefix}/${defsSegment}/`;
+        // an id-less root has nowhere to be extracted to, so it stays inline and self-references as `#`
+        if (entry[1] === root && !entry[1].schema.id) {
+            return { ref: uriPrefix };
+        }
+        // self-contained schema
+        const defId = entry[1].schema.id ?? `__schema${ctx.counter++}`;
+        return { defId, ref: defUriPrefix + encodeJSONPointerSegment(defId) };
+    };
+    // stored cached version in `def` property remove all properties, set $ref
+    const extractToDef = (entry) => {
+        // if the schema is already a reference, do not extract it
+        if (entry[1].schema.$ref) {
+            return;
+        }
+        const seen = entry[1];
+        const { ref, defId } = makeURI(entry);
+        seen.def = { ...seen.schema };
+        // defId won't be set if the schema is a reference to an external schema or if the schema is the root schema
+        if (defId)
+            seen.defId = defId;
+        // wipe away all properties except $ref
+        const schema = seen.schema;
+        for (const key in schema) {
+            delete schema[key];
+        }
+        schema.$ref = ref;
+    };
+    // throw on cycles
+    // break cycles
+    if (ctx.cycles === "throw") {
+        for (const entry of ctx.seen.entries()) {
+            const seen = entry[1];
+            if (seen.cycle) {
+                throw new Error("Cycle detected: " +
+                    `#/${seen.cycle?.join("/")}/<root>` +
+                    '\n\nSet the `cycles` parameter to `"ref"` to resolve cyclical schemas with defs.');
+            }
+        }
+    }
+    // extract schemas into $defs
+    for (const entry of ctx.seen.entries()) {
+        const seen = entry[1];
+        // convert root schema to # $ref
+        if (schema === entry[0]) {
+            extractToDef(entry); // this has special handling for the root schema
+            continue;
+        }
+        // extract schemas that are in the external registry
+        if (ctx.external) {
+            const ext = ctx.external.registry.get(entry[0])?.id;
+            if (schema !== entry[0] && ext) {
+                extractToDef(entry);
+                continue;
+            }
+        }
+        // extract schemas with `id` meta
+        const id = ctx.metadataRegistry.get(entry[0])?.id;
+        if (id) {
+            extractToDef(entry);
+            continue;
+        }
+        // break cycles
+        if (seen.cycle) {
+            // any
+            extractToDef(entry);
+            continue;
+        }
+        // extract reused schemas
+        if (seen.count > 1) {
+            if (ctx.reused === "ref") {
+                extractToDef(entry);
+            }
+        }
+    }
+    if (ctx.external)
+        ctx.sharedDefsExtractedFor = ctx.external;
+}
+/** Rewrites `anyOf: [{type: "a"}, {type: "b"}]` to `type: ["a", "b"]`, which every JSON Schema draft treats as equivalent and most consumers render far better for the nullable case. Only branches that are a bare type assertion qualify — anything carrying a constraint, `$ref`, `const` or metadata is left alone. Runs after `flattenRef`, so a branch an override decorated or `$defs` extraction turned into a `$ref` is no longer bare and correctly stays in `anyOf`. `oneOf` is excluded: `integer` and `number` overlap, so "exactly one" and "at least one" are not the same there. OpenAPI 3.0 is excluded: its `type` must be a single string. */
+function compactTypeUnion(schema) {
+    const options = schema.anyOf;
+    if (!Array.isArray(options) || options.length === 0 || schema.type !== undefined)
+        return;
+    const types = [];
+    for (const option of options) {
+        if (!option || typeof option !== "object")
+            return;
+        // A branch that is itself a compactible union folds into this one — nested `anyOf` and a flat `type` array say the same thing. Compacting it first also makes the result independent of the order this pass walks the seen map in.
+        compactTypeUnion(option);
+        const keys = Object.keys(option);
+        if (keys.length !== 1 || keys[0] !== "type")
+            return;
+        const type = option.type;
+        for (const member of Array.isArray(type) ? type : [type]) {
+            if (typeof member !== "string")
+                return;
+            if (!types.includes(member))
+                types.push(member);
+        }
+    }
+    delete schema.anyOf;
+    // A `type` array must be non-empty and unique (metaschema); a single member is spelled as a bare string.
+    schema.type = types.length === 1 ? types[0] : types;
+}
+/** Keywords `foldIntersection` knows how to combine. Anything else — `$ref`, `patternProperties`,
+ * an annotation like `description` — makes a member unfoldable, so a constraint this does not
+ * understand leaves the `allOf` alone instead of being silently dropped or misattributed. */
+const FOLDABLE_KEYS = new Set(["type", "properties", "required", "additionalProperties"]);
+const UNION_KEYS = ["oneOf", "anyOf"];
+/** A member's constraint on a key it does not declare itself. A `catchall` states one; `false`, an absent `additionalProperties`, and the empty schema a loose object emits state nothing. */
+function undeclaredConstraint(member) {
+    const extra = member.additionalProperties;
+    if (extra === undefined || extra === false || typeof extra !== "object" || extra === null)
+        return null;
+    return Object.keys(extra).length ? extra : null;
+}
+/** Combines object members into the single object they describe together, or returns `null` if any of them carries a keyword outside {@link FOLDABLE_KEYS}. */
+function foldObjects(members) {
+    const objects = [];
+    for (const member of members) {
+        // A boolean subschema is legal JSON Schema and carries no keywords to fold.
+        if (typeof member !== "object" || member.type !== "object")
+            return null;
+        for (const key in member) {
+            if (!FOLDABLE_KEYS.has(key))
+                return null;
+        }
+        objects.push(member);
+    }
+    const properties = {};
+    const required = new Set();
+    for (const object of objects) {
+        for (const key in object.properties) {
+            // `in` would report a `__proto__` key as already present via the prototype chain and skip it.
+            if (Object.prototype.hasOwnProperty.call(properties, key))
+                continue;
+            // Every member constrains this key: the ones that declare it say how, and a `catchall` member constrains it too even though it does not name it. The key has to satisfy all of them, which is the same intersection one level down.
+            const parts = [];
+            for (const other of objects) {
+                const part = other.properties?.[key] ?? undeclaredConstraint(other);
+                if (part === null || part === undefined)
+                    continue;
+                if (!parts.some((seen) => JSON.stringify(seen) === JSON.stringify(part)))
+                    parts.push(part);
+            }
+            const merged = parts.length === 1
+                ? parts[0]
+                : (foldObjects(parts) ?? { allOf: parts });
+            assignProp(properties, key, merged);
+        }
+        for (const key of object.required ?? [])
+            required.add(key);
+    }
+    const folded = { type: "object", properties };
+    if (required.size)
+        folded.required = [...required];
+    // A key no member declares is rejected only when every member rejects it, so the fold is closed only when every member is. Otherwise it carries whatever the `catchall` members demand of such a key.
+    if (objects.every((object) => object.additionalProperties === false)) {
+        folded.additionalProperties = false;
+    }
+    else {
+        const constraints = [];
+        for (const object of objects) {
+            const constraint = undeclaredConstraint(object);
+            if (constraint && !constraints.some((seen) => JSON.stringify(seen) === JSON.stringify(constraint)))
+                constraints.push(constraint);
+        }
+        if (constraints.length === 1)
+            folded.additionalProperties = constraints[0];
+        else if (constraints.length > 1)
+            folded.additionalProperties = { allOf: constraints };
+    }
+    return folded;
+}
+/** `additionalProperties` in an `allOf` member sees only that member's own `properties`, so two
+ * closed object members reject each other's keys and the schema validates nothing. Zod's parser
+ * pools the key sets instead — `handleIntersectionResults` reports a key as unrecognized only when
+ * *every* side rejects it — so the emitted schema has to pool them too, and folding the members
+ * into one object is the encoding that says so on every target.
+ *
+ * This runs from `finalize`, after `extractDefs`, which is what keeps it clear of the `$ref`
+ * machinery: a member extracted into `$defs` is already a `$ref` by now and declines to fold, so it
+ * keeps its reference and its own closedness rather than being inlined as a stale copy. */
+function foldIntersection(json) {
+    const allOf = json.allOf;
+    if (!Array.isArray(allOf) || allOf.length < 2)
+        return;
+    // An `override` runs before this pass and may have written object keywords onto the intersection itself. Those are deliberate, so decline rather than overwrite them.
+    for (const key of FOLDABLE_KEYS)
+        if (key in json)
+            return;
+    // An intersection distributes over a union: `A & (X | Y)` is `(A & X) | (A & Y)`. Only the first union is distributed over; a second one stays among the members every branch folds against, where it fails the object check and declines the whole intersection rather than multiplying out.
+    const unions = allOf.filter((m) => UNION_KEYS.some((k) => Array.isArray(m[k])));
+    let folded = null;
+    if (!unions.length) {
+        folded = foldObjects(allOf);
+    }
+    else {
+        const union = unions[0];
+        const keyword = UNION_KEYS.find((k) => Array.isArray(union[k]));
+        if (Object.keys(union).length !== 1)
+            return;
+        const rest = allOf.filter((m) => m !== union);
+        const branches = union[keyword].map((branch) => foldObjects([...rest, branch]));
+        if (branches.some((b) => !b))
+            return;
+        folded = { [keyword]: branches };
+    }
+    if (!folded)
+        return;
+    delete json.allOf;
+    assignProps(json, folded);
+}
+function finalize(ctx, schema) {
+    const root = ctx.seen.get(schema);
+    if (!root)
+        throw new Error("Unprocessed schema. This is a bug in Zod.");
+    // flatten refs - inherit properties from parent schemas
+    const flattenRef = (zodSchema) => {
+        const seen = ctx.seen.get(zodSchema);
+        // already processed
+        if (seen.ref === null)
+            return;
+        const schema = seen.def ?? seen.schema;
+        const _cached = { ...schema };
+        const ref = seen.ref;
+        seen.ref = null; // prevent infinite recursion
+        if (ref) {
+            flattenRef(ref);
+            const refSeen = ctx.seen.get(ref);
+            const refSchema = refSeen.schema;
+            // merge referenced schema into current
+            if (refSchema.$ref && (ctx.target === "draft-07" || ctx.target === "draft-04" || ctx.target === "openapi-3.0")) {
+                // older drafts can't combine $ref with other properties
+                schema.allOf = schema.allOf ?? [];
+                schema.allOf.push(refSchema);
+            }
+            else {
+                assignProps(schema, refSchema);
+            }
+            // restore child's own properties (child wins)
+            assignProps(schema, _cached);
+            const isParentRef = zodSchema._zod.parent === ref;
+            // For parent chain, child is a refinement - remove parent-only properties
+            if (isParentRef) {
+                for (const key in schema) {
+                    if (key === "$ref" || key === "allOf")
+                        continue;
+                    if (!(key in _cached)) {
+                        delete schema[key];
+                    }
+                }
+            }
+            // When ref was extracted to $defs, remove properties that match the definition
+            if (refSchema.$ref && refSeen.def) {
+                for (const key in schema) {
+                    if (key === "$ref" || key === "allOf")
+                        continue;
+                    if (key in refSeen.def && JSON.stringify(schema[key]) === JSON.stringify(refSeen.def[key])) {
+                        delete schema[key];
+                    }
+                }
+            }
+        }
+        // If parent was extracted (has $ref), propagate $ref to this schema. This handles cases like: readonly().meta({id}).describe() where processor sets ref to innerType but parent should be referenced
+        const parent = zodSchema._zod.parent;
+        if (parent && parent !== ref) {
+            // Ensure parent is processed first so its def has inherited properties
+            flattenRef(parent);
+            const parentSeen = ctx.seen.get(parent);
+            if (parentSeen?.schema.$ref) {
+                schema.$ref = parentSeen.schema.$ref;
+                // De-duplicate with parent's definition
+                if (parentSeen.def) {
+                    for (const key in schema) {
+                        if (key === "$ref" || key === "allOf")
+                            continue;
+                        if (key in parentSeen.def && JSON.stringify(schema[key]) === JSON.stringify(parentSeen.def[key])) {
+                            delete schema[key];
+                        }
+                    }
+                }
+            }
+        }
+        // execute overrides
+        ctx.override({
+            zodSchema: zodSchema,
+            jsonSchema: schema,
+            path: seen.path ?? [],
+        });
+    };
+    // Flattening walks the whole map and clears each `ref` as it goes, so a second call over the same map is a no-op scan. Skip it outright once it has run for a registry conversion.
+    if (!ctx.external || ctx.sharedEmitDoneFor !== ctx.external) {
+        for (const entry of [...ctx.seen.entries()].reverse()) {
+            flattenRef(entry[0]);
+        }
+        if (ctx.target !== "openapi-3.0") {
+            for (const entry of ctx.seen.entries()) {
+                compactTypeUnion(entry[1].def ?? entry[1].schema);
+            }
+        }
+        for (const rewrite of ctx.deferred)
+            rewrite();
+        // After flattening, every member that was extracted is a `$ref`, so the fold sees the final shape. A schema that inherits an intersection — through `z.lazy`, or any `ref` chain — holds the same `allOf` array, so fold by array identity to catch every copy.
+        if (ctx.intersections.length) {
+            const carriers = new Map();
+            for (const seen of ctx.seen.values()) {
+                for (const json of [seen.schema, seen.def]) {
+                    const allOf = json?.allOf;
+                    if (!Array.isArray(allOf))
+                        continue;
+                    const existing = carriers.get(allOf);
+                    if (existing)
+                        existing.push(json);
+                    else
+                        carriers.set(allOf, [json]);
+                }
+            }
+            for (const allOf of ctx.intersections) {
+                for (const json of carriers.get(allOf) ?? [])
+                    foldIntersection(json);
+            }
+        }
+    }
+    const result = {};
+    if (ctx.target === "draft-2020-12") {
+        result.$schema = "https://json-schema.org/draft/2020-12/schema";
+    }
+    else if (ctx.target === "draft-07") {
+        result.$schema = "http://json-schema.org/draft-07/schema#";
+    }
+    else if (ctx.target === "draft-04") {
+        result.$schema = "http://json-schema.org/draft-04/schema#";
+    }
+    else if (ctx.target === "openapi-3.0") ;
+    else ;
+    if (ctx.external?.uri) {
+        const id = ctx.external.registry.get(schema)?.id;
+        if (!id)
+            throw new Error("Schema is missing an `id` property");
+        result.$id = ctx.external.uri(id);
+    }
+    // when the root was extracted into $defs, `root.schema` is the `$ref` wrapper and `root.def` is the body that now lives under $defs
+    assignProps(result, root.defId ? root.schema : (root.def ?? root.schema));
+    // The `id` in `.meta()` is a Zod-specific registration tag used to extract schemas into $defs — it is not user-facing JSON Schema metadata. Strip it from the output body where it would otherwise leak. The id is preserved implicitly via the $defs key (and via $ref paths).
+    const rootMetaId = ctx.metadataRegistry.get(schema)?.id;
+    if (rootMetaId !== undefined && result.id === rootMetaId)
+        delete result.id;
+    // build defs object. With `external`, `defs` is the shared object every schema writes into, so the same entries are reassigned on every call. Without it, `defs` is fresh per call and must be rebuilt.
+    const defs = ctx.external?.defs ?? {};
+    if (!ctx.external || ctx.sharedEmitDoneFor !== ctx.external) {
+        for (const entry of ctx.seen.entries()) {
+            const seen = entry[1];
+            if (seen.def && seen.defId) {
+                if (seen.def.id === seen.defId)
+                    delete seen.def.id;
+                assignProp(defs, seen.defId, seen.def);
+            }
+        }
+    }
+    if (ctx.external)
+        ctx.sharedEmitDoneFor = ctx.external;
+    // set definitions in result
+    if (ctx.external) ;
+    else {
+        if (Object.keys(defs).length > 0) {
+            if (ctx.target === "draft-2020-12") {
+                result.$defs = defs;
+            }
+            else {
+                result.definitions = defs;
+            }
+        }
+    }
+    try {
+        // this "finalizes" this schema and ensures all cycles are removed each call to finalize() is functionally independent though the seen map is shared
+        const finalized = JSON.parse(JSON.stringify(result));
+        Object.defineProperty(finalized, "~standard", {
+            value: {
+                ...schema["~standard"],
+                jsonSchema: {
+                    input: createStandardJSONSchemaMethod(schema, "input", ctx.processors),
+                    output: createStandardJSONSchemaMethod(schema, "output", ctx.processors),
+                },
+            },
+            enumerable: false,
+            writable: false,
+        });
+        return finalized;
+    }
+    catch (_err) {
+        throw new Error("Error converting schema to JSON.");
+    }
+}
+function isTransforming(_schema, _ctx) {
+    const ctx = _ctx ?? { seen: new Set() };
+    if (ctx.seen.has(_schema))
+        return false;
+    ctx.seen.add(_schema);
+    const def = _schema._zod.def;
+    if (def.type === "transform")
+        return true;
+    if (def.type === "array")
+        return isTransforming(def.element, ctx);
+    if (def.type === "set")
+        return isTransforming(def.valueType, ctx);
+    if (def.type === "lazy")
+        return isTransforming(def.getter(), ctx);
+    if (def.type === "promise" ||
+        def.type === "optional" ||
+        def.type === "nonoptional" ||
+        def.type === "nullable" ||
+        def.type === "readonly" ||
+        def.type === "default" ||
+        def.type === "prefault" ||
+        def.type === "catch") {
+        return isTransforming(def.innerType, ctx);
+    }
+    if (def.type === "intersection") {
+        return isTransforming(def.left, ctx) || isTransforming(def.right, ctx);
+    }
+    if (def.type === "record" || def.type === "map") {
+        return isTransforming(def.keyType, ctx) || isTransforming(def.valueType, ctx);
+    }
+    if (def.type === "pipe") {
+        if (_schema._zod.traits.has("$ZodCodec"))
+            return true;
+        return isTransforming(def.in, ctx) || isTransforming(def.out, ctx);
+    }
+    if (def.type === "object") {
+        for (const key in def.shape) {
+            if (isTransforming(def.shape[key], ctx))
+                return true;
+        }
+        return false;
+    }
+    if (def.type === "union") {
+        for (const option of def.options) {
+            if (isTransforming(option, ctx))
+                return true;
+        }
+        return false;
+    }
+    if (def.type === "tuple") {
+        for (const item of def.items) {
+            if (isTransforming(item, ctx))
+                return true;
+        }
+        if (def.rest && isTransforming(def.rest, ctx))
+            return true;
+        return false;
+    }
+    return false;
+}
+/**
+ * Creates a toJSONSchema method for a schema instance.
+ * This encapsulates the logic of initializing context, processing, extracting defs, and finalizing.
+ */
+const createToJSONSchemaMethod = (schema, processors = {}) => (params) => {
+    const ctx = initializeContext({ ...params, processors });
+    processSchema(schema, ctx);
+    extractDefs(ctx, schema);
+    return finalize(ctx, schema);
+};
+const createStandardJSONSchemaMethod = (schema, io, processors = {}) => (params) => {
+    const { libraryOptions, target } = params ?? {};
+    const ctx = initializeContext({ ...(libraryOptions ?? {}), target, io, processors });
+    processSchema(schema, ctx);
+    extractDefs(ctx, schema);
+    return finalize(ctx, schema);
+};
+
+const narrowMin = (agg, key, value) => {
+    if (agg[key] === undefined || value > agg[key])
+        agg[key] = value;
+};
+const narrowMax = (agg, key, value) => {
+    if (agg[key] === undefined || value < agg[key])
+        agg[key] = value;
+};
+const narrowBoth = (agg, value) => {
+    narrowMin(agg, "minimum", value);
+    narrowMax(agg, "maximum", value);
+};
+const addDivisor = (agg, value) => {
+    agg.multipleOf ?? (agg.multipleOf = []);
+    if (!agg.multipleOf.includes(value))
+        agg.multipleOf.push(value);
+};
+const addPattern = (agg, pattern) => {
+    agg.patterns ?? (agg.patterns = new Set());
+    agg.patterns.add(pattern);
+};
+const intersectMime = (agg, mime) => {
+    agg.mime = agg.mime ? agg.mime.filter((m) => mime.includes(m)) : [...mime];
+};
+// last-wins, matching the bag's historical write order; the flag keeps an integer format from being lost to a later float one
+const setFormat = (agg, format) => {
+    agg.format = format;
+    if (format.includes("int"))
+        agg.isInt = true;
+};
+const minContributor = (agg, def) => narrowMin(agg, "minimum", def.minimum);
+const maxContributor = (agg, def) => narrowMax(agg, "maximum", def.maximum);
+const formatContributor = (ranges) => (agg, def) => {
+    setFormat(agg, def.format);
+    const [minimum, maximum] = ranges[def.format];
+    narrowMin(agg, "minimum", minimum);
+    narrowMax(agg, "maximum", maximum);
+};
+const contributors = {
+    greater_than: (agg, def) => narrowMin(agg, def.inclusive ? "minimum" : "exclusiveMinimum", def.value),
+    less_than: (agg, def) => narrowMax(agg, def.inclusive ? "maximum" : "exclusiveMaximum", def.value),
+    multiple_of: (agg, def) => addDivisor(agg, def.value),
+    number_format: formatContributor(NUMBER_FORMAT_RANGES),
+    bigint_format: formatContributor(BIGINT_FORMAT_RANGES),
+    min_length: minContributor,
+    max_length: maxContributor,
+    length_equals: (agg, def) => narrowBoth(agg, def.length),
+    min_size: minContributor,
+    max_size: maxContributor,
+    size_equals: (agg, def) => narrowBoth(agg, def.size),
+    string_format: (agg, def) => {
+        setFormat(agg, def.format);
+        if (def.pattern)
+            addPattern(agg, def.pattern);
+        if (def.format === "base64" || def.format === "base64url")
+            agg.contentEncoding = def.format;
+        if (def.local || def.precision === -1)
+            agg.laxFormat = true;
+    },
+    mime_type: (agg, def) => intersectMime(agg, def.mime),
+};
+function aggregateChecks(schema) {
+    const agg = {};
+    const def = schema._zod.def;
+    // a format schema is its own first check, same rule as $ZodType init
+    const list = schema._zod.traits.has("$ZodCheck")
+        ? [schema, ...(def.checks ?? [])]
+        : (def.checks ?? []);
+    for (const ch of list)
+        contributors[ch._zod.def.check]?.(agg, ch._zod.def);
+    // reconcile with the bag so third-party onattach contributions still land; first-party residue is never tighter than the fold, so merging it back is idempotent for one and additive for the other
+    const bag = schema._zod.bag;
+    if (bag.minimum !== undefined)
+        narrowMin(agg, "minimum", bag.minimum);
+    if (bag.exclusiveMinimum !== undefined)
+        narrowMin(agg, "exclusiveMinimum", bag.exclusiveMinimum);
+    if (bag.maximum !== undefined)
+        narrowMax(agg, "maximum", bag.maximum);
+    if (bag.exclusiveMaximum !== undefined)
+        narrowMax(agg, "exclusiveMaximum", bag.exclusiveMaximum);
+    if (bag.multipleOf !== undefined)
+        addDivisor(agg, bag.multipleOf);
+    if (bag.format !== undefined) {
+        agg.format ?? (agg.format = bag.format);
+        if (bag.format.includes("int"))
+            agg.isInt = true;
+    }
+    if (bag.mime)
+        intersectMime(agg, bag.mime);
+    for (const pattern of bag.patterns ?? [])
+        addPattern(agg, pattern);
+    return agg;
+}
+const formatMap = {
+    guid: "uuid",
+    url: "uri",
+    datetime: "date-time",
+    json_string: "json-string",
+    regex: "", // do not set
+};
+// ==================== SIMPLE TYPE PROCESSORS ====================
+// the runtime patterns are lax so parse paths never overflow the regex stack; the emitted schema swaps in the exact block forms, which zod itself never executes
+const exactPatterns = new Map([
+    [base64Charset, base64],
+    [base64urlCharset, base64url],
+]);
+const exactPattern = (p) => exactPatterns.get(p) ?? p;
+const stringProcessor = (schema, ctx, _json, _params) => {
+    const json = _json;
+    json.type = "string";
+    const { minimum, maximum, format, patterns, contentEncoding, laxFormat } = aggregateChecks(schema);
+    if (typeof minimum === "number")
+        json.minLength = minimum;
+    if (typeof maximum === "number")
+        json.maxLength = maximum;
+    // custom pattern overrides format
+    if (format) {
+        json.format = formatMap[format] ?? format;
+        if (json.format === "")
+            delete json.format; // empty format is not valid
+        // `z.iso.time()` is never full-time, and `laxFormat` carries the datetime shapes that also accept what their keyword forbids
+        if (format === "time" || laxFormat) {
+            delete json.format;
+        }
+    }
+    if (contentEncoding)
+        json.contentEncoding = contentEncoding;
+    if (patterns && patterns.size > 0) {
+        const patternList = [...patterns].map(exactPattern);
+        if (patternList.length === 1)
+            json.pattern = patternList[0].source;
+        else if (patternList.length > 1) {
+            json.allOf = [
+                ...patternList.map((regex) => ({
+                    ...(ctx.target === "draft-07" || ctx.target === "draft-04" || ctx.target === "openapi-3.0"
+                        ? { type: "string" }
+                        : {}),
+                    pattern: regex.source,
+                })),
+            ];
+        }
+    }
+};
+const numberProcessor = (schema, ctx, _json, params) => {
+    const json = _json;
+    const { minimum, maximum, multipleOf, exclusiveMaximum, exclusiveMinimum, isInt } = aggregateChecks(schema);
+    json.type = isInt ? "integer" : "number";
+    // when both minimum and exclusiveMinimum exist, pick the more restrictive one
+    const exMin = typeof exclusiveMinimum === "number" && exclusiveMinimum >= (minimum ?? Number.NEGATIVE_INFINITY);
+    const exMax = typeof exclusiveMaximum === "number" && exclusiveMaximum <= (maximum ?? Number.POSITIVE_INFINITY);
+    const legacy = ctx.target === "draft-04" || ctx.target === "openapi-3.0";
+    if (exMin) {
+        if (legacy) {
+            json.minimum = exclusiveMinimum;
+            json.exclusiveMinimum = true;
+        }
+        else {
+            json.exclusiveMinimum = exclusiveMinimum;
+        }
+    }
+    else if (typeof minimum === "number") {
+        json.minimum = minimum;
+    }
+    if (exMax) {
+        if (legacy) {
+            json.maximum = exclusiveMaximum;
+            json.exclusiveMaximum = true;
+        }
+        else {
+            json.exclusiveMaximum = exclusiveMaximum;
+        }
+    }
+    else if (typeof maximum === "number") {
+        json.maximum = maximum;
+    }
+    if (multipleOf) {
+        // JSON Schema requires a divisor strictly greater than zero, and a non-finite one does not survive JSON at all. A negative divisor accepts exactly what its absolute value accepts, so it still maps; zero, NaN and Infinity have no keyword form.
+        const divisors = new Set();
+        for (const divisor of multipleOf) {
+            if (Number.isFinite(divisor) && divisor !== 0)
+                divisors.add(Math.abs(divisor));
+            else
+                handleUnrepresentable(schema, ctx, json, params, `A multipleOf divisor of ${divisor} cannot be represented in JSON Schema`);
+        }
+        // chained divisors are a conjunction the keyword cannot carry alone, so extras ride an allOf, same as stacked patterns
+        const [first, ...rest] = divisors;
+        if (first !== undefined)
+            json.multipleOf = first;
+        if (rest.length)
+            json.allOf = [...(json.allOf ?? []), ...rest.map((m) => ({ multipleOf: m }))];
+    }
+};
+const booleanProcessor = (_schema, _ctx, json, _params) => {
+    json.type = "boolean";
+};
+const neverProcessor = (_schema, _ctx, json, _params) => {
+    json.not = {};
+};
+const unknownProcessor = (_schema, _ctx, _json, _params) => {
+    // empty schema accepts anything
+};
+const enumProcessor = (schema, _ctx, json, _params) => {
+    const def = schema._zod.def;
+    const values = getEnumValues(def.entries);
+    // an empty enum accepts nothing, same as z.never()
+    if (values.length === 0) {
+        json.not = {};
+        return;
+    }
+    // Number enums can have both string and number values
+    if (values.every((v) => typeof v === "number"))
+        json.type = "number";
+    if (values.every((v) => typeof v === "string"))
+        json.type = "string";
+    json.enum = values;
+};
+const customProcessor = (schema, ctx, json, params) => {
+    handleUnrepresentable(schema, ctx, json, params, "Custom types cannot be represented in JSON Schema");
+};
+const transformProcessor = (schema, ctx, json, params) => {
+    handleUnrepresentable(schema, ctx, json, params, "Transforms cannot be represented in JSON Schema");
+};
+// ==================== COMPOSITE TYPE PROCESSORS ====================
+const arrayProcessor = (schema, ctx, _json, params) => {
+    const json = _json;
+    const def = schema._zod.def;
+    const { minimum, maximum } = aggregateChecks(schema);
+    if (typeof minimum === "number")
+        json.minItems = minimum;
+    if (typeof maximum === "number")
+        json.maxItems = maximum;
+    json.type = "array";
+    json.items = processSchema(def.element, ctx, {
+        ...params,
+        path: [...params.path, "items"],
+    });
+};
+// Transform and catch set `optin = "optional"` at runtime so the parser lets them observe an
+// absent key, but their declared input type stays required. An input JSON Schema describes the
+// declared type, so resolve past them to the schema that actually carries the optionality.
+// Used by both `objectProcessor` (for `required`) and `tupleProcessor` (for `minItems`); see
+// wiki/optionality.md, "The JSON Schema emitter reads the *static* value".
+function inputOptin(schema) {
+    const def = schema._zod.def;
+    if (def.type === "pipe" && def.in._zod.traits.has("$ZodTransform")) {
+        return inputOptin(def.out);
+    }
+    if (def.type === "catch") {
+        return inputOptin(def.innerType);
+    }
+    return schema._zod.optin;
+}
+const objectProcessor = (schema, ctx, _json, params) => {
+    const json = _json;
+    const def = schema._zod.def;
+    const shape = def.shape;
+    // dropping it while still emitting `additionalProperties: false` would emit a schema that rejects data this one requires
+    const symbolKeys = Object.getOwnPropertySymbols(shape);
+    if (symbolKeys.length &&
+        handleUnrepresentable(schema, ctx, json, params, "Symbol keys cannot be represented in JSON Schema")) {
+        return;
+    }
+    json.type = "object";
+    json.properties = {};
+    for (const key in shape) {
+        // assignProp so a __proto__ key becomes an own property instead of hitting the inherited setter on the plain {} we build into
+        assignProp(json.properties, key, processSchema(shape[key], ctx, {
+            ...params,
+            path: [...params.path, "properties", key],
+        }));
+    }
+    // required keys
+    const requiredKeys = [];
+    for (const key of Object.keys(shape)) {
+        const field = def.shape[key];
+        if (ctx.io === "input" ? inputOptin(field) === undefined : field._zod.optout === undefined) {
+            requiredKeys.push(key);
+        }
+    }
+    if (requiredKeys.length > 0) {
+        json.required = requiredKeys;
+    }
+    // catchall
+    if (def.catchall?._zod.def.type === "never") {
+        // strict
+        json.additionalProperties = false;
+    }
+    else if (!def.catchall) {
+        // regular
+        if (ctx.io === "output")
+            json.additionalProperties = false;
+    }
+    else if (def.catchall) {
+        json.additionalProperties = processSchema(def.catchall, ctx, {
+            ...params,
+            path: [...params.path, "additionalProperties"],
+        });
+    }
+};
+const unionProcessor = (schema, ctx, json, params) => {
+    const def = schema._zod.def;
+    // Exclusive unions (inclusive === false) use oneOf (exactly one match) instead of anyOf (one or more matches). This includes both z.xor() and discriminated unions
+    const isExclusive = def.inclusive === false;
+    const options = def.options.map((x, i) => processSchema(x, ctx, {
+        ...params,
+        path: [...params.path, isExclusive ? "oneOf" : "anyOf", i],
+    }));
+    if (isExclusive) {
+        json.oneOf = options;
+    }
+    else {
+        json.anyOf = options;
+    }
+};
+const intersectionProcessor = (schema, ctx, json, params) => {
+    const def = schema._zod.def;
+    const a = processSchema(def.left, ctx, {
+        ...params,
+        path: [...params.path, "allOf", 0],
+    });
+    const b = processSchema(def.right, ctx, {
+        ...params,
+        path: [...params.path, "allOf", 1],
+    });
+    const isSimpleIntersection = (val) => "allOf" in val && Object.keys(val).length === 1;
+    const allOf = [
+        ...(isSimpleIntersection(a) ? a.allOf : [a]),
+        ...(isSimpleIntersection(b) ? b.allOf : [b]),
+    ];
+    json.allOf = allOf;
+    // Recorded innermost first, so a nested intersection has already folded by the time this one is considered. The array is the handle rather than the schema, because a wrapper that inherits this schema shares the same array; `finalize` folds every object holding it. See `foldIntersection`.
+    ctx.intersections.push(allOf);
+};
+/** JSON object keys are always strings, so a numeric record key schema is re-expressed over the
+ * numeric-string form the record parser matches. Deferred to `finalize`, after the flatten: a key
+ * behind a wrapper only carries its own `type` before then, and a union key only has its branches.
+ *
+ * A numeric bound cannot apply to a property name, so `minimum` and its siblings are dropped rather
+ * than carried over: keeping them beside `type: "string"` reproduces the match-nothing schema this
+ * exists to fix. A key that carries one therefore emits wider than the record parses — `z.record(z.number().min(5), V)`
+ * accepts `"3"` — which is the deliberate trade, since throwing on it would reject an ordinary schema
+ * outright. */
+function stringifyKeyNames(bySchema, json, visited) {
+    // an extracted key that rewrites cannot go on sharing its definition — the string form a key position needs is not the number form every other reference wants — so it inlines. One that does not rewrite keeps the `$ref`.
+    if (json.$ref) {
+        // a recursive key holds its own reference inside its definition, so a node already on the path is left alone rather than resolved again
+        if (visited.has(json))
+            return json;
+        visited.add(json);
+        const def = bySchema.get(json)?.def;
+        if (!def)
+            return json;
+        const inlined = stringifyKeyNames(bySchema, def, visited);
+        return inlined === def ? json : inlined;
+    }
+    for (const keyword of ["anyOf", "oneOf"]) {
+        const branches = json[keyword];
+        if (!Array.isArray(branches))
+            continue;
+        const mapped = branches.map((branch) => stringifyKeyNames(bySchema, branch, visited));
+        // rebuilding regardless would detach a key that had nothing to re-express, dropping its `$ref` and leaking the internal `id`
+        if (mapped.some((branch, i) => branch !== branches[i]))
+            json = { ...json, [keyword]: mapped };
+    }
+    // a member that already admits a string leaves the key unconstrained, so the node's own type re-expresses only when every member is numeric
+    const types = Array.isArray(json.type) ? json.type : [json.type];
+    const numericType = !types.includes("string") && types.some((t) => t === "number" || t === "integer");
+    // a heterogeneous key carries no type at all, so its numeric members are caught here instead
+    const values = json.enum ?? (json.const !== undefined ? [json.const] : undefined);
+    if (!numericType && !values?.some((v) => typeof v === "number"))
+        return json;
+    const { minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf, format, id, ...rest } = json;
+    if (rest.enum)
+        rest.enum = rest.enum.map((v) => (typeof v === "number" ? String(v) : v));
+    else if (typeof rest.const === "number")
+        rest.const = String(rest.const);
+    // a heterogeneous key keeps its absent type: the stringified members already say what a key may be
+    if (!numericType)
+        return rest;
+    rest.type = "string";
+    if (!values)
+        rest.pattern = (types.includes("number") ? number$1 : integer).source;
+    return rest;
+}
+/** Every record of one conversion, so the carriers are found in a single pass rather than once per record. */
+const pendingRecords = new WeakMap();
+function rewriteKeyNames(ctx) {
+    // an extracted key is resolved by the object `extractToDef` left in its place, so the map is built once rather than searched per reference. `_zod.toJSONSchema` can hand the same object to two schemas, so the first entry carrying a body wins, as a search would have found it.
+    const bySchema = new Map();
+    for (const entry of ctx.seen.values()) {
+        if (entry.def && !bySchema.has(entry.schema))
+            bySchema.set(entry.schema, entry);
+    }
+    const rewrites = new Map();
+    for (const record of pendingRecords.get(ctx) ?? []) {
+        const seen = ctx.seen.get(record);
+        const names = (seen?.def ?? seen?.schema)?.propertyNames;
+        if (!names || names === true || rewrites.has(names))
+            continue;
+        const rewritten = stringifyKeyNames(bySchema, names, new Set());
+        if (rewritten !== names)
+            rewrites.set(names, rewritten);
+    }
+    if (!rewrites.size)
+        return;
+    // the flatten has already copied each record's own properties onto every wrapper by reference, and an extracted body is another such copy, so every carrier holding a rewritten key is updated together
+    for (const entry of ctx.seen.values()) {
+        for (const carrier of [entry.schema, entry.def]) {
+            const rewritten = carrier && rewrites.get(carrier.propertyNames);
+            if (rewritten)
+                carrier.propertyNames = rewritten;
+        }
+    }
+}
+const recordProcessor = (schema, ctx, _json, params) => {
+    const json = _json;
+    const def = schema._zod.def;
+    json.type = "object";
+    // For looseRecord with regex patterns, use patternProperties. This correctly represents "only validate keys matching the pattern" semantics and composes well with allOf (intersections)
+    const keyType = def.keyType;
+    const patterns = aggregateChecks(keyType).patterns;
+    if (def.mode === "loose" && patterns && patterns.size > 0) {
+        // Use patternProperties for looseRecord with regex patterns
+        const valueSchema = processSchema(def.valueType, ctx, {
+            ...params,
+            path: [...params.path, "patternProperties", "*"],
+        });
+        json.patternProperties = {};
+        for (const pattern of patterns) {
+            assignProp(json.patternProperties, exactPattern(pattern).source, valueSchema);
+        }
+    }
+    else {
+        // Default behavior: use propertyNames + additionalProperties
+        if (ctx.target === "draft-07" || ctx.target === "draft-2020-12") {
+            json.propertyNames = processSchema(def.keyType, ctx, {
+                ...params,
+                path: [...params.path, "propertyNames"],
+            });
+            let pending = pendingRecords.get(ctx);
+            if (!pending) {
+                pending = [];
+                pendingRecords.set(ctx, pending);
+                ctx.deferred.push(() => rewriteKeyNames(ctx));
+            }
+            pending.push(schema);
+        }
+        json.additionalProperties = processSchema(def.valueType, ctx, {
+            ...params,
+            path: [...params.path, "additionalProperties"],
+        });
+    }
+    // Add required for keys with discrete values (enum, literal, etc.)
+    const keyValues = keyType._zod.values;
+    // Every key shares one value schema, so an optional-in value makes the whole key set omittable on input. Output keeps them: the exhaustive branch assigns every key, even one whose value came back undefined.
+    const omittableOnInput = ctx.io === "input" && inputOptin(def.valueType) !== undefined;
+    if (keyValues && !def.partial && !omittableOnInput) {
+        const validKeyValues = [...keyValues].filter((v) => typeof v === "string" || typeof v === "number");
+        if (validKeyValues.length > 0) {
+            json.required = validKeyValues.map(String);
+        }
+    }
+};
+const nullableProcessor = (schema, ctx, json, params) => {
+    const def = schema._zod.def;
+    const inner = processSchema(def.innerType, ctx, params);
+    const seen = ctx.seen.get(schema);
+    if (ctx.target === "openapi-3.0") {
+        seen.ref = def.innerType;
+        json.nullable = true;
+    }
+    else {
+        json.anyOf = [inner, { type: "null" }];
+    }
+};
+const nonoptionalProcessor = (schema, ctx, _json, params) => {
+    const def = schema._zod.def;
+    processSchema(def.innerType, ctx, params);
+    const seen = ctx.seen.get(schema);
+    seen.ref = def.innerType;
+};
+/** Round-trips a default value through JSON so the emitted schema is guaranteed to be valid JSON.
+ * A BigInt has no reliable encoding, so it goes through `unrepresentable` like any other
+ * unrepresentable value. Returns a sentinel when the caller must not write a default of its own. */
+const UNREPRESENTABLE_DEFAULT = Symbol();
+function serializeDefaultValue(value, schema, ctx, json, params) {
+    let unrepresentable = false;
+    const serialized = JSON.stringify(value, (_, val) => {
+        if (typeof val !== "bigint")
+            return val;
+        unrepresentable = true;
+        return null;
+    });
+    if (!unrepresentable)
+        return JSON.parse(serialized);
+    handleUnrepresentable(schema, ctx, json, params, "BigInt defaults cannot be represented in JSON Schema");
+    return UNREPRESENTABLE_DEFAULT;
+}
+const defaultProcessor = (schema, ctx, json, params) => {
+    const def = schema._zod.def;
+    processSchema(def.innerType, ctx, params);
+    const seen = ctx.seen.get(schema);
+    seen.ref = def.innerType;
+    const value = serializeDefaultValue(def.defaultValue, schema, ctx, json, params);
+    if (value !== UNREPRESENTABLE_DEFAULT)
+        json.default = value;
+};
+const prefaultProcessor = (schema, ctx, json, params) => {
+    const def = schema._zod.def;
+    processSchema(def.innerType, ctx, params);
+    const seen = ctx.seen.get(schema);
+    seen.ref = def.innerType;
+    if (ctx.io !== "input")
+        return;
+    const value = serializeDefaultValue(def.defaultValue, schema, ctx, json, params);
+    if (value !== UNREPRESENTABLE_DEFAULT)
+        json._prefault = value;
+};
+const catchProcessor = (schema, ctx, json, params) => {
+    const def = schema._zod.def;
+    processSchema(def.innerType, ctx, params);
+    const seen = ctx.seen.get(schema);
+    seen.ref = def.innerType;
+    let catchValue;
+    try {
+        catchValue = def.catchValue(undefined);
+    }
+    catch {
+        handleUnrepresentable(schema, ctx, json, params, "Dynamic catch values are not supported in JSON Schema");
+        return;
+    }
+    json.default = catchValue;
+};
+const pipeProcessor = (schema, ctx, _json, params) => {
+    const def = schema._zod.def;
+    const inIsTransform = def.in._zod.traits.has("$ZodTransform");
+    const innerType = ctx.io === "input" ? (inIsTransform ? def.out : def.in) : def.out;
+    processSchema(innerType, ctx, params);
+    const seen = ctx.seen.get(schema);
+    seen.ref = innerType;
+};
+const readonlyProcessor = (schema, ctx, json, params) => {
+    const def = schema._zod.def;
+    processSchema(def.innerType, ctx, params);
+    const seen = ctx.seen.get(schema);
+    seen.ref = def.innerType;
+    json.readOnly = true;
+};
+const optionalProcessor = (schema, ctx, _json, params) => {
+    const def = schema._zod.def;
+    processSchema(def.innerType, ctx, params);
+    const seen = ctx.seen.get(schema);
+    seen.ref = def.innerType;
+};
+
+/* Prototypes that already carry the lazy helper methods. Seeded with the
+ * intrinsics so that `init` on a foreign object — it accepts any object —
+ * can never install an accessor onto a prototype we do not own. */
+const _installedErrorProtos = /* @__PURE__ */ new WeakSet([Object.prototype, Error.prototype]);
+/* Helper methods live as non-enumerable lazy getters on the shared
+ * prototype instead of own properties on every instance. On first
+ * access the getter allocates the per-instance closure and caches it
+ * as a non-enumerable own property, so detached usage still works and
+ * the allocation only happens for methods actually touched. */
+function _lazyMethod(proto, key, make) {
+    Object.defineProperty(proto, key, {
+        configurable: true,
+        enumerable: false,
+        get() {
+            const value = make(this);
+            Object.defineProperty(this, key, { value, configurable: true, writable: true });
+            return value;
+        },
+        set(value) {
+            Object.defineProperty(this, key, { value, configurable: true, writable: true });
+        },
+    });
+}
+const initializer = (inst, issues) => {
+    $ZodError.init(inst, issues);
+    inst.name = "ZodError";
+    const proto = Object.getPrototypeOf(inst);
+    if (_installedErrorProtos.has(proto))
+        return;
+    _installedErrorProtos.add(proto);
+    _lazyMethod(proto, "format", (self) => (mapper) => formatError(self, mapper));
+    _lazyMethod(proto, "flatten", (self) => (mapper) => flattenError(self, mapper));
+    _lazyMethod(proto, "addIssue", (self) => (issue) => {
+        self.issues.push(issue);
+        self.message = JSON.stringify(self.issues, jsonStringifyReplacer, 2);
+    });
+    _lazyMethod(proto, "addIssues", (self) => (issues) => {
+        self.issues.push(...issues);
+        self.message = JSON.stringify(self.issues, jsonStringifyReplacer, 2);
+    });
+    Object.defineProperty(proto, "isEmpty", {
+        configurable: true,
+        enumerable: false,
+        get() {
+            return this.issues.length === 0;
+        },
+    });
+};
+const ZodRealError = /*@__PURE__*/ $constructor("ZodError", initializer, undefined, {
+    Parent: Error,
+});
+// /** @deprecated Use `z.core.$ZodErrorMapCtx` instead. */
+// export type ErrorMapCtx = core.$ZodErrorMapCtx;
+
+const parse = /* @__PURE__ */ _parse(ZodRealError);
+const parseAsync = /* @__PURE__ */ _parseAsync(ZodRealError);
+const safeParse = /* @__PURE__ */ _safeParse(ZodRealError);
+const safeParseAsync = /* @__PURE__ */ _safeParseAsync(ZodRealError);
+// Codec functions
+const encode = /* @__PURE__ */ _encode(ZodRealError);
+const decode = /* @__PURE__ */ _decode(ZodRealError);
+const encodeAsync = /* @__PURE__ */ _encodeAsync(ZodRealError);
+const decodeAsync = /* @__PURE__ */ _decodeAsync(ZodRealError);
+const safeEncode = /* @__PURE__ */ _safeEncode(ZodRealError);
+const safeDecode = /* @__PURE__ */ _safeDecode(ZodRealError);
+const safeEncodeAsync = /* @__PURE__ */ _safeEncodeAsync(ZodRealError);
+const safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync(ZodRealError);
+
+// Register English as the default locale on first ZodType construction. Hooked into the `ZodType` `$constructor` (rather than a top-level `config(en())` in `external.ts`) so bundlers honoring `sideEffects: false` can't tree-shake it out — see #5953, #5725. An explicit `z.config(z.locales.xx())` call wins regardless of order, since this only sets the default when none is present.
+function _ensureDefaultLocale() {
+    if (!globalConfig.localeError)
+        config(en());
+}
+// the default memoizer is read by the core container init, which runs before `ZodType.init`, so each container calls this first
+function _ensureDefaultMemoizer() {
+    if (!globalConfig.memoizer)
+        config({ memoizer: memoizer() });
+}
+const ZodType = /*@__PURE__*/ $constructor("ZodType", (inst, def) => {
+    _ensureDefaultLocale();
+    $ZodType.init(inst, def);
+    inst.def = def;
+    inst.type = def.type;
+    return inst;
+}, {
+    check(...chks) {
+        const def = this.def;
+        return this.clone(mergeDefs(def, {
+            checks: [
+                ...(def.checks ?? []),
+                ...chks.map((ch) => typeof ch === "function" ? { _zod: { check: ch, def: { check: "custom" }, onattach: [] } } : ch),
+            ],
+        }), { parent: true });
+    },
+    with(...chks) {
+        return this.check(...chks);
+    },
+    clone(def, params) {
+        return clone(this, def, params);
+    },
+    brand() {
+        return this;
+    },
+    register(reg, meta) {
+        reg.add(this, meta);
+        return this;
+    },
+    refine(check, params) {
+        return this.check(refine(check, params));
+    },
+    superRefine(refinement, params) {
+        return this.check(superRefine(refinement, params));
+    },
+    overwrite(fn) {
+        return this.check(_overwrite(fn));
+    },
+    optional() {
+        return optional(this);
+    },
+    exactOptional() {
+        return exactOptional(this);
+    },
+    nullable() {
+        return nullable(this);
+    },
+    nullish() {
+        return optional(nullable(this));
+    },
+    nonoptional(params) {
+        return nonoptional(this, params);
+    },
+    array() {
+        return array(this);
+    },
+    or(arg) {
+        return union([this, arg]);
+    },
+    and(arg) {
+        return intersection(this, arg);
+    },
+    transform(tx) {
+        return pipe(this, transform(tx));
+    },
+    default(d) {
+        return _default(this, d);
+    },
+    prefault(d) {
+        return prefault(this, d);
+    },
+    catch(params) {
+        return _catch(this, params);
+    },
+    pipe(target) {
+        return pipe(this, target);
+    },
+    readonly() {
+        return readonly(this);
+    },
+    describe(description) {
+        const cl = this.clone();
+        globalRegistry.add(cl, { description });
+        return cl;
+    },
+    meta(...args) {
+        // overloaded: meta() returns the registered metadata, meta(data) returns a clone with `data` registered. The mapped type picks up the second overload, so we accept variadic any-args and return `any` to satisfy both at runtime.
+        if (args.length === 0)
+            return globalRegistry.get(this);
+        const cl = this.clone();
+        globalRegistry.add(cl, args[0]);
+        return cl;
+    },
+    isOptional() {
+        return this.safeParse(undefined).success;
+    },
+    isNullable() {
+        return this.safeParse(null).success;
+    },
+    apply(fn, ...args) {
+        return args.length === 0 ? fn(this) : fn(this, ...args);
+    },
+    // Overrides core's `~standard` to add `jsonSchema`. Must stay a prototype entry: redefining it per instance demotes instances to dictionary mode.
+    get "~standard"() {
+        return hide(this, "~standard", {
+            ...standardProps(this),
+            jsonSchema: {
+                input: createStandardJSONSchemaMethod(this, "input"),
+                output: createStandardJSONSchemaMethod(this, "output"),
+            },
+        });
+    },
+    set "~standard"(value) {
+        own(this, "~standard", value);
+    },
+    parse: function _parse(data, params) {
+        return parse(this, data, params, { callee: _parse });
+    },
+    parseAsync: async function _parseAsync(data, params) {
+        return await parseAsync(this, data, params, { callee: _parseAsync });
+    },
+    safeParse(data, params) {
+        return safeParse(this, data, params);
+    },
+    async safeParseAsync(data, params) {
+        return safeParseAsync(this, data, params);
+    },
+    // `spa` is an alias: same function object as `safeParseAsync`, as before.
+    get spa() {
+        return this?.safeParseAsync;
+    },
+    set spa(value) {
+        own(this, "spa", value);
+    },
+    validate(data, params) {
+        return validate(this, data, params);
+    },
+    validateAsync(data, params) {
+        return validateAsync$1(this, data, params);
+    },
+    encode: function _encode(data, params) {
+        return encode(this, data, params, { callee: _encode });
+    },
+    decode: function _decode(data, params) {
+        return decode(this, data, params, { callee: _decode });
+    },
+    encodeAsync: async function _encodeAsync(data, params) {
+        return await encodeAsync(this, data, params, { callee: _encodeAsync });
+    },
+    decodeAsync: async function _decodeAsync(data, params) {
+        return await decodeAsync(this, data, params, { callee: _decodeAsync });
+    },
+    safeEncode(data, params) {
+        return safeEncode(this, data, params);
+    },
+    safeDecode(data, params) {
+        return safeDecode(this, data, params);
+    },
+    async safeEncodeAsync(data, params) {
+        return safeEncodeAsync(this, data, params);
+    },
+    async safeDecodeAsync(data, params) {
+        return safeDecodeAsync(this, data, params);
+    },
+    toJSONSchema(params) {
+        return createToJSONSchemaMethod(this, {})(params);
+    },
+    // Reads through to the registry on every access, so it must not cache.
+    get description() {
+        return globalRegistry.get(this)?.description;
+    },
+    // No setter: `schema._def = x` throws, as it did when `_def` was a non-writable own property.
+    get _def() {
+        return this._zod.def;
+    },
+});
+/** @internal */
+const _ZodString = /*@__PURE__*/ $constructor("_ZodString", (inst, def) => {
+    $ZodString.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => stringProcessor(inst, ctx, json);
+}, 
+/*@__PURE__*/ derived({
+    format: (inst) => aggregateChecks(inst).format ?? null,
+    minLength: (inst) => aggregateChecks(inst).minimum ?? null,
+    maxLength: (inst) => aggregateChecks(inst).maximum ?? null,
+}, {
+    regex(...args) {
+        return this.check(_regex(...args));
+    },
+    includes(...args) {
+        return this.check(_includes(...args));
+    },
+    startsWith(...args) {
+        return this.check(_startsWith(...args));
+    },
+    endsWith(...args) {
+        return this.check(_endsWith(...args));
+    },
+    min(...args) {
+        return this.check(_minLength(...args));
+    },
+    max(...args) {
+        return this.check(_maxLength(...args));
+    },
+    length(...args) {
+        return this.check(_length(...args));
+    },
+    nonempty(...args) {
+        return this.check(_minLength(1, ...args));
+    },
+    lowercase(params) {
+        return this.check(_lowercase(params));
+    },
+    uppercase(params) {
+        return this.check(_uppercase(params));
+    },
+    trim() {
+        return this.check(_trim());
+    },
+    normalize(...args) {
+        return this.check(_normalize(...args));
+    },
+    toLowerCase() {
+        return this.check(_toLowerCase());
+    },
+    toUpperCase() {
+        return this.check(_toUpperCase());
+    },
+    slugify() {
+        return this.check(_slugify());
+    },
+}));
+const ZodString = /*@__PURE__*/ $constructor("ZodString", (inst, def) => {
+    $ZodString.init(inst, def);
+    _ZodString.init(inst, def);
+}, {
+    email(params) {
+        return this.check(_email(ZodEmail, params));
+    },
+    url(params) {
+        return this.check(_url(ZodURL, params));
+    },
+    jwt(params) {
+        return this.check(_jwt(ZodJWT, params));
+    },
+    emoji(params) {
+        return this.check(_emoji(ZodEmoji, params));
+    },
+    guid(params) {
+        return this.check(_guid(ZodGUID, params));
+    },
+    uuid(params) {
+        return this.check(_uuid(ZodUUID, params));
+    },
+    uuidv4(params) {
+        return this.check(_uuidv4(ZodUUID, params));
+    },
+    uuidv6(params) {
+        return this.check(_uuidv6(ZodUUID, params));
+    },
+    uuidv7(params) {
+        return this.check(_uuidv7(ZodUUID, params));
+    },
+    nanoid(params) {
+        return this.check(_nanoid(ZodNanoID, params));
+    },
+    cuid(params) {
+        return this.check(_cuid(ZodCUID, params));
+    },
+    cuid2(params) {
+        return this.check(_cuid2(ZodCUID2, params));
+    },
+    ulid(params) {
+        return this.check(_ulid(ZodULID, params));
+    },
+    base64(params) {
+        return this.check(_base64(ZodBase64, params));
+    },
+    base64url(params) {
+        return this.check(_base64url(ZodBase64URL, params));
+    },
+    xid(params) {
+        return this.check(_xid(ZodXID, params));
+    },
+    ksuid(params) {
+        return this.check(_ksuid(ZodKSUID, params));
+    },
+    ipv4(params) {
+        return this.check(_ipv4(ZodIPv4, params));
+    },
+    ipv6(params) {
+        return this.check(_ipv6(ZodIPv6, params));
+    },
+    cidrv4(params) {
+        return this.check(_cidrv4(ZodCIDRv4, params));
+    },
+    cidrv6(params) {
+        return this.check(_cidrv6(ZodCIDRv6, params));
+    },
+    e164(params) {
+        return this.check(_e164(ZodE164, params));
+    },
+    datetime(params) {
+        return this.check(_isoDateTime(ZodISODateTime, params));
+    },
+    date(params) {
+        return this.check(_isoDate(ZodISODate, params));
+    },
+    time(params) {
+        return this.check(_isoTime(ZodISOTime, params));
+    },
+    duration(params) {
+        return this.check(_isoDuration(ZodISODuration, params));
+    },
+});
+function string(params) {
+    return _string(ZodString, params);
+}
+const ZodStringFormat = /*@__PURE__*/ $constructor("ZodStringFormat", (inst, def) => {
+    $ZodStringFormat.init(inst, def);
+    _ZodString.init(inst, def);
+});
+const ZodISODateTime = /*@__PURE__*/ $constructor("ZodISODateTime", (inst, def) => {
+    $ZodISODateTime.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodISODate = /*@__PURE__*/ $constructor("ZodISODate", (inst, def) => {
+    $ZodISODate.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodISOTime = /*@__PURE__*/ $constructor("ZodISOTime", (inst, def) => {
+    $ZodISOTime.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodISODuration = /*@__PURE__*/ $constructor("ZodISODuration", (inst, def) => {
+    $ZodISODuration.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodEmail = /*@__PURE__*/ $constructor("ZodEmail", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodEmail.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodGUID = /*@__PURE__*/ $constructor("ZodGUID", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodGUID.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodUUID = /*@__PURE__*/ $constructor("ZodUUID", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodUUID.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodURL = /*@__PURE__*/ $constructor("ZodURL", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodURL.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodEmoji = /*@__PURE__*/ $constructor("ZodEmoji", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodEmoji.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodNanoID = /*@__PURE__*/ $constructor("ZodNanoID", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodNanoID.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+/**
+ * @deprecated CUID v1 is deprecated by its authors due to information leakage
+ * (timestamps embedded in the id). Use {@link ZodCUID2} instead.
+ * See https://github.com/paralleldrive/cuid.
+ */
+const ZodCUID = /*@__PURE__*/ $constructor("ZodCUID", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodCUID.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodCUID2 = /*@__PURE__*/ $constructor("ZodCUID2", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodCUID2.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodULID = /*@__PURE__*/ $constructor("ZodULID", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodULID.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodXID = /*@__PURE__*/ $constructor("ZodXID", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodXID.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodKSUID = /*@__PURE__*/ $constructor("ZodKSUID", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodKSUID.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodIPv4 = /*@__PURE__*/ $constructor("ZodIPv4", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodIPv4.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodIPv6 = /*@__PURE__*/ $constructor("ZodIPv6", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodIPv6.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodCIDRv4 = /*@__PURE__*/ $constructor("ZodCIDRv4", (inst, def) => {
+    $ZodCIDRv4.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodCIDRv6 = /*@__PURE__*/ $constructor("ZodCIDRv6", (inst, def) => {
+    $ZodCIDRv6.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodBase64 = /*@__PURE__*/ $constructor("ZodBase64", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodBase64.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodBase64URL = /*@__PURE__*/ $constructor("ZodBase64URL", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodBase64URL.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodE164 = /*@__PURE__*/ $constructor("ZodE164", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodE164.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodJWT = /*@__PURE__*/ $constructor("ZodJWT", (inst, def) => {
+    // ZodStringFormat.init(inst, def);
+    $ZodJWT.init(inst, def);
+    ZodStringFormat.init(inst, def);
+});
+const ZodNumber = /*@__PURE__*/ $constructor("ZodNumber", (inst, def) => {
+    $ZodNumber.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => numberProcessor(inst, ctx, json, params);
+    inst.isFinite = true;
+}, 
+/*@__PURE__*/ derived({
+    minValue: (inst) => {
+        const { minimum, exclusiveMinimum } = aggregateChecks(inst);
+        return Math.max(minimum ?? Number.NEGATIVE_INFINITY, exclusiveMinimum ?? Number.NEGATIVE_INFINITY);
+    },
+    maxValue: (inst) => {
+        const { maximum, exclusiveMaximum } = aggregateChecks(inst);
+        return Math.min(maximum ?? Number.POSITIVE_INFINITY, exclusiveMaximum ?? Number.POSITIVE_INFINITY);
+    },
+    isInt: (inst) => {
+        const { isInt, multipleOf } = aggregateChecks(inst);
+        return !!isInt || !!multipleOf?.some(Number.isSafeInteger);
+    },
+    format: (inst) => aggregateChecks(inst).format ?? null,
+}, {
+    gt(value, params) {
+        return this.check(_gt(value, params));
+    },
+    gte(value, params) {
+        return this.check(_gte(value, params));
+    },
+    min(value, params) {
+        return this.check(_gte(value, params));
+    },
+    lt(value, params) {
+        return this.check(_lt(value, params));
+    },
+    lte(value, params) {
+        return this.check(_lte(value, params));
+    },
+    max(value, params) {
+        return this.check(_lte(value, params));
+    },
+    int(params) {
+        return this.check(int(params));
+    },
+    safe(params) {
+        return this.check(int(params));
+    },
+    positive(params) {
+        return this.check(_gt(0, params));
+    },
+    nonnegative(params) {
+        return this.check(_gte(0, params));
+    },
+    negative(params) {
+        return this.check(_lt(0, params));
+    },
+    nonpositive(params) {
+        return this.check(_lte(0, params));
+    },
+    multipleOf(value, params) {
+        return this.check(_multipleOf(value, params));
+    },
+    step(value, params) {
+        return this.check(_multipleOf(value, params));
+    },
+    finite() {
+        return this;
+    },
+}));
+function number(params) {
+    return _number(ZodNumber, params);
+}
+const ZodNumberFormat = /*@__PURE__*/ $constructor("ZodNumberFormat", (inst, def) => {
+    $ZodNumberFormat.init(inst, def);
+    ZodNumber.init(inst, def);
+});
+function int(params) {
+    return _int(ZodNumberFormat, params);
+}
+const ZodBoolean = /*@__PURE__*/ $constructor("ZodBoolean", (inst, def) => {
+    $ZodBoolean.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => booleanProcessor(inst, ctx, json);
+});
+function boolean(params) {
+    return _boolean(ZodBoolean, params);
+}
+const ZodUnknown = /*@__PURE__*/ $constructor("ZodUnknown", (inst, def) => {
+    $ZodUnknown.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => unknownProcessor();
+});
+function unknown() {
+    return _unknown(ZodUnknown);
+}
+const ZodNever = /*@__PURE__*/ $constructor("ZodNever", (inst, def) => {
+    $ZodNever.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => neverProcessor(inst, ctx, json);
+});
+function never(params) {
+    return _never(ZodNever, params);
+}
+const ZodArray = /*@__PURE__*/ $constructor("ZodArray", (inst, def) => {
+    _ensureDefaultMemoizer();
+    $ZodArray.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => arrayProcessor(inst, ctx, json, params);
+    inst.element = def.element;
+}, {
+    min(n, params) {
+        return this.check(_minLength(n, params));
+    },
+    nonempty(params) {
+        return this.check(_minLength(1, params));
+    },
+    max(n, params) {
+        return this.check(_maxLength(n, params));
+    },
+    length(n, params) {
+        return this.check(_length(n, params));
+    },
+    unwrap() {
+        return this.element;
+    },
+});
+function array(element, params) {
+    return _array(ZodArray, element, params);
+}
+const ZodObject = /*@__PURE__*/ $constructor("ZodObject", (inst, def) => {
+    _ensureDefaultMemoizer();
+    $ZodObjectJIT.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => objectProcessor(inst, ctx, json, params);
+    installLazyProp(inst, "shape", (self) => self._zod.def.shape, false);
+}, {
+    keyof() {
+        return _enum(Object.keys(this._zod.def.shape));
+    },
+    catchall(catchall) {
+        // `mergeDefs` rather than a spread: spreading reads `shape`, and resolving it can mint a whole fresh subtree
+        return this.clone(mergeDefs(this._zod.def, { catchall: catchall }));
+    },
+    passthrough() {
+        return this.clone(mergeDefs(this._zod.def, { catchall: unknown() }));
+    },
+    loose() {
+        return this.clone(mergeDefs(this._zod.def, { catchall: unknown() }));
+    },
+    strict() {
+        return this.clone(mergeDefs(this._zod.def, { catchall: never() }));
+    },
+    strip() {
+        return this.clone(mergeDefs(this._zod.def, { catchall: undefined }));
+    },
+    extend(incoming) {
+        return extend(this, incoming);
+    },
+    safeExtend(incoming) {
+        return safeExtend(this, incoming);
+    },
+    merge(other) {
+        return merge(this, other);
+    },
+    pick(mask) {
+        return pick(this, mask);
+    },
+    omit(mask) {
+        return omit(this, mask);
+    },
+    partial(...args) {
+        return partial(ZodOptional, this, args[0]);
+    },
+    exactPartial(...args) {
+        return partial(ZodExactOptional, this, args[0], "exactPartial");
+    },
+    required(...args) {
+        return required(ZodNonOptional, this, args[0]);
+    },
+});
+function object(shape, params) {
+    const def = {
+        type: "object",
+        shape: shape ?? {},
+        ...normalizeParams(params),
+    };
+    return new ZodObject(def);
+}
+// strictObject
+function strictObject(shape, params) {
+    return new ZodObject({
+        type: "object",
+        shape,
+        catchall: never(),
+        ...normalizeParams(params),
+    });
+}
+const ZodUnion = /*@__PURE__*/ $constructor("ZodUnion", (inst, def) => {
+    $ZodUnion.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => unionProcessor(inst, ctx, json, params);
+    inst.options = def.options;
+});
+function union(options, params) {
+    return new ZodUnion({
+        type: "union",
+        options: options,
+        ...normalizeParams(params),
+    });
+}
+const ZodIntersection = /*@__PURE__*/ $constructor("ZodIntersection", (inst, def) => {
+    $ZodIntersection.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => intersectionProcessor(inst, ctx, json, params);
+});
+function intersection(left, right) {
+    return new ZodIntersection({
+        type: "intersection",
+        left: left,
+        right: right,
+    });
+}
+const ZodRecord = /*@__PURE__*/ $constructor("ZodRecord", (inst, def) => {
+    _ensureDefaultMemoizer();
+    $ZodRecord.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => recordProcessor(inst, ctx, json, params);
+    inst.keyType = def.keyType;
+    inst.valueType = def.valueType;
+});
+function record(keyType, valueType, params) {
+    // v3-compat: z.record(valueType, params?) — defaults keyType to z.string()
+    if (!valueType || !valueType._zod) {
+        return new ZodRecord({
+            type: "record",
+            keyType: string(),
+            valueType: keyType,
+            ...normalizeParams(valueType),
+        });
+    }
+    return new ZodRecord({
+        type: "record",
+        keyType,
+        valueType: valueType,
+        ...normalizeParams(params),
+    });
+}
+const ZodEnum = /*@__PURE__*/ $constructor("ZodEnum", (inst, def) => {
+    $ZodEnum.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => enumProcessor(inst, ctx, json);
+    inst.enum = def.entries;
+    // reuse the parsed value set so a numeric TS enum's reverse-mapping keys stay out
+    inst.options = [...inst._zod.values];
+    const keys = new Set(Object.keys(def.entries));
+    inst.extract = (values, params) => {
+        const newEntries = {};
+        for (const value of values) {
+            if (keys.has(value)) {
+                newEntries[value] = def.entries[value];
+            }
+            else
+                throw new Error(`Key ${value} not found in enum`);
+        }
+        return new ZodEnum({
+            ...def,
+            checks: [],
+            ...normalizeParams(params),
+            entries: newEntries,
+        });
+    };
+    inst.exclude = (values, params) => {
+        const newEntries = { ...def.entries };
+        for (const value of values) {
+            if (keys.has(value)) {
+                delete newEntries[value];
+            }
+            else
+                throw new Error(`Key ${value} not found in enum`);
+        }
+        return new ZodEnum({
+            ...def,
+            checks: [],
+            ...normalizeParams(params),
+            entries: newEntries,
+        });
+    };
+});
+function _enum(values, params) {
+    const entries = Array.isArray(values) ? Object.fromEntries(values.map((v) => [v, v])) : values;
+    return new ZodEnum({
+        type: "enum",
+        entries,
+        ...normalizeParams(params),
+    });
+}
+const ZodTransform = /*@__PURE__*/ $constructor("ZodTransform", (inst, def) => {
+    _ensureDefaultMemoizer();
+    $ZodTransform.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => transformProcessor(inst, ctx, json, params);
+    inst._zod.parse = (payload, _ctx) => {
+        if (_ctx.direction === "backward") {
+            throw new $ZodEncodeError(inst.constructor.name);
+        }
+        payload.addIssue = (issue$1) => {
+            if (typeof issue$1 === "string") {
+                payload.issues.push(issue(issue$1, payload.value, def));
+            }
+            else {
+                // for Zod 3 backwards compatibility
+                const _issue = issue$1;
+                if (_issue.fatal)
+                    _issue.continue = false;
+                _issue.code ?? (_issue.code = "custom");
+                if (!("input" in _issue))
+                    _issue.input = payload.value;
+                _issue.inst ?? (_issue.inst = inst);
+                // _issue.continue ??= true;
+                payload.issues.push(issue(_issue));
+            }
+        };
+        const output = def.transform(payload.value, payload);
+        if (output instanceof Promise) {
+            return output.then((output) => {
+                payload.value = output;
+                return payload;
+            });
+        }
+        payload.value = output;
+        return payload;
+    };
+});
+function transform(fn) {
+    return new ZodTransform({
+        type: "transform",
+        transform: fn,
+    });
+}
+const ZodOptional = /*@__PURE__*/ $constructor("ZodOptional", (inst, def) => {
+    $ZodOptional.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => optionalProcessor(inst, ctx, json, params);
+    inst.unwrap = () => inst._zod.def.innerType;
+});
+function optional(innerType) {
+    return new ZodOptional({
+        type: "optional",
+        innerType: innerType,
+    });
+}
+const ZodExactOptional = /*@__PURE__*/ $constructor("ZodExactOptional", (inst, def) => {
+    $ZodExactOptional.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => optionalProcessor(inst, ctx, json, params);
+    inst.unwrap = () => inst._zod.def.innerType;
+});
+function exactOptional(innerType) {
+    return new ZodExactOptional({
+        type: "optional",
+        innerType: innerType,
+    });
+}
+const ZodNullable = /*@__PURE__*/ $constructor("ZodNullable", (inst, def) => {
+    $ZodNullable.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => nullableProcessor(inst, ctx, json, params);
+    inst.unwrap = () => inst._zod.def.innerType;
+});
+function nullable(innerType) {
+    return new ZodNullable({
+        type: "nullable",
+        innerType: innerType,
+    });
+}
+const ZodDefault = /*@__PURE__*/ $constructor("ZodDefault", (inst, def) => {
+    $ZodDefault.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => defaultProcessor(inst, ctx, json, params);
+    inst.unwrap = () => inst._zod.def.innerType;
+    inst.removeDefault = inst.unwrap;
+});
+function _default(innerType, defaultValue) {
+    return new ZodDefault({
+        type: "default",
+        innerType: innerType,
+        get defaultValue() {
+            return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
+        },
+    });
+}
+const ZodPrefault = /*@__PURE__*/ $constructor("ZodPrefault", (inst, def) => {
+    $ZodPrefault.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => prefaultProcessor(inst, ctx, json, params);
+    inst.unwrap = () => inst._zod.def.innerType;
+});
+function prefault(innerType, defaultValue) {
+    return new ZodPrefault({
+        type: "prefault",
+        innerType: innerType,
+        get defaultValue() {
+            return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
+        },
+    });
+}
+const ZodNonOptional = /*@__PURE__*/ $constructor("ZodNonOptional", (inst, def) => {
+    $ZodNonOptional.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => nonoptionalProcessor(inst, ctx, json, params);
+    inst.unwrap = () => inst._zod.def.innerType;
+});
+function nonoptional(innerType, params) {
+    return new ZodNonOptional({
+        type: "nonoptional",
+        innerType: innerType,
+        ...normalizeParams(params),
+    });
+}
+const ZodCatch = /*@__PURE__*/ $constructor("ZodCatch", (inst, def) => {
+    $ZodCatch.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => catchProcessor(inst, ctx, json, params);
+    inst.unwrap = () => inst._zod.def.innerType;
+    inst.removeCatch = inst.unwrap;
+});
+function _catch(innerType, catchValue) {
+    return new ZodCatch({
+        type: "catch",
+        innerType: innerType,
+        catchValue: (typeof catchValue === "function" ? catchValue : constantCatch(catchValue)),
+    });
+}
+const ZodPipe = /*@__PURE__*/ $constructor("ZodPipe", (inst, def) => {
+    $ZodPipe.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => pipeProcessor(inst, ctx, json, params);
+    inst.in = def.in;
+    inst.out = def.out;
+});
+function pipe(in_, out) {
+    return new ZodPipe({
+        type: "pipe",
+        in: in_,
+        out: out,
+        // ...util.normalizeParams(params),
+    });
+}
+const ZodPreprocess = /*@__PURE__*/ $constructor("ZodPreprocess", (inst, def) => {
+    ZodPipe.init(inst, def);
+    $ZodPreprocess.init(inst, def);
+});
+const ZodReadonly = /*@__PURE__*/ $constructor("ZodReadonly", (inst, def) => {
+    $ZodReadonly.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => readonlyProcessor(inst, ctx, json, params);
+    inst.unwrap = () => inst._zod.def.innerType;
+});
+function readonly(innerType) {
+    return new ZodReadonly({
+        type: "readonly",
+        innerType: innerType,
+    });
+}
+const ZodCustom = /*@__PURE__*/ $constructor("ZodCustom", (inst, def) => {
+    $ZodCustom.init(inst, def);
+    ZodType.init(inst, def);
+    inst._zod.processJSONSchema = (ctx, json, params) => customProcessor(inst, ctx, json, params);
+});
+function refine(fn, _params = {}) {
+    return _refine(ZodCustom, fn, _params);
+}
+// superRefine
+function superRefine(fn, params) {
+    return _superRefine(fn, params);
+}
+// preprocess
+function preprocess(fn, schema) {
+    return new ZodPreprocess({
+        type: "pipe",
+        in: transform(fn),
+        out: schema,
+    });
+}
+
+// リポの Actions の secret・variable の名前を読む。workflow doctor と、actions の処理が共有する。
+// 読めた一覧の名前を合わせる。読めなかった一覧があれば complete を false にする
+function mergeNames(lists) {
+    return { names: new Set(lists.flatMap(list => list ?? [])), complete: !lists.includes(undefined) };
+}
+/**
+リポの secret と variable の名前。持ち主が Organization なら、organization の分も読む
+*/
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 引数の型は readonly にできない
+async function readSettingNames(client, owner, repository) {
+    const ownerType = await client.getRepositoryOwnerType(owner, repository);
+    const scopes = ownerType === 'Organization' ? ['repository', 'organization'] : ['repository'];
+    const [secrets, variables] = await Promise.all([
+        Promise.all(scopes.map(async (scope) => await client.listActionsSecretNames(owner, repository, scope))),
+        Promise.all(scopes.map(async (scope) => await client.listActionsVariableNames(owner, repository, scope))),
+    ]);
+    return { secrets: mergeNames(secrets), variables: mergeNames(variables) };
+}
+
+// CLI の例外の基底。
+//
+// 階層は 2 系統ある。どちらも BaseError を共通の基底にする。
+// - PecotError 系は、利用者に見せる独自の例外。
+//   Python の core/errors.py の PecotError と同じ階層で、各モジュールの独自例外が継承する。
+// - Python の組み込み例外に当たる系は、PecotError を継承せず BaseError を直接継承する。
+//   InvalidValueError は ValueError、OsError は OSError、GitCommandError は CalledProcessError に当たる。
+//   TransportFailure、GraphqlFailure、UsageError などもこの系統。
+//   最上位で拾う側（commands/failure.ts）が、この 2 系統を区別して扱う。
+/**
+name をクラス名にし、cause を受け取る共通の基底
+*/
+class BaseError extends Error {
+    constructor(message, options) {
+        super(message, options);
+        this.name = new.target.name;
+    }
+}
+class PecotError extends BaseError {
+}
+/**
+MCP の要求が取り消され、待っていた子プロセスや要求を止めた。message は取り消しの理由
+*/
+class CancelledError extends BaseError {
+}
+/**
+プロジェクトルートが見つからない
+*/
+class ProjectRootNotFoundError extends PecotError {
+}
+/**
+値の形式が不正（Python の ValueError に当たる）。PecotError ではない
+*/
+class InvalidValueError extends BaseError {
+}
+
+// Python の CLI が出していた文言を作る関数。
+// 前後比較で文言を揃えるため、Python と同じ書式を写す。
+//
+// 持つもの:
+//   - JSON 値の repr は pythonRepr。
+//   - str のメソッドに当たる関数は pythonStrip と parsePythonInteger。
+//   - HTTP クライアントの状態の文は formatHttpStatusError。
+//   - 検証ライブラリの ValidationError の文は formatValidationError。
+//   - OSError の文は formatOsError。
+//
+// JSON.parse は整数と実数を区別しない。そのため 2.0 は「2」と出る（Python は 2.0）。
+// オブジェクトのキーは JS の順序（整数風のキーが先頭）になり、Python の挿入順とは違うことがある。
+// Python の str.isspace() が真の文字。JS の trim() が落とす文字から U+FEFF を除き、U+001C〜U+001F と U+0085 を足したもの
+function isPythonWhitespace(character) {
+    const code = character.codePointAt(0) ?? 0;
+    return (character.trim() === '' && code !== 0xFE_FF) || (code >= 0x1C && code <= 0x1F) || code === 0x85;
+}
+/**
+universal newlines と同じ。`\r\n` と `\r` を `\n` に揃える（Python の text=True・read_text()）
+*/
+function normalizeNewlines(text) {
+    return text.replaceAll(/\r\n?/gu, '\n');
+}
+/**
+文字列をコードポイントに分ける。Python の len・スライスと同じ単位（UTF-16 の単位ではない）
+*/
+function splitCodePoints(text) {
+    // eslint-disable-next-line @typescript-eslint/no-misused-spread -- Python の len と同じコードポイント単位で数えるため
+    return [...text];
+}
+/**
+str.strip() と同じ
+*/
+function pythonStrip(text) {
+    let start = 0;
+    let end = text.length;
+    while (start < end && isPythonWhitespace(text.charAt(start)))
+        start += 1;
+    while (end > start && isPythonWhitespace(text.charAt(end - 1)))
+        end -= 1;
+    return text.slice(start, end);
+}
+const NON_PRINTABLE = /[\p{Cc}\p{Cf}\p{Cs}\p{Co}\p{Cn}\p{Zl}\p{Zp}\p{Zs}]/u;
+function escapeCodePoint(character) {
+    const code = character.codePointAt(0) ?? 0;
+    if (code < 0x1_00)
+        return String.raw `\x${code.toString(16).padStart(2, '0')}`;
+    if (code < 0x1_00_00)
+        return String.raw `\u${code.toString(16).padStart(4, '0')}`;
+    return String.raw `\U${code.toString(16).padStart(8, '0')}`;
+}
+function escapeCharacter(character, quote) {
+    switch (character) {
+        case quote:
+        case '\\': {
+            return `\\${character}`;
+        }
+        case '\n': {
+            return String.raw `\n`;
+        }
+        case '\r': {
+            return String.raw `\r`;
+        }
+        case '\t': {
+            return String.raw `\t`;
+        }
+        case ' ': {
+            return character;
+        }
+        default: {
+            return NON_PRINTABLE.test(character) ? escapeCodePoint(character) : character;
+        }
+    }
+}
+/**
+repr(str) と同じ。引用符は、' を含み " を含まないときだけ "
+*/
+function pythonStringRepr(text) {
+    const quote = text.includes('\'') && !text.includes('"') ? '"' : '\'';
+    let result = '';
+    for (const character of splitCodePoints(text)) {
+        result += escapeCharacter(character, quote);
+    }
+    return `${quote}${result}${quote}`;
+}
+/**
+repr(float) と同じ。指数表記になるのは、10 進の小数点位置が 16 を超える・-3 未満のとき
+*/
+function pythonFloatRepr(value) {
+    if (Number.isNaN(value))
+        return 'nan';
+    if (!Number.isFinite(value))
+        return value > 0 ? 'inf' : '-inf';
+    if (value === 0)
+        return Object.is(value, -0) ? '-0.0' : '0.0';
+    const sign = value < 0 ? '-' : '';
+    const [mantissa = '', exponentText = '0'] = Math.abs(value).toExponential().split('e', 2);
+    const digits = mantissa.replace('.', '');
+    const exponent = Number(exponentText);
+    const pointPosition = exponent + 1;
+    if (pointPosition > -4 && pointPosition <= 16) {
+        if (pointPosition <= 0)
+            return `${sign}0.${'0'.repeat(-pointPosition)}${digits}`;
+        if (digits.length <= pointPosition)
+            return `${sign}${digits}${'0'.repeat(pointPosition - digits.length)}.0`;
+        return `${sign}${digits.slice(0, pointPosition)}.${digits.slice(pointPosition)}`;
+    }
+    const fraction = digits.length > 1 ? `.${digits.slice(1)}` : '';
+    const exponentSign = exponent < 0 ? '-' : '+';
+    return `${sign}${digits.slice(0, 1)}${fraction}e${exponentSign}${String(Math.abs(exponent)).padStart(2, '0')}`;
+}
+function isJsonArray(value) {
+    return Array.isArray(value);
+}
+/**
+JSON 値の repr。整数値の数は int、それ以外は float の書式にする
+*/
+function pythonRepr(value) {
+    if (value === null)
+        return 'None';
+    if (typeof value === 'boolean')
+        return value ? 'True' : 'False';
+    if (typeof value === 'number')
+        return Number.isSafeInteger(value) ? String(value) : pythonFloatRepr(value);
+    if (typeof value === 'string')
+        return pythonStringRepr(value);
+    if (isJsonArray(value))
+        return `[${value.map(item => pythonRepr(item)).join(', ')}]`;
+    return `{${Object.entries(value).map(([key, item]) => `${pythonStringRepr(key)}: ${pythonRepr(item)}`).join(', ')}}`;
+}
+/**
+type(value).__name__ に当たる名前
+*/
+function pythonTypeName(value) {
+    if (value === null || value === undefined)
+        return 'NoneType';
+    if (typeof value === 'boolean')
+        return 'bool';
+    if (typeof value === 'number')
+        return Number.isSafeInteger(value) ? 'int' : 'float';
+    if (typeof value === 'string')
+        return 'str';
+    return isJsonArray(value) ? 'list' : 'dict';
+}
+const STATUS_CLASS_LABELS = new Map([
+    [1, 'Informational response'],
+    [3, 'Redirect response'],
+    [4, 'Client error'],
+    [5, 'Server error'],
+]);
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+/**
+2xx 以外の応答に対する、HTTP クライアントの raise_for_status の文
+*/
+function formatHttpStatusError(failure) {
+    const { statusCode, url, location } = failure;
+    const reason = failure.statusText;
+    const label = STATUS_CLASS_LABELS.get(Math.trunc(statusCode / 100)) ?? 'Invalid status code';
+    const lines = [`${label} '${String(statusCode)} ${reason}' for url '${url}'`];
+    if (location !== undefined && REDIRECT_STATUSES.has(statusCode))
+        lines.push(`Redirect location: '${location}'`);
+    lines.push(`For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/${String(statusCode)}`);
+    return lines.join('\n');
+}
+const ERRNO_TABLE = new Map([
+    ['EPERM', [1, 'Operation not permitted']],
+    ['ENOENT', [2, 'No such file or directory']],
+    ['EIO', [5, 'Input/output error']],
+    ['EBADF', [9, 'Bad file descriptor']],
+    ['EACCES', [13, 'Permission denied']],
+    ['EBUSY', [16, 'Device or resource busy']],
+    ['EEXIST', [17, 'File exists']],
+    ['EXDEV', [18, 'Invalid cross-device link']],
+    ['ENOTDIR', [20, 'Not a directory']],
+    ['EISDIR', [21, 'Is a directory']],
+    ['EINVAL', [22, 'Invalid argument']],
+    ['EMFILE', [24, 'Too many open files']],
+    ['ENOSPC', [28, 'No space left on device']],
+    ['EROFS', [30, 'Read-only file system']],
+    ['ENAMETOOLONG', [36, 'File name too long']],
+    ['ENOTEMPTY', [39, 'Directory not empty']],
+    ['ELOOP', [40, 'Too many levels of symbolic links']],
+]);
+/**
+OSError の文（`[Errno 2] No such file or directory: 'x'`）。errno の code が表に無いときは undefined
+*/
+function formatOsError(failure) {
+    const entry = failure.code === undefined ? undefined : ERRNO_TABLE.get(failure.code);
+    if (entry === undefined)
+        return undefined;
+    const [errno, text] = entry;
+    const head = `[Errno ${String(errno)}] ${text}`;
+    if (failure.path === undefined)
+        return head;
+    const destination = failure.dest === undefined ? '' : ` -> ${pythonStringRepr(failure.dest)}`;
+    return `${head}: ${pythonStringRepr(failure.path)}${destination}`;
+}
+
+// JSON の値を読む補助。型の絞り込み、フィールドの読み取り、JSON 文字列の読み込みの置き場。
+// 同じ補助を各所に書かないよう、domain と infra はここから import する。
+/**
+配列でも null でもないオブジェクトか
+*/
+function isJsonObject(value) {
+    return typeof value === 'object' && value !== null && !isJsonArray(value);
+}
+/**
+オブジェクトの自身のキーの値。オブジェクトでない、またはキーが無ければ undefined。
+キーに prototype の名前が来ても、継承した値は返さない
+*/
+function jsonField(value, key) {
+    return isJsonObject(value) ? new Map(Object.entries(value)).get(key) : undefined;
+}
+/**
+JSON 文字列を読む。構文が不正なら undefined
+*/
+function tryParseJsonText(text) {
+    try {
+        // eslint-disable-next-line no-restricted-syntax -- JSON.parse の結果は定義上 JsonValue
+        return JSON.parse(text);
+    }
+    catch (error) {
+        if (error instanceof SyntaxError)
+            return undefined;
+        throw error;
+    }
+}
+/**
+JSON 文字列を読む。不正なら InvalidValueError。
+文言は JSON パーサーのもので、Python の JSONDecodeError の文とは違う
+*/
+function parseJsonText(text) {
+    try {
+        // eslint-disable-next-line no-restricted-syntax -- JSON.parse の結果は定義上 JsonValue
+        return JSON.parse(text);
+    }
+    catch (error) {
+        if (error instanceof SyntaxError)
+            throw new InvalidValueError(error.message, { cause: error });
+        throw error;
+    }
+}
+
+// 出力の文に添える、次に呼ぶツールの案内。案内はツールの path と入力のデータで持ち、ツール名と入力の呼び方（`call x with a: "b"`）に描く。
+// ツールの形（入力名）は commands/registry.ts と hint-catalog.ts が registerHintCommands で登録する。
+const catalog = new Map();
+function registerHintCommands(shapes) {
+    for (const shape of shapes)
+        catalog.set(shape.name, shape);
+}
+function commandHint(path, input = {}) {
+    return { kind: 'command', path, input };
+}
+function placeholder(name) {
+    return { placeholder: name };
+}
+/**
+案内の前置き。`call <ツール>`
+*/
+const RUN_COLON = 'call ';
+function isHint(value) {
+    return typeof value === 'object' && value !== null && 'kind' in value;
+}
+/**
+タグ付きテンプレートで HintedText を作る。`hinted\`call ${commandHint(['project', 'list'])}\``
+*/
+function hinted(strings, ...values) {
+    return strings.flatMap((text, index) => {
+        const value = values.at(index);
+        if (index >= values.length)
+            return [text];
+        if (isHintedText(value))
+            return [text, ...value];
+        return [text, isHint(value) ? value : String(value)];
+    });
+}
+function shapeOf(path) {
+    const shape = catalog.get(path.join('_'));
+    if (shape === undefined)
+        throw new TypeError(`案内のツール '${path.join('_')}' が定義に無い`);
+    return shape;
+}
+function assertInput(shape, name) {
+    if (!shape.inputs.includes(name))
+        throw new TypeError(`案内の入力 '${name}' が '${shape.name}' の定義に無い`);
+}
+function isList(value) {
+    return Array.isArray(value);
+}
+function isPlaceholder(value) {
+    return typeof value === 'object' && !isList(value);
+}
+function valueText(value) {
+    if (isPlaceholder(value))
+        return `<${value.placeholder}>`;
+    return typeof value === 'string' || isList(value) ? JSON.stringify(value) : String(value);
+}
+function formatCommand(hint) {
+    const shape = shapeOf(hint.path);
+    const entries = Object.entries(hint.input);
+    for (const [name] of entries)
+        assertInput(shape, name);
+    const tool = hint.path.join('_');
+    return entries.length === 0 ? tool : `${tool} with ${entries.map(([name, value]) => `${name}: ${valueText(value)}`).join(', ')}`;
+}
+/**
+案内 1 つをツールの呼び方にする。定義に無い path・入力名は TypeError
+*/
+function formatHint(hint) {
+    if (hint.kind === 'command')
+        return formatCommand(hint);
+    if (hint.kind === 'input')
+        assertInput(shapeOf(hint.path), hint.name);
+    const name = hint.kind === 'input' ? hint.name : 'repo';
+    return hint.value === undefined ? name : `${name}: ${valueText(hint.value)}`;
+}
+function formatHinted(text) {
+    return typeof text === 'string' ? text : text.map(part => typeof part === 'string' ? part : formatHint(part)).join('');
+}
+function isHintedText(value) {
+    return Array.isArray(value) && value.every((part) => typeof part === 'string' || isHint(part));
+}
+/**
+例外が持つ案内（hintedText）。無ければ undefined
+*/
+function hintedTextOf(error) {
+    if (typeof error !== 'object' || error === null || !('hintedText' in error))
+        return undefined;
+    const { hintedText } = error;
+    return isHintedText(hintedText) ? hintedText : undefined;
+}
+
+// プロジェクト設定（.pecot/config/projects/*.json）のモデルと判定。ファイルの読み書きは infra/config-store.ts が行う。
+//
+// モデルは zod の schema で表す。読んだ値は読み取り専用（凍結）で、更新はコピーを作る。
+// 検証エラーは、Python の CLI が出していた書式（表題は元のクラス名）の ValidationFailure にして投げる。
+// 値が無いこと（null・未指定）は、読んだ後はどちらも undefined になり、保存では出さない。
+const WorkflowStatusSchema = _enum(['backlog', 'pending', 'blocked', 'ready', 'active', 'in_review', 'archived']);
+WorkflowStatusSchema.options;
+const NAME_PATTERN = /^[\w.-]+$/u;
+const AGGREGATION_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/u;
+/**
+オブジェクトの schema。型が違うときの issue の message に、元のクラス名を入れる
+*/
+function model(name, shape) {
+    return object(shape, { error: () => name });
+}
+/**
+`X | None = None` に当たる文字列。null と未指定は、どちらも undefined にする
+*/
+const optionalString = string().nullish().transform(value => value ?? undefined);
+// int の lax な変換。bool は 0・1、前後の空白・符号・数字の間の `_`・小数部が 0 だけの文字列は整数にする。
+// 変換できない値はそのまま渡し、z.int() が型の誤りにする。
+function convertToInteger(value) {
+    if (typeof value === 'boolean')
+        return value ? 1 : 0;
+    if (typeof value !== 'string')
+        return value;
+    const text = pythonStrip(value);
+    const isUnderscoreSeparatedDigits = text.replace(/^[+-]/u, '').split('_').every(group => /^\d+$/u.test(group));
+    if (isUnderscoreSeparatedDigits)
+        return Number(text.replaceAll('_', ''));
+    if (/^[+-]?\d+\.0+$/u.test(text))
+        return Number(text.slice(0, text.indexOf('.'))) + 0; // -0 を 0 にする
+    return value;
+}
+const laxInteger = preprocess(convertToInteger, int());
+const FieldOptionsSchema = model('FieldOptions', {
+    id: string(),
+    options: record(string(), string()).readonly(),
+}).readonly();
+const ProjectFieldsSchema = model('ProjectFields', {
+    workflow: FieldOptionsSchema,
+    status: FieldOptionsSchema.nullish().transform(value => value ?? undefined),
+}).readonly();
+const ProjectSchema = model('Project', {
+    number: laxInteger,
+    id: string(),
+    board_url: optionalString,
+    fields: ProjectFieldsSchema,
+}).readonly();
+const PackageSchema = model('Package', {
+    name: string().min(1, { abort: true }).regex(NAME_PATTERN),
+    changelog: string().min(1),
+}).readonly();
+const ReleaseTypeSchema = _enum(['single', 'multi', 'nx']);
+/**
+release_type の取れる値（single・multi・nx）
+*/
+ReleaseTypeSchema.options;
+const RepositorySchema = model('Repository', {
+    owner: string(),
+    name: string(),
+    develop_branch: optionalString,
+    release_branch: optionalString,
+    changelog_file: optionalString,
+    packages: array(PackageSchema).readonly().nullish().transform(value => value ?? undefined),
+    release_type: ReleaseTypeSchema.nullish().transform(value => value ?? undefined),
+}).superRefine((repository, context) => {
+    // monorepo 構成（packages あり）では CHANGELOG は package ごとに管理するので、リポ全体の changelog_file は意味を持たない
+    const hasPackages = repository.packages !== undefined && repository.packages.length > 0;
+    if (hasPackages && repository.changelog_file !== undefined && repository.changelog_file !== '') {
+        context.addIssue({
+            code: 'custom',
+            message: 'Value error, changelog_file and packages cannot be set together; in a monorepo, use packages[].changelog instead',
+            params: { type: 'value_error' },
+        });
+    }
+}).readonly();
+model('ProjectConfig', {
+    host: string(),
+    owner: string(),
+    project: ProjectSchema,
+    repositories: array(RepositorySchema).readonly().default([]),
+    aggregation_repo: string().superRefine((value, context) => {
+        if (!AGGREGATION_REPOSITORY_PATTERN.test(value)) {
+            context.addIssue({
+                code: 'custom',
+                message: `Value error, aggregation_repo must be in 'owner/repo' form: ${pythonStringRepr(value)}`,
+                params: { type: 'value_error' },
+            });
+        }
+    }).nullish().transform(value => value ?? undefined),
+}).readonly();
+class ConfigError extends PecotError {
+}
+
+// GitHub API 操作の例外。Python の cli/core/github/errors.py と同じ階層にする。
+/**
+GitHub API 操作エラーの基底
+*/
+class GitHubAPIError extends PecotError {
+    statusCode;
+    responseBody;
+    errorType;
+    constructor(message, detail = {}) {
+        super(message, detail.cause === undefined ? undefined : { cause: detail.cause });
+        this.statusCode = detail.statusCode;
+        this.responseBody = detail.responseBody;
+        this.errorType = detail.errorType;
+    }
+}
+/**
+認証エラー（401 Unauthorized）。トークンが無効または期限切れのときに起きる
+*/
+class GitHubAuthError extends GitHubAPIError {
+}
+/**
+リソースが見つからない（404 Not Found）。指定したリポジトリ・Issue・プロジェクトが無いときに起きる
+*/
+class GitHubNotFoundError extends GitHubAPIError {
+}
+/**
+レート制限エラー（403 Forbidden で rate limit を超えたとき）
+*/
+class GitHubRateLimitError extends GitHubAPIError {
+}
+/**
+Issue の依存関係（blockedBy など）に対応しない GHES（3.19 より前）のエラー。スキーマの失敗を、ほかの GitHubAPIError と見分けるために使う
+*/
+class DependenciesUnsupportedError extends GitHubAPIError {
+}
+/**
+GraphQL の errors の NOT_FOUND を GitHubNotFoundError にする。文は変えない。GitHub は無い Issue を data の null でなくこの形で返すことがある
+*/
+function asNotFoundError(error) {
+    return error instanceof GitHubAPIError && !(error instanceof GitHubNotFoundError) && error.errorType === 'NOT_FOUND'
+        ? new GitHubNotFoundError(error.message, { cause: error, errorType: error.errorType })
+        : error;
+}
+const SCHEMA_ERROR_PHRASES = ['Cannot query field', 'doesn\'t exist', 'Unknown field'];
+/**
+古い GHES が、対応しないフィールドに返すスキーマの失敗か
+*/
+function isSchemaError(error) {
+    return error instanceof GitHubAPIError && SCHEMA_ERROR_PHRASES.some(phrase => error.message.includes(phrase));
+}
+
+// OS のエラー（Python の OSError に当たる）。文言は Python の `[Errno 2] No such file or directory: 'x'` に揃える。
+class OsError extends BaseError {
+    code;
+    path;
+    constructor(message, code, path, options) {
+        super(message, options);
+        this.code = code;
+        this.path = path;
+    }
+}
+/**
+Node のシステムエラー（code が `E` で始まる文字列）か
+*/
+function hasErrorCode(error) {
+    return error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code.startsWith('E');
+}
+function isFileNotFound(error) {
+    return hasErrorCode(error) && error.code === 'ENOENT';
+}
+/**
+Node のシステムエラーを OsError にする。errno の表に無い code は元の message を使う。EISDIR のように path を持たないエラーには fallbackPath を付ける。システムエラーでなければそのまま返す
+*/
+function toOsError(error, fallbackPath) {
+    if (!hasErrorCode(error))
+        return error;
+    const errorPath = error.path ?? fallbackPath;
+    const message = formatOsError({ code: error.code, path: errorPath, dest: error.dest }) ?? error.message;
+    return new OsError(message, error.code, errorPath, { cause: error });
+}
+
+/**
+例外が持つ子プロセスの生の出力（log）。無いか空なら undefined
+*/
+function logOf(error) {
+    if (typeof error !== 'object' || error === null || !('log' in error))
+        return undefined;
+    const { log } = error;
+    return typeof log === 'string' && log.trim() !== '' ? log : undefined;
+}
+
+// ツールの出力の行をそろえる共通の関数。
+//
+// 行の形は specs/021-cli-output-functions/contracts/output-lines.md が決める。
+// コマンドは操作（動詞と対象）を 1 つ作り、実行の前に planned を、実行の後に done を呼ぶ。
+// 期待の行は tests/output/cases.json に置き、Python の側と同じ値を共有する。
+/**
+操作の動詞。自由な文字列を受け取らない
+*/
+_enum(['create', 'update', 'delete', 'add', 'remove', 'close', 'reopen', 'merge', 'move', 'rename', 'set', 'skip', 'unchanged']);
+/**
+動詞の過去分詞。done の前置きになる
+*/
+function pastOf(verb) {
+    switch (verb) {
+        case 'create': {
+            return 'created';
+        }
+        case 'update': {
+            return 'updated';
+        }
+        case 'delete': {
+            return 'deleted';
+        }
+        case 'add': {
+            return 'added';
+        }
+        case 'remove': {
+            return 'removed';
+        }
+        case 'close': {
+            return 'closed';
+        }
+        case 'reopen': {
+            return 'reopened';
+        }
+        case 'merge': {
+            return 'merged';
+        }
+        case 'move': {
+            return 'moved';
+        }
+        case 'rename': {
+            return 'renamed';
+        }
+        case 'set': {
+            return 'set';
+        }
+        case 'skip': {
+            return 'skipped';
+        }
+        case 'unchanged': {
+            return 'unchanged';
+        }
+    }
+}
+/**
+warning の行の前置き。MCP の側はこれで stderr から warning の文を拾う
+*/
+const WARNING_PREFIX = 'warning: ';
+const ERROR_PREFIX = 'error: ';
+/**
+末尾の改行を取り除き、2 行目以降の先頭に空白 2 つを付け、末尾に改行を 1 つ付ける
+*/
+function formatMessage(prefix, message) {
+    const lines = message.replace(/\n+$/, '').split('\n');
+    return `${prefix}${lines.join('\n  ')}\n`;
+}
+function render(message) {
+    return formatHinted(message);
+}
+function createOutput(isDryRun, io) {
+    const writeResult = (line, aside) => {
+        io.stderr(`${line}\n`);
+        if (aside !== true)
+            io.resultLine?.(line);
+    };
+    return {
+        planned: ({ verb, target, aside }) => {
+            return;
+        },
+        done: ({ verb, target, aside }) => {
+            writeResult(`${pastOf(verb)}: ${target}`, aside);
+        },
+        warning: (message) => {
+            const text = render(message);
+            io.stderr(formatMessage(WARNING_PREFIX, text));
+            io.warning?.(formatMessage('', text).trimEnd());
+        },
+        error: (message) => {
+            const text = render(message);
+            io.stderr(formatMessage(ERROR_PREFIX, text));
+            io.error?.(formatMessage('', text).trimEnd());
+        },
+        detail: (message) => {
+            const text = formatMessage('', render(message)).trimEnd();
+            if (text !== '')
+                io.error?.(text);
+        },
+        log: (text) => {
+            if (text.trim() !== '')
+                io.log?.(text);
+        },
+        count: (label, value) => {
+            io.stderr(`count: ${label}: ${value === undefined ? 'unknown' : String(value)}\n`);
+        },
+        data: (text) => {
+            io.stdout(text.endsWith('\n') ? text : `${text}\n`);
+        },
+        result(fields) {
+            io.data?.(fields);
+        },
+        signal: io.signal,
+    };
+}
+/**
+確認が要る所で止めた（Python の click の Abort）。
+code を持たせない（link の処理は code を持つ例外を握るため、これは握られずに最上位まで届く）
+*/
+class AbortedError extends Error {
+    constructor() {
+        super('Aborted.');
+        this.name = 'AbortedError';
+    }
+}
+
+// 入力の誤り。ツールの結果の文は例外の文そのもので、終了コードは 2。
+class UsageError extends BaseError {
+}
+
+// コマンドが捕まえなかった例外を、最上位で `error: <message>` の行と終了コード 1 にする（Python の PecotError の網と同じ）。
+// 値の誤り（InvalidValueError）と OS のエラーも同じ行にする。上のどれでもない例外はプログラムの誤りなので、伝える。
+const FAILURE_EXIT_CODE = 1;
+/**
+最上位で error の行にできる例外か
+*/
+function isReportableFailure(error) {
+    return error instanceof PecotError || error instanceof InvalidValueError || error instanceof OsError;
+}
+function reportFailure(error, io) {
+    const out = createOutput(false, io);
+    const log = logOf(error);
+    if (log !== undefined)
+        out.log(log);
+    out.error(hintedTextOf(error) ?? error.message);
+}
+// 子クラスを親より先に並べる
+const KIND_BY_CLASS = [
+    [UsageError, 'invalid-input'],
+    [InvalidValueError, 'invalid-input'],
+    [AbortedError, 'aborted'],
+    [GitHubAuthError, 'github-auth'],
+    [GitHubNotFoundError, 'github-not-found'],
+    [GitHubRateLimitError, 'github-rate-limit'],
+    [GitHubAPIError, 'github-api'],
+    [ConfigError, 'config-invalid'],
+    [ProjectRootNotFoundError, 'project-root-not-found'],
+];
+/**
+例外のクラスから失敗の原因の名前を決める。表に無いものは other
+*/
+function kindOfFailure(error) {
+    return KIND_BY_CLASS.find(([type]) => error instanceof type)?.[1] ?? 'other';
+}
+
+const state = { mode: 'inherit' };
+function childStdin() {
+    return state.mode;
+}
+
+// 待つ時間の長い子プロセスを、イベントループを止めずに動かす。時間切れと MCP の要求の取り消しで、子をプロセスグループごと止める。
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- Node の型が mutable */
+/**
+子の標準出力・標準エラーを溜める上限。出力が大きい git（log・diff 等）でも切れない大きさにし、超えた分は捨てる
+*/
+const MAX_OUTPUT_BYTES = 1024 * 1024 * 1024;
+/**
+止めるときに SIGTERM を送ってから SIGKILL を送るまでの猶予。git が lock ファイルを片付ける時間
+*/
+const KILL_GRACE_MILLISECONDS = 1000;
+const running = new Set();
+// 別のセッションの子には端末のシグナルが届かないので、受けたらグループへ送ってから既定の動きに戻す
+const FORWARDED_SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGQUIT'];
+function createCapture() {
+    const chunks = [];
+    let captured = 0;
+    return {
+        push: (chunk) => {
+            const room = MAX_OUTPUT_BYTES - captured;
+            if (room <= 0)
+                return;
+            const kept = chunk.subarray(0, Math.min(room, chunk.length));
+            captured += kept.length;
+            chunks.push(kept);
+        },
+        text: () => normalizeNewlines(Buffer.concat(chunks).toString('utf8')),
+    };
+}
+function reasonText(reason) {
+    if (typeof reason === 'string')
+        return reason;
+    return reason instanceof Error ? reason.message : String(reason);
+}
+/**
+signal の取り消しの理由を持つ CancelledError
+*/
+function cancelledBy(signal) {
+    return new CancelledError(reasonText(signal.reason));
+}
+// 子はグループの頭なので、負の pid で孫（git-remote-https・フック・シェルの下のコマンド）にも送る
+function signalGroup(child, signal) {
+    if (child.pid === undefined)
+        return;
+    try {
+        process.kill(-child.pid, signal);
+    }
+    catch {
+        // 既に終わっている
+    }
+}
+// SIGTERM で片付けの機会を渡し、猶予の後も残っていれば SIGKILL で止める
+function terminateGroup(child) {
+    signalGroup(child, 'SIGTERM');
+    setTimeout(() => {
+        signalGroup(child, 'SIGKILL');
+    }, KILL_GRACE_MILLISECONDS).unref();
+}
+/**
+子プロセスを動かし、終わるのを待つ。起動に失敗（ENOENT など）したら OsError を投げる。
+子が 0 で終わっていれば、取り消しと重なっても成功の結果を返す
+*/
+async function runProcess(command, arguments_, options = {}) {
+    const { signal } = options;
+    if (signal?.aborted === true)
+        throw cancelledBy(signal);
+    const timeout = options.timeoutMilliseconds === undefined ? undefined : AbortSignal.timeout(options.timeoutMilliseconds);
+    // 時間切れのとき、フックなどの孫までまとめて止めるため、子を自分のグループの頭にする
+    const child = spawn(command, [...arguments_], {
+        cwd: options.cwd,
+        env: options.env,
+        shell: options.shell,
+        stdio: [options.stdin ?? childStdin(), 'pipe', 'pipe'],
+        detached: true,
+    });
+    running.add(child);
+    const stdout = createCapture();
+    const stderr = createCapture();
+    child.stdout.on('data', stdout.push);
+    child.stderr.on('data', stderr.push);
+    return await new Promise((resolve, reject) => {
+        let stopped;
+        let isSettled = false;
+        const hasExited = () => child.exitCode !== null || child.signalCode !== null;
+        const onTimeout = () => {
+            stop('timed-out');
+        };
+        const onAbort = () => {
+            stop('cancelled');
+        };
+        const forward = (received) => {
+            signalGroup(child, received);
+            finish();
+            process.kill(process.pid, received);
+        };
+        const finish = () => {
+            isSettled = true;
+            running.delete(child);
+            timeout?.removeEventListener('abort', onTimeout);
+            signal?.removeEventListener('abort', onAbort);
+            for (const name of FORWARDED_SIGNALS)
+                process.removeListener(name, forward);
+        };
+        const settle = (exitCode, exitSignal) => {
+            if (isSettled)
+                return;
+            finish();
+            if (stopped === 'cancelled' && signal !== undefined) {
+                reject(cancelledBy(signal));
+                return;
+            }
+            resolve({ exitCode, signal: exitSignal, stdout: stdout.text(), stderr: stderr.text(), isTimedOut: stopped === 'timed-out' });
+        };
+        // 止めた後は close を待たない。パイプを握った孫が残ると、close は孫が終わるまで来ない
+        const settleOnExit = () => {
+            child.stdout.destroy();
+            child.stderr.destroy();
+            settle(child.exitCode, child.signalCode);
+        };
+        const stop = (reason) => {
+            if (isSettled || stopped !== undefined)
+                return;
+            terminateGroup(child);
+            // 子が先に終わっていれば、その結果を返す。0 で終わっていない取り消しだけは、続きを動かさないために投げる
+            if (hasExited()) {
+                if (reason === 'cancelled' && child.exitCode !== 0)
+                    stopped = reason;
+                settleOnExit();
+                return;
+            }
+            stopped = reason;
+        };
+        timeout?.addEventListener('abort', onTimeout, { once: true });
+        signal?.addEventListener('abort', onAbort, { once: true });
+        for (const name of FORWARDED_SIGNALS)
+            process.on(name, forward);
+        child.once('error', (error) => {
+            if (isSettled)
+                return;
+            finish();
+            const converted = toOsError(error);
+            reject(converted instanceof Error ? converted : error);
+        });
+        child.once('exit', (exitCode) => {
+            if (stopped === undefined)
+                return;
+            // 止める前に 0 で終わっていた（止めるのと終わるのが重なった）なら成功とする
+            if (exitCode === 0)
+                stopped = undefined;
+            settleOnExit();
+        });
+        child.once('close', (exitCode, exitSignal) => {
+            settle(exitCode, exitSignal);
+        });
+    });
+}
+
+// git コマンド実行の唯一の窓口。git の subprocess 呼び出しはすべて runGit か runGitAsync を経由する。
+// 値を返す helper（gitToplevel 等）は、失敗時に undefined を返す。
+/**
+時間切れで止めたときの exitCode
+*/
+const GIT_TIMED_OUT = -2;
+function isTimedOut(error) {
+    return error !== undefined && 'code' in error && error.code === 'ETIMEDOUT';
+}
+/**
+check 付きの実行が非 0 で終わった（Python の CalledProcessError に当たる）
+*/
+class GitCommandError extends BaseError {
+    exitCode;
+    stdout;
+    stderr;
+    constructor(arguments_, result) {
+        super(`Command ${pythonRepr(['git', ...arguments_])} returned non-zero exit status ${String(result.exitCode)}.`);
+        this.exitCode = result.exitCode;
+        this.stdout = result.stdout;
+        this.stderr = result.stderr;
+    }
+}
+function withoutGitVariables() {
+    // interface-env: none
+    return Object.fromEntries(Object.entries(process.env).filter((entry) => entry[1] !== undefined && !entry[0].startsWith('GIT_')));
+}
+/**
+git を実行する。標準出力・標準エラーは改行を \n に揃えた文字列で返す。
+git や作業ディレクトリが見つからなければ OsError（code ENOENT）を投げる
+*/
+function runGit(arguments_, options = {}) {
+    // interface-env: none
+    const base = options.stripGitEnvironment === true ? withoutGitVariables() : (options.env === undefined ? undefined : process.env);
+    const result = spawnSync('git', [...arguments_], {
+        cwd: options.cwd,
+        env: base === undefined ? undefined : { ...base, ...options.env },
+        encoding: 'utf8',
+        maxBuffer: MAX_OUTPUT_BYTES,
+        stdio: [childStdin(), 'pipe', 'pipe'],
+        ...(options.timeoutMilliseconds !== undefined && { timeout: options.timeoutMilliseconds, killSignal: 'SIGKILL' }),
+    });
+    if (isTimedOut(result.error))
+        return { exitCode: GIT_TIMED_OUT, stdout: normalizeNewlines(result.stdout), stderr: normalizeNewlines(result.stderr) };
+    if (result.error !== undefined) {
+        // spawnSync の ENOENT は path が `git` で入る。cwd が無いときも同じ ENOENT になる
+        throw toOsError(result.error);
+    }
+    const gitResult = { exitCode: result.status ?? -1, stdout: normalizeNewlines(result.stdout), stderr: normalizeNewlines(result.stderr) };
+    if (options.check === true && gitResult.exitCode !== 0)
+        throw new GitCommandError(arguments_, gitResult);
+    return gitResult;
+}
+/**
+標準出力を削らずに返す。非 0 終了・git が無いときは undefined
+*/
+function gitStdout(arguments_, options = {}) {
+    try {
+        return runGit(arguments_, { ...options, check: true }).stdout;
+    }
+    catch (error) {
+        if (error instanceof GitCommandError || isFileNotFound(error))
+            return undefined;
+        throw error;
+    }
+}
+function runForValue(arguments_, options) {
+    const stdout = gitStdout(arguments_, options);
+    return stdout === undefined ? undefined : pythonStrip(stdout);
+}
+/**
+git リポジトリ（ワークツリー）のルート。git の外・git が無いときは undefined
+*/
+function gitToplevel(options = {}) {
+    return runForValue(['rev-parse', '--show-toplevel'], options);
+}
+
+/* eslint-disable security/detect-non-literal-fs-filename -- パスは呼び出し側が決める。ここは解決だけ */
+// pecot リポジトリ基準のパス解決。`.pecot/` 配下のパス定義の唯一の置き場。
+// projectRoot() でプロジェクトルートを解決する。
+// プロジェクトルート基準の相対パス
+const PECOT_DIR = '.pecot';
+// 設定ファイルの置き場
+const CONFIG_DIR = `${PECOT_DIR}/config`;
+/**
+パス文字列を Python の Path と同じ形にする（空のセグメントと `.` を落とし、末尾のスラッシュを落とす）
+*/
+function normalizePath(text) {
+    const segments = text.split('/').filter(segment => segment !== '' && segment !== '.');
+    return `${text.startsWith('/') ? '/' : ''}${segments.join('/')}` || '.';
+}
+function currentDirectory(options) {
+    try {
+        return options.cwd ?? process.cwd();
+    }
+    catch (error) {
+        // 作業ディレクトリが消えているとき
+        if (hasErrorCode(error))
+            return undefined;
+        throw error;
+    }
+}
+/**
+プロジェクトルートを取得する。
+1. CLAUDE_PROJECT_DIR があれば使う（テスト上書き用）。
+2. なければ git rev-parse --show-toplevel で解決する（GIT_* を除いて実行する）。
+
+どれも得られなければ ProjectRootNotFoundError
+*/
+function projectRoot(options = {}) {
+    const fromEnvironment = process.env['CLAUDE_PROJECT_DIR'];
+    if (fromEnvironment !== undefined && fromEnvironment !== '')
+        return normalizePath(fromEnvironment);
+    const cwd = currentDirectory(options);
+    // git push 等のフック内では GIT_DIR 等が設定され、作業ディレクトリの代わりに参照される。
+    // そのため GIT_* を除いて作業ディレクトリ基準で解決する
+    const toplevel = gitToplevel({ cwd, stripGitEnvironment: true });
+    if (toplevel !== undefined)
+        return toplevel;
+    throw new ProjectRootNotFoundError('project root not found: run inside a git repository or set the CLAUDE_PROJECT_DIR environment variable');
+}
+
+/* eslint-disable security/detect-non-literal-fs-filename -- パスは呼び出し側が決める。この関数は読むだけ */
+// テキストファイルの読み書き。Python の `read_text()`（UTF-8・universal newlines）と同じ挙動にする。
+// BOM は Python の utf-8 と同じく残す。不正なバイトは置き換えず例外にする
+const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
+/**
+UTF-8 として読めないファイル。Python の UnicodeDecodeError に当たり、OsError ではない
+*/
+class TextDecodeError extends BaseError {
+}
+/**
+UTF-8 で読み、改行（\r\n・\r）は \n に揃える。読めなければ Python の OSError と同じ文の OsError。
+不正な UTF-8 は TextDecodeError
+*/
+function readTextFile(file) {
+    let bytes;
+    try {
+        bytes = readFileSync(file);
+    }
+    catch (error) {
+        throw toOsError(error, file);
+    }
+    try {
+        return normalizeNewlines(UTF8_DECODER.decode(bytes));
+    }
+    catch (error) {
+        throw new TextDecodeError(`'utf-8' codec can't decode file: ${file}`, { cause: error });
+    }
+}
+
+/* eslint-disable security/detect-non-literal-fs-filename -- パスはプロジェクトルート配下の設定ディレクトリと、呼び出し側が渡す設定ファイル */
+// プロジェクト設定（`.pecot/config/projects/*.json`）の読み書き。モデルと判定は domain/config.ts にある。
+/**
+設定ディレクトリ（`{プロジェクトルート}/.pecot/config`）
+*/
+function configDirectory() {
+    return path.join(projectRoot(), CONFIG_DIR);
+}
+
+/* eslint-disable security/detect-non-literal-fs-filename -- パスは設定ディレクトリ配下のファイルと、呼び出し側が渡す .env */
+// GitHub トークン解決に使うホスト設定と .env の読み書き。cli/core/github/auth.py の移植。
+/**
+str(value) と同じ。文字列はそのまま、それ以外は repr
+*/
+function pythonString(value) {
+    return typeof value === 'string' ? value : pythonRepr(value);
+}
+// ホスト設定のキャッシュ（モジュールレベル）
+const hostsCache = { value: undefined };
+/**
+環境変数の値。無ければ undefined。
+
+名前が実行時に決まるので、環境変数の名前を添字で直接書く形では読めない。
+名前の元は、hosts.json の env_var、ホストから作る `PECOT_GITHUB_<HOST>_TOKEN`、ROOT_ENV_VAR_MAP。
+環境変数の宣言の確認（.githooks/tests/test_nx_env_inputs.py）は、この読み方を検出できない。
+宣言できない代わりに、テストが結果をトークンの値に依存させない。
+テストは token を明示して渡すか、トークンの変数を自分で設定する。
+トークンの変数を外す隔離は tests/_helpers/environment.ts の useIsolatedEnvironment が行う。
+*/
+function environmentValue(name) {
+    // interface-env: PECOT_GITHUB_*_TOKEN GITHUB_COM_TOKEN
+    return new Map(Object.entries(process.env)).get(name);
+}
+/**
+ホスト設定をロードする（キャッシュ付き）。
+設定ディレクトリの hosts.json を読む。ファイルが無ければ空の設定。
+最上位が JSON のオブジェクトでないときは、空の設定として扱う
+*/
+function loadHostsConfig() {
+    if (hostsCache.value !== undefined)
+        return hostsCache.value;
+    const hostsFile = path.join(configDirectory(), 'hosts.json');
+    let loaded = { hosts: {} };
+    if (existsSync(hostsFile)) {
+        const parsed = parseJsonText(readTextFile(hostsFile));
+        loaded = isJsonObject(parsed) ? parsed : {};
+    }
+    hostsCache.value = loaded;
+    return loaded;
+}
+/**
+ホストの設定（env_var・token_url・description・scopes）。無い、または空のオブジェクトなら undefined
+*/
+function getHostConfig(host) {
+    const hosts = jsonField(loadHostsConfig(), 'hosts');
+    const entry = isJsonObject(hosts) ? jsonField(hosts, host) : undefined;
+    return isJsonObject(entry) && Object.keys(entry).length > 0 ? entry : undefined;
+}
+// Python の dict の添字参照が KeyError になる所。str(KeyError) と同じ文にする
+function requiredField(config, key) {
+    const value = jsonField(config, key);
+    if (value === undefined)
+        throw new InvalidValueError(pythonStringRepr(key));
+    return value;
+}
+/**
+hosts.json に定義が無いときの既定の環境変数名。hosts.json.sample・.env.sample と同じ名前。
+hosts.json はリポに含まれないため、Actions などの新しい checkout ではこの名前を使う
+*/
+const DEFAULT_ENV_VAR_MAP = new Map([
+    ['github.com', 'PECOT_GITHUB_COM_TOKEN'],
+]);
+/**
+ホストに対応する環境変数名。hosts.json の定義、既定の対応、`PECOT_GITHUB_<HOST>_TOKEN`（ドットはアンダースコア）の順に使う
+*/
+function getEnvironmentVariableName(host) {
+    const hostConfig = getHostConfig(host);
+    return hostConfig === undefined
+        ? DEFAULT_ENV_VAR_MAP.get(host) ?? `PECOT_GITHUB_${host.toUpperCase().replaceAll('.', '_')}_TOKEN`
+        : pythonString(requiredField(hostConfig, 'env_var'));
+}
+// ルート .env の変数名マッピング（ホスト → ルート .env の変数名）。MCP ラッパーと同じトークンソースを参照するための定義
+const ROOT_ENV_VAR_MAP = new Map([
+    ['github.com', 'GITHUB_COM_TOKEN'],
+]);
+/**
+環境変数ファイルを読み、実行中の環境に設定する。Python の load_env_file と同じく環境を書き換える。
+KEY=VALUE 形式で、空行と # で始まる行は飛ばす。既にある環境変数は上書きしない
+*/
+function loadEnvironmentFile(file) {
+    if (!existsSync(file))
+        return;
+    for (const rawLine of readTextFile(file).split('\n')) {
+        const line = pythonStrip(rawLine);
+        if (line === '' || line.startsWith('#'))
+            continue;
+        const separator = line.indexOf('=');
+        if (separator === -1)
+            continue;
+        const key = pythonStrip(line.slice(0, separator));
+        const value = pythonStrip(line.slice(separator + 1));
+        // interface-env: none
+        if (key !== '' && !Object.hasOwn(process.env, key))
+            Reflect.set(process.env, key, value);
+    }
+}
+/**
+トークンの取得先 URL（hosts.json の token_url、無ければ設定画面の URL）
+*/
+function tokenUrlFor(host) {
+    const hostConfig = getHostConfig(host);
+    return hostConfig === undefined ? `https://${host}/settings/tokens` : pythonString(requiredField(hostConfig, 'token_url'));
+}
+/**
+hosts.json の scopes。無い、または配列でないときは空
+*/
+function scopesFor(host) {
+    const hostConfig = getHostConfig(host);
+    const scopes = hostConfig === undefined ? undefined : jsonField(hostConfig, 'scopes');
+    return isJsonArray(scopes) ? scopes.map(scope => pythonString(scope)) : [];
+}
+function environmentEntry(host) {
+    const hostConfig = getHostConfig(host);
+    const description = hostConfig === undefined ? host : pythonString(requiredField(hostConfig, 'description'));
+    const scopes = scopesFor(host);
+    const scopesComment = scopes.length > 0 ? `# 必要なスコープ: ${scopes.join(', ')}` : '';
+    return `\n# ${description}\n# 取得先: ${tokenUrlFor(host)}\n${scopesComment}\n${getEnvironmentVariableName(host)}=\n`;
+}
+const ENVIRONMENT_FILE_HEADER = `# pecot-cli 認証設定
+# 各トークンの値を設定してください
+#
+# トークン作成時は必要なスコープを付与してください
+`;
+/**
+認証用の .env を生成または更新して、そのパスを返す。
+無ければ新規作成する。あるときは、ホストの環境変数名が書かれていない場合だけ追記する。
+設定ディレクトリが無ければ何も書かずに undefined を返す（.gitignore の無い clone にトークンのファイルを置かない）
+*/
+function ensureEnvironmentFile(host) {
+    const directory = configDirectory();
+    if (!existsSync(directory))
+        return undefined;
+    const file = path.join(directory, '.env');
+    const name = getEnvironmentVariableName(host);
+    const entry = environmentEntry(host);
+    try {
+        if (!existsSync(file))
+            writeFileSync(file, ENVIRONMENT_FILE_HEADER + entry, 'utf8');
+        else if (!readTextFile(file).includes(name))
+            appendFileSync(file, entry, 'utf8');
+    }
+    catch (error) {
+        throw toOsError(error);
+    }
+    return file;
+}
+
+// JSON の null を表す定数。GraphQL の変数や JSON の出力に null が要る箇所は、これを使う。
+// `unicorn/no-null` を外すのはここ 1 か所だけにする。
+// eslint-disable-next-line unicorn/no-null -- JSON の null を表す唯一の定数
+const JSON_NULL = null;
+
+// GitHub の応答（REST の JSON と GraphQL の data）を読む補助。
+// Python の dict.get と as_dict に当たる。形が合わないときは、辞書や配列を空として読む。
+// 必須の値が無い、または型が違うときは GitHubAPIError にする（Python は KeyError で落ちる所）。
+const EMPTY_OBJECT = {};
+const EMPTY_ARRAY = [];
+/**
+as_dict と同じ。オブジェクトでなければ空のオブジェクト
+*/
+function asObject(value) {
+    return isJsonObject(value) ? value : EMPTY_OBJECT;
+}
+/**
+配列でなければ空の配列
+*/
+function asArray(value) {
+    return isJsonArray(value) ? value : EMPTY_ARRAY;
+}
+/**
+Python の真偽値と同じ。None・False・0・空文字・空の配列・空の辞書は偽
+*/
+function isTruthy(value) {
+    if (value === undefined || value === null || value === false || value === 0 || value === '')
+        return false;
+    if (isJsonArray(value))
+        return value.length > 0;
+    if (typeof value === 'object')
+        return Object.keys(value).length > 0;
+    return true;
+}
+/**
+`value.get(key, [])` の `nodes` の読み方。真偽値が偽の要素（None・空の辞書）を落とした配列
+*/
+function truthyNodes(value) {
+    return asArray(jsonField(value, 'nodes')).filter(node => isTruthy(node));
+}
+function throwMalformed(path) {
+    throw new GitHubAPIError(`malformed GitHub response: ${path}`);
+}
+/**
+必須の文字列。無い、または文字列でなければ GitHubAPIError
+*/
+function requireString(value, path) {
+    return typeof value === 'string' ? value : throwMalformed(path);
+}
+/**
+必須の数。無い、または数でなければ GitHubAPIError
+*/
+function requireNumber(value, path) {
+    return typeof value === 'number' ? value : throwMalformed(path);
+}
+/**
+文字列か null。無いときと文字列以外は null
+*/
+function stringOrNull(value) {
+    return typeof value === 'string' ? value : JSON_NULL;
+}
+/**
+数か null。無いときと数以外は null
+*/
+function numberOrNull(value) {
+    return typeof value === 'number' ? value : JSON_NULL;
+}
+/**
+必須の値（null でもよい）。キーが無ければ GitHubAPIError
+*/
+function requireValue(value, path) {
+    return value === undefined ? throwMalformed(path) : value;
+}
+/**
+Issue の subIssues.totalCount。無いときは 0
+*/
+function subIssuesTotal(issue) {
+    const total = jsonField(jsonField(issue, 'subIssues'), 'totalCount');
+    return typeof total === 'number' ? total : 0;
+}
+
+// GitHub API クライアントの基底（認証・REST と GraphQL の実行・エラー変換）。cli/core/github/client.py の移植。
+// issues・pulls・projects・repos の操作はこの基底に足す。
+//
+// Python は httpx と gql で送っていた。ここでは fetch で送り、次の点を揃える。
+// - redirect: 'manual' で呼ぶ。301 などは成功にせず、Python と同じ失敗にする。
+// - URL は文字列の連結で作る。new URL は GHE の base（/api/v3）を落とす。
+// - 失敗の文は httpx と gql の文言を写す。
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost']);
+const MAX_PORT = 65_535;
+// Python の TOKEN_FALLBACK_WARNING と同じ文。前置きと字下げを含まない
+const TOKEN_FALLBACK_WARNING = 'the token in the environment variable is invalid (401 Unauthorized); fell back to gh auth token\n'
+    + 'update or remove the token in .env';
+function isControlOrSpace(character) {
+    return (character.codePointAt(0) ?? 0) <= 0x20;
+}
+function trimTrailingSlashes(text) {
+    let end = text.length;
+    while (end > 0 && text.charAt(end - 1) === '/')
+        end -= 1;
+    return text.slice(0, end);
+}
+/**
+urlsplit(raw) の結果が、ループバックの http URL（query・fragment・userinfo なし）かを判定する。
+host は new URL で正規化せず、元の文字列の authority で比べる。
+そのため `127.1`・`0x7f.0.0.1` は拒否し、`HTTP://LOCALHOST:5` は受ける（urlsplit が scheme と host を小文字にする）。
+空の query と fragment（クエリ記号やハッシュだけの末尾）は受ける
+*/
+function isLoopbackHttpUrl(raw) {
+    let start = 0;
+    while (start < raw.length && isControlOrSpace(raw.charAt(start)))
+        start += 1;
+    const url = raw.slice(start).replaceAll(/[\t\n\r]/gu, '');
+    const scheme = /^([A-Za-z][\d+.A-Za-z-]*):/u.exec(url);
+    if (scheme?.[1]?.toLowerCase() !== 'http')
+        return false;
+    const rest = url.slice(scheme[0].length);
+    if (!rest.startsWith('//'))
+        return false;
+    const afterSlashes = rest.slice(2);
+    const delimiter = afterSlashes.search(/[#/?]/u);
+    const netloc = delimiter === -1 ? afterSlashes : afterSlashes.slice(0, delimiter);
+    const tail = delimiter === -1 ? '' : afterSlashes.slice(delimiter);
+    const fragmentStart = tail.indexOf('#');
+    const fragment = fragmentStart === -1 ? '' : tail.slice(fragmentStart + 1);
+    const beforeFragment = fragmentStart === -1 ? tail : tail.slice(0, fragmentStart);
+    const queryStart = beforeFragment.indexOf('?');
+    const query = queryStart === -1 ? '' : beforeFragment.slice(queryStart + 1);
+    // userinfo があるもの、IPv6 の角括弧があるものは、ループバックの 2 つのいずれでもない
+    if (query !== '' || fragment !== '' || /[@[\]]/u.test(netloc))
+        return false;
+    const portStart = netloc.indexOf(':');
+    const hostname = (portStart === -1 ? netloc : netloc.slice(0, portStart)).toLowerCase();
+    if (!LOOPBACK_HOSTS.has(hostname))
+        return false;
+    if (portStart === -1)
+        return true;
+    const port = netloc.slice(portStart + 1);
+    return port === '' || (/^\d+$/u.test(port) && Number(port) <= MAX_PORT);
+}
+/**
+PECOT_GITHUB_API_URL を検証して返す。未設定・空文字なら undefined。
+前後比較のテストが GitHub の代わりに偽サーバへ向けるための差し替え口。
+ループバックの http URL だけを受け付け、それ以外は InvalidValueError。末尾の `/` は落とす
+*/
+function resolveApiUrlOverride() {
+    const raw = process.env['PECOT_GITHUB_API_URL'] ?? '';
+    if (raw === '')
+        return undefined;
+    if (!isLoopbackHttpUrl(raw)) {
+        throw new InvalidValueError(`PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: ${raw}`);
+    }
+    return trimTrailingSlashes(raw);
+}
+const DEFAULT_API_VERSION = '2022-11-28';
+/**
+送信の失敗（接続できない・時間切れ）。Python の httpx の例外に当たり、PecotError ではない
+*/
+class TransportFailure extends BaseError {
+}
+function errorCode(error) {
+    return error instanceof Error && 'code' in error && typeof error.code === 'string' ? error.code : undefined;
+}
+const SOCKET_FAILURES = new Map([
+    ['ECONNREFUSED', '[Errno 111] Connection refused'],
+    ['ECONNRESET', '[Errno 104] Connection reset by peer'],
+    ['ENOTFOUND', '[Errno -2] Name or service not known'],
+    ['EAI_AGAIN', '[Errno -3] Temporary failure in name resolution'],
+]);
+/**
+fetch の失敗の文。接続の失敗は errno の文、時間切れは httpx の ReadTimeout の文（timed out）にする。
+それ以外は例外の文そのもの
+*/
+function describeTransportFailure(error) {
+    if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError'))
+        return 'timed out';
+    const cause = error instanceof Error ? error.cause : undefined;
+    const code = errorCode(cause) ?? errorCode(error);
+    const known = code === undefined ? undefined : SOCKET_FAILURES.get(code);
+    if (known !== undefined)
+        return known;
+    if (cause instanceof Error)
+        return cause.message;
+    return error instanceof Error ? error.message : String(error);
+}
+// urllib.parse.quote_plus と同じ。英数字と `_.-~` 以外は UTF-8 の %XX にし、空白は `+`
+function quotePlus(text) {
+    let result = '';
+    const bytes = new TextEncoder().encode(text);
+    for (const byte of bytes) {
+        const character = String.fromCodePoint(byte);
+        if (/[\w.~-]/u.test(character))
+            result += character;
+        else if (byte === 0x20)
+            result += '+';
+        else
+            result += `%${byte.toString(16).toUpperCase().padStart(2, '0')}`;
+    }
+    return result;
+}
+function queryValueText(value) {
+    if (value === undefined)
+        return '';
+    if (typeof value === 'boolean')
+        return value ? 'true' : 'false';
+    return String(value);
+}
+const ABSOLUTE_URL = /^[A-Za-z][\d+.A-Za-z-]*:\/\//u;
+function buildUrl(base, target, parameters) {
+    const url = ABSOLUTE_URL.test(target) ? target : `${base}/${target.replace(/^\/+/u, '')}`;
+    if (parameters === undefined)
+        return url;
+    const query = Object.entries(parameters).map(([key, value]) => `${quotePlus(key)}=${quotePlus(queryValueText(value))}`).join('&');
+    // params を指定すると、URL に書かれたクエリは置き換わる。空の params は URL のクエリを消す（httpx と同じ）
+    const queryStart = url.indexOf('?');
+    const withoutQuery = queryStart === -1 ? url : url.slice(0, queryStart);
+    return query === '' ? withoutQuery : `${withoutQuery}?${query}`;
+}
+const LINK_STRIP = new Set([' ', '\'', '"']);
+function stripCharacters(text, characters) {
+    let start = 0;
+    let end = text.length;
+    while (start < end && characters.has(text.charAt(start)))
+        start += 1;
+    while (end > start && characters.has(text.charAt(end - 1)))
+        end -= 1;
+    return text.slice(start, end);
+}
+// `key=value;key=value` を読む。要素が `=` で 2 つに割れなければ、そこで打ち切る
+function parseLinkParameters(text) {
+    const parameters = new Map();
+    for (const parameter of text.split(';')) {
+        const pieces = parameter.split('=');
+        if (pieces.length !== 2)
+            return parameters;
+        parameters.set(stripCharacters(pieces[0] ?? '', LINK_STRIP), stripCharacters(pieces[1] ?? '', LINK_STRIP));
+    }
+    return parameters;
+}
+/**
+Link ヘッダを httpx の Response.links と同じ規則で読む。キーは rel、無ければ url
+*/
+function parseLinks(header = '') {
+    const links = new Map();
+    const value = stripCharacters(header, LINK_STRIP);
+    if (value === '')
+        return links;
+    const urlStrip = new Set([...LINK_STRIP, '<', '>']);
+    for (const part of value.split(/, *</u)) {
+        const semicolon = part.indexOf(';');
+        const url = stripCharacters(semicolon === -1 ? part : part.slice(0, semicolon), urlStrip);
+        const relation = parseLinkParameters(semicolon === -1 ? '' : part.slice(semicolon + 1)).get('rel');
+        links.set(relation === undefined || relation === '' ? url : relation, { url, rel: relation });
+    }
+    return links;
+}
+/**
+REST の応答。Python の httpx.Response のうち、呼び出し側が使う部分
+*/
+class RestResponse {
+    headers;
+    statusCode;
+    statusText;
+    url;
+    text;
+    constructor(init) {
+        this.statusCode = init.statusCode;
+        this.statusText = init.statusText;
+        this.url = init.url;
+        this.text = init.text;
+        this.headers = init.headers;
+    }
+    /**
+    状態コードが 2xx
+    */
+    get isSuccess() {
+        return this.statusCode >= 200 && this.statusCode < 300;
+    }
+    /**
+    ヘッダの値。名前は大文字小文字を区別しない
+    */
+    header(name) {
+        return this.headers.get(name.toLowerCase());
+    }
+    /**
+    Link ヘッダ。キーは rel（無ければ url）
+    */
+    get links() {
+        return parseLinks(this.header('link'));
+    }
+    /**
+    本文を JSON として読む。不正なら InvalidValueError
+    */
+    json() {
+        return parseJsonText(this.text);
+    }
+}
+/**
+gql の例外に当たる。分類には文ではなく、応答の状態コードと errors の type を使う
+*/
+class GraphqlFailure extends BaseError {
+    statusCode;
+    errorType;
+    constructor(message, detail = {}) {
+        super(message, detail.cause === undefined ? undefined : { cause: detail.cause });
+        this.statusCode = detail.statusCode;
+        this.errorType = detail.errorType;
+    }
+}
+// errors[0] が辞書で type が文字列なら、その type
+function firstErrorType(errors) {
+    const first = isJsonArray(errors) ? errors.at(0) : errors;
+    const type = isJsonObject(first) ? first['type'] : undefined;
+    return typeof type === 'string' ? type : undefined;
+}
+// gql の str_first_element。list は先頭、str は先頭の 1 文字、dict などは全体
+function firstErrorText(errors) {
+    if (isJsonArray(errors)) {
+        const first = errors.at(0);
+        return first === undefined ? '' : pythonString(first);
+    }
+    return pythonString(typeof errors === 'string' ? splitCodePoints(errors).slice(0, 1).join('') : errors);
+}
+// data があり、errors のすべてが道筋を持って isTolerated を満たすとき、その errors。それ以外は undefined
+function toleratedErrors(errors, data, isTolerated) {
+    if (isTolerated === undefined || !isJsonObject(data) || !isJsonArray(errors) || errors.length === 0)
+        return undefined;
+    const objects = errors.filter(error => isJsonObject(error));
+    const areAllTolerated = objects.length === errors.length && objects.every((error) => {
+        const path = error['path'];
+        return isJsonArray(path) && isTolerated(path);
+    });
+    return areAllTolerated ? objects : undefined;
+}
+// 認証エラーの判定。文に 401 が入っていても（Issue 番号の 401 など）、認証エラーにはしない
+function isUnauthorized(failure) {
+    return failure.statusCode === 401 || failure.errorType === 'UNAUTHORIZED';
+}
+/**
+レート制限の判定は、REST と GraphQL でこの 1 つを使う。
+状態が 429、GitHub の種類が RATE_LIMITED、または文に rate limit を含むとき
+*/
+function isRateLimited(signal) {
+    return signal.statusCode === 429 || signal.errorType === 'RATE_LIMITED' || signal.text.toLowerCase().includes('rate limit');
+}
+function toGraphqlFailure(error) {
+    if (error instanceof GraphqlFailure)
+        return error;
+    return new GraphqlFailure(error instanceof Error ? error.message : pythonRepr(String(error)), { cause: error });
+}
+const DEFAULT_TIMEOUT_MILLISECONDS = 30_000;
+// gh auth token は手元の資格情報を読むだけで、ネットワークを使わない。
+// OS のキーチェーンの解錠待ちを見込んで 10 秒にする。それ以上かかるなら、無応答として認証エラーに倒す
+const DEFAULT_GH_TIMEOUT_MILLISECONDS = 10_000;
+/**
+GitHub API クライアント（REST と GraphQL）。github.com と GHES に対応する。
+
+トークンの優先順位は、token の指定、config/.env、ルート .env、gh auth token の順。
+issues・pulls・projects・repos の操作は、次のメソッドを使って作る。
+restJson・restObject・restRequest・handleHttpError・executeGraphql。
+*/
+class GitHubClientBase {
+    diagnostics;
+    usedFallback = false;
+    signal;
+    ghToken;
+    host;
+    token;
+    timeoutMilliseconds;
+    ghTimeoutMilliseconds;
+    apiUrl;
+    graphqlUrl;
+    constructor(options) {
+        this.diagnostics = options.diagnostics;
+        this.host = options.host ?? 'github.com';
+        this.ghTimeoutMilliseconds = options.ghTimeoutMilliseconds ?? DEFAULT_GH_TIMEOUT_MILLISECONDS;
+        this.signal = options.signal;
+        // gh auth token は子プロセスを待つので、構築では読まず ensureToken に回す。空はまだ読んでいない印
+        this.token = options.token === undefined || options.token === '' ? this.tokenFromEnvironment(this.host) ?? '' : options.token;
+        this.timeoutMilliseconds = options.timeoutMilliseconds ?? DEFAULT_TIMEOUT_MILLISECONDS;
+        const override = resolveApiUrlOverride();
+        if (override !== undefined) {
+            this.apiUrl = override;
+            this.graphqlUrl = `${override}/graphql`;
+        }
+        else if (this.host === 'github.com') {
+            this.apiUrl = 'https://api.github.com';
+            this.graphqlUrl = 'https://api.github.com/graphql';
+        }
+        else {
+            this.apiUrl = `https://${this.host}/api/v3`;
+            this.graphqlUrl = `https://${this.host}/api/graphql`;
+        }
+    }
+    failAuthentication(host) {
+        throw new GitHubAuthError(this.authErrorMessage(host));
+    }
+    async loadGhToken() {
+        this.token = await this.tokenFromGh(this.host) ?? this.failAuthentication(this.host);
+    }
+    tokenFromEnvironment(host) {
+        loadEnvironmentFile(path.join(configDirectory(), '.env'));
+        const token = environmentValue(getEnvironmentVariableName(host));
+        if (token !== undefined && token !== '')
+            return token;
+        loadEnvironmentFile(path.join(projectRoot(), '.env'));
+        const rootName = ROOT_ENV_VAR_MAP.get(host);
+        if (rootName === undefined)
+            return undefined;
+        const rootToken = environmentValue(rootName);
+        return rootToken === undefined || rootToken === '' ? undefined : rootToken;
+    }
+    async tokenFromGh(host) {
+        const arguments_ = host === 'github.com' ? ['auth', 'token'] : ['auth', 'token', '-h', host];
+        let token = '';
+        try {
+            const result = await runProcess('gh', arguments_, { stdin: 'ignore', timeoutMilliseconds: this.ghTimeoutMilliseconds, signal: this.signal });
+            token = result.exitCode === 0 && !result.isTimedOut ? pythonStrip(result.stdout) : '';
+        }
+        catch (error) {
+            // 取り消しは認証の失敗にしない（authErrorMessage が .env を作るため）。gh が無いときは読めなかった扱い
+            if (error instanceof CancelledError)
+                throw error;
+        }
+        return token.length === 0 ? undefined : token;
+    }
+    /**
+    認証エラーの文を作る。.env が無ければ生成し、あるときはホストの変数が無ければ追記する。
+    設定ディレクトリが無く .env を作れないときは、gh auth login と起動前の環境変数を案内する
+    */
+    authErrorMessage(host) {
+        const file = ensureEnvironmentFile(host);
+        const scopes = scopesFor(host);
+        const scopesLine = scopes.length > 0 ? `   required scopes: ${scopes.join(', ')}` : '';
+        if (file === undefined) {
+            return [
+                'authentication error: could not get a GitHub API token',
+                '',
+                'authenticate with the GitHub CLI:',
+                `   gh auth login -h ${host}`,
+                '',
+                'or set a token in an environment variable:',
+                `1. get a token: ${tokenUrlFor(host)}`,
+                ...(scopesLine === '' ? [] : [scopesLine]),
+                `2. set it in ${getEnvironmentVariableName(host)} before starting pecot (for the MCP server, before starting the session)`,
+            ].join('\n');
+        }
+        return `authentication error: could not get a GitHub API token
+
+${file} was generated. Set the token as follows:
+
+1. get a token: ${tokenUrlFor(host)}
+${scopesLine}
+
+2. edit ${file} and set the token in ${getEnvironmentVariableName(host)}
+
+or authenticate with the GitHub CLI:
+   gh auth login -h ${host}`;
+    }
+    // github.com は Bearer、GHE Server は token（gh CLI 互換）
+    requestHeaders(apiVersion = DEFAULT_API_VERSION) {
+        return {
+            'Authorization': `${this.host === 'github.com' ? 'Bearer' : 'token'} ${this.token}`,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': apiVersion,
+        };
+    }
+    /**
+    env のトークンが失効したとき、gh auth token に 1 回だけ切り替える。切り替えたら true
+    */
+    async retryWithFallbackToken() {
+        if (this.usedFallback)
+            return false;
+        this.usedFallback = true;
+        const newToken = await this.tokenFromGh(this.host);
+        if (newToken === undefined || newToken === this.token)
+            return false;
+        this.diagnostics.warning(TOKEN_FALLBACK_WARNING);
+        this.token = newToken;
+        return true;
+    }
+    async send(method, url, headers, body) {
+        try {
+            const response = await fetch(url, {
+                method,
+                headers,
+                ...(body !== undefined && { body }),
+                redirect: 'manual',
+                signal: this.signal === undefined
+                    ? AbortSignal.timeout(this.timeoutMilliseconds)
+                    : AbortSignal.any([AbortSignal.timeout(this.timeoutMilliseconds), this.signal]),
+            });
+            const text = await response.text();
+            return new RestResponse({
+                statusCode: response.status,
+                statusText: response.statusText,
+                url: response.url === '' ? url : response.url,
+                text,
+                headers: new Map(response.headers),
+            });
+        }
+        catch (error) {
+            this.throwIfCancelled();
+            throw new TransportFailure(describeTransportFailure(error), { cause: error });
+        }
+    }
+    // 取り消しは時間切れ（AbortError）と名前で分けられないので、signal で見分ける
+    throwIfCancelled() {
+        if (this.signal?.aborted === true)
+            throw cancelledBy(this.signal);
+    }
+    async sendRest(method, url, options) {
+        await this.ensureToken();
+        const { json } = options;
+        const base = this.requestHeaders(options.apiVersion);
+        const headers = json === undefined ? base : { ...base, 'Content-Type': 'application/json' };
+        return this.send(method, url, headers, json === undefined ? undefined : JSON.stringify(json));
+    }
+    // gql の HTTPXTransport.execute と同じ 4 つの失敗の文を作る。成功したら data と、許した errors
+    async sendGraphql(query, variables, isTolerated) {
+        let response;
+        try {
+            response = await this.send('POST', this.graphqlUrl, { ...this.requestHeaders(), 'Content-Type': 'application/json' }, JSON.stringify({ query, variables }));
+        }
+        catch (error) {
+            this.throwIfCancelled();
+            throw new GraphqlFailure(error instanceof Error ? error.message : String(error), { cause: error });
+        }
+        const { statusCode } = response;
+        // JSON でない応答。2xx 以外は httpx の状態の文、2xx は gql の文
+        const raiseResponseError = (reason) => {
+            if (!response.isSuccess) {
+                throw new GraphqlFailure(formatHttpStatusError({
+                    statusCode: response.statusCode,
+                    statusText: response.statusText,
+                    url: response.url,
+                    location: response.header('location'),
+                }), { statusCode });
+            }
+            throw new GraphqlFailure(`Server did not return a GraphQL result: ${reason}: ${response.text}`, { statusCode });
+        };
+        let result;
+        try {
+            result = response.json();
+        }
+        catch {
+            return raiseResponseError('Not a JSON answer');
+        }
+        // "errors" not in result and "data" not in result。オブジェクトはキーの有無、配列と文字列は「含まない」とみなす
+        if (result === null || typeof result === 'number' || typeof result === 'boolean') {
+            throw new GraphqlFailure(`argument of type '${pythonTypeName(result)}' is not a container or iterable`, { statusCode });
+        }
+        const object = isJsonObject(result) ? result : {};
+        if (!Object.hasOwn(object, 'errors') && !Object.hasOwn(object, 'data')) {
+            return raiseResponseError('No "data" or "errors" keys in answer');
+        }
+        // errors は status を問わず先頭の要素の文になる。許す errors（isTolerated）だけで data もあるときは、data と一緒に返す
+        const errors = object['errors'];
+        const data = object['data'];
+        const tolerated = toleratedErrors(errors, data, isTolerated);
+        if (tolerated === undefined && errors !== undefined && isTruthy(errors))
+            throw new GraphqlFailure(firstErrorText(errors), { statusCode, errorType: firstErrorType(errors) });
+        if (data === undefined || data === null)
+            throw new GraphqlFailure('Transport returned an ExecutionResult without data or errors', { statusCode });
+        return { data: isJsonObject(data) ? data : {}, errors: tolerated ?? [] };
+    }
+    classifyGraphqlFailure(failure) {
+        const { message } = failure;
+        const detail = { cause: failure, errorType: failure.errorType };
+        if (isUnauthorized(failure))
+            return new GitHubAuthError(`GraphQL authentication error: ${message}`, detail);
+        if (isRateLimited({ statusCode: failure.statusCode, errorType: failure.errorType, text: message })) {
+            return new GitHubRateLimitError(`GraphQL rate limit error: ${message}`, detail);
+        }
+        return new GitHubAPIError(`GraphQL query error: ${message}`, detail);
+    }
+    async runGraphql(query, variables, isTolerated) {
+        // 認証の失敗と取り消しを、GraphQL の失敗に包まないよう try の外で待つ
+        await this.ensureToken();
+        try {
+            return await this.sendGraphql(query, variables, isTolerated);
+        }
+        catch (error) {
+            this.throwIfCancelled();
+            const failure = toGraphqlFailure(error);
+            if (!isUnauthorized(failure))
+                throw this.classifyGraphqlFailure(failure);
+            if (!await this.retryWithFallbackToken())
+                throw new GitHubAuthError(`GraphQL authentication error: ${failure.message}`, { cause: failure });
+            try {
+                return await this.sendGraphql(query, variables, isTolerated);
+            }
+            catch (retryError) {
+                this.throwIfCancelled();
+                throw this.classifyGraphqlFailure(toGraphqlFailure(retryError));
+            }
+        }
+    }
+    // 絶対 URL（Link ヘッダの next など）は、API と同じ origin だけを辿る。
+    // 別のホストへ Authorization を付けて送らないため
+    assertSameOrigin(target) {
+        if (!ABSOLUTE_URL.test(target))
+            return;
+        if (URL.canParse(target) && new URL(target).origin === new URL(this.apiUrl).origin)
+            return;
+        throw new GitHubAPIError(`refusing to follow a URL on a different host than the API: ${target}`);
+    }
+    /**
+    トークンが無ければ gh auth token を 1 回だけ読む。読めなければ GitHubAuthError、取り消されたら CancelledError
+    */
+    async ensureToken() {
+        if (this.token !== '')
+            return;
+        this.ghToken ??= this.loadGhToken();
+        await this.ghToken;
+    }
+    /**
+    REST の要求（401 のときは gh auth token に切り替えて 1 回だけ再試行する）。
+    target は `/user` のようなパス（base の後ろにつなぐ）か、`https://` で始まる絶対 URL（Link ヘッダの next など）。
+    失敗の状態コードは例外にせず、そのまま返す。呼び出し側が isSuccess を見て handleHttpError に渡す
+    */
+    async restRequest(method, target, options = {}) {
+        this.assertSameOrigin(target);
+        const url = buildUrl(this.apiUrl, target, options.params);
+        const response = await this.sendRest(method, url, options);
+        return response.statusCode === 401 && await this.retryWithFallbackToken() ? this.sendRest(method, url, options) : response;
+    }
+    /**
+    REST の要求を送り、成功した応答の JSON を返す。失敗の応答は handleHttpError の例外にする。
+    本文が無い応答（204 など）には使わない
+    */
+    async restJson(method, target, options = {}) {
+        const response = await this.restRequest(method, target, options);
+        if (!response.isSuccess)
+            this.handleHttpError(response);
+        return response.json();
+    }
+    /**
+    restJson の結果をオブジェクトとして返す（オブジェクトでなければ空のオブジェクト。Python の as_dict と同じ）
+    */
+    async restObject(method, target, options = {}) {
+        return asObject(await this.restJson(method, target, options));
+    }
+    /**
+    HTTP エラーの応答を、状態コード別の例外にして投げる
+    */
+    handleHttpError(response) {
+        const detail = { statusCode: response.statusCode, responseBody: response.text };
+        if (response.statusCode === 401) {
+            throw new GitHubAuthError('authentication failed: check the token', detail);
+        }
+        if (response.statusCode === 404) {
+            throw new GitHubNotFoundError(`resource not found: ${response.url}`, detail);
+        }
+        if (response.statusCode === 429 || (response.statusCode === 403 && isRateLimited({ statusCode: 403, text: response.text }))) {
+            throw new GitHubRateLimitError('API rate limit reached', detail);
+        }
+        if (response.statusCode === 403) {
+            throw new GitHubAPIError('access denied', detail);
+        }
+        throw new GitHubAPIError(`GitHub API error: ${String(response.statusCode)}`, detail);
+    }
+    /**
+    GraphQL を実行する。失敗は応答の状態コードと errors の type で分類する。
+    状態が 401（または type が UNAUTHORIZED）は GitHubAuthError。gh auth token に 1 回切り替えて再試行する。
+    レート制限は GitHubRateLimitError、それ以外は GitHubAPIError
+    */
+    async executeGraphql(query, variables = {}) {
+        const { data } = await this.runGraphql(query, variables);
+        return data;
+    }
+    /**
+    executeGraphql の、部分エラーを許す版。data があり、errors のすべてが isTolerated を満たすとき、例外にせず data と errors を返す。
+    それ以外の errors は executeGraphql と同じ例外になる
+    */
+    async executeGraphqlTolerating(query, variables, isTolerated) {
+        return this.runGraphql(query, variables, isTolerated);
+    }
+}
+
+// GitHub GraphQL API のクエリ・mutation 文字列。
+// 先頭の 30 個は cli/core/github/queries.py を gql が送る形で写し、一致は infra/github/tests/queries.test.ts が固定する。
+// 末尾の blocked by 関係の 4 個は Python に無く、graphql-js の print の出力の形で書く。
+// 着手の判定に使う、Issue の依存関係・種別・親のフィールド。Issue の依存関係に対応しない GHES では通らない
+const ISSUE_READINESS_FIELDS = `
+              issueType {
+                name
+              }
+              subIssues(first: 1) {
+                totalCount
+              }
+              parent {
+                number
+                repository {
+                  owner {
+                    login
+                  }
+                  name
+                }
+              }
+              blockedBy(first: 1) {
+                totalCount
+              }`;
+// 一覧のクエリ。operationName が空なら無名。readinessFields は Issue の枝に足すフィールド
+function listProjectItemsQuery(operationName, readinessFields) {
+    return `query${operationName === '' ? ' ' : ` ${operationName}`}($projectId: ID!, $cursor: String, $laneFieldName: String!) {
+  node(id: $projectId) {
+    ... on ProjectV2 {
+      items(first: 100, after: $cursor) {
+        nodes {
+          id
+          updatedAt
+          fieldValues(first: 10) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                field {
+                  ... on ProjectV2SingleSelectField {
+                    id
+                    name
+                  }
+                }
+                name
+              }
+            }
+          }
+          lane: fieldValueByName(name: $laneFieldName) {
+            ... on ProjectV2ItemFieldSingleSelectValue {
+              name
+            }
+          }
+          content {
+            ... on Issue {
+              id
+              number
+              title
+              state
+              url${readinessFields}
+              labels(first: 10) {
+                nodes {
+                  name
+                }
+              }
+              repository {
+                owner {
+                  login
+                }
+                name
+              }
+            }
+            ... on PullRequest {
+              id
+              number
+              title
+              state
+              url
+              repository {
+                owner {
+                  login
+                }
+                name
+              }
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+      laneField: field(name: $laneFieldName) {
+        ... on ProjectV2SingleSelectField {
+          options {
+            name
+          }
+        }
+      }
+    }
+  }
+}`;
+}
+// プロジェクトアイテム一覧取得（ページネーション対応）
+const QUERY_LIST_PROJECT_ITEMS = listProjectItemsQuery('', ISSUE_READINESS_FIELDS);
+// 上の一覧から、Issue の依存関係に対応しない GHES で通らないフィールドを除いたもの
+const QUERY_LIST_PROJECT_ITEMS_LEGACY = listProjectItemsQuery('ListProjectItemsLegacy', '');
+// Issue Node ID・タイトル取得
+const QUERY_GET_ISSUE_NODE_ID = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      id
+      title
+    }
+  }
+}`;
+// プロジェクトNode ID取得（user版）
+const QUERY_GET_PROJECT_ID_USER = `query ($owner: String!, $projectNumber: Int!) {
+  user(login: $owner) {
+    projectV2(number: $projectNumber) {
+      id
+    }
+  }
+}`;
+// プロジェクトNode ID取得（organization版）
+const QUERY_GET_PROJECT_ID_ORG = `query ($owner: String!, $projectNumber: Int!) {
+  organization(login: $owner) {
+    projectV2(number: $projectNumber) {
+      id
+    }
+  }
+}`;
+// リポジトリNode ID取得
+const QUERY_GET_REPOSITORY_ID = `query ($owner: String!, $name: String!) {
+  repository(owner: $owner, name: $name) {
+    id
+  }
+}`;
+// プロジェクトにリポジトリをリンク
+const MUTATION_LINK_PROJECT_REPOSITORY = `mutation ($projectId: ID!, $repositoryId: ID!) {
+  linkProjectV2ToRepository(
+    input: { projectId: $projectId, repositoryId: $repositoryId }
+  ) {
+    repository {
+      id
+      nameWithOwner
+    }
+  }
+}`;
+// ボードにアイテム追加
+const MUTATION_ADD_TO_PROJECT = `mutation ($projectId: ID!, $contentId: ID!) {
+  addProjectV2ItemById(input: { projectId: $projectId, contentId: $contentId }) {
+    item {
+      id
+    }
+  }
+}`;
+// プロジェクトアイテムフィールド更新
+const MUTATION_UPDATE_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+  updateProjectV2ItemFieldValue(
+    input: {
+      projectId: $projectId
+      itemId: $itemId
+      fieldId: $fieldId
+      value: { singleSelectOptionId: $optionId }
+    }
+  ) {
+    projectV2Item {
+      id
+    }
+  }
+}`;
+// プロジェクトアイテム削除
+const MUTATION_DELETE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
+  deleteProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
+    deletedItemId
+  }
+}`;
+// サブIssue紐づけ
+const MUTATION_ADD_SUB_ISSUE = `mutation ($parentId: ID!, $childId: ID!) {
+  addSubIssue(input: { issueId: $parentId, subIssueId: $childId }) {
+    issue {
+      number
+    }
+    subIssue {
+      number
+    }
+  }
+}`;
+// リンクブランチ作成（Issueに紐づいたブランチ）
+const MUTATION_CREATE_LINKED_BRANCH = `mutation CreateLinkedBranch($input: CreateLinkedBranchInput!) {
+  createLinkedBranch(input: $input) {
+    linkedBranch {
+      ref {
+        name
+        prefix
+      }
+    }
+  }
+}`;
+// リンクブランチを作れなかったときの、作り先のリポと同じ名前の ref。id は Repository か Issue の Node ID
+const QUERY_GET_BRANCH_REF_BY_NODE = `query ($id: ID!, $qualifiedName: String!) {
+  node(id: $id) {
+    ... on Repository {
+      nameWithOwner
+      ref(qualifiedName: $qualifiedName) {
+        name
+      }
+    }
+    ... on Issue {
+      repository {
+        nameWithOwner
+        ref(qualifiedName: $qualifiedName) {
+          name
+        }
+      }
+    }
+  }
+}`;
+// Issue の Node ID と、つながったブランチ。件数は gh issue develop の ListLinkedBranches と同じ
+const QUERY_GET_ISSUE_LINKED_BRANCHES = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      id
+      linkedBranches(first: 30) {
+        nodes {
+          ref {
+            name
+            repository {
+              nameWithOwner
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+// Issue番号からプロジェクトアイテム取得（高速版）
+const QUERY_GET_ISSUE_PROJECT_ITEMS = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      projectItems(first: 20) {
+        nodes {
+          id
+          isArchived
+          project {
+            id
+          }
+          fieldValues(first: 20) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                field {
+                  ... on ProjectV2SingleSelectField {
+                    id
+                  }
+                }
+              }
+            }
+          }
+          status: fieldValueByName(name: "Status") {
+            ... on ProjectV2ItemFieldSingleSelectValue {
+              name
+              field {
+                ... on ProjectV2SingleSelectField {
+                  id
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+// プロジェクトフィールド取得（user版）
+const QUERY_GET_PROJECT_FIELDS_USER = `query ($owner: String!, $projectNumber: Int!) {
+  user(login: $owner) {
+    projectV2(number: $projectNumber) {
+      id
+      title
+      url
+      fields(first: 50) {
+        nodes {
+          ... on ProjectV2SingleSelectField {
+            id
+            databaseId
+            name
+            options {
+              id
+              name
+              color
+              description
+            }
+          }
+          ... on ProjectV2Field {
+            id
+            name
+          }
+        }
+      }
+      views(first: 1) {
+        nodes {
+          number
+        }
+      }
+    }
+  }
+}`;
+// プロジェクトフィールド取得（organization版）
+const QUERY_GET_PROJECT_FIELDS_ORG = `query ($owner: String!, $projectNumber: Int!) {
+  organization(login: $owner) {
+    projectV2(number: $projectNumber) {
+      id
+      title
+      url
+      fields(first: 50) {
+        nodes {
+          ... on ProjectV2SingleSelectField {
+            id
+            databaseId
+            name
+            options {
+              id
+              name
+              color
+              description
+            }
+          }
+          ... on ProjectV2Field {
+            id
+            name
+          }
+        }
+      }
+      views(first: 1) {
+        nodes {
+          number
+        }
+      }
+    }
+  }
+}`;
+// プロジェクトフィールド作成（SingleSelect用）
+const MUTATION_CREATE_PROJECT_FIELD = `mutation ($projectId: ID!, $name: String!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
+  createProjectV2Field(
+    input: {
+      projectId: $projectId
+      dataType: SINGLE_SELECT
+      name: $name
+      singleSelectOptions: $options
+    }
+  ) {
+    projectV2Field {
+      ... on ProjectV2SingleSelectField {
+        id
+        name
+        options {
+          id
+          name
+        }
+      }
+    }
+  }
+}`;
+// プロジェクトフィールドの改名。選択肢を渡さないので、選択肢の ID と各 Item の値は残る
+const MUTATION_RENAME_PROJECT_FIELD = `mutation ($fieldId: ID!, $name: String!) {
+  updateProjectV2Field(input: { fieldId: $fieldId, name: $name }) {
+    projectV2Field {
+      ... on ProjectV2SingleSelectField {
+        id
+        name
+      }
+    }
+  }
+}`;
+// プロジェクトフィールドの削除。フィールドの値も消え、戻らない
+const MUTATION_DELETE_PROJECT_FIELD = `mutation ($fieldId: ID!) {
+  deleteProjectV2Field(input: { fieldId: $fieldId }) {
+    projectV2Field {
+      ... on ProjectV2FieldCommon {
+        id
+        name
+      }
+    }
+  }
+}`;
+// プロジェクトフィールドの選択肢の置き換え（SingleSelect用。一覧の全体を送る）
+const MUTATION_UPDATE_PROJECT_FIELD = `mutation ($fieldId: ID!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
+  updateProjectV2Field(
+    input: { fieldId: $fieldId, singleSelectOptions: $options }
+  ) {
+    projectV2Field {
+      ... on ProjectV2SingleSelectField {
+        id
+        name
+        options {
+          id
+          name
+        }
+      }
+    }
+  }
+}`;
+// Issue 種別判定用クエリ（軽量・Epic 判定専用）
+// Phase2: issueType.name == "Epic" を一次判定
+const QUERY_GET_ISSUE_KIND = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      number
+      state
+      issueType {
+        name
+      }
+      subIssues(first: 1) {
+        totalCount
+      }
+    }
+  }
+}`;
+// issueType フィールド非対応 GHES 向けのフォールバック（Phase1 単独）
+const QUERY_GET_ISSUE_KIND_PHASE1 = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      number
+      state
+      subIssues(first: 1) {
+        totalCount
+      }
+    }
+  }
+}`;
+// Issue詳細取得のクエリ。blockedByCount は前提の件数のフィールド。Issue の依存関係に対応しない GHES では通らない
+function getIssueSlimQuery(operationName, blockedByCount) {
+    return `query${operationName === '' ? ' ' : ` ${operationName}`}($owner: String!, $repo: String!, $number: Int!, $commentLimit: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      number
+      state
+      title
+      body
+      comments(last: $commentLimit) {
+        totalCount
+        nodes {
+          author {
+            login
+          }
+          createdAt
+          body
+        }
+      }
+      parent {
+        number
+        title
+        state
+        repository {
+          owner {
+            login
+          }
+          name
+        }
+      }
+      subIssues(first: 20) {
+        nodes {
+          number
+          state
+          title
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+      linkedBranches(first: 10) {
+        nodes {
+          ref {
+            name
+          }
+        }
+      }
+      timelineItems(itemTypes: [CONNECTED_EVENT, CROSS_REFERENCED_EVENT], first: 20) {
+        nodes {
+          ... on ConnectedEvent {
+            subject {
+              ... on PullRequest {
+                number
+                title
+                state
+              }
+            }
+          }
+          ... on CrossReferencedEvent {
+            source {
+              ... on PullRequest {
+                number
+                title
+                state
+              }
+            }
+          }
+        }
+      }${blockedByCount}
+    }
+  }
+}`;
+}
+// Issue詳細取得（スリム版 - 必要なフィールドのみ。前提の件数つき）
+const QUERY_GET_ISSUE_SLIM = getIssueSlimQuery('', `
+      blockedBy(first: 1) {
+        totalCount
+      }`);
+// 上のクエリから、前提の件数を除いたもの。Issue の依存関係を持たない GHES で読み直すのに使う
+const QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY = getIssueSlimQuery('GetIssueSlimWithoutBlockedBy', '');
+// session finish が読む PR。closing issues のリポと、既定ブランチの名前を足す
+const QUERY_GET_PULL_REQUEST_FOR_FINISH = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      number
+      state
+      body
+      headRefName
+      baseRefName
+      isDraft
+      closingIssuesReferences(first: 10) {
+        nodes {
+          number
+          repository {
+            name
+            owner {
+              login
+            }
+          }
+        }
+      }
+      baseRepository {
+        defaultBranchRef {
+          name
+        }
+      }
+    }
+  }
+}`;
+// open の PR の一覧。dependabot の PR の待ち状態の判定に使う。ページを辿る
+// 入れ子の connection が多く、ノード数の上限に近づくので first は 25 にしている。
+// timelineItems は、2 種のイベントを合わせて last: N だと force-push が多いときに片方が押し出されるため、
+// 種類ごとに別名で最後の 1 件だけを取る。
+const QUERY_LIST_OPEN_PULL_REQUESTS = `query ($owner: String!, $repo: String!, $after: String) {
+  repository(owner: $owner, name: $repo) {
+    pullRequests(
+      first: 25
+      states: OPEN
+      after: $after
+      orderBy: { field: CREATED_AT, direction: ASC }
+    ) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        number
+        title
+        url
+        createdAt
+        author {
+          __typename
+          login
+        }
+        isInMergeQueue
+        autoMergeRequest {
+          enabledAt
+        }
+        mergeable
+        baseRef {
+          target {
+            ... on Commit {
+              committedDate
+            }
+          }
+        }
+        firstCommits: commits(first: 1) {
+          nodes {
+            commit {
+              message
+              signature {
+                isValid
+              }
+              author {
+                user {
+                  login
+                }
+              }
+            }
+          }
+        }
+        headCommits: commits(last: 1) {
+          nodes {
+            commit {
+              statusCheckRollup {
+                state
+              }
+            }
+          }
+        }
+        lastForcePush: timelineItems(last: 1, itemTypes: [HEAD_REF_FORCE_PUSHED_EVENT]) {
+          nodes {
+            ... on HeadRefForcePushedEvent {
+              createdAt
+            }
+          }
+        }
+        lastDequeue: timelineItems(last: 1, itemTypes: [REMOVED_FROM_MERGE_QUEUE_EVENT]) {
+          nodes {
+            ... on RemovedFromMergeQueueEvent {
+              createdAt
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+// 前提（blocked by）を付ける。issueId が待つ側、blockingIssueId が前提
+const MUTATION_ADD_BLOCKED_BY = `mutation ($issueId: ID!, $blockingIssueId: ID!) {
+  addBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingIssueId }) {
+    issue {
+      number
+    }
+    blockingIssue {
+      number
+    }
+  }
+}`;
+// 前提（blocked by）を外す
+const MUTATION_REMOVE_BLOCKED_BY = `mutation ($issueId: ID!, $blockingIssueId: ID!) {
+  removeBlockedBy(input: { issueId: $issueId, blockingIssueId: $blockingIssueId }) {
+    issue {
+      number
+    }
+    blockingIssue {
+      number
+    }
+  }
+}`;
+const PULL_REQUEST_FIELDS = `fragment PullRequestFields on PullRequest {
+  number
+  state
+  headRefName
+  baseRefName
+  isDraft
+  isCrossRepository
+  repository {
+    owner {
+      login
+    }
+    name
+  }
+}`;
+const PREREQUISITE_ISSUE_FIELDS = `fragment PrerequisiteIssueFields on Issue {
+  id
+  number
+  state
+  title
+  repository {
+    owner {
+      login
+    }
+    name
+  }
+  issueType {
+    name
+  }
+  subIssues(first: 1) {
+    totalCount
+  }
+  projectItems(first: 20, includeArchived: false) {
+    totalCount
+    nodes {
+      project {
+        id
+      }
+      fieldValues(first: 20) {
+        nodes {
+          ...SingleSelectValueFields
+        }
+      }
+      label: fieldValueByName(name: $labelFieldName) {
+        ...SingleSelectValueFields
+      }
+    }
+  }
+  linkedBranches(first: 10) {
+    totalCount
+    nodes {
+      ref {
+        name
+        associatedPullRequests(first: 10) {
+          totalCount
+          nodes {
+            ...PullRequestFields
+          }
+        }
+      }
+    }
+  }
+  closedByPullRequestsReferences(first: 10, includeClosedPrs: true) {
+    totalCount
+    nodes {
+      ...PullRequestFields
+    }
+  }
+}`;
+const SINGLE_SELECT_VALUE_FIELDS = `fragment SingleSelectValueFields on ProjectV2ItemFieldValue {
+  ... on ProjectV2ItemFieldSingleSelectValue {
+    name
+    optionId
+    field {
+      ... on ProjectV2SingleSelectField {
+        id
+        name
+      }
+    }
+  }
+}`;
+// Issue と、その前提（blockedBy）を 1 回で読む。PR は 2 つの読み口（リンクしたブランチと Development 欄）から集める
+const QUERY_GET_ISSUE_PREREQUISITES = `query ($owner: String!, $repo: String!, $number: Int!, $labelFieldName: String!, $blockedByFirst: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      ...PrerequisiteIssueFields
+      body
+      parent {
+        number
+        repository {
+          owner {
+            login
+          }
+          name
+        }
+      }
+      blockedBy(first: $blockedByFirst) {
+        totalCount
+        nodes {
+          ...PrerequisiteIssueFields
+        }
+      }
+    }
+  }
+}
+
+${PREREQUISITE_ISSUE_FIELDS}
+
+${SINGLE_SELECT_VALUE_FIELDS}
+
+${PULL_REQUEST_FIELDS}`;
+// head のブランチ名で PR を引く（open・closed・merged。新しい順）
+const QUERY_LIST_PULL_REQUESTS_BY_HEAD = `query ($owner: String!, $repo: String!, $headRefName: String!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequests(
+      headRefName: $headRefName
+      states: [OPEN, CLOSED, MERGED]
+      first: 20
+      orderBy: { field: CREATED_AT, direction: DESC }
+    ) {
+      pageInfo {
+        hasNextPage
+      }
+      nodes {
+        ...PullRequestFields
+      }
+    }
+  }
+}
+
+${PULL_REQUEST_FIELDS}`;
+const BLOCKED_BY_REFERENCE_FIELDS = `fragment BlockedByReferenceFields on Issue {
+  id
+  number
+  state
+  repository {
+    owner {
+      login
+    }
+    name
+  }
+}`;
+// その Issue を前提にしている Issue（blocking）の参照。PR を作った後に、待つ側の Issue を絞るために読む
+const QUERY_GET_ISSUE_BLOCKING_REFERENCES = `query ($owner: String!, $repo: String!, $number: Int!, $blockingFirst: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      blocking(first: $blockingFirst) {
+        totalCount
+        nodes {
+          ...BlockedByReferenceFields
+        }
+      }
+    }
+  }
+}
+
+${BLOCKED_BY_REFERENCE_FIELDS}`;
+// Issue 1 件の、指定のプロジェクトの項目と進行の列。ボード全体を読まずに、列を動かす対象を読む
+const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      number
+      title
+      state
+      url
+      repository {
+        owner {
+          login
+        }
+        name
+      }
+      projectItems(first: 20, includeArchived: false) {
+        nodes {
+          id
+          project {
+            id
+          }
+          fieldValues(first: 20) {
+            nodes {
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                field {
+                  ... on ProjectV2SingleSelectField {
+                    id
+                    name
+                  }
+                }
+                name
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+// Lanes のビューを作る先。所有者の種類と個人の数値の id（REST のパス）、ビューの名前、欄の databaseId
+const QUERY_GET_PROJECT_VIEW_TARGET = `query ($owner: String!, $projectNumber: Int!) {
+  repositoryOwner(login: $owner) {
+    __typename
+    ... on User {
+      databaseId
+    }
+    ... on ProjectV2Owner {
+      projectV2(number: $projectNumber) {
+        url
+        views(first: 50) {
+          nodes {
+            number
+            name
+          }
+        }
+        fields(first: 50) {
+          nodes {
+            ... on ProjectV2SingleSelectField {
+              databaseId
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+
+// 前提の読み取り（QUERY_GET_ISSUE_PREREQUISITES など）の応答を、domain/issue-readout.ts の形にする。
+function readRepository(node, path) {
+    const repository = jsonField(node, 'repository');
+    return {
+        owner: requireString(jsonField(jsonField(repository, 'owner'), 'login'), `${path}.repository.owner.login`),
+        repository: requireString(jsonField(repository, 'name'), `${path}.repository.name`),
+    };
+}
+function readState(node, allowed, path) {
+    const state = requireString(jsonField(node, 'state'), `${path}.state`);
+    const matched = allowed.find(candidate => candidate === state);
+    if (matched === undefined)
+        throw new GitHubAPIError(`malformed GitHub response: ${path}.state (${state})`);
+    return matched;
+}
+/**
+PR のノード 1 つ。`... on PullRequest` の型でない node は空で届くので、undefined を返す。
+PR なのに number が無ければ GitHubAPIError
+*/
+function readPullRequest(node) {
+    if (!isTruthy(node))
+        return undefined;
+    const path = 'pullRequest';
+    return {
+        number: requireNumber(jsonField(node, 'number'), `${path}.number`),
+        repository: readRepository(node, path),
+        state: readState(node, ['OPEN', 'CLOSED', 'MERGED'], path),
+        headRefName: requireString(jsonField(node, 'headRefName'), `${path}.headRefName`),
+        baseRefName: requireString(jsonField(node, 'baseRefName'), `${path}.baseRefName`),
+        isDraft: jsonField(node, 'isDraft') === true,
+        isCrossRepository: jsonField(node, 'isCrossRepository') === true,
+    };
+}
+function readPullRequests(nodes) {
+    return nodes.map(node => readPullRequest(node)).filter(pullRequest => pullRequest !== undefined);
+}
+function readLinkedBranches(issue) {
+    return truthyNodes(jsonField(issue, 'linkedBranches'))
+        .filter(branch => isTruthy(jsonField(branch, 'ref')))
+        .map((branch) => {
+        const reference = jsonField(branch, 'ref');
+        return {
+            name: requireString(jsonField(reference, 'name'), 'linkedBranch.ref.name'),
+            pullRequests: readPullRequests(truthyNodes(jsonField(reference, 'associatedPullRequests'))),
+        };
+    });
+}
+function readFieldValue(value, fieldName) {
+    const fieldId = jsonField(jsonField(value, 'field'), 'id');
+    const optionId = jsonField(value, 'optionId');
+    const optionName = jsonField(value, 'name');
+    return typeof fieldId === 'string' && typeof optionId === 'string' && typeof optionName === 'string' ? { fieldId, fieldName, optionId, optionName } : undefined;
+}
+// 進行の欄は ID で探す。fieldName にはボード上の今の名前を入れる
+function readColumnValue(item, columnFieldId) {
+    const value = truthyNodes(jsonField(item, 'fieldValues')).find(node => jsonField(jsonField(node, 'field'), 'id') === columnFieldId);
+    const name = jsonField(jsonField(value, 'field'), 'name');
+    return readFieldValue(value, typeof name === 'string' ? name : '');
+}
+// 設定のプロジェクトのアイテムだけを見る。同じ Issue が載る別のボードの値は読まない
+function readProjectFieldValues(issue, projectId, fieldNames) {
+    return truthyNodes(jsonField(issue, 'projectItems'))
+        .flatMap(item => jsonField(jsonField(item, 'project'), 'id') === projectId
+        ? [readColumnValue(item, fieldNames.columnFieldId), readFieldValue(jsonField(item, 'label'), fieldNames.labelFieldName)]
+        : [])
+        .filter(value => value !== undefined);
+}
+function readIssue(issue, projectId, fieldNames) {
+    const issueType = jsonField(jsonField(issue, 'issueType'), 'name');
+    const number = requireNumber(jsonField(issue, 'number'), 'issue.number');
+    return {
+        id: requireString(jsonField(issue, 'id'), 'issue.id'),
+        repository: readRepository(issue, 'issue'),
+        number,
+        state: readState(issue, ['OPEN', 'CLOSED'], 'issue'),
+        title: requireString(jsonField(issue, 'title'), 'issue.title'),
+        issueType: typeof issueType === 'string' ? issueType : JSON_NULL,
+        subIssuesTotal: subIssuesTotal(issue),
+        projectFieldValues: readProjectFieldValues(issue, projectId, fieldNames),
+        linkedBranches: readLinkedBranches(issue),
+        closingPullRequests: readPullRequests(truthyNodes(jsonField(issue, 'closedByPullRequestsReferences'))),
+    };
+}
+// 件数が totalCount に足りない connection の説明。足りていれば undefined
+function shortfall(connection, name, where) {
+    const total = jsonField(connection, 'totalCount');
+    const returned = asArray(jsonField(connection, 'nodes')).length;
+    return typeof total === 'number' && returned < total ? `${name} of ${where} returned ${String(returned)} of ${String(total)}` : undefined;
+}
+// 件数の上限で取りこぼした connection の説明。取りこぼしたまま判定すると、済んだ前提を未完と誤るため
+function connectionShortfalls(issue) {
+    const { owner: login, repository } = readRepository(issue, 'issue');
+    const where = `${login}/${repository}#${String(requireNumber(jsonField(issue, 'number'), 'issue.number'))}`;
+    const linkedBranches = jsonField(issue, 'linkedBranches');
+    return [
+        shortfall(jsonField(issue, 'projectItems'), 'projectItems', where),
+        shortfall(linkedBranches, 'linkedBranches', where),
+        ...truthyNodes(linkedBranches).map(branch => shortfall(jsonField(jsonField(branch, 'ref'), 'associatedPullRequests'), 'associatedPullRequests', where)),
+        shortfall(jsonField(issue, 'closedByPullRequestsReferences'), 'closedByPullRequestsReferences', where),
+    ].filter(reason => reason !== undefined);
+}
+/**
+対象の Issue の blockedBy を読む。次のどれかなら read-failed（理由つき）。
+取りこぼしたまま前提なしと読むと、ブロック中の Issue を着手できると誤るため
+- 部分エラー（errors）で blockedBy が読めなかった
+- blockedBy が null、null の node がある、件数が totalCount に足りない
+- 対象か前提の Issue の connection が、件数の上限で取りこぼされている
+*/
+function readBlockedBy(target, projectId, fieldNames, errorMessages = []) {
+    if (errorMessages.length > 0)
+        return { kind: 'read-failed', reason: `blockedBy could not be read: ${errorMessages.join('; ')}` };
+    const blockedBy = jsonField(target, 'blockedBy');
+    if (!isTruthy(blockedBy))
+        return { kind: 'read-failed', reason: 'blockedBy is null' };
+    const total = requireNumber(jsonField(blockedBy, 'totalCount'), 'issue.blockedBy.totalCount');
+    const nodes = asArray(jsonField(blockedBy, 'nodes'));
+    if (nodes.some(node => !isTruthy(node)))
+        return { kind: 'read-failed', reason: 'blockedBy has a null node' };
+    if (nodes.length < total)
+        return { kind: 'read-failed', reason: `blockedBy returned ${String(nodes.length)} of ${String(total)} issues` };
+    const [gap] = [target, ...nodes].flatMap(issue => connectionShortfalls(issue));
+    return gap === undefined ? { kind: 'ok', issues: nodes.map(node => readIssue(node, projectId, fieldNames)) } : { kind: 'read-failed', reason: gap };
+}
+/**
+前提 1 件の参照（node ID・番号・リポ・状態）。node は BlockedByReferenceFields の形
+*/
+function readIssueReference(node) {
+    return {
+        id: requireString(jsonField(node, 'id'), 'blockedBy.nodes.id'),
+        repository: readRepository(node, 'blockedBy.nodes'),
+        number: requireNumber(jsonField(node, 'number'), 'blockedBy.nodes.number'),
+        state: readState(node, ['OPEN', 'CLOSED'], 'blockedBy.nodes'),
+    };
+}
+
+// 出力フォーマット関数。ボード表示や Issue 一覧の整形を担当する。
+//
+// 入力は GitHub の GraphQL 応答（JSON）をそのまま受ける。
+// 入力の読み取りでは、キーが無いことと null を同じ「無い」として扱う。
+// transformItems の出力では、無い値を JSON_NULL にする。Python の CLI の JSON と同じ null が出る。
+// 辞書の値を取る（辞書でなければ undefined）。null は無いものとして扱う
+function member(value, key) {
+    return jsonField(value, key) ?? undefined;
+}
+// `nodes` の配列を取る（無ければ空）
+function nodesMember(value) {
+    const found = member(value, 'nodes');
+    return isJsonArray(found) ? found : [];
+}
+function stringMember(value, key) {
+    const found = member(value, key);
+    return typeof found === 'string' ? found : '';
+}
+// Python の真偽判定で偽になる値（null・false・0・空文字・空の配列・空の辞書）
+function isEmptyValue(value) {
+    if (value === undefined || value === null || value === false || value === 0 || value === '')
+        return true;
+    if (Array.isArray(value))
+        return value.length === 0;
+    return isJsonObject(value) && Object.keys(value).length === 0;
+}
+// fieldValues のうち、フィールドが条件に合う最初のノード
+function findFieldValue(item, isTarget) {
+    return nodesMember(member(item, 'fieldValues')).find(node => !isEmptyValue(node) && isTarget(member(node, 'field')));
+}
+function valueName(node) {
+    const name = member(node, 'name');
+    return typeof name === 'string' ? name : undefined;
+}
+/**
+GraphQL の戻り値から、ID の合う単一選択のフィールドの値を抽出する。見つからなければ undefined
+*/
+function extractFieldValueById(item, fieldId) {
+    return valueName(findFieldValue(item, field => stringMember(field, 'id') === fieldId));
+}
+
+// pecot-lane（利用者が Issue を分類するのに使う任意の欄）の名前と、一覧の集計。
+/**
+分類の欄のフィールド名
+*/
+const LANE_FIELD_NAME = 'pecot-lane';
+
+// REST の URL に連結するパスの符号化。owner・リポジトリ名・ブランチ名は、セグメントごとに符号化する。
+// `.` と `..` のセグメントは、`%2E` で書いても URL の解釈でパスを辿る意味になる。
+// だから送らず、GitHubAPIError で止める。
+// encodeURIComponent が符号化しない記号のうち、httpx が符号化するもの
+const EXTRA_RESERVED = new Map([['!', '%21'], ['\'', '%27'], ['(', '%28'], [')', '%29'], ['*', '%2A']]);
+/**
+パスの 1 セグメントを符号化する。encodeURIComponent が残す `!'()*` も符号化する。
+`.` と `..` は GitHubAPIError
+*/
+function encodePathSegment(segment) {
+    if (segment === '.' || segment === '..')
+        throw new GitHubAPIError(`name not usable in a URL path: ${segment}`);
+    return splitCodePoints(encodeURIComponent(segment))
+        .map(character => EXTRA_RESERVED.get(character) ?? character)
+        .join('');
+}
+/**
+`/repos/<owner>/<repository>`
+*/
+function repositoryPath(owner, repository) {
+    return `/repos/${encodePathSegment(owner)}/${encodePathSegment(repository)}`;
+}
+/**
+スラッシュ区切りのパス（ブランチ名など）を、セグメントごとに符号化する。スラッシュは残す
+*/
+function encodePath(path) {
+    return path.split('/').map(segment => encodePathSegment(segment)).join('/');
+}
+
+// リポジトリ・ブランチ・リリース操作の API。cli/core/github/repos.py の移植。
+const HEADS_PREFIX = 'refs/heads/';
+const ALERTS_PER_PAGE = 100;
+// 一覧の per_page の上限。secret は 100、変数は 30（REST の文書）
+const SECRETS_PER_PAGE = 100;
+const VARIABLES_PER_PAGE = 30;
+const NO_CONTENT = 204;
+const FORBIDDEN = 403;
+const NOT_FOUND = 404;
+class ReposApi extends GitHubClientBase {
+    // 名前だけを返し、変数の値は外へ渡さない。読めない（403・404）ときは undefined
+    async listNamesOrUndefined(path, perPage, itemsKey) {
+        let items;
+        try {
+            items = await this.listAll(path, { per_page: perPage }, itemsKey);
+        }
+        catch (error) {
+            if (error instanceof GitHubAPIError && (error.statusCode === FORBIDDEN || error.statusCode === NOT_FOUND) && !(error instanceof GitHubRateLimitError))
+                return undefined;
+            throw error;
+        }
+        return items.map(item => jsonField(item, 'name')).filter(name => typeof name === 'string');
+    }
+    // GitHub は同じ名前のブランチがあっても errors を返さず linkedBranch を null にするので、作り先のリポを読んで理由を書く
+    async linkedBranchFailure(id, name) {
+        let repository;
+        let hasBranch = false;
+        try {
+            const node = jsonField(await this.executeGraphql(QUERY_GET_BRANCH_REF_BY_NODE, { id, qualifiedName: `refs/heads/${name}` }), 'node');
+            const target = jsonField(node, 'repository') ?? node;
+            const fullName = jsonField(target, 'nameWithOwner');
+            repository = typeof fullName === 'string' ? fullName : undefined;
+            hasBranch = repository !== undefined && isTruthy(jsonField(target, 'ref'));
+        }
+        catch (error) {
+            if (!(error instanceof GitHubAPIError))
+                throw error;
+        }
+        return hasBranch
+            ? `GitHub did not create the linked branch: a branch named ${name} already exists in ${repository ?? ''}. Use another branch name, or delete that branch if nothing uses it`
+            : `GitHub did not create the linked branch ${name} and gave no reason: check the branches of ${repository ?? 'the repository'} for the same name, and that the token can write its contents`;
+    }
+    /**
+    Link ヘッダの next を最後まで辿る。2 ページ目以降は next の絶対 URL を使い、params を再送すると cursor と二重になる
+    */
+    async listAll(path, firstParameters, itemsKey) {
+        const items = [];
+        let target = path;
+        let parameters = firstParameters;
+        for (;;) {
+            const response = await this.restRequest('GET', target, { params: parameters });
+            if (!response.isSuccess)
+                this.handleHttpError(response);
+            // 応答が `{ total_count, <itemsKey>: [...] }` の形の一覧は、キーで配列を取り出す
+            const body = response.json();
+            items.push(...asArray(itemsKey === undefined ? body : jsonField(body, itemsKey)));
+            const next = response.links.get('next');
+            if (next === undefined)
+                return items;
+            target = next.url;
+            parameters = undefined;
+        }
+    }
+    /**
+    GraphQL の点数の上限・使用量・残り・窓の切り替わり（REST の /rate_limit。点数を使わない）。読めない・形が違うときは undefined
+    */
+    async getGraphqlRateLimit() {
+        let body;
+        try {
+            body = await this.restJson('GET', '/rate_limit');
+        }
+        catch (error) {
+            if (error instanceof GitHubAPIError)
+                return undefined;
+            throw error;
+        }
+        const graphql = jsonField(jsonField(body, 'resources'), 'graphql');
+        const limit = jsonField(graphql, 'limit');
+        const used = jsonField(graphql, 'used');
+        const remaining = jsonField(graphql, 'remaining');
+        const reset = jsonField(graphql, 'reset');
+        return typeof limit === 'number' && typeof used === 'number' && typeof remaining === 'number' && typeof reset === 'number' ? { limit, used, remaining, reset } : undefined;
+    }
+    /**
+    リポジトリの GraphQL Node ID。見つからなければ GitHubNotFoundError
+    */
+    async getRepositoryId(owner, name) {
+        const result = await this.executeGraphql(QUERY_GET_REPOSITORY_ID, { owner, name });
+        const repository = jsonField(result, 'repository');
+        if (!isTruthy(repository))
+            throw new GitHubNotFoundError(`repository not found: ${owner}/${name}`);
+        return requireString(jsonField(repository, 'id'), 'repository.id');
+    }
+    /**
+    利用者のリポへの権限（REST の collaborators の permission）。maintain は write、triage は read で返る
+    */
+    async getCollaboratorPermission(owner, repository, user) {
+        const result = await this.restObject('GET', `${repositoryPath(owner, repository)}/collaborators/${encodePathSegment(user)}/permission`);
+        return requireString(jsonField(result, 'permission'), 'permission');
+    }
+    /**
+    ブランチの最新 commit の SHA（REST）。見つからなければ GitHubNotFoundError
+    */
+    async getBranchSha(owner, repository, branch) {
+        const reference = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/git/ref/heads/${encodePath(branch)}`), 'object');
+        return requireString(jsonField(reference, 'sha'), 'object.sha');
+    }
+    /**
+    head_sha の workflow の run の id と conclusion。終わっていない run の conclusion は空。先頭の 100 件だけ読む
+    */
+    async listWorkflowRunConclusions(owner, repository, headSha) {
+        const runs = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/actions/runs`, { params: { head_sha: headSha, per_page: 100 } }), 'workflow_runs');
+        return asArray(runs).map((run, index) => {
+            const conclusion = jsonField(run, 'conclusion');
+            return { id: requireNumber(jsonField(run, 'id'), `workflow_runs[${String(index)}].id`), conclusion: typeof conclusion === 'string' ? conclusion : '' };
+        });
+    }
+    /**
+    head が base より進んでいる commit の数（REST の compare の ahead_by）。手元の git を使わない。
+    per_page=1 で commit の一覧を削っても、ahead_by は変わらない
+    */
+    async countCommitsAhead(owner, repository, base, head) {
+        const comparison = await this.restJson('GET', `${repositoryPath(owner, repository)}/compare/${encodePath(base)}...${encodePath(head)}`, { params: { per_page: 1 } });
+        const ahead = jsonField(comparison, 'ahead_by');
+        if (typeof ahead !== 'number' || !Number.isSafeInteger(ahead))
+            throw new GitHubAPIError('could not read ahead_by from the compare response');
+        return ahead;
+    }
+    /**
+    Issue に紐づいたブランチを作り、その名前を返す（gh issue develop と同等）。
+    repositoryId を省くと、Issue と同じリポジトリになる
+    */
+    async createLinkedBranch(issueId, oid, name, repositoryId) {
+        const input = {
+            issueId,
+            oid,
+            name,
+            ...(repositoryId !== undefined && repositoryId !== '' && { repositoryId }),
+        };
+        const result = await this.executeGraphql(MUTATION_CREATE_LINKED_BRANCH, { input });
+        const linkedBranch = jsonField(jsonField(result, 'createLinkedBranch'), 'linkedBranch');
+        if (!isTruthy(linkedBranch))
+            throw new GitHubAPIError(await this.linkedBranchFailure(repositoryId === undefined || repositoryId === '' ? issueId : repositoryId, name));
+        return requireString(jsonField(jsonField(linkedBranch, 'ref'), 'name'), 'linkedBranch.ref.name');
+    }
+    /**
+    名前が prefix で始まるブランチと先頭の SHA（REST の git/matching-refs）。prefix は `pecot-attach/` のように `/` で終える
+    */
+    async listBranchesWithPrefix(owner, repository, prefix) {
+        const references = await this.listAll(`${repositoryPath(owner, repository)}/git/matching-refs/heads/${encodePath(prefix)}`, {});
+        return references.map((reference, index) => {
+            const name = requireString(jsonField(reference, 'ref'), `refs[${String(index)}].ref`);
+            return {
+                name: name.startsWith(HEADS_PREFIX) ? name.slice(HEADS_PREFIX.length) : name,
+                sha: requireString(jsonField(jsonField(reference, 'object'), 'sha'), `refs[${String(index)}].object.sha`),
+            };
+        });
+    }
+    /**
+    commit の committer の日時（REST の git/commits の committer.date。ISO 8601 の文字列）
+    */
+    async getCommitDate(owner, repository, sha) {
+        const commit = await this.restJson('GET', `${repositoryPath(owner, repository)}/git/commits/${encodePathSegment(sha)}`);
+        return requireString(jsonField(jsonField(commit, 'committer'), 'date'), 'committer.date');
+    }
+    /**
+    tree の直下の項目（REST の git/trees。再帰しない）。reference は tree か commit の SHA
+    */
+    async getTreeEntries(owner, repository, reference) {
+        const tree = await this.restJson('GET', `${repositoryPath(owner, repository)}/git/trees/${encodePath(reference)}`);
+        return asArray(jsonField(tree, 'tree')).map((entry, index) => {
+            const label = `tree[${String(index)}]`;
+            return {
+                path: requireString(jsonField(entry, 'path'), `${label}.path`),
+                type: requireString(jsonField(entry, 'type'), `${label}.type`),
+                mode: requireString(jsonField(entry, 'mode'), `${label}.mode`),
+                sha: requireString(jsonField(entry, 'sha'), `${label}.sha`),
+            };
+        });
+    }
+    /**
+    blob の中身（REST の git/blobs の base64 を戻したもの）
+    */
+    async getBlobBytes(owner, repository, sha) {
+        const blob = await this.restJson('GET', `${repositoryPath(owner, repository)}/git/blobs/${encodePathSegment(sha)}`);
+        const encoding = jsonField(blob, 'encoding');
+        if (encoding !== 'base64')
+            throw new GitHubAPIError(`blob ${sha} is not base64 (encoding: ${typeof encoding === 'string' ? encoding : 'none'})`);
+        return Buffer.from(requireString(jsonField(blob, 'content'), 'blob.content'), 'base64');
+    }
+    /**
+    ブランチを削除する。保護されたブランチなどは GitHubAPIError
+    */
+    async deleteBranch(owner, repository, branch) {
+        const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/git/refs/heads/${encodePath(branch)}`);
+        if (!response.isSuccess)
+            this.handleHttpError(response);
+    }
+    /**
+    base と head の分かれ目の commit の SHA（REST の compare の merge_base_commit）
+    */
+    async getMergeBase(owner, repository, base, head) {
+        const comparison = await this.restJson('GET', `${repositoryPath(owner, repository)}/compare/${encodePath(base)}...${encodePath(head)}`, { params: { per_page: 1 } });
+        return requireString(jsonField(jsonField(comparison, 'merge_base_commit'), 'sha'), 'merge_base_commit.sha');
+    }
+    /**
+    GitHub のリリースを作る。target_commitish を指定するので、タグも自動で作られる
+    */
+    async createRelease(owner, repository, tagName, name, body, options = {}) {
+        const data = {
+            tag_name: tagName,
+            name,
+            body,
+            target_commitish: options.targetCommitish ?? 'main',
+            draft: options.draft ?? false,
+            prerelease: options.prerelease ?? false,
+        };
+        return this.restObject('POST', `${repositoryPath(owner, repository)}/releases`, { json: data });
+    }
+    /**
+    Actions の secret の名前の一覧。scope が organization なら、organization の secret のうち、このリポに渡るもの
+    */
+    async listActionsSecretNames(owner, repository, scope) {
+        const kind = scope === 'organization' ? 'organization-secrets' : 'secrets';
+        return await this.listNamesOrUndefined(`${repositoryPath(owner, repository)}/actions/${kind}`, SECRETS_PER_PAGE, 'secrets');
+    }
+    /**
+    Actions の変数の名前の一覧。scope が organization なら、organization の変数のうち、このリポに渡るもの
+    */
+    async listActionsVariableNames(owner, repository, scope) {
+        const kind = scope === 'organization' ? 'organization-variables' : 'variables';
+        return await this.listNamesOrUndefined(`${repositoryPath(owner, repository)}/actions/${kind}`, VARIABLES_PER_PAGE, 'variables');
+    }
+    /**
+    リポジトリの設定（`GET /repos/{owner}/{repo}` を 1 回読む）
+    */
+    async getRepositorySettings(owner, repository) {
+        const repositoryInfo = await this.restJson('GET', repositoryPath(owner, repository));
+        const autoDelete = jsonField(repositoryInfo, 'delete_branch_on_merge');
+        const ownerType = jsonField(jsonField(repositoryInfo, 'owner'), 'type');
+        return {
+            deleteBranchOnMerge: typeof autoDelete === 'boolean' ? autoDelete : undefined,
+            defaultBranch: requireString(jsonField(repositoryInfo, 'default_branch'), 'default_branch'),
+            ownerType: typeof ownerType === 'string' ? ownerType : undefined,
+        };
+    }
+    /**
+    リポジトリの持ち主の種類（`User`・`Organization`）。読めない形なら undefined
+    */
+    async getRepositoryOwnerType(owner, repository) {
+        const repositoryInfo = await this.restJson('GET', repositoryPath(owner, repository));
+        const type = jsonField(jsonField(repositoryInfo, 'owner'), 'type');
+        return typeof type === 'string' ? type : undefined;
+    }
+    /**
+    open な Dependabot alert を全件取得する（REST）。
+    alerts が無効（403）などで取得できなければ GitHubAPIError
+    */
+    async listOpenDependabotAlerts(owner, repository) {
+        return this.listAll(`${repositoryPath(owner, repository)}/dependabot/alerts`, { state: 'open', per_page: ALERTS_PER_PAGE });
+    }
+    /**
+    open な code scanning alert を全件取得する（REST）。ref は付けず、既定ブランチが対象になる。
+    GHAS が無い（403）・解析が無い（404）などで取得できなければ GitHubAPIError
+    */
+    async listOpenCodeScanningAlerts(owner, repository) {
+        return this.listAll(`${repositoryPath(owner, repository)}/code-scanning/alerts`, { state: 'open', per_page: ALERTS_PER_PAGE });
+    }
+    /**
+    open な secret scanning alert を全件取得する（REST）。secret の値が応答に載らないよう、hide_secret を必ず付ける。
+    secret scanning が無効（404）などで取得できなければ GitHubAPIError
+    */
+    async listOpenSecretScanningAlerts(owner, repository) {
+        return this.listAll(`${repositoryPath(owner, repository)}/secret-scanning/alerts`, { state: 'open', hide_secret: 'true', per_page: ALERTS_PER_PAGE });
+    }
+    /**
+    リポジトリの secret scanning の状態（enabled・disabled）。
+    security_and_analysis は admin 権限が無いと応答に載らない。載っていなければ undefined
+    */
+    async getSecretScanningStatus(owner, repository) {
+        const analysis = jsonField(await this.restJson('GET', repositoryPath(owner, repository)), 'security_and_analysis');
+        const status = jsonField(jsonField(analysis, 'secret_scanning'), 'status');
+        return typeof status === 'string' ? status : undefined;
+    }
+    /**
+    リポジトリで Dependabot alerts が有効かを返す（REST）。
+    vulnerability-alerts は有効で 204、無効で 404 を返す。それ以外の応答は GitHubAPIError
+    */
+    async isDependabotAlertsEnabled(owner, repository) {
+        const response = await this.restRequest('GET', `${repositoryPath(owner, repository)}/vulnerability-alerts`);
+        if (response.statusCode === NO_CONTENT)
+            return true;
+        if (response.statusCode === NOT_FOUND)
+            return false;
+        return this.handleHttpError(response);
+    }
+}
+
+// GitHub Projects (v2) 操作の API。cli/core/github/projects.py の移植。
+// owner が user か organization かは分からないので、user のクエリを先に試し、失敗したら organization を試す。
+// 着手の判定に足したフィールドの名前が出るスキーマの失敗（`Field 'x' doesn't exist` と `Cannot query field "x"`）
+const READINESS_FIELD_ERROR = /(?:Field '|field ")(?:issueType|subIssues|parent|blockedBy)['"]/u;
+// ProjectV2.field(name:) は、その名前のフィールドが無いと null と NOT_FOUND の errors を返す
+function isLaneFieldPath(path) {
+    return path.length === 2 && path[0] === 'node' && path[1] === 'laneField';
+}
+function laneOptionsOf(field) {
+    const options = jsonField(field, 'options');
+    return isJsonArray(options) ? options.map(option => jsonField(option, 'name')).filter(name => typeof name === 'string') : undefined;
+}
+function viewTargetOf(owner, number, ownerNode) {
+    const typename = jsonField(ownerNode, '__typename');
+    if (typename !== 'User' && typename !== 'Organization')
+        throw new GitHubAPIError(`unexpected owner type: ${typeof typename === 'string' ? typename : 'none'}`);
+    const project = jsonField(ownerNode, 'projectV2');
+    if (!isTruthy(project))
+        throw new GitHubNotFoundError(`project not found: ${owner}/projects/${String(number)}`);
+    const views = [];
+    const viewNodes = truthyNodes(jsonField(project, 'views'));
+    for (const view of viewNodes) {
+        const viewNumber = jsonField(view, 'number');
+        const name = jsonField(view, 'name');
+        if (typeof viewNumber === 'number' && typeof name === 'string')
+            views.push({ number: viewNumber, name });
+    }
+    const fieldDatabaseIds = new Map();
+    const fieldNodes = truthyNodes(jsonField(project, 'fields'));
+    for (const field of fieldNodes) {
+        const name = jsonField(field, 'name');
+        const databaseId = jsonField(field, 'databaseId');
+        if (typeof name === 'string' && typeof databaseId === 'number')
+            fieldDatabaseIds.set(name, databaseId);
+    }
+    const userId = jsonField(ownerNode, 'databaseId');
+    return { owner, number, ownerKind: typename, userId: typeof userId === 'number' ? userId : undefined, url: requireString(jsonField(project, 'url'), 'projectV2.url'), views, fieldDatabaseIds };
+}
+const MAX_ARCHIVED_CONSECUTIVE = 50;
+// ワークフローのフィールドの値が Archived か。そのフィールドが無ければ false
+function isItemArchived(item, workflowFieldId) {
+    return extractFieldValueById(item, workflowFieldId)?.toLowerCase() === 'archived';
+}
+// オブジェクトの要素だけを残す（null などは落とす）
+function objectsOf(items) {
+    return items.filter(item => isJsonObject(item));
+}
+class ProjectsApi extends ReposApi {
+    // user のクエリ。GitHub の失敗は、認証エラーとレート制限も含めて undefined にし、org のクエリへ進む。
+    // Python と同じ動き
+    async queryAsUser(query, variables) {
+        try {
+            return await this.executeGraphql(query, variables);
+        }
+        catch (error) {
+            if (error instanceof GitHubAPIError)
+                return undefined;
+            throw error;
+        }
+    }
+    /**
+    Issue を読むクエリ。無い Issue・リポジトリの NOT_FOUND を GitHubNotFoundError にする
+    */
+    async queryIssue(query, variables) {
+        try {
+            return await this.executeGraphql(query, variables);
+        }
+        catch (error) {
+            throw asNotFoundError(error);
+        }
+    }
+    /**
+    queryIssue の、部分エラーを許す版
+    */
+    async queryIssueTolerating(query, variables, isTolerated) {
+        try {
+            return await this.executeGraphqlTolerating(query, variables, isTolerated);
+        }
+        catch (error) {
+            throw asNotFoundError(error);
+        }
+    }
+    /**
+    プロジェクトボードのアイテムを取得する（ページネーション対応）
+    */
+    async listProjectItems(projectId, options = {}) {
+        const { limit, excludeArchived = false, workflowFieldId = '', onLegacy, onLaneOptions } = options;
+        let query = QUERY_LIST_PROJECT_ITEMS;
+        let allItems = [];
+        let cursor = JSON_NULL;
+        let archivedConsecutive = 0;
+        for (;;) {
+            let result;
+            try {
+                const outcome = await this.executeGraphqlTolerating(query, { projectId, cursor, laneFieldName: LANE_FIELD_NAME }, isLaneFieldPath);
+                result = outcome.data;
+            }
+            catch (error) {
+                // 古い GHES は blockedBy などを知らない。足す前のクエリで先頭から読み直す
+                if (query === QUERY_LIST_PROJECT_ITEMS_LEGACY || !isSchemaError(error) || !READINESS_FIELD_ERROR.test(error.message))
+                    throw error;
+                query = QUERY_LIST_PROJECT_ITEMS_LEGACY;
+                allItems = [];
+                cursor = JSON_NULL;
+                archivedConsecutive = 0;
+                onLegacy?.();
+                continue;
+            }
+            const node = jsonField(result, 'node');
+            if (!isTruthy(node))
+                break;
+            if (cursor === JSON_NULL)
+                onLaneOptions?.(laneOptionsOf(jsonField(node, 'laneField')));
+            const itemsData = asObject(jsonField(node, 'items'));
+            const nodes = asArray(jsonField(itemsData, 'nodes'));
+            if (excludeArchived) {
+                for (const item of nodes) {
+                    if (isItemArchived(item, workflowFieldId)) {
+                        archivedConsecutive += 1;
+                    }
+                    else {
+                        allItems.push(item);
+                        archivedConsecutive = 0;
+                    }
+                    if (archivedConsecutive >= MAX_ARCHIVED_CONSECUTIVE)
+                        return objectsOf(allItems);
+                }
+            }
+            else {
+                allItems.push(...nodes);
+            }
+            if (limit !== undefined && limit > 0 && allItems.length >= limit) {
+                allItems = allItems.slice(0, limit);
+                break;
+            }
+            const pageInfo = asObject(jsonField(itemsData, 'pageInfo'));
+            if (!isTruthy(pageInfo['hasNextPage']))
+                break;
+            // 次のページがあるのに cursor が無いと、先頭から取り直して終わらない
+            const endCursor = pageInfo['endCursor'];
+            if (typeof endCursor !== 'string')
+                throw new GitHubAPIError('could not get the cursor for the next page');
+            cursor = endCursor;
+        }
+        return objectsOf(allItems);
+    }
+    /**
+    Issue をプロジェクトボードに追加し、作られたアイテムの ID を返す
+    */
+    async addToProject(projectId, contentId) {
+        const result = await this.executeGraphql(MUTATION_ADD_TO_PROJECT, { projectId, contentId });
+        const item = jsonField(jsonField(result, 'addProjectV2ItemById'), 'item');
+        if (!isTruthy(item))
+            throw new GitHubAPIError('failed to add the item to the project');
+        return requireString(jsonField(item, 'id'), 'item.id');
+    }
+    /**
+    プロジェクトアイテムの SingleSelect フィールドの値を更新し、アイテムの ID を返す
+    */
+    async updateProjectItemField(projectId, itemId, fieldId, optionId) {
+        const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_ITEM_FIELD, { projectId, itemId, fieldId, optionId });
+        const item = jsonField(jsonField(result, 'updateProjectV2ItemFieldValue'), 'projectV2Item');
+        if (!isTruthy(item))
+            throw new GitHubAPIError('failed to update the field');
+        return requireString(jsonField(item, 'id'), 'projectV2Item.id');
+    }
+    /**
+    プロジェクトボードからアイテムを削除し、削除したアイテムの ID を返す
+    */
+    async deleteProjectItem(projectId, itemId) {
+        const result = await this.executeGraphql(MUTATION_DELETE_PROJECT_ITEM, { projectId, itemId });
+        const deletedId = jsonField(jsonField(result, 'deleteProjectV2Item'), 'deletedItemId');
+        if (!isTruthy(deletedId))
+            throw new GitHubAPIError('failed to delete the project item');
+        return requireString(deletedId, 'deletedItemId');
+    }
+    /**
+    プロジェクト番号から GraphQL Node ID を取る。user 所有を先に試す。無ければ GitHubNotFoundError
+    */
+    async getProjectId(owner, projectNumber) {
+        const variables = { owner, projectNumber };
+        const userResult = await this.queryAsUser(QUERY_GET_PROJECT_ID_USER, variables);
+        const userProject = jsonField(jsonField(userResult, 'user'), 'projectV2');
+        if (isTruthy(userProject))
+            return requireString(jsonField(userProject, 'id'), 'projectV2.id');
+        const orgResult = await this.executeGraphql(QUERY_GET_PROJECT_ID_ORG, variables);
+        const organizationProject = jsonField(jsonField(orgResult, 'organization'), 'projectV2');
+        if (isTruthy(organizationProject))
+            return requireString(jsonField(organizationProject, 'id'), 'projectV2.id');
+        throw new GitHubNotFoundError(`project not found: ${owner}/projects/${String(projectNumber)}`);
+    }
+    /**
+    Issue 番号から、指定のプロジェクトの中のアイテム ID を取る。
+    Issue から直接引くので、全アイテムの走査は要らない。Issue やリポジトリが無い、またはプロジェクトに無ければ undefined
+    */
+    async getItemIdByIssue(projectId, owner, repository, issueNumber) {
+        const result = await this.queryIssue(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber });
+        const issue = jsonField(jsonField(result, 'repository'), 'issue');
+        const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId);
+        return item === undefined ? undefined : requireString(jsonField(item, 'id'), 'projectItems.nodes.id');
+    }
+    /**
+    Issue 1 件の、指定のプロジェクトの項目を、readBoard の一覧の項目と同じ形で返す（札は含めない）。
+    workflow は進行の列の値で、空なら null。Issue やリポジトリが無い、またはプロジェクトに無ければ undefined
+    */
+    async getIssueBoardItem(projectId, owner, repository, issueNumber, workflowFieldId) {
+        const result = await this.executeGraphql(QUERY_GET_ISSUE_BOARD_ITEM, { owner, repo: repository, number: issueNumber });
+        const issue = jsonField(jsonField(result, 'repository'), 'issue');
+        if (!isTruthy(issue))
+            return undefined;
+        const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId);
+        if (item === undefined)
+            return undefined;
+        const workflow = extractFieldValueById(item, workflowFieldId);
+        const owning = jsonField(issue, 'repository');
+        return {
+            id: requireString(jsonField(item, 'id'), 'projectItems.nodes.id'),
+            workflow: typeof workflow === 'string' ? workflow : JSON_NULL,
+            title: jsonField(issue, 'title') ?? '',
+            content: {
+                number: jsonField(issue, 'number') ?? JSON_NULL,
+                state: jsonField(issue, 'state') ?? JSON_NULL,
+                url: jsonField(issue, 'url') ?? JSON_NULL,
+                repository: `${requireString(jsonField(jsonField(owning, 'owner'), 'login'), 'issue.repository.owner.login')}/${requireString(jsonField(owning, 'name'), 'issue.repository.name')}`,
+            },
+        };
+    }
+    /**
+    プロジェクトアイテムで値が入っている単一選択フィールドの ID を取る。アイテムが見つからなければ空
+    */
+    async getItemSetFieldIds(projectId, owner, repository, issueNumber, itemId) {
+        const result = await this.queryIssue(QUERY_GET_ISSUE_PROJECT_ITEMS, { owner, repo: repository, number: issueNumber });
+        const issue = jsonField(jsonField(result, 'repository'), 'issue');
+        const fieldIds = new Set();
+        const items = truthyNodes(jsonField(issue, 'projectItems'));
+        for (const item of items) {
+            if (jsonField(item, 'id') !== itemId || jsonField(jsonField(item, 'project'), 'id') !== projectId)
+                continue;
+            const values = truthyNodes(jsonField(item, 'fieldValues'));
+            for (const value of values) {
+                const fieldId = jsonField(jsonField(value, 'field'), 'id');
+                if (typeof fieldId === 'string')
+                    fieldIds.add(fieldId);
+            }
+        }
+        return fieldIds;
+    }
+    /**
+    プロジェクトにリポジトリをリンクする。
+    リンクした（linked）、既にリンク済み（already_linked）、失敗（failed）のいずれも例外にせず結果で返す
+    */
+    async linkRepositoryToProject(owner, projectNumber, repositoryOwner, repositoryName) {
+        try {
+            const projectId = await this.getProjectId(owner, projectNumber);
+            const repositoryId = await this.getRepositoryId(repositoryOwner, repositoryName);
+            const result = await this.executeGraphql(MUTATION_LINK_PROJECT_REPOSITORY, { projectId, repositoryId });
+            const linked = jsonField(jsonField(result, 'linkProjectV2ToRepository'), 'repository');
+            return isTruthy(linked) ? { status: 'linked', detail: '' } : { status: 'failed', detail: 'unexpected response' };
+        }
+        catch (error) {
+            if (error instanceof GitHubNotFoundError)
+                return { status: 'failed', detail: error.message };
+            if (error instanceof GitHubAPIError) {
+                const lowered = error.message.toLowerCase();
+                const isAlreadyLinked = lowered.includes('already linked') || lowered.includes('already exists');
+                return { status: isAlreadyLinked ? 'already_linked' : 'failed', detail: error.message };
+            }
+            throw error;
+        }
+    }
+    /**
+    プロジェクトの情報（id・title・url・fields）。user 所有を先に試す。見つからなければ undefined
+    */
+    async getProjectFields(owner, projectNumber) {
+        const variables = { owner, projectNumber };
+        const userResult = await this.queryAsUser(QUERY_GET_PROJECT_FIELDS_USER, variables);
+        const userProject = jsonField(jsonField(userResult, 'user'), 'projectV2');
+        if (isTruthy(userProject))
+            return asObject(userProject);
+        const orgResult = await this.executeGraphql(QUERY_GET_PROJECT_FIELDS_ORG, variables);
+        const organizationProject = jsonField(jsonField(orgResult, 'organization'), 'projectV2');
+        return isTruthy(organizationProject) ? asObject(organizationProject) : undefined;
+    }
+    /**
+    プロジェクトに SingleSelect フィールドを作り、作ったフィールド（id・name・options）を返す
+    */
+    async createProjectField(projectId, name, options) {
+        const result = await this.executeGraphql(MUTATION_CREATE_PROJECT_FIELD, { projectId, name, options });
+        const created = jsonField(jsonField(result, 'createProjectV2Field'), 'projectV2Field');
+        if (!isTruthy(created))
+            throw new GitHubAPIError('failed to create the field');
+        return asObject(created);
+    }
+    /**
+    フィールドの名前だけを変え、更新後のフィールド（id・name）を返す
+    */
+    async renameProjectField(fieldId, name) {
+        const result = await this.executeGraphql(MUTATION_RENAME_PROJECT_FIELD, { fieldId, name });
+        const updated = jsonField(jsonField(result, 'updateProjectV2Field'), 'projectV2Field');
+        if (!isTruthy(updated))
+            throw new GitHubAPIError('failed to rename the field');
+        return asObject(updated);
+    }
+    /**
+    フィールドを消し、消したフィールド（id・name）を返す。各 Item の値も消え、戻らない
+    */
+    async deleteProjectField(fieldId) {
+        const result = await this.executeGraphql(MUTATION_DELETE_PROJECT_FIELD, { fieldId });
+        const deleted = jsonField(jsonField(result, 'deleteProjectV2Field'), 'projectV2Field');
+        if (!isTruthy(deleted))
+            throw new GitHubAPIError('failed to delete the field');
+        return asObject(deleted);
+    }
+    /**
+    SingleSelect フィールドの選択肢を、渡した一覧に置き換え、更新後のフィールド（id・name・options）を返す。
+    既存の選択肢は id を付けて渡す（外すと選択肢が作り直され、カードの値が消える）
+    */
+    async updateProjectFieldOptions(fieldId, options) {
+        const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_FIELD, { fieldId, options });
+        const updated = jsonField(jsonField(result, 'updateProjectV2Field'), 'projectV2Field');
+        if (!isTruthy(updated))
+            throw new GitHubAPIError('failed to update the field');
+        return asObject(updated);
+    }
+    /**
+    ビューを作る先（所有者の種類・ビュー・欄の databaseId）を読む。所有者かボードが無ければ GitHubNotFoundError
+    */
+    async getProjectViewTarget(owner, projectNumber) {
+        const result = await this.executeGraphql(QUERY_GET_PROJECT_VIEW_TARGET, { owner, projectNumber });
+        const ownerNode = jsonField(result, 'repositoryOwner');
+        if (!isTruthy(ownerNode))
+            throw new GitHubNotFoundError(`owner not found: ${owner}`);
+        return viewTargetOf(owner, projectNumber, ownerNode);
+    }
+    /**
+    REST でボードにビューを作り、作ったビューを返す。組織のボードのパスの先頭は /orgs/{org}。個人のボードでは /users/{user_id}
+    */
+    async createProjectView(target, body) {
+        let ownerPath = `/orgs/${encodePathSegment(target.owner)}`;
+        if (target.ownerKind === 'User') {
+            if (target.userId === undefined)
+                throw new GitHubAPIError(`could not read the user id of ${target.owner}`);
+            ownerPath = `/users/${String(target.userId)}`;
+        }
+        const json = { name: body.name, layout: body.layout, vertical_group_by: [...body.vertical_group_by], group_by: [...body.group_by] };
+        return this.restObject('POST', `${ownerPath}/projectsV2/${String(target.number)}/views`, { json });
+    }
+}
+
+// Issue 操作の API。cli/core/github/issues.py の移植。
+// 返す値のキー名は、Python の辞書と同じ snake_case にする（CLI の JSON 出力がそのまま使う）。
+const ISSUES_PER_PAGE = 100;
+const DEFAULT_COMMENT_LIMIT = 5;
+/**
+前提を 1 回で読む件数の上限
+*/
+const MAX_BLOCKED_BY = 50;
+// issueType フィールドに対応しない GHES が返すスキーマの失敗
+function isIssueTypeSchemaError(error) {
+    return isSchemaError(error) && error.message.includes('issueType');
+}
+const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support issue dependencies (blockedBy); version 3.19 or later is required';
+// 依存関係のフィールド（blockedBy・blocking・addBlockedBy・removeBlockedBy）と issueType に対応しない GHES（3.19 より前）。
+// そのスキーマの失敗なら、分かる失敗に替える
+function asDependenciesError(error) {
+    return isSchemaError(error) && /blockedBy|blocking|issueType/iu.test(error.message) ? new DependenciesUnsupportedError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error;
+}
+// 部分エラーのうち、対象の Issue の blockedBy の下のもの
+function isBlockedByPath(path) {
+    return path[0] === 'repository' && path[1] === 'issue' && path[2] === 'blockedBy';
+}
+// 部分エラーのうち、対象の Issue の blocking の下のもの
+function isBlockingPath(path) {
+    return path[0] === 'repository' && path[1] === 'issue' && path[2] === 'blocking';
+}
+// GitHub は無い Issue・リポを、data の null と、その道筋の NOT_FOUND の errors で返す。null を見て GitHubNotFoundError にする
+function isIssueOrRepositoryPath(path) {
+    return path[0] === 'repository' && (path.length === 1 || (path[1] === 'issue' && path.length === 2));
+}
+// blockedBy（または blocking）の connection を参照にする。件数が足りないのは呼ぶ側が見るので、ここでは失敗にしない
+function readBlockedByReferences(connection, field = 'blockedBy') {
+    if (!isTruthy(connection))
+        return { kind: 'read-failed', reason: `${field} is null` };
+    const nodes = asArray(jsonField(connection, 'nodes'));
+    if (nodes.some(node => !isTruthy(node)))
+        return { kind: 'read-failed', reason: `${field} has a null node` };
+    const issues = nodes.map(node => readIssueReference(node));
+    return { kind: 'ok', total: requireNumber(jsonField(connection, 'totalCount'), `${field}.totalCount`), issues };
+}
+function numberOrUndefined(value) {
+    return typeof value === 'number' ? value : undefined;
+}
+function stringOrEmpty(value) {
+    return typeof value === 'string' ? value : '';
+}
+// 見つからないときは GitHubNotFoundError。repository と issue の 2 段で確かめる
+function issueNode(result, owner, repository, number) {
+    const repositoryNode = jsonField(result, 'repository');
+    if (!isTruthy(repositoryNode))
+        throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`);
+    const issue = jsonField(repositoryNode, 'issue');
+    if (!isTruthy(issue))
+        throw new GitHubNotFoundError(`Issue not found: ${owner}/${repository}/${String(number)}`);
+    return requireValue(issue, 'issue');
+}
+// 対象の Issue の親の参照。親が無い、またはリポジトリが読めない応答なら null
+function readParentReference(issue) {
+    const parent = jsonField(issue, 'parent');
+    if (!isTruthy(parent))
+        return JSON_NULL;
+    const repository = jsonField(parent, 'repository');
+    const owner = stringOrNull(jsonField(jsonField(repository, 'owner'), 'login'));
+    const name = stringOrNull(jsonField(repository, 'name'));
+    const number = jsonField(parent, 'number');
+    return owner === JSON_NULL || name === JSON_NULL || typeof number !== 'number' ? JSON_NULL : { repository: { owner, repository: name }, number };
+}
+function formatParent(parent) {
+    if (!isTruthy(parent))
+        return JSON_NULL;
+    const repository = asObject(jsonField(parent, 'repository'));
+    return {
+        number: requireNumber(jsonField(parent, 'number'), 'parent.number'),
+        title: requireString(jsonField(parent, 'title'), 'parent.title'),
+        state: requireString(jsonField(parent, 'state'), 'parent.state'),
+        owner: stringOrNull(jsonField(repository['owner'], 'login')),
+        repo: stringOrNull(repository['name']),
+    };
+}
+function text(value) {
+    return typeof value === 'string' ? value : '';
+}
+/**
+timelineItems からリンクされた PR を取り出す。
+ConnectedEvent は subject、CrossReferencedEvent は source に PR がある。PR 番号で重複を除く
+*/
+function extractLinkedPullRequests(timelineItems) {
+    const seen = new Set();
+    const pullRequests = [];
+    for (const node of truthyNodes(timelineItems)) {
+        const subject = jsonField(node, 'subject');
+        const pullRequest = isTruthy(subject) ? subject : jsonField(node, 'source');
+        if (!isTruthy(pullRequest))
+            continue;
+        const number = numberOrNull(jsonField(pullRequest, 'number'));
+        if (number === null || number === 0 || seen.has(number))
+            continue;
+        seen.add(number);
+        pullRequests.push({
+            number,
+            title: stringOrEmpty(jsonField(pullRequest, 'title')),
+            state: stringOrEmpty(jsonField(pullRequest, 'state')),
+        });
+    }
+    return pullRequests;
+}
+function readSubIssueNodes(connection) {
+    return truthyNodes(connection).map(sub => ({
+        number: requireNumber(jsonField(sub, 'number'), 'subIssue.number'),
+        state: requireString(jsonField(sub, 'state'), 'subIssue.state'),
+        title: requireString(jsonField(sub, 'title'), 'subIssue.title'),
+    }));
+}
+class IssuesApi extends ProjectsApi {
+    async executeDependencyMutation(mutation, variables) {
+        try {
+            await this.executeGraphql(mutation, variables);
+        }
+        catch (error) {
+            throw asDependenciesError(error);
+        }
+    }
+    // issueType フィールド非対応の GHES 用の判定
+    async getIssueKindPhase1(owner, repository, number) {
+        const result = await this.executeGraphql(QUERY_GET_ISSUE_KIND_PHASE1, { owner, repo: repository, number });
+        const issue = issueNode(result, owner, repository, number);
+        return {
+            number: requireNumber(jsonField(issue, 'number'), 'issue.number'),
+            state: requireString(jsonField(issue, 'state'), 'issue.state'),
+            issue_type: JSON_NULL,
+            sub_issues_total: subIssuesTotal(issue),
+        };
+    }
+    // GetIssueSlim の応答の issue。前提の件数に対応しない GHES は、件数なしのクエリで読み直す
+    async fetchSlimIssue(owner, repository, number, commentLimit) {
+        const variables = { owner, repo: repository, number, commentLimit };
+        let result;
+        try {
+            result = await this.queryIssue(QUERY_GET_ISSUE_SLIM, variables);
+        }
+        catch (error) {
+            if (!isSchemaError(error) || !/blockedBy/iu.test(error.message))
+                throw error;
+            result = await this.queryIssue(QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY, variables);
+        }
+        return issueNode(result, owner, repository, number);
+    }
+    /**
+    Issue を作る。labels が空なら送らない。extras は指定のあるものだけを送る
+    */
+    async createIssue(owner, repository, title, body = '', labels, extras = {}) {
+        const data = {
+            title,
+            body,
+            ...(labels !== undefined && labels.length > 0 && { labels }),
+            ...(extras.assignees !== undefined && { assignees: extras.assignees }),
+            ...(extras.milestone !== undefined && { milestone: extras.milestone }),
+            ...(extras.type !== undefined && { type: extras.type }),
+        };
+        return this.restObject('POST', `${repositoryPath(owner, repository)}/issues`, { json: data });
+    }
+    /**
+    Issue にコメントを足す
+    */
+    async addIssueComment(owner, repository, number, body) {
+        return this.restObject('POST', `${repositoryPath(owner, repository)}/issues/${String(number)}/comments`, { json: { body } });
+    }
+    /**
+    Issue・PR のコメントを全件取る（REST）
+    */
+    async listIssueComments(owner, repository, number) {
+        return this.listAll(`${repositoryPath(owner, repository)}/issues/${String(number)}/comments`, { per_page: ISSUES_PER_PAGE });
+    }
+    /**
+    Issue・PR のコメントを全件取り、本文・書き手・書いた人とリポの関係・作った時刻・URL を返す。順は REST と同じ ID の昇順
+    */
+    async listIssueCommentRecords(owner, repository, number) {
+        const comments = await this.listIssueComments(owner, repository, number);
+        return comments.filter(comment => isJsonObject(comment)).map((comment) => {
+            const user = jsonField(comment, 'user');
+            return {
+                body: text(jsonField(comment, 'body')),
+                userType: text(jsonField(user, 'type')),
+                login: text(jsonField(user, 'login')),
+                authorAssociation: text(jsonField(comment, 'author_association')),
+                createdAt: text(jsonField(comment, 'created_at')),
+                url: text(jsonField(comment, 'html_url')),
+            };
+        });
+    }
+    /**
+    Issue・PR のコメントを全件取り、本文と書き手の種類（`user.type`）だけを返す。順は REST と同じ ID の昇順
+    */
+    async listIssueCommentReadings(owner, repository, number) {
+        const records = await this.listIssueCommentRecords(owner, repository, number);
+        return records.map(({ body, userType }) => ({ body, userType }));
+    }
+    /**
+    Issue・PR からラベルを外す。付いていなければ（404）'absent'、ほかの失敗は GitHubAPIError
+    */
+    async removeIssueLabel(owner, repository, number, name) {
+        const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/issues/${String(number)}/labels/${encodePathSegment(name)}`);
+        if (response.statusCode === 404)
+            return 'absent';
+        if (!response.isSuccess)
+            this.handleHttpError(response);
+        return 'removed';
+    }
+    /**
+    Issue 番号から GraphQL Node ID を取る。見つからなければ GitHubNotFoundError
+    */
+    async getIssueNodeId(owner, repository, number) {
+        const issue = await this.getIssueNodeIdAndTitle(owner, repository, number);
+        return issue.id;
+    }
+    /**
+    Issue 番号から GraphQL Node ID とタイトルを、1 回のクエリで取る
+    */
+    async getIssueNodeIdAndTitle(owner, repository, number) {
+        const result = await this.queryIssue(QUERY_GET_ISSUE_NODE_ID, { owner, repo: repository, number });
+        const issue = issueNode(result, owner, repository, number);
+        return {
+            id: requireString(jsonField(issue, 'id'), 'issue.id'),
+            title: stringOrEmpty(jsonField(issue, 'title')),
+        };
+    }
+    /**
+    Issue の Node ID と、Issue のリポにある、つながったブランチの名前。見つからなければ GitHubNotFoundError
+    */
+    async getIssueLinkedBranches(owner, repository, number) {
+        const result = await this.queryIssue(QUERY_GET_ISSUE_LINKED_BRANCHES, { owner, repo: repository, number });
+        const issue = issueNode(result, owner, repository, number);
+        const fullName = `${owner}/${repository}`.toLowerCase();
+        const branches = truthyNodes(jsonField(issue, 'linkedBranches'))
+            .map(branch => jsonField(branch, 'ref'))
+            .filter(reference => stringOrNull(jsonField(jsonField(reference, 'repository'), 'nameWithOwner'))?.toLowerCase() === fullName)
+            .map(reference => requireString(jsonField(reference, 'name'), 'linkedBranch.ref.name'));
+        return { id: requireString(jsonField(issue, 'id'), 'issue.id'), branches };
+    }
+    /**
+    サブ Issue を紐づける。紐づけ結果は親と子の Issue 番号
+    */
+    async addSubIssue(parentIssueId, childIssueId) {
+        const result = await this.executeGraphql(MUTATION_ADD_SUB_ISSUE, { parentId: parentIssueId, childId: childIssueId });
+        const linkResult = jsonField(result, 'addSubIssue');
+        const parent = jsonField(linkResult, 'issue');
+        const child = jsonField(linkResult, 'subIssue');
+        if (!isTruthy(parent) || !isTruthy(child))
+            throw new GitHubAPIError('failed to link the sub-issue');
+        return {
+            parent_number: requireNumber(jsonField(parent, 'number'), 'issue.number'),
+            child_number: requireNumber(jsonField(child, 'number'), 'subIssue.number'),
+        };
+    }
+    /**
+    前提（blocked by）を付ける。issueId が待つ側、blockingIssueId が前提（どちらも node ID）。
+    GitHub の拒否（輪・件数の上限など）は HTTP 200 の VALIDATION で返り、GitHubAPIError になる。
+    Issue の依存関係に対応しない GHES（3.19 より前）も GitHubAPIError
+    */
+    async addBlockedBy(issueId, blockingIssueId) {
+        await this.executeDependencyMutation(MUTATION_ADD_BLOCKED_BY, { issueId, blockingIssueId });
+    }
+    /**
+    前提（blocked by）を外す。addBlockedBy と同じ失敗をする
+    */
+    async removeBlockedBy(issueId, blockingIssueId) {
+        await this.executeDependencyMutation(MUTATION_REMOVE_BLOCKED_BY, { issueId, blockingIssueId });
+    }
+    /**
+    Issue と、その前提（blockedBy 先頭 blockedByFirst 件）を 1 回のクエリで読む。ボードの値は projectId のものだけ。
+    blockedBy の部分エラーと、件数の上限による取りこぼしは、例外にせず blockedBy の read-failed で返す（呼ぶ側は判定の入力にする）。
+    Issue の依存関係に対応しない GHES（3.19 より前）、blockedBy 以外の失敗は GitHubAPIError
+    */
+    async getIssuePrerequisites(owner, repository, number, projectId, fieldNames, blockedByFirst = MAX_BLOCKED_BY) {
+        const variables = { owner, repo: repository, number, labelFieldName: fieldNames.labelFieldName, blockedByFirst };
+        let outcome;
+        try {
+            outcome = await this.queryIssueTolerating(QUERY_GET_ISSUE_PREREQUISITES, variables, isBlockedByPath);
+        }
+        catch (error) {
+            throw asDependenciesError(error);
+        }
+        const { data, errors } = outcome;
+        const issue = issueNode(data, owner, repository, number);
+        const messages = errors.map(error => stringOrEmpty(jsonField(error, 'message')));
+        return {
+            issue: { ...readIssue(issue, projectId, fieldNames), body: requireString(jsonField(issue, 'body'), 'issue.body'), parent: readParentReference(issue) },
+            blockedBy: readBlockedBy(issue, projectId, fieldNames, messages),
+        };
+    }
+    /**
+    その Issue を前提にしている Issue（blocking 先頭 blockingFirst 件）の参照と、全体の件数を読む。
+    total が issues の数より多ければ、読めなかった分がある。blocking の部分エラーと null の node は read-failed。
+    Issue の依存関係に対応しない GHES は DependenciesUnsupportedError
+    */
+    async getIssueBlockingReferences(owner, repository, number, blockingFirst = MAX_BLOCKED_BY) {
+        let outcome;
+        try {
+            const variables = { owner, repo: repository, number, blockingFirst };
+            outcome = await this.executeGraphqlTolerating(QUERY_GET_ISSUE_BLOCKING_REFERENCES, variables, path => isBlockingPath(path) || isIssueOrRepositoryPath(path));
+        }
+        catch (error) {
+            throw asDependenciesError(error);
+        }
+        const issue = issueNode(outcome.data, owner, repository, number);
+        const messages = outcome.errors.filter(error => isBlockingPath(asArray(error['path']))).map(error => stringOrEmpty(jsonField(error, 'message')));
+        return messages.length > 0 ? { kind: 'read-failed', reason: `blocking could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blocking'), 'blocking');
+    }
+    /**
+    Issue 種別を軽く取る。issueType フィールドに対応しない GHES では、subIssues だけで判定する
+    */
+    async getIssueKind(owner, repository, number) {
+        const variables = { owner, repo: repository, number };
+        let result;
+        try {
+            result = await this.executeGraphql(QUERY_GET_ISSUE_KIND, variables);
+        }
+        catch (error) {
+            if (isIssueTypeSchemaError(error)) {
+                return this.getIssueKindPhase1(owner, repository, number);
+            }
+            throw error;
+        }
+        const issue = issueNode(result, owner, repository, number);
+        return {
+            number: requireNumber(jsonField(issue, 'number'), 'issue.number'),
+            state: requireString(jsonField(issue, 'state'), 'issue.state'),
+            issue_type: stringOrNull(jsonField(jsonField(issue, 'issueType'), 'name')),
+            sub_issues_total: subIssuesTotal(issue),
+        };
+    }
+    /**
+    Issue の詳細を取る（GraphQL）。親・サブ Issue・リンクブランチ・リンク PR を 1 回のクエリで取る
+    */
+    async getIssueSlim(owner, repository, number, commentLimit = DEFAULT_COMMENT_LIMIT) {
+        const issue = await this.fetchSlimIssue(owner, repository, number, commentLimit);
+        return {
+            number: requireNumber(jsonField(issue, 'number'), 'issue.number'),
+            state: requireString(jsonField(issue, 'state'), 'issue.state'),
+            title: requireString(jsonField(issue, 'title'), 'issue.title'),
+            body: requireString(jsonField(issue, 'body'), 'issue.body'),
+            comments: {
+                total_count: requireNumber(jsonField(jsonField(issue, 'comments'), 'totalCount'), 'issue.comments.totalCount'),
+                nodes: truthyNodes(jsonField(issue, 'comments')).map(comment => ({
+                    author: isTruthy(jsonField(comment, 'author')) ? requireString(jsonField(jsonField(comment, 'author'), 'login'), 'comment.author.login') : 'ghost',
+                    created_at: requireString(jsonField(comment, 'createdAt'), 'comment.createdAt'),
+                    body: requireString(jsonField(comment, 'body'), 'comment.body'),
+                })),
+            },
+            parent: formatParent(jsonField(issue, 'parent')),
+            sub_issues: readSubIssueNodes(jsonField(issue, 'subIssues')),
+            linked_branches: truthyNodes(jsonField(issue, 'linkedBranches'))
+                .filter(branch => isTruthy(jsonField(branch, 'ref')))
+                .map(branch => requireString(jsonField(jsonField(branch, 'ref'), 'name'), 'linkedBranch.ref.name')),
+            linked_prs: extractLinkedPullRequests(jsonField(issue, 'timelineItems')),
+            blockedByCount: numberOrUndefined(jsonField(jsonField(issue, 'blockedBy'), 'totalCount')),
+        };
+    }
+    /**
+    Issue を閉じる。stateReason は completed か not_planned
+    */
+    async closeIssue(owner, repository, number, stateReason = 'completed') {
+        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, {
+            json: { state: 'closed', state_reason: stateReason },
+        });
+    }
+    /**
+    ラベルの付いた Issue を open・closed の両方で全件取る（REST）。Pull Request は除く
+    */
+    async listIssuesByLabel(owner, repository, label) {
+        const items = await this.listAll(`${repositoryPath(owner, repository)}/issues`, { state: 'all', labels: label, per_page: ISSUES_PER_PAGE });
+        return items.filter(item => !(isJsonObject(item) && 'pull_request' in item));
+    }
+    /**
+    Issue の本文を丸ごと置き換える。本文が上限を超える 422 は GitHubAPIError
+    */
+    async updateIssueBody(owner, repository, number, body) {
+        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, { json: { body } });
+    }
+}
+
+// Pull Request 操作の API。cli/core/github/pulls.py の移植。
+// 返す値のキー名は、Python の辞書と同じ snake_case にする（CLI の JSON 出力がそのまま使う）。
+const REVIEW_COMMENTS_PER_PAGE = 100;
+/**
+Stacks API が求める X-GitHub-Api-Version（https://docs.github.com/en/rest/pulls/stacks）
+*/
+const STACKS_API_VERSION = '2026-03-10';
+function requiresBoolean(value, path) {
+    return typeof value === 'boolean' ? value : throwMalformed(path);
+}
+function readStack(value) {
+    if (!isJsonObject(value))
+        throwMalformed('stack');
+    const pullRequests = jsonField(value, 'pull_requests');
+    if (!isJsonArray(pullRequests))
+        throwMalformed('stack.pull_requests');
+    return {
+        number: requireNumber(jsonField(value, 'number'), 'stack.number'),
+        pullRequests: pullRequests.map(pullRequest => requireNumber(jsonField(pullRequest, 'number'), 'stack.pull_requests.number')),
+    };
+}
+// 番号の型を問わずに、その PR を含むか。数でない番号でも含めば、readStack が形の誤りとして止める
+function hasPullRequestNumber(stack, pullRequestNumber) {
+    const pullRequests = jsonField(stack, 'pull_requests');
+    return isJsonArray(pullRequests) && pullRequests.some((pullRequest) => {
+        const number = jsonField(pullRequest, 'number');
+        return number === pullRequestNumber || number === String(pullRequestNumber);
+    });
+}
+function isDependabotAuthor(node) {
+    if (!isJsonObject(node))
+        return false;
+    const author = jsonField(node, 'author');
+    return jsonField(author, '__typename') === 'Bot' && jsonField(author, 'login') === 'dependabot';
+}
+class PullsApi extends IssuesApi {
+    // PR の取得クエリを実行し、pullRequest ノードを返す
+    async fetchPullRequest(query, owner, repository, number) {
+        const result = await this.executeGraphql(query, { owner, repo: repository, number });
+        const repositoryNode = jsonField(result, 'repository');
+        if (!isTruthy(repositoryNode))
+            throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`);
+        const pullRequest = jsonField(repositoryNode, 'pullRequest');
+        if (!isTruthy(pullRequest))
+            throw new GitHubNotFoundError(`PR not found: ${owner}/${repository}/${String(number)}`);
+        return requireValue(pullRequest, 'pullRequest');
+    }
+    /**
+    head のブランチ名で PR を引く（open・closed・merged。新しい順に先頭 20 件）。
+    20 件に収まらないときは hasNextPage が真。リポが無ければ GitHubNotFoundError
+    */
+    async listPullRequestsByHead(owner, repository, headReferenceName) {
+        const result = await this.executeGraphql(QUERY_LIST_PULL_REQUESTS_BY_HEAD, { owner, repo: repository, headRefName: headReferenceName });
+        const repositoryNode = jsonField(result, 'repository');
+        if (!isTruthy(repositoryNode))
+            throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`);
+        const connection = jsonField(repositoryNode, 'pullRequests');
+        return {
+            pullRequests: readPullRequests(truthyNodes(connection)),
+            hasNextPage: jsonField(jsonField(connection, 'pageInfo'), 'hasNextPage') === true,
+        };
+    }
+    /**
+    session finish が閉じる Issue を決めるのに使う PR を読む（GraphQL）。PR が無ければ GitHubNotFoundError
+    */
+    async getPullRequestForFinish(owner, repository, number) {
+        const pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_FINISH, owner, repository, number);
+        const defaultBranch = jsonField(jsonField(jsonField(pullRequest, 'baseRepository'), 'defaultBranchRef'), 'name');
+        return {
+            state: requireString(jsonField(pullRequest, 'state'), 'pullRequest.state'),
+            body: requireString(jsonField(pullRequest, 'body'), 'pullRequest.body'),
+            head_ref: requireString(jsonField(pullRequest, 'headRefName'), 'pullRequest.headRefName'),
+            base_ref: requireString(jsonField(pullRequest, 'baseRefName'), 'pullRequest.baseRefName'),
+            is_draft: requiresBoolean(jsonField(pullRequest, 'isDraft'), 'pullRequest.isDraft'),
+            closing_issues: truthyNodes(jsonField(pullRequest, 'closingIssuesReferences')).map((issue) => {
+                const issueRepository = jsonField(issue, 'repository');
+                return {
+                    owner: requireString(jsonField(jsonField(issueRepository, 'owner'), 'login'), 'closingIssue.repository.owner.login'),
+                    repository: requireString(jsonField(issueRepository, 'name'), 'closingIssue.repository.name'),
+                    number: requireNumber(jsonField(issue, 'number'), 'closingIssue.number'),
+                };
+            }),
+            default_branch: typeof defaultBranch === 'string' ? defaultBranch : undefined,
+        };
+    }
+    /**
+    その PR が入っているスタックを読む。入っていなければ undefined。
+    スタックの機能が無いリポは GitHubNotFoundError
+    */
+    async getStackOfPullRequest(owner, repository, pullRequestNumber) {
+        const stacks = await this.restJson('GET', `${repositoryPath(owner, repository)}/stacks`, {
+            params: { pull_request: pullRequestNumber },
+            apiVersion: STACKS_API_VERSION,
+        });
+        if (!isJsonArray(stacks))
+            throwMalformed('stacks');
+        // 関係の無いスタックの形の誤りで登録を止めないよう、探している PR を含むものだけ厳しく読む
+        const found = stacks.find(stack => hasPullRequestNumber(stack, pullRequestNumber));
+        return found === undefined ? undefined : readStack(found);
+    }
+    /**
+    スタックを作る。pullRequestNumbers は親から子の順
+    */
+    async createStack(owner, repository, pullRequestNumbers) {
+        return readStack(await this.restJson('POST', `${repositoryPath(owner, repository)}/stacks`, {
+            json: { pull_requests: [...pullRequestNumbers] },
+            apiVersion: STACKS_API_VERSION,
+        }));
+    }
+    /**
+    既にあるスタックの一番上に PR を足す。pullRequestNumbers は下からの順
+    */
+    async addToStack(owner, repository, stackNumber, pullRequestNumbers) {
+        return readStack(await this.restJson('POST', `${repositoryPath(owner, repository)}/stacks/${String(stackNumber)}/add`, {
+            json: { pull_requests: [...pullRequestNumbers] },
+            apiVersion: STACKS_API_VERSION,
+        }));
+    }
+    /**
+    PR の state（REST の `open`・`closed`）
+    */
+    async getPullRequestState(owner, repository, number) {
+        const pullRequest = await this.restObject('GET', `${repositoryPath(owner, repository)}/pulls/${String(number)}`);
+        return requireString(pullRequest['state'], 'state');
+    }
+    /**
+    PR のレビューのコメント（行に付いたインラインコメント）を全件取る（REST）
+    */
+    async listPullRequestReviewComments(owner, repository, number) {
+        return this.listAll(`${repositoryPath(owner, repository)}/pulls/${String(number)}/comments`, { per_page: REVIEW_COMMENTS_PER_PAGE });
+    }
+    /**
+    open の dependabot の PR を全件取る（GraphQL）。pullRequests に author の引数が無いので、全ページを辿ってから絞る。
+    GraphQL のノードをそのまま返す
+    */
+    async listOpenDependabotPullRequests(owner, repository) {
+        const nodes = [];
+        let after = JSON_NULL;
+        for (;;) {
+            const result = await this.executeGraphql(QUERY_LIST_OPEN_PULL_REQUESTS, { owner, repo: repository, after });
+            const connection = jsonField(jsonField(result, 'repository'), 'pullRequests');
+            // null を PR 0 件と読むと、sync が待つ PR は無いと判断して Tracker を閉じてしまう
+            if (!isJsonObject(connection))
+                throw new GitHubAPIError('the PR list response has no repository.pullRequests');
+            const pageNodes = jsonField(connection, 'nodes');
+            if (!isJsonArray(pageNodes))
+                throw new GitHubAPIError('nodes in the PR list response is not an array');
+            nodes.push(...pageNodes.filter(node => isTruthy(node)));
+            const pageInfo = asObject(jsonField(connection, 'pageInfo'));
+            if (!isTruthy(pageInfo['hasNextPage']))
+                break;
+            const cursor = pageInfo['endCursor'];
+            if (typeof cursor !== 'string' || cursor === '')
+                throw new GitHubAPIError('the next page of the PR list has no endCursor');
+            after = cursor;
+        }
+        return nodes.filter(node => isDependabotAuthor(node));
+    }
+}
+
+// GitHub API クライアント（REST と GraphQL、github.com と GHES に対応）。cli/core/github/__init__.py の移植。
+//
+// Python は IssuesAPI・ProjectsAPI・PullsAPI・ReposAPI の多重継承で合成していた。
+// TypeScript は継承を一直線につなぐ。基底 → repos → projects → issues → pulls の順で、各ファイルが前のクラスを拡張する。
+// この順は合成のための並びで、操作の依存を表さない。
+// 操作どうしの実際の依存は projects が repos の getRepositoryId を呼ぶ 1 本だけ。
+/**
+GitHub API クライアント。操作は責務別のクラスから合成する。
+
+使い方は次のとおり。
+- 作る: `new GitHubClient({ host: 'ghes.example.com', diagnostics })`。
+- 呼ぶ: `await client.getIssueSlim('owner', 'repo', 123)`。
+*/
+class GitHubClient extends PullsApi {
+}
+
+// MCP のツールの定義の型と defineTool()。ツールのファイルが import する。
+// registry.ts が TOOLS を持つために各ツールのファイルを import するので、循環を避けて定義をここに分ける。全ツールの入力に repo を合成する。
+/**
+ツールの途中で、決めた終了コードで止めるための例外。defineTool が包む run の 1 か所で捕まえて、戻り値の終了コードにする。
+`error:` の行は出さない（出す行は投げる前に書く）ので、PecotError・InvalidValueError・OsError・UsageError は継がない
+*/
+class CommandExit extends BaseError {
+    exitCode;
+    kind;
+    constructor(exitCode, kind) {
+        super(`exit ${String(exitCode)}`);
+        this.exitCode = exitCode;
+        this.kind = kind;
+    }
+}
+/**
+全ツールの入力に足す repo
+*/
+const GLOBAL_SHAPE = { repo: string().optional().describe('Target repository, given explicitly as \'owner/repo\'') };
+object(GLOBAL_SHAPE);
+
+// コマンドが error の行を出して止める処理と、対象のリポから設定を選ぶ処理。全コマンドが共有する。
+/**
+アクティブなプロジェクトが無いときの案内
+*/
+hinted `no active project\n${RUN_COLON}${commandHint(['project', 'activate'], { project: placeholder('PROJECT') })}`;
+/**
+対象のリポから設定を選ぶ `project` の入力。board sync の `project` と同じ名前の読み方
+*/
+string().optional().describe('Name of the project config under .pecot/config/projects (without .json). Without it, the config that includes the target repository; when several do, the active one among them');
+
+/**
+host 向けのクライアントを作る。host が undefined なら既定のホスト。環境にトークンが無いときは、最初の要求の前に gh auth token を読む
+*/
+function createGitHubClient(out, host) {
+    return new GitHubClient({ host, diagnostics: out, signal: out.signal });
+}
+
+/**
+base を省くと、リポの既定のブランチから作る。ブランチ名は GitHub が付けた名前を返す。
+gh issue develop と同じく、同じ名前のブランチが Issue につながっていれば作らずに返し、sha は base との分かれ目にする
+*/
+async function linkIssueBranch(client, target) {
+    const { owner, repository } = target;
+    const settings = target.base === undefined ? await client.getRepositorySettings(owner, repository) : undefined;
+    const base = target.base ?? settings?.defaultBranch ?? '';
+    const issue = await client.getIssueLinkedBranches(owner, repository, target.issue);
+    if (issue.branches.includes(target.branch)) {
+        return { issue: target.issue, branch: target.branch, base, sha: await client.getMergeBase(owner, repository, base, target.branch) };
+    }
+    const sha = await client.getBranchSha(owner, repository, base);
+    const branch = await client.createLinkedBranch(issue.id, sha, target.branch);
+    return { issue: target.issue, branch, base, sha };
+}
+
+// github-ops の operation の params の形。actions の github-ops と、書く前のチェック（pecot-workflow）が同じものを使う
+const NUMBER = number().int().min(1);
+const NAME = string().min(1);
+const REPOSITORY = string().refine(value => /^[\w.-]+\/[\w.-]+$/u.test(value), 'owner/repo');
+const OPTION = strictObject({
+    name: NAME,
+    color: string().min(1).optional(),
+    description: string().optional(),
+});
+/**
+project-fields の changes の 1 件
+*/
+const FIELD_CHANGE = union([
+    strictObject({ action: _enum(['create']), name: NAME, options: array(OPTION).min(1) }),
+    strictObject({ action: _enum(['rename']), name: NAME, to: NAME }),
+    strictObject({ action: _enum(['delete']), name: NAME }),
+    strictObject({ action: _enum(['set-options']), name: NAME, options: array(OPTION).min(1) }),
+]);
+const LINK_BRANCH_PARAMS = strictObject({ issue: NUMBER, branch: NAME, base: NAME.optional() });
+const STACK_REGISTER_PARAMS = strictObject({ pr: NUMBER, parent_pr: NUMBER });
+const PROJECT_FIELDS_PARAMS = strictObject({ project: NUMBER, changes: array(FIELD_CHANGE).min(1) });
+const PROJECT_VIEW_PARAMS = strictObject({ project: NUMBER, name: NAME, column: NAME, row: NAME });
+const PROJECT_LINK_PARAMS = strictObject({ project: NUMBER, repo: REPOSITORY.optional() });
+const NO_PARAMS = strictObject({});
+const RELEASE_CREATE_PARAMS = strictObject({
+    tag: NAME,
+    sha: string().refine(value => /^[\da-f]{40}$/u.test(value), 'a full commit SHA'),
+    body: string(),
+    name: NAME.optional(),
+    prerelease: boolean().default(false),
+});
+const PR_ATTACH_PARAMS = strictObject({
+    pr: NUMBER,
+    branch: string().refine(value => /^pecot-attach\/(?!.*\.\.)[\w./-]+$/u.test(value), 'a branch name that starts with pecot-attach/'),
+});
+
+/**
+前提を待つ Issue を pecot が置く列
+*/
+const BLOCKED_SPEC = {
+    option: { name: 'Blocked', color: 'GRAY', description: 'Tasks waiting for prerequisite Issues. pecot moves them to Ready once they can start.' },
+    isOptional: true,
+    placement: [{ after: 'Backlog' }, { before: 'Ready' }],
+};
+/**
+人の判断を待つ Issue の札。既定の Status の末尾に足す
+*/
+const NEEDS_ATTENTION_SPEC = {
+    option: { name: 'Needs Attention'},
+    isOptional: true,
+};
+/**
+workflow フィールドの選択肢の定義。作る順でもある
+*/
+const WORKFLOW_FIELD_SPECS = [
+    { option: { name: 'Pending', color: 'GRAY', description: 'Items on hold (Epic or Task). Moved here from Ready or Backlog when deprioritized.' } },
+    { option: { name: 'Backlog', color: 'RED', description: 'Items waiting to be planned. Not for direct work - break down into smaller tasks first.' } },
+    BLOCKED_SPEC,
+    { option: { name: 'Ready', color: 'GREEN', description: 'Tasks ready for implementation. AI agent picks from here and moves to Active on start.' } },
+    { option: { name: 'Active', color: 'BLUE', description: 'Currently being worked on. One active task per worktree - track progress and updates here.' } },
+    { option: { name: 'In Review', color: 'YELLOW', description: 'Pull request created and waiting for review. Moves to Archived after merge is completed.' } },
+    { option: { name: 'Archived', color: 'PURPLE', description: 'Completed or cancelled items. Moved here after the issue is closed or no longer needed.' } },
+];
+
+// project の各コマンドが共有する部分。失敗の行、フィールドの検証、読んだボードからの設定ファイルの同期。
+/**
+プロジェクトの情報から fields.nodes を取る
+*/
+function fieldNodesOf(projectInfo) {
+    return asArray(jsonField(jsonField(projectInfo, 'fields'), 'nodes'));
+}
+function keyEntry(name, isOptional) {
+    return { key: name.toLowerCase().replaceAll(' ', '_'), label: name.toLowerCase(), isOptional };
+}
+// 設定ファイルのキーの順（保存の JSON のキーの順になる）。isOptional は選択肢の定義の値を使う
+const WORKFLOW_KEY_ORDER = ['Backlog', 'Pending', 'Blocked', 'Ready', 'Active', 'In Review', 'Archived'];
+WORKFLOW_KEY_ORDER.map(name => keyEntry(name, WORKFLOW_FIELD_SPECS.some(spec => spec.option.name === name && spec.isOptional === true)));
+[keyEntry('Todo', true), keyEntry('In Progress', true), keyEntry(NEEDS_ATTENTION_SPEC.option.name, NEEDS_ATTENTION_SPEC.isOptional === true)];
+
+// PR をスタックに登録するときの判断。API を呼ばない純粋な関数で、pr create と actions の処理が共有する。
+/**
+親 PR・子 PR とそれぞれの今のスタックから、登録の判断を返す。GitHub は一番上にしか足せない
+*/
+function planStackRegistration(parent, child, parentStack, childStack) {
+    if (childStack !== undefined) {
+        const parentIndex = childStack.pullRequests.indexOf(parent);
+        return parentIndex !== -1 && childStack.pullRequests[parentIndex + 1] === child
+            ? { kind: 'already', stack: childStack }
+            : { kind: 'conflict', reason: `PR #${String(child)} is already in stack #${String(childStack.number)}` };
+    }
+    if (parentStack === undefined)
+        return { kind: 'create', pullRequests: [parent, child] };
+    const top = parentStack.pullRequests.at(-1);
+    return top === parent
+        ? { kind: 'add', stackNumber: parentStack.number, pullRequests: [child] }
+        : { kind: 'conflict', reason: `PR #${String(parent)} is not the top of stack #${String(parentStack.number)} (top: PR #${String(top)})` };
+}
+
+// API エラーの message に、応答本文 JSON の message と errors[].message を添える。GitHub API の失敗の説明の、唯一の実装。
+function textOf(value) {
+    return typeof value === 'string' && pythonStrip(value) !== '' ? pythonStrip(value) : undefined;
+}
+function errorMessages(errors) {
+    if (!Array.isArray(errors))
+        return [];
+    const items = errors;
+    return items.map(item => textOf(jsonField(item, 'message')));
+}
+/**
+API の失敗の message に、応答本文の詳細を添える。GitHubAPIError と DependabotFailure をそのまま渡せる。
+本文が JSON でない（HTML 等）か、添える文が無いときは message のまま返す。
+422 では理由が errors[].message にだけ入ることがある
+*/
+function describeApiError(failure) {
+    const body = tryParseJsonText(failure.responseBody ?? '');
+    if (!isJsonObject(body))
+        return failure.message;
+    const details = [textOf(body['message']), ...errorMessages(body['errors'])].filter(detail => detail !== undefined);
+    return details.length === 0 ? failure.message : `${failure.message} ${details.join(' ')}`;
+}
+
+// 導入先のリポに置くワークフローの雛形の一覧と、版・利用者の行・要る設定の判定。
+const AGENT_ANTHROPIC_VARIABLES = ['FEDERATION_RULE_ID', 'ORGANIZATION_ID', 'SERVICE_ACCOUNT_ID', 'WORKSPACE_ID']
+    .map(suffix => ({ kind: 'variable', name: `PECOT_AGENT_ANTHROPIC_${suffix}` }));
+const APP_CLIENT_ID = { kind: 'variable', name: 'PECOT_AGENT_APP_CLIENT_ID' };
+const APP_PRIVATE_KEY = { kind: 'secret', name: 'PECOT_AGENT_APP_PRIVATE_KEY' };
+const MODEL_AUTH_REQUIREMENT = {
+    type: 'anyOf',
+    options: [[{ kind: 'secret', name: 'CLAUDE_CODE_OAUTH_TOKEN' }], AGENT_ANTHROPIC_VARIABLES],
+    missing: 'secret CLAUDE_CODE_OAUTH_TOKEN or variables PECOT_AGENT_ANTHROPIC_*',
+};
+/**
+エージェント用の認証。自動処理が同じ名前で読む（spec 027 の data-model の「エージェント用の認証」）
+*/
+const AGENT_REQUIREMENTS = [
+    { type: 'when', when: APP_CLIENT_ID, require: APP_PRIVATE_KEY, missing: 'secret PECOT_AGENT_APP_PRIVATE_KEY' },
+    MODEL_AUTH_REQUIREMENT,
+];
+/**
+自動処理は自前の App を必須にする（spec 023 の data-model の「エージェント用の認証」）。必須の 1 つの名前は、候補 1 つの anyOf で書く
+*/
+const AUTO_REQUIREMENTS = [
+    { type: 'anyOf', options: [[APP_CLIENT_ID]], missing: 'variable PECOT_AGENT_APP_CLIENT_ID' },
+    { type: 'anyOf', options: [[APP_PRIVATE_KEY]], missing: 'secret PECOT_AGENT_APP_PRIVATE_KEY' },
+    MODEL_AUTH_REQUIREMENT,
+];
+/**
+github-ops は自前の App だけを使い、モデルの認証は要らない。AUTO_REQUIREMENTS の先頭 2 行と同じ形
+*/
+const GITHUB_OPS_REQUIREMENTS = [
+    { type: 'anyOf', options: [[APP_CLIENT_ID]], missing: 'variable PECOT_AGENT_APP_CLIENT_ID' },
+    { type: 'anyOf', options: [[APP_PRIVATE_KEY]], missing: 'secret PECOT_AGENT_APP_PRIVATE_KEY' },
+];
+/**
+ボードの同期は App か PAT のどちらかの組を使う（雛形の先頭のコメント）
+*/
+const BOARD_SYNC_REQUIREMENTS = [
+    {
+        type: 'anyOf',
+        options: [
+            [{ kind: 'variable', name: 'PECOT_BOARD_SYNC_APP_CLIENT_ID' }, { kind: 'secret', name: 'PECOT_BOARD_SYNC_APP_PRIVATE_KEY' }],
+            [{ kind: 'variable', name: 'PECOT_BOARD_SYNC_USE_PAT' }, { kind: 'secret', name: 'PECOT_BOARD_SYNC_TOKEN' }],
+        ],
+        missing: 'variable PECOT_BOARD_SYNC_APP_CLIENT_ID and secret PECOT_BOARD_SYNC_APP_PRIVATE_KEY, or variable PECOT_BOARD_SYNC_USE_PAT and secret PECOT_BOARD_SYNC_TOKEN',
+    },
+];
+/**
+雛形の一覧。雛形を足すときは行を足す
+*/
+const WORKFLOW_TEMPLATES = [
+    { name: 'board-sync', templateFile: 'pecot-board-sync.yml', destination: '.github/workflows/pecot-board-sync.yml', requirements: BOARD_SYNC_REQUIREMENTS, claudeApp: false },
+    { name: 'review', templateFile: 'pecot-review.yml', destination: '.github/workflows/pecot-review.yml', requirements: AGENT_REQUIREMENTS, claudeApp: true },
+    { name: 'handoff', templateFile: 'pecot-handoff.yml', destination: '.github/workflows/pecot-handoff.yml', requirements: AGENT_REQUIREMENTS, claudeApp: false },
+    { name: 'auto', templateFile: 'pecot-auto.yml', destination: '.github/workflows/pecot-auto.yml', requirements: AUTO_REQUIREMENTS, claudeApp: false },
+    { name: 'github-ops', templateFile: 'pecot-github-ops.yml', destination: '.github/workflows/pecot-github-ops.yml', requirements: GITHUB_OPS_REQUIREMENTS, claudeApp: false },
+];
+const VERSION_MARKER = /^# pecot-workflow-template: (\S+) (\d+)\s*$/u;
+/**
+1 行目の `# pecot-workflow-template: <名前> <版>` を読む。無ければ undefined
+*/
+function readTemplateVersion(text) {
+    const match = VERSION_MARKER.exec(text.split('\n', 1)[0] ?? '');
+    return match === null ? undefined : { name: match[1] ?? '', version: Number(match[2]) };
+}
+// eslint-disable-next-line security/detect-unsafe-regex -- 行ごとに当てる。繰り返す群は空白と `- ` だけで、再試行は行の長さに比例して増えない
+const PECOT_ACTION_TAG = /^(\s*(?:-\s+)?uses:\s*)pecotcraft\/pecot\/actions\/([a-z][a-z-]*)@(pecot-actions\/v\S+)\s*$/u;
+// eslint-disable-next-line security/detect-unsafe-regex -- 各行の先頭に錨がある。省ける群は空白と `- ` だけで、ほかの群は固定の文字列
+const PECOT_ACTION_USE = /^\s*(?:-\s+)?uses:\s*(?:pecotcraft\/pecot\/actions\/|\.\/(?:\.pecot-actions\/)?actions\/)/mu;
+const NPX_WORKFLOW_MCP = /\bnpx\b.*@pecot\/workflow-mcp\b/u;
+/**
+タグで pecot の action を指す行を、出てくる順に返す
+*/
+function pecotActionReferences(text) {
+    return text.split('\n').flatMap((line) => {
+        const match = PECOT_ACTION_TAG.exec(line);
+        return match === null ? [] : { action: match[2] ?? '', tag: match[3] ?? '' };
+    });
+}
+/**
+`@pecot/workflow-mcp` を npx で呼ぶ行。pecot の action に移す前の雛形にある
+*/
+function npxWorkflowMcpLines(text) {
+    return text.split('\n').filter(line => NPX_WORKFLOW_MCP.test(line) && !line.trimStart().startsWith('#'));
+}
+/**
+pecot の action を uses で呼ぶ行があるか
+*/
+function hasPecotActionStep(text) {
+    return PECOT_ACTION_USE.test(text);
+}
+
+// github-ops。公式の MCP に手の無い GitHub の操作を 1 つ行い、結果を PECOT_RESULT の 1 行で返す。
+// 何を書くかは呼ぶ側（pecot-workflow の計算）が決める。この処理は渡された中身を書くか、読んだ値を返すだけにする。
+/* eslint-disable security/detect-non-literal-fs-filename -- 触るのは雛形と RUNNER_TEMP の下だけ */
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
+const GITHUB_OPS_INPUT = strictObject({
+    operation: string(),
+    request_id: string(),
+    params: string(),
+    attach_token: string().default(''),
+});
+/**
+結果の行の先頭。スキルは job のログからこの行を探す
+*/
+const RESULT_PREFIX = 'PECOT_RESULT';
+/**
+GitHub が断ったのではなく、渡された中身では書けないと action が決めたときの失敗
+*/
+class OperationRefused extends Error {
+    kind;
+    constructor(kind, message) {
+        super(message);
+        this.kind = kind;
+    }
+}
+function operation(parameters, run) {
+    return { params: parameters, run };
+}
+const DEFAULT_COLOR = 'GRAY';
+// link-branch
+async function linkBranch(parameters, context) {
+    const { client, owner, repository } = context;
+    const { issue, branch, base, sha } = await linkIssueBranch(client, { owner, repository, ...parameters });
+    return { issue, branch, base, sha };
+}
+// stack-register
+async function registerStack(parameters, context) {
+    const { client, owner, repository } = context;
+    const parentStack = await client.getStackOfPullRequest(owner, repository, parameters.parent_pr);
+    const childStack = await client.getStackOfPullRequest(owner, repository, parameters.pr);
+    const plan = planStackRegistration(parameters.parent_pr, parameters.pr, parentStack, childStack);
+    switch (plan.kind) {
+        case 'conflict': {
+            throw new OperationRefused('order-conflict', plan.reason);
+        }
+        case 'already': {
+            return { change: 'unchanged', number: plan.stack.number, pull_requests: [...plan.stack.pullRequests] };
+        }
+        case 'create': {
+            const created = await client.createStack(owner, repository, plan.pullRequests);
+            return { change: 'created', number: created.number, pull_requests: [...created.pullRequests] };
+        }
+        case 'add': {
+            const added = await client.addToStack(owner, repository, plan.stackNumber, plan.pullRequests);
+            return { change: 'added', number: added.number, pull_requests: [...added.pullRequests] };
+        }
+    }
+}
+async function readBoardFields(client, owner, project) {
+    const info = await client.getProjectFields(owner, project);
+    if (info === undefined)
+        throw new GitHubNotFoundError(`project not found: ${owner} #${String(project)}`);
+    const fields = fieldNodesOf(info).filter((field) => typeof jsonField(field, 'name') === 'string');
+    return { projectId: requireString(info['id'], 'projectV2.id'), fields };
+}
+function fieldNamed(fields, name) {
+    const found = fields.find(field => field['name'] === name);
+    if (found === undefined)
+        throw new GitHubNotFoundError(`field not found on the board: ${name}`);
+    return found;
+}
+/**
+渡した選択肢に、名前の合う既存の選択肢の ID・色・説明を引き継ぐ。ID を外すと選択肢が作り直され、カードの値が消える
+*/
+function mergeOptions(existing, given) {
+    return given.map((option) => {
+        const current = existing.find(item => jsonField(item, 'name') === option.name);
+        const id = jsonField(current, 'id');
+        const color = option.color ?? jsonField(current, 'color');
+        const description = option.description ?? jsonField(current, 'description');
+        return {
+            ...typeof id === 'string' && { id },
+            name: option.name,
+            color: typeof color === 'string' ? color : DEFAULT_COLOR,
+            description: typeof description === 'string' ? description : '',
+        };
+    });
+}
+async function applyFieldChange(client, board, change) {
+    switch (change.action) {
+        case 'create': {
+            if (board.fields.some(field => field['name'] === change.name))
+                throw new OperationRefused('already-exists', `field already exists on the board: ${change.name}`);
+            await client.createProjectField(board.projectId, change.name, mergeOptions([], change.options));
+            return;
+        }
+        case 'rename': {
+            await client.renameProjectField(requireString(fieldNamed(board.fields, change.name)['id'], 'field.id'), change.to);
+            return;
+        }
+        case 'delete': {
+            await client.deleteProjectField(requireString(fieldNamed(board.fields, change.name)['id'], 'field.id'));
+            return;
+        }
+        case 'set-options': {
+            const field = fieldNamed(board.fields, change.name);
+            if (!Array.isArray(field['options']))
+                throw new OperationRefused('invalid-input', `field is not a single select field: ${change.name}`);
+            await client.updateProjectFieldOptions(requireString(field['id'], 'field.id'), mergeOptions(asArray(field['options']), change.options));
+        }
+    }
+}
+function fieldSummary(field) {
+    const options = field['options'];
+    return {
+        name: requireString(field['name'], 'field.name'),
+        id: requireString(field['id'], 'field.id'),
+        ...Array.isArray(options) && { options: asArray(options).map(option => ({ name: requireString(jsonField(option, 'name'), 'option.name'), id: requireString(jsonField(option, 'id'), 'option.id') })) },
+    };
+}
+async function changeProjectFields(parameters, context) {
+    const { client, owner } = context;
+    // 1 つ書くたびに読み直し、次の変更が前の変更の後の欄を名前で引けるようにする
+    for (const change of parameters.changes)
+        await applyFieldChange(client, await readBoardFields(client, owner, parameters.project), change);
+    const after = await readBoardFields(client, owner, parameters.project);
+    return { project: parameters.project, applied: parameters.changes.length, fields: after.fields.map(field => fieldSummary(field)) };
+}
+// project-view
+async function createProjectView(parameters, context) {
+    const { client, owner } = context;
+    const target = await client.getProjectViewTarget(owner, parameters.project);
+    const existing = target.views.find(view => view.name === parameters.name);
+    if (existing !== undefined)
+        return { created: false, number: existing.number, url: `${target.url}/views/${String(existing.number)}` };
+    const databaseId = (name) => {
+        const id = target.fieldDatabaseIds.get(name);
+        if (id === undefined)
+            throw new GitHubNotFoundError(`single select field not found on the board: ${name}`);
+        return id;
+    };
+    const view = await client.createProjectView(target, { name: parameters.name, layout: 'board', vertical_group_by: [databaseId(parameters.column)], group_by: [databaseId(parameters.row)] });
+    const number = requireNumber(view['number'], 'view.number');
+    const url = view['html_url'];
+    return { created: true, number, url: typeof url === 'string' ? url : `${target.url}/views/${String(number)}` };
+}
+// project-link
+async function linkProject(parameters, context) {
+    const { client, owner, repository } = context;
+    const [repositoryOwner = owner, repositoryName = repository] = parameters.repo?.split('/') ?? [];
+    const result = await client.linkRepositoryToProject(owner, parameters.project, repositoryOwner, repositoryName);
+    // linkRepositoryToProject は断られても例外にしないので、ここで失敗にする
+    if (result.status === 'failed')
+        throw new OperationRefused('github-api', result.detail);
+    return { project: parameters.project, repo: `${repositoryOwner}/${repositoryName}`, status: result.status };
+}
+// repo-settings
+async function readRepositorySettings(_parameters, context) {
+    const { client, owner, repository } = context;
+    const settings = await client.getRepositorySettings(owner, repository);
+    // merge の設定は contents: write の無い token では返らない。値の無い成功にせず、token の不足として返す
+    if (settings.deleteBranchOnMerge === undefined)
+        throw new OperationRefused('github-auth', 'delete_branch_on_merge was not returned; the token needs contents: write');
+    return {
+        delete_branch_on_merge: settings.deleteBranchOnMerge,
+        default_branch: settings.defaultBranch,
+        ...settings.ownerType !== undefined && { owner_type: settings.ownerType },
+    };
+}
+// workflow-doctor
+function settingListOf(list) {
+    return { names: [...list.names].toSorted((left, right) => left.localeCompare(right)), complete: list.complete };
+}
+function installedWorkflow(workspace, destination) {
+    const file = path.join(workspace, destination);
+    if (!existsSync(file))
+        return { path: destination, present: false };
+    const text = readFileSync(file, 'utf8');
+    const version = readTemplateVersion(text);
+    return {
+        path: destination,
+        present: true,
+        ...version !== undefined && { template: version.name, version: version.version },
+        has_pecot_action_step: hasPecotActionStep(text),
+        pecot_actions: pecotActionReferences(text).map(reference => ({ action: reference.action, tag: reference.tag })),
+        npx_lines: [...npxWorkflowMcpLines(text)],
+    };
+}
+async function readWorkflowSetup(_parameters, context) {
+    const { client, owner, repository, workspace } = context;
+    const names = await readSettingNames(client, owner, repository);
+    return {
+        secrets: settingListOf(names.secrets),
+        variables: settingListOf(names.variables),
+        workflows: WORKFLOW_TEMPLATES.map(template => installedWorkflow(workspace, template.destination)),
+    };
+}
+// release-create
+async function createRelease(parameters, context) {
+    const { client, owner, repository } = context;
+    const release = await client.createRelease(owner, repository, parameters.tag, parameters.name ?? parameters.tag, parameters.body, { targetCommitish: parameters.sha, prerelease: parameters.prerelease });
+    const url = release['html_url'];
+    return { id: requireNumber(release['id'], 'release.id'), tag: requireString(release['tag_name'], 'release.tag_name'), ...typeof url === 'string' && { url } };
+}
+// pr-attach
+const ATTACH_PREFIX = 'pecot-attach/';
+const STALE_MILLISECONDS = 24 * 60 * 60 * 1000;
+// gh pr edit --attach が受ける拡張子と、1 回に受ける数の上限
+const ATTACH_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.webm']);
+const ATTACH_LIMIT = 50;
+const ATTACH_NAME = /^[\w.-]+$/u;
+const SYMLINK_MODE = '120000';
+const UNPROCESSABLE = 422;
+// 拡張子が .md なので、載せる画像の名前と重ならない
+const ATTACH_BODY = 'pecot-attach-body.md';
+// Claude Code のクラウドのセッションは、相対パスを指す画像の記法の先頭の感嘆符を落として保存する。載せる画像を指すリンクを画像の記法に戻す
+function restoreImageMarks(body, names) {
+    const targets = new Set(names.map(name => `./${name}`));
+    return body.replaceAll(/(!?)\[([^\]\n]*)\]\((\.\/[\w.-]+)\)/gu, (match, mark, alt, target) => mark === '' && targets.has(target) ? `![${alt}](${target})` : match);
+}
+function attachEntryProblem(entry) {
+    if (entry.type !== 'blob' || entry.mode === SYMLINK_MODE)
+        return `${entry.path} is not a file`;
+    if (!ATTACH_NAME.test(entry.path))
+        return `${entry.path} has a name other than letters, digits, _, . and -`;
+    if (!ATTACH_EXTENSIONS.has(path.extname(entry.path).toLowerCase()))
+        return `${entry.path} is not one of ${[...ATTACH_EXTENSIONS].join(', ')}`;
+    return undefined;
+}
+async function readAttachEntries(client, owner, repository, head) {
+    const entries = await client.getTreeEntries(owner, repository, head.sha);
+    if (entries.length === 0)
+        throw new OperationRefused('invalid-input', `${head.name} has no file`);
+    if (entries.length > ATTACH_LIMIT)
+        throw new OperationRefused('invalid-input', `${head.name} has ${String(entries.length)} entries; gh attaches at most ${String(ATTACH_LIMIT)}`);
+    const problems = entries.map(entry => attachEntryProblem(entry)).filter(problem => problem !== undefined);
+    if (problems.length > 0)
+        throw new OperationRefused('invalid-input', `${head.name} has entries that cannot be attached: ${problems.join('; ')}`);
+    return entries;
+}
+// 起動に失敗して残った一時ブランチを消す。ほかの実行が先に消していた（422）ものは数えない
+async function deleteStaleAttachBranches(client, owner, repository, heads) {
+    const deleted = [];
+    for (const head of heads) {
+        if (Date.now() - Date.parse(await client.getCommitDate(owner, repository, head.sha)) <= STALE_MILLISECONDS)
+            continue;
+        try {
+            await client.deleteBranch(owner, repository, head.name);
+            deleted.push(head.name);
+        }
+        catch (error) {
+            if (!(error instanceof GitHubAPIError && error.statusCode === UNPROCESSABLE))
+                throw error;
+        }
+    }
+    return deleted;
+}
+function runnerTemporary() {
+    const directory = process$1.env['RUNNER_TEMP']?.trim() ?? '';
+    if (directory === '')
+        throw new OperationRefused('invalid-input', 'RUNNER_TEMP is not set; run this action in a GitHub Actions job');
+    return directory;
+}
+async function uploadAttachments(parameters, context, head) {
+    const { client, owner, repository } = context;
+    if (context.attachToken === '')
+        throw new OperationRefused('github-auth', 'attach-token is empty; set a fine-grained personal access token as the secret PECOT_ATTACH_TOKEN');
+    const temporary = runnerTemporary();
+    const entries = await readAttachEntries(client, owner, repository, head);
+    const directory = mkdtempSync(path.join(temporary, 'pecot-attach-'));
+    try {
+        for (const entry of entries)
+            writeFileSync(path.join(directory, entry.path), await client.getBlobBytes(owner, repository, entry.sha));
+        const host = hostOf();
+        const names = entries.map(entry => entry.path);
+        // gh は本文の ./<名前> を cwd から解くので、画像のディレクトリで起こす。cwd は git のリポでないので、リポは GH_REPO で渡す
+        const options = {
+            cwd: directory,
+            // interface-env: none
+            env: { ...process$1.env, GH_TOKEN: context.attachToken, GH_HOST: host, GH_REPO: `${host}/${owner}/${repository}`, GH_PROMPT_DISABLED: '1' },
+        };
+        const view = await runProcess('gh', ['pr', 'view', String(parameters.pr), '--json', 'body', '--jq', '.body'], options);
+        if (view.exitCode !== 0)
+            throw new OperationRefused('github-api', `gh pr view failed (exit ${String(view.exitCode)}): ${view.stderr.trim()}`);
+        const current = view.stdout.replace(/\n$/u, '');
+        const restored = restoreImageMarks(current, names);
+        if (restored !== current)
+            writeFileSync(path.join(directory, ATTACH_BODY), restored);
+        const bodyArguments = restored === current ? [] : ['--body-file', `./${ATTACH_BODY}`];
+        const result = await runProcess('gh', ['pr', 'edit', String(parameters.pr), ...bodyArguments, ...names.flatMap(name => ['--attach', `./${name}`])], options);
+        if (result.exitCode !== 0)
+            throw new OperationRefused('github-api', `gh pr edit failed (exit ${String(result.exitCode)}): ${result.stderr.trim()}`);
+        return names;
+    }
+    finally {
+        rmSync(directory, { recursive: true, force: true });
+    }
+}
+async function attachToPullRequest(parameters, context) {
+    const { client, owner, repository } = context;
+    let failure;
+    let files = [];
+    let stale = [];
+    try {
+        const heads = await client.listBranchesWithPrefix(owner, repository, ATTACH_PREFIX);
+        stale = await deleteStaleAttachBranches(client, owner, repository, heads.filter(head => head.name !== parameters.branch));
+        const head = heads.find(item => item.name === parameters.branch);
+        if (head === undefined)
+            throw new GitHubNotFoundError(`branch not found: ${parameters.branch}`);
+        files = await uploadAttachments(parameters, context, head);
+    }
+    catch (error) {
+        failure = { error };
+    }
+    // 成否にかかわらず渡されたブランチを消す。先の失敗があれば、そちらを返す
+    try {
+        await client.deleteBranch(owner, repository, parameters.branch);
+    }
+    catch (error) {
+        failure ??= { error };
+    }
+    if (failure !== undefined)
+        throw failure.error;
+    return { pr: parameters.pr, files: [...files], deleted_branches: [...stale, parameters.branch] };
+}
+/**
+operation の一覧。鍵は雛形の choice と同じ順にする
+*/
+const OPERATIONS = {
+    'link-branch': operation(LINK_BRANCH_PARAMS, linkBranch),
+    'stack-register': operation(STACK_REGISTER_PARAMS, registerStack),
+    'project-fields': operation(PROJECT_FIELDS_PARAMS, changeProjectFields),
+    'project-view': operation(PROJECT_VIEW_PARAMS, createProjectView),
+    'project-link': operation(PROJECT_LINK_PARAMS, linkProject),
+    'repo-settings': operation(NO_PARAMS, readRepositorySettings),
+    'workflow-doctor': operation(NO_PARAMS, readWorkflowSetup),
+    'release-create': operation(RELEASE_CREATE_PARAMS, createRelease),
+    'pr-attach': operation(PR_ATTACH_PARAMS, attachToPullRequest),
+};
+function isOperationName(name) {
+    return Object.hasOwn(OPERATIONS, name);
+}
+function invalidInput(message) {
+    return { kind: 'invalid-input', message };
+}
+function failureOf(error) {
+    if (error instanceof OperationRefused)
+        return { kind: error.kind, message: error.message };
+    if (error instanceof TransportFailure)
+        return { kind: 'github-api', message: error.message };
+    if (error instanceof GitHubAPIError)
+        return { kind: kindOfFailure(error), message: describeApiError(error) };
+    return { kind: kindOfFailure(error), message: error instanceof Error ? error.message : String(error) };
+}
+function parseJson(text) {
+    try {
+        const value = JSON.parse(text);
+        return { ok: true, value };
+    }
+    catch {
+        return { ok: false };
+    }
+}
+function repositoryOf() {
+    const [owner, repository, ...rest] = (process$1.env['GITHUB_REPOSITORY'] ?? '').split('/');
+    return owner === undefined || owner === '' || repository === undefined || repository === '' || rest.length > 0 ? undefined : [owner, repository];
+}
+function hostOf() {
+    return URL.parse(process$1.env['GITHUB_SERVER_URL'] ?? '')?.hostname ?? 'github.com';
+}
+async function perform(input, io) {
+    if (!isOperationName(input.operation))
+        return { ok: false, error: invalidInput(`unknown operation: ${input.operation} (choose one of ${Object.keys(OPERATIONS).join(', ')})`) };
+    const parsedJson = parseJson(input.params === '' ? '{}' : input.params);
+    if (!parsedJson.ok)
+        return { ok: false, error: invalidInput('params is not JSON') };
+    const selected = OPERATIONS[input.operation];
+    const parameters = selected.params.safeParse(parsedJson.value);
+    if (!parameters.success)
+        return { ok: false, error: invalidInput(`invalid params for ${input.operation}: ${prettifyError(parameters.error)}`) };
+    const repository = repositoryOf();
+    if (repository === undefined)
+        return { ok: false, error: invalidInput('GITHUB_REPOSITORY is not owner/repo') };
+    const client = createGitHubClient(createOutput(false, io), hostOf());
+    const context = { client, owner: repository[0], repository: repository[1], workspace: process$1.env['GITHUB_WORKSPACE'] ?? process$1.cwd(), attachToken: input.attach_token };
+    try {
+        return { ok: true, result: await selected.run(parameters.data, context) };
+    }
+    catch (error) {
+        return { ok: false, error: failureOf(error) };
+    }
+}
+/**
+operation を 1 つ行い、成否にかかわらず PECOT_RESULT の行を 1 つ出す。失敗なら 1 を返して step を失敗にする
+*/
+async function runGithubOps(input, io) {
+    const outcome = await perform(input, io);
+    const line = outcome.ok
+        ? { operation: input.operation, request_id: input.request_id, ok: true, result: outcome.result }
+        : { operation: input.operation, request_id: input.request_id, ok: false, error: outcome.error };
+    io.stdout(`${RESULT_PREFIX} ${JSON.stringify(line)}\n`);
+    if (outcome.ok)
+        return 0;
+    io.stderr(`error: ${outcome.error.message}\n`);
+    return 1;
 }
 
 // 案内（domain/command-hint.ts）が名指しできるツールの形。actions/ は pecot-workflow の registry を持たないので、ここから登録する。
@@ -40035,11 +40216,16 @@ function fail(code) {
     return code;
 }
 
+// github-ops の action が起動する関数。inputs を文字列のまま本体に渡す。params の JSON は本体が読む。
 async function main(io) {
+    const attachToken = rawInput('attach-token');
+    if (attachToken !== '')
+        setSecret(attachToken);
     return await runAction({ input: GITHUB_OPS_INPUT, run: runGithubOps }, {
         operation: rawInput('operation'),
         request_id: rawInput('request-id'),
         params: rawInput('params'),
+        attach_token: attachToken,
     }, io);
 }
 

@@ -53,6 +53,31 @@ export interface RepositorySettings {
   readonly ownerType: string | undefined
 }
 
+/**
+git の tree の直下の項目
+*/
+export interface TreeEntry {
+  readonly path: string
+  /**
+  `blob`・`tree`・`commit`（submodule）
+  */
+  readonly type: string
+  /**
+  `100644`・`100755`・`120000`（symlink）など
+  */
+  readonly mode: string
+  readonly sha: string
+}
+
+/**
+ブランチの名前と、その先頭の commit の SHA
+*/
+export interface BranchHead {
+  readonly name: string
+  readonly sha: string
+}
+
+const HEADS_PREFIX = 'refs/heads/'
 const ALERTS_PER_PAGE = 100
 // 一覧の per_page の上限。secret は 100、変数は 30（REST の文書）
 const SECRETS_PER_PAGE = 100
@@ -197,6 +222,62 @@ export class ReposApi extends GitHubClientBase {
     const linkedBranch = jsonField(jsonField(result, 'createLinkedBranch'), 'linkedBranch')
     if (!isTruthy(linkedBranch)) throw new GitHubAPIError(await this.linkedBranchFailure(repositoryId === undefined || repositoryId === '' ? issueId : repositoryId, name))
     return requireString(jsonField(jsonField(linkedBranch, 'ref'), 'name'), 'linkedBranch.ref.name')
+  }
+
+  /**
+  名前が prefix で始まるブランチと先頭の SHA（REST の git/matching-refs）。prefix は `pecot-attach/` のように `/` で終える
+  */
+  async listBranchesWithPrefix(owner: string, repository: string, prefix: string): Promise<readonly BranchHead[]> {
+    const references = await this.listAll(`${repositoryPath(owner, repository)}/git/matching-refs/heads/${encodePath(prefix)}`, {})
+    return references.map((reference, index) => {
+      const name = requireString(jsonField(reference, 'ref'), `refs[${String(index)}].ref`)
+      return {
+        name: name.startsWith(HEADS_PREFIX) ? name.slice(HEADS_PREFIX.length) : name,
+        sha: requireString(jsonField(jsonField(reference, 'object'), 'sha'), `refs[${String(index)}].object.sha`),
+      }
+    })
+  }
+
+  /**
+  commit の committer の日時（REST の git/commits の committer.date。ISO 8601 の文字列）
+  */
+  async getCommitDate(owner: string, repository: string, sha: string): Promise<string> {
+    const commit = await this.restJson('GET', `${repositoryPath(owner, repository)}/git/commits/${encodePathSegment(sha)}`)
+    return requireString(jsonField(jsonField(commit, 'committer'), 'date'), 'committer.date')
+  }
+
+  /**
+  tree の直下の項目（REST の git/trees。再帰しない）。reference は tree か commit の SHA
+  */
+  async getTreeEntries(owner: string, repository: string, reference: string): Promise<readonly TreeEntry[]> {
+    const tree = await this.restJson('GET', `${repositoryPath(owner, repository)}/git/trees/${encodePath(reference)}`)
+    return asArray(jsonField(tree, 'tree')).map((entry, index) => {
+      const label = `tree[${String(index)}]`
+      return {
+        path: requireString(jsonField(entry, 'path'), `${label}.path`),
+        type: requireString(jsonField(entry, 'type'), `${label}.type`),
+        mode: requireString(jsonField(entry, 'mode'), `${label}.mode`),
+        sha: requireString(jsonField(entry, 'sha'), `${label}.sha`),
+      }
+    })
+  }
+
+  /**
+  blob の中身（REST の git/blobs の base64 を戻したもの）
+  */
+  async getBlobBytes(owner: string, repository: string, sha: string): Promise<Buffer> {
+    const blob = await this.restJson('GET', `${repositoryPath(owner, repository)}/git/blobs/${encodePathSegment(sha)}`)
+    const encoding = jsonField(blob, 'encoding')
+    if (encoding !== 'base64') throw new GitHubAPIError(`blob ${sha} is not base64 (encoding: ${typeof encoding === 'string' ? encoding : 'none'})`)
+    return Buffer.from(requireString(jsonField(blob, 'content'), 'blob.content'), 'base64')
+  }
+
+  /**
+  ブランチを削除する。保護されたブランチなどは GitHubAPIError
+  */
+  async deleteBranch(owner: string, repository: string, branch: string): Promise<void> {
+    const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/git/refs/heads/${encodePath(branch)}`)
+    if (!response.isSuccess) this.handleHttpError(response)
   }
 
   /**

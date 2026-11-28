@@ -43,6 +43,7 @@
 | `repo-settings` | リポの `delete_branch_on_merge` を返す | なし | w-onboarding・w-repo-add | `GITHUB_TOKEN`（contents の write。merge の設定は read では返らない） |
 | `workflow-doctor` | Actions の secret と variable の名前と、置いた雛形の目印を返す。足りるかの判定は pecot-workflow がする | なし | w-onboarding | App（Secrets: read・Variables: read） |
 | `release-create` | リリースを作る | `tag`・`sha`・`body`（本文の文字）・`name`・`prerelease` | w-release | App（Contents: write）。`GITHUB_TOKEN` で作ると、利用者のリポの `on: release` のワークフローが動かない |
+| `pr-attach` | 一時ブランチ `pecot-attach/<ID>` の画像を PR の本文に載せ（user-attachments の URL）、ブランチを消す | `pr`・`branch` | w-pr | fine-grained PAT（Contents・Pull requests の write。入力 `attach-token`）と `GITHUB_TOKEN`（contents の write。ブランチの読み取りと削除）。`GITHUB_TOKEN`・App の token では画像を上げられない |
 
 - `GITHUB_TOKEN` からは組織のボードが見えない（`projectV2` が null、ビューの作成は 403）。ボードを触る operation は App で動かす
 - `project-link` は、Organization projects: write に Contents: write を足すと通った。Contents の代わりに Issues か Pull requests の write を足しても FORBIDDEN だった（#793 の CUJ）

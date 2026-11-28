@@ -65,11 +65,12 @@ token の列の値は、[contracts/actions-interface.md](actions-interface.md) �
 | リポの「head ブランチを自動で消す」設定を読む | なし（新しい。FR-018） | REST `GET /repos/{owner}/{repo}` の `delete_branch_on_merge` | 通った。公式の MCP の `search_repositories` は返さない |
 | Actions の secret と variable の名前の一覧 | `workflow_doctor` | REST `/actions/secrets`・`/actions/variables` | 試した 3 つの token は、どれも権限が無く 403 だった |
 | リリースを作る | `release_create` | REST `POST /releases` | 通った |
+| PR に画像を載せる（user-attachments） | w-pr の `gh pr edit --attach`（端末） | 同じ。クラウドでは gh が PR を引けないので、Actions の `pr-attach` で gh を起こす | 2026-11-28 に sandbox で試した。`GITHUB_TOKEN`・App の installation token・App の user access token は 404。gh の OAuth トークンと fine-grained PAT（Contents・Pull requests の write）は 201 |
 
 ## 4. 行わない
 
 | 読み書き | 扱い |
 |---|---|
-| リモートのブランチを消す（`session_finish`・`branch_delete`・`release_merge`） | pecot は消さない。リポの「head ブランチを自動で消す」設定に任せる（FR-018） |
+| リモートのブランチを消す（`session_finish`・`branch_delete`・`release_merge`） | pecot は消さない。リポの「head ブランチを自動で消す」設定に任せる（FR-018）。例外は、pecot が自分で作った `pecot-attach/` の一時ブランチで、Actions の `pr-attach` が `GITHUB_TOKEN` で消す |
 | マージ（`pr_merge` の本来の使い方） | 利用者が GitHub の画面で行う |
 | 非同期のマージ（`merge-async`。sandbox で画面のマージを再現する） | merge queue のあるリポでは、Actions の token も公式の MCP の `merge_pull_request` も、キューに入れられなかった。sandbox の CUJ では、今の `pr merge` と同じく、手元の利用者の token で入れる |

@@ -4,7 +4,7 @@ description: |
   PRを作成しタイトル・説明を自動生成し、CIとレビューの指摘に対応します。
   Use when the user wants to create a pull request for the current branch — auto-generates title/description from commits and diff, waits for CI, then addresses the review findings without asking which to adopt, replying with the reason on each one it declines. Triggers: "create PR", "submit for review", "address review comments".
   Does not merge PRs itself — it then waits for the user to merge on GitHub and runs the post-merge cleanup (session finish).
-allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check mcp__plugin_pecot-w_pecot-workflow__pr_restack mcp__plugin_pecot-w_pecot-workflow__board_check mcp__plugin_pecot-w_pecot-workflow__project_list mcp__plugin_pecot-w_pecot-workflow__issue_comment_check mcp__plugin_pecot-w_pecot-workflow__session_show mcp__plugin_pecot-w_pecot-workflow__session_finish Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-pr.cjs *) Bash(gh api markdown:*) Bash(git push:*) Bash(git checkout:*) Bash(git branch:*) Bash(git worktree list:*) Bash(git fetch:*) Bash(git pull:*) Bash(mkdir:*) Bash(touch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(git add:*) Bash(git commit:*)
+allowed-tools: mcp__plugin_pecot-w_pecot-workflow__pr_check mcp__plugin_pecot-w_pecot-workflow__pr_restack mcp__plugin_pecot-w_pecot-workflow__board_check mcp__plugin_pecot-w_pecot-workflow__project_list mcp__plugin_pecot-w_pecot-workflow__issue_comment_check mcp__plugin_pecot-w_pecot-workflow__session_show mcp__plugin_pecot-w_pecot-workflow__session_finish Bash(node ${CLAUDE_SKILL_DIR}/scripts/wait-pr.cjs *) Bash(node ${CLAUDE_SKILL_DIR}/scripts/push-attach.cjs *) Bash(gh api markdown:*) Bash(git push:*) Bash(git checkout:*) Bash(git branch:*) Bash(git worktree list:*) Bash(git fetch:*) Bash(git pull:*) Bash(mkdir:*) Bash(touch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(git add:*) Bash(git commit:*)
 when_to_use: "PR を作りたい、レビューに出したい、プルリクエストの説明文を作ってほしい、PR のレビュー指摘に対応したい"
 ---
 
@@ -112,6 +112,19 @@ gh pr edit <PR番号> --body-file .playwright-mcp/body.md --attach .playwright-m
 `--attach` は画像ごとに繰り返す。パスには、screenshot のツールの結果に出たパスを使う。本文の画像のパスは、アップロード後の URL に書き換わる。
 body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<名前>.png` を body.md のディレクトリを起点に解く。
 置き場所が違うと参照が書き換わらず、画像は本文の末尾に足される。
+
+`gh pr edit` が PR を引けずに止まったときだけ、Actions に画像を載せさせる。クラウドのスレッドでは、セッションのプロキシが GraphQL を 403 で止める。
+リポに `pecot-github-ops.yml` と secret `PECOT_ATTACH_TOKEN` が要る。無いことは、起動して初めて分かる（実行が見つからない、`error.kind` が `github-auth` になる）。
+
+1. 次を打って画像を送り、標準出力の `id=` の ID を控える。本文の `./<名前>.png` の参照は、PR の本文から消さない
+   - クラウドで保存した本文では、参照の先頭の `!` が落ちてリンクになる。`pr-attach` が画像の記法に戻すので、本文を直さない
+
+   ```bash
+   node <このスキルの base directory>/scripts/push-attach.cjs .playwright-mcp/<名前>.png ...
+   ```
+
+2. [github-ops で書く](../w-help/references/github-ops.md) に従い、`pr-attach` を起動して結果を読む。`request_id` は控えた ID、`params` は `{"pr":<PR番号>,"branch":"pecot-attach/<ID>"}` にする
+3. 載せられずに止まったら（`ok: false`・実行が見つからない・10 分で終わらない）、理由を利用者に示す。本文から `./<名前>.png` の参照を外し、フロントマターの `screenshot` に載せられなかった理由を書く。そのうえで、「PR を作る・書き換える」に従って PR の本文を書き換える
 
 ### Closing Issue キーワードと Epic
 

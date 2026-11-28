@@ -3,6 +3,7 @@ import { expect } from 'vitest'
 
 import { main } from '../../src/github-ops.js'
 import { setEnvironment } from '../../../libs/workflow-core/tests/_helpers/environment.js'
+import { prependToPath } from '../../../libs/workflow-core/tests/_helpers/fake-executables.js'
 import type { RecordedRequest, ResponseRule } from '../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { runActionCase, startGithub } from './action-case.js'
 import type { ActionResult, RunningGithub } from './action-case.js'
@@ -33,6 +34,14 @@ export interface OpsSetup {
   */
   readonly rawParams?: string
   readonly environment?: Readonly<Record<string, string | undefined>>
+  /**
+  token・operation・request-id・params のほかに置く inputs
+  */
+  readonly inputs?: Readonly<Record<string, string | undefined>>
+  /**
+  PATH の先頭に置くディレクトリ。偽の GitHub が置く gh より前になる
+  */
+  readonly path?: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -55,11 +64,13 @@ export function resultLine(stdout: string): Record<string, unknown> {
 export async function runOperation(operation: string, parametersValue: unknown, rules: readonly ResponseRule[], setup: Readonly<OpsSetup> = {}): Promise<OpsResult> {
   setEnvironment({ GITHUB_REPOSITORY: REPOSITORY, GITHUB_SERVER_URL: 'https://github.com', ...setup.environment })
   const github = await startGithub(rules)
+  if (setup.path !== undefined) prependToPath(setup.path)
   const result = await runActionCase(main, {
     'token': 'dummy-token',
     operation,
     'request-id': setup.requestId ?? 'req-1',
     'params': setup.rawParams ?? JSON.stringify(parametersValue),
+    ...setup.inputs,
   })
   const line = resultLine(result.stdout)
   const error = line['error']

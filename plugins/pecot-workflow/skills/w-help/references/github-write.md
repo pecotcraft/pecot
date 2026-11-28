@@ -16,6 +16,7 @@ pecot-workflow は、GitHub に読み書きしない。スキルは GitHub の�
 | Issue につないだブランチ（作業を始める） | `branch_check` | github-ops の `link-branch` |
 | PR の作成・書き換え・マージ | `pr_check`（`create`・`update`・`merge`） | `create_pull_request`・`update_pull_request`・`merge_pull_request` |
 | スタック PR の登録 | — | github-ops の `stack-register` |
+| クラウドのスレッドで PR の本文に載せる画像 | — | github-ops の `pr-attach` |
 | ボードの作成 | `project_check`（`create`） | `create_project` |
 | ボードの欄 | `project_check`（`fields`） | github-ops の `project-fields` |
 | ボードのビュー・リポのつなぎ | — | github-ops の `project-view`・`project-link` |

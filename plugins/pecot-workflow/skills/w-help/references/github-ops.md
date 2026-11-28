@@ -13,6 +13,7 @@
 | `repo-settings` | 既定のブランチと「head ブランチを自動で消す」の設定を読む | — |
 | `workflow-doctor` | secret と variable の名前と、置いた雛形を読む | — |
 | `release-create` | リリースを作る | `release_check` |
+| `pr-attach` | gh が動かないクラウドのスレッドで、PR の本文に画像を載せる（w-pr） | — |
 
 operation ごとの params と result は、pecotcraft/pecot の `actions/README.md` の「github-ops の操作」にある。
 
@@ -41,7 +42,7 @@ operation ごとの params と result は、pecotcraft/pecot の `actions/README
 |---|---|
 | `invalid-input` | params の形を直す。先に通すチェックがある operation は、チェックに通し直す |
 | `order-conflict` | スタックの順が合わない。`message` の PR の並びを利用者に示し、どう直すかを決めてもらう |
-| `github-auth` | App の variable と secret、App の権限を確かめるよう伝える。要るものは雛形の先頭のコメントにある |
+| `github-auth` | App の variable と secret、App の権限を確かめるよう伝える。`pr-attach` では secret `PECOT_ATTACH_TOKEN` の PAT を確かめる。要るものは雛形の先頭のコメントにある |
 | `github-api` | GitHub が断った。`message` を示す。5xx のときは、次の節に従ってやり直す |
 
 ## やり直す前に確かめる
@@ -54,5 +55,6 @@ GitHub が 5xx を返しても、書き込みが済んでいることがある�
 | `stack-register` | 子 PR の base（`pull_request_read`） |
 | `project-fields`・`project-view` | `projects_list`（`list_project_fields`）・`projects_get` |
 | `release-create` | `get_release_by_tag` |
+| `pr-attach` | `pull_request_read` で、本文の画像の参照が user-attachments の URL に変わったか。一時ブランチは消えているので、やり直すときは `push-attach.cjs` から打ち直す |
 
 書けていれば、やり直さずに先へ進む。書けていなければ、同じ params で起動し直す。

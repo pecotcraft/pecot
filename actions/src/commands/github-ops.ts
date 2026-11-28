@@ -1,8 +1,8 @@
 // github-ops。公式の MCP に手の無い GitHub の操作を 1 つ行い、結果を PECOT_RESULT の 1 行で返す。
 // 何を書くかは呼ぶ側（pecot-workflow の計算）が決める。この処理は渡された中身を書くか、読んだ値を返すだけにする。
-/* eslint-disable security/detect-non-literal-fs-filename -- 読むのは .github/workflows の決まった名前だけ */
+/* eslint-disable security/detect-non-literal-fs-filename -- 触るのは雛形と RUNNER_TEMP の下だけ */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は内部の状態を持つ */
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 
@@ -15,7 +15,7 @@ import type { FailureKind } from '@pecot/workflow-core/commands-shared/failure-k
 import { createGitHubClient } from '@pecot/workflow-core/commands-shared/github-client.js'
 import { linkIssueBranch } from '@pecot/workflow-core/commands-shared/link-branch.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
-import { LINK_BRANCH_PARAMS, NO_PARAMS, PROJECT_FIELDS_PARAMS, PROJECT_LINK_PARAMS, PROJECT_VIEW_PARAMS, RELEASE_CREATE_PARAMS, STACK_REGISTER_PARAMS } from '@pecot/workflow-core/commands-shared/github-ops-parameters.js'
+import { LINK_BRANCH_PARAMS, NO_PARAMS, PROJECT_FIELDS_PARAMS, PROJECT_LINK_PARAMS, PROJECT_VIEW_PARAMS, PR_ATTACH_PARAMS, RELEASE_CREATE_PARAMS, STACK_REGISTER_PARAMS } from '@pecot/workflow-core/commands-shared/github-ops-parameters.js'
 import type { FieldChange, FieldOption } from '@pecot/workflow-core/commands-shared/github-ops-parameters.js'
 import { fieldNodesOf } from '@pecot/workflow-core/commands-shared/project-sync.js'
 import { planStackRegistration } from '@pecot/workflow-core/commands-shared/stack-registration.js'
@@ -26,15 +26,18 @@ import { hasPecotActionStep, npxWorkflowMcpLines, pecotActionReferences, readTem
 import { TransportFailure } from '@pecot/workflow-core/infra/github/client.js'
 import { GitHubAPIError, GitHubNotFoundError } from '@pecot/workflow-core/infra/github/errors.js'
 import type { GitHubClient } from '@pecot/workflow-core/infra/github/index.js'
+import type { BranchHead, TreeEntry } from '@pecot/workflow-core/infra/github/repos.js'
 import { asArray, requireNumber, requireString } from '@pecot/workflow-core/infra/github/payload.js'
 import { jsonField } from '@pecot/workflow-core/domain/json.js'
 import type { JsonObject } from '@pecot/workflow-core/domain/json.js'
 import type { JsonValue } from '@pecot/workflow-core/domain/python-format.js'
+import { runProcess } from '@pecot/workflow-core/infra/process-run.js'
 
 export const GITHUB_OPS_INPUT = z.strictObject({
   operation: z.string(),
   request_id: z.string(),
   params: z.string(),
+  attach_token: z.string().default(''),
 })
 
 /**
@@ -56,6 +59,10 @@ interface OperationContext {
   readonly owner: string
   readonly repository: string
   readonly workspace: string
+  /**
+  pr-attach が gh にだけ渡す fine-grained PAT。無ければ空
+  */
+  readonly attachToken: string
 }
 
 interface Operation<Schema extends z.ZodType> {
@@ -263,6 +270,120 @@ async function createRelease(parameters: Readonly<{ tag: string, sha: string, bo
   return { id: requireNumber(release['id'], 'release.id'), tag: requireString(release['tag_name'], 'release.tag_name'), ...typeof url === 'string' && { url } }
 }
 
+// pr-attach
+
+const ATTACH_PREFIX = 'pecot-attach/'
+const STALE_MILLISECONDS = 24 * 60 * 60 * 1000
+// gh pr edit --attach が受ける拡張子と、1 回に受ける数の上限
+const ATTACH_EXTENSIONS: ReadonlySet<string> = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.mp4', '.mov', '.webm'])
+const ATTACH_LIMIT = 50
+const ATTACH_NAME = /^[\w.-]+$/u
+const SYMLINK_MODE = '120000'
+const UNPROCESSABLE = 422
+// 拡張子が .md なので、載せる画像の名前と重ならない
+const ATTACH_BODY = 'pecot-attach-body.md'
+
+// Claude Code のクラウドのセッションは、相対パスを指す画像の記法の先頭の感嘆符を落として保存する。載せる画像を指すリンクを画像の記法に戻す
+function restoreImageMarks(body: string, names: readonly string[]): string {
+  const targets = new Set(names.map(name => `./${name}`))
+  return body.replaceAll(/(!?)\[([^\]\n]*)\]\((\.\/[\w.-]+)\)/gu, (match, mark: string, alt: string, target: string) => mark === '' && targets.has(target) ? `![${alt}](${target})` : match)
+}
+
+function attachEntryProblem(entry: Readonly<TreeEntry>): string | undefined {
+  if (entry.type !== 'blob' || entry.mode === SYMLINK_MODE) return `${entry.path} is not a file`
+  if (!ATTACH_NAME.test(entry.path)) return `${entry.path} has a name other than letters, digits, _, . and -`
+  if (!ATTACH_EXTENSIONS.has(path.extname(entry.path).toLowerCase())) return `${entry.path} is not one of ${[...ATTACH_EXTENSIONS].join(', ')}`
+  return undefined
+}
+
+async function readAttachEntries(client: GitHubClient, owner: string, repository: string, head: Readonly<BranchHead>): Promise<readonly TreeEntry[]> {
+  const entries = await client.getTreeEntries(owner, repository, head.sha)
+  if (entries.length === 0) throw new OperationRefused('invalid-input', `${head.name} has no file`)
+  if (entries.length > ATTACH_LIMIT) throw new OperationRefused('invalid-input', `${head.name} has ${String(entries.length)} entries; gh attaches at most ${String(ATTACH_LIMIT)}`)
+  const problems = entries.map(entry => attachEntryProblem(entry)).filter(problem => problem !== undefined)
+  if (problems.length > 0) throw new OperationRefused('invalid-input', `${head.name} has entries that cannot be attached: ${problems.join('; ')}`)
+  return entries
+}
+
+// 起動に失敗して残った一時ブランチを消す。ほかの実行が先に消していた（422）ものは数えない
+async function deleteStaleAttachBranches(client: GitHubClient, owner: string, repository: string, heads: readonly BranchHead[]): Promise<readonly string[]> {
+  const deleted: string[] = []
+  for (const head of heads) {
+    if (Date.now() - Date.parse(await client.getCommitDate(owner, repository, head.sha)) <= STALE_MILLISECONDS) continue
+    try {
+      await client.deleteBranch(owner, repository, head.name)
+      deleted.push(head.name)
+    }
+    catch (error: unknown) {
+      if (!(error instanceof GitHubAPIError && error.statusCode === UNPROCESSABLE)) throw error
+    }
+  }
+  return deleted
+}
+
+function runnerTemporary(): string {
+  const directory = process.env['RUNNER_TEMP']?.trim() ?? ''
+  if (directory === '') throw new OperationRefused('invalid-input', 'RUNNER_TEMP is not set; run this action in a GitHub Actions job')
+  return directory
+}
+
+async function uploadAttachments(parameters: Readonly<{ pr: number, branch: string }>, context: OperationContext, head: Readonly<BranchHead>): Promise<readonly string[]> {
+  const { client, owner, repository } = context
+  if (context.attachToken === '') throw new OperationRefused('github-auth', 'attach-token is empty; set a fine-grained personal access token as the secret PECOT_ATTACH_TOKEN')
+  const temporary = runnerTemporary()
+  const entries = await readAttachEntries(client, owner, repository, head)
+  const directory = mkdtempSync(path.join(temporary, 'pecot-attach-'))
+  try {
+    for (const entry of entries) writeFileSync(path.join(directory, entry.path), await client.getBlobBytes(owner, repository, entry.sha))
+    const host = hostOf()
+    const names = entries.map(entry => entry.path)
+    // gh は本文の ./<名前> を cwd から解くので、画像のディレクトリで起こす。cwd は git のリポでないので、リポは GH_REPO で渡す
+    const options = {
+      cwd: directory,
+      // interface-env: none
+      env: { ...process.env, GH_TOKEN: context.attachToken, GH_HOST: host, GH_REPO: `${host}/${owner}/${repository}`, GH_PROMPT_DISABLED: '1' },
+    }
+    const view = await runProcess('gh', ['pr', 'view', String(parameters.pr), '--json', 'body', '--jq', '.body'], options)
+    if (view.exitCode !== 0) throw new OperationRefused('github-api', `gh pr view failed (exit ${String(view.exitCode)}): ${view.stderr.trim()}`)
+    const current = view.stdout.replace(/\n$/u, '')
+    const restored = restoreImageMarks(current, names)
+    if (restored !== current) writeFileSync(path.join(directory, ATTACH_BODY), restored)
+    const bodyArguments = restored === current ? [] : ['--body-file', `./${ATTACH_BODY}`]
+    const result = await runProcess('gh', ['pr', 'edit', String(parameters.pr), ...bodyArguments, ...names.flatMap(name => ['--attach', `./${name}`])], options)
+    if (result.exitCode !== 0) throw new OperationRefused('github-api', `gh pr edit failed (exit ${String(result.exitCode)}): ${result.stderr.trim()}`)
+    return names
+  }
+  finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
+
+async function attachToPullRequest(parameters: Readonly<{ pr: number, branch: string }>, context: OperationContext): Promise<JsonValue> {
+  const { client, owner, repository } = context
+  let failure: { readonly error: unknown } | undefined
+  let files: readonly string[] = []
+  let stale: readonly string[] = []
+  try {
+    const heads = await client.listBranchesWithPrefix(owner, repository, ATTACH_PREFIX)
+    stale = await deleteStaleAttachBranches(client, owner, repository, heads.filter(head => head.name !== parameters.branch))
+    const head = heads.find(item => item.name === parameters.branch)
+    if (head === undefined) throw new GitHubNotFoundError(`branch not found: ${parameters.branch}`)
+    files = await uploadAttachments(parameters, context, head)
+  }
+  catch (error: unknown) {
+    failure = { error }
+  }
+  // 成否にかかわらず渡されたブランチを消す。先の失敗があれば、そちらを返す
+  try {
+    await client.deleteBranch(owner, repository, parameters.branch)
+  }
+  catch (error: unknown) {
+    failure ??= { error }
+  }
+  if (failure !== undefined) throw failure.error
+  return { pr: parameters.pr, files: [...files], deleted_branches: [...stale, parameters.branch] }
+}
+
 /**
 operation の一覧。鍵は雛形の choice と同じ順にする
 */
@@ -275,6 +396,7 @@ export const OPERATIONS = {
   'repo-settings': operation(NO_PARAMS, readRepositorySettings),
   'workflow-doctor': operation(NO_PARAMS, readWorkflowSetup),
   'release-create': operation(RELEASE_CREATE_PARAMS, createRelease),
+  'pr-attach': operation(PR_ATTACH_PARAMS, attachToPullRequest),
 } satisfies Record<string, Operation<z.ZodType>>
 
 type OperationName = keyof typeof OPERATIONS
@@ -330,7 +452,7 @@ async function perform(input: Readonly<z.output<typeof GITHUB_OPS_INPUT>>, io: C
   const repository = repositoryOf()
   if (repository === undefined) return { ok: false, error: invalidInput('GITHUB_REPOSITORY is not owner/repo') }
   const client = createGitHubClient(createOutput(false, io), hostOf())
-  const context: OperationContext = { client, owner: repository[0], repository: repository[1], workspace: process.env['GITHUB_WORKSPACE'] ?? process.cwd() }
+  const context: OperationContext = { client, owner: repository[0], repository: repository[1], workspace: process.env['GITHUB_WORKSPACE'] ?? process.cwd(), attachToken: input.attach_token }
   try {
     return { ok: true, result: await selected.run(parameters.data, context) }
   }

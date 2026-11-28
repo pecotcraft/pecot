@@ -1,4 +1,4 @@
-# pecot-workflow-template: github-ops 2
+# pecot-workflow-template: github-ops 3
 #
 # Place this file at .github/workflows/pecot-github-ops.yml in your repository.
 # `workflow_install` (name: github-ops) places it and pins the pecot actions to a commit SHA.
@@ -16,7 +16,7 @@
 #
 # Tokens.
 #   link-branch, stack-register and repo-settings use the GITHUB_TOKEN of the run.
-#   The other operations use a token of your GitHub App, narrowed to what the operation needs.
+#   pr-attach uses its own token, described below. The other operations use a token of your GitHub App, narrowed to what the operation needs.
 #     project-fields, project-view: Organization projects (write).
 #     project-link: Organization projects (write) and Contents (write).
 #     release-create: Contents (write). Releases made with the GITHUB_TOKEN start no workflow, so on: release would not run.
@@ -29,6 +29,27 @@
 #     Secret PECOT_AGENT_APP_PRIVATE_KEY.
 #   The board must belong to the same organization as this repository.
 #   Boards of a personal account and boards of another owner are not supported.
+#
+# pr-attach.
+#   pr-attach puts images into the body of a pull request, as user-attachments URLs.
+#   Neither the GITHUB_TOKEN nor the token of a GitHub App can upload them.
+#   So this operation needs a fine-grained personal access token.
+#   Set it as Secret PECOT_ATTACH_TOKEN in Settings > Secrets and variables > Actions.
+#   You need it only when you use pr-attach.
+#   Create the token in your GitHub settings.
+#   The page is Developer settings > Personal access tokens > Fine-grained tokens.
+#     Resource owner: the owner of this repository.
+#     Repository access: Only select repositories, and choose only this repository.
+#     Repository permissions: Contents and Pull requests, both Read and write.
+#   In an organization, an owner may have to approve the token.
+#   The owner of the token needs a role with write access or higher on this repository.
+#   The text of the pull request changes under the name of the owner of the token.
+#   When the token expires, pr-attach fails with github-auth. Create a new one and replace the secret.
+#   The caller pushes the images to a temporary branch named pecot-attach/<ID>.
+#   The job reads and deletes that branch with the GITHUB_TOKEN.
+#   It also deletes pecot-attach/* branches older than 24 hours.
+#   It cannot be used on GitHub Enterprise Server.
+#   It cannot be used either when a ruleset of the repository forbids creating pecot-attach/* branches.
 #
 # The pecot actions are pinned to a commit SHA, with the release tag in the comment after it.
 # Dependabot can update them when .github/dependabot.yml has the github-actions ecosystem.
@@ -51,6 +72,7 @@ on:
           - repo-settings
           - workflow-doctor
           - release-create
+          - pr-attach
       request_id:
         description: ID the caller puts into the run name to find the run
         required: false
@@ -91,7 +113,7 @@ jobs:
 
   # The operations that run with the App token.
   app:
-    if: ${{ !contains(fromJSON('["link-branch","stack-register","repo-settings"]'), inputs.operation) }}
+    if: ${{ !contains(fromJSON('["link-branch","stack-register","repo-settings","pr-attach"]'), inputs.operation) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -122,6 +144,28 @@ jobs:
         uses: ./actions/github-ops
         with:
           token: ${{ steps.app-token.outputs.token }}
+          operation: ${{ inputs.operation }}
+          request-id: ${{ inputs.request_id }}
+          params: ${{ inputs.params }}
+
+  # The operation that uploads images with a fine-grained personal access token.
+  attach:
+    if: ${{ inputs.operation == 'pr-attach' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run the operation
+        uses: ./actions/github-ops
+        with:
+          token: ${{ github.token }}
+          attach-token: ${{ secrets.PECOT_ATTACH_TOKEN }}
           operation: ${{ inputs.operation }}
           request-id: ${{ inputs.request_id }}
           params: ${{ inputs.params }}

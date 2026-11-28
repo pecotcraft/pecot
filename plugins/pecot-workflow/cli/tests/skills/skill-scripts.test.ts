@@ -2,13 +2,15 @@
 // スキルの scripts/ にあるスクリプトを、一時ディレクトリで実際に動かして結果を確かめる。
 // あわせて、スキルの本文がスクリプトを埋め込まず、在るファイルを指していることを確かめる。
 import { type ChildProcess, spawn, spawnSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync } from 'node:fs'
 import { createServer } from 'node:net'
 import path from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { attachOutput, attachText, readOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
+import { step, stepSync } from '../../../../../libs/interface-spec/src/vitest/step.js'
+import { createGitRepository, gitEnvironment, gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { pluginRoot, readDocuments, readPluginFile } from './_helpers/documents.js'
 import { explains } from '../_helpers/explains.js'
@@ -29,6 +31,7 @@ describe('スキルの本文とスクリプトのファイル', () => {
     { skill: 'skills/w-onboarding/SKILL.md', script: 'scripts/board-url.cjs' },
     { skill: 'skills/w-pr/SKILL.md', script: 'scripts/serve-preview.cjs' },
     { skill: 'skills/w-pr/SKILL.md', script: 'scripts/wait-pr.cjs' },
+    { skill: 'skills/w-pr/SKILL.md', script: 'scripts/push-attach.cjs' },
   ])('$skill は、base directory の $script を node で実行するよう書き、そのファイルが存在する', async ({ skill, script }) => {
     await explains(`スキルの本文とスクリプトの対応のテストです。\`${skill}\` に \`node <このスキルの base directory>/${script}\` の記述があり、そのスクリプトのファイルが存在することを確認します。`)
     expect(readPluginFile(skill)).toContain(`node <このスキルの base directory>/${script}`)
@@ -424,5 +427,108 @@ describe('w-pr の CI とマージの待ち受け', () => {
   ])('$name だと、gh を呼ばずに終了コード 1 で止まる', async ({ name, arguments_, message }) => {
     await explains(`\`wait-pr.cjs\` の引数の検証のテストです。「${name}」の場合に、\`gh\` を呼ばず、「${message}」を標準エラーに出力して、終了コード 1 で終了することを確認します。`)
     expect(waitPr([open('MERGEABLE')], arguments_)).toMatchObject({ status: 1, stdout: '', stderr: `待ち受けを続けられません: ${message}\n`, calls: [] })
+  })
+})
+
+// origin を手元の bare リポにし、commit 済みのファイル・index だけの変更・未追跡の画像を置く。
+function prepareAttach(images: Readonly<Record<string, string>>): { origin: string, repository: string } {
+  return stepSync('origin と作業のリポを用意する', () => {
+    const origin = makeTemporaryDirectory('pecot-origin-')
+    gitForTest(origin, ['init', '-q', '--bare'])
+    const repository = createGitRepository({ 'README.md': 'x\n' })
+    gitForTest(repository, ['remote', 'add', 'origin', origin])
+    writeTree(repository, { 'README.md': 'changed\n', 'staged.txt': 'staged\n', ...images })
+    gitForTest(repository, ['add', 'staged.txt'])
+    return { origin, repository }
+  })
+}
+
+function snapshot(repository: string): { head: string, index: string, status: string } {
+  return stepSync('作業ツリー・index・HEAD を読む', () => ({
+    head: gitForTest(repository, ['rev-parse', 'HEAD']),
+    index: gitForTest(repository, ['write-tree']),
+    status: gitForTest(repository, ['status', '--porcelain', '--untracked-files=all']),
+  }))
+}
+
+describe('w-pr の画像の一時ブランチへの送信', () => {
+  const script = scriptPath('skills/w-pr/scripts/push-attach.cjs')
+  const png = '\u{89}PNG\r\n\u{1A}\nfake'
+
+  async function pushAttach(repository: string, files: readonly string[]) {
+    return await step('push-attach.cjs を動かす', () => {
+      const result = spawnSync(process.execPath, [script, ...files], { cwd: repository, encoding: 'utf8', env: gitEnvironment() })
+      attachOutput(`node push-attach.cjs ${files.join(' ')}`, result.status ?? undefined, result.stdout, result.stderr)
+      return { status: result.status, stdout: result.stdout, stderr: result.stderr }
+    })
+  }
+
+  it('画像だけを持ち親の無い commit を pecot-attach/<ID> へ送り、ID とブランチ名を 2 行で出力する', async () => {
+    await explains('`push-attach.cjs` のテストです。2 つの画像を渡した場合に、画像の名前だけを持ち親の無い commit が origin の一時ブランチに入り、メッセージに `[skip ci]` があることを確認します。')
+    const { origin, repository } = prepareAttach({ '.playwright-mcp/a.png': png, 'shots/b.png': 'b' })
+    const result = await pushAttach(repository, ['.playwright-mcp/a.png', 'shots/b.png'])
+    const id = stepSync('標準出力を比べる', () => {
+      expect(result).toMatchObject({ status: 0, stderr: '' })
+      const match = /^id=([0-9a-z]{8})\nbranch=pecot-attach\/\1\n$/u.exec(result.stdout)
+      expect(match).not.toBeNull()
+      return match?.[1] ?? ''
+    })
+    const branch = `refs/heads/pecot-attach/${id}`
+    stepSync('origin のブランチの tree・親・メッセージを比べる', () => {
+      expect(gitForTest(origin, ['for-each-ref', '--format=%(refname)'])).toBe(`${branch}\n`)
+      expect(gitForTest(origin, ['ls-tree', '--format=%(objectmode) %(objecttype) %(path)', branch])).toBe('100644 blob a.png\n100644 blob b.png\n')
+      expect(gitForTest(origin, ['cat-file', 'blob', `${branch}:a.png`])).toBe(png)
+      expect(gitForTest(origin, ['rev-list', '--parents', '-n', '1', branch]).trim().split(' ')).toHaveLength(1)
+      expect(gitForTest(origin, ['log', '-1', '--format=%B', branch]).trim()).toBe(`pecot-attach ${id} [skip ci]`)
+    })
+  })
+
+  it('.gitattributes で画像に text の属性が付いていても、改行を変えずに元のバイト列のまま送る', async () => {
+    await explains('`push-attach.cjs` のテストです。`.gitattributes` が `*.png` を `text` にしている場合に、CRLF を含む画像が LF に変換されず、元のバイト列のまま origin のブランチに入ることを確認します。')
+    const { origin, repository } = prepareAttach({ '.gitattributes': '*.png text\n', 'a.png': png })
+    const result = await pushAttach(repository, ['a.png'])
+    stepSync('origin のブランチの画像のバイト列を比べる', () => {
+      expect(result.status).toBe(0)
+      const branch = /^branch=(\S+)$/mu.exec(result.stdout)?.[1] ?? ''
+      expect(gitForTest(origin, ['cat-file', 'blob', `refs/heads/${branch}:a.png`])).toBe(png)
+    })
+  })
+
+  it('画像を送っても、作業ツリー・index・HEAD を変えず、一時の index を残さない', async () => {
+    await explains('`push-attach.cjs` のテストです。送信の前後で `git status`・`git write-tree`・`HEAD` の結果が変わらず、git dir に一時の index のファイルが存在しないことを確認します。')
+    const { repository } = prepareAttach({ '.playwright-mcp/a.png': png })
+    const before = snapshot(repository)
+    const result = await pushAttach(repository, ['.playwright-mcp/a.png'])
+    stepSync('前後の状態を比べる', () => {
+      expect(result.status).toBe(0)
+      expect(snapshot(repository)).toStrictEqual(before)
+      expect(readdirSync(path.join(repository, '.git')).filter(name => name.startsWith('pecot-attach-'))).toStrictEqual([])
+    })
+  })
+
+  it.for([
+    { name: '同じ名前の画像が 2 つある', files: ['a/shot.png', 'b/shot.png'], message: '同じ名前の画像が 2 つあります（a/shot.png・b/shot.png）' },
+    { name: '存在しないパスがある', files: ['a/shot.png', 'missing.png'], message: 'ファイルではありません（missing.png）' },
+    { name: '画像のパスが無い', files: [], message: '画像のパスがありません' },
+  ])('$name と、何も送らずに終了コード 1 で止まる', async ({ name, files, message }) => {
+    await explains(`\`push-attach.cjs\` の引数の検証のテストです。「${name}」の場合に、origin にブランチを作らず、「${message}」を標準エラーに出力して、終了コード 1 で終了することを確認します。`)
+    const { origin, repository } = prepareAttach({ 'a/shot.png': png, 'b/shot.png': png })
+    const result = await pushAttach(repository, files)
+    stepSync('終了コード・標準エラー・origin のブランチを比べる', () => {
+      expect(result).toMatchObject({ status: 1, stdout: '', stderr: `画像を送れません: ${message}\n` })
+      expect(gitForTest(origin, ['for-each-ref'])).toBe('')
+    })
+  })
+
+  it('origin へ送れないと、git の理由を標準エラーに出力し、一時の index を残さずに終了コード 1 で止まる', async () => {
+    await explains('`push-attach.cjs` のテストです。`origin` が存在しない場合に、`git push` の失敗を標準エラーに出力し、git dir に一時の index を残さずに終了コード 1 で終了することを確認します。')
+    const repository = createGitRepository()
+    writeTree(repository, { 'a.png': png })
+    const result = await pushAttach(repository, ['a.png'])
+    stepSync('終了コード・標準エラー・git dir を比べる', () => {
+      expect(result).toMatchObject({ status: 1, stdout: '' })
+      expect(result.stderr).toMatch(/^画像を送れません: git push が失敗しました: /u)
+      expect(readdirSync(path.join(repository, '.git')).filter(name => name.startsWith('pecot-attach-'))).toStrictEqual([])
+    })
   })
 })
