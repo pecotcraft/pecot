@@ -22,6 +22,7 @@ import { explains } from '../_helpers/explains.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
 import { verifies } from '../_helpers/verifies.js'
+import { step, stepSync } from '../_helpers/step.js'
 
 useIsolatedEnvironment()
 
@@ -79,43 +80,53 @@ function outsideGit(): string {
 it('対象を決めないツールに repo を渡すと、渡したリポジトリを対象にする', async (context) => {
   await verifies(context, 'PW-COMMON-06')
   await explains('全ツールに共通の `repo` の入力のテストです。対象を決める入力を持たないツールに `repo` を渡した場合に、git の remote ではなく、渡したリポジトリを対象にすることを確認します。')
-  const repository = repositoryWithRemotes({ origin: 'git@github.com:owner/other.git' })
-  const result = await call(TARGET, { repo: 'owner/repoA' }, repository)
-  expect(result).toEqual({ isError: false, structured: {}, text: 'owner/repoA (explicit)' })
-  expect(state.started).toBe(1)
+  const repository = stepSync('remote を持つリポジトリを用意する', () => repositoryWithRemotes({ origin: 'git@github.com:owner/other.git' }))
+  const result = await step('対象を決めるツールを動かす', () => call(TARGET, { repo: 'owner/repoA' }, repository))
+  stepSync('ツールの本体が動いた回数・結果の文を確かめる', () => {
+    expect(result).toEqual({ isError: false, structured: {}, text: 'owner/repoA (explicit)' })
+    expect(state.started).toBe(1)
+  })
 })
 
 it('対象を決めないツールで repo を省くと、カレントの git の origin remote のリポジトリを対象にする', async (context) => {
   await verifies(context, 'PW-COMMON-07')
   await explains('全ツールに共通の `repo` の入力のテストです。`repo` を省略した場合に、カレントの git の `origin` remote のリポジトリを対象にすることを確認します。')
-  const repository = repositoryWithRemotes({ upstream: 'git@github.com:owner/up.git', origin: 'git@github.com:owner/repoA.git' })
-  const result = await call(TARGET, {}, repository)
-  expect(result.text).toBe('owner/repoA (origin)')
+  const repository = stepSync('remote を持つリポジトリを用意する', () => repositoryWithRemotes({ upstream: 'git@github.com:owner/up.git', origin: 'git@github.com:owner/repoA.git' }))
+  const result = await step('対象を決めるツールを動かす', () => call(TARGET, {}, repository))
+  stepSync('結果の文を確かめる', () => {
+    expect(result.text).toBe('owner/repoA (origin)')
+  })
 })
 
 it('対象を決めないツールで repo を省いて origin remote が無いと、最初の remote のリポジトリを対象にする', async (context) => {
   await verifies(context, 'PW-COMMON-08')
   await explains('全ツールに共通の `repo` の入力のテストです。`repo` を省略し、`origin` remote が存在しない場合に、`git remote` の出力順で最初の remote のリポジトリを対象にすることを確認します。')
   // 最初は git remote の出力順（名前順）。追加した順の先頭（upstream）ではなく fork になる
-  const repository = repositoryWithRemotes({ upstream: 'https://github.com/owner/up.git', mirror: 'https://github.com/owner/mirror.git', fork: 'https://github.com/owner/fork.git' })
-  const result = await call(TARGET, {}, repository)
-  expect(result.text).toBe('owner/fork (fork)')
+  const repository = stepSync('remote を持つリポジトリを用意する', () => repositoryWithRemotes({ upstream: 'https://github.com/owner/up.git', mirror: 'https://github.com/owner/mirror.git', fork: 'https://github.com/owner/fork.git' }))
+  const result = await step('対象を決めるツールを動かす', () => call(TARGET, {}, repository))
+  stepSync('結果の文を確かめる', () => {
+    expect(result.text).toBe('owner/fork (fork)')
+  })
 })
 
 it('repo が owner/repo の形でないと、入力の誤りとして失敗する', async (context) => {
   await verifies(context, 'PW-COMMON-10')
   await explains('全ツールに共通の `repo` の入力の検証のテストです。`owner/repo` の形でない値を渡した場合に、`owner/repo` の形を求める文を持つ入力の誤りとして失敗することを確認します。')
-  const result = await call(TARGET, { repo: 'invalid' })
-  expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
-  expect(result.structured['detail']).toContain('owner/repo')
+  const result = await step('対象を決めるツールを動かす', () => call(TARGET, { repo: 'invalid' }))
+  stepSync('失敗の kind と detail を確かめる', () => {
+    expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
+    expect(result.structured['detail']).toContain('owner/repo')
+  })
 })
 
 it('remote の URL から owner/repo を読めないと、その理由を失敗の detail に入れる', async (context) => {
   await verifies(context, 'PW-COMMON-21')
   await explains('対象のリポジトリの解決のテストです。`repo` を省略し、remote の URL から `owner/repo` を読み取れない場合に、その理由を失敗の `detail` に入れることを確認します。')
-  const repository = repositoryWithRemotes({ origin: '/srv/git/demo.git' })
-  const result = await call(TARGET, {}, repository)
-  expect(result).toMatchObject({ isError: true, structured: { detail: 'could not read the repository from the URL of the Git remote origin' } })
+  const repository = stepSync('remote を持つリポジトリを用意する', () => repositoryWithRemotes({ origin: '/srv/git/demo.git' }))
+  const result = await step('対象を決めるツールを動かす', () => call(TARGET, {}, repository))
+  stepSync('失敗の kind と detail を確かめる', () => {
+    expect(result).toMatchObject({ isError: true, structured: { detail: 'could not read the repository from the URL of the Git remote origin' } })
+  })
 })
 
 it.for([
@@ -133,56 +144,69 @@ it.for([
 ])('origin の URL が $url だと、pecotcraft/pecot を対象にする', async ({ url }, context) => {
   await verifies(context, 'PW-COMMON-23')
   await explains('git の `origin` の URL の形式のテストです。`https`・`ssh`・`git@github.com:` などの形式の場合に、いずれも `pecotcraft/pecot` を対象のリポジトリにすることを確認します。')
-  const repository = repositoryWithRemotes({ origin: url })
-  const result = await call(TARGET, {}, repository)
-  expect(result.text).toBe('pecotcraft/pecot (origin)')
+  const repository = stepSync('remote を持つリポジトリを用意する', () => repositoryWithRemotes({ origin: url }))
+  const result = await step('対象を決めるツールを動かす', () => call(TARGET, {}, repository))
+  stepSync('結果の文を確かめる', () => {
+    expect(result.text).toBe('pecotcraft/pecot (origin)')
+  })
 })
 
 it('プロジェクトのルートを決められないと、その理由を示して失敗する', async (context) => {
   await verifies(context, 'PW-COMMON-14')
   await explains('プロジェクトのルートの検索のテストです。ルートを決められない場合に、`project root not found` で始まる `detail` を持つ失敗を返すことを確認します。')
-  const directory = outsideGit()
-  const root = sample('root_show', () => {
+  const directory = stepSync('git の外のディレクトリを用意する', () => outsideGit())
+  const root = stepSync('見本のツールを用意する', () => sample('root_show', () => {
     projectRoot({ cwd: directory })
+  }))
+  const result = await step('見本のツールを動かす', () => call(root, {}, directory))
+  stepSync('失敗の kind と detail を確かめる', () => {
+    expect(result.isError).toBe(true)
+    expect(result.structured['detail']).toMatch(/^project root not found/u)
   })
-  const result = await call(root, {}, directory)
-  expect(result.isError).toBe(true)
-  expect(result.structured['detail']).toMatch(/^project root not found/u)
 })
 
 it.for([{ content: 'not json' }, { content: '{"host":"github.com"}' }])('読み込む設定ファイルの中身が $content だと、その理由を示して失敗する', async ({ content }, context) => {
   await verifies(context, 'PW-COMMON-15')
   await explains('設定ファイルの読み込みのテストです。中身が JSON でない場合と、必須の項目が存在しない場合に、`invalid config file` で始まる `detail` を持つ失敗を返すことを確認します。')
-  const directory = makeTemporaryDirectory('pecot-config-')
-  writeTree(directory, { '.pecot/config/projects/broken.json': content, '.pecot/config/projects/.active': 'broken.json\n' })
-  setEnvironment({ CLAUDE_PROJECT_DIR: directory })
-  const config = sample('config_show', () => {
-    loadActiveConfig()
+  const directory = stepSync('中身の誤った設定ファイルを置く', () => {
+    const directory = makeTemporaryDirectory('pecot-config-')
+    writeTree(directory, { '.pecot/config/projects/broken.json': content, '.pecot/config/projects/.active': 'broken.json\n' })
+    setEnvironment({ CLAUDE_PROJECT_DIR: directory })
+    return directory
   })
-  const result = await call(config, {}, directory)
-  expect(result.isError).toBe(true)
-  expect(result.structured['detail']).toMatch(/^invalid config file: \S*broken\.json: /u)
+  const config = stepSync('見本のツールを用意する', () => sample('config_show', () => {
+    loadActiveConfig()
+  }))
+  const result = await step('見本のツールを動かす', () => call(config, {}, directory))
+  stepSync('失敗の kind と detail を確かめる', () => {
+    expect(result.isError).toBe(true)
+    expect(result.structured['detail']).toMatch(/^invalid config file: \S*broken\.json: /u)
+  })
 })
 
 it('ツールが捕まえなかった独自の例外が起きると、その文を失敗の detail に入れる', async (context) => {
   await verifies(context, 'PW-COMMON-16')
   await explains('ツールが捕まえなかった独自の例外（`AmbiguousRepositoryError`）のテストです。例外が起きた場合に、メッセージを失敗の `detail` に入れ、2 行目以降を字下げすることを確認します。')
-  const root = sample('root_show', () => {
+  const root = stepSync('見本のツールを用意する', () => sample('root_show', () => {
     throw new AmbiguousRepositoryError('first line\nsecond line')
+  }))
+  const result = await step('見本のツールを動かす', () => call(root))
+  stepSync('失敗の kind と detail を確かめる', () => {
+    expect(result).toMatchObject({ isError: true, structured: { detail: 'first line\n  second line' } })
   })
-  const result = await call(root)
-  expect(result).toMatchObject({ isError: true, structured: { detail: 'first line\n  second line' } })
 })
 
 it('ツールが捕まえなかった独自の例外が起きると、リポジトリが曖昧なときも kind が other の失敗を返す', async (context) => {
   await verifies(context, 'PW-COMMON-17')
   await explains('ツールが捕まえなかった独自の例外のテストです。git リポジトリの外でリポジトリが曖昧な場合に、`kind` が `other` で、`repo` の指定を求める `detail` を持つ失敗を返すことを確認します。')
-  const ambiguous = sample('ambiguous_show', () => {
+  const ambiguous = stepSync('見本のツールを用意する', () => sample('ambiguous_show', () => {
     resolveRepository(undefined, gitRunnerFor(state.cwd))
+  }))
+  const result = await step('見本のツールを動かす', () => call(ambiguous, {}, outsideGit()))
+  stepSync('失敗の kind と detail を確かめる', () => {
+    expect(result).toMatchObject({ isError: true, structured: { kind: 'other' } })
+    expect(result.structured['detail']).toMatch(/^repository is ambiguous: /u)
   })
-  const result = await call(ambiguous, {}, outsideGit())
-  expect(result).toMatchObject({ isError: true, structured: { kind: 'other' } })
-  expect(result.structured['detail']).toMatch(/^repository is ambiguous: /u)
 })
 
 // 進んだ項目を結果に入れてから止まる見本。止まる前の文の数を変えられる
@@ -202,14 +226,18 @@ function stopping(name: string, messages: readonly string[]): ToolDefinition {
 it('ツールが進んだ後に失敗すると、isError・kind・detail と進んだ項目を最上位に入れて返す', async (context) => {
   await verifies(context, 'PW-COMMON-18')
   await explains('MCP のツールの失敗の結果のテストです。結果に項目を入れた後で止まった場合に、`isError` を `true` にし、`kind`・`detail` と進んだ項目を最上位に入れて返すことを確認します。')
-  const result = await call(stopping('moved_show', ['boom']))
-  expect(result).toMatchObject({ isError: true })
-  expect(result.structured).toEqual({ moved: [13], kind: 'other', detail: 'boom' })
+  const result = await step('見本のツールを動かす', () => call(stopping('moved_show', ['boom'])))
+  stepSync('失敗の kind と detail を確かめる', () => {
+    expect(result).toMatchObject({ isError: true })
+    expect(result.structured).toEqual({ moved: [13], kind: 'other', detail: 'boom' })
+  })
 })
 
 it('失敗の文が 2 つ以上あると、error の前置きを付けずに改行でつないで detail に入れる', async (context) => {
   await verifies(context, 'PW-COMMON-26')
   await explains('MCP のツールの失敗の文のテストです。止まるまでに失敗の文を 2 つ出した場合に、どちらにも `error: ` を付けず、改行でつないで `detail` に入れることを確認します。')
-  const result = await call(stopping('twice_show', ['first', 'second']))
-  expect(result.structured['detail']).toBe('first\nsecond')
+  const result = await step('見本のツールを動かす', () => call(stopping('twice_show', ['first', 'second'])))
+  stepSync('失敗の kind と detail を確かめる', () => {
+    expect(result.structured['detail']).toBe('first\nsecond')
+  })
 })

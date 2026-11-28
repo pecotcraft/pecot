@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
-import { step } from '../../../../../libs/interface-spec/src/vitest/step.js'
+import { step } from '../_helpers/step.js'
 import { BOARD_SHOW_TOOLS } from '../../src/commands/board-show.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -94,7 +94,7 @@ function useProject(): void {
 }
 
 async function show(arguments_: Json): Promise<ToolOutcome> {
-  return await step('board_show を呼ぶ', async () => await callToolOnce(BOARD_SHOW_TOOLS, 'board_show', arguments_))
+  return await callToolOnce(BOARD_SHOW_TOOLS, 'board_show', arguments_)
 }
 
 interface ItemShape {

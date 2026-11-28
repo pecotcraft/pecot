@@ -7,6 +7,7 @@ import { developmentRecordOf } from './base-record.js'
 import type { BaseRecordOption } from './base-record.js'
 import { setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
+import { stepSync } from './step.js'
 
 const ORIGIN_URL = 'https://ghes.example.com/acme/demo.git'
 
@@ -38,6 +39,10 @@ export interface SessionCase {
 一時のプロジェクトルートを git リポにして、cwd をそこへ移す。ブランチと remote で作業中の Issue が決まる
 */
 export function prepareSession(options: Readonly<SessionCaseOptions> = {}): SessionCase {
+  return stepSync('作業中の Issue のリポを用意する', () => buildSession(options))
+}
+
+function buildSession(options: Readonly<SessionCaseOptions>): SessionCase {
   const { branch = 'feat/demo/7', remotes = { origin: ORIGIN_URL }, files = {} } = options
   const project = setUpProject({ files: { ...developmentRecordOf(options), ...files }, ...options.repositories !== undefined && { repositories: [...options.repositories] } })
   const repository = realpathSync(createGitRepository(undefined, project.root))

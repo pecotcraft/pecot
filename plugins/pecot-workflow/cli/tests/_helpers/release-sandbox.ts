@@ -13,6 +13,7 @@ import { callToolOnce } from './mcp-client.js'
 import type { ToolOutcome } from './mcp-client.js'
 import { runToolInProcess } from './run-tool.js'
 import type { ToolRunResult } from './run-tool.js'
+import { stepSync } from './step.js'
 
 export const HOST = 'ghes.example.com'
 export const OWNER = 'acme'
@@ -146,6 +147,10 @@ function tag(directory: string, bare: string, options: Readonly<ProjectOptions>)
 }
 
 export function createProject(options: Readonly<ProjectOptions> = {}): Project {
+  return stepSync('リリースのリポを用意する', () => buildProject(options))
+}
+
+function buildProject(options: Readonly<ProjectOptions>): Project {
   const root = makeTemporaryDirectory('pecot-release-')
   const directory = path.join(root, 'base', NAME)
   const bin = path.join(root, 'bin')

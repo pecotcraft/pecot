@@ -6,6 +6,7 @@ import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import { explains } from '../../tests/_helpers/explains.js'
+import { step, stepSync } from '../../tests/_helpers/step.js'
 
 const projectDirectory = path.resolve(import.meta.dirname, '../..')
 const infraFile = path.join(projectDirectory, 'src', 'infra', 'worktree.ts')
@@ -31,20 +32,26 @@ async function ruleIds(code: string, filePath: string): Promise<readonly string[
 describe('infra の依存方向', () => {
   it('infra から commands を import すると、import-x/no-restricted-paths の違反になる', async () => {
     await explains('eslint の層の規則のテストです。infra のファイルから commands のファイルを import したコードを渡した場合は、`import-x/no-restricted-paths` の違反が報告されることを確認します。')
-    const ids = await ruleIds('import { TOOLS } from \'../commands/registry.js\'\n\nexport const used = TOOLS\n', infraFile)
-    expect(ids).toContain('import-x/no-restricted-paths')
+    const ids = await step('コードを eslint にかける', async () => await ruleIds('import { TOOLS } from \'../commands/registry.js\'\n\nexport const used = TOOLS\n', infraFile))
+    stepSync('違反の ruleId を比べる', () => {
+      expect(ids).toContain('import-x/no-restricted-paths')
+    })
   })
 
   it('infra から lib の commands-shared を import すると、no-restricted-imports の違反になる', async () => {
     await explains('eslint の層の規則のテストです。infra のファイルから lib の `commands-shared` を import したコードを渡した場合は、`no-restricted-imports` の違反が報告されることを確認します。')
-    const ids = await ruleIds('import { createOutput } from \'@pecot/workflow-core/commands-shared/output.js\'\n\nexport const used = createOutput\n', infraFile)
-    expect(ids).toContain('no-restricted-imports')
+    const ids = await step('コードを eslint にかける', async () => await ruleIds('import { createOutput } from \'@pecot/workflow-core/commands-shared/output.js\'\n\nexport const used = createOutput\n', infraFile))
+    stepSync('違反の ruleId を比べる', () => {
+      expect(ids).toContain('no-restricted-imports')
+    })
   })
 
   it('infra から node:fs を import しても、違反にならない', async () => {
     await explains('eslint の層の規則のテストです。infra のファイルから `node:fs` を import したコードを渡した場合は、`no-restricted-imports` の違反が報告されないことを確認します。')
-    const ids = await ruleIds('import { readFileSync } from \'node:fs\'\n\nexport const used = readFileSync\n', infraFile)
-    expect(ids).not.toContain('no-restricted-imports')
+    const ids = await step('コードを eslint にかける', async () => await ruleIds('import { readFileSync } from \'node:fs\'\n\nexport const used = readFileSync\n', infraFile))
+    stepSync('違反の ruleId を比べる', () => {
+      expect(ids).not.toContain('no-restricted-imports')
+    })
   })
 })
 
@@ -66,14 +73,18 @@ describe('GitHub の I/O の import', () => {
   describe.for(LINTED_FILES)('$name のファイル', ({ name, filePath }) => {
     it.for(GITHUB_IO_SOURCES)('$name を import すると、no-restricted-imports の違反になる', async ({ name: sourceName, source }) => {
       await explains(`cli から GitHub の I/O を import させない eslint の規則のテストです。${name} のファイルで ${sourceName} を import した場合に、\`no-restricted-imports\` の違反が報告されることを確認します。`)
-      const ids = await ruleIds(`import * as used from '${source}'\n\nexport const value = used\n`, filePath)
-      expect(ids).toContain('no-restricted-imports')
+      const ids = await step('コードを eslint にかける', async () => await ruleIds(`import * as used from '${source}'\n\nexport const value = used\n`, filePath))
+      stepSync('違反の ruleId を比べる', () => {
+        expect(ids).toContain('no-restricted-imports')
+      })
     })
   })
 
   it('lib の infra/github でない infra を import しても、no-restricted-imports の違反にならない', async () => {
     await explains('cli から GitHub の I/O を import させない eslint の規則のテストです。commands のファイルで lib の `infra/git.js` を import した場合は、`no-restricted-imports` の違反が報告されないことを確認します。')
-    const ids = await ruleIds('import { runGit } from \'@pecot/workflow-core/infra/git.js\'\n\nexport const used = runGit\n', commandFile)
-    expect(ids).not.toContain('no-restricted-imports')
+    const ids = await step('コードを eslint にかける', async () => await ruleIds('import { runGit } from \'@pecot/workflow-core/infra/git.js\'\n\nexport const used = runGit\n', commandFile))
+    stepSync('違反の ruleId を比べる', () => {
+      expect(ids).not.toContain('no-restricted-imports')
+    })
   })
 })

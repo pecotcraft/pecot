@@ -13,6 +13,7 @@ import { createGitRepository } from '../../../../../libs/workflow-core/tests/_he
 import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
 import { runToolInProcess } from './run-tool.js'
 import type { ToolRunResult } from './run-tool.js'
+import { stepSync } from './step.js'
 
 const startingDirectory = process.cwd()
 
@@ -76,6 +77,10 @@ function fixtureConfig(host: string, owner: string, repositories: readonly strin
 設定の形は tests/parity/scenarios/issue-quick-ok.yaml と同じ（ホスト ghes.example.com・owner acme・リポジトリ demo が既定）
 */
 export function setUpProject(options: Readonly<ProjectFixtureOptions> = {}): ProjectFixture {
+  return stepSync('プロジェクトの設定を置く', () => writeProject(options))
+}
+
+function writeProject(options: Readonly<ProjectFixtureOptions>): ProjectFixture {
   const { host = 'ghes.example.com', owner = 'acme', repositories = ['demo'], files = {} } = options
   const root = makeTemporaryDirectory('pecot-project-')
   const configFile = `${host}_${owner}_board_${owner}.json`

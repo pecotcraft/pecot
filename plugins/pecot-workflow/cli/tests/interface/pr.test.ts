@@ -6,7 +6,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
-import { step } from '../../../../../libs/interface-spec/src/vitest/step.js'
+import { step } from '../_helpers/step.js'
 import { installFakeExecutable, prependToPath } from '../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
@@ -80,16 +80,14 @@ const PROBLEMS = z.array(z.record(z.string(), z.unknown()))
 
 // 作業リポジトリに入り、pr_check を同じプロセスの中のクライアントから 1 回呼ぶ
 async function check(workspace: Readonly<Workspace>, arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
-  return await step('pr_check を呼ぶ', async () => {
-    const previous = process.cwd()
-    process.chdir(workspace.directory)
-    try {
-      return await callToolOnce(PR_TOOLS, 'pr_check', arguments_)
-    }
-    finally {
-      process.chdir(previous)
-    }
-  })
+  const previous = process.cwd()
+  process.chdir(workspace.directory)
+  try {
+    return await callToolOnce(PR_TOOLS, 'pr_check', arguments_)
+  }
+  finally {
+    process.chdir(previous)
+  }
 }
 
 function createArguments(extra: Readonly<Record<string, unknown>> = {}): Record<string, unknown> {

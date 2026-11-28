@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { explains } from '../../../tests/_helpers/explains.js'
+import { stepSync } from '../../../tests/_helpers/step.js'
 
 import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
@@ -42,55 +43,74 @@ const STATUS_FIELD = field({ id: '11', nodeId: 'ST', name: 'Status', dataType: '
 describe('issueText と unreadProblem', () => {
   it('参照を owner/repo/番号 の形の文字にする', async () => {
     await explains('`issueText` のテストです。参照を、CLI の入力に使える形の文字にすることを確認します。')
-    expect(issueText(reference(5))).toBe('acme/app/5')
+    const text = stepSync('参照を文字にする', () => issueText(reference(5)))
+    stepSync('文字を比べる', () => {
+      expect(text).toBe('acme/app/5')
+    })
   })
 
   it('Issue を指定すると issue を持つ problem を、指定しなければ持たない problem を返す', async () => {
     await explains('`unreadProblem` のテストです。Issue の指定がある場合とない場合の両方で、`read-required` の problem を作り、issue の項目の有無が変わることを確認します。')
-    expect(unreadProblem('reads.issues', 'm', 'acme/app/5')).toEqual({ issue: 'acme/app/5', field: 'reads.issues', code: 'read-required', message: 'm' })
-    expect(unreadProblem('reads.issues', 'm')).toEqual({ field: 'reads.issues', code: 'read-required', message: 'm' })
+    const withIssue = stepSync('Issue を指定して problem を作る', () => unreadProblem('reads.issues', 'm', 'acme/app/5'))
+    const withoutIssue = stepSync('Issue を指定せずに problem を作る', () => unreadProblem('reads.issues', 'm'))
+    stepSync('2 つの problem を比べる', () => {
+      expect(withIssue).toEqual({ issue: 'acme/app/5', field: 'reads.issues', code: 'read-required', message: 'm' })
+      expect(withoutIssue).toEqual({ field: 'reads.issues', code: 'read-required', message: 'm' })
+    })
   })
 })
 
 describe('boardShapeOf', () => {
   it('設定の ID で進行の欄を見つけ、選択肢を設定の ID で引く', async () => {
     await explains('`boardShapeOf` のテストです。設定の進行の欄の ID が欄の nodeId と一致する場合に、その欄を進行の欄にし、設定の ID の選択肢の表示名を返すことを確認します。')
-    const shape = boardShapeOf([WORKFLOW_FIELD, STATUS_FIELD], CONFIG)
-    expect(shape.workflow).toBe(WORKFLOW_FIELD)
-    expect(shape.status).toBe(STATUS_FIELD)
-    expect(shape.column('ready')).toBe('Ready')
-    expect(shape.label('todo')).toBe('Todo')
+    const shape = stepSync('設定の ID で欄の形を作る', () => boardShapeOf([WORKFLOW_FIELD, STATUS_FIELD], CONFIG))
+    stepSync('欄と選択肢の表示名を比べる', () => {
+      expect(shape.workflow).toBe(WORKFLOW_FIELD)
+      expect(shape.status).toBe(STATUS_FIELD)
+      expect(shape.column('ready')).toBe('Ready')
+      expect(shape.label('todo')).toBe('Todo')
+    })
   })
 
   it('ID で見つからない選択肢は、名前で探し、どちらでも見つからなければ undefined にする', async () => {
     await explains('`boardShapeOf` のテストです。設定の ID に当たる選択肢が無い場合は、大文字小文字を除いた表示名で探し、名前も無ければ undefined を返すことを確認します。')
-    const shape = boardShapeOf([WORKFLOW_FIELD, STATUS_FIELD], CONFIG)
-    expect(shape.column('blocked')).toBe('blocked')
-    expect(shape.column('active')).toBeUndefined()
-    expect(shape.label('needs_attention')).toBeUndefined()
+    const shape = stepSync('設定の ID で欄の形を作る', () => boardShapeOf([WORKFLOW_FIELD, STATUS_FIELD], CONFIG))
+    stepSync('名前で探した選択肢を比べる', () => {
+      expect(shape.column('blocked')).toBe('blocked')
+      expect(shape.column('active')).toBeUndefined()
+      expect(shape.label('needs_attention')).toBeUndefined()
+    })
   })
 
   it('設定が無ければ、欄の名前で進行の欄を見つけ、選択肢は名前で探す', async () => {
     await explains('`boardShapeOf` のテストです。設定が無い場合に、名前が `pecot-status` の欄を進行の欄にし、選択肢を表示名で探すことを確認します。')
-    const shape = boardShapeOf([field({ id: '1', name: 'pecot-status', dataType: 'SINGLE_SELECT', options: [{ id: 'a', name: 'Ready' }] })], undefined)
-    expect(shape.workflow?.id).toBe('1')
-    expect(shape.status).toBeUndefined()
-    expect(shape.column('ready')).toBe('Ready')
-    expect(shape.label('todo')).toBeUndefined()
+    const shape = stepSync('設定を渡さずに欄の形を作る', () => boardShapeOf([field({ id: '1', name: 'pecot-status', dataType: 'SINGLE_SELECT', options: [{ id: 'a', name: 'Ready' }] })], undefined))
+    stepSync('欄と選択肢を比べる', () => {
+      expect(shape.workflow?.id).toBe('1')
+      expect(shape.status).toBeUndefined()
+      expect(shape.column('ready')).toBe('Ready')
+      expect(shape.label('todo')).toBeUndefined()
+    })
   })
 
   it('進行の欄も Status の欄も無ければ、どちらも undefined にする', async () => {
     await explains('`boardShapeOf` のテストです。欄が 1 つも無い場合に、進行の欄と Status の欄を undefined にし、選択肢も見つからないことを確認します。')
-    const shape = boardShapeOf([], CONFIG)
-    expect([shape.workflow, shape.status, shape.column('ready'), shape.label('todo')]).toEqual([undefined, undefined, undefined, undefined])
+    const shape = stepSync('欄が無い入力で欄の形を作る', () => boardShapeOf([], CONFIG))
+    stepSync('欄と選択肢を比べる', () => {
+      expect([shape.workflow, shape.status, shape.column('ready'), shape.label('todo')]).toEqual([undefined, undefined, undefined, undefined])
+    })
   })
 })
 
 describe('columnNames', () => {
   it('欄が読めていれば欄の名前を、無ければ既定の名前を返す', async () => {
     await explains('`columnNames` のテストです。進行の欄と Status の欄がある場合はその名前を返し、無い場合は `pecot-status` と `Status` を返すことを確認します。')
-    expect(columnNames(boardShapeOf([WORKFLOW_FIELD, STATUS_FIELD], CONFIG))).toEqual({ column: 'Workflow', label: 'Status' })
-    expect(columnNames(boardShapeOf([], undefined))).toEqual({ column: 'pecot-status', label: 'Status' })
+    const present = stepSync('欄がある形の名前を求める', () => columnNames(boardShapeOf([WORKFLOW_FIELD, STATUS_FIELD], CONFIG)))
+    const absent = stepSync('欄が無い形の名前を求める', () => columnNames(boardShapeOf([], undefined)))
+    stepSync('名前を比べる', () => {
+      expect(present).toEqual({ column: 'Workflow', label: 'Status' })
+      expect(absent).toEqual({ column: 'pecot-status', label: 'Status' })
+    })
   })
 })
 
@@ -103,23 +123,27 @@ describe('parseReads', () => {
 
   it('reads が無ければ、空の結果を返す', async () => {
     await explains('`parseReads` のテストです。reads が無い場合に、Issue と PR は空で、カードとボードが undefined の結果を返すことを確認します。')
-    const parsed = parseReads(output(), undefined, CONFIG)
-    expect([parsed.issues.size, parsed.pullRequests.size, parsed.cards, parsed.board]).toEqual([0, 0, undefined, undefined])
+    const parsed = stepSync('reads を渡さずに読み取りを解釈する', () => parseReads(output(), undefined, CONFIG))
+    stepSync('結果が空であることを比べる', () => {
+      expect([parsed.issues.size, parsed.pullRequests.size, parsed.cards, parsed.board]).toEqual([0, 0, undefined, undefined])
+    })
   })
 
   it('閉じる PR を、pull_request_read で読んだ PR に差し替え、カードとボードも作る', async () => {
     await explains('`parseReads` のテストです。Issue の閉じる PR と同じ PR を pull_request_read で読んでいる場合に、head と base を持つ PR に差し替え、カード・ボードも作ることを確認します。')
-    const parsed = parseReads(output(), {
+    const parsed = stepSync('閉じる PR と同じ PR を含む reads を解釈する', () => parseReads(output(), {
       pull_requests: [prRead],
       issues: [issueRead(5, { closed_by_pull_requests: { references: [{ number: 9, state: 'OPEN', url: 'https://github.com/acme/app/pull/9', repository: 'acme/app' }, { number: 10, state: 'OPEN', url: 'https://github.com/acme/app/pull/10', repository: 'acme/app' }] } })],
       project_items: [{ items: { items: [{ content: { number: 5, repository: 'acme/app' }, fields: [{ id: 1, name: 'Workflow', value: { name: 'Ready' } }] }] } }],
       project_fields: { fields: { fields: [{ id: 10, node_id: 'WF', name: 'Workflow', data_type: 'single_select', options: [] }] } },
-    }, CONFIG)
-    const pullRequests = parsed.issues.get('acme/app#5')?.pullRequests
-    expect(pullRequests?.map(pullRequest => [pullRequest.number, pullRequest.headRefName])).toEqual([[9, 'feat'], [10, '']])
-    expect(parsed.pullRequests.get('acme/app#9')?.baseRefName).toBe('main')
-    expect(parsed.cards?.get('acme/app#5')?.fields.get('workflow')).toBe('Ready')
-    expect(parsed.board?.workflow?.id).toBe('10')
+    }, CONFIG))
+    stepSync('PR・カード・ボードを比べる', () => {
+      const pullRequests = parsed.issues.get('acme/app#5')?.pullRequests
+      expect(pullRequests?.map(pullRequest => [pullRequest.number, pullRequest.headRefName])).toEqual([[9, 'feat'], [10, '']])
+      expect(parsed.pullRequests.get('acme/app#9')?.baseRefName).toBe('main')
+      expect(parsed.cards?.get('acme/app#5')?.fields.get('workflow')).toBe('Ready')
+      expect(parsed.board?.workflow?.id).toBe('10')
+    })
   })
 
   it.for([
@@ -130,15 +154,19 @@ describe('parseReads', () => {
   ])('形が合わない $name の結果があると、github-mcp-shape で止める', async (row) => {
     await explains(`\`parseReads\` のテストです。${row.name}の結果の形が合わない場合に、置き場所 \`${row.where}\` を表示して \`github-mcp-shape\` で止めることを確認します。`)
     const io = capture()
-    let kind: string | undefined
-    try {
-      parseReads(createOutput(false, io), row.reads, CONFIG)
-    }
-    catch (error: unknown) {
-      if (error instanceof CommandExit) kind = error.kind
-    }
-    expect(kind).toBe('github-mcp-shape')
-    expect(io.err.join('')).toContain(row.where)
+    const kind = stepSync('形が合わない reads を解釈する', () => {
+      try {
+        parseReads(createOutput(false, io), row.reads, CONFIG)
+      }
+      catch (error: unknown) {
+        if (error instanceof CommandExit) return error.kind
+      }
+      return
+    })
+    stepSync('止めた種別と置き場所の表示を比べる', () => {
+      expect(kind).toBe('github-mcp-shape')
+      expect(io.err.join('')).toContain(row.where)
+    })
   })
 })
 
@@ -151,26 +179,38 @@ describe('prerequisiteFacts', () => {
 
   it('Issue を読んでいれば、その状態から事実を作る', async () => {
     await explains('`prerequisiteFacts` のテストです。前提の Issue を読んでいる場合に、読んだ Issue の状態から事実を作ることを確認します。')
-    expect(prerequisiteFacts(reference(5), 'open', reads(), board)?.state).toBe('closed')
+    const facts = stepSync('読んだ Issue の前提の事実を作る', () => prerequisiteFacts(reference(5), 'open', reads(), board))
+    stepSync('状態を比べる', () => {
+      expect(facts?.state).toBe('closed')
+    })
   })
 
   it('Issue を読んでいなければ、渡した状態とカードの列から事実を作る', async () => {
     await explains('`prerequisiteFacts` のテストです。Issue を読まず状態だけを渡す場合に、その状態とカードの列を持つ、PR の無い事実を作ることを確認します。')
-    const facts = prerequisiteFacts(reference(6), 'open', reads(), board)
-    expect([facts?.state, facts?.column, facts?.pullRequests]).toEqual(['open', 'Ready', []])
+    const facts = stepSync('読んでいない Issue の前提の事実を作る', () => prerequisiteFacts(reference(6), 'open', reads(), board))
+    stepSync('状態・列・PR を比べる', () => {
+      expect([facts?.state, facts?.column, facts?.pullRequests]).toEqual(['open', 'Ready', []])
+    })
   })
 
   it('Issue を読まず状態も渡さなければ、undefined を返す', async () => {
     await explains('`prerequisiteFacts` のテストです。Issue を読んでおらず状態も渡さない場合に、事実を作らず undefined を返すことを確認します。')
-    expect(prerequisiteFacts(reference(7), undefined, reads(), board)).toBeUndefined()
+    const facts = stepSync('状態を渡さずに前提の事実を作る', () => prerequisiteFacts(reference(7), undefined, reads(), board))
+    stepSync('事実が無いことを比べる', () => {
+      expect(facts).toBeUndefined()
+    })
   })
 })
 
 describe('developmentBranchOf', () => {
   it('設定があればリポの develop_branch を、設定が無ければ undefined を返す', async () => {
     await explains('`developmentBranchOf` のテストです。設定がある場合はリポの開発ブランチを返し、設定が無い場合は undefined を返すことを確認します。')
-    expect(developmentBranchOf(CONFIG, HOME)).toBe('main')
-    expect(developmentBranchOf(undefined, HOME)).toBeUndefined()
+    const configured = stepSync('設定ありで開発ブランチを求める', () => developmentBranchOf(CONFIG, HOME))
+    const unconfigured = stepSync('設定なしで開発ブランチを求める', () => developmentBranchOf(undefined, HOME))
+    stepSync('開発ブランチを比べる', () => {
+      expect(configured).toBe('main')
+      expect(unconfigured).toBeUndefined()
+    })
   })
 })
 
@@ -183,7 +223,10 @@ describe('stackUndecidedHint', () => {
     { name: '開発ブランチの未設定', undecided: { kind: 'no-develop-branch', repository: HOME }, expected: 'develop_branch is not set for acme/app in the project config' },
   ])('$name のとき、足りない読み取りの案内を返す', async (row) => {
     await explains(`\`stackUndecidedHint\` のテストです。${row.name}でスタックを決められない場合に、次の案内を返すことを確認します。\`${row.expected}\``)
-    expect(stackUndecidedHint(row.undecided)).toBe(row.expected)
+    const hint = stepSync('スタックを決められない理由から案内を求める', () => stackUndecidedHint(row.undecided))
+    stepSync('案内を比べる', () => {
+      expect(hint).toBe(row.expected)
+    })
   })
 })
 
@@ -202,54 +245,68 @@ describe('judgeMove', () => {
 
   it('前提が無ければ、startable と判定し、スタックの決めを求めない', async () => {
     await explains('`judgeMove` のテストです。前提が無い Issue の場合に、startable の判定になり、スタックを決められない理由が無いことを確認します。')
-    const judged = judgeMove(request([], []))
-    expect(judged.readiness?.kind).toBe('startable')
-    expect(judged.stackUndecided).toBeUndefined()
+    const judged = stepSync('前提が無い Issue の移動を判定する', () => judgeMove(request([], [])))
+    stepSync('判定と決められない理由を比べる', () => {
+      expect(judged.readiness?.kind).toBe('startable')
+      expect(judged.stackUndecided).toBeUndefined()
+    })
   })
 
   it('Epic の Issue には、判定も列の動きも出さない', async () => {
     await explains('`judgeMove` のテストです。対象が Epic の場合に、判定を出さず、列と札の動きも出さないことを確認します。')
-    const judged = judgeMove({ ...request([], []), target: facts(1, { kind: 'epic' }) })
-    expect([judged.readiness, judged.move, judged.stackUndecided]).toEqual([undefined, undefined, undefined])
+    const judged = stepSync('Epic の Issue の移動を判定する', () => judgeMove({ ...request([], []), target: facts(1, { kind: 'epic' }) }))
+    stepSync('判定・動き・決められない理由が無いことを比べる', () => {
+      expect([judged.readiness, judged.move, judged.stackUndecided]).toEqual([undefined, undefined, undefined])
+    })
   })
 
   it('前提の PR のブランチを読んでいなければ、読んでいない PR を理由にする', async () => {
     await explains('`judgeMove` のテストです。前提の PR の head が空の場合に、スタックを決められない理由を読んでいない PR にし、その PR を示すことを確認します。')
     const unread = pull(9, '', '')
-    const judged = judgeMove(request([prerequisite(2, unread)], []))
-    expect(judged.stackUndecided).toEqual({ kind: 'unread-pull-requests', pullRequests: [unread] })
+    const judged = stepSync('前提の PR を読んでいない状態で移動を判定する', () => judgeMove(request([prerequisite(2, unread)], [])))
+    stepSync('決められない理由を比べる', () => {
+      expect(judged.stackUndecided).toEqual({ kind: 'unread-pull-requests', pullRequests: [unread] })
+    })
   })
 
   it.for([undefined, ''])('開発ブランチが %j だと、開発ブランチの未設定を理由にする', async (branch) => {
     await explains('`judgeMove` のテストです。対象のリポの開発ブランチが無いか空の場合に、スタックを決められない理由を開発ブランチの未設定にすることを確認します。')
     const open = pull(9, 'a', 'main')
-    const judged = judgeMove({ ...request([prerequisite(2, open)], [open]), developmentBranch: branch })
-    expect(judged.stackUndecided).toEqual({ kind: 'no-develop-branch', repository: HOME })
+    const judged = stepSync('開発ブランチ無しで移動を判定する', () => judgeMove({ ...request([prerequisite(2, open)], [open]), developmentBranch: branch }))
+    stepSync('決められない理由を比べる', () => {
+      expect(judged.stackUndecided).toEqual({ kind: 'no-develop-branch', repository: HOME })
+    })
   })
 
   it('前提の PR が開発ブランチに届けば、stackable と判定し、決められない理由を持たない', async () => {
     await explains('`judgeMove` のテストです。前提の PR の base が開発ブランチの場合に、stackable の判定になり、スタックを決められない理由が無いことを確認します。')
     const open = pull(9, 'a', 'main')
-    const judged = judgeMove(request([prerequisite(2, open)], [open]))
-    expect([judged.readiness?.kind, judged.readiness?.stackOn?.branch, judged.stackUndecided]).toEqual(['stackable', 'a', undefined])
+    const judged = stepSync('開発ブランチに届く前提の PR で移動を判定する', () => judgeMove(request([prerequisite(2, open)], [open])))
+    stepSync('判定・スタック先・決められない理由を比べる', () => {
+      expect([judged.readiness?.kind, judged.readiness?.stackOn?.branch, judged.stackUndecided]).toEqual(['stackable', 'a', undefined])
+    })
   })
 
   it('前提の PR の base をたどれなければ、見つからない base を理由にする', async () => {
     await explains('`judgeMove` のテストです。前提の PR 2 本のうち 1 本の base が、読んだ PR の head に無いとします。判定が diverged になり、その base を理由に挙げることを確認します。')
     const a = pull(8, 'a', 'main')
     const b = pull(9, 'b', 'ghost')
-    const judged = judgeMove(request([prerequisite(2, a), prerequisite(3, b)], [a, b]))
-    expect(judged.readiness?.reason?.code).toBe('diverged')
-    expect(judged.stackUndecided).toEqual({ kind: 'missing-bases', branches: ['ghost'] })
+    const judged = stepSync('base をたどれない前提の PR で移動を判定する', () => judgeMove(request([prerequisite(2, a), prerequisite(3, b)], [a, b])))
+    stepSync('判定の理由と決められない理由を比べる', () => {
+      expect(judged.readiness?.reason?.code).toBe('diverged')
+      expect(judged.stackUndecided).toEqual({ kind: 'missing-bases', branches: ['ghost'] })
+    })
   })
 
   it('前提の PR の base が輪になっていれば、見つからない base を理由にしない', async () => {
     await explains('`judgeMove` のテストです。前提の PR の base が互いの head を指して輪になるとします。判定は diverged のままで、見つからない base を理由にしないことを確認します。')
     const c = pull(8, 'c', 'd')
     const d = pull(9, 'd', 'c')
-    const judged = judgeMove(request([prerequisite(2, c), prerequisite(3, d)], [c, d]))
-    expect(judged.readiness?.reason?.code).toBe('diverged')
-    expect(judged.stackUndecided).toBeUndefined()
+    const judged = stepSync('base が輪になる前提の PR で移動を判定する', () => judgeMove(request([prerequisite(2, c), prerequisite(3, d)], [c, d])))
+    stepSync('判定の理由と決められない理由を比べる', () => {
+      expect(judged.readiness?.reason?.code).toBe('diverged')
+      expect(judged.stackUndecided).toBeUndefined()
+    })
   })
 
   it('base が別の PR の head を経て開発ブランチに届けば、届かない PR の base だけを理由にする', async () => {
@@ -257,32 +314,40 @@ describe('judgeMove', () => {
     const a = pull(8, 'a', 'main')
     const b = pull(9, 'b', 'a')
     const c = pull(10, 'c', 'ghost')
-    const judged = judgeMove(request([prerequisite(2, b), prerequisite(3, c)], [a, b, c]))
-    expect(judged.stackUndecided).toEqual({ kind: 'missing-bases', branches: ['ghost'] })
+    const judged = stepSync('届く PR と届かない PR を前提にして移動を判定する', () => judgeMove(request([prerequisite(2, b), prerequisite(3, c)], [a, b, c])))
+    stepSync('決められない理由を比べる', () => {
+      expect(judged.stackUndecided).toEqual({ kind: 'missing-bases', branches: ['ghost'] })
+    })
   })
 
   it('ボードに Blocked が無ければ、Blocked へ動かさず、足りない値に挙げる', async () => {
     await explains('`judgeMove` のテストです。判定が blocked でボードに Blocked の選択肢が無い場合に、列を動かさず、足りない値に Blocked を挙げることを確認します。')
     const noBlocked = boardShapeOf([field({ id: '10', nodeId: 'WF', name: 'Workflow', dataType: 'SINGLE_SELECT', options: [{ id: 'o-ready', name: 'Ready' }] })], CONFIG)
     const closed: Prerequisite = { issue: facts(2, { state: 'closed' }), wait: 'stack', reason: undefined }
-    const judged = judgeMove({ ...request([closed], []), board: noBlocked })
-    expect(judged.readiness?.kind).toBe('blocked')
-    expect(judged.move?.column).toBeUndefined()
-    expect(judged.move?.missing).toContain('Blocked')
+    const judged = stepSync('Blocked の無いボードで移動を判定する', () => judgeMove({ ...request([closed], []), board: noBlocked }))
+    stepSync('判定・列の動き・足りない値を比べる', () => {
+      expect(judged.readiness?.kind).toBe('blocked')
+      expect(judged.move?.column).toBeUndefined()
+      expect(judged.move?.missing).toContain('Blocked')
+    })
   })
 })
 
 describe('configFor', () => {
   it('どの設定にも無いリポなら、見つからない理由の文を返す', async () => {
     await explains('`configFor` のテストです。プロジェクトの設定が 1 つも無い環境で、そのリポが設定に無いことを示す文を返すことを確認します。')
-    const choice = configFor(HOME, undefined, ['issue', 'check'])
-    expect(choice.kind).toBe('problem')
-    expect(choice.kind === 'problem' && choice.message).toContain('acme/app is not in any project config')
+    const choice = stepSync('設定が無い環境で設定を選ぶ', () => configFor(HOME, undefined, ['issue', 'check']))
+    stepSync('選んだ結果の文を比べる', () => {
+      expect(choice.kind).toBe('problem')
+      expect(choice.kind === 'problem' && choice.message).toContain('acme/app is not in any project config')
+    })
   })
 
   it('名前を指定した設定が無ければ、その名前を示す文を返す', async () => {
     await explains('`configFor` のテストです。存在しない設定の名前を指定した場合に、設定が見つからないことを名前つきで示す文を返すことを確認します。')
-    const choice = configFor(HOME, 'nope', ['issue', 'check'])
-    expect(choice.kind === 'problem' && choice.message).toContain('project config not found: nope')
+    const choice = stepSync('存在しない名前で設定を選ぶ', () => configFor(HOME, 'nope', ['issue', 'check']))
+    stepSync('選んだ結果の文を比べる', () => {
+      expect(choice.kind === 'problem' && choice.message).toContain('project config not found: nope')
+    })
   })
 })

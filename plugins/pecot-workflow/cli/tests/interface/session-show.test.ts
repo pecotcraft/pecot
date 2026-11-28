@@ -9,7 +9,7 @@ import { installFakeExecutable } from '../../../../../libs/workflow-core/tests/_
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
-import { step } from '../../../../../libs/interface-spec/src/vitest/step.js'
+import { step } from '../_helpers/step.js'
 import { SESSION_TOOLS } from '../../src/commands/session.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
@@ -76,7 +76,7 @@ function prepare(scene: Readonly<Scene> = {}): Prepared {
 }
 
 async function show(directory: string): Promise<ToolOutcome> {
-  return await step('session_show を呼ぶ', async () => await callToolOnce(SESSION_TOOLS, 'session_show', { directory }))
+  return await callToolOnce(SESSION_TOOLS, 'session_show', { directory })
 }
 
 describe('session_show', () => {

@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { explains } from '../../../tests/_helpers/explains.js'
+import { stepSync } from '../../../tests/_helpers/step.js'
 
 import { CommandExit } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
@@ -68,28 +69,35 @@ describe('parseOfficial', () => {
     await explains('`parseOfficial` のテストです。Issue の結果が schema に合うときは、止まらず、確かめた値を返すことを確認します。')
     const io = capture()
     const value = { issue: { number: 5, title: 'T', state: 'open', html_url: ISSUE_URL } }
-    expect(parseOfficial(createOutput(false, io), 'issue_read', ISSUE_READ_GET, value).issue.number).toBe(5)
-    expect(io.err).toEqual([])
+    const parsed = stepSync('schema に合う結果を確かめる', () => parseOfficial(createOutput(false, io), 'issue_read', ISSUE_READ_GET, value))
+    stepSync('確かめた値と表示を比べる', () => {
+      expect(parsed.issue.number).toBe(5)
+      expect(io.err).toEqual([])
+    })
   })
 
   it('形が合わなければ、項目の path を添えて github-mcp-shape で止める', async () => {
     await explains('`parseOfficial` のテストです。入れ子の項目の型が違う場合に、ツール名・入力の置き場所・項目の path を表示し、`github-mcp-shape` で終了コード 1 になることを確認します。')
     const io = capture()
-    const stop = stopOf(() => parseOfficial(createOutput(false, io), 'issue_read', ISSUE_READ_GET, { issue: { number: 'x' } }, 'reads.issues[0]'))
-    expect(stop.exitCode).toBe(1)
-    expect(stop.kind).toBe('github-mcp-shape')
-    const text = io.err.join('')
-    expect(text).toContain('the result of issue_read in reads.issues[0] is not in the shape of the official GitHub MCP server')
-    expect(text).toContain('issue.number: ')
-    expect(text).toContain('issue.title: ')
+    const stop = stepSync('項目の型が違う結果を確かめる', () => stopOf(() => parseOfficial(createOutput(false, io), 'issue_read', ISSUE_READ_GET, { issue: { number: 'x' } }, 'reads.issues[0]')))
+    stepSync('終了コード・種別・表示を比べる', () => {
+      expect(stop.exitCode).toBe(1)
+      expect(stop.kind).toBe('github-mcp-shape')
+      const text = io.err.join('')
+      expect(text).toContain('the result of issue_read in reads.issues[0] is not in the shape of the official GitHub MCP server')
+      expect(text).toContain('issue.number: ')
+      expect(text).toContain('issue.title: ')
+    })
   })
 
   it('値の根が合わず置き場所も無ければ、(root) を示してツール名だけを表示する', async () => {
     await explains('`parseOfficial` のテストです。値が配列で、入力の置き場所を渡さない場合に、項目の path を `(root)` と表示し、置き場所を含まない文で止めることを確認します。')
     const io = capture()
-    const stop = stopOf(() => parseOfficial(createOutput(false, io), 'issue_read', ISSUE_READ_GET, []))
-    expect(stop.kind).toBe('github-mcp-shape')
-    expect(io.err.join('')).toContain('the result of issue_read is not in the shape of the official GitHub MCP server\n  (root): ')
+    const stop = stepSync('値の根が合わない結果を置き場所なしで確かめる', () => stopOf(() => parseOfficial(createOutput(false, io), 'issue_read', ISSUE_READ_GET, [])))
+    stepSync('種別と表示を比べる', () => {
+      expect(stop.kind).toBe('github-mcp-shape')
+      expect(io.err.join('')).toContain('the result of issue_read is not in the shape of the official GitHub MCP server\n  (root): ')
+    })
   })
 })
 
@@ -100,8 +108,10 @@ describe('referenceFromUrl', () => {
     { name: '末尾に fragment が付く URL', url: 'https://github.com/acme/app/issues/9#issuecomment-1', expected: 'acme/app#9' },
   ])('$name を渡すと、$expected の参照を返す', async (row) => {
     await explains(`\`referenceFromUrl\` のテストです。URL \`${row.url}\` から、\`${row.expected}\` の参照を取り出すことを確認します。`)
-    const reference = referenceFromUrl(row.url)
-    expect(reference === undefined ? undefined : `${reference.repository.owner}/${reference.repository.repository}#${String(reference.number)}`).toBe(row.expected)
+    const reference = stepSync('URL から参照を取り出す', () => referenceFromUrl(row.url))
+    stepSync('参照を比べる', () => {
+      expect(reference === undefined ? undefined : `${reference.repository.owner}/${reference.repository.repository}#${String(reference.number)}`).toBe(row.expected)
+    })
   })
 
   it.for([
@@ -110,14 +120,20 @@ describe('referenceFromUrl', () => {
     { name: 'URL でない文字列', url: 'acme/app#5' },
   ])('$name を渡すと、undefined を返す', async (row) => {
     await explains(`\`referenceFromUrl\` のテストです。\`${row.url}\` は参照として読めないので、undefined を返すことを確認します。`)
-    expect(referenceFromUrl(row.url)).toBeUndefined()
+    const reference = stepSync('参照として読めない URL から参照を取り出す', () => referenceFromUrl(row.url))
+    stepSync('参照が無いことを比べる', () => {
+      expect(reference).toBeUndefined()
+    })
   })
 })
 
 describe('referenceOf', () => {
   it('owner/name の形と番号から、参照を返す', async () => {
     await explains('`referenceOf` のテストです。`acme/app` と番号 3 から、同じ repository と番号の参照を返すことを確認します。')
-    expect(referenceOf('acme/app', 3)).toEqual(createIssueReference(HOME, 3))
+    const reference = stepSync('repository と番号から参照を作る', () => referenceOf('acme/app', 3))
+    stepSync('参照を比べる', () => {
+      expect(reference).toEqual(createIssueReference(HOME, 3))
+    })
   })
 
   it.for([
@@ -126,56 +142,71 @@ describe('referenceOf', () => {
     { name: '番号が 0 の参照', repository: 'acme/app', number: 0 },
   ])('$name を渡すと、undefined を返す', async (row) => {
     await explains(`\`referenceOf\` のテストです。repository \`${row.repository}\` と番号 ${String(row.number)} は参照にならないので、undefined を返すことを確認します。`)
-    expect(referenceOf(row.repository, row.number)).toBeUndefined()
+    const reference = stepSync('参照にならない repository と番号から参照を作る', () => referenceOf(row.repository, row.number))
+    stepSync('参照が無いことを比べる', () => {
+      expect(reference).toBeUndefined()
+    })
   })
 })
 
 describe('readPullRequestOf', () => {
   it('同じ repository の PR は、fork でない PR として返す', async () => {
     await explains('`readPullRequestOf` のテストです。head と base の repository が大文字小文字を除いて同じ場合に、fork でない open の PR にすることを確認します。')
-    const pullRequest = readPullRequestOf(createOutput(false, capture()), readPull(), 'reads.pull_requests[0]')
-    expect(pullRequest).toEqual({ repository: HOME, number: 7, state: 'open', headRefName: 'feat', baseRefName: 'main', isDraft: false, isCrossRepository: false })
+    const pullRequest = stepSync('同じ repository の PR を写す', () => readPullRequestOf(createOutput(false, capture()), readPull(), 'reads.pull_requests[0]'))
+    stepSync('PR を比べる', () => {
+      expect(pullRequest).toEqual({ repository: HOME, number: 7, state: 'open', headRefName: 'feat', baseRefName: 'main', isDraft: false, isCrossRepository: false })
+    })
   })
 
   it('head の repository が違えば fork の PR にし、マージ済みなら merged にする', async () => {
     await explains('`readPullRequestOf` のテストです。head の repository が base と違い、merged が true の場合に、fork の PR で状態が merged になることを確認します。')
-    const pullRequest = readPullRequestOf(createOutput(false, capture()), readPull({ merged: true, state: 'closed', head: { ref: 'f', repo: { full_name: 'fork/app' } } }), 'w')
-    expect(pullRequest.state).toBe('merged')
-    expect(pullRequest.isCrossRepository).toBe(true)
+    const pullRequest = stepSync('fork のマージ済みの PR を写す', () => readPullRequestOf(createOutput(false, capture()), readPull({ merged: true, state: 'closed', head: { ref: 'f', repo: { full_name: 'fork/app' } } }), 'w'))
+    stepSync('状態と fork かを比べる', () => {
+      expect(pullRequest.state).toBe('merged')
+      expect(pullRequest.isCrossRepository).toBe(true)
+    })
   })
 
   it('repo が null なら、fork かを決めず、fork でない PR にする', async () => {
     await explains('`readPullRequestOf` のテストです。head の repo が null（削除された fork）の場合に、fork とみなさないことを確認します。')
-    const pullRequest = readPullRequestOf(createOutput(false, capture()), readPull({ head: { ref: 'f', repo: null } }), 'w')
-    expect(pullRequest.isCrossRepository).toBe(false)
+    const pullRequest = stepSync('head の repo が null の PR を写す', () => readPullRequestOf(createOutput(false, capture()), readPull({ head: { ref: 'f', repo: null } }), 'w'))
+    stepSync('fork かを比べる', () => {
+      expect(pullRequest.isCrossRepository).toBe(false)
+    })
   })
 
   it('html_url が PR の URL でなければ、github-mcp-shape で止める', async () => {
     await explains('`readPullRequestOf` のテストです。html_url が PR の URL でない場合に、その値を表示し、`github-mcp-shape` で止めることを確認します。')
     const io = capture()
-    const stop = stopOf(() => readPullRequestOf(createOutput(false, io), readPull({ html_url: 'https://example.com/x' }), 'reads.pull_requests[2]'))
-    expect(stop.kind).toBe('github-mcp-shape')
-    expect(io.err.join('')).toContain('the result of pull_request_read in reads.pull_requests[2] is not in the shape of the official GitHub MCP server\n  html_url: not a pull request URL: https://example.com/x')
+    const stop = stepSync('html_url が PR の URL でない PR を写す', () => stopOf(() => readPullRequestOf(createOutput(false, io), readPull({ html_url: 'https://example.com/x' }), 'reads.pull_requests[2]')))
+    stepSync('種別と表示を比べる', () => {
+      expect(stop.kind).toBe('github-mcp-shape')
+      expect(io.err.join('')).toContain('the result of pull_request_read in reads.pull_requests[2] is not in the shape of the official GitHub MCP server\n  html_url: not a pull request URL: https://example.com/x')
+    })
   })
 })
 
 describe('readIssueOf', () => {
   it('参照・題・状態・本文を写し、本文が無ければ空にする', async () => {
     await explains('`readIssueOf` のテストです。state が大文字の OPEN で本文が無い Issue から、小文字の open と空の本文を持つ Issue を作ることを確認します。')
-    const issue = readIssueOf(createOutput(false, capture()), readIssue({}), 'w')
-    expect(issue).toEqual({ ref: createIssueReference(HOME, 5), title: 'T', state: 'open', body: '', pullRequests: [] })
+    const issue = stepSync('本文が無い Issue を写す', () => readIssueOf(createOutput(false, capture()), readIssue({}), 'w'))
+    stepSync('Issue を比べる', () => {
+      expect(issue).toEqual({ ref: createIssueReference(HOME, 5), title: 'T', state: 'open', body: '', pullRequests: [] })
+    })
   })
 
   it('state が closed の Issue は closed にし、本文をそのまま写す', async () => {
     await explains('`readIssueOf` のテストです。state が CLOSED で本文がある場合に、closed の Issue になり本文が変わらないことを確認します。')
-    const issue = readIssueOf(createOutput(false, capture()), readIssue({ state: 'CLOSED', body: 'text' }), 'w')
-    expect(issue.state).toBe('closed')
-    expect(issue.body).toBe('text')
+    const issue = stepSync('closed で本文のある Issue を写す', () => readIssueOf(createOutput(false, capture()), readIssue({ state: 'CLOSED', body: 'text' }), 'w'))
+    stepSync('状態と本文を比べる', () => {
+      expect(issue.state).toBe('closed')
+      expect(issue.body).toBe('text')
+    })
   })
 
   it('閉じる PR を、状態を読み替え、置き場所の取り方を変えて写し、状態が読めない PR は飛ばす', async () => {
     await explains('`readIssueOf` のテストです。閉じる PR の状態を読み替え、不明な状態の PR は飛ばします。repository が読めない PR は、Issue と同じ repository にすることを確認します。')
-    const issue = readIssueOf(createOutput(false, capture()), readIssue({
+    const issue = stepSync('閉じる PR を持つ Issue を写す', () => readIssueOf(createOutput(false, capture()), readIssue({
       closed_by_pull_requests: {
         references: [
           { number: 1, state: 'MERGED', url: 'https://github.com/x/y/pull/1', repository: 'other/repo' },
@@ -185,29 +216,33 @@ describe('readIssueOf', () => {
           { number: 5, state: 'OPEN', url: 'https://github.com/x/y/pull/5', repository: 'broken' },
         ],
       },
-    }), 'w')
-    expect(issue.pullRequests.map(pullRequest => [pullRequest.number, pullRequest.state, `${pullRequest.repository.owner}/${pullRequest.repository.repository}`])).toEqual([
-      [1, 'merged', 'other/repo'],
-      [2, 'closed', 'x/y'],
-      [3, 'open', 'acme/app'],
-      [5, 'open', 'x/y'],
-    ])
-    expect(issue.pullRequests[0]).toMatchObject({ headRefName: '', baseRefName: '', isDraft: false, isCrossRepository: false })
+    }), 'w'))
+    stepSync('閉じる PR を比べる', () => {
+      expect(issue.pullRequests.map(pullRequest => [pullRequest.number, pullRequest.state, `${pullRequest.repository.owner}/${pullRequest.repository.repository}`])).toEqual([
+        [1, 'merged', 'other/repo'],
+        [2, 'closed', 'x/y'],
+        [3, 'open', 'acme/app'],
+        [5, 'open', 'x/y'],
+      ])
+      expect(issue.pullRequests[0]).toMatchObject({ headRefName: '', baseRefName: '', isDraft: false, isCrossRepository: false })
+    })
   })
 
   it('html_url が Issue の URL でなければ、github-mcp-shape で止める', async () => {
     await explains('`readIssueOf` のテストです。html_url が Issue の URL でない場合に、その値を表示し、`github-mcp-shape` で止めることを確認します。')
     const io = capture()
-    const stop = stopOf(() => readIssueOf(createOutput(false, io), readIssue({ html_url: 'https://example.com/x' }), 'reads.issues[1]'))
-    expect(stop.kind).toBe('github-mcp-shape')
-    expect(io.err.join('')).toContain('issue.html_url: not an Issue URL: https://example.com/x')
+    const stop = stepSync('html_url が Issue の URL でない Issue を写す', () => stopOf(() => readIssueOf(createOutput(false, io), readIssue({ html_url: 'https://example.com/x' }), 'reads.issues[1]')))
+    stepSync('種別と表示を比べる', () => {
+      expect(stop.kind).toBe('github-mcp-shape')
+      expect(io.err.join('')).toContain('issue.html_url: not an Issue URL: https://example.com/x')
+    })
   })
 })
 
 describe('cardsOf', () => {
   it('欄の値を、文字列・数・name・title の形から取り、欄の名前は小文字にする', async () => {
     await explains('`cardsOf` のテストです。欄の値が文字列・数・name を持つ object・title を持つ object の場合に、値の名前を取り、欄の名前を小文字にしてカードに入れることを確認します。')
-    const cards = cardsOf([items([{
+    const cards = stepSync('形の違う値を持つ欄のカードを作る', () => cardsOf([items([{
       content: { number: 5, repository: 'acme/app' },
       fields: [
         { id: 1, name: 'Workflow', value: { name: 'Ready' } },
@@ -215,13 +250,15 @@ describe('cardsOf', () => {
         { id: 3, name: 'Size', value: 3 },
         { id: 4, name: 'Sprint', value: { title: 'S1' } },
       ],
-    }])])
-    expect(cards.get('acme/app#5')?.fields).toEqual(new Map([['workflow', 'Ready'], ['status', 'Todo'], ['size', '3'], ['sprint', 'S1']]))
+    }])]))
+    stepSync('カードの欄を比べる', () => {
+      expect(cards.get('acme/app#5')?.fields).toEqual(new Map([['workflow', 'Ready'], ['status', 'Todo'], ['size', '3'], ['sprint', 'S1']]))
+    })
   })
 
   it('名前を取れない値の欄は、カードに入れない', async () => {
     await explains('`cardsOf` のテストです。null・真偽値の値と、name と title を持たない object の値と、値の無い欄は、カードに入れないことを確認します。')
-    const cards = cardsOf([items([{
+    const cards = stepSync('名前を取れない値の欄のカードを作る', () => cardsOf([items([{
       content: { number: 5, repository: 'acme/app' },
       fields: [
         { id: 1, name: 'A', value: null },
@@ -229,13 +266,15 @@ describe('cardsOf', () => {
         { id: 3, name: 'C', value: { other: 1 } },
         { id: 4, name: 'D' },
       ],
-    }])])
-    expect(cards.get('acme/app#5')?.fields.size).toBe(0)
+    }])]))
+    stepSync('欄の数を比べる', () => {
+      expect(cards.get('acme/app#5')?.fields.size).toBe(0)
+    })
   })
 
   it('content が無いか repository が読めないカードは飛ばし、欄が無くても空の欄でカードにする', async () => {
     await explains('`cardsOf` のテストです。content が null か無い項目と repository が読めない項目は飛ばし、fields が null の項目は空の欄を持つカードにすることを確認します。')
-    const cards = cardsOf([
+    const cards = stepSync('content と repository が欠けた項目からカードを作る', () => cardsOf([
       items([
         { content: null, fields: [] },
         { fields: [] },
@@ -243,10 +282,12 @@ describe('cardsOf', () => {
         { content: { number: 2, repository: 'acme/app' }, fields: null },
       ]),
       { items: {} },
-    ])
-    expect(cards.size).toBe(1)
-    expect(cards.has('acme/app#2')).toBe(true)
-    expect(cards.get('acme/app#2')?.fields.size).toBe(0)
+    ]))
+    stepSync('カードの数と欄を比べる', () => {
+      expect(cards.size).toBe(1)
+      expect(cards.has('acme/app#2')).toBe(true)
+      expect(cards.get('acme/app#2')?.fields.size).toBe(0)
+    })
   })
 })
 
@@ -257,15 +298,20 @@ describe('issueFactsOf', () => {
   it('カードがあれば、欄の名前（小文字）で列と札を引く', async () => {
     await explains('`issueFactsOf` のテストです。カードが Workflow と Status の欄を持つ場合に、列と札の値を事実に入れ、種類の既定が task になることを確認します。')
     const card = { ref: issue.ref, fields: new Map([['workflow', 'Ready'], ['status', 'Todo']]) }
-    expect(issueFactsOf(issue, card, names)).toEqual({ ref: issue.ref, state: 'open', column: 'Ready', label: 'Todo', kind: 'task', branches: [], pullRequests: [] })
+    const facts = stepSync('カードから Issue の事実を作る', () => issueFactsOf(issue, card, names))
+    stepSync('事実を比べる', () => {
+      expect(facts).toEqual({ ref: issue.ref, state: 'open', column: 'Ready', label: 'Todo', kind: 'task', branches: [], pullRequests: [] })
+    })
   })
 
   it('カードが無ければ列と札を空にし、渡した種類を使う', async () => {
     await explains('`issueFactsOf` のテストです。カードが無い場合に、列と札が undefined になり、渡した種類 epic が事実に入ることを確認します。')
-    const facts = issueFactsOf(issue, undefined, names, 'epic')
-    expect(facts.column).toBeUndefined()
-    expect(facts.label).toBeUndefined()
-    expect(facts.kind).toBe('epic')
+    const facts = stepSync('カード無しで種類を渡して Issue の事実を作る', () => issueFactsOf(issue, undefined, names, 'epic'))
+    stepSync('列・札・種類を比べる', () => {
+      expect(facts.column).toBeUndefined()
+      expect(facts.label).toBeUndefined()
+      expect(facts.kind).toBe('epic')
+    })
   })
 })
 
@@ -275,12 +321,18 @@ describe('subIssueTitlesOf', () => {
     const read = ISSUE_READ_SUB_ISSUES.parse({
       sub_issues: [null, { number: null, title: 't' }, { number: 2 }, { number: 3, title: null }, { number: 4, title: 'Four', state: 'open' }, { number: 5, title: 'Five' }],
     })
-    expect(subIssueTitlesOf(read)).toEqual([{ number: 4, state: 'OPEN', title: 'Four' }, { number: 5, state: '', title: 'Five' }])
+    const titles = stepSync('子の題を取り出す', () => subIssueTitlesOf(read))
+    stepSync('子の題を比べる', () => {
+      expect(titles).toEqual([{ number: 4, state: 'OPEN', title: 'Four' }, { number: 5, state: '', title: 'Five' }])
+    })
   })
 
   it('sub_issues が無ければ、空の配列を返す', async () => {
     await explains('`subIssueTitlesOf` のテストです。sub_issues が無い結果から、空の配列を返すことを確認します。')
-    expect(subIssueTitlesOf({})).toEqual([])
+    const titles = stepSync('sub_issues が無い結果から子の題を取り出す', () => subIssueTitlesOf({}))
+    stepSync('子の題を比べる', () => {
+      expect(titles).toEqual([])
+    })
   })
 })
 
@@ -295,15 +347,21 @@ describe('blockedByOf', () => {
         { number: 4, state: 'open', repository: 'broken' },
       ],
     })
-    expect(blockedByOf(read).map(entry => [entry.ref.number, `${entry.ref.repository.owner}/${entry.ref.repository.repository}`, entry.state])).toEqual([
-      [1, 'other/repo', 'closed'],
-      [2, 'x/y', 'open'],
-    ])
+    const blockers = stepSync('前提を取り出す', () => blockedByOf(read))
+    stepSync('前提を比べる', () => {
+      expect(blockers.map(entry => [entry.ref.number, `${entry.ref.repository.owner}/${entry.ref.repository.repository}`, entry.state])).toEqual([
+        [1, 'other/repo', 'closed'],
+        [2, 'x/y', 'open'],
+      ])
+    })
   })
 
   it('issues が無ければ、空の配列を返す', async () => {
     await explains('`blockedByOf` のテストです。issues が無い結果から、空の配列を返すことを確認します。')
-    expect(blockedByOf({})).toEqual([])
+    const blockers = stepSync('issues が無い結果から前提を取り出す', () => blockedByOf({}))
+    stepSync('前提を比べる', () => {
+      expect(blockers).toEqual([])
+    })
   })
 })
 
@@ -320,23 +378,30 @@ describe('projectFieldsOf と projectDefinitionsOf', () => {
 
   it('欄の ID を文字にし、data_type を大文字にし、選択肢と反復を options にまとめる', async () => {
     await explains('`projectFieldsOf` のテストです。選択肢を持つ欄と反復を持つ欄から、ID が文字で data_type が大文字の欄を作り、開始日のある反復だけ startDate を持つことを確認します。')
-    const fields = projectFieldsOf(read)
-    expect(fields).toEqual([
-      { id: '11', nodeId: 'PVTSSF_w', name: 'Workflow', dataType: 'SINGLE_SELECT', options: [{ id: 'o1', name: 'Ready' }] },
-      { id: '12', nodeId: undefined, name: 'Sprint', dataType: 'ITERATION', options: [{ id: 'i1', name: 'S1', startDate: '2026-01-01' }, { id: 'i2', name: 'S2' }] },
-      { id: '13', nodeId: undefined, name: 'Labels', dataType: 'LABELS', options: [] },
-    ])
+    const fields = stepSync('結果から欄を作る', () => projectFieldsOf(read))
+    stepSync('欄を比べる', () => {
+      expect(fields).toEqual([
+        { id: '11', nodeId: 'PVTSSF_w', name: 'Workflow', dataType: 'SINGLE_SELECT', options: [{ id: 'o1', name: 'Ready' }] },
+        { id: '12', nodeId: undefined, name: 'Sprint', dataType: 'ITERATION', options: [{ id: 'i1', name: 'S1', startDate: '2026-01-01' }, { id: 'i2', name: 'S2' }] },
+        { id: '13', nodeId: undefined, name: 'Labels', dataType: 'LABELS', options: [] },
+      ])
+    })
   })
 
   it('fields が無ければ、空の配列を返す', async () => {
     await explains('`projectFieldsOf` のテストです。fields が null の結果から、空の配列を返すことを確認します。')
-    expect(projectFieldsOf({ fields: { fields: null } })).toEqual([])
+    const fields = stepSync('fields が null の結果から欄を作る', () => projectFieldsOf({ fields: { fields: null } }))
+    stepSync('欄を比べる', () => {
+      expect(fields).toEqual([])
+    })
   })
 
   it('組み込みの欄を外し、ほかの欄の数の ID を書き込み用の ID へ直した定義を返す', async () => {
     await explains('`projectDefinitionsOf` のテストです。Labels の欄は定義にせず、Workflow と Sprint の欄は定義にして、fieldId を数の ID にすることを確認します。')
-    const definitions = projectDefinitionsOf(projectFieldsOf(read), 'PVTSSF_w')
-    expect(definitions.map(definition => [definition.name, definition.fieldId])).toEqual([['Workflow', '11'], ['Sprint', '12']])
+    const definitions = stepSync('欄から定義を作る', () => projectDefinitionsOf(projectFieldsOf(read), 'PVTSSF_w'))
+    stepSync('定義の名前と fieldId を比べる', () => {
+      expect(definitions.map(definition => [definition.name, definition.fieldId])).toEqual([['Workflow', '11'], ['Sprint', '12']])
+    })
   })
 })
 
@@ -347,33 +412,48 @@ describe('issueFieldDefinitionsOf', () => {
       { id: 'IF_1', name: 'Priority', data_type: 'single_select', full_database_id: 99, options: [{ id: 'p1', name: 'High' }, { name: 'Low' }] },
       { id: 'IF_2', name: 'Note', data_type: 'text' },
     ])
-    const definitions = issueFieldDefinitionsOf(read)
-    expect(definitions.map(definition => [definition.name, definition.fieldId])).toEqual([['Priority', '99'], ['Note', 'IF_2']])
-    expect(definitions[0]?.options).toEqual([{ id: 'p1', name: 'High' }, { name: 'Low' }])
+    const definitions = stepSync('結果から Issue の欄の定義を作る', () => issueFieldDefinitionsOf(read))
+    stepSync('定義の名前・fieldId・選択肢を比べる', () => {
+      expect(definitions.map(definition => [definition.name, definition.fieldId])).toEqual([['Priority', '99'], ['Note', 'IF_2']])
+      expect(definitions[0]?.options).toEqual([{ id: 'p1', name: 'High' }, { name: 'Low' }])
+    })
   })
 
   it('結果が null なら、空の配列を返す', async () => {
     await explains('`issueFieldDefinitionsOf` のテストです。結果が null の場合に、空の配列を返すことを確認します。')
-    expect(issueFieldDefinitionsOf(null)).toEqual([])
+    const definitions = stepSync('null の結果から Issue の欄の定義を作る', () => issueFieldDefinitionsOf(null))
+    stepSync('定義を比べる', () => {
+      expect(definitions).toEqual([])
+    })
   })
 })
 
 describe('issueTypeNamesOf', () => {
   it('名前の無い type と、使えない type は外す', async () => {
     await explains('`issueTypeNamesOf` のテストです。名前が null か無い type と、is_enabled が false の type を外し、使える type の名前だけを返すことを確認します。')
-    expect(issueTypeNamesOf([{ name: 'Task', is_enabled: true }, { name: 'Bug' }, { name: null }, {}, { name: 'Old', is_enabled: false }])).toEqual(['Task', 'Bug'])
+    const names = stepSync('type の名前を取り出す', () => issueTypeNamesOf([{ name: 'Task', is_enabled: true }, { name: 'Bug' }, { name: null }, {}, { name: 'Old', is_enabled: false }]))
+    stepSync('名前を比べる', () => {
+      expect(names).toEqual(['Task', 'Bug'])
+    })
   })
 
   it('結果が null なら、空の配列を返す', async () => {
     await explains('`issueTypeNamesOf` のテストです。結果が null の場合に、空の配列を返すことを確認します。')
-    expect(issueTypeNamesOf(null)).toEqual([])
+    const names = stepSync('null の結果から type の名前を取り出す', () => issueTypeNamesOf(null))
+    stepSync('名前を比べる', () => {
+      expect(names).toEqual([])
+    })
   })
 })
 
 describe('collaboratorLoginsOf', () => {
   it('collaborator の login を並べ、items が無ければ空の配列を返す', async () => {
     await explains('`collaboratorLoginsOf` のテストです。items がある結果からは login を並べ、items が無い結果からは空の配列を返すことを確認します。')
-    expect(collaboratorLoginsOf({ items: [{ login: 'a' }, { login: 'b' }] })).toEqual(['a', 'b'])
-    expect(collaboratorLoginsOf({})).toEqual([])
+    const withItems = stepSync('items がある結果から login を取り出す', () => collaboratorLoginsOf({ items: [{ login: 'a' }, { login: 'b' }] }))
+    const withoutItems = stepSync('items が無い結果から login を取り出す', () => collaboratorLoginsOf({}))
+    stepSync('login を比べる', () => {
+      expect(withItems).toEqual(['a', 'b'])
+      expect(withoutItems).toEqual([])
+    })
   })
 })

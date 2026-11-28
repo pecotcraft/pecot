@@ -10,6 +10,7 @@ import { z } from 'zod'
 
 import { childStdin, setChildStdin } from '@pecot/workflow-core/infra/child-stdin.js'
 import { explains } from '../../../tests/_helpers/explains.js'
+import { step, stepSync } from '../../../tests/_helpers/step.js'
 import { defineTool } from '../../commands/registry.js'
 import { exitWith, failWith } from '../../commands/tests/support.js'
 import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
@@ -47,41 +48,60 @@ describe('installStdoutGuard', () => {
     await explains('MCP サーバーの標準出力を保護する `installStdoutGuard` のテストです。保護を設定した後に、返された `Writable` への書き込みだけが本物の標準出力に届き、標準出力へ直接書いた内容は標準エラー出力に送られることを確認します。')
     const stdout = fakeTarget()
     const stderr = fakeTarget()
-    const protocol = installStdoutGuard(stdout, stderr)
-    protocol.write('{"jsonrpc":"2.0"}\n')
-    stdout.write('stray\n')
-    expect(stdout.chunks).toEqual(['{"jsonrpc":"2.0"}\n'])
-    expect(stderr.chunks).toEqual(['stray\n'])
+    const protocol = stepSync('標準出力に保護を設定する', () => installStdoutGuard(stdout, stderr))
+    stepSync('返された Writable と標準出力へ書く', () => {
+      protocol.write('{"jsonrpc":"2.0"}\n')
+      stdout.write('stray\n')
+    })
+    stepSync('書き込みの届き先を比べる', () => {
+      expect(stdout.chunks).toEqual(['{"jsonrpc":"2.0"}\n'])
+      expect(stderr.chunks).toEqual(['stray\n'])
+    })
   })
 
   it('同じ stdout に 2 回設定しても、初回の Writable を返す', async () => {
     await explains('MCP サーバーの標準出力を保護する `installStdoutGuard` のテストです。同じ標準出力に 2 回設定した場合は、2 回目も初回と同じ `Writable` を返し、書き込みが重複しないことを確認します。')
     const stdout = fakeTarget()
     const stderr = fakeTarget()
-    const first = installStdoutGuard(stdout, stderr)
-    expect(installStdoutGuard(stdout, stderr)).toBe(first)
-    first.write('x')
-    expect(stdout.chunks).toEqual(['x'])
+    const first = stepSync('標準出力に保護を設定する', () => installStdoutGuard(stdout, stderr))
+    const second = stepSync('同じ標準出力に保護を設定し直す', () => installStdoutGuard(stdout, stderr))
+    stepSync('初回の Writable に書く', () => {
+      first.write('x')
+    })
+    stepSync('返り値と書き込みを比べる', () => {
+      expect(second).toBe(first)
+      expect(stdout.chunks).toEqual(['x'])
+    })
   })
 
   it('コールバックを encoding の位置に渡した書き込みでも、完了を通知する', async () => {
     await explains('MCP サーバーの標準出力を保護する `installStdoutGuard` のテストです。`encoding` の位置にコールバックを渡して書き込んだ場合に、そのコールバックが 1 回だけ呼ばれることを確認します。')
     const stdout = fakeTarget()
-    installStdoutGuard(stdout, fakeTarget())
+    stepSync('標準出力に保護を設定する', () => {
+      installStdoutGuard(stdout, fakeTarget())
+    })
     const done = vi.fn()
-    const write: unknown = Reflect.get(stdout, 'write')
-    if (typeof write !== 'function') throw new TypeError('write が関数ではありません')
-    Reflect.apply(write, stdout, ['x', done])
-    expect(done).toHaveBeenCalledTimes(1)
+    stepSync('encoding の位置にコールバックを渡して書く', () => {
+      const write: unknown = Reflect.get(stdout, 'write')
+      if (typeof write !== 'function') throw new TypeError('write が関数ではありません')
+      Reflect.apply(write, stdout, ['x', done])
+    })
+    stepSync('コールバックの呼び出しを比べる', () => {
+      expect(done).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('stdout への書き込みが失敗したら、stderr に error: の行を出力して終了コードを 1 にする', async () => {
     await explains('MCP サーバーの標準出力を保護する `installStdoutGuard` のテストです。標準出力への書き込みで `error` イベントが発生した場合に、標準エラー出力へ `error:` で始まる行を出力し、終了コードを 1 にすることを確認します。')
     const stderr = fakeTarget()
-    const protocol = installStdoutGuard(fakeTarget(), stderr)
-    protocol.emit('error', new Error('EPIPE'))
-    expect(stderr.chunks).toEqual(['error: failed to write to stdout: EPIPE\n'])
-    expect(process.exitCode).toBe(1)
+    const protocol = stepSync('標準出力に保護を設定する', () => installStdoutGuard(fakeTarget(), stderr))
+    stepSync('error イベントを発生させる', () => {
+      protocol.emit('error', new Error('EPIPE'))
+    })
+    stepSync('標準エラー出力と終了コードを比べる', () => {
+      expect(stderr.chunks).toEqual(['error: failed to write to stdout: EPIPE\n'])
+      expect(process.exitCode).toBe(1)
+    })
   })
 })
 
@@ -184,12 +204,17 @@ async function initialize(stdin: PassThrough, stdout: PassThrough): Promise<void
 describe('runMcpServe', () => {
   it('クライアントがツールを呼び出すと、その結果を返す', async () => {
     await explains('MCP サーバーを起動する `runMcpServe` のテストです。クライアントからツールを呼び出した場合に、コマンドの出力を含む成功の結果を返すことを確認します。')
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
-    runMcpServe(dependenciesOver(new PassThrough(), fakeTarget(), serverTransport))
-    const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
-    await client.connect(clientTransport)
-    const result = await client.callTool({ name: 'hello', arguments: {} })
-    expect(toolOutcomeOf(result)).toEqual({ isError: false, text: 'hello', structured: {} })
+    const client = await step('サーバを起動してクライアントを接続する', async () => {
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+      runMcpServe(dependenciesOver(new PassThrough(), fakeTarget(), serverTransport))
+      const connected = new AttachingClient({ name: 'test-client', version: '0.0.0' })
+      await connected.connect(clientTransport)
+      return connected
+    })
+    const result = await step('hello ツールを呼ぶ', async () => await client.callTool({ name: 'hello', arguments: {} }))
+    stepSync('結果を比べる', () => {
+      expect(toolOutcomeOf(result)).toEqual({ isError: false, text: 'hello', structured: {} })
+    })
   })
 
   it('実行中に stdin が閉じたら、待っている呼び出しはコマンドの本体を実行しない', async () => {
@@ -197,46 +222,65 @@ describe('runMcpServe', () => {
     started.length = 0
     const stdin = new PassThrough()
     const stdout = new PassThrough()
-    const handle = runMcpServe(stdioDependencies(stdin, stdout))
-    await initialize(stdin, stdout)
-    sendLine(stdin, slowCall(2, 'first'))
-    sendLine(stdin, slowCall(3, 'second'))
-    stdin.end()
-    await new Promise((resolve) => {
-      setTimeout(resolve, 250)
+    const handle = await step('stdio でサーバを起動して初期化する', async () => {
+      const running = runMcpServe(stdioDependencies(stdin, stdout))
+      await initialize(stdin, stdout)
+      return running
     })
-    await handle.close()
-    expect(started).toEqual(['first'])
+    await step('2 件の呼び出しを送り、stdin を閉じる', async () => {
+      sendLine(stdin, slowCall(2, 'first'))
+      sendLine(stdin, slowCall(3, 'second'))
+      stdin.end()
+      await new Promise((resolve) => {
+        setTimeout(resolve, 250)
+      })
+      await handle.close()
+    })
+    stepSync('実行された呼び出しを比べる', () => {
+      expect(started).toEqual(['first'])
+    })
   })
 })
 
 describe('runMcpServe のプログラムの誤り', () => {
   it('コマンドが想定外の例外を投げたら、stderr に error: の行で通知する', async () => {
     await explains('MCP サーバーを起動する `runMcpServe` のテストです。コマンドが想定外の例外を投げた場合に、結果を `isError` にし、標準エラー出力へ `error: Error: boom` を出力することを確認します。')
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     const stderr = fakeTarget()
-    runMcpServe(dependenciesOver(new PassThrough(), stderr, serverTransport))
-    const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
-    await client.connect(clientTransport)
-    const result = await client.callTool({ name: 'bug', arguments: {} })
-    expect(result.isError).toBe(true)
-    expect(stderr.chunks.join('')).toContain('error: Error: boom')
-    expect(stderr.chunks.join('')).not.toContain('so far')
+    const client = await step('サーバを起動してクライアントを接続する', async () => {
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+      runMcpServe(dependenciesOver(new PassThrough(), stderr, serverTransport))
+      const connected = new AttachingClient({ name: 'test-client', version: '0.0.0' })
+      await connected.connect(clientTransport)
+      return connected
+    })
+    const result = await step('bug ツールを呼ぶ', async () => await client.callTool({ name: 'bug', arguments: {} }))
+    stepSync('結果と標準エラー出力を比べる', () => {
+      expect(result.isError).toBe(true)
+      expect(stderr.chunks.join('')).toContain('error: Error: boom')
+      expect(stderr.chunks.join('')).not.toContain('so far')
+    })
   })
 })
 
 describe('runMcpServe の途中までの出力', () => {
   it('想定外の例外のときは、途中まで集めた stdout と stderr も stderr に出力する', async () => {
     await explains('MCP サーバーを起動する `runMcpServe` のテストです。標準出力と標準エラー出力に書いた後でコマンドが想定外の例外を投げた場合に、それまでに集めた出力も標準エラー出力へ出力することを確認します。')
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     const stderr = fakeTarget()
-    runMcpServe(dependenciesOver(new PassThrough(), stderr, serverTransport))
-    const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
-    await client.connect(clientTransport)
-    await client.callTool({ name: 'noisy_bug', arguments: {} })
-    const text = stderr.chunks.join('')
-    expect(text).toContain('error: stdout so far: half')
-    expect(text).toContain('error: stderr so far: warn')
+    const client = await step('サーバを起動してクライアントを接続する', async () => {
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
+      runMcpServe(dependenciesOver(new PassThrough(), stderr, serverTransport))
+      const connected = new AttachingClient({ name: 'test-client', version: '0.0.0' })
+      await connected.connect(clientTransport)
+      return connected
+    })
+    await step('noisy_bug ツールを呼ぶ', async () => {
+      await client.callTool({ name: 'noisy_bug', arguments: {} })
+    })
+    stepSync('標準エラー出力を比べる', () => {
+      const text = stderr.chunks.join('')
+      expect(text).toContain('error: stdout so far: half')
+      expect(text).toContain('error: stderr so far: warn')
+    })
   })
 })
 
@@ -244,46 +288,66 @@ describe('runMcpServe の失敗', () => {
   it('サーバーを作成できなければ、終了コードを 1 にして接続を閉じる', async () => {
     await explains('MCP サーバーを起動する `runMcpServe` のテストです。サーバーの作成で例外が発生した場合に、クライアントの接続が失敗し、終了コードが 1 になることを確認します。')
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
-    runMcpServe({
-      ...dependenciesOver(new PassThrough(), fakeTarget(), serverTransport),
-      createServer: () => {
-        throw new Error('no server')
-      },
+    stepSync('サーバの作成が失敗する設定で起動する', () => {
+      runMcpServe({
+        ...dependenciesOver(new PassThrough(), fakeTarget(), serverTransport),
+        createServer: () => {
+          throw new Error('no server')
+        },
+      })
     })
     const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
-    await expect(client.connect(clientTransport, { timeout: 2000 })).rejects.toThrow()
-    expect(process.exitCode).toBe(1)
+    await step('クライアントを接続する', async () => {
+      await expect(client.connect(clientTransport, { timeout: 2000 })).rejects.toThrow()
+    })
+    stepSync('終了コードを比べる', () => {
+      expect(process.exitCode).toBe(1)
+    })
   })
 })
 
 describe('defaultDependencies', () => {
   it('実際の stdio のトランスポートとサーバーを作成する', async () => {
     await explains('既定の依存を返す `defaultDependencies` のテストです。サーバーの作成で `McpServer` を、トランスポートの作成で `StdioServerTransport` を返すことを確認します。')
-    const dependencies = defaultDependencies()
-    expect(dependencies.createServer({ reportUnexpected: vi.fn() })).toBeInstanceOf(McpServer)
-    expect(dependencies.createTransport(new PassThrough(), new PassThrough())).toBeInstanceOf(StdioServerTransport)
+    const dependencies = stepSync('既定の依存を作る', () => defaultDependencies())
+    const created = stepSync('サーバとトランスポートを作る', () => ({
+      server: dependencies.createServer({ reportUnexpected: vi.fn() }),
+      transport: dependencies.createTransport(new PassThrough(), new PassThrough()),
+    }))
+    stepSync('作ったものの型を比べる', () => {
+      expect(created.server).toBeInstanceOf(McpServer)
+      expect(created.transport).toBeInstanceOf(StdioServerTransport)
+    })
   })
 
   it('環境変数と cwd は実プロセスのものを使い、作業ディレクトリは process.chdir で移す', async () => {
     await explains('既定の依存を返す `defaultDependencies` のテストです。環境変数に `CLAUDE_PLUGIN_ROOT` などの 5 つのキーがあり、`cwd` が実プロセスの作業ディレクトリを返すことを確認します。')
-    const dependencies = defaultDependencies()
-    expect(new Set(Object.keys(dependencies.environment))).toEqual(new Set(['CLAUDE_PLUGIN_ROOT', 'PLUGIN_ROOT', 'COPILOT_PLUGIN_ROOT', 'COPILOT_SESSION_CWD', 'CLAUDE_PROJECT_DIR']))
-    expect(dependencies.cwd()).toBe(process.cwd())
+    const dependencies = stepSync('既定の依存を作る', () => defaultDependencies())
+    stepSync('環境変数のキーと cwd を比べる', () => {
+      expect(new Set(Object.keys(dependencies.environment))).toEqual(new Set(['CLAUDE_PLUGIN_ROOT', 'PLUGIN_ROOT', 'COPILOT_PLUGIN_ROOT', 'COPILOT_SESSION_CWD', 'CLAUDE_PROJECT_DIR']))
+      expect(dependencies.cwd()).toBe(process.cwd())
+    })
   })
 
   it('changeDirectory は、実際に作業ディレクトリを移動する', async () => {
     await explains('既定の依存を返す `defaultDependencies` のテストです。`changeDirectory` を呼んだ場合に、プロセスの作業ディレクトリが指定したディレクトリに変わることを確認します。')
     const original = process.cwd()
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- makeTemporaryDirectory の一時ディレクトリ
-    const target = realpathSync(makeTemporaryDirectory())
+    const target = stepSync('移動先の一時ディレクトリを用意する', () => realpathSync(makeTemporaryDirectory()))
     try {
-      defaultDependencies().changeDirectory(target)
-      expect(process.cwd()).toBe(target)
+      stepSync('changeDirectory で移動する', () => {
+        defaultDependencies().changeDirectory(target)
+      })
+      stepSync('作業ディレクトリを比べる', () => {
+        expect(process.cwd()).toBe(target)
+      })
     }
     finally {
       process.chdir(original)
     }
-    expect(process.cwd()).toBe(original)
+    stepSync('元の作業ディレクトリに戻ったことを比べる', () => {
+      expect(process.cwd()).toBe(original)
+    })
   })
 })
 
@@ -292,35 +356,44 @@ describe('executeMcpServe', () => {
     await explains('MCP サーバーを起動する `executeMcpServe` のテストです。起動した場合に、終了コード 0 を返し、子プロセスの標準入力の設定が `ignore` になることを確認します。')
     const [, serverTransport] = InMemoryTransport.createLinkedPair()
     const stdin = new PassThrough()
-    expect(executeMcpServe(() => dependenciesOver(stdin, fakeTarget(), serverTransport))).toBe(0)
-    expect(childStdin()).toBe('ignore')
+    const code = stepSync('サーバを起動する', () => executeMcpServe(() => dependenciesOver(stdin, fakeTarget(), serverTransport)))
+    stepSync('終了コードと子プロセスの stdin の設定を比べる', () => {
+      expect(code).toBe(0)
+      expect(childStdin()).toBe('ignore')
+    })
     stdin.end()
   })
 
   it('起動に失敗したら、stderr に error: の行を出力して 1 を返す', async () => {
     await explains('MCP サーバーを起動する `executeMcpServe` のテストです。トランスポートの作成で例外が発生した場合に、標準エラー出力へ `error:` で始まる行を出力し、終了コード 1 を返すことを確認します。')
     const stderr = fakeTarget()
-    const code = executeMcpServe(() => ({
+    const code = stepSync('トランスポートの作成が失敗する設定で起動する', () => executeMcpServe(() => ({
       ...dependenciesOver(new PassThrough(), stderr, InMemoryTransport.createLinkedPair()[1]),
       createTransport: () => {
         throw new Error('no transport')
       },
-    }))
-    expect(stderr.chunks).toEqual(['error: no transport\n'])
-    expect(code).toBe(1)
+    })))
+    stepSync('標準エラー出力と終了コードを比べる', () => {
+      expect(stderr.chunks).toEqual(['error: no transport\n'])
+      expect(code).toBe(1)
+    })
   })
 
   it('Error でない値で失敗しても、文字列にして通知する', async () => {
     await explains('MCP サーバーを起動する `executeMcpServe` のテストです。`Error` でない値が投げられた場合に、その値を文字列にして `error:` の行で標準エラー出力へ出力することを確認します。')
     const stderr = fakeTarget()
-    executeMcpServe(() => ({
-      ...dependenciesOver(new PassThrough(), stderr, InMemoryTransport.createLinkedPair()[1]),
-      createTransport: () => {
-        // eslint-disable-next-line @typescript-eslint/only-throw-error -- Error でない値の扱いを確かめる
-        throw 'plain'
-      },
-    }))
-    expect(stderr.chunks).toEqual(['error: plain\n'])
+    stepSync('Error でない値を投げる設定で起動する', () => {
+      executeMcpServe(() => ({
+        ...dependenciesOver(new PassThrough(), stderr, InMemoryTransport.createLinkedPair()[1]),
+        createTransport: () => {
+          // eslint-disable-next-line @typescript-eslint/only-throw-error -- Error でない値の扱いを確かめる
+          throw 'plain'
+        },
+      }))
+    })
+    stepSync('標準エラー出力を比べる', () => {
+      expect(stderr.chunks).toEqual(['error: plain\n'])
+    })
   })
 })
 
@@ -339,11 +412,17 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     const changeDirectory = vi.fn()
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     const dependencies = { ...dependenciesOver(new PassThrough(), fakeTarget(), serverTransport), environment: environmentOf(pluginRoot, pluginRoot), cwd: () => process.cwd(), changeDirectory }
-    expect(executeMcpServe(() => dependencies)).toBe(0)
+    const code = stepSync('サーバを起動する', () => executeMcpServe(() => dependencies))
     const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
-    await client.connect(clientTransport)
-    expect(changeDirectory).not.toHaveBeenCalled()
-    expect(toolOutcomeOf(await client.callTool(hello))).toEqual({ isError: false, text: 'hello', structured: {} })
+    await step('クライアントを接続する', async () => {
+      await client.connect(clientTransport)
+    })
+    const result = await step('hello ツールを呼ぶ', async () => await client.callTool(hello))
+    stepSync('終了コード・移動・結果を比べる', () => {
+      expect(code).toBe(0)
+      expect(changeDirectory).not.toHaveBeenCalled()
+      expect(toolOutcomeOf(result)).toEqual({ isError: false, text: 'hello', structured: {} })
+    })
   })
 
   it('決まったディレクトリへ、待ち受けを始める前に 1 回だけ移動する', async () => {
@@ -364,8 +443,11 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
         return serverTransport
       },
     }
-    expect(executeMcpServe(() => dependencies)).toBe(0)
-    expect(order).toEqual([`chdir ${session}`, 'listen'])
+    const code = stepSync('サーバを起動する', () => executeMcpServe(() => dependencies))
+    stepSync('終了コードと移動の順を比べる', () => {
+      expect(code).toBe(0)
+      expect(order).toEqual([`chdir ${session}`, 'listen'])
+    })
   })
 
   it('ディレクトリを決められなくても起動し、tools/list は変えず、どのツールも理由を返してコマンドを呼ばない', async () => {
@@ -376,20 +458,27 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
     const changeDirectory = vi.fn()
     const dependencies = { ...dependenciesOver(new PassThrough(), stderr, serverTransport), environment: environmentOf(pluginRoot), cwd: () => pluginRoot, changeDirectory }
-    expect(executeMcpServe(() => dependencies)).toBe(0)
+    const code = stepSync('セッションのディレクトリ無しでサーバを起動する', () => executeMcpServe(() => dependencies))
     const reason = `cannot determine the target repository: the server was started in the plugin directory (${pluginRoot}) and the host passed no session directory (COPILOT_SESSION_CWD); upgrade GitHub Copilot CLI to 1.0.106 or later, or start the server in the target repository`
-    expect(stderr.chunks).toEqual([`error: ${reason}\n`])
     const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
-    await client.connect(clientTransport)
-    const listed = await client.listTools()
-    expect(listed.tools.map(tool => tool.name)).toEqual(['slow', 'hello', 'noisy_bug', 'bug'])
-    const result = await client.callTool(hello)
-    expect(result.isError).toBe(true)
-    expect(outcomeOf(result)).toEqual({ isError: true, detail: reason, warnings: [] })
-    expect(structuredOf(result)).toEqual({ kind: 'session-directory-unresolved', detail: reason })
-    await client.callTool({ name: 'slow', arguments: { name: 'x' } })
-    expect(started).toEqual([])
-    expect(changeDirectory).not.toHaveBeenCalled()
+    await step('クライアントを接続する', async () => {
+      await client.connect(clientTransport)
+    })
+    const listed = await step('サーバに tools/list を送る', async () => await client.listTools())
+    const result = await step('hello ツールを呼ぶ', async () => await client.callTool(hello))
+    await step('slow ツールを呼ぶ', async () => {
+      await client.callTool({ name: 'slow', arguments: { name: 'x' } })
+    })
+    stepSync('起動・ツールの一覧・失敗の結果・コマンドを呼ばないことを比べる', () => {
+      expect(code).toBe(0)
+      expect(stderr.chunks).toEqual([`error: ${reason}\n`])
+      expect(listed.tools.map(tool => tool.name)).toEqual(['slow', 'hello', 'noisy_bug', 'bug'])
+      expect(result.isError).toBe(true)
+      expect(outcomeOf(result)).toEqual({ isError: true, detail: reason, warnings: [] })
+      expect(structuredOf(result)).toEqual({ kind: 'session-directory-unresolved', detail: reason })
+      expect(started).toEqual([])
+      expect(changeDirectory).not.toHaveBeenCalled()
+    })
   })
 
   it('移動に失敗したら、決められなかった場合として扱い、理由を返す', async () => {
@@ -406,12 +495,18 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
         throw new Error('EACCES')
       },
     }
-    expect(executeMcpServe(() => dependencies)).toBe(0)
+    const code = stepSync('移動が失敗する設定でサーバを起動する', () => executeMcpServe(() => dependencies))
     const reason = `cannot determine the target repository: COPILOT_SESSION_CWD is not a usable directory: ${session}: EACCES`
-    expect(stderr.chunks).toEqual([`error: ${reason}\n`])
     const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
-    await client.connect(clientTransport)
-    expect(outcomeOf(await client.callTool(hello))).toEqual({ isError: true, detail: reason, warnings: [] })
+    await step('クライアントを接続する', async () => {
+      await client.connect(clientTransport)
+    })
+    const result = await step('hello ツールを呼ぶ', async () => await client.callTool(hello))
+    stepSync('起動・標準エラー出力・失敗の結果を比べる', () => {
+      expect(code).toBe(0)
+      expect(stderr.chunks).toEqual([`error: ${reason}\n`])
+      expect(outcomeOf(result)).toEqual({ isError: true, detail: reason, warnings: [] })
+    })
   })
 
   it('cwd を取得できなくても起動し、取得できない旨と元の失敗を理由にして返す', async () => {
@@ -426,12 +521,18 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
       },
       changeDirectory,
     }
-    expect(executeMcpServe(() => dependencies)).toBe(0)
-    expect(stderr.chunks).toEqual([`error: ${CWD_READ_REASON}\n`])
+    const code = stepSync('cwd を取得できない設定でサーバを起動する', () => executeMcpServe(() => dependencies))
     const client = new AttachingClient({ name: 'test-client', version: '0.0.0' })
-    await client.connect(clientTransport)
-    expect(outcomeOf(await client.callTool(hello))).toEqual({ isError: true, detail: CWD_READ_REASON, warnings: [] })
-    expect(changeDirectory).not.toHaveBeenCalled()
+    await step('クライアントを接続する', async () => {
+      await client.connect(clientTransport)
+    })
+    const result = await step('hello ツールを呼ぶ', async () => await client.callTool(hello))
+    stepSync('起動・標準エラー出力・失敗の結果・移動しないことを比べる', () => {
+      expect(code).toBe(0)
+      expect(stderr.chunks).toEqual([`error: ${CWD_READ_REASON}\n`])
+      expect(outcomeOf(result)).toEqual({ isError: true, detail: CWD_READ_REASON, warnings: [] })
+      expect(changeDirectory).not.toHaveBeenCalled()
+    })
   })
 
   it('依存の組み立てに失敗したら、stderr に error: の行を出力して 1 を返す', async () => {
@@ -440,11 +541,13 @@ describe('executeMcpServe のセッションのディレクトリ', () => {
     const stderrSpy = vi.spyOn(process.stderr, 'write')
     stderrSpy.mockImplementation(() => true)
     try {
-      const code = executeMcpServe(() => {
+      const code = stepSync('依存の組み立てが失敗する設定で起動する', () => executeMcpServe(() => {
         throw new Error('no dependencies')
+      }))
+      stepSync('終了コードと標準エラー出力を比べる', () => {
+        expect(code).toBe(1)
+        expect(stderrSpy).toHaveBeenCalledWith('error: no dependencies\n')
       })
-      expect(code).toBe(1)
-      expect(stderrSpy).toHaveBeenCalledWith('error: no dependencies\n')
     }
     finally {
       stderrSpy.mockRestore()

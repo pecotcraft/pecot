@@ -15,6 +15,7 @@ import { parseJson } from '../../../../../libs/workflow-core/tests/_helpers/json
 import { connectInMemory, outcomeOf, structuredOf } from '../_helpers/mcp-client.js'
 import type { ConnectedClient } from '../_helpers/mcp-client.js'
 import { explains } from '../_helpers/explains.js'
+import { step, stepSync } from '../_helpers/step.js'
 
 const GENERATED = path.resolve(import.meta.dirname, '../../../interface/generated.json')
 const ToolSchema = z.object({ tool: z.string() })
@@ -66,6 +67,17 @@ async function connect(): Promise<ConnectedClient> {
   return connected
 }
 
+async function listTools(): Promise<readonly Tool[]> {
+  const { client } = await connect()
+  const { tools } = await client.listTools()
+  return tools
+}
+
+async function connectClient(): Promise<ConnectedClient['client']> {
+  const { client } = await connect()
+  return client
+}
+
 afterEach(async () => {
   await Promise.all(opened.splice(0).map(async (connected) => {
     await connected.close()
@@ -96,24 +108,27 @@ describe('tools/list', () => {
 
   it('TOOLS と同じ 25 個の名前を、同じ並びで返す', async () => {
     await explains('MCP サーバのツール一覧（`tools/list`）の件数と並びのテストです。ツールの定義（`TOOLS`）と同じ 25 個の名前が、同じ並びで返ることを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    expect(tools).toHaveLength(25)
-    expect(tools.map(tool => tool.name)).toEqual(TOOLS.map(definition => definition.name))
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('件数と名前を比べる', () => {
+      expect(tools).toHaveLength(25)
+      expect(tools.map(tool => tool.name)).toEqual(TOOLS.map(definition => definition.name))
+    })
   })
 
   it('mcp という名前のツールは存在しない', async () => {
     await explains('`tools/list` が返すツール名のテストです。`mcp` という名前のツールが含まれないことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    expect(tools.map(tool => tool.name)).not.toContain('mcp')
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('ツール名を比べる', () => {
+      expect(tools.map(tool => tool.name)).not.toContain('mcp')
+    })
   })
 
   it('説明は、コマンド定義の description の 1 行になる', async () => {
     await explains('`tools/list` が返すツールの説明のテストです。各ツールの説明が、コマンド定義の `description`（1 行の文）と一致することを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    expect(tools.map(tool => tool.description)).toEqual(TOOLS.map(command => command.description))
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('説明を比べる', () => {
+      expect(tools.map(tool => tool.description)).toEqual(TOOLS.map(command => command.description))
+    })
   })
 
   it.for([
@@ -123,94 +138,109 @@ describe('tools/list', () => {
     { name: '語の中のハイフン', text: 'a non-empty owner/repo-name', expected: false },
   ])('フラグの検出は、$name に $expected を返す', async ({ text, expected }) => {
     await explains('CLI のフラグを検出する正規表現（`CLI_FLAG`）のテストです。バッククォートや括弧の中のフラグは検出し、引数名や語の中のハイフンは検出しないことを確認します。')
-    expect(CLI_FLAG.test(text)).toBe(expected)
+    const isDetected = stepSync('フラグを検出する', () => CLI_FLAG.test(text))
+    stepSync('検出の結果を比べる', () => {
+      expect(isDetected).toBe(expected)
+    })
   })
 
   it('全ツールの説明・入力・出力の文に、CLI のフラグ（--name・-m）が含まれない', async () => {
     await explains('ツールの説明・入力・出力に含まれる文のテストです。CLI のフラグ（`--name` や `-m` の形）が、どのツールの文にも含まれないことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const flagged = tools.flatMap(({ name, description, inputSchema, outputSchema }) =>
-      stringsOf({ description, inputSchema, outputSchema }).filter(text => CLI_FLAG.test(text)).map(text => `${name}: ${text}`))
-    expect(flagged).toEqual([])
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('フラグを含む文が無いことを確かめる', () => {
+      const flagged = tools.flatMap(({ name, description, inputSchema, outputSchema }) =>
+        stringsOf({ description, inputSchema, outputSchema }).filter(text => CLI_FLAG.test(text)).map(text => `${name}: ${text}`))
+      expect(flagged).toEqual([])
+    })
   })
 
   it.for(TOOLS.map(command => ({ name: command.name, command })))('$name の入力は、定義書の同じ項目の input に一致する', async ({ command }) => {
     await explains(`\`${command.name}\` の入力のテストです。\`tools/list\` が返す入力のスキーマを正規化した結果が、定義書（\`generated.json\`）の同じ項目の \`input\` と一致することを確認します。`)
-    const tool = toolOf(command.name)
+    const tool = stepSync('ツールの項目を取る', () => toolOf(command.name))
     const entry = generated.entries.find(item => item.surfaces.mcp.tool === command.name)
-    expect(entry).toBeDefined()
-    expect(normalizeInput(tool.inputSchema, command.name, command.hasOwnRepo)).toEqual(entry?.input)
+    stepSync('入力を定義書と比べる', () => {
+      expect(entry).toBeDefined()
+      expect(normalizeInput(tool.inputSchema, command.name, command.hasOwnRepo)).toEqual(entry?.input)
+    })
   })
 
   it('全ツールが最上位の title を持ち、値は定義書の mcp.title に一致し、annotations に title を持たない', async () => {
     await explains('ツールの `title` のテストです。全ツールが最上位の `title` を持ち、その値が定義書の `mcp.title` と一致し、`annotations` には `title` が含まれないことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const expected = tools.map(tool => generated.entries.find(item => item.surfaces.mcp.tool === tool.name)?.mcp.title)
-    expect(tools.map(tool => tool.title)).toEqual(expected)
-    expect(expected.every(title => typeof title === 'string' && title !== '')).toBe(true)
-    expect(tools.filter(tool => tool.annotations?.title !== undefined).map(tool => tool.name)).toEqual([])
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('title を定義書と比べる', () => {
+      const expected = tools.map(tool => generated.entries.find(item => item.surfaces.mcp.tool === tool.name)?.mcp.title)
+      expect(tools.map(tool => tool.title)).toEqual(expected)
+      expect(expected.every(title => typeof title === 'string' && title !== '')).toBe(true)
+      expect(tools.filter(tool => tool.annotations?.title !== undefined).map(tool => tool.name)).toEqual([])
+    })
   })
 
   it('readOnlyHint: true を返すのは読むだけの 13 個だけで、ほかのツールは false を返す', async () => {
     await explains('ツールの `readOnlyHint` のテストです。`true` を返すのは読み取り専用の 13 個のツールだけで、ほかのツールは `false` を返すことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    expect(tools.filter(tool => tool.annotations?.readOnlyHint === true).map(tool => tool.name).toSorted(byName)).toEqual(READ_ONLY_TOOLS)
-    expect(tools.filter(tool => tool.annotations?.readOnlyHint !== true).every(tool => tool.annotations?.readOnlyHint === false)).toBe(true)
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('readOnlyHint を比べる', () => {
+      expect(tools.filter(tool => tool.annotations?.readOnlyHint === true).map(tool => tool.name).toSorted(byName)).toEqual(READ_ONLY_TOOLS)
+      expect(tools.filter(tool => tool.annotations?.readOnlyHint !== true).every(tool => tool.annotations?.readOnlyHint === false)).toBe(true)
+    })
   })
 
   it('destructiveHint: false を返すのは足すだけの 2 個だけで、ほかの書き込むツールは true を返す', async () => {
     await explains('書き込むツールの `destructiveHint` のテストです。`false` を返すのは足すだけの `session_start` と `worktree_init` だけで、ほかの書き込むツールは `true` を返すことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const writing = tools.filter(tool => tool.annotations?.readOnlyHint === false)
-    expect(writing.filter(tool => tool.annotations?.destructiveHint === false).map(tool => tool.name).toSorted(byName)).toEqual(ADDITIVE_TOOLS)
-    expect(writing.filter(tool => tool.annotations?.destructiveHint !== false).every(tool => tool.annotations?.destructiveHint === true)).toBe(true)
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('書き込むツールの destructiveHint を比べる', () => {
+      const writing = tools.filter(tool => tool.annotations?.readOnlyHint === false)
+      expect(writing.filter(tool => tool.annotations?.destructiveHint === false).map(tool => tool.name).toSorted(byName)).toEqual(ADDITIVE_TOOLS)
+      expect(writing.filter(tool => tool.annotations?.destructiveHint !== false).every(tool => tool.annotations?.destructiveHint === true)).toBe(true)
+    })
   })
 
   it('idempotentHint: true を返すのは呼び直しても作用が増えない書き込むツールの 8 個だけで、ほかの書き込むツールは false を返す', async () => {
     await explains('書き込むツールの `idempotentHint` のテストです。`true` を返すのは定義書の `idempotent` が `true` の 8 個だけで、ほかの書き込むツールは `false` を返すことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const writing = tools.filter(tool => tool.annotations?.readOnlyHint === false)
-    expect(writing.filter(tool => tool.annotations?.idempotentHint === true).map(tool => tool.name).toSorted(byName)).toEqual(IDEMPOTENT_WRITE_TOOLS)
-    expect(writing.filter(tool => tool.annotations?.idempotentHint !== true).every(tool => tool.annotations?.idempotentHint === false)).toBe(true)
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('書き込むツールの idempotentHint を比べる', () => {
+      const writing = tools.filter(tool => tool.annotations?.readOnlyHint === false)
+      expect(writing.filter(tool => tool.annotations?.idempotentHint === true).map(tool => tool.name).toSorted(byName)).toEqual(IDEMPOTENT_WRITE_TOOLS)
+      expect(writing.filter(tool => tool.annotations?.idempotentHint !== true).every(tool => tool.annotations?.idempotentHint === false)).toBe(true)
+    })
   })
 
   it('読むだけのツールは、destructiveHint と idempotentHint を返さない', async () => {
     await explains('読み取り専用のツールの `annotations` のテストです。`readOnlyHint` が `true` のツールが、`destructiveHint` と `idempotentHint` のどちらも持たないことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const hinted = tools.filter(tool => tool.annotations?.readOnlyHint === true && (Object.hasOwn(tool.annotations, 'destructiveHint') || Object.hasOwn(tool.annotations, 'idempotentHint')))
-    expect(hinted.map(tool => tool.name)).toEqual([])
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('読むだけのツールにヒントが無いことを確かめる', () => {
+      const hinted = tools.filter(tool => tool.annotations?.readOnlyHint === true && (Object.hasOwn(tool.annotations, 'destructiveHint') || Object.hasOwn(tool.annotations, 'idempotentHint')))
+      expect(hinted.map(tool => tool.name)).toEqual([])
+    })
   })
 
   it('全ツールの annotations は、定義書の mcp.annotations に一致する', async () => {
     await explains('ツールの `annotations` のテストです。全ツールの `annotations` が、定義書の `mcp.annotations` と一致することを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const expected = tools.map(tool => generated.entries.find(item => item.surfaces.mcp.tool === tool.name)?.mcp.annotations)
-    expect(tools.map(tool => tool.annotations)).toEqual(expected)
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('annotations を定義書と比べる', () => {
+      const expected = tools.map(tool => generated.entries.find(item => item.surfaces.mcp.tool === tool.name)?.mcp.annotations)
+      expect(tools.map(tool => tool.annotations)).toEqual(expected)
+    })
   })
 
   it('全ツールの outputSchema は、$schema を除いて定義書の mcp.output に一致する', async () => {
     await explains('ツールの `outputSchema` のテストです。`$schema` を除いた `outputSchema` が、定義書の `mcp.output` と一致することを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const outputs = tools.map(({ outputSchema }) => Object.fromEntries(Object.entries(outputSchema ?? {}).filter(([key]) => key !== '$schema')))
-    const expected = tools.map(tool => generated.entries.find(item => item.surfaces.mcp.tool === tool.name)?.mcp.output)
-    expect(outputs).toEqual(expected)
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('outputSchema を定義書と比べる', () => {
+      const outputs = tools.map(({ outputSchema }) => Object.fromEntries(Object.entries(outputSchema ?? {}).filter(([key]) => key !== '$schema')))
+      const expected = tools.map(tool => generated.entries.find(item => item.surfaces.mcp.tool === tool.name)?.mcp.output)
+      expect(outputs).toEqual(expected)
+    })
   })
 
   it.for(TOOLS.map(command => ({ name: command.name, command })))('$name の outputSchema は、最上位が type: object の閉じた型で、properties にツールの項目と共通の 4 項目を持ち、入れ物の名前を持たない', async ({ command }) => {
     await explains(`\`${command.name}\` の \`outputSchema\` の形のテストです。最上位が \`type: object\` で、ツール固有の項目と共通の 4 項目だけを持ち、\`ok\` や \`data\` などの名前を持たない閉じた型であることを確認します。`)
-    const schema = OutputSchemaShape.parse(toolOf(command.name).outputSchema)
-    const names = Object.keys(schema.properties)
-    expect(names).toEqual([...Object.keys(command.output.shape), 'kind', 'detail', 'log', 'warnings'])
-    expect(names.filter(name => ENVELOPE_NAMES.has(name))).toEqual([])
-    expect(schema.additionalProperties).toBe(false)
+    const schema = stepSync('ツールの outputSchema を取る', () => OutputSchemaShape.parse(toolOf(command.name).outputSchema))
+    stepSync('outputSchema の形を比べる', () => {
+      const names = Object.keys(schema.properties)
+      expect(names).toEqual([...Object.keys(command.output.shape), 'kind', 'detail', 'log', 'warnings'])
+      expect(names.filter(name => ENVELOPE_NAMES.has(name))).toEqual([])
+      expect(schema.additionalProperties).toBe(false)
+    })
   })
 
   it.for([
@@ -221,82 +251,98 @@ describe('tools/list', () => {
     { name: 'project_activate', required: ['configPath', 'change', 'config_moved'] },
   ])('$name の outputSchema は、成功の結果の項目を anyOf で必須にする', async ({ name, required }) => {
     await explains(`\`${name}\` の \`outputSchema\` のテストです。成功の結果の必須の項目が \`anyOf\` の 1 つ目に指定され、2 つ目にエラーの項目（\`kind\` と \`detail\`）が指定されていることを確認します。`)
-    const schema = toolOf(name).outputSchema
-    expect(schema).toMatchObject({ anyOf: [{ required }, { required: ['kind', 'detail'] }] })
+    const schema = stepSync('ツールの outputSchema を取る', () => toolOf(name).outputSchema)
+    stepSync('anyOf の必須の項目を比べる', () => {
+      expect(schema).toMatchObject({ anyOf: [{ required }, { required: ['kind', 'detail'] }] })
+    })
   })
 
   it('全ツールの outputSchema に、真偽値の true の schema が含まれない', async () => {
     await explains('ツールの `outputSchema` のテストです。どのツールの `outputSchema` にも、真偽値の `true` の schema が含まれないことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    expect(tools.filter(tool => hasTrueSchema(tool.outputSchema)).map(tool => tool.name)).toEqual([])
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('true の schema が無いことを確かめる', () => {
+      expect(tools.filter(tool => hasTrueSchema(tool.outputSchema)).map(tool => tool.name)).toEqual([])
+    })
   })
 
   it('全ツールの生の入力が、additionalProperties: false を持つ', async () => {
     await explains('ツールの入力のスキーマのテストです。全ツールの入力が `additionalProperties: false` を持つことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    expect(tools.map(tool => tool.inputSchema['additionalProperties'])).toEqual(TOOLS.map(() => false))
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('additionalProperties を比べる', () => {
+      expect(tools.map(tool => tool.inputSchema['additionalProperties'])).toEqual(TOOLS.map(() => false))
+    })
   })
 
   it('どのツールの入力にも dry_run が存在せず、どの outputSchema にも dryRun が存在しない', async () => {
     await explains('ツールの入出力から CLI 専用の項目を除いたことのテストです。入力に `dry_run` が、`outputSchema` に `dryRun` が存在するツールがないことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    expect(tools.filter(tool => Object.hasOwn(tool.inputSchema.properties ?? {}, 'dry_run')).map(tool => tool.name)).toEqual([])
-    expect(tools.filter(tool => Object.hasOwn(OutputSchemaShape.parse(tool.outputSchema).properties, 'dryRun')).map(tool => tool.name)).toEqual([])
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('dry_run と dryRun が無いことを確かめる', () => {
+      expect(tools.filter(tool => Object.hasOwn(tool.inputSchema.properties ?? {}, 'dry_run')).map(tool => tool.name)).toEqual([])
+      expect(tools.filter(tool => Object.hasOwn(OutputSchemaShape.parse(tool.outputSchema).properties, 'dryRun')).map(tool => tool.name)).toEqual([])
+    })
   })
 
   it('全ツールが入力 repo（文字列）を持つ', async () => {
     await explains('ツールの入力のテストです。全ツールが、文字列型の入力 `repo` を持つことを確認します。')
-    const { client } = await connect()
-    const { tools } = await client.listTools()
-    const shapes = tools.map(tool => WithRepositorySchema.safeParse(tool.inputSchema).success)
-    expect(shapes).toEqual(TOOLS.map(() => true))
+    const tools = await step('サーバへつないで、ツールの一覧を取る', async () => await listTools())
+    stepSync('repo の入力を比べる', () => {
+      const shapes = tools.map(tool => WithRepositorySchema.safeParse(tool.inputSchema).success)
+      expect(shapes).toEqual(TOOLS.map(() => true))
+    })
   })
 })
 
 describe('入力の検証の誤り', () => {
   it('定義書に存在しないキーを渡すと、コマンドを呼ばずに isError で返す', async () => {
     await explains('定義書に存在しないキー（`bogus`）を指定して `issue_check` を呼び出した場合のテストです。コマンドを呼ばずに、`invalid-input` のエラーを `isError` 付きで返すことを確認します。')
-    const { client } = await connect()
-    const result = await client.callTool({ name: 'issue_check', arguments: { method: 'create', issues: [{ kind: 'task' }], bogus: true } })
-    expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'bogus\'' })
+    const client = await step('サーバへつなぐ', async () => await connectClient())
+    const result = await step('ツールを呼ぶ', async () => await client.callTool({ name: 'issue_check', arguments: { method: 'create', issues: [{ kind: 'task' }], bogus: true } }))
+    stepSync('エラーを比べる', () => {
+      expect(result.isError).toBe(true)
+      expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'bogus\'' })
+    })
   })
 
   it('CLI だけの入力 dry_run を渡すと、コマンドを呼ばずに、dry_run を名指しして isError で返す', async () => {
     await explains('CLI 専用の入力 `dry_run` を指定して `project_get` を呼び出した場合のテストです。コマンドを呼ばずに、`dry_run` を示した `invalid-input` のエラーを返すことを確認します。')
-    const { client } = await connect()
-    const result = await client.callTool({ name: 'project_get', arguments: { key: 'aggregation_repo', dry_run: true } })
-    expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'dry_run\'' })
+    const client = await step('サーバへつなぐ', async () => await connectClient())
+    const result = await step('ツールを呼ぶ', async () => await client.callTool({ name: 'project_get', arguments: { key: 'aggregation_repo', dry_run: true } }))
+    stepSync('エラーを比べる', () => {
+      expect(result.isError).toBe(true)
+      expect(structuredOf(result)).toEqual({ kind: 'invalid-input', detail: 'invalid input: unknown key \'dry_run\'' })
+    })
   })
 
   it('真偽値に文字列の "true" を渡すと、コマンドを呼ばずに isError で返す', async () => {
     await explains('真偽値の入力 `force` に文字列の `\'true\'` を指定して `worktree_link` を呼び出した場合のテストです。コマンドを呼ばずに、`force` を示した `invalid-input` のエラーを返すことを確認します。')
-    const { client } = await connect()
-    const result = await client.callTool({ name: 'worktree_link', arguments: { directory: '.', force: 'true' } })
-    expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
-    expect(outcomeOf(result).detail).toContain('force')
+    const client = await step('サーバへつなぐ', async () => await connectClient())
+    const result = await step('ツールを呼ぶ', async () => await client.callTool({ name: 'worktree_link', arguments: { directory: '.', force: 'true' } }))
+    stepSync('エラーを比べる', () => {
+      expect(result.isError).toBe(true)
+      expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
+      expect(outcomeOf(result).detail).toContain('force')
+    })
   })
 
   it('必須の入力を指定しないと、コマンドを呼ばずに isError で返す', async () => {
     await explains('必須の入力 `directory` を指定せずに `worktree_link` を呼び出した場合のテストです。コマンドを呼ばずに、`directory` を示した `invalid-input` のエラーを返すことを確認します。')
-    const { client } = await connect()
-    const result = await client.callTool({ name: 'worktree_link', arguments: {} })
-    expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
-    expect(outcomeOf(result).detail).toContain('directory')
+    const client = await step('サーバへつなぐ', async () => await connectClient())
+    const result = await step('ツールを呼ぶ', async () => await client.callTool({ name: 'worktree_link', arguments: {} }))
+    stepSync('エラーを比べる', () => {
+      expect(result.isError).toBe(true)
+      expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
+      expect(outcomeOf(result).detail).toContain('directory')
+    })
   })
 
   it('repo の形が owner/repo でないと、コマンドを呼ばずに isError で返す', async () => {
     await explains('`repo` に `owner/repo` の形式でない値を指定して `worktree_link` を呼び出した場合のテストです。コマンドを呼ばずに、`repo` を示した `invalid-input` のエラーを返すことを確認します。')
-    const { client } = await connect()
-    const result = await client.callTool({ name: 'worktree_link', arguments: { directory: '.', repo: 'not-a-repo' } })
-    expect(result.isError).toBe(true)
-    expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
-    expect(outcomeOf(result).detail).toContain('repo')
+    const client = await step('サーバへつなぐ', async () => await connectClient())
+    const result = await step('ツールを呼ぶ', async () => await client.callTool({ name: 'worktree_link', arguments: { directory: '.', repo: 'not-a-repo' } }))
+    stepSync('エラーを比べる', () => {
+      expect(result.isError).toBe(true)
+      expect(structuredOf(result)).toMatchObject({ kind: 'invalid-input' })
+      expect(outcomeOf(result).detail).toContain('repo')
+    })
   })
 })

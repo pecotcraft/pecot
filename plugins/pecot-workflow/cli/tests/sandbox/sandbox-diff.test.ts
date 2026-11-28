@@ -10,6 +10,7 @@ import path from 'node:path'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { explains } from '../_helpers/explains.js'
+import { stepSync } from '../_helpers/step.js'
 import { compareStrings } from '../parity/baseline.js'
 import { fixtureName, makeSandbox, pluginScript, repositoryRoot, runScript, splitLines, type Result, type Sandbox } from './_helpers/run.js'
 
@@ -314,14 +315,18 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
   it('git の作業ツリーの外で実行すると、error の行を表示して終了コード 2 で止まる', async () => {
     await explains('`sandbox-diff.sh` を git の作業ツリーの外で実行した場合のテストです。作業用のディレクトリを作成できないため、`error:` で始まるメッセージを標準エラーに表示して、終了コード 2 で終了することを確認します。')
     const outside = makeSandbox(FAKE_GH)
-    const result = runScript(outside, script, [], { GIT_CEILING_DIRECTORIES: path.dirname(outside.directory) })
-    expect([result.status, result.stdout, result.stderr]).toStrictEqual([2, '', 'error: git の作業ツリーの中で打ってください（作業用の場所を .pecot/tmp に作るため）\n'])
+    const result = stepSync('git の作業ツリーの外で sandbox-diff.sh を動かす', () => runScript(outside, script, [], { GIT_CEILING_DIRECTORIES: path.dirname(outside.directory) }))
+    stepSync('終了コードと標準エラーを比べる', () => {
+      expect([result.status, result.stdout, result.stderr]).toStrictEqual([2, '', 'error: git の作業ツリーの中で打ってください（作業用の場所を .pecot/tmp に作るため）\n'])
+    })
   })
 
   it('両方の設定が同じ場合は、ずれが 0 件になる', async () => {
     await explains('本体リポジトリと検証用リポジトリの設定が同じ場合のテストです。「ずれは 0 件」と表示して、終了コード 0 で終了することを確認します。')
-    const result = scene.run()
-    expect([result.status, result.stdout, result.stderr]).toStrictEqual([0, 'ずれは 0 件\n', ''])
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect([result.status, result.stdout, result.stderr]).toStrictEqual([0, 'ずれは 0 件\n', ''])
+    })
   })
 
   it('検証用の必須チェックが 1 つ不足していると、required_status_checks の差異として表示する', async () => {
@@ -329,43 +334,62 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     const checks = scene.sandbox.rule('required_status_checks')
     checks.parameters?.required_status_checks?.pop()
     const thisChecks = scene.this.rule('required_status_checks')
-    const result = scene.run()
-    const expectedThis = compact(withoutIntegrationId(thisChecks.parameters ?? {}))
-    const expectedSandbox = compact(withoutIntegrationId(checks.parameters ?? {}))
-    expect(drifted(result)).toStrictEqual(expectedDrifts(drift('ruleset main / required_status_checks', expectedThis, expectedSandbox)))
-    const lines = splitLines(result.stdout)
-    expect(lines[2]).toContain('version-plan')
-    expect(lines[3]).not.toContain('version-plan')
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      const expectedThis = compact(withoutIntegrationId(thisChecks.parameters ?? {}))
+      const expectedSandbox = compact(withoutIntegrationId(checks.parameters ?? {}))
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('ruleset main / required_status_checks', expectedThis, expectedSandbox)))
+      const lines = splitLines(result.stdout)
+      expect(lines[2]).toContain('version-plan')
+      expect(lines[3]).not.toContain('version-plan')
+    })
   })
 
   it('merge_queue の規則が検証用に存在しないと、検証用を「なし」として差異に表示する', async () => {
     await explains('ruleset の `merge_queue` の規則の比較のテストです。検証用に規則が存在しない場合に、検証用の値を「なし」として差異に表示することを確認します。')
-    scene.sandbox.withoutRule('merge_queue')
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.withoutRule('merge_queue')
+    })
     const queue = scene.this.rule('merge_queue')
     const expected = expectedDrifts(drift('ruleset main / merge_queue', compact(queue.parameters), 'なし'))
-    expect(drifted(scene.run())).toStrictEqual(expected)
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expected)
+    })
   })
 
   it('code_scanning の規則が検証用に存在しなくても、比較の対象にしない', async () => {
     await explains('ruleset の `code_scanning` の規則の扱いのテストです。検証用にこの規則が存在しなくても差異にならず、「ずれは 0 件」と表示することを確認します。')
-    scene.sandbox.withoutRule('code_scanning')
-    const result = scene.run()
-    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.withoutRule('code_scanning')
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    })
   })
 
   it.for(['pages-store', 'release-tags'])('本体リポジトリだけで使う ruleset %s が検証用に存在しなくても、比較の対象にしない', async (name) => {
     await explains(`本体リポジトリだけで使う ruleset の扱いのテストです。\`${name}\` が検証用に存在しなくても差異にならず、「ずれは 0 件」と表示することを確認します。`)
-    scene.this.rulesets.push({ ...makeRuleset(1, THIS), name })
-    const result = scene.run()
-    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.this.rulesets.push({ ...makeRuleset(1, THIS), name })
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    })
   })
 
   it('除外の一覧にない名前の ruleset が検証用に存在しないと、ruleset の差異として表示する', async () => {
     await explains('ruleset の比較のテストです。本体リポジトリだけに `other` という ruleset がある場合に、「ずれは 1 件」と `ruleset other` を表示することを確認します。')
-    scene.this.rulesets.push({ ...makeRuleset(1, THIS), name: 'other' })
-    const result = scene.run()
-    expect(result.status).toBe(1)
-    expect(splitLines(result.stdout).slice(0, 2)).toStrictEqual(['ずれは 1 件', 'ruleset other'])
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.this.rulesets.push({ ...makeRuleset(1, THIS), name: 'other' })
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(result.status).toBe(1)
+      expect(splitLines(result.stdout).slice(0, 2)).toStrictEqual(['ずれは 1 件', 'ruleset other'])
+    })
   })
 
   it('検証用のボードの選択肢が 1 つ多いと、board-fields の差異として表示する', async () => {
@@ -376,15 +400,20 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     field.options?.push({ id: 'x', name: 'Done', color: 'GREEN', description: '' })
     const after = { dataType: 'SINGLE_SELECT', options: [...names, { name: 'Done' }] }
     const expected = expectedDrifts(drift('board-fields / pecot-status', compact(before), compact(after)))
-    expect(drifted(scene.run())).toStrictEqual(expected)
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expected)
+    })
   })
 
   it('ボードの選択肢は、順序の違いも差異として扱う', async () => {
     await explains('ボードの選択肢の順序のテストです。検証用の `pecot-lane` の選択肢を逆順にすると、`board-fields / pecot-lane` の差異として表示することを確認します。')
     find(scene.sandbox.fields(), f => f.name === 'pecot-lane').options?.reverse()
-    const result = scene.run()
-    expect(result.status).toBe(1)
-    expect(splitLines(result.stdout).slice(0, 2)).toStrictEqual(['ずれは 1 件', 'board-fields / pecot-lane'])
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(result.status).toBe(1)
+      expect(splitLines(result.stdout).slice(0, 2)).toStrictEqual(['ずれは 1 件', 'board-fields / pecot-lane'])
+    })
   })
 
   it('ID や日付など比較しない項目だけが違う場合は、ずれが 0 件になる', async () => {
@@ -400,109 +429,177 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
       for (const option of options) Object.assign(option, { id: `other-${option.id}`, color: 'RED', description: 'x' })
     }
     Object.assign(scene.sandbox.settings, { id: 99, updated_at: '2020-01-01T00:00:00Z' })
-    const result = scene.run()
-    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    })
   })
 
   it('board-sync の中身が違うと、両方の blob の sha と違う最初の行を出す（FR-032）', async () => {
     await explains('ワークフローのファイルの比較のテストです。検証用の `pecot-board-sync.yml` の内容が違う場合に、両方の blob の sha と、内容が違う最初の行を差異として表示することを確認します。')
     const other = BOARD_SYNC.replace('workflow_dispatch', 'push')
-    scene.sandbox.files['pecot-board-sync.yml'] = other
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.files['pecot-board-sync.yml'] = other
+    })
     const line = 2
     const expectedThis = `blob ${blob(BOARD_SYNC)}、${String(line)} 行目: ${splitLines(BOARD_SYNC)[line - 1] ?? ''}`
     const expectedSandbox = `blob ${blob(other)}、${String(line)} 行目: ${splitLines(other)[line - 1] ?? ''}`
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-board-sync.yml', expectedThis, expectedSandbox)))
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('workflows / pecot-board-sync.yml', expectedThis, expectedSandbox)))
+    })
   })
 
   it('pecot-review.yml の内容が違うと、ファイル名の項目に両方の blob の sha と違う最初の行を表示する', async () => {
     await explains('ワークフローのファイルの比較のテストです。`pecot-review.yml` の内容が違う場合に、`workflows / pecot-review.yml` の差異として、blob の sha と違う最初の行を表示することを確認します。')
     const other = REVIEW.replace('on: pull_request', 'on: push')
-    scene.sandbox.files['pecot-review.yml'] = other
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.files['pecot-review.yml'] = other
+    })
     const line = 2
     const expectedThis = `blob ${blob(REVIEW)}、${String(line)} 行目: ${splitLines(REVIEW)[line - 1] ?? ''}`
     const expectedSandbox = `blob ${blob(other)}、${String(line)} 行目: ${splitLines(other)[line - 1] ?? ''}`
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-review.yml', expectedThis, expectedSandbox)))
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('workflows / pecot-review.yml', expectedThis, expectedSandbox)))
+    })
   })
 
   it('pecot の action を pecotcraft/pecot から呼び、このリポだけの step が無い写しは、ずれに出さない', async () => {
     await explains('ワークフローのファイルの比較のテストです。検証用の写しが pecot の action を `pecotcraft/pecot` から呼び、このリポジトリだけの step を持たない場合に、差異にせず「ずれは 0 件」と表示することを確認します。')
-    scene.sandbox.files['pecot-review.yml'] = SANDBOX_REVIEW
-    scene.sandbox.files['pecot-board-sync.yml'] = BOARD_SYNC.replace('./actions/board-sync', 'pecotcraft/pecot/actions/board-sync@0123456789abcdef0123456789abcdef01234567 # pecot-actions/v1.0.0')
-    const result = scene.run()
-    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.files['pecot-review.yml'] = SANDBOX_REVIEW
+      scene.sandbox.files['pecot-board-sync.yml'] = BOARD_SYNC.replace('./actions/board-sync', 'pecotcraft/pecot/actions/board-sync@0123456789abcdef0123456789abcdef01234567 # pecot-actions/v1.0.0')
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    })
   })
 
   it('検証用に pecot-review.yml が無いと、検証用を「なし」としてずれに出す', async () => {
     await explains('ワークフローのファイルの存在の比較のテストです。検証用に `pecot-review.yml` が存在しない場合は、検証用の値を「なし」と表示することを確認します。')
-    delete scene.sandbox.files['pecot-review.yml']
+    stepSync('偽の GitHub の状態を整える', () => {
+      delete scene.sandbox.files['pecot-review.yml']
+    })
     const expectedThis = `blob ${blob(REVIEW)}、1 行目: ${splitLines(REVIEW)[0] ?? ''}`
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-review.yml', expectedThis, 'なし')))
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('workflows / pecot-review.yml', expectedThis, 'なし')))
+    })
   })
 
   it('pecot-handoff.yml の内容が違うと、ファイル名の項目に両方の blob の sha と違う最初の行を表示する', async () => {
     await explains('ワークフローのファイルの比較のテストです。`pecot-handoff.yml` の内容が違う場合に、`workflows / pecot-handoff.yml` の差異として、blob の sha と違う最初の行を表示することを確認します。')
     const other = HANDOFF.replace('@0', '@1')
-    scene.sandbox.files['pecot-handoff.yml'] = other
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.files['pecot-handoff.yml'] = other
+    })
     const line = 6
     const expectedThis = `blob ${blob(HANDOFF)}、${String(line)} 行目: ${splitLines(HANDOFF)[line - 1] ?? ''}`
     const expectedSandbox = `blob ${blob(other)}、${String(line)} 行目: ${splitLines(other)[line - 1] ?? ''}`
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-handoff.yml', expectedThis, expectedSandbox)))
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('workflows / pecot-handoff.yml', expectedThis, expectedSandbox)))
+    })
   })
 
   it('検証用に pecot-handoff.yml が存在しないと、検証用を「なし」として差異に表示する', async () => {
     await explains('ワークフローのファイルの存在の比較のテストです。検証用に `pecot-handoff.yml` が存在しない場合は、検証用の値を「なし」と表示することを確認します。')
-    delete scene.sandbox.files['pecot-handoff.yml']
+    stepSync('偽の GitHub の状態を整える', () => {
+      delete scene.sandbox.files['pecot-handoff.yml']
+    })
     const expectedThis = `blob ${blob(HANDOFF)}、1 行目: ${splitLines(HANDOFF)[0] ?? ''}`
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-handoff.yml', expectedThis, 'なし')))
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('workflows / pecot-handoff.yml', expectedThis, 'なし')))
+    })
   })
 
   it.for(['ci.yml', 'codeql.yml'])('%s は、存在するかどうかだけを比較する', async (name) => {
     await explains(`\`${name}\` の比較のテストです。内容が違っても差異にならず、検証用に存在しない場合だけ、「あり」と「なし」の差異として表示することを確認します。`)
-    scene.sandbox.withFile(name, 'name: other\n')
-    const same = scene.run()
-    expect([same.status, same.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
-    scene.sandbox.withoutFile(name)
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift(`workflows / ${name}`, 'あり', 'なし')))
+    stepSync('検証用に、内容が違うファイルを置く', () => {
+      scene.sandbox.withFile(name, 'name: other\n')
+    })
+    const same = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれが 0 件であることを確かめる', () => {
+      expect([same.status, same.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    })
+    stepSync('検証用からファイルを除く', () => {
+      scene.sandbox.withoutFile(name)
+    })
+    const missing = stepSync('もう一度 sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('あり・なしの差異を比べる', () => {
+      expect(drifted(missing)).toStrictEqual(expectedDrifts(drift(`workflows / ${name}`, 'あり', 'なし')))
+    })
   })
 
   it('両方の設定ファイルが旧い名前の形式なら、ずれが 0 件になる', async () => {
     await explains('ボードの設定ファイル名の比較のテストです。両方が旧い形式（`<host>_<owner>_<題>_<suffix>.json`）の名前である場合に、「ずれは 0 件」と表示することを確認します。')
-    scene.this.setConfigs(legacyConfig('pecot-project', 'pecotcraft', 1))
-    scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3))
-    const result = scene.run()
-    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.this.setConfigs(legacyConfig('pecot-project', 'pecotcraft', 1))
+      scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3))
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    })
   })
 
   it('検証用の設定ファイルだけが旧い名前の形式だと、config-file の差異に両方の形式を表示する', async () => {
     await explains('ボードの設定ファイル名の比較のテストです。検証用だけが旧い形式の場合に、`config-file` の差異として、現在の形式と旧い形式の両方を表示することを確認します。')
-    scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3))
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, LEGACY_FORM)))
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3))
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, LEGACY_FORM)))
+    })
   })
 
   it('検証用に比較対象のボードの設定ファイルが存在しないと、検証用を「なし」として差異に表示する', async () => {
     await explains('ボードの設定ファイルの存在のテストです。検証用に設定ファイルが 1 つも存在しない場合に、`config-file` の差異として検証用の値を「なし」と表示することを確認します。')
-    scene.sandbox.setConfigs()
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, 'なし')))
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.setConfigs()
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, 'なし')))
+    })
   })
 
   it('別のボードを指す設定ファイルは、比較の対象にしない', async () => {
     await explains('ボードの設定ファイルの選択のテストです。検証用に別のボード（番号 9）を指す設定ファイルがあっても差異にならず、「ずれは 0 件」と表示することを確認します。')
-    scene.sandbox.setConfigs(currentConfig(3), currentConfig(9))
-    const result = scene.run()
-    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.setConfigs(currentConfig(3), currentConfig(9))
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    })
   })
 
   it('同じボードの設定ファイルが 2 つあると、形式を名前順につないで差異に表示する', async () => {
     await explains('ボードの設定ファイルの重複のテストです。検証用に同じボードの設定ファイルが現在の形式と旧い形式で 2 つある場合に、`config-file` の差異として 2 つの形式を名前順に並べて表示することを確認します。')
-    scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3), currentConfig(3))
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.setConfigs(legacyConfig('pecot-sandbox', 'sandbox', 3), currentConfig(3))
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
+    })
   })
 
   it('どちらの形式にも合わない名前は、名前をそのまま表示する', async () => {
     await explains('ボードの設定ファイル名の比較のテストです。検証用の設定ファイルの名前がどちらの形式にも合わない場合に、`config-file` の差異として `renamed.json` をそのまま表示することを確認します。')
     const [, config] = currentConfig(3)
-    scene.sandbox.setConfigs(['renamed.json', config])
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, 'renamed.json')))
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.setConfigs(['renamed.json', config])
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, 'renamed.json')))
+    })
   })
 
   it('検証用の設定の status に in_progress が存在しないと、config-options の差異に両方のキーを表示する', async () => {
@@ -511,7 +608,10 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     if (status?.options === undefined) throw new Error('status が無い')
     delete status.options['in_progress']
     const expected = expectedDrifts(drift('config-options / status', compact(['in_progress', 'needs_attention', 'todo']), compact(['needs_attention', 'todo'])))
-    expect(drifted(scene.run())).toStrictEqual(expected)
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expected)
+    })
   })
 
   it('検証用の workflow の選択肢のキーが 1 つ多いと、config-options / workflow の差異として表示する', async () => {
@@ -522,7 +622,10 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     const keys = compact(['active', 'archived', 'backlog', 'blocked', 'in_review', 'pending', 'ready'])
     const added = compact(['active', 'archived', 'backlog', 'blocked', 'done', 'in_review', 'pending', 'ready'])
     const expected = expectedDrifts(drift('config-options / workflow', keys, added))
-    expect(drifted(scene.run())).toStrictEqual(expected)
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expected)
+    })
   })
 
   it('検証用の設定に欄 status が存在しないと、検証用を「なし」として差異に表示する', async () => {
@@ -530,22 +633,29 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     const fields = scene.sandbox.configFields()
     delete fields['status']
     const expected = expectedDrifts(drift('config-options / status', compact(['in_progress', 'needs_attention', 'todo']), 'なし'))
-    expect(drifted(scene.run())).toStrictEqual(expected)
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expected)
+    })
   })
 
   it('検証用の設定に project.fields が存在しないと、欄ごとの差異を表示して終了コード 1 で終了する', async () => {
     await explains('設定ファイルの `project.fields` のテストです。検証用の設定にこれが存在しない場合に、`status` と `workflow` の 2 件の差異を表示して、終了コード 1 で終了することを確認します。')
     const [name, config] = currentConfig(3)
     delete config.project.fields
-    scene.sandbox.setConfigs([name, config])
-    const result = scene.run()
-    expect([result.status, result.stderr]).toStrictEqual([1, ''])
-    const lines = splitLines(result.stdout)
-    expect([lines[0], ...lines.filter(line => line.startsWith('config-options / '))]).toStrictEqual([
-      'ずれは 2 件',
-      'config-options / status',
-      'config-options / workflow',
-    ])
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.setConfigs([name, config])
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect([result.status, result.stderr]).toStrictEqual([1, ''])
+      const lines = splitLines(result.stdout)
+      expect([lines[0], ...lines.filter(line => line.startsWith('config-options / '))]).toStrictEqual([
+        'ずれは 2 件',
+        'config-options / status',
+        'config-options / workflow',
+      ])
+    })
   })
 
   it('選択肢の ID とキーの並び順だけが違う場合は、ずれが 0 件になる', async () => {
@@ -553,8 +663,10 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     const status = scene.sandbox.configFields()['status']
     if (status === undefined) throw new Error('status が無い')
     status.options = { needs_attention: 'a', todo: 'b', in_progress: 'c' }
-    const result = scene.run()
-    expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect([result.status, result.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
+    })
   })
 
   it('同じボードの設定ファイルが 2 つあると、選択肢のキーを比較せず、config-options の差異を表示しない', async () => {
@@ -562,53 +674,77 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     // 欄の無いファイルを一覧の先頭に置く。先頭だけを読む形に崩れると、config-options のずれが出る
     const [name, config] = legacyConfig('pecot-sandbox', 'sandbox', 3)
     delete config.project.fields
-    scene.sandbox.setConfigs([name, config], currentConfig(3))
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.setConfigs([name, config], currentConfig(3))
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('config-file', CURRENT_FORM, `${CURRENT_FORM}、${LEGACY_FORM}`)))
+    })
   })
 
   it('JSON として読み込めない設定ファイルは無視し、ずれが 0 件になる', async () => {
     await explains('不正な設定ファイルの扱いのテストです。検証用に JSON として読み込めない設定ファイルがあっても、それを無視して「ずれは 0 件」と表示することを確認します。')
-    scene.sandbox.rawConfigs['broken.json'] = '{'
-    const result = scene.run()
-    expect([result.status, result.stdout, result.stderr]).toStrictEqual([0, 'ずれは 0 件\n', ''])
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.rawConfigs['broken.json'] = '{'
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect([result.status, result.stdout, result.stderr]).toStrictEqual([0, 'ずれは 0 件\n', ''])
+    })
   })
 
   it('設定ファイルの応答に content が存在しないと、error を表示して終了コード 2 で止まる', async () => {
     await explains('設定ファイルの応答の検証のテストです。応答に `content` が存在しない場合は、権限の不足を示す `error:` を標準エラーに表示し、終了コード 2 で終了することを確認します。')
-    scene.sandbox.rawConfigs['empty.json'] = undefined
-    const result = scene.run()
-    expect([result.status, result.stdout]).toStrictEqual([2, ''])
-    expect(splitLines(result.stderr)).toStrictEqual([`error: repos/${SANDBOX}/contents/${CONFIG_DIR}/empty.json の応答に content がありません（権限の不足とみられます）`])
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.rawConfigs['empty.json'] = undefined
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('終了コードと標準エラーを比べる', () => {
+      expect([result.status, result.stdout]).toStrictEqual([2, ''])
+      expect(splitLines(result.stderr)).toStrictEqual([`error: repos/${SANDBOX}/contents/${CONFIG_DIR}/empty.json の応答に content がありません（権限の不足とみられます）`])
+    })
   })
 
   it('検証用の設定のディレクトリが存在しないと、error を表示して終了コード 2 で止まる', async () => {
     await explains('設定のディレクトリを読み込めない場合のテストです。検証用のディレクトリの一覧が 404 になると、「gh が失敗しました」を含む `error:` のメッセージを標準エラーに表示して、終了コード 2 で終了することを確認します。')
-    scene.sandbox.configs = undefined
-    const result = scene.run()
-    expect([result.status, result.stdout]).toStrictEqual([2, ''])
-    expect(splitLines(result.stderr)).toStrictEqual([`error: repos/${SANDBOX}/contents/${CONFIG_DIR} を読めません（gh が失敗しました）`])
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.configs = undefined
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('終了コードと標準エラーを比べる', () => {
+      expect([result.status, result.stdout]).toStrictEqual([2, ''])
+      expect(splitLines(result.stderr)).toStrictEqual([`error: repos/${SANDBOX}/contents/${CONFIG_DIR} を読めません（gh が失敗しました）`])
+    })
   })
 
   it('検証用のボードの進行の欄だけが旧い名前だと、board-fields の 2 件の差異として表示する', async () => {
     await explains('ボードの欄名の比較のテストです。検証用の `pecot-status` の欄が旧い名前 `pecot-workflow-sandbox` の場合に、それぞれの欄が片側に存在しない 2 件の差異として表示することを確認します。')
     find(scene.sandbox.fields(), f => f.name === 'pecot-status').name = 'pecot-workflow-sandbox'
-    const result = scene.run()
-    expect(result.status).toBe(1)
-    const lines = splitLines(result.stdout)
-    expect([lines[0], lines[1], lines[3], lines[4], lines[5], lines[7]]).toStrictEqual([
-      'ずれは 2 件',
-      'board-fields / pecot-status',
-      '  検証用: なし',
-      'board-fields / pecot-workflow-sandbox',
-      '  このリポ: なし',
-      undefined,
-    ])
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(result.status).toBe(1)
+      const lines = splitLines(result.stdout)
+      expect([lines[0], lines[1], lines[3], lines[4], lines[5], lines[7]]).toStrictEqual([
+        'ずれは 2 件',
+        'board-fields / pecot-status',
+        '  検証用: なし',
+        'board-fields / pecot-workflow-sandbox',
+        '  このリポ: なし',
+        undefined,
+      ])
+    })
   })
 
   it('マージ設定が違うと、merge-settings の差異として表示する', async () => {
     await explains('リポジトリのマージ設定の比較のテストです。検証用の `allow_rebase_merge` だけが違う場合に、`merge-settings / allow_rebase_merge` の差異として両方の値を表示することを確認します。')
-    scene.sandbox.settings['allow_rebase_merge'] = true
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('merge-settings / allow_rebase_merge', 'false', 'true')))
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.sandbox.settings['allow_rebase_merge'] = true
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('ずれの表示を比べる', () => {
+      expect(drifted(result)).toStrictEqual(expectedDrifts(drift('merge-settings / allow_rebase_merge', 'false', 'true')))
+    })
   })
 
   it('2 つの token を渡すと、このリポの先にはこのリポの token を、検証用とボードには検証用の token を使う', async () => {
@@ -632,12 +768,14 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
 
   it('認証に失敗すると、エラーを表示して終了コード 2 で止まる', async () => {
     await explains('gh の認証に失敗した場合のテストです。`HTTP 401` のメッセージを含む `error:` を標準エラーに表示し、標準出力は空のまま、終了コード 2 で終了することを確認します。')
-    const result = scene.run({ FAKE_GH_AUTH_FAIL: '1' })
-    expect(result.status).toBe(2)
-    expect(result.stdout).toBe('')
-    expect(splitLines(result.stderr)).toStrictEqual([
-      `error: repos/${THIS} を読めません（HTTP 401: Bad credentials (https://api.github.com/graphql)）`,
-    ])
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run({ FAKE_GH_AUTH_FAIL: '1' }))
+    stepSync('終了コードと標準エラーを比べる', () => {
+      expect(result.status).toBe(2)
+      expect(result.stdout).toBe('')
+      expect(splitLines(result.stderr)).toStrictEqual([
+        `error: repos/${THIS} を読めません（HTTP 401: Bad credentials (https://api.github.com/graphql)）`,
+      ])
+    })
   })
 
   // 比べるキーが無い（null を含む）ときは、両方 null でも同じとせず error で 2 にする
@@ -667,30 +805,40 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     },
   ])('比較するキーが存在しないと、error を表示して終了コード 2 で止まる: $name', async ({ name, breaks }) => {
     await explains(`比較するキーが存在しない応答のテストです。「${name}」の場合に、同じ値とみなさず、権限の不足を示す \`error:\` のメッセージを表示して終了コード 2 で終了することを確認します。`)
-    const expected = breaks(scene)
-    const result = scene.run()
-    expect([result.status, result.stdout]).toStrictEqual([2, ''])
-    expect(splitLines(result.stderr)).toStrictEqual([expected])
+    const expected = stepSync('応答のキーを欠かす', () => breaks(scene))
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('終了コードと標準エラーを比べる', () => {
+      expect([result.status, result.stdout]).toStrictEqual([2, ''])
+      expect(splitLines(result.stderr)).toStrictEqual([expected])
+    })
   })
 
   it('両方のリポジトリで allow_auto_merge が null でも、同じとみなさず error で止まる', async () => {
     await explains('両方のリポジトリで比較するキーが `null` の場合のテストです。`allow_auto_merge` が両方とも `null` でも、同じ値とみなさず、`error:` を表示して終了コード 2 で終了することを確認します。')
-    scene.this.settings['allow_auto_merge'] = null
-    scene.sandbox.settings['allow_auto_merge'] = null
-    const result = scene.run()
-    expect(result.status).toBe(2)
-    expect(result.stderr.startsWith(`error: repos/${THIS} の応答に allow_auto_merge がありません`)).toBe(true)
+    stepSync('偽の GitHub の状態を整える', () => {
+      scene.this.settings['allow_auto_merge'] = null
+      scene.sandbox.settings['allow_auto_merge'] = null
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => scene.run())
+    stepSync('終了コードと標準エラーを比べる', () => {
+      expect(result.status).toBe(2)
+      expect(result.stderr.startsWith(`error: repos/${THIS} の応答に allow_auto_merge がありません`)).toBe(true)
+    })
   })
 
   it('検証用の ruleset を取得できないと、gh の失敗として終了コード 2 で止まる', async () => {
     await explains('ruleset の取得に失敗した場合のテストです。検証用の ruleset の応答が存在しないと、「gh が失敗しました」を含む `error:` を標準エラーに表示して、終了コード 2 で終了することを確認します。')
-    scene.writeAll()
-    rmSync(path.join(scene.workspace.fake, fixtureName(`repos/${SANDBOX}/rulesets/27130266`)))
-    const result = runScript(scene.workspace, script, [])
-    expect(result.status).toBe(2)
-    expect(splitLines(result.stderr)).toStrictEqual([
-      `error: repos/${SANDBOX}/rulesets/27130266 を読めません（gh が失敗しました）`,
-    ])
+    stepSync('検証用の ruleset の応答を消す', () => {
+      scene.writeAll()
+      rmSync(path.join(scene.workspace.fake, fixtureName(`repos/${SANDBOX}/rulesets/27130266`)))
+    })
+    const result = stepSync('sandbox-diff.sh を動かす', () => runScript(scene.workspace, script, []))
+    stepSync('終了コードと標準エラーを比べる', () => {
+      expect(result.status).toBe(2)
+      expect(splitLines(result.stderr)).toStrictEqual([
+        `error: repos/${SANDBOX}/rulesets/27130266 を読めません（gh が失敗しました）`,
+      ])
+    })
   })
 })
 
@@ -706,14 +854,18 @@ interface Item { id: string, name: string, compare: boolean, reason?: string, ig
 describe('sandbox-diff-items.json', { timeout: 30_000 }, () => {
   it('比較する項目と除外する理由が、spec.md の 2 つの表と一致する', async () => {
     await explains('`sandbox-diff-items.json` と仕様書の対応のテストです。比較する項目が 3 つの要件に対応し、比較から除外する項目の理由が `spec.md` の表の内容と一致することを確認します。')
-    // eslint-disable-next-line no-restricted-syntax -- リポ内の定義ファイル。直後に項目の形を確かめて使う
-    const items = JSON.parse(readFileSync(pluginScript('scripts/sandbox/sandbox-diff-items.json'), 'utf8')) as Item[]
-    const spec = readFileSync(path.join(repositoryRoot, 'specs/026-pre-merge-test-env/spec.md'), 'utf8')
-    const compared = [...new Set(items.filter(item => item.compare).map(item => item.id))].toSorted(compareStrings)
-    expect(compared).toStrictEqual(['FR-001', 'FR-002', 'FR-003'])
-    const reasons = Object.fromEntries(items.filter(item => !item.compare).map(item => [item.id, item.reason]))
-    expect(reasons).toStrictEqual(specTable(spec, '同じにしなくてよいもの'))
-    expect(new Set(items.filter(item => item.compare).map(item => item.name))).toStrictEqual(new Set(['merge-settings', 'ruleset', 'board-fields', 'config-file', 'config-options', 'workflows']))
-    expect(items.filter(item => item.compare).every(item => Array.isArray(item.ignore))).toBe(true)
+    const { items, spec } = stepSync('項目の定義と spec.md を読む', () => ({
+      // eslint-disable-next-line no-restricted-syntax -- リポ内の定義ファイル。直後に項目の形を確かめて使う
+      items: JSON.parse(readFileSync(pluginScript('scripts/sandbox/sandbox-diff-items.json'), 'utf8')) as Item[],
+      spec: readFileSync(path.join(repositoryRoot, 'specs/026-pre-merge-test-env/spec.md'), 'utf8'),
+    }))
+    stepSync('項目と spec.md の表を比べる', () => {
+      const compared = [...new Set(items.filter(item => item.compare).map(item => item.id))].toSorted(compareStrings)
+      expect(compared).toStrictEqual(['FR-001', 'FR-002', 'FR-003'])
+      const reasons = Object.fromEntries(items.filter(item => !item.compare).map(item => [item.id, item.reason]))
+      expect(reasons).toStrictEqual(specTable(spec, '同じにしなくてよいもの'))
+      expect(new Set(items.filter(item => item.compare).map(item => item.name))).toStrictEqual(new Set(['merge-settings', 'ruleset', 'board-fields', 'config-file', 'config-options', 'workflows']))
+      expect(items.filter(item => item.compare).every(item => Array.isArray(item.ignore))).toBe(true)
+    })
   })
 })

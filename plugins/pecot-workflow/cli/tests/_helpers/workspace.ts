@@ -21,6 +21,7 @@ import { developmentRecordOf } from './base-record.js'
 import type { BaseRecordOption } from './base-record.js'
 import { runToolInProcess } from './run-tool.js'
 import type { ToolRunResult } from './run-tool.js'
+import { stepSync } from './step.js'
 
 export const OWNER = 'acme'
 export const REPOSITORY = 'demo'
@@ -167,11 +168,13 @@ function scenarioOf(options: Readonly<WorkspaceOptions>): Scenario {
 }
 
 export function openWorkspace(options: Readonly<WorkspaceOptions> = {}): Workspace {
-  const sandbox = createSandbox(scenarioOf(options))
-  opened.push(sandbox)
-
-  const environment = Object.fromEntries(Object.entries(baseEnvironment(sandbox)).filter(([name]) => !NOT_APPLIED.has(name)))
-  setEnvironment({ ...environment, ...options.env })
+  const sandbox = stepSync('作業ディレクトリを用意する', () => {
+    const created = createSandbox(scenarioOf(options))
+    opened.push(created)
+    const environment = Object.fromEntries(Object.entries(baseEnvironment(created)).filter(([name]) => !NOT_APPLIED.has(name)))
+    setEnvironment({ ...environment, ...options.env })
+    return created
+  })
 
   const bare = path.join(sandbox.root, 'remotes', OWNER, `${REPOSITORY}.git`)
   const gitIn = (cwd: string, arguments_: readonly string[]): string => execFileSync('git', [...arguments_], { cwd, env: { ...gitEnvironment(), ...baseEnvironment(sandbox) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
