@@ -6,6 +6,7 @@ import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import { explains } from './_helpers/explains.js'
+import { step } from './_helpers/step.js'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 const RESTRICTED_PATH = path.join(ROOT, 'src', 'main.ts')
@@ -40,12 +41,18 @@ describe('直接の出力を止める lint', () => {
       ['declare const io: { stderr: { write: (text: string) => void } }\nio.stderr.write("x")', 'no-restricted-syntax'],
     ])('%s を書くと、期待したルールの違反が報告される', async (code, expected) => {
       await explains(`コンソールや標準出力への直接の出力を禁止する lint のテストです。\`${name}\` のファイルに直接の出力を書いたコードを渡した場合は、\`${expected}\` の違反が報告されることを確認します。`)
-      expect(await ruleIds(`${code}\n`, filePath)).toContain(expected)
+      const ids = await step('直接の出力を書いたコードを lint にかける', () => ruleIds(`${code}\n`, filePath))
+      await step('期待したルールの違反を比べる', () => {
+        expect(ids).toContain(expected)
+      })
     })
   })
 
   it('共通の規則（enum 禁止）は src/main.ts のパスでも止まる', async () => {
     await explains('直接の出力を禁止する lint のテストです。共通の規則である `enum` の禁止が、`src/main.ts` のファイルでも `no-restricted-syntax` の違反として報告されることを確認します。')
-    expect(await ruleIds('enum Color { Red }\n', RESTRICTED_PATH)).toContain('no-restricted-syntax')
+    const ids = await step('enum を書いたコードを lint にかける', () => ruleIds('enum Color { Red }\n', RESTRICTED_PATH))
+    await step('違反を比べる', () => {
+      expect(ids).toContain('no-restricted-syntax')
+    })
   })
 })

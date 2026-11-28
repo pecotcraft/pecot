@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
-import { step } from '../../../../../libs/interface-spec/src/vitest/step.js'
+import { step } from '../_helpers/step.js'
 import { ISSUE_DEPENDENCY_CHECK_TOOLS } from '../../src/commands/issue-dependency-check.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -91,7 +91,7 @@ function useProject(): void {
 }
 
 async function check(arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
-  return await step('issue_dependency_check を呼ぶ', async () => await callToolOnce(ISSUE_DEPENDENCY_CHECK_TOOLS, 'issue_dependency_check', { ...TARGET, ...arguments_ }))
+  return await callToolOnce(ISSUE_DEPENDENCY_CHECK_TOOLS, 'issue_dependency_check', { ...TARGET, ...arguments_ })
 }
 
 function problemsOf(outcome: Readonly<ToolOutcome>): readonly Readonly<Record<string, unknown>>[] {

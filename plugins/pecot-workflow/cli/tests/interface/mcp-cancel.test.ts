@@ -14,6 +14,7 @@ import { TOOLS } from '../../src/commands/registry.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
+import { step, stepSync } from '../_helpers/step.js'
 import { stateFile } from '../_helpers/workspace-inspect.js'
 import { openWorkspace } from '../_helpers/workspace.js'
 import type { Workspace } from '../_helpers/workspace.js'
@@ -226,23 +227,34 @@ it('pr_restack が fetch を待つ間、ping に答え、取り消すとリモ�
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
   await explains('`pr_restack` が `git fetch` の完了を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと接続のプロセスが終了し、状態が変化しないことを確認します。')
-  const workspace = openStacked()
-  const sleeper = hangRemote(workspace)
-  expect(await pingAndCancel({ name: 'pr_restack', arguments: {}, sleeper, directory: workspace.directory, state: () => readFileSync(path.join(workspace.directory, stateFile('.pecot-base')), 'utf8') + workspace.git(['rev-parse', 'HEAD']) })).toEqual(RESPONSIVE)
+  const workspace = stepSync('スタックしたブランチを用意する', () => openStacked())
+  const sleeper = stepSync('応答しない子を置く', () => hangRemote(workspace))
+  const observed = await step('ping を送ってから取り消す', () => pingAndCancel({ name: 'pr_restack', arguments: {}, sleeper, directory: workspace.directory, state: () => readFileSync(path.join(workspace.directory, stateFile('.pecot-base')), 'utf8') + workspace.git(['rev-parse', 'HEAD']) }))
+  stepSync('ping への応答と取り消しの後の子・状態を確かめる', () => {
+    expect(observed).toEqual(RESPONSIVE)
+  })
 })
 
 it('pr_check が ls-remote を待つ間、ping に答え、取り消すとリモートの接続を止める', { timeout: 30_000 }, async (context) => {
   await verifies(context, 'PW-COMMON-24')
   await verifies(context, 'PW-COMMON-25')
   await explains('`pr_check` が、remote とずれたスタックのブランチの直し方を決めるために `git ls-remote` を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すと接続のプロセスが終了し、取り消した要求に応答を返さないことを確認します。')
-  const workspace = openStacked()
-  workspace.git(['commit', '-q', '--allow-empty', '-m', 'pushed'])
-  workspace.git(['push', '-q', '-u', 'origin', UPPER])
-  workspace.git(['commit', '-q', '--amend', '--allow-empty', '-m', 'rewritten'])
-  const sleeper = hangRemote(workspace)
-  const lower = { number: 11, state: 'open', html_url: 'https://ghes.example.com/acme/demo/pull/11', head: { ref: LOWER }, base: { ref: 'main' } }
-  const arguments_ = { method: 'create', owner: 'acme', repo: 'demo', title: 'feat: #12 変更', head: UPPER, base: LOWER, body: 'Closes #12\n', reads: { pull_requests: [lower] } }
-  expect(await pingAndCancel({ name: 'pr_check', arguments: arguments_, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
+  const workspace = stepSync('スタックしたブランチを用意する', () => openStacked())
+  stepSync('子ブランチを push して手元で書き換える', () => {
+    workspace.git(['commit', '-q', '--allow-empty', '-m', 'pushed'])
+    workspace.git(['push', '-q', '-u', 'origin', UPPER])
+    workspace.git(['commit', '-q', '--amend', '--allow-empty', '-m', 'rewritten'])
+  })
+  const sleeper = stepSync('応答しない子を置く', () => hangRemote(workspace))
+  const arguments_ = stepSync('親 PR の読み取りを用意する', () => {
+    const lower = { number: 11, state: 'open', html_url: 'https://ghes.example.com/acme/demo/pull/11', head: { ref: LOWER }, base: { ref: 'main' } }
+    const arguments_ = { method: 'create', owner: 'acme', repo: 'demo', title: 'feat: #12 変更', head: UPPER, base: LOWER, body: 'Closes #12\n', reads: { pull_requests: [lower] } }
+    return arguments_
+  })
+  const observed = await step('ping を送ってから取り消す', () => pingAndCancel({ name: 'pr_check', arguments: arguments_, sleeper, directory: workspace.directory }))
+  stepSync('ping への応答と取り消しの後の子・状態を確かめる', () => {
+    expect(observed).toEqual(RESPONSIVE)
+  })
 })
 
 it('session_finish が git pull を待つ間、ping に答え、取り消すとリモートの接続を止める', { timeout: 30_000 }, async (context) => {
@@ -250,10 +262,16 @@ it('session_finish が git pull を待つ間、ping に答え、取り消すと�
   await verifies(context, 'PW-COMMON-25')
   await explains('`session_finish` が `git pull` の完了を待っている間の、MCP サーバの応答のテストです。リモートへの接続が応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すとプロセスが終了し、ブランチの状態が変化しないことを確認します。')
   const workspace = openWorkspace({ branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }] })
-  const sleeper = hangRemote(workspace)
-  const pullRequest = { number: 21, state: 'closed', draft: false, merged: true, body: 'Closes #12\n', html_url: 'https://ghes.example.com/acme/demo/pull/21', head: { ref: UPPER }, base: { ref: 'main' } }
-  const reads = { pull_request: pullRequest, blocking: [{ issue: 'acme/demo/12', result: { issues: [] } }], children: [] }
-  expect(await pingAndCancel({ name: 'session_finish', arguments: { pr_ref: 'acme/demo/21', reads }, sleeper, directory: workspace.directory, state: () => workspace.git(['for-each-ref', '--format=%(refname)', `refs/heads/${UPPER}`]) })).toEqual(RESPONSIVE)
+  const sleeper = stepSync('応答しない子を置く', () => hangRemote(workspace))
+  const reads = stepSync('マージ済みの PR の読み取りを用意する', () => {
+    const pullRequest = { number: 21, state: 'closed', draft: false, merged: true, body: 'Closes #12\n', html_url: 'https://ghes.example.com/acme/demo/pull/21', head: { ref: UPPER }, base: { ref: 'main' } }
+    const reads = { pull_request: pullRequest, blocking: [{ issue: 'acme/demo/12', result: { issues: [] } }], children: [] }
+    return reads
+  })
+  const observed = await step('ping を送ってから取り消す', () => pingAndCancel({ name: 'session_finish', arguments: { pr_ref: 'acme/demo/21', reads }, sleeper, directory: workspace.directory, state: () => workspace.git(['for-each-ref', '--format=%(refname)', `refs/heads/${UPPER}`]) }))
+  stepSync('ping への応答と取り消しの後の子・状態を確かめる', () => {
+    expect(observed).toEqual(RESPONSIVE)
+  })
 })
 
 it('pr_check の題の scope の確認が nx graph を待つ間、ping に答え、取り消すと nx を止める', { timeout: 30_000 }, async (context) => {
@@ -261,9 +279,12 @@ it('pr_check の題の scope の確認が nx graph を待つ間、ping に答え
   await verifies(context, 'PW-COMMON-25')
   await explains('`pr_check` が題の scope を確認するために `nx graph` を待っている間の、MCP サーバの応答のテストです。`nx` が応答しない場合は、`ping` へ時間内に答え、呼び出しを取り消すと `nx` のプロセスが終了し、次の呼び出しにすぐ答えることを確認します。')
   const workspace = openWorkspace({ config: { releaseType: 'nx' }, files: { 'nx.json': '{}\n' }, branch: UPPER, branches: [{ name: UPPER, commits: [{ message: 'change', files: { 'feature.txt': 'x\n' } }] }] })
-  const sleeper = writeSleeper(path.join(workspace.directory, 'node_modules', '.bin'), 'nx')
-  const arguments_ = { method: 'create', owner: 'acme', repo: 'demo', title: 'feat(demo): #12 変更', head: UPPER, base: 'main', body: 'body\n\nCloses #12\n' }
-  expect(await pingAndCancel({ name: 'pr_check', arguments: arguments_, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
+  const sleeper = stepSync('応答しない子を置く', () => writeSleeper(path.join(workspace.directory, 'node_modules', '.bin'), 'nx'))
+  const arguments_ = stepSync('pr_check の入力を用意する', () => ({ method: 'create', owner: 'acme', repo: 'demo', title: 'feat(demo): #12 変更', head: UPPER, base: 'main', body: 'body\n\nCloses #12\n' }))
+  const observed = await step('ping を送ってから取り消す', () => pingAndCancel({ name: 'pr_check', arguments: arguments_, sleeper, directory: workspace.directory }))
+  stepSync('ping への応答と取り消しの後の子・状態を確かめる', () => {
+    expect(observed).toEqual(RESPONSIVE)
+  })
 })
 
 it('worktree_add が setup_command を待つ間、ping に答え、取り消すとシェルの下のコマンドも止める', { timeout: 30_000 }, async (context) => {
@@ -271,7 +292,12 @@ it('worktree_add が setup_command を待つ間、ping に答え、取り消す�
   await verifies(context, 'PW-COMMON-25')
   await explains('`worktree_add` が `setup_command` の完了を待っている間の、MCP サーバの応答のテストです。セットアップのコマンドが応答しない場合に、`ping` へ時間内に答え、呼び出しを取り消すとシェルの下で動くコマンドも終了することを確認します。')
   const workspace = openWorkspace({ files: { '.pecot/config/worktree-config.json': '{"version": 3, "links": []}\n', '.pecot/config/.worktreeignore': '.git/\n.pecot/\n' } })
-  setEnvironment({ DEVCONTAINER: '1', REMOTE_CONTAINERS: undefined, CODESPACES: undefined })
-  const sleeper = writeSleeper(path.join(workspace.root, 'hang'), 'setup')
-  expect(await pingAndCancel({ name: 'worktree_add', arguments: { directory: workspace.directory, setup: sleeper.script }, sleeper, directory: workspace.directory })).toEqual(RESPONSIVE)
+  stepSync('devcontainer の環境にする', () => {
+    setEnvironment({ DEVCONTAINER: '1', REMOTE_CONTAINERS: undefined, CODESPACES: undefined })
+  })
+  const sleeper = stepSync('応答しない子を置く', () => writeSleeper(path.join(workspace.root, 'hang'), 'setup'))
+  const observed = await step('ping を送ってから取り消す', () => pingAndCancel({ name: 'worktree_add', arguments: { directory: workspace.directory, setup: sleeper.script }, sleeper, directory: workspace.directory }))
+  stepSync('ping への応答と取り消しの後の子・状態を確かめる', () => {
+    expect(observed).toEqual(RESPONSIVE)
+  })
 })

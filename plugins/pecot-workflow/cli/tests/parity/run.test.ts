@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { explains } from '../_helpers/explains.js'
+import { stepSync } from '../_helpers/step.js'
 import { collectFiles } from './run.js'
 import { parseScenario } from './scenario.js'
 import { createSandbox, destroySandbox } from './setup.js'
@@ -18,14 +19,17 @@ setup:
     worktrees: [{ name: wt1 }]
     files: { .pecot/x: X }
 `)
-    const sandbox = createSandbox(scenario)
+    const sandbox = stepSync('サンドボックスを作る', () => createSandbox(scenario))
     try {
-      expect(collectFiles(sandbox.root, sandbox.repositoryDirectory, sandbox.dataDirectory, [])).toEqual({
-        '.pecot/x': 'X',
-        '../../wt1/demo/.gitignore': '.pecot/\n',
-        '../../wt1/demo/README.md': '# demo\n',
-        '../../wt1/demo/a.txt': 'A',
-        '../../wt1/demo/link': { symlink: 'a.txt' },
+      const files = stepSync('ファイルを集める', () => collectFiles(sandbox.root, sandbox.repositoryDirectory, sandbox.dataDirectory, []))
+      stepSync('集めたファイルを比べる', () => {
+        expect(files).toEqual({
+          '.pecot/x': 'X',
+          '../../wt1/demo/.gitignore': '.pecot/\n',
+          '../../wt1/demo/README.md': '# demo\n',
+          '../../wt1/demo/a.txt': 'A',
+          '../../wt1/demo/link': { symlink: 'a.txt' },
+        })
       })
     }
     finally {

@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { explains } from '../_helpers/explains.js'
+import { step, stepSync } from '../_helpers/step.js'
 import { builtServer, builtServerProblem } from './built-server.js'
 import { runScenario } from './run.js'
 import { readGolden, readScenario, scenarioIds } from './scenario.js'
@@ -23,20 +24,28 @@ function isRejected(id: string): boolean {
 describe('前後比較', () => {
   it('MCP のサーバがビルドされていると、ビルドの問題を報告しない', async () => {
     await explains('前後比較の前提のテストです。MCP のサーバのビルド成果物（`dist/main.js`）が存在し、`builtServerProblem` がビルドの問題を報告しないことを確認します。')
-    expect(builtServerProblem()).toBeUndefined()
+    const problem = stepSync('ビルドの問題を調べる', () => builtServerProblem())
+    stepSync('問題が無いことを確かめる', () => {
+      expect(problem).toBeUndefined()
+    })
   })
 
   it.for(scenarioIds())('シナリオ %s を動かすと、期待出力（golden）と同じ結果になる', { timeout: TEST_TIMEOUT_MS }, async (id) => {
     await explains('シナリオを MCP のサーバで実行したときの結果のテストです。ツールの結果（成否・要約の文・structuredContent）、サーバの標準エラー、ファイルが、保存済みの期待出力（golden）と一致することを確認します。')
-    const outcome = await runScenario(readScenario(id), builtServer)
-    expect(outcome).toMatchObject(COMPLETED)
-    expect(outcome.golden).toEqual(readGolden(id))
-    // 要約の文が表の行（見出しなど）にならない
-    expect(outcome.golden?.text?.startsWith('|') ?? false).toBe(false)
+    const outcome = await step('シナリオを流す', async () => await runScenario(readScenario(id), builtServer))
+    stepSync('golden と比べる', () => {
+      expect(outcome).toMatchObject(COMPLETED)
+      expect(outcome.golden).toEqual(readGolden(id))
+      // 要約の文が表の行（見出しなど）にならない
+      expect(outcome.golden?.text?.startsWith('|') ?? false).toBe(false)
+    })
   })
 
   it('入力の検証で断るシナリオが 1 件以上ある', async () => {
     await explains('前後比較のシナリオの網羅のテストです。入力の検証が、ツールの本体を呼ばずに断る結果を持つシナリオが、1 件以上存在することを確認します。')
-    expect(scenarioIds().filter(id => isRejected(id)).length).toBeGreaterThan(0)
+    const rejected = stepSync('断るシナリオを集める', () => scenarioIds().filter(id => isRejected(id)))
+    stepSync('1 件以上あることを確かめる', () => {
+      expect(rejected.length).toBeGreaterThan(0)
+    })
   })
 })

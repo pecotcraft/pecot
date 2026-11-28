@@ -6,7 +6,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
-import { step } from '../../../../../libs/interface-spec/src/vitest/step.js'
+import { step } from '../_helpers/step.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 import { runTool } from '../_helpers/command-harness.js'
@@ -38,7 +38,7 @@ function listed(...states: readonly ListedState[]): readonly Readonly<Record<str
 }
 
 async function start(arguments_: Readonly<Record<string, unknown>> = {}, run: Readonly<Partial<ToolRun>> = {}): Promise<ToolResult> {
-  return await step('session_start を呼ぶ', async () => await runTool({ tool: 'session_start', arguments: { ...START, ...arguments_ }, ...run }))
+  return await runTool({ tool: 'session_start', arguments: { ...START, ...arguments_ }, ...run })
 }
 
 describe('session_start', () => {

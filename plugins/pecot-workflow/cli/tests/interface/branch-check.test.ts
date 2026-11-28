@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
-import { step } from '../../../../../libs/interface-spec/src/vitest/step.js'
+import { step } from '../_helpers/step.js'
 import { BRANCH_CHECK_TOOLS } from '../../src/commands/branch-check.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -54,7 +54,7 @@ function useProject(repository = 'acme/demo'): void {
 }
 
 async function check(arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
-  return await step('branch_check を呼ぶ', async () => await callToolOnce(BRANCH_CHECK_TOOLS, 'branch_check', { ...TARGET, ...arguments_ }))
+  return await callToolOnce(BRANCH_CHECK_TOOLS, 'branch_check', { ...TARGET, ...arguments_ })
 }
 
 describe('branch_check', () => {

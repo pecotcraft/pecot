@@ -14,6 +14,7 @@ import { loadActiveConfig } from '@pecot/workflow-core/infra/config-store.js'
 import { useIsolatedEnvironment } from '../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { enterGitRepository, runInProcess, setUpProject, settleWithFakeDelays, useFakeDelays } from './_helpers/interface-case.js'
 import { explains } from './_helpers/explains.js'
+import { step, stepSync } from './_helpers/step.js'
 
 useIsolatedEnvironment()
 
@@ -40,31 +41,41 @@ describe('interface-case の準備', () => {
   it('設定・git・偽のタイマーを組み合わせて、ツールをプロセス内で動かせる', async () => {
     await explains('`interface-case.ts`（インタフェースのテストの準備）のテストです。設定・git・偽のタイマーを組み合わせて見本のツールを実行した場合に、設定の owner と git のブランチを含む出力で終了することを確認します。')
     const project = setUpProject({ files: { '.pecot/state/.pecot-base': '1' } })
-    const repository = enterGitRepository()
-    useFakeDelays()
-
-    const result = await settleWithFakeDelays(runInProcess('sample', {}, [SAMPLE]))
-
-    expect(result).toEqual({ code: 0, stdout: 'acme main waited\n', stderr: '' })
-    expect(process.cwd()).toBe(repository)
-    expect(existsSync(path.join(project.root, '.pecot/state/.pecot-base'))).toBe(true)
+    const repository = stepSync('git のリポジトリに移る', () => enterGitRepository())
+    stepSync('タイマーを偽にする', () => {
+      useFakeDelays()
+    })
+    const result = await step('見本のツールをプロセス内で動かす', async () => await settleWithFakeDelays(runInProcess('sample', {}, [SAMPLE])))
+    stepSync('終了コードと出力を比べる', () => {
+      expect(result).toEqual({ code: 0, stdout: 'acme main waited\n', stderr: '' })
+    })
+    stepSync('作業ディレクトリと設定のファイルを比べる', () => {
+      expect(process.cwd()).toBe(repository)
+      expect(existsSync(path.join(project.root, '.pecot/state/.pecot-base'))).toBe(true)
+    })
   })
 
   it('ホスト名と owner から設定のファイル名を作り、CLAUDE_PROJECT_DIR をプロジェクトルートに向ける', async () => {
     await explains('`interface-case.ts` で、ホスト名と owner を指定してプロジェクトの設定を作った場合のテストです。設定のファイル名がホスト名と owner から作られ、`CLAUDE_PROJECT_DIR` がプロジェクトルートを指すことを確認します。')
     const project = setUpProject({ host: 'github.com', owner: 'o', repositories: [] })
-    expect(project.configFile).toBe('github.com_o_board_o.json')
-    expect(process.env['CLAUDE_PROJECT_DIR']).toBe(project.root)
+    stepSync('設定のファイル名と CLAUDE_PROJECT_DIR を比べる', () => {
+      expect(project.configFile).toBe('github.com_o_board_o.json')
+      expect(process.env['CLAUDE_PROJECT_DIR']).toBe(project.root)
+    })
   })
 
   it('前のテストで移った作業ディレクトリと偽のタイマーは、次のテストに持ち越さない', async () => {
     await explains('`interface-case.ts` のテストです。前のテストで作業ディレクトリを移し、偽のタイマーを有効にした場合は、次のテストの開始時に、どちらも元の状態へ戻っていることを確認します。')
-    expect(process.cwd()).toBe(STARTING_DIRECTORY)
-    expect(vi.isFakeTimers()).toBe(false)
+    stepSync('作業ディレクトリと偽のタイマーの状態を比べる', () => {
+      expect(process.cwd()).toBe(STARTING_DIRECTORY)
+      expect(vi.isFakeTimers()).toBe(false)
+    })
   })
 
   it('入力の検証に失敗すると、ZodError をそのまま投げる', async () => {
     await explains('`interface-case.ts` のテストです。共通の `repo` に文字列でない値を渡した場合に、本体を呼ばずに `ZodError` を投げることを確認します。')
-    await expect(runInProcess('sample', { repo: 1 }, [SAMPLE])).rejects.toBeInstanceOf(z.ZodError)
+    await step('文字列でない repo を渡して動かし、拒否を比べる', async () => {
+      await expect(runInProcess('sample', { repo: 1 }, [SAMPLE])).rejects.toBeInstanceOf(z.ZodError)
+    })
   })
 })

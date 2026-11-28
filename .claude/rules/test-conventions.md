@@ -356,6 +356,7 @@ passed のテストのうち、名前の付いた step を 1 つも持たない�
   - githooks の 4 本（`run.sh`）
   - `text-rules`・`workflow-core` の `test-unit`
   - `interface-spec:test-unit`・`test-site`
+  - `pecot-workflow:test-cli`
 - ほかのレーンは、テストに step を書き終えたら、コマンドの最後に gate を足す
 
 ## テストから bash を呼ぶ

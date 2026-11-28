@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { explains } from '../../../tests/_helpers/explains.js'
+import { stepSync } from '../../../tests/_helpers/step.js'
 
 import type { AttributeError } from '@pecot/workflow-core/domain/attributes.js'
 import { attributeErrorLine } from '../attribute-writes.js'
@@ -27,6 +28,9 @@ describe('attributeErrorLine', () => {
     },
   ])('$name を渡すと、項目を「; 」でつないだ 1 行にする', async (row) => {
     await explains(`\`attributeErrorLine\` のテストです。${row.name}から、\`${row.expected}\` の行を作ることを確認します。`)
-    expect(attributeErrorLine(row.error)).toBe(row.expected)
+    const line = stepSync('error から 1 行を作る', () => attributeErrorLine(row.error))
+    stepSync('行を比べる', () => {
+      expect(line).toBe(row.expected)
+    })
   })
 })

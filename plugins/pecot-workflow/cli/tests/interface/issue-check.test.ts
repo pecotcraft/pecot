@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
-import { step } from '../../../../../libs/interface-spec/src/vitest/step.js'
+import { step } from '../_helpers/step.js'
 import { ISSUE_CHECK_TOOLS } from '../../src/commands/issue-check.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -80,7 +80,7 @@ function useProject(config: Readonly<Record<string, unknown>> = CONFIG, files: R
 }
 
 async function check(arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
-  return await step('issue_check を呼ぶ', async () => await callToolOnce(ISSUE_CHECK_TOOLS, 'issue_check', arguments_))
+  return await callToolOnce(ISSUE_CHECK_TOOLS, 'issue_check', arguments_)
 }
 
 async function createOne(issue: Readonly<Record<string, unknown>>, reads: Readonly<Record<string, unknown>> = CHILD_READS): Promise<ToolOutcome> {

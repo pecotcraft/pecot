@@ -6,6 +6,7 @@ import { ESLint } from 'eslint'
 import { beforeAll, describe, expect, it } from 'vitest'
 
 import { explains } from './_helpers/explains.js'
+import { step } from './_helpers/step.js'
 
 import { COMMAND_GROUPS } from '@pecot/workflow-core/commands-shared/names.js'
 
@@ -47,13 +48,19 @@ describe('案内の文字列を止める lint', () => {
       ['テンプレートの固定部分', 'declare const name: string\nexport const text = `run pecot issue block ${name} to fix`\n'],
     ])('%s でコマンドの案内を書くと、lint が 1 件報告する', async (kind, code) => {
       await explains(`コマンドの案内を禁止する lint のテストです。\`${name}\` のファイルに、${kind}で \`pecot\` のコマンドの案内を書いたコードを渡した場合は、違反が 1 件報告されることを確認します。`)
-      expect(await hintMessages(code, filePath)).toHaveLength(1)
+      const messages = await step('コマンドの案内を書いたコードを lint にかける', () => hintMessages(code, filePath))
+      await step('報告の件数を比べる', () => {
+        expect(messages).toHaveLength(1)
+      })
     })
   })
 
   it.each(COMMAND_GROUPS.map(group => group.name))('グループ %s のコマンドの案内を書くと、lint が 1 件報告する', async (group) => {
     await explains(`コマンドの案内を禁止する lint のテストです。\`pecot ${group} x\` というコマンドの案内を書いたコードを渡した場合は、違反が 1 件報告されることを確認します。`)
-    expect(await hintMessages(`export const text = 'pecot ${group} x'\n`, FIRST_PATH)).toHaveLength(1)
+    const messages = await step('グループのコマンドの案内を書いたコードを lint にかける', () => hintMessages(`export const text = 'pecot ${group} x'\n`, FIRST_PATH))
+    await step('報告の件数を比べる', () => {
+      expect(messages).toHaveLength(1)
+    })
   })
 
   it.each([
@@ -63,12 +70,18 @@ describe('案内の文字列を止める lint', () => {
     ['.pecot のパス', 'export const text = \'.pecot/work\'\n'],
   ])('%s なら、案内の lint は報告しない', async (kind, code) => {
     await explains(`コマンドの案内を禁止する lint のテストです。コマンドの案内に当たらない書き方（${kind}）のコードを渡した場合は、違反が報告されないことを確認します。`)
-    expect(await hintMessages(code, FIRST_PATH)).toEqual([])
+    const messages = await step('案内に当たらないコードを lint にかける', () => hintMessages(code, FIRST_PATH))
+    await step('報告が無いことを比べる', () => {
+      expect(messages).toEqual([])
+    })
   })
 
   it('テストのファイルでは、コマンドの案内を書いても報告しない', async () => {
     await explains('コマンドの案内を禁止する lint のテストです。テストのファイルに `pecot project init` と書いた場合に、違反が報告されないことを確認します。')
-    expect(await hintMessages('export const text = \'pecot project init\'\n', TEST_PATH)).toEqual([])
+    const messages = await step('テストのファイルとして案内を書いたコードを lint にかける', () => hintMessages('export const text = \'pecot project init\'\n', TEST_PATH))
+    await step('報告が無いことを比べる', () => {
+      expect(messages).toEqual([])
+    })
   })
 })
 
@@ -86,7 +99,10 @@ describe('フラグ名の文字列を止める lint', () => {
       ['テンプレートの中の三項演算子のテンプレート', 'declare function stop(text: string): void\ndeclare const flag: boolean\ndeclare const name: string\nstop(`run it again${flag ? ` with --force ${name}` : \'\'}`)\n'],
     ])('%s にフラグ名を書くと、lint が 1 件報告する', async (kind, code) => {
       await explains(`フラグ名の文字列を禁止する lint のテストです。\`${name}\` のファイルで、${kind}にフラグ名を含む文を書いたコードを渡した場合は、違反が 1 件報告されることを確認します。`)
-      expect(await flagMessages(code, filePath)).toHaveLength(1)
+      const messages = await step('フラグ名を書いたコードを lint にかける', () => flagMessages(code, filePath))
+      await step('報告の件数を比べる', () => {
+        expect(messages).toHaveLength(1)
+      })
     })
   })
 
@@ -100,6 +116,9 @@ describe('フラグ名の文字列を止める lint', () => {
     ['コメントの中', '// --repo を案内する\nexport const text = 1\n'],
   ])('%s なら、フラグ名の lint は報告しない', async (kind, code) => {
     await explains(`フラグ名の文字列を禁止する lint のテストです。フラグ名を含んでいても対象外の書き方（${kind}）のコードを渡した場合は、違反が報告されないことを確認します。`)
-    expect(await flagMessages(code)).toEqual([])
+    const messages = await step('対象外のコードを lint にかける', () => flagMessages(code))
+    await step('報告が無いことを比べる', () => {
+      expect(messages).toEqual([])
+    })
   })
 })

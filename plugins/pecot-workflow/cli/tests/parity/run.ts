@@ -11,6 +11,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 
 import { AttachingClient } from '../_helpers/attaching-client.js'
 import { outputSchemaIssues, toolOutcomeOf } from '../_helpers/mcp-client.js'
+import { step } from '../_helpers/step.js'
 import { compareStrings } from './baseline.js'
 import type { Golden, Scenario, Substitution } from './scenario.js'
 import { normalizeDeep, normalizeText } from './scenario.js'
@@ -167,7 +168,7 @@ export async function runScenario(scenario: Scenario, launcher: Launcher): Promi
   try {
     const environment = { ...baseEnvironment(sandbox), ...scenario.setup.env }
     const cwd = path.resolve(sandbox.repositoryDirectory, scenario.setup.cwd)
-    const call = await callOnce(launcher, scenario, cwd, environment)
+    const call = await step(`組み立てたサーバで ${scenario.tool} を呼ぶ`, async () => await callOnce(launcher, scenario, cwd, environment))
     const substitutions: readonly Substitution[] = [
       { from: sandbox.root, to: '{{TMP}}' },
       { from: pluginRoot, to: '{{PLUGIN_ROOT}}' },

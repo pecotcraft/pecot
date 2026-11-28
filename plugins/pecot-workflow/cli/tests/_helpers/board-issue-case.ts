@@ -2,6 +2,7 @@
 import { gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { enterGitRepository, setUpProject } from './interface-case.js'
 import type { ProjectFixture } from './interface-case.js'
+import { stepSync } from './step.js'
 
 export const CONFIG_FILE = 'ghes.example.com_acme_board_acme.json'
 const ORIGIN_URL = 'https://ghes.example.com/acme/demo.git'
@@ -50,6 +51,10 @@ function buildConfig(missingStatus: string | undefined, hasBlocked: boolean, rep
 一時のプロジェクトルートと、origin を持つ一時 git リポジトリを用意する
 */
 export function prepareProject(options: Readonly<ProjectCaseOptions> = {}): ProjectCase {
+  return stepSync('プロジェクトと git のリポを用意する', () => buildProject(options))
+}
+
+function buildProject(options: Readonly<ProjectCaseOptions>): ProjectCase {
   const { repositories = ['demo'], missingStatus, hasBlocked = false } = options
   const files = missingStatus === undefined && !hasBlocked ? {} : { [`.pecot/config/projects/${CONFIG_FILE}`]: buildConfig(missingStatus, hasBlocked, repositories) }
   const project = setUpProject({ repositories, files })

@@ -7,7 +7,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
-import { step, stepSync } from '../../../../../libs/interface-spec/src/vitest/step.js'
+import { step, stepSync } from '../_helpers/step.js'
 import { TOOLS } from '../../src/commands/registry.js'
 import { ambiguousWorkspaceFiles, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
@@ -101,16 +101,14 @@ function cleanupBranch(extra: Readonly<WorkspaceOptions> = {}): Workspace {
 
 // コマンドは process.cwd() を作業リポジトリとして読むので、呼ぶ間だけ移る
 async function finish(workspace: Readonly<Workspace>, arguments_: Json = {}, cwd = workspace.directory): Promise<ToolOutcome> {
-  return await step('session_finish を呼ぶ', async () => {
-    const previous = process.cwd()
-    process.chdir(cwd)
-    try {
-      return await callToolOnce(TOOLS, 'session_finish', { pr_ref: 'acme/demo/21', reads: PLAIN_READS, ...arguments_ })
-    }
-    finally {
-      process.chdir(previous)
-    }
-  })
+  const previous = process.cwd()
+  process.chdir(cwd)
+  try {
+    return await callToolOnce(TOOLS, 'session_finish', { pr_ref: 'acme/demo/21', reads: PLAIN_READS, ...arguments_ })
+  }
+  finally {
+    process.chdir(previous)
+  }
 }
 
 describe('session_finish', () => {

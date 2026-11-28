@@ -9,6 +9,7 @@ import type { ToolDefinition } from '../../src/commands/registry.js'
 import { standardOutputSchema } from '../../src/mcp/result.js'
 import { createMcpServer } from '../../src/mcp/server.js'
 import { AttachingClient } from './attaching-client.js'
+import { step } from './step.js'
 
 const TextBlockSchema = z.looseObject({ type: z.literal('text'), text: z.string() })
 
@@ -101,16 +102,18 @@ tools から MCP のサーバを作り、同じプロセスの中のクライア
 失敗の detail が空か、行が `error: ` で始まれば例外（実物のコマンドの失敗は、どれも読める文を持つ）
 */
 export async function callToolOnce(tools: readonly ToolDefinition[], name: string, arguments_: Readonly<Record<string, unknown>>, settle: Settle = awaitAsIs): Promise<ToolOutcome> {
-  const connected = await connectInMemory(createMcpServer(tools))
-  try {
-    const result = await settle(connected.client.callTool({ name, arguments: { ...arguments_ } }, settle === awaitAsIs ? undefined : { timeout: FAKE_DELAY_REQUEST_TIMEOUT }))
-    const outcome = toolOutcomeOf(result)
-    const detail = outcome.structured['detail']
-    if (outcome.isError && (typeof detail !== 'string' || detail.trim() === '')) throw new Error(`${name}: 失敗の detail が空です`)
-    if (typeof detail === 'string' && /^error: /mu.test(detail)) throw new Error(`${name}: detail の行が error: で始まります: ${detail}`)
-    return outcome
-  }
-  finally {
-    await connected.close()
-  }
+  return await step(`MCP で ${name} を呼ぶ`, async () => {
+    const connected = await connectInMemory(createMcpServer(tools))
+    try {
+      const result = await settle(connected.client.callTool({ name, arguments: { ...arguments_ } }, settle === awaitAsIs ? undefined : { timeout: FAKE_DELAY_REQUEST_TIMEOUT }))
+      const outcome = toolOutcomeOf(result)
+      const detail = outcome.structured['detail']
+      if (outcome.isError && (typeof detail !== 'string' || detail.trim() === '')) throw new Error(`${name}: 失敗の detail が空です`)
+      if (typeof detail === 'string' && /^error: /mu.test(detail)) throw new Error(`${name}: detail の行が error: で始まります: ${detail}`)
+      return outcome
+    }
+    finally {
+      await connected.close()
+    }
+  })
 }

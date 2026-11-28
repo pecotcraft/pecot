@@ -8,6 +8,7 @@ import { runScenario } from '../parity/run.js'
 import type { Outcome } from '../parity/run.js'
 import { readScenario } from '../parity/scenario.js'
 import { explains } from '../_helpers/explains.js'
+import { step, stepSync } from '../_helpers/step.js'
 
 const TEST_TIMEOUT_MS = 30_000
 const REASON = 'cannot determine the target repository: the server was started in the plugin directory'
@@ -28,57 +29,67 @@ async function statusFrom(pluginRoot: string, environment: Readonly<Record<strin
 describe('MCP のサーバのセッションのディレクトリ', () => {
   it('MCP のサーバがビルドされている場合は、ビルドの問題を報告しない', async () => {
     await explains('ビルド済みの MCP のサーバ（`dist/main.js`）が存在するかを確認するテストです。ビルドに関する問題が報告されないことを確認します。')
-    expect(builtServerProblem()).toBeUndefined()
+    const problem = stepSync('ビルドの問題を調べる', () => builtServerProblem())
+    stepSync('問題が無いことを確かめる', () => {
+      expect(problem).toBeUndefined()
+    })
   })
 
   it('プラグインの root で起動され、COPILOT_SESSION_CWD があれば、そのリポを対象にする', { timeout: TEST_TIMEOUT_MS }, async () => {
     await explains('プラグインの root で起動した MCP のサーバが、対象のリポジトリを決める方法のテストです。`COPILOT_SESSION_CWD` を指定した場合に、そのディレクトリのリポジトリ（`acme/session-repo`）を対象にすることを確認します。')
-    const pluginRoot = repositoryWithRemote('plugin-root')
-    const session = repositoryWithRemote('session-repo')
-    const outcome = await statusFrom(pluginRoot, { COPILOT_SESSION_CWD: session })
-    expect(outcome.spawnError).toBeUndefined()
-    expect(outcome.golden).toMatchObject({ isError: false, stderr: '', structuredContent: { repository: 'acme/session-repo' } })
+    const { pluginRoot, session } = stepSync('プラグインの root と、セッションのリポを用意する', () => ({ pluginRoot: repositoryWithRemote('plugin-root'), session: repositoryWithRemote('session-repo') }))
+    const outcome = await step('COPILOT_SESSION_CWD を指定してサーバを起動する', async () => await statusFrom(pluginRoot, { COPILOT_SESSION_CWD: session }))
+    stepSync('セッションのリポが対象になることを確かめる', () => {
+      expect(outcome.spawnError).toBeUndefined()
+      expect(outcome.golden).toMatchObject({ isError: false, stderr: '', structuredContent: { repository: 'acme/session-repo' } })
+    })
   })
 
   it('COPILOT_SESSION_CWD が無くても、CLAUDE_PROJECT_DIR があれば、そのリポを対象にする', { timeout: TEST_TIMEOUT_MS }, async () => {
     await explains('プラグインの root で起動した MCP のサーバが、対象のリポジトリを決める方法のテストです。`COPILOT_SESSION_CWD` を指定せず、`CLAUDE_PROJECT_DIR` を指定した場合に、そのリポジトリ（`acme/project-repo`）を対象にすることを確認します。')
-    const pluginRoot = repositoryWithRemote('plugin-root')
-    const project = repositoryWithRemote('project-repo')
-    const outcome = await statusFrom(pluginRoot, { CLAUDE_PROJECT_DIR: project })
-    expect(outcome.spawnError).toBeUndefined()
-    expect(outcome.golden).toMatchObject({ isError: false, stderr: '', structuredContent: { repository: 'acme/project-repo' } })
+    const { pluginRoot, project } = stepSync('プラグインの root と、プロジェクトのリポを用意する', () => ({ pluginRoot: repositoryWithRemote('plugin-root'), project: repositoryWithRemote('project-repo') }))
+    const outcome = await step('CLAUDE_PROJECT_DIR を指定してサーバを起動する', async () => await statusFrom(pluginRoot, { CLAUDE_PROJECT_DIR: project }))
+    stepSync('プロジェクトのリポが対象になることを確かめる', () => {
+      expect(outcome.spawnError).toBeUndefined()
+      expect(outcome.golden).toMatchObject({ isError: false, stderr: '', structuredContent: { repository: 'acme/project-repo' } })
+    })
   })
 
   it('どちらの環境変数も指定しなければ、プラグインの root のリポを使わず、理由を失敗で返す', { timeout: TEST_TIMEOUT_MS }, async () => {
     await explains('プラグインの root で起動し、どちらの環境変数も指定しない場合のテストです。プラグインの root のリポジトリを対象にせず、理由と対処を示す失敗の結果を返すことを確認します。')
-    const pluginRoot = repositoryWithRemote('plugin-root')
-    const outcome = await statusFrom(pluginRoot, {})
-    expect(outcome.spawnError).toBeUndefined()
-    expect(outcome.golden).toMatchObject({ isError: true, structuredContent: { kind: 'session-directory-unresolved' } })
-    expect(outcome.golden?.structuredContent['detail']).toContain(`${REASON} (`)
-    expect(outcome.golden?.structuredContent['detail']).toContain('upgrade GitHub Copilot CLI to 1.0.106 or later')
+    const pluginRoot = stepSync('プラグインの root を用意する', () => repositoryWithRemote('plugin-root'))
+    const outcome = await step('環境変数を指定せずにサーバを起動する', async () => await statusFrom(pluginRoot, {}))
+    stepSync('理由を示す失敗になることを確かめる', () => {
+      expect(outcome.spawnError).toBeUndefined()
+      expect(outcome.golden).toMatchObject({ isError: true, structuredContent: { kind: 'session-directory-unresolved' } })
+      expect(outcome.golden?.structuredContent['detail']).toContain(`${REASON} (`)
+      expect(outcome.golden?.structuredContent['detail']).toContain('upgrade GitHub Copilot CLI to 1.0.106 or later')
+    })
   })
 
   it('Copilot CLI の起動で COPILOT_SESSION_CWD が無ければ、継いだ CLAUDE_PROJECT_DIR のリポを使わず、理由を失敗で返す', { timeout: TEST_TIMEOUT_MS }, async () => {
     await explains('Copilot CLI から起動し、`COPILOT_SESSION_CWD` を指定しない場合のテストです。継承した `CLAUDE_PROJECT_DIR` のリポジトリを対象にせず、理由を示す失敗の結果を返すことを確認します。')
-    const pluginRoot = repositoryWithRemote('plugin-root')
-    const inherited = repositoryWithRemote('inherited-repo')
-    const outcome = await statusFrom(pluginRoot, { COPILOT_PLUGIN_ROOT: pluginRoot, CLAUDE_PROJECT_DIR: inherited })
-    expect(outcome.spawnError).toBeUndefined()
-    expect(outcome.golden).toMatchObject({ isError: true, structuredContent: { kind: 'session-directory-unresolved' } })
-    expect(outcome.golden?.structuredContent['detail']).toContain(`${REASON} (`)
-    expect(JSON.stringify(outcome.golden?.structuredContent)).not.toContain('inherited-repo')
+    const { pluginRoot, inherited } = stepSync('プラグインの root と、継いだリポを用意する', () => ({ pluginRoot: repositoryWithRemote('plugin-root'), inherited: repositoryWithRemote('inherited-repo') }))
+    const outcome = await step('Copilot CLI の起動でサーバを起動する', async () => await statusFrom(pluginRoot, { COPILOT_PLUGIN_ROOT: pluginRoot, CLAUDE_PROJECT_DIR: inherited }))
+    stepSync('継いだリポを使わず、理由を示す失敗になることを確かめる', () => {
+      expect(outcome.spawnError).toBeUndefined()
+      expect(outcome.golden).toMatchObject({ isError: true, structuredContent: { kind: 'session-directory-unresolved' } })
+      expect(outcome.golden?.structuredContent['detail']).toContain(`${REASON} (`)
+      expect(JSON.stringify(outcome.golden?.structuredContent)).not.toContain('inherited-repo')
+    })
   })
 
   it('COPILOT_SESSION_CWD が実在しなければ、理由を失敗で返す', { timeout: TEST_TIMEOUT_MS }, async () => {
     await explains('`COPILOT_SESSION_CWD` に存在しないディレクトリを指定した場合に、使用できないディレクトリであることを示す失敗の結果を返すことを確認します。')
-    const pluginRoot = repositoryWithRemote('plugin-root')
+    const pluginRoot = stepSync('プラグインの root を用意する', () => repositoryWithRemote('plugin-root'))
     const missing = `${pluginRoot}/missing`
-    const outcome = await statusFrom(pluginRoot, { COPILOT_SESSION_CWD: missing })
-    expect(outcome.spawnError).toBeUndefined()
-    expect(outcome.golden).toMatchObject({
-      isError: true,
-      structuredContent: { kind: 'session-directory-unresolved', detail: `cannot determine the target repository: COPILOT_SESSION_CWD is not a usable directory: ${missing}` },
+    const outcome = await step('存在しないディレクトリを指定してサーバを起動する', async () => await statusFrom(pluginRoot, { COPILOT_SESSION_CWD: missing }))
+    stepSync('理由を示す失敗になることを確かめる', () => {
+      expect(outcome.spawnError).toBeUndefined()
+      expect(outcome.golden).toMatchObject({
+        isError: true,
+        structuredContent: { kind: 'session-directory-unresolved', detail: `cannot determine the target repository: COPILOT_SESSION_CWD is not a usable directory: ${missing}` },
+      })
     })
   })
 })

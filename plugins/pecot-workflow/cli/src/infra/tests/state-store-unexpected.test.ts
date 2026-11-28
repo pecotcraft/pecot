@@ -6,6 +6,7 @@ import path from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { explains } from '../../../tests/_helpers/explains.js'
+import { stepSync } from '../../../tests/_helpers/step.js'
 
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { makeTemporaryDirectory } from '../../../../../../libs/workflow-core/tests/_helpers/temporary.js'
@@ -45,23 +46,35 @@ function useProject(): string {
 describe('state-store（想定外の失敗）', () => {
   it('作業ディレクトリの作成が OS のエラーでない理由で失敗した場合は、そのまま送出する', async () => {
     await explains('作業ディレクトリを作成する `ensureWorkDirectory` のテストです。ディレクトリの作成が OS のエラーではない理由で失敗した場合に、握りつぶさずに例外を送出することを確認します。')
-    useProject()
-    failures.mkdir = true
-    expect(() => ensureWorkDirectory('o/r/1')).toThrow('unexpected mkdir failure')
+    stepSync('作成を失敗させる準備をする', () => {
+      useProject()
+      failures.mkdir = true
+    })
+    stepSync('作業ディレクトリの作成の例外を比べる', () => {
+      expect(() => ensureWorkDirectory('o/r/1')).toThrow('unexpected mkdir failure')
+    })
   })
 
   it('フラグの確認が OS のエラーでない理由で失敗した場合は、そのまま送出する', async () => {
     await explains('フラグの有無を調べる `hasFlag` のテストです。ファイルの状態の取得が OS のエラーではない理由で失敗した場合に、false にせず例外を送出することを確認します。')
-    useProject()
-    failures.stat = true
-    expect(() => hasFlag('.flag')).toThrow('unexpected stat failure')
+    stepSync('状態の取得を失敗させる準備をする', () => {
+      useProject()
+      failures.stat = true
+    })
+    stepSync('フラグの確認の例外を比べる', () => {
+      expect(() => hasFlag('.flag')).toThrow('unexpected stat failure')
+    })
   })
 
   it('フラグの名前の途中がファイルの場合は、OsError を送出する', async () => {
     await explains('フラグファイルを読み込む `readFlag` のテストです。名前の途中のパスがファイルのため、読み取りが失敗する場合は、OsError を送出することを確認します。')
-    const root = useProject()
-    mkdirSync(path.join(root, '.pecot', 'state'), { recursive: true })
-    writeFileSync(path.join(root, '.pecot', 'state', 'plain'), 'x')
-    expect(() => readFlag('plain/child')).toThrow(OsError)
+    stepSync('途中がファイルのフラグを置く', () => {
+      const root = useProject()
+      mkdirSync(path.join(root, '.pecot', 'state'), { recursive: true })
+      writeFileSync(path.join(root, '.pecot', 'state', 'plain'), 'x')
+    })
+    stepSync('フラグを読んだときの例外を比べる', () => {
+      expect(() => readFlag('plain/child')).toThrow(OsError)
+    })
   })
 })

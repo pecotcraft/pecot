@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
-import { step } from '../../../../../libs/interface-spec/src/vitest/step.js'
+import { step } from '../_helpers/step.js'
 import { BOARD_CHECK_TOOLS } from '../../src/commands/board-check.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
@@ -63,7 +63,7 @@ function useProject(): void {
 }
 
 async function check(arguments_: Readonly<Record<string, unknown>>): Promise<ToolOutcome> {
-  return await step('board_check を呼ぶ', async () => await callToolOnce(BOARD_CHECK_TOOLS, 'board_check', { ...TARGET, ...arguments_ }))
+  return await callToolOnce(BOARD_CHECK_TOOLS, 'board_check', { ...TARGET, ...arguments_ })
 }
 
 describe('board_check', () => {
