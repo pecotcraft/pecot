@@ -179,7 +179,7 @@ class Side {
   readonly settings = repositorySettings()
   readonly rulesets: Ruleset[]
   board: Board
-  readonly files: Record<string, string> = { 'ci.yml': 'name: ci\n', 'pecot-board-sync.yml': BOARD_SYNC, 'pecot-handoff.yml': HANDOFF, 'pecot-review.yml': REVIEW }
+  readonly files: Record<string, string> = { 'ci.yml': 'name: ci\n', 'codeql.yml': 'name: codeql\n', 'pecot-board-sync.yml': BOARD_SYNC, 'pecot-handoff.yml': HANDOFF, 'pecot-review.yml': REVIEW }
   // undefined は、設定のディレクトリが無い（一覧が 404）
   configs: Record<string, ProjectConfig> | undefined
   // 生の中身で置く設定ファイル。undefined は、応答に content が無い
@@ -216,6 +216,14 @@ class Side {
   withoutRule(type: string): void {
     const kept = this.rules().filter(rule => rule.type !== type)
     this.rules().splice(0, this.rules().length, ...kept)
+  }
+
+  withFile(name: string, text: string): void {
+    Object.assign(this.files, { [name]: text })
+  }
+
+  withoutFile(name: string): void {
+    Reflect.deleteProperty(this.files, name)
   }
 
   fields(): Field[] {
@@ -446,13 +454,13 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / pecot-handoff.yml', expectedThis, 'なし')))
   })
 
-  it('ci.yml は、存在するかどうかだけを比較する', async () => {
-    await explains('`ci.yml` の比較のテストです。内容が違っても差異にならず、検証用に存在しない場合だけ、「あり」と「なし」の差異として表示することを確認します。')
-    scene.sandbox.files['ci.yml'] = 'name: other ci\n'
+  it.for(['ci.yml', 'codeql.yml'])('%s は、存在するかどうかだけを比較する', async (name) => {
+    await explains(`\`${name}\` の比較のテストです。内容が違っても差異にならず、検証用に存在しない場合だけ、「あり」と「なし」の差異として表示することを確認します。`)
+    scene.sandbox.withFile(name, 'name: other\n')
     const same = scene.run()
     expect([same.status, same.stdout]).toStrictEqual([0, 'ずれは 0 件\n'])
-    delete scene.sandbox.files['ci.yml']
-    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('workflows / ci.yml', 'あり', 'なし')))
+    scene.sandbox.withoutFile(name)
+    expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift(`workflows / ${name}`, 'あり', 'なし')))
   })
 
   it('両方の設定ファイルが旧い名前の形式なら、ずれが 0 件になる', async () => {

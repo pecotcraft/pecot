@@ -10,6 +10,8 @@ SANDBOX_PROJECT=3
 WORKFLOWS=".github/workflows"
 HOST="github.com"
 CONFIG_DIR=".pecot/config/projects"
+# 有無だけを比べる workflow。検証用のものは、必須チェックの名前を出すだけ。
+PRESENCE_WORKFLOWS=(ci.yml codeql.yml)
 # 有無と中身を比べる workflow。比べる相手は、このリポの main にある同じファイル（FR-032）。
 COPIED_WORKFLOWS=(pecot-board-sync.yml pecot-github-ops.yml pecot-handoff.yml pecot-review.yml)
 # pecot の action を、このリポは ./actions/<処理> で呼び、検証用は pecotcraft/pecot/actions/<処理>@<ref> で呼ぶ。そろえてから比べる。
@@ -137,8 +139,9 @@ read_workflows() {
     require "$label" "ファイルの一覧" 'if type == "array" then . else null end'
     list="$RESP"
     out=$(jq -c --arg present "あり" '
-        {"ci.yml": (if any(.[]; .name == "ci.yml") then $present else null end)}
-        | with_entries(select(.value != null))' <<< "$list")
+        . as $l
+        | [$ARGS.positional[] | select(. as $n | any($l[]; .name == $n)) | {key: ., value: $present}]
+        | from_entries' --args "${PRESENCE_WORKFLOWS[@]}" <<< "$list")
     for name in "${COPIED_WORKFLOWS[@]}"; do
         jq -e --arg n "$name" 'any(.[]; .name == $n)' <<< "$list" > /dev/null || continue
         file="$label/$name"
