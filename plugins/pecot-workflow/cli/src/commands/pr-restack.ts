@@ -336,6 +336,7 @@ async function runRestack(input: Readonly<RestackInput>, io: Readonly<CommandIo>
 const prRestack = defineTool({
   name: 'pr_restack',
   title: 'Restack branch',
+  writes: { destructive: true, idempotent: true },
   description: 'Restack the current branch onto the new position of its base branch. Reads nothing on GitHub; pass the results of the official reads in reads',
   input: RestackInputSchema,
   output: PR_RESTACK_OUTPUT,

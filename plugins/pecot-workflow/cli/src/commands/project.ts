@@ -286,6 +286,7 @@ function readBoard(out: Readonly<Output>, target: Readonly<BoardTarget>, reads: 
 const activateCommand = defineTool({
   name: 'project_activate',
   title: 'Activate project',
+  writes: { destructive: true, idempotent: true },
   description: 'Write the project config of an initialized board from the official GitHub MCP reads in reads, and make it the active project. The registered repositories are kept from the existing config',
   input: ACTIVATE_INPUT,
   output: ACTIVATE_OUTPUT,
@@ -375,6 +376,7 @@ const LINK_OUTPUT = z.strictObject({
 const projectLinkCommand = defineTool({
   name: 'project_link',
   title: 'Link repository to project',
+  writes: { destructive: true, idempotent: true },
   hasOwnRepo: true,
   ignoresGlobalRepo: true,
   description: 'Add or update a repository in the project config. It does not link the repository to the board on GitHub; do that with the project-link operation of github-ops',
@@ -580,6 +582,7 @@ function showSummary(out: Readonly<Output<GetData>>): void {
 const projectSetCommand = defineTool({
   name: 'project_set',
   title: 'Set project config',
+  writes: { destructive: true, idempotent: true },
   description: 'Set a key of the project config (aggregation_repo: the Epic aggregation repository)',
   input: z.strictObject({
     key: CONFIG_KEY,
@@ -596,6 +599,7 @@ const projectSetCommand = defineTool({
 const projectUnsetCommand = defineTool({
   name: 'project_unset',
   title: 'Clear project config',
+  writes: { destructive: true, idempotent: true },
   description: 'Clear a key of the project config; without aggregation_repo, creating an Epic needs the target repository given explicitly',
   input: z.strictObject({ key: CONFIG_KEY }),
   output: UNSET_OUTPUT,

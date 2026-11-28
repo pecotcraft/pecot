@@ -18,6 +18,7 @@ const seen: unknown[] = []
 const preflight = defineTool({
   name: 'pr_preflight',
   title: 'Test tool',
+  writes: { destructive: true, idempotent: false },
   description: '見本',
   input: z.object({ directory: directorySchema }),
   output: z.strictObject({}),

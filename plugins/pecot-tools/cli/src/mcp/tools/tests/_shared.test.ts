@@ -667,24 +667,19 @@ describe('allowlistedTool', () => {
 
   const ANNOTATION_CASES: readonly {
     readonly kind: AllowlistEntry['kind']
-    readonly readOnlyHint: boolean
-    readonly destructiveHint: boolean
+    readonly expected: Readonly<Record<string, boolean>>
   }[] = [
-    { kind: 'read', readOnlyHint: true, destructiveHint: false },
-    { kind: 'execute', readOnlyHint: false, destructiveHint: false },
+    { kind: 'read', expected: { readOnlyHint: true, openWorldHint: true } },
+    { kind: 'execute', expected: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true } },
   ]
 
   it.each(ANNOTATION_CASES)(
-    '種類が $kind のツールの annotations は、readOnlyHint が $readOnlyHint、destructiveHint が $destructiveHint になる',
-    async (expected) => {
-      await explains('許可リストのエントリからツール定義を作る `allowlistedTool` のテストです。`read` と `execute` のエントリで、`readOnlyHint` と `destructiveHint` が種類ごとの値になることを確認します。')
-      const tool = allowlistedTool({ entry: { ...IDENTITY_ENTRY, kind: expected.kind }, ...SPEC })
+    '種類が $kind のツールの annotations は、$expected になる',
+    async ({ kind, expected }) => {
+      await explains('許可リストのエントリからツール定義を作る `allowlistedTool` の `annotations` のテストです。種類ごとに、読むだけか書き込むかに合ったヒントだけを持つことを確認します。')
+      const tool = allowlistedTool({ entry: { ...IDENTITY_ENTRY, kind }, ...SPEC })
 
-      expect(tool.config.annotations).toEqual({
-        readOnlyHint: expected.readOnlyHint,
-        destructiveHint: expected.destructiveHint,
-        openWorldHint: true,
-      })
+      expect(tool.config.annotations).toStrictEqual(expected)
     },
   )
 

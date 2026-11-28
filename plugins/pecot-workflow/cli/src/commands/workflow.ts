@@ -70,6 +70,7 @@ const INSTALL_READS = z.object({
 const workflowInstallCommand = defineTool({
   name: 'workflow_install',
   title: 'Install workflow template',
+  writes: { destructive: true, idempotent: false },
   description: 'Write a GitHub Actions workflow template of pecot into the repository',
   input: z.strictObject({
     name: NAME_INPUT,

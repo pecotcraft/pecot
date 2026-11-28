@@ -1,28 +1,5 @@
 // T006: tools/list に載る 11 ツールの契約テスト。フックが呼ぶツールは、公開することだけを見る（応答は file-tools.test.ts）。
-//
-// 期待値テーブル (TOOL_CONTRACTS) は、次の契約の原本からの **転記** になる。
-//   aist-roadmap: specs/011-aistv-mcp-server/contracts/mcp-tools.md
-// 原本は別リポジトリにあり、本リポジトリの CI からは参照できない。
-// 契約が動いたときは、原本を直したうえで本テーブルも同時に直すこと。
-//
-// annotations だけは原本に規定が無く、#980 の実装計画で決めた方針を pin している。
-//   - readOnlyHint: 何も書き換えない slide_lint のみ true。他は true にしない。
-//     slide_page はページを書き出すため false のまま。
-//   - openWorldHint: SDK 既定が true のため、false を明示するのは 4 件だけ。
-//     対象は、ネットワークに到達しないことが確定する evidence_create / slide_lint /
-//     slide_page / slide_theme。残りは既定のままで良く (false でなければ通る)、true を強制はしない。
-//     slide_create と slide_sync は git でテーマを取得しうるため、明示しない。
-//
-// `runtime_setup` (#981) だけは、既定値と同じでも annotations を明示する。
-// Claude Code は annotations から自動承認の可否を組み立てる。
-// 120MB のダウンロードを始める本ツールが、読み取り専用や非破壊に見えてはならない。
-// 専用の it で個別に pin している。
-//
-// 終了コードの値域そのものは、本テストの対象外とする。
-// README の終了コード表は 5 コマンド分に分散し、exit 3 の行も無い。比べる先として使えない。
-// README 側の整備は別 Issue 候補。
-//
-// FR-011 の相対パス規約は、Windows 形式の事前変換を挟む (#1094)。原本は未追従。
+// annotations の期待値は、定義書 (interface/authored.yaml) の effects と idempotent の転記。
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -69,9 +46,17 @@ interface ToolContract {
   */
   readonly defaults: Readonly<Record<string, string | boolean>>
   /**
-  readOnlyHint: true を要求するか。
+  readOnlyHint の値。書き込むツールは false を明示する。
   */
   readonly readOnly: boolean
+  /**
+  destructiveHint: true を要求するか。読むだけのツールは destructiveHint を持たない。
+  */
+  readonly destructive: boolean
+  /**
+  idempotentHint の値。読むだけのツールは idempotentHint を持たない。
+  */
+  readonly idempotent: boolean | undefined
   /**
   ネットワーク到達の可能性があるか。false のツールは openWorldHint: false を明示する。
   */
@@ -104,6 +89,8 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
     enums: {},
     defaults: { force: false },
     readOnly: false,
+    destructive: true,
+    idempotent: false,
     // git でテーマを取得するため、ネットワークに到達しうる。
     openWorld: true,
   },
@@ -125,6 +112,8 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
     enums: { transition_type: TRANSITION_TYPES, morph_option: MORPH_OPTIONS },
     defaults: { cache: true },
     readOnly: false,
+    destructive: true,
+    idempotent: true,
     openWorld: true,
   },
   {
@@ -139,6 +128,8 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
     enums: {},
     defaults: { node_modules_only: false },
     readOnly: false,
+    destructive: true,
+    idempotent: true,
     // theme と node_modules_only は、テーマを git で取得しうる。
     openWorld: true,
   },
@@ -152,6 +143,8 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
     enums: {},
     defaults: {},
     readOnly: true,
+    destructive: false,
+    idempotent: undefined,
     openWorld: false,
   },
   {
@@ -168,6 +161,8 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
     enums: {},
     defaults: { stop: false },
     readOnly: false,
+    destructive: true,
+    idempotent: false,
     openWorld: true,
   },
   {
@@ -183,6 +178,8 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
     enums: {},
     defaults: { force: false },
     readOnly: false,
+    destructive: true,
+    idempotent: false,
     openWorld: false,
   },
   {
@@ -195,6 +192,8 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
     enums: {},
     defaults: {},
     readOnly: true,
+    destructive: false,
+    idempotent: undefined,
     openWorld: false,
   },
   {
@@ -211,6 +210,8 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
     enums: { mode: ['view', 'edit'] },
     defaults: { mode: 'view', png: true },
     readOnly: false,
+    destructive: true,
+    idempotent: true,
     openWorld: true,
   },
   {
@@ -227,6 +228,8 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
     enums: {},
     defaults: { print_hash: false, pdf: true },
     readOnly: false,
+    destructive: true,
+    idempotent: true,
     openWorld: true,
   },
   {
@@ -240,6 +243,8 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
     enums: {},
     defaults: {},
     readOnly: false,
+    destructive: true,
+    idempotent: true,
     openWorld: false,
   },
   {
@@ -251,6 +256,8 @@ const TOOL_CONTRACTS: readonly ToolContract[] = [
     enums: {},
     defaults: {},
     readOnly: false,
+    destructive: true,
+    idempotent: true,
     openWorld: true,
   },
 ]
@@ -679,9 +686,11 @@ describe('MCP ツール契約 (tools/list)', () => {
   })
 
   it.each(TOOL_CONTRACTS)('$name の annotations が実行判断のヒントを持つ', async (contract) => {
-    await explains('ツールの `annotations` のテストです。`readOnlyHint` と `openWorldHint` が、契約の表に定めた値と一致することを確認します。')
+    await explains('ツールの `annotations` のテストです。`readOnlyHint`・`destructiveHint`・`idempotentHint`・`openWorldHint` が、契約の表に定めた値と一致することを確認します。')
     const annotations = toolOf(contract.name).annotations ?? {}
-    expect(annotations.readOnlyHint === true).toBe(contract.readOnly)
+    expect(annotations.readOnlyHint === contract.readOnly).toBe(true)
+    expect(annotations.destructiveHint).toBe(contract.destructive ? true : undefined)
+    expect(annotations.idempotentHint).toBe(contract.idempotent)
     expect(annotations.openWorldHint === false).toBe(!contract.openWorld)
   })
 
@@ -717,7 +726,7 @@ describe('MCP ツール契約 (tools/list)', () => {
     const tool = toolOf('runtime_setup')
 
     expect(Object.keys(tool.inputSchema.properties ?? {})).toEqual([])
-    expect(tool.annotations?.readOnlyHint).not.toBe(true)
+    expect(tool.annotations?.readOnlyHint).toBe(false)
     expect(tool.annotations?.destructiveHint).toBe(true)
     expect(tool.annotations?.openWorldHint).toBe(true)
     // 何度呼んでも状態は変わらない (取得済みなら Playwright 側が skip する)。

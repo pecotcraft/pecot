@@ -14,6 +14,7 @@ describe('CommandExit', () => {
     const tool = defineTool({
       name: 'sample_exit',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: '',
       input: z.object({}),
       output: z.strictObject({}),
@@ -43,6 +44,7 @@ describe('CommandExit', () => {
     const tool = defineTool({
       name: 'sample_boom',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: '',
       input: z.object({}),
       output: z.strictObject({}),
@@ -60,6 +62,7 @@ describe('hasOwnRepo', () => {
   const own = defineTool({
     name: 'sample_own',
     title: 'Test tool',
+    writes: { destructive: true, idempotent: false },
     description: '',
     input: z.object({ repo: z.string().optional(), name: z.string() }).refine(value => value.repo === undefined || /^[^/]+\/[^/]+$/u.test(value.repo), { path: ['repo'], error: 'bad' }),
     output: z.strictObject({}),
@@ -75,6 +78,7 @@ describe('hasOwnRepo', () => {
     expect(() => defineTool({
       name: 'sample_clash',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: '',
       input: z.object({ repo: z.string().optional() }),
       output: z.strictObject({}),
@@ -87,6 +91,7 @@ describe('hasOwnRepo', () => {
     expect(() => defineTool({
       name: 'sample_missing',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: '',
       input: z.object({}),
       output: z.strictObject({}),
@@ -109,6 +114,7 @@ describe('hasOwnRepo', () => {
     const plain = defineTool({
       name: 'sample_plain',
       title: 'Test tool',
+      writes: { destructive: true, idempotent: false },
       description: '',
       input: z.strictObject({ name: z.string() }),
       output: z.strictObject({}),

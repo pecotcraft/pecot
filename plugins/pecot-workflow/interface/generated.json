@@ -2043,7 +2043,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true
         }
       }
     },
@@ -2193,7 +2195,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true
         }
       }
     },
@@ -2800,7 +2804,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true
         }
       }
     },
@@ -3007,7 +3013,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true
         }
       }
     },
@@ -3104,7 +3112,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true
         }
       }
     },
@@ -3581,7 +3591,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true
         }
       }
     },
@@ -3866,7 +3878,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": true
         }
       }
     },
@@ -4107,7 +4121,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": false
         }
       }
     },
@@ -4231,7 +4247,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": false
         }
       }
     },
@@ -4309,7 +4327,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false
         }
       }
     },
@@ -4425,7 +4445,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true
         }
       }
     },
@@ -4518,7 +4540,9 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": false
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": false
         }
       }
     }

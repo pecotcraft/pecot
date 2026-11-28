@@ -104,7 +104,7 @@ export const evidenceCreateTool: ToolDefinition = {
     inputSchema: evidenceCreateInput,
     outputSchema: evidenceCreateOutput,
     // ローカルの spec / 画像を読んで xlsx を書くだけでネットワークには到達しない。
-    annotations: { openWorldHint: false },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   },
   handler: handleEvidenceCreate,
 }

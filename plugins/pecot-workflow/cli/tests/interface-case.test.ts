@@ -23,6 +23,7 @@ const STARTING_DIRECTORY = process.cwd()
 const SAMPLE = defineTool({
   name: 'sample',
   title: 'Test tool',
+  writes: { destructive: true, idempotent: false },
   description: '準備の確認用',
   input: z.object({}),
   output: z.strictObject({}),

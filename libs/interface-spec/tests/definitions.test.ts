@@ -431,7 +431,9 @@ function withMcpSurface(title?: string): (data: Record<string, unknown>) => void
   return (data) => {
     const target = generatedEntry(data, 0)
     target['surfaces'] = { mcp: { tool: 'issue_create' } }
-    target['mcp'] = { ...(title !== undefined && { title }), output: { type: 'object', properties: {}, additionalProperties: false } }
+    // annotations は、見本の PW-ISSUE-CREATE の effects（write・read）と idempotent（false）に合わせる
+    const annotations = { readOnlyHint: false, destructiveHint: false, idempotentHint: false }
+    target['mcp'] = { ...(title !== undefined && { title }), output: { type: 'object', properties: {}, additionalProperties: false }, annotations }
   }
 }
 

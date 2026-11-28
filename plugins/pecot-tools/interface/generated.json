@@ -29,7 +29,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -127,7 +126,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -244,6 +242,7 @@
       "mcp": {
         "annotations": {
           "destructiveHint": false,
+          "idempotentHint": false,
           "openWorldHint": true,
           "readOnlyHint": false
         },
@@ -424,7 +423,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -556,7 +554,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -697,7 +694,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -800,7 +796,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -1096,7 +1091,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -1198,7 +1192,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -1304,7 +1297,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -1430,7 +1422,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -1566,7 +1557,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -1706,7 +1696,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -1812,7 +1801,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -1918,7 +1906,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -2063,7 +2050,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -2159,7 +2145,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -2264,7 +2249,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -2441,7 +2425,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -2574,7 +2557,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -2673,7 +2655,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -2759,6 +2740,7 @@
       "mcp": {
         "annotations": {
           "destructiveHint": true,
+          "idempotentHint": false,
           "openWorldHint": true,
           "readOnlyHint": false
         },
@@ -2853,7 +2835,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },
@@ -2952,7 +2933,6 @@
       },
       "mcp": {
         "annotations": {
-          "destructiveHint": false,
           "openWorldHint": true,
           "readOnlyHint": true
         },

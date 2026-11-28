@@ -104,6 +104,11 @@ export interface ToolSpec<Input extends z.ZodObject, Output extends z.ZodObject>
   */
   readonly openWorld?: false
   /**
+  書き込む動詞のツールだけが持つ印。MCP の destructiveHint・idempotentHint になる。
+  値は定義書の effects（kind: destructive の有無）と idempotent に合わせる
+  */
+  readonly writes?: { readonly destructive: boolean, readonly idempotent: boolean }
+  /**
   実行して 0 を返す。出力は io に書く。失敗は CommandExit で止め、原因の名前を運ぶ
   */
   // eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- zod の型は変えられない
@@ -149,6 +154,10 @@ export interface ToolDefinition {
   */
   readonly openWorld?: false
   /**
+  書き込むツールだけが持つ。読むだけのツールは undefined
+  */
+  readonly writes?: { readonly destructive: boolean, readonly idempotent: boolean }
+  /**
   検証の段。入力が不正なら ZodError を投げる。本体は呼ばない
   */
   readonly parse: (input: Readonly<Record<string, unknown>>) => PreparedCommand
@@ -190,6 +199,9 @@ export function defineTool<Input extends z.ZodObject, Output extends z.ZodObject
   // 同じ名前だと outputSchema では共通の項目が、失敗の値では output が勝ち、結果が outputSchema に合わなくなる
   const reserved = COMMON_OUTPUT_KEYS.filter(key => Object.hasOwn(spec.output.shape, key))
   if (reserved.length > 0) throw new TypeError(`output の ${reserved.join('・')} は MCP の結果の共通の項目の予約名です`)
+  const isReadOnly = COMMAND_VERBS.some(verb => verb.name === spec.name.slice(spec.name.lastIndexOf('_') + 1) && verb.readOnly === true)
+  if (!isReadOnly && spec.writes === undefined) throw new TypeError('書き込む動詞のツールは writes が要ります')
+  if (isReadOnly && spec.writes !== undefined) throw new TypeError('読むだけの動詞のツールは writes を持てません')
   const input = hasOwnRepository ? spec.input : spec.input.safeExtend(GLOBAL_SHAPE)
   const parse = (raw: Readonly<Record<string, unknown>>): PreparedCommand => {
     // 検証は spec.input で行う（全体の refine を保つ）。共通の repo は strictObject が拒むので外し、別に検証する
@@ -206,8 +218,9 @@ export function defineTool<Input extends z.ZodObject, Output extends z.ZodObject
     output: spec.output,
     hasOwnRepo: hasOwnRepository,
     ignoresGlobalRepo: spec.ignoresGlobalRepo === true,
-    readOnly: COMMAND_VERBS.some(verb => verb.name === spec.name.slice(spec.name.lastIndexOf('_') + 1) && verb.readOnly === true),
+    readOnly: isReadOnly,
     ...spec.openWorld === false && { openWorld: false },
+    ...spec.writes !== undefined && { writes: spec.writes },
     parse,
     run: async (raw, io) => await parse(raw).run(io),
   }

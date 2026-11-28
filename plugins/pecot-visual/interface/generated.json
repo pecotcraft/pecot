@@ -40,6 +40,11 @@
         "type": "object"
       },
       "mcp": {
+        "annotations": {
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "readOnlyHint": false
+        },
         "output": {
           "additionalProperties": false,
           "anyOf": [
@@ -285,6 +290,11 @@
         "type": "object"
       },
       "mcp": {
+        "annotations": {
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "readOnlyHint": false
+        },
         "output": {
           "additionalProperties": false,
           "anyOf": [
@@ -421,7 +431,10 @@
       },
       "mcp": {
         "annotations": {
-          "openWorldHint": false
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false,
+          "readOnlyHint": false
         },
         "output": {
           "additionalProperties": false,
@@ -774,7 +787,8 @@
         "annotations": {
           "destructiveHint": true,
           "idempotentHint": true,
-          "openWorldHint": true
+          "openWorldHint": true,
+          "readOnlyHint": false
         },
         "output": {
           "additionalProperties": false,
@@ -988,6 +1002,11 @@
         "type": "object"
       },
       "mcp": {
+        "annotations": {
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "readOnlyHint": false
+        },
         "output": {
           "additionalProperties": false,
           "anyOf": [
@@ -1277,6 +1296,11 @@
         "type": "object"
       },
       "mcp": {
+        "annotations": {
+          "destructiveHint": true,
+          "idempotentHint": false,
+          "readOnlyHint": false
+        },
         "output": {
           "additionalProperties": false,
           "anyOf": [
@@ -1565,6 +1589,11 @@
         "type": "object"
       },
       "mcp": {
+        "annotations": {
+          "destructiveHint": true,
+          "idempotentHint": false,
+          "readOnlyHint": false
+        },
         "output": {
           "additionalProperties": false,
           "anyOf": [
@@ -1889,7 +1918,10 @@
       },
       "mcp": {
         "annotations": {
-          "openWorldHint": false
+          "destructiveHint": true,
+          "idempotentHint": false,
+          "openWorldHint": false,
+          "readOnlyHint": false
         },
         "output": {
           "additionalProperties": false,
@@ -2106,6 +2138,11 @@
         "type": "object"
       },
       "mcp": {
+        "annotations": {
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "readOnlyHint": false
+        },
         "output": {
           "additionalProperties": false,
           "anyOf": [

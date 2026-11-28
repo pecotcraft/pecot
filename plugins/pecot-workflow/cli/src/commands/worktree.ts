@@ -100,6 +100,7 @@ const ADD_OUTPUT = z.strictObject({
 const worktreeAddCommand = defineTool({
   name: 'worktree_add',
   title: 'Add worktree',
+  writes: { destructive: true, idempotent: false },
   description: 'Create a new worktree',
   input: worktreeAddInput,
   output: ADD_OUTPUT,
@@ -151,6 +152,7 @@ const REMOVE_OUTPUT = z.strictObject({
 const worktreeRemoveCommand = defineTool({
   name: 'worktree_remove',
   title: 'Remove worktree',
+  writes: { destructive: true, idempotent: false },
   description: 'Remove a worktree',
   input: worktreeRemoveInput,
   output: REMOVE_OUTPUT,
@@ -189,6 +191,7 @@ const INIT_OUTPUT = z.strictObject({
 const worktreeInitCommand = defineTool({
   name: 'worktree_init',
   title: 'Initialize worktree config',
+  writes: { destructive: false, idempotent: false },
   description: 'Create the worktree config files in the main worktree',
   input: worktreeInitInput,
   output: INIT_OUTPUT,
@@ -285,6 +288,7 @@ type LinkEntry = NonNullable<LinkData['links']>[number]
 const worktreeLinkCommand = defineTool({
   name: 'worktree_link',
   title: 'Update worktree symlinks',
+  writes: { destructive: true, idempotent: true },
   description: 'Apply or update symlinks in existing worktrees',
   input: worktreeLinkInput,
   output: LINK_OUTPUT,
