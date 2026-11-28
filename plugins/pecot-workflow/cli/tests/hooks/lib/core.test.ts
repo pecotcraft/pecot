@@ -273,14 +273,15 @@ describe('git-worktree-branch-check.sh', () => {
     expect(result.stdout).toContain('commit')
   })
 
-  it('保護ブランチで git push するとき、止める', async () => {
-    await explains('`git-worktree-branch-check.sh` のテストです。保護ブランチ（`wt1`）で `git push` を実行しようとした場合に、終了コード 1 で拒否し、標準出力へ `push` を含めることを確認します。')
+  it('保護ブランチで git push するとき、止めて、リモートのブランチの削除をリポの設定に任せるよう案内する', async () => {
+    await explains('`git-worktree-branch-check.sh` のテストです。保護ブランチ（`wt1`）で `git push` を実行した場合に、終了コード 1 で拒否し、リポの設定「Automatically delete head branches」を案内することを確認します。')
     const hookCase = createHookCase()
     const repository = gitRepository(hookCase)
     checkout(hookCase, repository, 'wt1')
-    const result = runWorktreeCheck(hookCase, repository, 'git push', repository)
+    const result = runWorktreeCheck(hookCase, repository, 'git push origin --delete feat/x/1', repository)
     expect(result.exitCode).toBe(1)
     expect(result.stdout).toContain('push')
+    expect(result.stdout).toContain('"Automatically delete head branches"')
   })
 
   it('連結コマンドの中の git commit も、保護ブランチなら止める', async () => {
