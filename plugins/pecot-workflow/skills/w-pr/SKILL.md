@@ -114,7 +114,7 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 置き場所が違うと参照が書き換わらず、画像は本文の末尾に足される。
 
 `gh pr edit` が PR を引けずに止まったときだけ、Actions に画像を載せさせる。クラウドのスレッドでは、セッションのプロキシが GraphQL を 403 で止める。
-リポに `pecot-github-ops.yml` と secret `PECOT_ATTACH_TOKEN` が要る。無いことは、起動して初めて分かる（実行が見つからない、`github-auth` が返る）。
+リポに `pecot-github-ops.yml` と secret `PECOT_ATTACH_TOKEN` が要る。無いことは、起動して初めて分かる（実行が見つからない、`error.kind` が `github-auth` になる）。
 
 1. 次を打って画像を送り、標準出力の `id=` の ID を控える。本文の `./<名前>.png` の参照は、PR の本文から消さない
    - クラウドで保存した本文では、参照の先頭の `!` が落ちてリンクになる。`pr-attach` が画像の記法に戻すので、本文を直さない
