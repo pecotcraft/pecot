@@ -37,7 +37,7 @@
         }
       ],
       "metadata": {
-        "description": "rollup で処理ごとに <処理>/dist/index.js を作る。lib の exports が dist を指すので、workflow-core を先に build する。"
+        "description": "<処理>/dist を消してから、rollup で処理ごとに <処理>/dist/index.js を作る。lib の exports が dist を指すので、workflow-core を先に build する。"
       },
       "options": {
         "command": "pnpm run build",
@@ -87,10 +87,10 @@
         "build"
       ],
       "metadata": {
-        "description": "commit した <処理>/dist が、source から build し直したものと同じかを確かめる。違えば build して commit し直す。"
+        "description": "commit した <処理>/dist が、source から build し直したものと同じかを確かめる。違えば build して commit し直す。build は dist を消してから作るので、古い dist も消えたファイルとして出る。"
       },
       "options": {
-        "command": "git diff --exit-code --stat -- 'actions/*/dist' && test -z \"$(git ls-files --others --exclude-standard -- 'actions/*/dist')\"",
+        "command": "git diff --exit-code --stat -- ':(glob)actions/*/dist/**' && untracked=$(git ls-files --others --exclude-standard -- ':(glob)actions/*/dist/**') && { [ -z \"$untracked\" ] || { echo \"untracked: $untracked\"; exit 1; }; }",
         "cwd": "{workspaceRoot}"
       }
     },
