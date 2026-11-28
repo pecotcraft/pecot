@@ -12,8 +12,8 @@ const TEST_TIMEOUT_MS = 30_000
 // 入力の検証でツールの本体を呼ばずに断った結果の detail の前置き（server.ts の rejected）
 const REJECTED_PREFIX = 'invalid input: '
 
-// 時間内に呼べたこと。偽サーバの誤りと、使われなかった応答が無いこと
-const COMPLETED = { spawnError: undefined, timedOut: false, problems: [], unused: [] }
+// 時間内に呼べたこと
+const COMPLETED = { spawnError: undefined, timedOut: false }
 
 function isRejected(id: string): boolean {
   const { structuredContent } = readGolden(id)
@@ -27,17 +27,12 @@ describe('前後比較', () => {
   })
 
   it.for(scenarioIds())('シナリオ %s を動かすと、期待出力（golden）と同じ結果になる', { timeout: TEST_TIMEOUT_MS }, async (id) => {
-    await explains('シナリオを MCP のサーバで実行したときの結果のテストです。ツールの結果（成否・要約の文・structuredContent）、サーバの標準エラー、偽サーバへの要求、ファイルが、保存済みの期待出力（golden）と一致することを確認します。')
+    await explains('シナリオを MCP のサーバで実行したときの結果のテストです。ツールの結果（成否・要約の文・structuredContent）、サーバの標準エラー、ファイルが、保存済みの期待出力（golden）と一致することを確認します。')
     const outcome = await runScenario(readScenario(id), builtServer)
     expect(outcome).toMatchObject(COMPLETED)
     expect(outcome.golden).toEqual(readGolden(id))
     // 要約の文が表の行（見出しなど）にならない
     expect(outcome.golden?.text?.startsWith('|') ?? false).toBe(false)
-  })
-
-  it.for(scenarioIds().filter(id => isRejected(id)))('入力の検証で断るシナリオ %s は、偽サーバに要求を送らない', async (id) => {
-    await explains(`入力の検証で断るシナリオのテストです。\`${id}\` の期待出力が \`invalid input:\` から始まる失敗であり、偽サーバへの要求が無いことを確認します。`)
-    expect(readGolden(id)).toMatchObject({ isError: true, requests: [] })
   })
 
   it('入力の検証で断るシナリオが 1 件以上ある', async () => {

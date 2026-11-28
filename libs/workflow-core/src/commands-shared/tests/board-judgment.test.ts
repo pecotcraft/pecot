@@ -14,7 +14,6 @@ import { graphqlError, graphqlRequests, startClient, useFakeGithub } from '../..
 import type { StartedClient } from '../../infra/github/tests/fake-client.js'
 import { applyJudgedMoves, boardMoveOf, judgeBoard, missingWarning, SYNCED_COLUMNS } from '../board-judgment.js'
 import type { BoardTarget, JudgedTarget } from '../board-judgment.js'
-import { snapshotWithoutPrerequisites } from '../issue-readiness.js'
 import type { JudgedIssue } from '../issue-readiness.js'
 import { formatHinted } from '../../domain/command-hint.js'
 import { createOutput } from '../output.js'
@@ -81,17 +80,15 @@ describe('judgeBoard', () => {
     })
   })
 
-  it('withoutRead が skip を返した Issue は除外し、判定用のデータを返した Issue はそのデータで判定する', async () => {
-    await explains('前提の取得を省略できる仕組み（`withoutRead`）のテストです。`skip` を返した Issue が判定の対象から除外され、データを返した Issue はそのデータで判定されて、API を呼び出さないことを確認します。')
-    const { client, server } = await step('GitHub の偽サーバを起動する', async () => await startClient([]))
+  it('withoutRead が skip を返した Issue は除外し、undefined を返した Issue は前提を読んで判定する', async () => {
+    await explains('前提の取得を省略できる仕組み（`withoutRead`）のテストです。`skip` を返した Issue は判定の対象から除外され、ほかの Issue だけが前提を読んで判定されることを確認します。')
+    const { client, server } = await step('GitHub の偽サーバを起動する', async () => await startClient([prerequisitesRule({ number: 2, column: 'Ready' })]))
     const judged = await step('ボードの Issue を判定する', async () => await judgeBoard(client, config(), [item(1, 'Ready'), item(2, 'Ready')], new Map(), {
       columns: SYNCED_COLUMNS,
-      withoutRead: (target: BoardTarget) => target.ref.number === 1
-        ? 'skip'
-        : snapshotWithoutPrerequisites(config(), { title: 'T', target: { ref: target.ref, state: 'open', column: 'Ready', label: undefined, kind: 'task', branches: [], pullRequests: [] }, parent: undefined }),
+      withoutRead: (target: BoardTarget) => (target.ref.number === 1 ? 'skip' : undefined),
     }))
     stepSync('結果を確認する', () => {
-      expect({ judged: judged?.map(target => [target.target.key, judgedOf(target).readiness?.kind]), requests: graphqlRequests(server) }).toEqual({ judged: [['acme/demo#2', 'startable']], requests: [] })
+      expect({ judged: judged?.map(target => [target.target.key, judgedOf(target).readiness?.kind]), operations: graphqlRequests(server).map(request => request.operation) }).toEqual({ judged: [['acme/demo#2', 'startable']], operations: ['GetIssuePrerequisites'] })
     })
   })
 

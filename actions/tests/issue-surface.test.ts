@@ -1,16 +1,8 @@
-import { describe, expect, it } from 'vitest'
-
-import { explains } from '../../../tests/_helpers/explains.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { JsonValue } from '@pecot/workflow-core/domain/python-format.js'
-import type { IssueCoverage } from '../issue-surface.js'
-import {
-  checkIssueCoverage,
-  diffIssueSurface,
-  extractIssueSurface,
-  hasIssueSurfaceDifference,
-  issueCoverageSchema,
-} from '../issue-surface.js'
+import { extractIssueSurface, fetchIssueSurfaceSources, GRAPHQL_SCHEMA_URL, restDescriptionUrl } from '../src/infra/issue-surface.js'
+import { explains } from './_helpers/explains.js'
 
 // 公開スキーマの SDL の抜粋。範囲の外の型・項目・mutation も混ぜる
 const SDL = `
@@ -75,6 +67,8 @@ const EMPTY_SDL = 'type Query { ok: Boolean }'
 
 const CREATE_PATH = '/repos/{owner}/{repo}/issues'
 
+const REST_URL = 'https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.2022-11-28.json'
+
 function openapiOf(requestBody: JsonValue, components: JsonValue = {}): JsonValue {
   return {
     paths: {
@@ -111,6 +105,21 @@ const REST_ITEMS = [
   'rest:POST /repos/{owner}/{repo}/issues#labels',
   'rest:POST /repos/{owner}/{repo}/issues#title',
 ]
+
+function stubFetch(responses: ReadonlyMap<string, Response>): string[] {
+  const requested: string[] = []
+  vi.stubGlobal('fetch', (url: string) => {
+    requested.push(url)
+    const response = responses.get(url)
+    return Promise.resolve(response ?? new Response('missing', { status: 404, statusText: 'Not Found' }))
+  })
+  return requested
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.useRealTimers()
+})
 
 describe('extractIssueSurface', () => {
   it('対象の型の項目と値、Issue を対象にする mutation、REST の起票の本文の項目を、コードポイントの順に返す', async () => {
@@ -171,100 +180,40 @@ describe('extractIssueSurface', () => {
   })
 })
 
-const HANDLERS = ['labels', 'milestone']
-const TOOLS = ['issue_check', 'issue_dependency_check']
-
-function coverageOf(items: readonly unknown[]): IssueCoverage {
-  return issueCoverageSchema.parse({ items })
-}
-
-describe('checkIssueCoverage', () => {
-  const surface = ['graphql:A.a', 'graphql:A.b', 'graphql:A.c']
-
-  it('スナップショットのすべての項目が一覧に存在し、組み合わせも正しい場合は、問題を返さない', async () => {
-    await explains('対応状況の一覧（`issue-coverage.yaml`）を検証する `checkIssueCoverage` のテストです。スナップショットのすべての項目が一覧にあり、`supported` と `excluded` の組み合わせが正しい場合に、問題を 1 件も返さないことを確認します。')
-    const coverage = coverageOf([
-      { id: 'graphql:A.a', status: 'supported', handler: 'labels' },
-      { id: 'graphql:A.b', status: 'supported', tool: 'issue_dependency_check' },
-      { id: 'graphql:A.c', status: 'excluded', reason: 'preview' },
-    ])
-    expect(checkIssueCoverage(surface, coverage, HANDLERS, TOOLS)).toEqual([])
-  })
-
-  it('問題ごとに id を示し、id の順に返す', async () => {
-    await explains('`checkIssueCoverage` が返す問題のテストです。一覧への未登録・`handler` と `tool` の指定の誤り・重複・スナップショットに存在しない項目を、それぞれ id を示した文にして、id の順に返すことを確認します。')
-    const coverage = coverageOf([
-      { id: 'graphql:A.c', status: 'supported' },
-      { id: 'graphql:A.c', status: 'excluded', reason: 'preview' },
-      { id: 'graphql:Z.z', status: 'supported', handler: 'labels' },
-      { id: 'graphql:A.b', status: 'supported', handler: 'labels', tool: 'issue_check' },
-    ])
-    expect(checkIssueCoverage(surface, coverage, HANDLERS, TOOLS)).toEqual([
-      'graphql:A.a: not in issue-coverage.yaml',
-      'graphql:A.b: supported needs exactly one of handler or tool',
-      'graphql:A.c: listed more than once',
-      'graphql:A.c: supported needs exactly one of handler or tool',
-      'graphql:Z.z: not in github-issue-surface.json',
-    ])
-  })
-
-  it.for([
-    { name: 'handler が ATTRIBUTE_HANDLERS に存在しない', entry: { handler: 'parent' }, expected: 'handler parent is not in ATTRIBUTE_HANDLERS' },
-    { name: 'tool が TOOLS に存在しない', entry: { tool: 'issue_link' }, expected: 'tool issue_link is not an MCP tool of TOOLS' },
-    { name: 'supported に reason がある', entry: { handler: 'labels', reason: 'x' }, expected: 'supported must not have a reason' },
-    { name: 'excluded に handler がある', entry: { status: 'excluded', handler: 'labels', reason: 'x' }, expected: 'excluded must not have handler or tool' },
-    { name: 'excluded に tool がある', entry: { status: 'excluded', tool: 'issue_check', reason: 'x' }, expected: 'excluded must not have handler or tool' },
-  ])('$name 場合は、id を示した問題を返す', async ({ entry, expected }) => {
-    await explains('`supported` と `excluded` の項目の指定を検証する `checkIssueCoverage` のテストです。存在しない `handler` や `tool`、`supported` の `reason`、`excluded` の `handler` や `tool` を指定した場合に、id を示した問題を 1 件返すことを確認します。')
-    const coverage = coverageOf([{ id: 'graphql:A.a', status: 'supported', ...entry }])
-    expect(checkIssueCoverage(['graphql:A.a'], coverage, HANDLERS, TOOLS)).toEqual([`graphql:A.a: ${expected}`])
-  })
-
-  it.for([
-    { name: 'reason が存在しない', entry: {} },
-    { name: 'reason が空白だけ', entry: { reason: '  ' } },
-  ])('excluded の $name 場合は、スキーマの検証で止めず、id を示した問題を返す', async ({ entry }) => {
-    await explains('`excluded` の項目に `reason` がない場合の `checkIssueCoverage` のテストです。`reason` が存在しない場合も空白だけの場合も、スキーマの検証では拒否せず、`excluded needs a reason` の問題を id とともに返すことを確認します。')
-    const coverage = coverageOf([{ id: 'graphql:A.a', status: 'excluded', ...entry }])
-    expect(checkIssueCoverage(['graphql:A.a'], coverage, HANDLERS, TOOLS)).toEqual(['graphql:A.a: excluded needs a reason'])
+describe('restDescriptionUrl', () => {
+  it('版を、rest-api-description のその版のファイルを指す URL にする', async () => {
+    await explains('OpenAPI の取得先を作成する `restDescriptionUrl` のテストです。版 `2022-11-28` を渡した場合に、`rest-api-description` のその版のファイルを指す URL を返すことを確認します。')
+    expect(restDescriptionUrl('2022-11-28')).toBe(REST_URL)
   })
 })
 
-describe('issueCoverageSchema', () => {
-  it.for([
-    { name: '未定義のキー', entry: { id: 'graphql:A.a', status: 'excluded', reason: 'x', note: 'x' } },
-    { name: '未定義の status', entry: { id: 'graphql:A.a', status: 'partial' } },
-    { name: 'id が存在しない項目', entry: { status: 'excluded', reason: 'x' } },
-  ])('$name を含む項目は、スキーマの検証で拒否する', async ({ entry }) => {
-    await explains('対応状況の一覧のスキーマ `issueCoverageSchema` のテストです。未定義のキーや `status`、`id` が存在しない項目を含む一覧を渡した場合に、検証に失敗することを確認します。')
-    expect(issueCoverageSchema.safeParse({ items: [entry] }).success).toBe(false)
-  })
-})
-
-describe('diffIssueSurface', () => {
-  it('現在あってスナップショットにない id を added に、スナップショットにあって現在にない id を removed に、コードポイントの順に返す', async () => {
-    await explains('スナップショットと現在の項目の差を求める `diffIssueSurface` のテストです。現在だけにある id を `added`、スナップショットだけにある id を `removed` として、それぞれコードポイントの順に返すことを確認します。')
-    const snapshot = ['graphql:B.b', 'graphql:A.a', 'graphql:a.x']
-    const current = ['graphql:a.x', 'rest:POST /repos/{owner}/{repo}/issues#type', 'graphql:Z.z', 'graphql:C.c']
-    expect(diffIssueSurface(snapshot, current)).toEqual({
-      added: ['graphql:C.c', 'graphql:Z.z', 'rest:POST /repos/{owner}/{repo}/issues#type'],
-      removed: ['graphql:A.a', 'graphql:B.b'],
+describe('fetchIssueSurfaceSources', () => {
+  it('SDL と指定した版の OpenAPI を取得し、本文と、取得元の URL・版・日時を返す', async () => {
+    await explains('GitHub の SDL と OpenAPI を取得する `fetchIssueSurfaceSources` のテストです。2 つの URL へ要求を送り、SDL の本文と解析した OpenAPI、取得元の URL・版・取得日時を返すことを確認します。')
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-25T01:02:03.000Z'))
+    const requested = stubFetch(new Map([
+      [GRAPHQL_SCHEMA_URL, new Response('type Query { ok: Boolean }')],
+      [REST_URL, new Response('{"paths":{}}')],
+    ]))
+    const fetched = await fetchIssueSurfaceSources('2022-11-28')
+    expect(new Set(requested)).toEqual(new Set([GRAPHQL_SCHEMA_URL, REST_URL]))
+    expect(fetched).toEqual({
+      sdl: 'type Query { ok: Boolean }',
+      openapi: { paths: {} },
+      sources: { graphql: GRAPHQL_SCHEMA_URL, rest: REST_URL, rest_api_version: '2022-11-28', fetched_at: '2026-11-25T01:02:03.000Z' },
     })
   })
 
-  it('同じ集合の場合は、並びが違っても、差を空にして返す', async () => {
-    await explains('スナップショットと現在の項目の差を求める `diffIssueSurface` のテストです。同じ id を別の並びで渡した場合に、`added` と `removed` がどちらも空になることを確認します。')
-    expect(diffIssueSurface(['graphql:B.b', 'graphql:A.a'], ['graphql:A.a', 'graphql:B.b'])).toEqual({ added: [], removed: [] })
+  it('HTTP の取得に失敗した場合は、URL と状態を含む例外を送出する', async () => {
+    await explains('OpenAPI の取得が失敗する場合の `fetchIssueSurfaceSources` のテストです。HTTP の状態が `404` の場合に、`GET <URL> failed: 404 Not Found` のメッセージで例外が発生することを確認します。')
+    stubFetch(new Map([[GRAPHQL_SCHEMA_URL, new Response('type Query { ok: Boolean }')]]))
+    await expect(fetchIssueSurfaceSources('2099-01-01')).rejects.toThrow(`GET ${restDescriptionUrl('2099-01-01')} failed: 404 Not Found`)
   })
-})
 
-describe('hasIssueSurfaceDifference', () => {
-  it.for([
-    { name: '増えた id だけ', diff: { added: ['graphql:A.a'], removed: [] }, expected: true },
-    { name: '消えた id だけ', diff: { added: [], removed: ['graphql:A.a'] }, expected: true },
-    { name: 'どちらも空', diff: { added: [], removed: [] }, expected: false },
-  ])('$name なら $expected を返す', async ({ diff, expected }) => {
-    await explains('差の有無を判定する `hasIssueSurfaceDifference` のテストです。`added` と `removed` のどちらかに id がある場合は `true`、どちらも空の場合は `false` を返すことを確認します。')
-    expect(hasIssueSurfaceDifference(diff)).toBe(expected)
+  it('OpenAPI が JSON でない場合は、例外を送出する', async () => {
+    await explains('OpenAPI の本文が JSON でない場合の `fetchIssueSurfaceSources` のテストです。取得した本文を JSON として読めないときに、例外が発生することを確認します。')
+    stubFetch(new Map([[GRAPHQL_SCHEMA_URL, new Response('type Query { ok: Boolean }')], [REST_URL, new Response('{')]]))
+    await expect(fetchIssueSurfaceSources('2022-11-28')).rejects.toThrow(Error)
   })
 })

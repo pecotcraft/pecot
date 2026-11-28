@@ -13,7 +13,6 @@
     ]
   },
   "stderr": "",
-  "requests": [],
   "files": {
     "../../wt1/demo/.gitignore": ".pecot/\n",
     "../../wt1/demo/CLAUDE.local.md": "ローカル向けの指示\n",

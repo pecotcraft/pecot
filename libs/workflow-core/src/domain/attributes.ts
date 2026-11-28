@@ -157,12 +157,6 @@ export interface AttributeReading {
   readonly value: AttributeValue
 }
 
-export interface UnsupportedAttribute {
-  readonly name: string
-  readonly source: AttributeSource
-  readonly githubType: string
-}
-
 /**
 ボードのフィールドの形。options は選択肢か Iteration で、無い種類は空
 */
@@ -194,20 +188,6 @@ const ISSUE_FIELD_KINDS: ReadonlySet<string> = new Set(['TEXT', 'NUMBER', 'DATE'
 
 // Issue の機能を写すボードのフィールド。source: issue の組み込みで出す
 const BUILTIN_PROJECT_FIELD_TYPES: ReadonlySet<string> = new Set(['ASSIGNEES', 'LABELS', 'MILESTONE', 'ISSUE_TYPE', 'PARENT_ISSUE'])
-
-// GitHub が計算するボードのフィールド
-const COMPUTED_PROJECT_FIELD_TYPES: ReadonlySet<string> = new Set([
-  'TITLE',
-  'REPOSITORY',
-  'REVIEWERS',
-  'LINKED_PULL_REQUESTS',
-  'TRACKS',
-  'TRACKED_BY',
-  'CREATED',
-  'UPDATED',
-  'CLOSED',
-  'SUB_ISSUES_PROGRESS',
-])
 
 const KINDS_WITH_OPTIONS: ReadonlySet<AttributeKind> = new Set<AttributeKind>(['single_select', 'multi_select', 'iteration', 'milestone', 'issue_type', 'labels'])
 
@@ -243,77 +223,6 @@ export function issueFieldValueKind(dataType: string): AttributeKind {
 export function issueFieldDefinition(field: Readonly<IssueFieldShape>): AttributeDefinition {
   const kind = issueFieldValueKind(field.dataType)
   return kind === 'unsupported' ? unsupportedDefinition(field.name, 'issue_field', field.dataType) : definition(field.name, 'issue_field', kind, field.options, true)
-}
-
-export interface BuiltinChoices {
-  readonly milestones: readonly string[]
-  /**
-  Issue type を読めない環境（GHES）では undefined。type の定義を出さない
-  */
-  readonly issueTypes: readonly string[] | undefined
-  readonly labels: readonly string[]
-}
-
-const named = (names: readonly string[]): readonly AttributeOption[] => names.map(name => ({ name }))
-
-/**
-組み込みの機能の定義。parent・blocked_by は、書く道を issue_write・sub_issue_write と issue_dependency_write にするので書けない
-*/
-export function builtinDefinitions(choices: Readonly<BuiltinChoices>): readonly AttributeDefinition[] {
-  return [
-    definition('assignees', 'issue', 'users', [], true),
-    definition('milestone', 'issue', 'milestone', named(choices.milestones), true),
-    ...choices.issueTypes === undefined ? [] : [definition('type', 'issue', 'issue_type', named(choices.issueTypes), true)],
-    definition('labels', 'issue', 'labels', named(choices.labels), true),
-    definition('parent', 'issue', 'issue_ref', [], false),
-    definition('blocked_by', 'issue', 'issue_refs', [], false),
-  ]
-}
-
-export type ProjectValueTreatment
-  = | { readonly treatment: 'read', readonly kind: AttributeKind }
-    | { readonly treatment: 'skip' }
-    | { readonly treatment: 'unsupported' }
-
-/**
-ボードの値の扱い。システムのフィールドと Issue field を写したフィールドの値は、ほかの source で出すので読み捨てる
-*/
-export function projectValueTreatment(dataType: string, isIssueField: boolean): ProjectValueTreatment {
-  if (isIssueField || BUILTIN_PROJECT_FIELD_TYPES.has(dataType) || COMPUTED_PROJECT_FIELD_TYPES.has(dataType)) return { treatment: 'skip' }
-  const kind = FIELD_KINDS.get(dataType)
-  return kind === undefined ? { treatment: 'unsupported' } : { treatment: 'read', kind }
-}
-
-export interface BuiltinValues {
-  readonly assignees: readonly string[]
-  readonly milestone: string | undefined
-  readonly issueType: string | undefined
-  readonly labels: readonly string[]
-}
-
-function reading(name: string, kind: AttributeKind, value: AttributeValue | undefined): readonly AttributeReading[] {
-  const isEmpty = value === undefined || (Array.isArray(value) && value.length === 0)
-  return isEmpty ? [] : [{ name, source: 'issue', kind, value }]
-}
-
-/**
-値のある組み込みの機能（parent・blocked_by を除く）
-*/
-export function builtinReadings(values: Readonly<BuiltinValues>): readonly AttributeReading[] {
-  return [
-    ...reading('assignees', 'users', values.assignees),
-    ...reading('milestone', 'milestone', values.milestone),
-    ...reading('type', 'issue_type', values.issueType),
-    ...reading('labels', 'labels', values.labels),
-  ]
-}
-
-/**
-Markdown の 1 行に出す値。配列は「, 」でつなぐ
-*/
-export function formatAttributeValue(value: AttributeValue): string {
-  if (typeof value === 'number') return String(value)
-  return typeof value === 'string' ? value : value.join(', ')
 }
 
 export type WritableAttributeKind = Exclude<AttributeKind, 'issue_ref' | 'issue_refs' | 'unsupported'>

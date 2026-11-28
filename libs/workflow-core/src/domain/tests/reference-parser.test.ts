@@ -4,17 +4,7 @@ import { stepSync } from '../../../tests/_helpers/step.js'
 
 import { formatHinted } from '../command-hint.js'
 import { InvalidValueError } from '../errors.js'
-import {
-  createIssueReference,
-  extractReferencesIssueNumbers as extractReferencesIssueNumbers,
-  issueReferenceKey,
-  issueReferenceToCliReference,
-  issueReferenceToString,
-  parseIssueReference,
-  parsePullRequestReference,
-  parseRepositoryReference,
-  ReferenceParseError,
-} from '../reference-parser.js'
+import { createIssueReference, issueReferenceKey, issueReferenceToCliReference, issueReferenceToString, parseIssueReference, parsePullRequestReference, ReferenceParseError } from '../reference-parser.js'
 import { validationErrorTextOutput } from '../../../tests/_helpers/python-output.js'
 import { createRepositoryReference } from '../repository-resolver.js'
 
@@ -183,35 +173,6 @@ describe('parsePullRequestReference', () => {
   })
 })
 
-describe('parseRepositoryReference', () => {
-  it.each([
-    ['owner/repo', 'owner', 'repo'],
-    ['my-org/my-repo', 'my-org', 'my-repo'],
-    ['owner/repo.name', 'owner', 'repo.name'],
-  ])('%j のとき、owner と repository に分ける', async (raw, owner, repository) => {
-    await explains('リポジトリの参照を解析する `parseRepositoryReference` のテストです。`owner/repo` の形の文字列を渡した場合に、owner と repository に分けて返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(parseRepositoryReference(raw)).toEqual({ owner, repository })
-    })
-  })
-
-  it.each(['owner/repo/123', 'ownerrepo', ''])('%j を渡すと、参照エラーの例外が発生する', async (raw) => {
-    await explains('`parseRepositoryReference` に、`owner/repo` の形ではない文字列を渡した場合のテストです。区切りが多い場合や存在しない場合、空文字の場合に、参照エラーの例外が発生することを確認します。')
-    stepSync('例外を確かめる', () => {
-      expect(() => parseRepositoryReference(raw)).toThrow(ReferenceParseError)
-    })
-  })
-
-  it('セグメントが不正な場合も、参照エラーに包み、元の入力を保持する', async () => {
-    await explains('owner や repository の部分が不正な場合のテストです。検証エラーを参照エラーに包んで例外を発生させ、元の入力を保持することを、Python の実際の出力と同じ文で確認します。')
-    const error = stepSync('参照の解析で出る例外を受け取る', () => thrownBy(() => parseRepositoryReference('a b/c')))
-    stepSync('結果を比べる', () => {
-      expect(error.reference).toBe('a b/c')
-      expect(error.message).toContain('1 validation error for RepoRef\nowner\n')
-    })
-  })
-})
-
 describe('issueReferenceKey', () => {
   it('リポジトリ名の大文字と小文字を区別しないキーを返す', async () => {
     await explains('Issue 参照のキーを作る `issueReferenceKey` のテストです。リポジトリ名の大文字と小文字だけが異なる 2 つの参照が、同じ小文字のキー `acme/app#3` になることを確認します。')
@@ -245,119 +206,6 @@ describe('IssueReference', () => {
     await explains('Issue 参照を作る `createIssueReference` のテストです。番号に 0 や負の数を渡した場合に、検証エラーの例外が発生することを確認します。')
     stepSync('例外を確かめる', () => {
       expect(() => createIssueReference(createRepositoryReference('o', 'r'), number)).toThrow(InvalidValueError)
-    })
-  })
-})
-
-describe('extractReferencesIssueNumbers', () => {
-  const pullRepository = createRepositoryReference('acme-labs', 'aist-plugin')
-  const extract = (body: string | undefined): readonly number[] => [...extractReferencesIssueNumbers(body, pullRepository)].toSorted((a, b) => a - b)
-
-  it('Refs #N の行から Issue 番号を取り出す', async () => {
-    await explains('本文から Issue 番号を取り出す `extractReferencesIssueNumbers` のテストです。`Refs #935` の行がある本文を渡した場合に、Issue 番号の 935 を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('変更内容\n\nRefs #935')).toEqual([935])
-    })
-  })
-
-  it('Refs を複数行に並べると、すべての番号を返す', async () => {
-    await explains('`Refs` の行が複数ある本文のテストです。複数の行に並んだ `Refs` から、すべての番号を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('Refs #100\nRefs #200')).toEqual([100, 200])
-    })
-  })
-
-  it('Ref と単数形で書いても、番号を返す', async () => {
-    await explains('単数形の `Ref` で書いた参照のテストです。`Ref #42` と書いた場合も、番号を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('Ref #42')).toEqual([42])
-    })
-  })
-
-  it('大文字と小文字を区別せずに、Refs を取り出す', async () => {
-    await explains('`Refs` の大文字と小文字のテストです。小文字の `refs #10` と書いた場合も、番号を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('refs #10')).toEqual([10])
-    })
-  })
-
-  it('Refs が存在しなければ、空を返す', async () => {
-    await explains('`Refs` が存在しない本文のテストです。`Refs` を含まない本文を渡した場合に、空の配列を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('本文のみ')).toEqual([])
-    })
-  })
-
-  it('本文が undefined か空文字なら、空を返す', async () => {
-    await explains('本文が存在しない場合のテストです。本文が `undefined` の場合と空文字の場合に、どちらも空の配列を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract(undefined)).toEqual([])
-      expect(extract('')).toEqual([])
-    })
-  })
-
-  it('Fixes は、番号を取り出さない', async () => {
-    await explains('`Fixes` を使った参照のテストです。`Fixes #123` と書いた場合は、`Refs` ではないため、空の配列を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('Fixes #123')).toEqual([])
-    })
-  })
-
-  it('文の途中にある Refs からも、番号を返す', async () => {
-    await explains('文の途中にある `Refs` のテストです。文章の中に `Refs #55` を書いた場合も、番号を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('この変更は Refs #55 に関連')).toEqual([55])
-    })
-  })
-
-  it('Refs の直前が空白や行頭でない場合は、番号を取り出さない', async () => {
-    await explains('`Refs` の直前の文字のテストです。`xRefs #7` のように、直前が空白や行頭でない `Refs` からは、番号を返さないことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('xRefs #7')).toEqual([])
-    })
-  })
-
-  it('Refs の直後にコロンがあっても、番号を返す', async () => {
-    await explains('`Refs` の直後に付くコロンのテストです。`Refs: #171` のように、`Refs` の直後にコロンがある場合も、番号を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('Refs: #171')).toEqual([171])
-      expect(extract('Refs: #251 (Epic: #43)')).toEqual([251])
-    })
-  })
-
-  it('同じリポジトリを owner/repo#N や owner/repo/N で書くと、番号を返す', async () => {
-    await explains('同じリポジトリを書き方を変えて参照した場合のテストです。`owner/repo#N` の形と `owner/repo/N` の形のどちらでも、番号を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('Refs: acme-labs/aist-plugin#227')).toEqual([227])
-      expect(extract('Refs acme-labs/aist-plugin/228')).toEqual([228])
-    })
-  })
-
-  it('同じリポジトリの判定では、大文字と小文字を区別しない', async () => {
-    await explains('同じリポジトリかどうかの判定のテストです。参照に書かれたリポジトリ名の大文字と小文字が異なる場合も、同じリポジトリとみなして番号を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('Refs ACme-labs/AIST-Plugin#9')).toEqual([9])
-    })
-  })
-
-  it('他のリポジトリの参照は、無視する', async () => {
-    await explains('他のリポジトリの参照のテストです。別のリポジトリを指す `Refs` は、`owner/repo#N` の形でも `owner/repo/N` の形でも、番号を返さないことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('Refs acme-labs/pecot-presentation#264\nRefs other/aist-plugin/5')).toEqual([])
-    })
-  })
-
-  it('書式の違う参照を混ぜると、同じリポジトリの番号だけを返す', async () => {
-    await explains('書き方の異なる参照が混在する本文のテストです。同じリポジトリの参照だけを選び、別のリポジトリの参照は除いて、番号を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('Refs #1\nRef: acme-labs/aist-plugin#2\nRefs other/repo#3\nrefs acme-labs/aist-plugin/4')).toEqual([1, 2, 4])
-    })
-  })
-
-  it('# と owner/repo のどちらも付いていない番号は、取り出さない', async () => {
-    await explains('番号だけを書いた参照のテストです。`Refs 12` のように、`#` と `owner/repo` のどちらも付いていない番号からは、空の配列を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(extract('Refs 12')).toEqual([])
     })
   })
 })

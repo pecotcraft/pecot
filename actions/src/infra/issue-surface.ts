@@ -1,22 +1,24 @@
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- graphql の AST と zod の型は変えられない */
-// GitHub の Issue の機能の写し（SDL と OpenAPI から抜く項目）と、担保の一覧との照らし合わせ・今のスキーマとの差。
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- graphql の AST の型は変えられない */
+// GitHub の公開スキーマ（SDL）と REST の OpenAPI を取り、Issue の機能の写しの項目を抜く。どちらも認証なしで取れる。
 import type { ConstDirectiveNode, DefinitionNode, InputObjectTypeDefinitionNode, TypeNode } from 'graphql'
 import { Kind, parse } from 'graphql'
-import { z } from 'zod'
 
 import { compareCodePoints } from '@pecot/workflow-core/domain/fuzzy.js'
-import { isJsonObject, jsonField } from '@pecot/workflow-core/domain/json.js'
+import type { IssueSurface } from '@pecot/workflow-core/domain/issue-surface.js'
+import { isJsonObject, jsonField, parseJsonText } from '@pecot/workflow-core/domain/json.js'
 import type { JsonValue } from '@pecot/workflow-core/domain/python-format.js'
+
+export const GRAPHQL_SCHEMA_URL = 'https://docs.github.com/public/fpt/schema.docs.graphql'
+
+const REST_DESCRIPTION_BASE = 'https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com'
+
+const FETCH_TIMEOUT_MS = 120_000
 
 const INPUT_TYPES = ['CreateIssueInput', 'UpdateIssueInput', 'ProjectV2FieldValue']
 
 const ENUM_TYPES: ReadonlySet<string> = new Set(['ProjectV2FieldType', 'ProjectV2CustomFieldType', 'IssueFieldDataType'])
 
 const CREATE_ISSUE_PATH = '/repos/{owner}/{repo}/issues'
-
-const COVERAGE_FILE = 'issue-coverage.yaml'
-
-const SURFACE_FILE = 'github-issue-surface.json'
 
 function namedTypeOf(type: TypeNode): string {
   return type.kind === Kind.NAMED_TYPE ? type.name.value : namedTypeOf(type.type)
@@ -100,87 +102,33 @@ export function extractIssueSurface(sdl: string, openapi: JsonValue): string[] {
   return [...graphqlItems(parse(sdl).definitions), ...restItems(openapi)].toSorted(compareCodePoints)
 }
 
-const coverageEntrySchema = z.strictObject({
-  id: z.string(),
-  status: z.enum(['supported', 'excluded']),
-  handler: z.string().optional(),
-  tool: z.string().optional(),
-  reason: z.string().optional(),
-})
+export function restDescriptionUrl(apiVersion: string): string {
+  return `${REST_DESCRIPTION_BASE}/api.github.com.${apiVersion}.json`
+}
 
-/**
-担保の一覧（issue-coverage.yaml）の形。組み合わせの誤りは id を挙げるため checkIssueCoverage で見る
-*/
-export const issueCoverageSchema = z.strictObject({ items: z.array(coverageEntrySchema) })
+interface IssueSurfaceSources {
+  readonly sdl: string
+  readonly openapi: JsonValue
+  readonly sources: IssueSurface['sources']
+}
 
-export type IssueCoverage = z.infer<typeof issueCoverageSchema>
+async function fetchText(url: string): Promise<string> {
+  const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
+  if (!response.ok) throw new Error(`GET ${url} failed: ${String(response.status)} ${response.statusText}`)
+  return response.text()
+}
 
-type CoverageEntry = IssueCoverage['items'][number]
-
-/**
-写し（github-issue-surface.json）の形
-*/
-export const issueSurfaceSchema = z.strictObject({
-  sources: z.strictObject({ graphql: z.string(), rest: z.string(), rest_api_version: z.string(), fetched_at: z.string() }),
-  items: z.array(z.string()),
-})
-
-export type IssueSurface = z.infer<typeof issueSurfaceSchema>
-
-function entryProblems(entry: Readonly<CoverageEntry>, handlers: ReadonlySet<string>, tools: ReadonlySet<string>): string[] {
-  const { handler, tool } = entry
-  if (entry.status === 'excluded') {
-    if (handler !== undefined || tool !== undefined) return ['excluded must not have handler or tool']
-    return (entry.reason ?? '').trim() === '' ? ['excluded needs a reason'] : []
-  }
-  if (entry.reason !== undefined) return ['supported must not have a reason']
-  if ((handler === undefined) === (tool === undefined)) return ['supported needs exactly one of handler or tool']
-  if (handler !== undefined && !handlers.has(handler)) return [`handler ${handler} is not in ATTRIBUTE_HANDLERS`]
-  if (tool !== undefined && !tools.has(tool)) return [`tool ${tool} is not an MCP tool of TOOLS`]
-  return []
+async function fetchJson(url: string): Promise<JsonValue> {
+  return parseJsonText(await fetchText(url))
 }
 
 /**
-写しの項目と担保の一覧を照らし、問題を「id: 文」の形で id の順に返す。問題が無ければ空。
-handlers は ATTRIBUTE_HANDLERS の鍵、tools は TOOLS の MCP のツール名
+SDL と、apiVersion の版の OpenAPI を取る。sources には取った URL・版・取り始めの日時を入れる。
+取れないときと OpenAPI が JSON でないときは投げる
 */
-export function checkIssueCoverage(items: readonly string[], coverage: Readonly<IssueCoverage>, handlers: readonly string[], tools: readonly string[]): string[] {
-  const surface = new Set(items)
-  const handlerSet = new Set(handlers)
-  const toolSet = new Set(tools)
-  const seen = new Set<string>()
-  const problems: (readonly [string, string])[] = []
-  for (const entry of coverage.items) {
-    if (seen.has(entry.id)) problems.push([entry.id, 'listed more than once'])
-    seen.add(entry.id)
-    if (!surface.has(entry.id)) problems.push([entry.id, `not in ${SURFACE_FILE}`])
-    for (const problem of entryProblems(entry, handlerSet, toolSet)) problems.push([entry.id, problem])
-  }
-  for (const id of items) {
-    if (!seen.has(id)) problems.push([id, `not in ${COVERAGE_FILE}`])
-  }
-  return problems
-    .toSorted(([leftId, left], [rightId, right]) => compareCodePoints(leftId, rightId) || compareCodePoints(left, right))
-    .map(([id, problem]) => `${id}: ${problem}`)
-}
-
-/**
-写しと今の抜き出しの差。added は今にあって写しに無い id、removed は写しにあって今に無い id。どちらも符号位置の順
-*/
-export interface IssueSurfaceDiff {
-  readonly added: readonly string[]
-  readonly removed: readonly string[]
-}
-
-export function diffIssueSurface(snapshot: readonly string[], current: readonly string[]): IssueSurfaceDiff {
-  const before = new Set(snapshot)
-  const after = new Set(current)
-  return {
-    added: [...after].filter(id => !before.has(id)).toSorted(compareCodePoints),
-    removed: [...before].filter(id => !after.has(id)).toSorted(compareCodePoints),
-  }
-}
-
-export function hasIssueSurfaceDifference(diff: Readonly<IssueSurfaceDiff>): boolean {
-  return diff.added.length > 0 || diff.removed.length > 0
+export async function fetchIssueSurfaceSources(apiVersion: string): Promise<IssueSurfaceSources> {
+  const fetchedAt = new Date().toISOString()
+  const rest = restDescriptionUrl(apiVersion)
+  const [sdl, openapi] = await Promise.all([fetchText(GRAPHQL_SCHEMA_URL), fetchJson(rest)])
+  return { sdl, openapi, sources: { graphql: GRAPHQL_SCHEMA_URL, rest, rest_api_version: apiVersion, fetched_at: fetchedAt } }
 }

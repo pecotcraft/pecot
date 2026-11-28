@@ -4,4 +4,3 @@ tool: project_get
 arguments:
   key: foo
 setup: {}
-github: []

@@ -31,47 +31,14 @@ cp .pecot/config/hooks-config.json.sample .pecot/config/hooks-config.json
 - `false`: 無効（フックをスキップする）
 - キーが存在しない場合: デフォルト値で動作
 
-## hosts.json
-
-GitHubホスト定義ファイル。`.pecot/config/` に配置。
-セッション開始時にサンプルから初回コピーされる（既存ファイルは上書きしない）。
-
-```bash
-# サンプルからコピーして作成（セッション開始時に自動実行）
-cp .pecot/config/hosts.json.sample .pecot/config/hosts.json
-```
-
-各ホストの設定:
-
-| フィールド | 説明 |
-|-----------|------|
-| `env_var` | トークンを格納する環境変数名 |
-| `token_url` | Personal Access Token の作成URL |
-| `scopes` | 必要なトークンスコープ |
-| `description` | ホストの説明 |
-
-## .env
-
-GitHub Personal Access Token を格納する環境変数ファイル。`.pecot/config/` に配置。
-セッション開始時にサンプルから初回コピーされる（既存ファイルは上書きしない）。
-
-```bash
-# サンプルからコピーして作成（セッション開始時に自動実行）
-cp .pecot/config/.env.sample .pecot/config/.env
-```
-
-hosts.json で定義された各ホストの `env_var` に対応するトークンを設定する。
-
 ## Claude Code が作る worktree
 
-Claude Code が作る worktree（`claude --worktree`・desktop app の worktree のセッション）には、上の 3 つのファイルが無い。
-最初の SessionStart から main worktree と同じ設定で動かすには、リポのルートの `.worktreeinclude` に次の 3 行を書く。
+Claude Code が作る worktree（`claude --worktree`・desktop app の worktree のセッション）には、上のファイルが無い。
+最初の SessionStart から main worktree と同じ設定で動かすには、リポのルートの `.worktreeinclude` に次の行を書く。
 Claude Code が worktree を作るときに、main worktree からコピーする。
 
 ```text
 .pecot/config/hooks-config.json
-.pecot/config/hosts.json
-.pecot/config/.env
 ```
 
 依存の導入（`worktree-config.json` の `setup_command`）は、`worktree-setup` のフックが最初のセッション開始で流す。

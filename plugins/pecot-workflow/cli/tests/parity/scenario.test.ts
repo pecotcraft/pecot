@@ -22,34 +22,18 @@ arguments: { pr_ref: acme/demo#1 }
 
 describe('parseScenario', () => {
   it('省略したキーには、既定値が設定される', async () => {
-    await explains('シナリオの読み込みのテストです。省略した `setup`・`github` などのキーに、既定のリポジトリ設定や空の配列といった既定値が設定されることを確認します。')
+    await explains('シナリオの読み込みのテストです。省略した `setup` などのキーに、既定のリポジトリ設定や既定のディレクトリといった既定値が設定されることを確認します。')
     const scenario = parseScenario('pr-show-ok', MINIMAL)
     expect(scenario.tool).toBe('pr_show')
     expect(scenario.arguments).toEqual({ pr_ref: 'acme/demo#1' })
     expect(scenario.setup.repo).toEqual({ owner: 'acme', name: 'demo', host: 'ghes.example.com', branch: 'main', commits: [], branches: [], tags: [], worktrees: [], files: {} })
     expect(scenario.setup.cwd).toBe('.')
     expect(scenario.setup.ghToken).toBeUndefined()
-    expect(scenario.github).toEqual([])
   })
 
   it('arguments を省略すると、空のオブジェクトになる', async () => {
     await explains('シナリオの `arguments` の読み込みのテストです。`arguments` を省略したシナリオが、空のオブジェクトを渡すシナリオとして読み込まれることを確認します。')
     expect(parseScenario('pr-show-usage', 'id: pr-show-usage\ntool: pr_show\n').arguments).toEqual({})
-  })
-
-  it('github の応答は、times を省略すると 1 になる', async () => {
-    await explains('シナリオの `github` の応答の読み込みのテストです。`times` を省略した応答が、`times: 1` として読み込まれることを確認します。')
-    const scenario = parseScenario('pr-show-ok', `${MINIMAL}github:
-  - match: { operation: GetIssueSlim }
-    respond: { status: 200, body: { data: {} } }
-`)
-    expect(scenario.github).toEqual([
-      {
-        match: { method: undefined, path: undefined, operation: 'GetIssueSlim', query: undefined, variables: undefined, body: undefined },
-        respond: { status: 200, body: { data: {} }, text: undefined, headers: undefined },
-        times: 1,
-      },
-    ])
   })
 
   it.each([
@@ -60,10 +44,7 @@ describe('parseScenario', () => {
     ['tool が無い', 'pr-show-ok', 'id: pr-show-ok\n', 'tool が必要です'],
     ['未知のトップのキー', 'pr-show-ok', `${MINIMAL}extra: 1\n`, 'ルート に未知のキー'],
     ['CLI の形の command', 'pr-show-ok', `${MINIMAL}command: { path: [pr, show] }\n`, 'ルート に未知のキー'],
-    ['対応表に無い operation', 'pr-show-ok', `${MINIMAL}github:\n  - match: { operation: NoSuch }\n    respond: { status: 200 }\n`, '対応表'],
-    ['match が空', 'pr-show-ok', `${MINIMAL}github:\n  - match: {}\n    respond: { status: 200 }\n`, 'method・path・operation'],
-    ['status が整数でない', 'pr-show-ok', `${MINIMAL}github:\n  - match: { path: /a }\n    respond: { status: ok }\n`, 'status'],
-    ['times が 0', 'pr-show-ok', `${MINIMAL}github:\n  - match: { path: /a }\n    respond: { status: 200 }\n    times: 0\n`, 'times'],
+    ['GitHub の応答の github', 'pr-show-ok', `${MINIMAL}github: []\n`, 'ルート に未知のキー'],
     ['files の値が文字列でない', 'pr-show-ok', `${MINIMAL}setup:\n  repo:\n    files: { a: 1 }\n`, 'setup.repo.files.a'],
     ['branches に文字列', 'pr-show-ok', `${MINIMAL}setup:\n  repo:\n    branches: [release]\n`, 'name と commits を持つオブジェクト'],
     ['worktrees の name が wt で始まらない', 'pr-show-ok', `${MINIMAL}setup:\n  repo:\n    worktrees: [{ name: sub }]\n`, 'wt で始めて'],
@@ -77,8 +58,8 @@ describe('parseScenario', () => {
 
 describe('kindOf', () => {
   it('id のツール名の次の語を kind として返し、該当する語が存在しない場合は undefined を返す', async () => {
-    await explains('シナリオの種別を求める `kindOf` のテストです。`board-add-4xx-notfound` では `4xx`、`project-link-ok` では `ok`、判定できない `pr-show-bad` では `undefined` を返すことを確認します。')
-    expect(kindOf({ id: 'board-add-4xx-notfound', tool: 'board_add' })).toBe('4xx')
+    await explains('シナリオの種別を求める `kindOf` のテストです。`project-get-state-x` では `state`、`project-link-ok` では `ok`、判定できない `pr-show-bad` では `undefined` を返すことを確認します。')
+    expect(kindOf({ id: 'project-get-state-x', tool: 'project_get' })).toBe('state')
     expect(kindOf({ id: 'project-link-ok', tool: 'project_link' })).toBe('ok')
     expect(kindOf({ id: 'pr-show-bad', tool: 'pr_show' })).toBeUndefined()
   })
@@ -87,13 +68,13 @@ describe('kindOf', () => {
 describe('正規化', () => {
   const substitutions = [
     { from: '/tmp/pecot-parity-abc', to: '{{TMP}}' },
-    { from: 'http://127.0.0.1:4000', to: '{{GITHUB_API}}' },
+    { from: '/opt/pecot-plugin', to: '{{PLUGIN_ROOT}}' },
   ]
 
-  it('一時ディレクトリ・偽サーバの URL・YYYYMMDD-HHMMSS の日時を固定の文字列に置換し、ISO 形式の日時は置換しない', async () => {
-    await explains('出力の正規化のテストです。一時ディレクトリのパスと偽サーバの URL、`YYYYMMDD-HHMMSS` 形式の日時が `{{TMP}}` などの固定の文字列に置換され、ISO 形式の日時は変更されないことを確認します。')
-    const text = 'root=/tmp/pecot-parity-abc/x url=http://127.0.0.1:4000/graphql at 2026-03-04T05:06:07Z and 2026-03-04T05:06:07.123+09:00 name=20260304-050607'
-    expect(normalizeText(text, substitutions)).toBe('root={{TMP}}/x url={{GITHUB_API}}/graphql at 2026-03-04T05:06:07Z and 2026-03-04T05:06:07.123+09:00 name={{TIMESTAMP}}')
+  it('一時ディレクトリ・プラグインのパス・YYYYMMDD-HHMMSS の日時を固定の文字列に置換し、ISO 形式の日時は置換しない', async () => {
+    await explains('出力の正規化のテストです。一時ディレクトリとプラグインのパス、`YYYYMMDD-HHMMSS` 形式の日時が `{{TMP}}` などの固定の文字列に置換され、ISO 形式の日時は変更されないことを確認します。')
+    const text = 'root=/tmp/pecot-parity-abc/x plugin=/opt/pecot-plugin/cli at 2026-03-04T05:06:07Z and 2026-03-04T05:06:07.123+09:00 name=20260304-050607'
+    expect(normalizeText(text, substitutions)).toBe('root={{TMP}}/x plugin={{PLUGIN_ROOT}}/cli at 2026-03-04T05:06:07Z and 2026-03-04T05:06:07.123+09:00 name={{TIMESTAMP}}')
   })
 
   it('オブジェクトのキーと配列の要素にも、同じ置換を適用する', async () => {
@@ -137,7 +118,7 @@ describe('シナリオの網羅', () => {
   })
 
   it('片方だけの一覧のツールを除き、各ツールに ok と ok 以外のシナリオがあり、全体で state・usage の種別が含まれる', async () => {
-    await explains('ツールごとのシナリオの種別のテストです。片方だけの一覧（`ONE_SIDED`）のツールを除いて ok と ok 以外のシナリオが存在し、全体で `state`・`usage` の種別が含まれることを確認します。GitHub を呼ぶツールは残っていないので、`auth`・`4xx`・`5xx` は求めません。')
+    await explains('ツールごとのシナリオの種別のテストです。片方だけの一覧（`ONE_SIDED`）のツールを除いて ok と ok 以外のシナリオが存在し、全体で `state`・`usage` の種別が含まれることを確認します。')
     const kinds = new Map<string, Set<string>>()
     for (const id of ids) {
       const scenario = readScenario(id)

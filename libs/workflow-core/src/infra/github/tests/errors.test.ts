@@ -3,7 +3,7 @@ import { explains } from '../../../../tests/_helpers/explains.js'
 import { stepSync } from '../../../../tests/_helpers/step.js'
 
 import { PecotError } from '../../../domain/errors.js'
-import { asNotFoundError, GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError, isClosedByAnotherRequest, isMissingReferenceError } from '../errors.js'
+import { asNotFoundError, GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError, isClosedByAnotherRequest } from '../errors.js'
 
 describe('GitHubAPIError', () => {
   it('基本的なエラーは状態コードと本文を持たない', async () => {
@@ -54,40 +54,6 @@ describe('継承', () => {
     stepSync('継承とクラス名を確かめる', () => {
       expect(error).toBeInstanceOf(GitHubAPIError)
       expect(error.name).toBe(name)
-    })
-  })
-})
-
-describe('isMissingReferenceError', () => {
-  it.for([
-    { status: 404, expected: true },
-    { status: 422, expected: true },
-    { status: 403, expected: false },
-    { status: 500, expected: false },
-  ])('状態コード $status で本文に Reference does not exist があると $expected', async ({ status, expected }) => {
-    await explains('参照が存在しないエラーを判定する関数のテストです。状態コードが 404 か 422 で、本文に `Reference does not exist` を含む場合は `true`、403 や 500 の場合は `false` を返すことを確認します。')
-    const error = stepSync('本文に Reference does not exist を持つエラーを用意する', () => new GitHubAPIError('x', { statusCode: status, responseBody: '{"message":"Reference does not exist"}' }))
-    const isMatched = stepSync('isMissingReferenceError を呼ぶ', () => isMissingReferenceError(error))
-    stepSync('判定を比べる', () => {
-      expect(isMatched).toBe(expected)
-    })
-  })
-
-  it('本文が別の理由なら、404 でも false', async () => {
-    await explains('参照が存在しないエラーを判定する関数のテストです。本文が別の理由（`Not Found`）の場合に、状態コードが 404 でも `false` を返すことを確認します。')
-    const error = stepSync('別の理由の本文を持つエラーを用意する', () => new GitHubAPIError('x', { statusCode: 404, responseBody: '{"message":"Not Found"}' }))
-    const isMatched = stepSync('isMissingReferenceError を呼ぶ', () => isMissingReferenceError(error))
-    stepSync('判定を比べる', () => {
-      expect(isMatched).toBe(false)
-    })
-  })
-
-  it('本文が存在しない場合は、false を返す', async () => {
-    await explains('参照が存在しないエラーを判定する関数のテストです。本文が存在しない場合に、`false` を返すことを確認します。')
-    const error = stepSync('本文の無いエラーを用意する', () => new GitHubAPIError('x', { statusCode: 422 }))
-    const isMatched = stepSync('isMissingReferenceError を呼ぶ', () => isMissingReferenceError(error))
-    stepSync('判定を比べる', () => {
-      expect(isMatched).toBe(false)
     })
   })
 })

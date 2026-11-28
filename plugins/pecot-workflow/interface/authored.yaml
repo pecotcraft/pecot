@@ -2,8 +2,6 @@ format: 1
 plugin: pecot-workflow
 prose: ja
 environment:
-  - name: PECOT_GITHUB_API_URL
-    effect: 'GitHub API のリクエストを、本物のホストではなくこの URL に送ります。受け付けるのは `http://127.0.0.1` か `http://localhost` の URL だけです。ほかの値では、ツールの本体が動く前に、どのツールの呼び出しも終了コード 1 で失敗します。空の値は無視します。'
   - name: CLAUDE_PROJECT_DIR
     effect: 'あれば、プロジェクトのルートにします。git の toplevel より先に使います。設定ファイル・アクティブなプロジェクトの設定・作業ディレクトリは、この下で探します。MCP のサーバは、起動時に、次の 3 つがそろうとこのディレクトリへ移ります。サーバがプラグインのディレクトリの中で起動されたこと、`COPILOT_SESSION_CWD` が無いこと、`COPILOT_PLUGIN_ROOT` が無いことです。`COPILOT_PLUGIN_ROOT` があるときは、この値を使いません。GitHub Copilot CLI を起動したシェルから引き継いだ値だからです。'
   - name: CLAUDE_PLUGIN_ROOT
@@ -14,10 +12,6 @@ environment:
     effect: 'MCP のサーバが起動時に読み、値があるかどうかだけを見ます。あれば、GitHub Copilot CLI がサーバを起動したとみなし、セッションのディレクトリを決めるのに `CLAUDE_PROJECT_DIR` を使いません。空の値は無視します。'
   - name: COPILOT_SESSION_CWD
     effect: 'MCP のサーバが起動時に読みます。サーバがプラグインのディレクトリ（`CLAUDE_PLUGIN_ROOT`）の中で起動されたときに、起動時に 1 回だけこのディレクトリへ移り、セッションのディレクトリとして扱います。`CLAUDE_PROJECT_DIR` より先に使います。値が既にあるディレクトリでないと、どのツールの呼び出しも終了コード 1 で失敗し、理由に変数の名前と値が出ます。この変数が無い 1.0.106 より古い GitHub Copilot CLI では、どのツールの呼び出しも終了コード 1 で失敗し、理由がアップグレードを求めます。空の値は無視します。'
-  - name: PECOT_GITHUB_*_TOKEN
-    effect: 'ホストの GitHub トークンを渡します。変数の名前は、`.pecot/config/hosts.json` に書いたそのホストの `env_var` です。書いていなければ、`github.com` は `PECOT_GITHUB_COM_TOKEN`、ほかのホストは `PECOT_GITHUB_<HOST>_TOKEN` です。`<HOST>` は、ホスト名を大文字にして `.` を `_` に替えたものです。変数は、`.pecot/config/.env` を読み込んだ後の環境から読みます。このファイルの行は、既にある環境変数を上書きしません。トークンが見つからないときは、`github.com` には `GITHUB_COM_TOKEN` を使い、その次に `gh auth token` のトークンを使います。トークンが 401 で拒否されると、`gh auth token` のトークンで 1 回だけやり直し、`warning` の行を出します。`GITHUB_COM_TOKEN` のトークンでも同じです。'
-  - name: GITHUB_COM_TOKEN
-    effect: '`github.com` の GitHub トークンを渡します。使うのは、`github.com` 用の名前の変数が無いときです。その名前は、`.pecot/config/hosts.json` に書いていなければ `PECOT_GITHUB_COM_TOKEN` です。変数は、プロジェクトのルートの `.env` を読み込んだ後の環境から読みます。このファイルの行は、既にある環境変数を上書きしません。このファイルは、`.pecot/config/.env` の後で読み込みます。'
   - name: CLAUDE_PLUGIN_DATA
     effect: '絶対パスのときに、データディレクトリになります。`PLUGIN_DATA`・`XDG_DATA_HOME`・`HOME` より先に使う、最初の候補です。場所を調べるだけでは、ディレクトリを作りません。'
   - name: PLUGIN_DATA
@@ -3014,12 +3008,6 @@ common_behaviors:
   - id: PW-COMMON-10
     pattern: unwanted
     statement: 'もし `repo` が `owner/repo` の形でないなら、`owner/repo` の形を求める文を `detail` に入れて、`kind` が `invalid-input` の失敗を返します'
-  - id: PW-COMMON-12
-    pattern: unwanted
-    statement: 'もし `PECOT_GITHUB_API_URL` がループバックの http の URL でないなら、ツールの本体を動かしません'
-  - id: PW-COMMON-13
-    pattern: unwanted
-    statement: 'もし `PECOT_GITHUB_API_URL` がループバックの http の URL でないなら、受け付ける URL を示す文を `detail` に入れて失敗を返します'
   - id: PW-COMMON-14
     pattern: unwanted
     statement: 'もしプロジェクトのルートを決められないなら、その理由を `detail` に入れて失敗を返します'

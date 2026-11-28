@@ -9,11 +9,10 @@ import { explains } from './_helpers/explains.js'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
 const RESTRICTED_PATH = path.join(ROOT, 'src', 'main.ts')
-// 止める側のパスは、src/main.ts のほかに infra と domain の実在のファイルでも確かめる
+// 止める側のパスは、src/main.ts のほかに infra の実在のファイルでも確かめる
 const RESTRICTED_PATHS: readonly (readonly [string, string])[] = [
   ['src/main.ts', RESTRICTED_PATH],
   ['src/infra/worktree.ts', path.join(ROOT, 'src', 'infra', 'worktree.ts')],
-  ['src/domain/issue-surface.ts', path.join(ROOT, 'src', 'domain', 'issue-surface.ts')],
 ]
 
 // 最初の lintText はプロジェクト全体の読み込みで重い。src/tests/lint-rules.test.ts と同じく beforeAll の 1 回に寄せる

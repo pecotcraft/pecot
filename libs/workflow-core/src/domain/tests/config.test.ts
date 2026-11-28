@@ -1,32 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { explains } from '../../../tests/_helpers/explains.js'
-import { step, stepSync } from '../../../tests/_helpers/step.js'
+import { stepSync } from '../../../tests/_helpers/step.js'
 
 import { parseJson } from '../../../tests/_helpers/json.js'
 import { validationErrorOutput } from '../../../tests/_helpers/python-output.js'
-import {
-  aggregationRepositoryReference,
-  ConfigError,
-  configuredRepositoryFullName,
-  effectiveReleaseType,
-  findPackage,
-  findRepository,
-  getDevelopBranch,
-  getFieldId,
-  getOptionId,
-  getReleaseBranch,
-  isRepositoryInProject,
-  parseProjectConfig,
-  serializeProjectConfig,
-  WORKFLOW_STATUSES,
-  parsePackage,
-  withAggregationRepository,
-  withRepositoryAppended,
-  withRepositoryReplaced,
-  projectConfigFileName,
-  workflowFieldId,
-} from '../config.js'
-import type { ProjectConfig, RepositoryMembership } from '../config.js'
+import { aggregationRepositoryReference, ConfigError, effectiveReleaseType, findPackage, findRepository, getDevelopBranch, getFieldId, getOptionId, getReleaseBranch, parseProjectConfig, serializeProjectConfig, WORKFLOW_STATUSES, parsePackage, withAggregationRepository, withRepositoryAppended, withRepositoryReplaced, projectConfigFileName, workflowFieldId } from '../config.js'
+import type { ProjectConfig } from '../config.js'
 import { InvalidValueError } from '../errors.js'
 import type { JsonValue } from '../python-format.js'
 
@@ -441,15 +420,6 @@ describe('リポジトリの検索', () => {
     })
   })
 
-  it('リポジトリの設定から、owner/name の形の名前を作成する', async () => {
-    await explains('リポジトリの完全な名前を作成する関数（`configuredRepositoryFullName`）のテストです。`owner/name` の形（`test-owner/test-repo`）の名前を返すことを確認します。')
-    const [first] = config.repositories
-
-    stepSync('結果を比べる', () => {
-      expect(first && configuredRepositoryFullName(first)).toBe('test-owner/test-repo')
-    })
-  })
-
   it('名前からリポジトリ内のパッケージを探し、存在しない名前の場合や、パッケージを持たないリポジトリの場合は undefined を返す', async () => {
     await explains('パッケージを探す関数（`findPackage`）のテストです。存在する名前はそのパッケージの変更履歴のパスを返し、存在しない名前や、パッケージを持たないリポジトリの場合は `undefined` を返すことを確認します。')
     const { repository, plain } = stepSync('入力を用意する', () => {
@@ -475,44 +445,6 @@ describe('リポジトリの検索', () => {
 
     stepSync('結果を比べる', () => {
       expect(configWith.repositories.map(repository => effectiveReleaseType(repository))).toEqual(['nx', 'multi', 'single'])
-    })
-  })
-})
-
-function membership(linked: readonly { readonly owner: string, readonly name: string }[]): RepositoryMembership & { readonly calls: (readonly [string, number])[] } {
-  const calls: (readonly [string, number])[] = []
-  return {
-    calls,
-    linkedRepositories: (owner, projectNumber) => {
-      calls.push([owner, projectNumber])
-      return Promise.resolve(linked)
-    },
-  }
-}
-
-describe('isRepositoryInProject', () => {
-  const config = sampleConfig()
-
-  it('リポジトリがプロジェクトにリンクされている場合は true、されていない場合は false を返す', async () => {
-    await explains('リポジトリがプロジェクトに含まれるか判定する関数（`isRepositoryInProject`）のテストです。リンクされているリポジトリは `true`、リンクされていないリポジトリは `false` を返すことを確認します。')
-    const source = stepSync('`membership` を呼ぶ', () => membership([{ owner: 'test-owner', name: 'test-repo' }, { owner: 'test-owner', name: 'another-repo' }]))
-
-    await step('結果を比べる', async () => {
-      await expect(isRepositoryInProject(config, 'test-owner', 'test-repo', source)).resolves.toBe(true)
-      await expect(isRepositoryInProject(config, 'test-owner', 'nonexistent', source)).resolves.toBe(false)
-    })
-  })
-
-  it('リンクの問い合わせは、プロジェクトの owner と番号を使って行う', async () => {
-    await explains('リンクされたリポジトリを問い合わせる処理のテストです。引数のリポジトリの owner ではなく、設定のプロジェクトの owner と番号で問い合わせることを確認します。')
-    const { source } = await step('`membership` を呼ぶ', async () => {
-      const source = membership([])
-      await isRepositoryInProject(config, 'x', 'y', source)
-      return { source }
-    })
-
-    stepSync('結果を比べる', () => {
-      expect(source.calls).toEqual([['test-owner', 1]])
     })
   })
 })

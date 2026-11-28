@@ -4,3 +4,4 @@ integration tests/interface/
 integration tests/interface-export.test.ts
 integration tests/templates.test.ts
 integration tests/lint-distribution.test.ts
+integration tests/issue-surface-extract.test.ts

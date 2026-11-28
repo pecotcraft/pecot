@@ -6,8 +6,6 @@ import path from 'node:path'
 
 import { parse } from 'yaml'
 
-import { OPERATION_NAMES } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/operations.js'
-import type { ResponseMatch, ResponseRule, ResponseSpec } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { compareStrings, isRecord } from './baseline.js'
 
 export const scenariosDirectory = path.join(import.meta.dirname, 'scenarios')
@@ -16,8 +14,8 @@ export const goldenDirectory = path.join(import.meta.dirname, 'golden')
 /**
 id の `<path>-<kind>` の kind
 */
-export type Kind = 'ok' | 'usage' | 'auth' | '4xx' | '5xx' | 'state'
-export const KINDS: readonly Kind[] = ['ok', 'usage', 'auth', '4xx', '5xx', 'state']
+export type Kind = 'ok' | 'usage' | 'state'
+export const KINDS: readonly Kind[] = ['ok', 'usage', 'state']
 
 /**
 ファイルの中身。文字列か、symlink の指す先
@@ -108,7 +106,6 @@ export interface Scenario {
     */
     ghToken: string | undefined
   }>
-  readonly github: readonly ResponseRule[]
 }
 
 /**
@@ -119,7 +116,6 @@ export interface Golden {
   readonly text?: string
   readonly structuredContent: Readonly<Record<string, unknown>>
   readonly stderr: string
-  readonly requests: readonly unknown[]
   readonly files: Readonly<Record<string, unknown>>
 }
 
@@ -246,41 +242,6 @@ function repositorySetup(id: string, value: unknown): RepositorySetup {
   }
 }
 
-function responseRule(id: string, value: unknown, index: number): ResponseRule {
-  const label = `github[${String(index)}]`
-  const rule = recordOf(id, value, label)
-  assertKeys(id, rule, ['match', 'respond', 'times'], label)
-  const match = recordOf(id, rule['match'], `${label}.match`)
-  assertKeys(id, match, ['method', 'path', 'operation', 'query', 'variables', 'body'], `${label}.match`)
-  const respond = recordOf(id, rule['respond'], `${label}.respond`)
-  assertKeys(id, respond, ['status', 'body', 'text', 'headers'], `${label}.respond`)
-  const { status, times } = { status: respond['status'], times: rule['times'] ?? 1 }
-  if (typeof status !== 'number' || !Number.isSafeInteger(status)) fail(id, `${label}.respond.status が整数ではありません`)
-  if (typeof times !== 'number' || !Number.isSafeInteger(times) || times < 1) fail(id, `${label}.times が 1 以上の整数ではありません`)
-  const operation = match['operation']
-  if (operation !== undefined && (typeof operation !== 'string' || !OPERATION_NAMES.has(operation))) {
-    fail(id, `${label}.match.operation が対応表（tests/fake-github/operations.ts）にありません: ${JSON.stringify(operation)}`)
-  }
-  const matchSpec: ResponseMatch = {
-    method: match['method'] === undefined ? undefined : optionalString(id, match, 'method', ''),
-    path: match['path'] === undefined ? undefined : optionalString(id, match, 'path', ''),
-    operation: typeof operation === 'string' ? operation : undefined,
-    query: match['query'] === undefined ? undefined : stringRecord(id, match['query'], `${label}.match.query`),
-    variables: match['variables'],
-    body: match['body'],
-  }
-  if (matchSpec.method === undefined && matchSpec.path === undefined && matchSpec.operation === undefined) {
-    fail(id, `${label}.match に method・path・operation のどれかが必要です`)
-  }
-  const respondSpec: ResponseSpec = {
-    status,
-    body: respond['body'],
-    text: respond['text'] === undefined ? undefined : optionalString(id, respond, 'text', ''),
-    headers: respond['headers'] === undefined ? undefined : stringRecord(id, respond['headers'], `${label}.respond.headers`),
-  }
-  return { match: matchSpec, respond: respondSpec, times }
-}
-
 /**
 id から、ツール名（`_` を `-` にしたもの）の次に来る kind を取り出す。形が合わなければ undefined
 */
@@ -293,7 +254,7 @@ export function kindOf(scenario: Readonly<Pick<Scenario, 'id' | 'tool'>>): Kind 
 
 export function parseScenario(id: string, text: string): Scenario {
   const root = recordOf(id, parse(text), 'ルート')
-  assertKeys(id, root, ['id', 'tool', 'arguments', 'setup', 'github'], 'ルート')
+  assertKeys(id, root, ['id', 'tool', 'arguments', 'setup'], 'ルート')
   if (root['id'] !== id) fail(id, `id がファイル名と違います: ${String(root['id'])}`)
   const tool = optionalString(id, root, 'tool', '')
   if (tool === '') fail(id, 'tool が必要です')
@@ -301,8 +262,6 @@ export function parseScenario(id: string, text: string): Scenario {
   assertKeys(id, setup, ['repo', 'cwd', 'data', 'env', 'gh'], 'setup')
   const gh = recordOf(id, setup['gh'], 'setup.gh')
   assertKeys(id, gh, ['token'], 'setup.gh')
-  const github = root['github']
-  if (github !== undefined && !Array.isArray(github)) fail(id, 'github が配列ではありません')
   const scenario: Scenario = {
     id,
     tool,
@@ -314,7 +273,6 @@ export function parseScenario(id: string, text: string): Scenario {
       env: stringRecord(id, setup['env'], 'setup.env'),
       ghToken: gh['token'] === undefined ? undefined : optionalString(id, gh, 'token', ''),
     },
-    github: (Array.isArray(github) ? github : []).map((item: unknown, index) => responseRule(id, item, index)),
   }
   if (kindOf(scenario) === undefined) {
     fail(id, `id は <tool の _ を - にしたもの>-<${KINDS.join('|')}>[-<詳細>] にしてください`)
@@ -343,14 +301,12 @@ export function goldenPath(id: string): string {
 export function readGolden(id: string): Golden {
   const parsed: unknown = JSON.parse(readFileSync(goldenPath(id), 'utf8'))
   if (!isRecord(parsed)) throw new TypeError(`golden/${id}.json: ルートがオブジェクトではありません`)
-  const { isError, text, structuredContent, stderr, requests, files } = parsed
+  const { isError, text, structuredContent, stderr, files } = parsed
   if (typeof isError !== 'boolean' || typeof stderr !== 'string' || (text !== undefined && typeof text !== 'string') || !isRecord(structuredContent)) {
     throw new TypeError(`golden/${id}.json: isError・text・structuredContent・stderr の型が違います`)
   }
-  if (!Array.isArray(requests) || !isRecord(files)) {
-    throw new TypeError(`golden/${id}.json: requests が配列でない、または files がオブジェクトではありません`)
-  }
-  return { isError, ...text !== undefined && { text }, structuredContent, stderr, requests, files }
+  if (!isRecord(files)) throw new TypeError(`golden/${id}.json: files がオブジェクトではありません`)
+  return { isError, ...text !== undefined && { text }, structuredContent, stderr, files }
 }
 
 export interface Substitution {
@@ -358,7 +314,7 @@ export interface Substitution {
   readonly to: string
 }
 
-// 実行のたびに変わるのは YYYYMMDD-HHMMSS だけ。ISO 形式の日時は GIT_*_DATE と偽サーバの応答で固定されており、
+// 実行のたびに変わるのは YYYYMMDD-HHMMSS だけ。ISO 形式の日時は GIT_*_DATE で固定されており、
 // 置き換えると実装の日時の誤りを隠すため、置き換えない
 const TIMESTAMP_PATTERN = /\b\d{8}-\d{6}\b/gu
 

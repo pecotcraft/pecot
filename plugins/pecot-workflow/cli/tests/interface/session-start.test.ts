@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 見るのは一時リポ配下だけ */
-// session_start の振る舞いを、ツールをプロセス内で呼んで確かめる。偽の GitHub サーバは応答を持たず、要求が届けば problems に残る
+// session_start の振る舞いを、ツールをプロセス内で呼んで確かめる。
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 
@@ -41,18 +41,12 @@ async function start(arguments_: Readonly<Record<string, unknown>> = {}, run: Re
   return await step('session_start を呼ぶ', async () => await runTool({ tool: 'session_start', arguments: { ...START, ...arguments_ }, ...run }))
 }
 
-function expectNoGithub(result: Readonly<ToolResult>): void {
-  expect(result.requests).toEqual([])
-  expect(result.problems).toEqual([])
-}
-
 describe('session_start', () => {
-  it('issue_ref・base・sha を渡すと、GitHub を呼ばずに .pecot-base・作業ディレクトリ・セッション名を書く', async (context) => {
+  it('issue_ref・base・sha を渡すと、.pecot-base・作業ディレクトリ・セッション名を書く', async (context) => {
     await verifies(context, 'PW-SESSION-START-01')
-    await explains('`link-branch` で作ったブランチの `issue_ref`・`base`・`sha` を渡した場合のテストです。GitHub へ要求を送らずに、`.pecot-base` と作業ディレクトリとセッション名を書き込むことを確認します。')
+    await explains('`link-branch` で作ったブランチの `issue_ref`・`base`・`sha` を渡した場合のテストです。`.pecot-base` と作業ディレクトリとセッション名を書き込むことを確認します。')
     const result = await start()
     await step('結果と書いたファイルを確かめる', () => {
-      expectNoGithub(result)
       expect(result.isError).toBe(false)
       expect(result.structured).toEqual({ repository: 'acme/demo', base: 'main', issue: 'acme/demo/7', workDirectory: path.join(result.directory, '.pecot/work/7') })
       expect(result.read(BASE)).toBe(`main ${SHA}`)
@@ -66,7 +60,6 @@ describe('session_start', () => {
     await explains('`branch_check` が返した `stacked_on` を渡した場合のテストです。`.pecot-base` にスタック先の Issue を書き込み、結果の `stackedOn` にその番号を入れることを確認します。')
     const result = await start({ base: 'feat/3', stacked_on: 'acme/demo/3' })
     await step('結果と書いたファイルを確かめる', () => {
-      expectNoGithub(result)
       expect(result.structured).toMatchObject({ base: 'feat/3', stackedOn: 3 })
       expect(result.read(BASE)).toBe(`feat/3 ${SHA} acme/demo#3`)
     })
@@ -77,7 +70,6 @@ describe('session_start', () => {
     await explains('今のブランチ（`feat/old/5`）の PR がマージ済みで、開いた PR が存在しない場合のテストです。その PR を `leftovers` に入れ、`session_finish` の呼び方を警告に含めることを確認します。')
     const result = await start({ reads: { pull_requests: listed('merged') } }, { branch: OLD_BRANCH })
     await step('結果を確かめる', () => {
-      expectNoGithub(result)
       expect(result.structured['leftovers']).toEqual([{ pullRequest: 'acme/demo/21' }])
       expect(result.structured['warnings']).toEqual([expect.stringContaining('PR acme/demo#21 of the current branch feat/old/5 is merged but not cleaned up; call session_finish with pr_ref: "acme/demo/21"')])
     })
@@ -101,7 +93,6 @@ describe('session_start', () => {
     await explains('今のブランチの PR の読み取りを渡さない場合のテストです。取りこぼしを確認せずに記録を書き込み、`list_pull_requests` の読み取りを警告で案内することを確認します。')
     const result = await start({ reads: undefined }, { branch: OLD_BRANCH })
     await step('結果を確かめる', () => {
-      expectNoGithub(result)
       expect(result.structured).not.toHaveProperty('leftovers')
       expect(result.structured['warnings']).toEqual(['leftovers are not checked: pass the result of list_pull_requests (head acme:feat/old/5, state all) in reads.pull_requests'])
       expect(result.read(BASE)).toBe(`main ${SHA}`)

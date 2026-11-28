@@ -1,4 +1,4 @@
-// Tracker を書き直す処理のテスト（actions の tracker-sync と、cli の issue-surface-drift）が共有する、偽の GitHub の応答。
+// Tracker を書き直す処理のテスト（actions の tracker-sync）が共有する、偽の GitHub の応答。
 import type { JsonObject } from '../../src/domain/json.js'
 import type { ResponseRule } from './fake-github/server.js'
 

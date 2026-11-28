@@ -296,11 +296,11 @@
 
 **Independent Test**: pecot-workflow のツールに GitHub を直に呼ぶものが 0 件で、クラウドのスレッドから sandbox を揃えて片付けられる
 
-- [ ] T152 [US6] pecot-workflow の `cli/` から `libs/workflow-core/src/infra/github/` を import しないことを、`plugins/pecot-workflow/cli/eslint.config.js` の決まりで止める
-- [ ] T153 [US6] スキルが呼ばなくなった GitHub の I/O（`cli/src/commands/github-client.ts` など）と、それだけが使うテストの部品（`cli/tests/fake-github/` など）を消し、knip を通す
-- [ ] T154 [US6] `plugins/pecot-workflow/CONTRIBUTING.md` の「3. 試験環境」の揃える・片付ける手順を、公式の MCP と `pecot-github-ops.yml` で行う形に書き換える（FR-022）
-- [ ] T155 [US6] version plan を足す
-- [ ] T156 [US6] `specs/031-pecot-coordinator/verification/feature-inventory.md` の一覧と、作り替えた後のツール・action を突き合わせ、使えなくなった機能が 0 件（ブランチの削除を除く）かを書く（SC-007）
+- [x] T152 [US6] pecot-workflow の `cli/` から `libs/workflow-core/src/infra/github/` を import しないことを、`plugins/pecot-workflow/cli/eslint.config.js` の決まりで止める
+- [x] T153 [US6] スキルが呼ばなくなった GitHub の I/O（`cli/src/commands/github-client.ts` など）と、それだけが使うテストの部品（`cli/tests/fake-github/` など）を消し、knip を通す
+- [x] T154 [US6] `plugins/pecot-workflow/CONTRIBUTING.md` の「3. 試験環境」の揃える・片付ける手順を、このリポの `sandbox-ops.yml` を公式の MCP で起動する形に書き換える（FR-022）
+- [x] T155 [US6] version plan を足す
+- [x] T156 [US6] `specs/031-pecot-coordinator/verification/feature-inventory.md` の一覧と、作り替えた後のツール・action を突き合わせ、使えなくなった機能が 0 件（ブランチの削除を除く）かを書く（SC-007）
 - [ ] T157 [US6] CUJ: クラウドのスレッドから、CONTRIBUTING の手順で sandbox を揃え、題の形で見分けて片付ける
 
 ---

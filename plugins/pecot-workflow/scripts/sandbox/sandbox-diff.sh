@@ -45,11 +45,26 @@ trap 'rm -rf "$work"' EXIT
 
 items=$(jq -c '.' "$items_file")
 
+# gh api に渡す先の token を選ぶ。先がこのリポなら SANDBOX_DIFF_THIS_REPO_TOKEN、検証用と GraphQL（ボード）なら SANDBOX_DIFF_SANDBOX_TOKEN。
+# 選んだ環境変数が空なら何も渡さず、gh の認証を使う。sandbox-ops.yml が、リポごとに権限を絞った 2 つの token を渡す。
+token_for() {
+    local arg
+    for arg in "$@"; do
+        case "$arg" in
+            -*) continue ;;
+            "repos/$THIS_REPO" | "repos/$THIS_REPO/"* | "repos/$THIS_REPO?"*) printf '%s' "${SANDBOX_DIFF_THIS_REPO_TOKEN:-}" ;;
+            *) printf '%s' "${SANDBOX_DIFF_SANDBOX_TOKEN:-}" ;;
+        esac
+        return
+    done
+}
+
 # gh api の出力を RESP に入れる。失敗したら、読めなかった先と gh の最後の行を出して 2 で終わる。
 api() {
-    local label="$1"
+    local label="$1" token
     shift
-    if ! RESP=$(gh api "$@" 2> "$work/err"); then
+    token=$(token_for "$@")
+    if ! RESP=$(if [ -n "$token" ]; then GH_TOKEN="$token" gh api "$@"; else gh api "$@"; fi 2> "$work/err"); then
         local msg
         msg=$(grep -v '^[[:space:]]*$' "$work/err" | tail -n 1 || true)
         fail "$label を読めません（${msg:-gh が失敗しました}）"

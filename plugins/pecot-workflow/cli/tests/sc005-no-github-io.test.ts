@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 読むのはこのリポのソースだけ */
-// スキルが呼ぶチェックのツールが、GitHub に読み書きするモジュールを import しないことを確かめる（SC-005）。
-// ツールのファイルから、相対パスと @pecot/workflow-core の import を辿り、値の import だけを数える。
-import { existsSync, readFileSync } from 'node:fs'
+// MCP のツールが、GitHub に読み書きするモジュールを import しないことを確かめる（SC-005）。
+// ツールの定義のファイルと mcp/server.ts から、相対パスと @pecot/workflow-core の import を辿り、値の import だけを数える。
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -26,10 +26,22 @@ const CHECK_TOOL_FILES = [
   RELEASE_CHECK_FILE,
 ].map(file => path.join(CLI_SRC, file))
 
+// ツールを defineTool() で定義するファイルと、ツールを呼ぶ MCP のサーバ
+const TOOL_ENTRY_FILES = [
+  ...readdirSync(path.join(CLI_SRC, 'commands'))
+    .filter(name => name.endsWith('.ts') && readFileSync(path.join(CLI_SRC, 'commands', name), 'utf8').includes('defineTool('))
+    .map(name => path.join(CLI_SRC, 'commands', name)),
+  path.join(CLI_SRC, 'mcp/server.ts'),
+]
+
+const GITHUB_INFRA = path.join(CORE_SRC, 'infra/github')
+
+// errors.ts はエラーのクラス、payload.ts は応答の値の読み取りだけを持ち、I/O を持たないので辿ってよい
+const IO_FREE_GITHUB_FILES: readonly string[] = [path.join(GITHUB_INFRA, 'errors.ts'), path.join(GITHUB_INFRA, 'payload.ts')]
+
 // GitHub の API の client。辿れる import のどこにもあってはならない。ディレクトリは、その下のすべてのファイルを指す
 const FORBIDDEN: readonly string[] = [
-  path.join(CORE_SRC, 'infra/github'),
-  path.join(CLI_SRC, 'infra/github'),
+  GITHUB_INFRA,
   path.join(CORE_SRC, 'commands-shared/github-client.ts'),
 ]
 
@@ -73,6 +85,10 @@ function resolveImport(from: string, specifier: string): string | undefined {
   return candidates.find(candidate => existsSync(candidate))
 }
 
+function isForbidden(file: string): boolean {
+  return !IO_FREE_GITHUB_FILES.includes(file) && isUnder(file, FORBIDDEN)
+}
+
 function isUnder(file: string, list: readonly string[]): boolean {
   return list.some(forbidden => file === forbidden || file.startsWith(`${forbidden}${path.sep}`))
 }
@@ -93,7 +109,7 @@ function forbiddenImports(entry: string): string[] {
     if (seen.has(file)) continue
     seen.add(file)
     for (const target of valueImports(file)) {
-      if (isUnder(target, FORBIDDEN)) {
+      if (isForbidden(target)) {
         found.push(`${path.relative(CLI_SRC, file)} -> ${path.relative(CLI_SRC, target)}`)
         continue
       }
@@ -103,21 +119,32 @@ function forbiddenImports(entry: string): string[] {
   return found
 }
 
-describe('SC-005: チェックのツールは GitHub に読み書きしない', () => {
-  it.each(CHECK_TOOL_FILES.map(file => [path.relative(CLI_SRC, file), file]))('%s から辿れる import に、GitHub に読み書きするモジュールが無い', async (_name, file) => {
-    await explains('スキルが呼ぶチェックのツールのテストです。ツールのファイルから値の import を辿り、GitHub の client・`infra/github`・git・プロセスの起動のモジュールに届かないことを確認します。')
-    expect(existsSync(file)).toBe(true)
+describe('SC-005: MCP のツールは GitHub に読み書きしない', () => {
+  it('ツールの定義のファイルが、registry.ts のグループのファイルを含む', async () => {
+    await explains('このテストの起点のテストです。`defineTool()` を含むファイルとして、`registry.ts` と、チェックのツールのファイルが起点に含まれることを確認します。')
+    expect(TOOL_ENTRY_FILES.map(file => path.relative(CLI_SRC, file))).toEqual(expect.arrayContaining(['commands/registry.ts', 'mcp/server.ts', ...CHECK_TOOL_FILES.map(file => path.relative(CLI_SRC, file))]))
+  })
+
+  it.each(TOOL_ENTRY_FILES.map(file => [path.relative(CLI_SRC, file), file]))('%s から辿れる import に、GitHub に読み書きするモジュールが無い', async (_name, file) => {
+    await explains('MCP のツールのテストです。ツールの定義のファイルと MCP のサーバから値の import を辿り、GitHub の client と `infra/github` の I/O のモジュールに届かないことを確認します。')
     expect(forbiddenImports(file)).toEqual([])
+  })
+
+  it.each(IO_FREE_GITHUB_FILES.map(file => [path.relative(CORE_SRC, file), file]))('辿ってよい %s が、domain と互いのほかを値で import しない', async (_name, file) => {
+    await explains('`infra/github` のうち、辿ってよい `errors.ts` と `payload.ts` のテストです。値の import の先が、workflow-core の `domain` と、この 2 つのファイルだけであることを確認します。')
+    const outside = valueImports(file).filter(target => !isUnder(target, [path.join(CORE_SRC, 'domain')]) && !IO_FREE_GITHUB_FILES.includes(target))
+    expect(outside.map(target => path.relative(CORE_SRC, target))).toEqual([])
   })
 
   it.each(CHECK_TOOL_FILES.filter(file => file !== path.join(CLI_SRC, RELEASE_CHECK_FILE)).map(file => [path.relative(CLI_SRC, file), file]))('%s が、git と gh を起動するモジュールを直に import しない', async (_name, file) => {
     await explains('スキルが呼ぶチェックのツールのテストです。ツールのファイルが、git と gh を起動するモジュールを直に import していないことを確認します。')
+    expect(existsSync(file)).toBe(true)
     expect(valueImports(file).filter(target => isUnder(target, DIRECT_FORBIDDEN)).map(target => path.relative(CLI_SRC, target))).toEqual([])
   })
 
   it('禁じたモジュールを import するファイルを起点にすると、その import を挙げる', async () => {
-    await explains('このテストの検出のテストです。GitHub の client を import するファイルを起点にすると、その import が見つかることを確認します。')
-    const offender = path.join(CLI_SRC, 'mcp/server.ts')
+    await explains('このテストの検出のテストです。GitHub の client を import する `commands-shared/github-client.ts` を起点にすると、その import が見つかることを確認します。')
+    const offender = path.join(CORE_SRC, 'commands-shared/github-client.ts')
     expect(forbiddenImports(offender).length).toBeGreaterThan(0)
   })
 })

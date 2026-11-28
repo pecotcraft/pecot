@@ -14,7 +14,6 @@ import {
   PECOT_GITIGNORE_FILENAME,
   CONFIG_DIR,
   HOOKS_CONFIG_FILENAME,
-  OUTPUT_DIR,
   projectRoot,
   resolveRealPath,
   STATE_DIR,
@@ -35,7 +34,6 @@ describe('パス定数', () => {
       expect(STATE_DIR).toBe('.pecot/state')
       expect(WORK_DIR).toBe('.pecot/work')
       expect(CONFIG_DIR).toBe('.pecot/config')
-      expect(OUTPUT_DIR).toBe('.pecot/tmp/output')
       expect(WORKTREE_CONFIG_FILENAME).toBe('.pecot/config/worktree-config.json')
       expect(WORKTREE_IGNORE_FILENAME).toBe('.pecot/config/.worktreeignore')
       expect(HOOKS_CONFIG_FILENAME).toBe('.pecot/config/hooks-config.json')

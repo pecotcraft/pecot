@@ -118,18 +118,6 @@ export type Package = z.infer<typeof PackageSchema>
 export type Repository = z.infer<typeof RepositorySchema>
 export type ProjectConfig = z.infer<typeof ProjectConfigSchema>
 
-/**
-プロジェクトにリンクされたリポジトリ。判定の問い合わせ先（GitHub）の実体は infra が持つ
-*/
-export interface LinkedRepository {
-  readonly owner: string
-  readonly name: string
-}
-
-export interface RepositoryMembership {
-  readonly linkedRepositories: (owner: string, projectNumber: number) => Promise<readonly LinkedRepository[]>
-}
-
 export class ConfigError extends PecotError {}
 
 // 検証エラーの変換
@@ -274,13 +262,6 @@ export function findRepository(config: ProjectConfig, owner: string, name: strin
   return config.repositories.find(repository => repository.owner === owner && repository.name === name)
 }
 
-/**
-設定の repositories の 1 件の `owner/name`
-*/
-export function configuredRepositoryFullName(repository: Repository): string {
-  return `${repository.owner}/${repository.name}`
-}
-
 export function findPackage(repository: Repository, name: string): Package | undefined {
   return repository.packages?.find(item => item.name === name)
 }
@@ -316,14 +297,6 @@ export function homeRepositoryOf(config: ProjectConfig, repository = ''): Reposi
   if (split !== undefined) return split
   const [first] = config.repositories
   return first === undefined ? undefined : { owner: first.owner, repository: first.name }
-}
-
-/**
-リポジトリがプロジェクトにリンクされているか。リンクの一覧は membership に問い合わせる
-*/
-export async function isRepositoryInProject(config: ProjectConfig, owner: string, name: string, membership: RepositoryMembership): Promise<boolean> {
-  const linked = await membership.linkedRepositories(config.owner, config.project.number)
-  return linked.some(repository => repository.owner === owner && repository.name === name)
 }
 
 // 更新（コピーを作る）

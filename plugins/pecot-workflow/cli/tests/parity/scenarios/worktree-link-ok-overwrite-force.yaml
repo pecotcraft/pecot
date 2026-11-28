@@ -75,4 +75,3 @@ setup:
         ローカル向けの指示
       ../../wt1/demo/CLAUDE.local.md: |
         サブ WT 側の実ファイル
-github: []

@@ -1,0 +1,106 @@
+# 試験環境（pecotcraft/pecot-sandbox とボード「pecot sandbox」）を、このリポと比べるか、確かめで作ったものを片付ける。
+# 手順は plugins/pecot-workflow/CONTRIBUTING.md の「3. 試験環境」。公式の MCP の actions_run_trigger で起動し、ログで結果を読む。
+# 検証用には pecot-agent-sandbox の App の token を使う。変数 PECOT_SANDBOX_APP_CLIENT_ID が空の間は job を飛ばす。
+name: sandbox-ops
+run-name: sandbox-ops ${{ inputs.operation }} ${{ inputs.request_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "diff: compare the sandbox with this repository / sweep: clean up what the checks created"
+        required: true
+        type: choice
+        options:
+          - diff
+          - sweep
+      issue:
+        description: Number of the Issue of this repository whose leftovers sweep cleans up (empty for all)
+        required: false
+        default: ''
+        type: string
+      dry-run:
+        description: Show what sweep would clean up without changing anything
+        required: false
+        default: true
+        type: boolean
+      request_id:
+        description: ID the caller puts into the run name to find the run
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  diff:
+    if: ${{ inputs.operation == 'diff' && vars.PECOT_SANDBOX_APP_CLIENT_ID != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Get a repository が merge の設定を返すのは、contents の read と write を持つ token だけ
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ vars.PECOT_SANDBOX_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_SANDBOX_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: pecot-sandbox
+          permission-contents: write
+          permission-organization-projects: read
+
+      - name: Compare the sandbox
+        env:
+          SANDBOX_DIFF_THIS_REPO_TOKEN: ${{ github.token }}
+          SANDBOX_DIFF_SANDBOX_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: plugins/pecot-workflow/scripts/sandbox/sandbox-diff.sh
+
+  sweep:
+    if: ${{ inputs.operation == 'sweep' && vars.PECOT_SANDBOX_APP_CLIENT_ID != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: sandbox-ops-sweep
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ vars.PECOT_SANDBOX_APP_CLIENT_ID }}
+          private-key: ${{ secrets.PECOT_SANDBOX_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: pecot-sandbox
+          permission-contents: write
+          permission-issues: write
+          permission-pull-requests: write
+          permission-organization-projects: write
+
+      - name: Clean up the sandbox
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          ISSUE: ${{ inputs.issue }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          args=()
+          if [ -n "$ISSUE" ]; then
+            args+=(--issue "$ISSUE")
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          plugins/pecot-workflow/scripts/sandbox/sandbox-sweep.sh "${args[@]}"

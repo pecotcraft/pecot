@@ -5,29 +5,20 @@
 import { realpathSync } from 'node:fs'
 import path from 'node:path'
 
-import { afterEach, expect, vi } from 'vitest'
+import { afterEach, vi } from 'vitest'
 
 import type { ToolDefinition } from '../../src/commands/registry.js'
-import { installFakeGh, prependToPath } from '../../../../../libs/workflow-core/tests/_helpers/fake-executables.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { createGitRepository } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
-import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
-import type { FakeGithub, RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { runToolInProcess } from './run-tool.js'
 import type { ToolRunResult } from './run-tool.js'
 
 const startingDirectory = process.cwd()
-const servers: FakeGithub[] = []
 
-afterEach(async () => {
+afterEach(() => {
   process.chdir(startingDirectory)
   vi.useRealTimers()
-  const opened = servers.splice(0)
-  const problems = opened.flatMap(server => server.problems())
-  const unused = opened.flatMap(server => server.unused())
-  await Promise.all(opened.map(async server => server.close()))
-  expect({ problems, unused }).toEqual({ problems: [], unused: [] })
 })
 
 export type { ToolRunResult } from './run-tool.js'
@@ -64,19 +55,11 @@ export interface ProjectFixtureOptions {
   プロジェクトルートに足すファイル（相対パス → 内容）。例は `.pecot/state/.pecot-base`
   */
   readonly files?: Readonly<Record<string, string>>
-  /**
-  トークンの環境変数に入れる値。既定は dummy-token
-  */
-  readonly token?: string
 }
 
 export interface ProjectFixture {
   readonly root: string
   readonly configFile: string
-  /**
-  トークンを入れた環境変数の名前
-  */
-  readonly tokenVariable: string
 }
 
 function fixtureConfig(host: string, owner: string, repositories: readonly string[]): string {
@@ -89,11 +72,11 @@ function fixtureConfig(host: string, owner: string, repositories: readonly strin
 }
 
 /**
-一時のプロジェクトルートに、プロジェクトの設定と `.active` を置き、CLAUDE_PROJECT_DIR とトークンの環境変数を設定する。
+一時のプロジェクトルートに、プロジェクトの設定と `.active` を置き、CLAUDE_PROJECT_DIR を設定する。
 設定の形は tests/parity/scenarios/issue-quick-ok.yaml と同じ（ホスト ghes.example.com・owner acme・リポジトリ demo が既定）
 */
 export function setUpProject(options: Readonly<ProjectFixtureOptions> = {}): ProjectFixture {
-  const { host = 'ghes.example.com', owner = 'acme', repositories = ['demo'], files = {}, token = 'dummy-token' } = options
+  const { host = 'ghes.example.com', owner = 'acme', repositories = ['demo'], files = {} } = options
   const root = makeTemporaryDirectory('pecot-project-')
   const configFile = `${host}_${owner}_board_${owner}.json`
   writeTree(root, {
@@ -101,32 +84,8 @@ export function setUpProject(options: Readonly<ProjectFixtureOptions> = {}): Pro
     '.pecot/config/projects/.active': `${configFile}\n`,
     ...files,
   })
-  const tokenVariable = `PECOT_GITHUB_${host.toUpperCase().replaceAll(/[^A-Z0-9]/gu, '_')}_TOKEN`
-  setEnvironment({ CLAUDE_PROJECT_DIR: root, [tokenVariable]: token })
-  return { root, configFile, tokenVariable }
-}
-
-export interface RunningGithub {
-  readonly url: string
-  /**
-  受けた要求の全部。受けた順
-  */
-  readonly requests: () => readonly RecordedRequest[]
-}
-
-/**
-偽の GitHub サーバを始め、PECOT_GITHUB_API_URL をそこへ向ける。止めるのはテストの後（afterEach）。
-表に無い要求と、使われなかった応答があれば、そのテストは失敗になる。
-401 の再試行で本物の gh を起動しないよう、失敗する偽の gh を PATH の先頭に置く
-*/
-export async function startGithub(rules: readonly ResponseRule[]): Promise<RunningGithub> {
-  const server = await startFakeGithub(rules)
-  servers.push(server)
-  const bin = makeTemporaryDirectory('pecot-gh-')
-  installFakeGh(bin)
-  prependToPath(bin)
-  setEnvironment({ PECOT_GITHUB_API_URL: server.url })
-  return { url: server.url, requests: () => server.requests() }
+  setEnvironment({ CLAUDE_PROJECT_DIR: root })
+  return { root, configFile }
 }
 
 /**

@@ -27,7 +27,7 @@ import { clearHostsConfigCache } from '../auth.js'
 import { GitHubClientBase, resolveApiUrlOverride, RestResponse, TransportFailure } from '../client.js'
 import type { GitHubClientOptions } from '../client.js'
 import { GitHubAPIError, GitHubAuthError, GitHubNotFoundError, GitHubRateLimitError } from '../errors.js'
-import { QUERY_GET_USER_NODE_ID } from '../queries.js'
+import { QUERY_GET_PROJECT_ID_USER } from '../queries.js'
 import { ignoredDiagnostics, recordDiagnostics } from '../../../../tests/_helpers/recording-diagnostics.js'
 
 useIsolatedEnvironment()
@@ -749,7 +749,7 @@ describe('REST の要求', () => {
     })
     await step('送った要求を確かめる', async () => {
       expect(client.apiUrl).toBe(`${server.url}/api/v3`)
-      expect(await client.getAuthenticatedUser()).toEqual({ login: 'u' })
+      expect(await client.restJson('GET', '/user')).toEqual({ login: 'u' })
       expect(server.requests()).toEqual([{ type: 'rest', method: 'GET', path: '/api/v3/user', query: {}, auth: 'token' }])
     })
   })
@@ -965,32 +965,6 @@ describe('REST の要求', () => {
     })
   })
 
-  it('認証ユーザーの情報を取得する', async () => {
-    await explains('認証ユーザーの取得のテストです。ユーザーの情報（`login`・`id`・`name`・`email`）を返すことを確認します。')
-    const server = await step('偽の GitHub サーバを用意する', async () => await serve([rule({ method: 'GET', path: '/user' }, { status: 200, body: { login: 'test-user', id: 12_345, name: 'Test User', email: 'test@example.com' } })]))
-    const user = await step('クライアントを作る', async () => await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).getAuthenticatedUser())
-    await step('送った要求を確かめる', () => {
-      expect(user).toEqual({ login: 'test-user', id: 12_345, name: 'Test User', email: 'test@example.com' })
-      expect(server.requests()).toEqual([{ type: 'rest', method: 'GET', path: '/user', query: {}, auth: 'Bearer' }])
-    })
-  })
-
-  it('認証ユーザーの取得で 401 なら GitHubAuthError', async () => {
-    await explains('認証ユーザーの取得のテストです。401 が返った場合に、`GitHubAuthError` が発生し、状態コードと本文を保持することを確認します。')
-    await step('偽の GitHub サーバを用意する', async () => {
-      useProject()
-      useFakeGh()
-      await serve([rule({ path: '/user' }, { status: 401, text: 'Unauthorized' })])
-    })
-    await step('エラーを確かめる', async () => {
-      await expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).getAuthenticatedUser()).rejects.toMatchObject({
-        name: 'GitHubAuthError',
-        statusCode: 401,
-        responseBody: 'Unauthorized',
-      })
-    })
-  })
-
   it('Authorization・Accept・X-GitHub-Api-Version を付け、JSON の本文は余分な空白を含まない形にして Content-Type を付ける', async () => {
     await explains('REST の要求のヘッダのテストです。`Authorization`・`Accept`・`X-GitHub-Api-Version` を付け、JSON の本文は余分な空白を含まない形で、`Content-Type` を付けて送信することを確認します。')
     const { raw, client } = await step('偽の GitHub サーバを用意する', async () => {
@@ -1081,7 +1055,7 @@ describe('401 のときの gh auth token への切り替え', () => {
       return { bin, recorded, server, client }
     })
     await step('送った要求と外部コマンドの呼び出しを確かめる', async () => {
-      expect(await client.getAuthenticatedUser()).toEqual({ login: 'u' })
+      expect(await client.restJson('GET', '/user')).toEqual({ login: 'u' })
       expect(client.token).toBe('gh_new_token')
       expect(recorded.lines).toEqual([`warning: ${FALLBACK_WARNING}`])
       expect(readFakeCalls(bin, 'gh')).toEqual([['auth', 'token']])
@@ -1110,7 +1084,7 @@ describe('401 のときの gh auth token への切り替え', () => {
       return { stderr, output }
     })
     await step('クライアントを作る', async () => {
-      await new GitHubClientBase({ diagnostics: output, token: 'env_old_token' }).getAuthenticatedUser()
+      await new GitHubClientBase({ diagnostics: output, token: 'env_old_token' }).restJson('GET', '/user')
     })
     await step('結果を確かめる', () => {
       expect(stderr.join('')).toBe('warning: the token in the environment variable is invalid (401 Unauthorized); fell back to gh auth token\n  update or remove the token in .env\n')
@@ -1183,20 +1157,20 @@ describe('401 のときの gh auth token への切り替え', () => {
       const bin = useFakeGh('gh_new_token')
       const recorded = recordDiagnostics()
       const server = await serve([
-        rule({ operation: 'GetUserNodeId' }, { status: 401, text: 'Unauthorized' }),
-        rule({ operation: 'GetUserNodeId' }, { status: 200, body: { data: { user: { id: 'U_1' } } } }),
+        rule({ operation: 'GetProjectIdUser' }, { status: 401, text: 'Unauthorized' }),
+        rule({ operation: 'GetProjectIdUser' }, { status: 200, body: { data: { user: { id: 'U_1' } } } }),
       ])
       const client = new GitHubClientBase({ diagnostics: recorded.diagnostics, token: 'old' })
       return { bin, recorded, server, client }
     })
     await step('送った要求と外部コマンドの呼び出しを確かめる', async () => {
-      expect(await client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).toEqual({ user: { id: 'U_1' } })
+      expect(await client.executeGraphql(QUERY_GET_PROJECT_ID_USER, { owner: 'x', projectNumber: 1 })).toEqual({ user: { id: 'U_1' } })
       expect(client.token).toBe('gh_new_token')
       expect(recorded.lines).toEqual([`warning: ${FALLBACK_WARNING}`])
       expect(readFakeCalls(bin, 'gh')).toEqual([['auth', 'token']])
       expect(server.requests()).toEqual([
-        { type: 'graphql', operation: 'GetUserNodeId', variables: { login: 'x' }, auth: 'Bearer' },
-        { type: 'graphql', operation: 'GetUserNodeId', variables: { login: 'x' }, auth: 'Bearer' },
+        { type: 'graphql', operation: 'GetProjectIdUser', variables: { owner: 'x', projectNumber: 1 }, auth: 'Bearer' },
+        { type: 'graphql', operation: 'GetProjectIdUser', variables: { owner: 'x', projectNumber: 1 }, auth: 'Bearer' },
       ])
     })
   })
@@ -1211,10 +1185,10 @@ describe('401 のときの gh auth token への切り替え', () => {
       useProject()
       useFakeGh('gh_new_token')
       const server = await serve([
-        rule({ operation: 'GetUserNodeId' }, { status: 401, text: 'Unauthorized' }),
-        rule({ operation: 'GetUserNodeId' }, retry),
+        rule({ operation: 'GetProjectIdUser' }, { status: 401, text: 'Unauthorized' }),
+        rule({ operation: 'GetProjectIdUser' }, retry),
       ])
-      const failure = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 'old' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })
+      const failure = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 'old' }).executeGraphql(QUERY_GET_PROJECT_ID_USER, { owner: 'x', projectNumber: 1 })
       return { server, failure }
     })
     await step('エラーを確かめる', async () => {
@@ -1229,12 +1203,12 @@ describe('401 のときの gh auth token への切り替え', () => {
       useProject()
       const bin = useFakeGh('gh_new_token')
       const recorded = recordDiagnostics()
-      await serve([rule({ operation: 'GetUserNodeId' }, { status: 200, body: { errors: [{ message: 'Could not resolve to an Issue with the number of 401', type: 'NOT_FOUND' }] } })])
+      await serve([rule({ operation: 'GetProjectIdUser' }, { status: 200, body: { errors: [{ message: 'Could not resolve to an Issue with the number of 401', type: 'NOT_FOUND' }] } })])
       const client = new GitHubClientBase({ diagnostics: recorded.diagnostics, token: 'old' })
       return { bin, recorded, client }
     })
     await step('エラーと外部コマンドの呼び出しを確かめる', async () => {
-      await expect(client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).rejects.toMatchObject({ name: 'GitHubAPIError' })
+      await expect(client.executeGraphql(QUERY_GET_PROJECT_ID_USER, { owner: 'x', projectNumber: 1 })).rejects.toMatchObject({ name: 'GitHubAPIError' })
       expect(client.token).toBe('old')
       expect(readFakeCalls(bin, 'gh')).toEqual([])
       expect(recorded.lines).toEqual([])
@@ -1246,11 +1220,11 @@ describe('401 のときの gh auth token への切り替え', () => {
     const { server } = await step('偽の GitHub サーバを用意する', async () => {
       useProject()
       useFakeGh()
-      const server = await serve([rule({ operation: 'GetUserNodeId' }, { status: 401, text: 'Unauthorized' })])
+      const server = await serve([rule({ operation: 'GetProjectIdUser' }, { status: 401, text: 'Unauthorized' })])
       return { server }
     })
     await step('エラーを確かめる', async () => {
-      await expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 'old' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).rejects.toThrow(
+      await expect(new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 'old' }).executeGraphql(QUERY_GET_PROJECT_ID_USER, { owner: 'x', projectNumber: 1 })).rejects.toThrow(
         new GitHubAuthError(`GraphQL authentication error: ${statusSentence('Client error', 401, 'Unauthorized').replace('{{GRAPHQL}}', () => `${server.url}/graphql`)}`),
       )
     })
@@ -1322,8 +1296,8 @@ function isUserPath(path: readonly JsonValue[]): boolean {
 }
 
 async function runTolerating(body: unknown): ReturnType<GitHubClientBase['executeGraphqlTolerating']> {
-  await serve([rule({ operation: 'GetUserNodeId' }, { status: 200, body })])
-  return new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphqlTolerating(QUERY_GET_USER_NODE_ID, { login: 'x' }, isUserPath)
+  await serve([rule({ operation: 'GetProjectIdUser' }, { status: 200, body })])
+  return new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphqlTolerating(QUERY_GET_PROJECT_ID_USER, { owner: 'x', projectNumber: 1 }, isUserPath)
 }
 
 describe('executeGraphqlTolerating', () => {
@@ -1384,12 +1358,12 @@ describe('executeGraphql', () => {
   it.each(GRAPHQL_SUCCESSES)('$name のとき、data を返す', async ({ respond, data }) => {
     await explains('GraphQL の実行のテストです。成功の応答（`data` が空のリストの場合や、`errors` が空や `null` の場合を含む）に対して、`data` を返すことを確認します。')
     const { server, client } = await step('偽の GitHub サーバを用意する', async () => {
-      const server = await serve([rule({ operation: 'GetUserNodeId' }, respond)])
+      const server = await serve([rule({ operation: 'GetProjectIdUser' }, respond)])
       const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
       return { server, client }
     })
     await step('結果を確かめる', async () => {
-      expect(await client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).toEqual(data)
+      expect(await client.executeGraphql(QUERY_GET_PROJECT_ID_USER, { owner: 'x', projectNumber: 1 })).toEqual(data)
       expect(server.problems()).toEqual([])
     })
   })
@@ -1397,12 +1371,12 @@ describe('executeGraphql', () => {
   it.each(GRAPHQL_FAILURES)('$name のとき、$expected.error.name が発生する', async ({ respond, expected }) => {
     await explains('GraphQL の実行のテストです。失敗の応答（状態コード・`errors`・本文の形ごとの失敗）を、Python と同じクラスとメッセージの例外に分類することを確認します。')
     const { server, client } = await step('偽の GitHub サーバを用意する', async () => {
-      const server = await serve([rule({ operation: 'GetUserNodeId' }, respond)])
+      const server = await serve([rule({ operation: 'GetProjectIdUser' }, respond)])
       const client = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' })
       return { server, client }
     })
     const { execution } = await step('executeGraphql を呼ぶ', () => {
-      const execution = client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })
+      const execution = client.executeGraphql(QUERY_GET_PROJECT_ID_USER, { owner: 'x', projectNumber: 1 })
       return { execution }
     })
     await step('エラーを確かめる', async () => {
@@ -1414,22 +1388,22 @@ describe('executeGraphql', () => {
 
   it('変数を省略すると、空のオブジェクトを送信する', async () => {
     await explains('GraphQL の実行のテストです。変数を省略した場合に、空のオブジェクトを送信することを確認します。')
-    const server = await step('偽の GitHub サーバを用意する', async () => await serve([rule({ operation: 'GetUserNodeId' }, { status: 200, body: { data: { user: { id: 'U' } } } })]))
+    const server = await step('偽の GitHub サーバを用意する', async () => await serve([rule({ operation: 'GetProjectIdUser' }, { status: 200, body: { data: { user: { id: 'U' } } } })]))
     await step('クライアントを作る', async () => {
-      await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID)
+      await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphql(QUERY_GET_PROJECT_ID_USER)
     })
     await step('送った要求を確かめる', () => {
-      expect(server.requests()).toEqual([{ type: 'graphql', operation: 'GetUserNodeId', variables: {}, auth: 'Bearer' }])
+      expect(server.requests()).toEqual([{ type: 'graphql', operation: 'GetProjectIdUser', variables: {}, auth: 'Bearer' }])
     })
   })
 
   it('null の変数をそのまま送信する', async () => {
     await explains('GraphQL の実行のテストです。`null` の変数を、そのまま送信することを確認します。')
-    const server = await step('偽の GitHub サーバを用意する', async () => await serve([rule({ operation: 'GetUserNodeId' }, { status: 200, body: { data: { user: JSON_NULL } } })]))
-    const result = await step('クライアントを作る', async () => await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: JSON_NULL }))
+    const server = await step('偽の GitHub サーバを用意する', async () => await serve([rule({ operation: 'GetProjectIdUser' }, { status: 200, body: { data: { user: JSON_NULL } } })]))
+    const result = await step('クライアントを作る', async () => await new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphql(QUERY_GET_PROJECT_ID_USER, { owner: JSON_NULL, projectNumber: 1 }))
     await step('送った要求を確かめる', () => {
       expect(result).toEqual({ user: JSON_NULL })
-      expect(server.requests()).toEqual([{ type: 'graphql', operation: 'GetUserNodeId', variables: { login: JSON_NULL }, auth: 'Bearer' }])
+      expect(server.requests()).toEqual([{ type: 'graphql', operation: 'GetProjectIdUser', variables: { owner: JSON_NULL, projectNumber: 1 }, auth: 'Bearer' }])
     })
   })
 
@@ -1466,7 +1440,7 @@ describe('executeGraphql', () => {
     })
     const { execution } = await step('作業場所と環境を用意する', () => {
       setEnvironment({ PECOT_GITHUB_API_URL: closed.url })
-      const execution = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })
+      const execution = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't' }).executeGraphql(QUERY_GET_PROJECT_ID_USER, { owner: 'x', projectNumber: 1 })
       return { execution }
     })
     await step('エラーを確かめる', async () => {
@@ -1486,7 +1460,7 @@ describe('executeGraphql', () => {
       return { client }
     })
     await step('エラーを確かめる', async () => {
-      await expect(client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).rejects.toMatchObject({ message: 'GraphQL query error: timed out' })
+      await expect(client.executeGraphql(QUERY_GET_PROJECT_ID_USER, { owner: 'x', projectNumber: 1 })).rejects.toMatchObject({ message: 'GraphQL query error: timed out' })
     })
   })
 
@@ -1498,7 +1472,7 @@ describe('executeGraphql', () => {
       })
       setEnvironment({ PECOT_GITHUB_API_URL: raw.url })
       const controller = new AbortController()
-      const execution = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't', signal: controller.signal }).executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })
+      const execution = new GitHubClientBase({ diagnostics: ignoredDiagnostics, token: 't', signal: controller.signal }).executeGraphql(QUERY_GET_PROJECT_ID_USER, { owner: 'x', projectNumber: 1 })
       return { raw, controller, execution }
     })
     await step('送った要求を確かめる', async () => {
@@ -1525,7 +1499,7 @@ describe('executeGraphql', () => {
       return { client }
     })
     await step('エラーを確かめる', async () => {
-      await expect(client.executeGraphql(QUERY_GET_USER_NODE_ID, { login: 'x' })).rejects.toMatchObject({ message: 'GraphQL query error: timed out' })
+      await expect(client.executeGraphql(QUERY_GET_PROJECT_ID_USER, { owner: 'x', projectNumber: 1 })).rejects.toMatchObject({ message: 'GraphQL query error: timed out' })
     })
   })
 })

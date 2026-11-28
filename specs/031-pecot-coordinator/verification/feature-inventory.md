@@ -75,3 +75,56 @@ Issue #792（T038）の記録。Phase 5 を始める前の pecot-workflow の MC
 | このリポの `dependabot-prs.yml` | Dependabot の Tracker | `plugins/pecot-workflow/bin/pecot tracker sync dependabot` | `uses: ./actions/tracker-sync` |
 
 雛形は `actions/templates/` に移し、`uses: pecotcraft/pecot/actions/<処理>@pecot-actions/v<版>` で呼ぶ。このリポの写しは `uses: ./actions/<処理>` で呼ぶ。
+
+## 作り替えた後（Phase 9）
+
+Issue #799（T156）の記録。上の 45 個のツールと Actions の処理を、作り替えた後の手と突き合わせた（SC-007）。
+
+使えなくなった機能は、`branch_delete` のリモートのブランチの削除だけである。pecot はリモートのブランチを消さず（FR-018）、マージした PR の head はリポの「head ブランチを自動で消す」（`delete_branch_on_merge`）で GitHub が消す。
+pecot-workflow の MCP のツールは 25 個になり、どれも GitHub の API を呼ばない。cli から GitHub の client を辿れないことは、eslint の決まりと `cli/tests/sc005-no-github-io.test.ts` が止める。
+
+### MCP のツール
+
+| 前のツール | 今の手 |
+|---|---|
+| `auto_finish`・`auto_gate`・`auto_start` | `actions/auto-finish`・`actions/auto-gate`・`actions/auto-start` |
+| `board_add` | `board_check` に通してから、公式の MCP の `projects_write`（`add_project_item`・`update_project_item`） |
+| `board_move` | `board_check` に通してから、`projects_write`（`update_project_item`） |
+| `board_show` | `board_show`。ボードは公式の MCP で読み、`reads` で渡す |
+| `board_sync` | `actions/board-sync` |
+| `branch_delete` | なし。`delete_branch_on_merge` に任せる |
+| `issue_attributes` | `issue_check` に通してから、`issue_write`（`issue_fields`・`type`）と `projects_write` |
+| `issue_block`・`issue_unblock` | `issue_dependency_check` に通してから、`issue_dependency_write` と `projects_write` |
+| `issue_check` | `issue_check`。`issue_write` に渡す値を確かめる |
+| `issue_comment` | `issue_comment_check` に通してから、`add_issue_comment`・`update_issue_comment` |
+| `issue_create` | `issue_check`（`create`）に通してから、`issue_write`・`sub_issue_write`・`issue_dependency_write`・`projects_write` |
+| `issue_edit` | `issue_check`（`update`）に通してから、`issue_write` |
+| `issue_reopen` | `projects_write`（`add_project_item`）でカードを戻し、`issue_check`（`update`）に通してから `issue_write`（`state: open`）で開く。手順は `skills/w-help/references/issue-reopen.md` |
+| `issue_show` | 公式の MCP の `issue_read` |
+| `pr_check` | `pr_check`（`create`・`update`・`merge`） |
+| `pr_create` | `pr_check`（`create`）に通してから、`create_pull_request`。スタック PR は github-ops の `stack-register` |
+| `pr_merge` | `pr_check`（`merge`）に通してから、`merge_pull_request`。feature PR は利用者が画面でマージする |
+| `pr_restack` | `pr_restack`。手元の git の rebase と push だけを行う |
+| `pr_show` | 公式の MCP の `pull_request_read` |
+| `project_activate`・`project_get`・`project_link`・`project_list`・`project_set`・`project_unset` | 同じ名前のツール。手元の設定ファイルだけを読み書きする。`project_activate` はボードを `reads` で受ける |
+| `project_create` | `project_check`（`create`）に通してから、`projects_write`（`create_project`）。欄とビューは github-ops の `project-fields`・`project-view` |
+| `project_init` | `project_check`（`fields`）に通してから、github-ops の `project-fields`・`project-view` |
+| `project_search` | 公式の MCP の `projects_list`（`list_projects`） |
+| `release_check` | `release_check`（MCP）と `actions/release-check`（Actions） |
+| `release_create` | `release_check` に通してから、github-ops の `release-create` |
+| `release_merge` | `pr_check`（`merge`）に通してから、`merge_pull_request` |
+| `review_finish` | `actions/review-finish` |
+| `session_finish` | `session_finish`（手元の片付け）と `actions/session-finish`（GitHub 側の片付け） |
+| `session_show`・`session_start` | 同じ名前のツール。`session_start` は手元に作業を記録するだけで、ブランチは `branch_check` に通してから github-ops の `link-branch` で作る |
+| `tracker_sync` | `actions/tracker-sync`（`source` は security・dependabot・issue-surface） |
+| `workflow_doctor` | `workflow_doctor`。secret・variable の名前と置いた雛形は、github-ops の `workflow-doctor` で読んで渡す |
+| `workflow_install` | `workflow_install` |
+| `worktree_add`・`worktree_init`・`worktree_link`・`worktree_remove` | 同じ名前のツール |
+
+### Actions の処理とこのリポの運用
+
+| 処理 | 今の手 |
+|---|---|
+| 上の表の Actions の処理 | 上の表の行き先のとおり。雛形は `actions/templates/` にある |
+| Issue の機能の写しと今のスキーマの比べ（`issue-surface-drift.yml`） | `uses: ./actions/tracker-sync`（`source: issue-surface`）。前は cli の `scripts/github-surface/drift.ts` が GitHub の client で書いていた |
+| 試験環境を比べる・片付ける（`sandbox-diff.sh`・`sandbox-sweep.sh`） | このリポの `sandbox-ops.yml` を、公式の MCP の `actions_run_trigger` で起動する。手順は `plugins/pecot-workflow/CONTRIBUTING.md` の「3. 試験環境」 |

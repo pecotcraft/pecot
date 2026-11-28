@@ -6,7 +6,6 @@ import { z } from 'zod'
 
 import { CancelledError, InvalidValueError } from '@pecot/workflow-core/domain/errors.js'
 import { parseOwnerRepository } from '@pecot/workflow-core/domain/repository-resolver.js'
-import { resolveApiUrlOverride } from '@pecot/workflow-core/infra/github/client.js'
 import { cancelledBy } from '@pecot/workflow-core/infra/process-run.js'
 import { AbortedError, createOutput } from '@pecot/workflow-core/commands-shared/output.js'
 import { exitCodeOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
@@ -112,7 +111,6 @@ async function invoke(definition: Readonly<ToolDefinition>, raw: unknown, option
   let exitCode: number
   let message: string | undefined
   try {
-    resolveApiUrlOverride()
     const preparation = prepare(definition, raw)
     if (preparation.kind === 'rejected') return toRejectedResult(preparation.message)
     exitCode = await preparation.command.run(collected.io)

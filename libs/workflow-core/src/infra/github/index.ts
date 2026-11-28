@@ -13,7 +13,5 @@ GitHub API クライアント。操作は責務別のクラスから合成する
 使い方は次のとおり。
 - 作る: `new GitHubClient({ host: 'ghes.example.com', diagnostics })`。
 - 呼ぶ: `await client.getIssueSlim('owner', 'repo', 123)`。
-
-RepositoryMembership（domain/config.ts）と同じ形の linkedRepositories も持つ。
 */
 export class GitHubClient extends PullsApi {}

@@ -406,7 +406,7 @@
     {
       "id": "PA-TRACKER-SYNC",
       "name": "tracker sync",
-      "description": "Rewrite the open Tracker's list for a source in the repository of the workflow. Dependabot PRs waiting for a human decision, or open security alerts.",
+      "description": "Rewrite the open Tracker's list for a source in the repository of the workflow. Dependabot PRs waiting for a human decision, open security alerts, or the difference between GitHub's current schema and the issue surface snapshot.",
       "surfaces": {
         "action": {
           "path": "actions/tracker-sync"
@@ -428,7 +428,11 @@
           },
           "source": {
             "type": "string",
-            "description": "What to put into the Tracker: dependabot (Dependabot PRs waiting for a human decision) or security (open security alerts)"
+            "description": "What to put into the Tracker: dependabot (Dependabot PRs waiting for a human decision), security (open security alerts) or issue-surface (items added to or removed from GitHub's current schema compared with surface-file)"
+          },
+          "surface-file": {
+            "type": "string",
+            "description": "Path of the issue surface snapshot (github-issue-surface.json) in the checked-out repository. Required when source is issue-surface"
           },
           "token": {
             "type": "string",

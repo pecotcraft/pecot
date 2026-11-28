@@ -4,12 +4,12 @@ import path from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { run } from '../scripts/github-surface/extract.js'
-import type { CommandIo } from '../src/commands/registry.js'
-import { issueSurfaceSchema } from '../src/domain/issue-surface.js'
+import type { CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
+import { issueSurfaceSchema } from '@pecot/workflow-core/domain/issue-surface.js'
 import { DEFAULT_API_VERSION } from '@pecot/workflow-core/infra/github/client.js'
-import { GRAPHQL_SCHEMA_URL, restDescriptionUrl } from '../src/infra/github/issue-surface.js'
-import { makeTemporaryDirectory } from '../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { makeTemporaryDirectory } from '../../libs/workflow-core/tests/_helpers/temporary.js'
+import { run } from '../scripts/issue-surface-extract.js'
+import { GRAPHQL_SCHEMA_URL, restDescriptionUrl } from '../src/infra/issue-surface.js'
 import { explains } from './_helpers/explains.js'
 
 const SDL = `
@@ -46,26 +46,28 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('extract.ts', () => {
+describe('issue-surface-extract.ts', () => {
   it.for([
     { name: '--out を指定しない', argv: [] },
     { name: '未定義の引数を指定する', argv: ['--out', 'x.json', '--sdl', 'y'] },
   ])('$name と、usage を出力して終了コード 2 で終了し、取得しない', async ({ argv }) => {
-    await explains('`--out` を指定しない場合と、未定義の引数を指定した場合の、`extract.ts` のテストです。どちらの場合も、使い方（usage）を標準エラーに出力して終了コード 2 で終了し、取得しないことを確認します。')
+    await explains('`--out` を指定しない場合と、未定義の引数を指定した場合の、`issue-surface-extract.ts` のテストです。どちらの場合も、usage を標準エラーに出力して終了コード 2 で終了し、取得しないことを確認します。')
     const requested = stubSources()
     const { io, error } = capture()
     expect(await run(argv, io)).toBe(2)
-    expect(error.join('')).toContain('usage: extract.ts --out <file> [--api-version <version>]')
+    expect(error.join('')).toBe('error: usage: issue-surface-extract.ts --out <file> [--api-version <version>]\n')
     expect(requested).toEqual([])
   })
 
   it('--api-version を指定しないと、DEFAULT_API_VERSION の OpenAPI を取得し、並べ替え済みの写しを書く', async () => {
-    await explains('`--api-version` を指定せずに `extract.ts` を実行した場合の、写しの作成のテストです。既定の版（`DEFAULT_API_VERSION`）の OpenAPI を取得し、並べ替え済みの項目を持つ写しを書き出すことを確認します。')
+    await explains('`--api-version` を指定せずに `issue-surface-extract.ts` を実行した場合の、写しの作成のテストです。既定の版の OpenAPI を取得し、並べ替え済みの項目を持つ写しを書き出すことを確認します。')
     const requested = stubSources()
     const out = path.join(makeTemporaryDirectory(), 'surface.json')
-    const { io } = capture()
-    expect(await run(['--out', out], io)).toBe(0)
-    expect(requested).toContain(restDescriptionUrl(DEFAULT_API_VERSION))
+    const captured = capture()
+    expect(await run(['--out', out], captured.io)).toBe(0)
+    expect(requested).toHaveLength(2)
+    expect(new Set(requested)).toEqual(new Set([GRAPHQL_SCHEMA_URL, restDescriptionUrl(DEFAULT_API_VERSION)]))
+    expect(captured.out.join('')).toBe(`wrote: ${out} (5 items)\n`)
     const written = issueSurfaceSchema.parse(JSON.parse(readFileSync(out, 'utf8')))
     expect(written.sources.fetched_at).toMatch(/^\d{4}-\d{2}-\d{2}T/u)
     expect(written).toEqual({
@@ -81,17 +83,16 @@ describe('extract.ts', () => {
   })
 
   it('--api-version を渡すと、その版の OpenAPI を取得し、写しの版に書き込む', async () => {
-    await explains('`--api-version` を指定して `extract.ts` を実行した場合の、写しの作成のテストです。指定した版の OpenAPI を取得し、写しの `rest_api_version` に指定した版が書き込まれることを確認します。')
+    await explains('`--api-version` を指定して `issue-surface-extract.ts` を実行した場合の、写しの作成のテストです。指定した版の OpenAPI を取得し、写しの `rest_api_version` に指定した版が書き込まれることを確認します。')
     const requested = stubSources()
     const out = path.join(makeTemporaryDirectory(), 'surface.json')
-    const { io } = capture()
-    expect(await run(['--out', out, '--api-version', '2026-03-10'], io)).toBe(0)
+    expect(await run(['--out', out, '--api-version', '2026-03-10'], capture().io)).toBe(0)
     expect(requested).toContain(restDescriptionUrl('2026-03-10'))
     expect(JSON.parse(readFileSync(out, 'utf8'))).toMatchObject({ sources: { rest_api_version: '2026-03-10' } })
   })
 
   it('取得先が 503 を返すと、写しを書き出さずに例外を発生させる', async () => {
-    await explains('取得先がエラーを返す場合の、`extract.ts` のテストです。取得先が 503 を返したときに、例外が発生し、写しのファイルが作成されないことを確認します。')
+    await explains('取得先がエラーを返す場合の、`issue-surface-extract.ts` のテストです。取得先が 503 を返したときに、例外が発生し、写しのファイルが作成されないことを確認します。')
     vi.stubGlobal('fetch', () => Promise.resolve(new Response('', { status: 503, statusText: 'Service Unavailable' })))
     const out = path.join(makeTemporaryDirectory(), 'surface.json')
     await expect(run(['--out', out], capture().io)).rejects.toThrow(/failed: 503 Service Unavailable/u)

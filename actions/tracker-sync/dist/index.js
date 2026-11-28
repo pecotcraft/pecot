@@ -5580,7 +5580,7 @@ const ZodRealError = /*@__PURE__*/ $constructor("ZodError", initializer, undefin
 // /** @deprecated Use `z.core.$ZodErrorMapCtx` instead. */
 // export type ErrorMapCtx = core.$ZodErrorMapCtx;
 
-const parse$1 = /* @__PURE__ */ _parse(ZodRealError);
+const parse$2 = /* @__PURE__ */ _parse(ZodRealError);
 const parseAsync = /* @__PURE__ */ _parseAsync(ZodRealError);
 const safeParse = /* @__PURE__ */ _safeParse(ZodRealError);
 const safeParseAsync = /* @__PURE__ */ _safeParseAsync(ZodRealError);
@@ -5720,7 +5720,7 @@ const ZodType = /*@__PURE__*/ $constructor("ZodType", (inst, def) => {
         own(this, "~standard", value);
     },
     parse: function _parse(data, params) {
-        return parse$1(this, data, params, { callee: _parse });
+        return parse$2(this, data, params, { callee: _parse });
     },
     parseAsync: async function _parseAsync(data, params) {
         return await parseAsync(this, data, params, { callee: _parseAsync });
@@ -7223,40 +7223,6 @@ function toOsError(error, fallbackPath) {
     return new OsError(message, error.code, errorPath, { cause: error });
 }
 
-// Issue / PR 参照のパーサー。
-//
-// `owner/repo/N` 形式を IssueReference にする。短縮形 `N` は基準リポ（baseRepository）で補う。
-// 参照の形式が不正なときの文は、Python の CLI が出していた文に揃える。
-function integerOf(digits) {
-    const value = parsePythonInteger(digits);
-    if (value === undefined)
-        throw new InvalidValueError(`invalid literal for int() with base 10: ${digits}`);
-    return value;
-}
-const REFS_PATTERN = /(?:^|\s)Refs?:?\s+(?:#(?<number>\p{Nd}+)|(?<owner>[\w.-]+)\/(?<repository>[\w.-]+)[#/](?<qualifiedNumber>\p{Nd}+))/gimu;
-/**
-PR 本文の Refs で参照された Issue 番号を集める。
-受理形式は `Refs #N`・`Refs owner/repo#N`・`Refs owner/repo/N`（`Ref` も可、コロンは任意、大文字小文字は区別しない）。
-owner/repo 付きの参照は、repository と一致（大文字小文字を区別しない）するものだけ採る
-*/
-function extractReferencesIssueNumbers(body, repository) {
-    const numbers = new Set();
-    if (body === undefined || body === '')
-        return numbers;
-    const ownerKey = repository.owner.toLowerCase();
-    const repositoryKey = repository.repository.toLowerCase();
-    for (const match of body.matchAll(REFS_PATTERN)) {
-        const { number, owner, repository: matchedRepository, qualifiedNumber } = match.groups ?? {};
-        if (number !== undefined) {
-            numbers.add(integerOf(number));
-        }
-        else if (qualifiedNumber !== undefined && owner?.toLowerCase() === ownerKey && matchedRepository?.toLowerCase() === repositoryKey) {
-            numbers.add(integerOf(qualifiedNumber));
-        }
-    }
-    return numbers;
-}
-
 const state = { mode: 'inherit' };
 function childStdin() {
     return state.mode;
@@ -8366,10 +8332,6 @@ class GitHubClientBase {
     ghTimeoutMilliseconds;
     apiUrl;
     graphqlUrl;
-    /**
-    プロジェクトにリンクされたリポジトリの一覧のキャッシュ（`owner/projectNumber` がキー）
-    */
-    linkedRepositoriesCache = new Map();
     constructor(options) {
         this.diagnostics = options.diagnostics;
         this.host = options.host ?? 'github.com';
@@ -8676,12 +8638,6 @@ or authenticate with the GitHub CLI:
     async executeGraphqlTolerating(query, variables, isTolerated) {
         return this.runGraphql(query, variables, isTolerated);
     }
-    /**
-    認証ユーザーの情報（login・id・name・email など）
-    */
-    async getAuthenticatedUser() {
-        return this.restJson('GET', '/user');
-    }
 }
 
 /**
@@ -8721,9 +8677,13 @@ function todayUtc(now) {
 
 // tracker-sync の source が共有する入力と、ワークフローが動くリポの決め方。
 const TRACKER_SYNC_INPUT = strictObject({
-    source: _enum(['dependabot', 'security']),
+    source: _enum(['dependabot', 'security', 'issue-surface']),
     dry_run: boolean().default(false),
     project: string$1().optional(),
+    surface_file: string$1().optional(),
+}).refine(input => input.source !== 'issue-surface' || input.surface_file !== undefined, {
+    error: 'surface-file is required when source is issue-surface',
+    path: ['surface_file'],
 });
 /**
 ワークフローが動くリポ（GITHUB_REPOSITORY）と、それを含むプロジェクトの設定を決める。決められなければ error の行を出して終了コード 1 で止める
@@ -17719,9 +17679,9 @@ function parseYamlDocument(source) {
 // 自動マージの対象かは dependabot/fetch-metadata v3.1.0 と同じ情報源・規則で決める。
 // 正規表現は m フラグと `.`・`\s`・`\d`・`$` に頼らず、Python と同じ範囲を明示する。
 const PR_LABEL = 'dependabot-pr';
-const TRACKER_MARKER$1 = '<!-- pecot-dependabot-pr: tracker -->';
-const LIST_BEGIN$1 = '<!-- pecot-dependabot-pr: list-begin -->';
-const LIST_END$1 = '<!-- pecot-dependabot-pr: list-end -->';
+const TRACKER_MARKER$2 = '<!-- pecot-dependabot-pr: tracker -->';
+const LIST_BEGIN$2 = '<!-- pecot-dependabot-pr: list-begin -->';
+const LIST_END$2 = '<!-- pecot-dependabot-pr: list-end -->';
 // security の Tracker の種類ごとの見出しと同じ形にする
 const SECTION_HEADING = '## dependabot PR';
 const REASON_UNKNOWN = 'unknown update type';
@@ -17740,8 +17700,8 @@ const LINE_END = '(?![^\\n])';
 const BACKTICK = '`';
 const DIGIT = '\\p{Nd}';
 const ROW_MARKER_PATTERN = compilePattern(`<!--${SPACE}*pecot-dependabot-pr:${SPACE}*pr/(${DIGIT}+)${SPACE}*-->`, 'u');
-const MARKERS$1 = markerPatterns('pecot-dependabot-pr');
-const TRACKER_PATTERN$1 = MARKERS$1.tracker;
+const MARKERS$2 = markerPatterns('pecot-dependabot-pr');
+const TRACKER_PATTERN$2 = MARKERS$2.tracker;
 const TABLE_LINE_PATTERN = compilePattern(String.raw `^${SPACE}*\|`, 'u');
 const LINE_BREAK_RUN = compilePattern(String.raw `${SPACE}*[\r\n]+${SPACE}*`, 'gu');
 // fetch-metadata v3.1.0 の parse・parseMetadataLinks と同じ。commit の message から YAML と版の記述を抜く
@@ -17997,7 +17957,7 @@ list-begin / list-end の印が 1 組でなければ DependabotPrError
 */
 function parseTrackerPullRequestNumbers(body = '') {
     const text = normalizeNewlines(body);
-    const { begin, end } = listRegion(text, MARKERS$1.begin, MARKERS$1.end, DependabotPrError);
+    const { begin, end } = listRegion(text, MARKERS$2.begin, MARKERS$2.end, DependabotPrError);
     const numbers = new Set();
     for (const line of text.slice(begin, end).split('\n')) {
         if (!TABLE_LINE_PATTERN.test(line))
@@ -18012,21 +17972,21 @@ function parseTrackerPullRequestNumbers(body = '') {
 Tracker の本文を作る。existingBody があれば list-begin から list-end の間だけを書き直し、外の文は残す。
 無ければ Tracker の印と一覧だけの本文を作る。existingBody の印が 1 組でなければ DependabotPrError
 */
-function renderTrackerBody$1(entries, existingBody) {
+function renderTrackerBody$2(entries, existingBody) {
     const table = entries.length > 0
         ? ['| title | PR | checks |', '|---|---|---|', ...entries.map(entry => row(entry))].join('\n')
         : 'none';
     const section = `${SECTION_HEADING}\n\n${table}`;
     if (existingBody === undefined)
-        return `${TRACKER_MARKER$1}\n\n${LIST_BEGIN$1}\n${section}\n${LIST_END$1}\n`;
+        return `${TRACKER_MARKER$2}\n\n${LIST_BEGIN$2}\n${section}\n${LIST_END$2}\n`;
     const text = normalizeNewlines(existingBody);
-    const { begin, end } = listRegion(text, MARKERS$1.begin, MARKERS$1.end, DependabotPrError);
+    const { begin, end } = listRegion(text, MARKERS$2.begin, MARKERS$2.end, DependabotPrError);
     return `${text.slice(0, begin)}\n${section}\n${text.slice(end)}`;
 }
 /**
 Tracker の題。today は立てた日（UTC）の YYYY-MM-DD
 */
-function buildTrackerTitle$1(today) {
+function buildTrackerTitle$2(today) {
     return `[Tracker] dependabot PR — ${today}`;
 }
 /**
@@ -18346,36 +18306,6 @@ const QUERY_GET_ISSUE_NODE_ID = `query ($owner: String!, $repo: String!, $number
     }
   }
 }`;
-// リンクリポジトリ取得（user版）
-const QUERY_GET_LINKED_REPOSITORIES_USER = `query ($owner: String!, $projectNumber: Int!) {
-  user(login: $owner) {
-    projectV2(number: $projectNumber) {
-      repositories(first: 100) {
-        nodes {
-          owner {
-            login
-          }
-          name
-        }
-      }
-    }
-  }
-}`;
-// リンクリポジトリ取得（organization版）
-const QUERY_GET_LINKED_REPOSITORIES_ORG = `query ($owner: String!, $projectNumber: Int!) {
-  organization(login: $owner) {
-    projectV2(number: $projectNumber) {
-      repositories(first: 100) {
-        nodes {
-          owner {
-            login
-          }
-          name
-        }
-      }
-    }
-  }
-}`;
 // プロジェクトNode ID取得（user版）
 const QUERY_GET_PROJECT_ID_USER = `query ($owner: String!, $projectNumber: Int!) {
   user(login: $owner) {
@@ -18432,30 +18362,10 @@ const MUTATION_UPDATE_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: 
     }
   }
 }`;
-// プロジェクトアイテムのフィールドに値を書く。value は ProjectV2FieldValue（種類ごとに 1 つのキー）
-const MUTATION_UPDATE_PROJECT_ITEM_FIELD_VALUE = `mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
-  updateProjectV2ItemFieldValue(
-    input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value }
-  ) {
-    projectV2Item {
-      id
-    }
-  }
-}`;
 // プロジェクトアイテム削除
 const MUTATION_DELETE_PROJECT_ITEM = `mutation ($projectId: ID!, $itemId: ID!) {
   deleteProjectV2Item(input: { projectId: $projectId, itemId: $itemId }) {
     deletedItemId
-  }
-}`;
-// プロジェクトアイテムのフィールドの値を消す
-const MUTATION_CLEAR_PROJECT_ITEM_FIELD = `mutation ($projectId: ID!, $itemId: ID!, $fieldId: ID!) {
-  clearProjectV2ItemFieldValue(
-    input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId }
-  ) {
-    projectV2Item {
-      id
-    }
   }
 }`;
 // サブIssue紐づけ
@@ -18476,43 +18386,6 @@ const MUTATION_CREATE_LINKED_BRANCH = `mutation CreateLinkedBranch($input: Creat
       ref {
         name
         prefix
-      }
-    }
-  }
-}`;
-// リンクブランチを作れなかったときの、作り先のリポと同じ名前の ref。id は Repository か Issue の Node ID
-const QUERY_GET_BRANCH_REF_BY_NODE = `query ($id: ID!, $qualifiedName: String!) {
-  node(id: $id) {
-    ... on Repository {
-      nameWithOwner
-      ref(qualifiedName: $qualifiedName) {
-        name
-      }
-    }
-    ... on Issue {
-      repository {
-        nameWithOwner
-        ref(qualifiedName: $qualifiedName) {
-          name
-        }
-      }
-    }
-  }
-}`;
-// Issue の Node ID と、つながったブランチ。件数は gh issue develop の ListLinkedBranches と同じ
-const QUERY_GET_ISSUE_LINKED_BRANCHES = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      id
-      linkedBranches(first: 30) {
-        nodes {
-          ref {
-            name
-            repository {
-              nameWithOwner
-            }
-          }
-        }
       }
     }
   }
@@ -18550,32 +18423,6 @@ const QUERY_GET_ISSUE_PROJECT_ITEMS = `query ($owner: String!, $repo: String!, $
             }
           }
         }
-      }
-    }
-  }
-}`;
-// プロジェクト一覧取得（user版）
-const QUERY_LIST_PROJECTS_USER = `query ($owner: String!, $first: Int!) {
-  user(login: $owner) {
-    projectsV2(first: $first) {
-      nodes {
-        number
-        title
-        url
-        id
-      }
-    }
-  }
-}`;
-// プロジェクト一覧取得（organization版）
-const QUERY_LIST_PROJECTS_ORG = `query ($owner: String!, $first: Int!) {
-  organization(login: $owner) {
-    projectsV2(first: $first) {
-      nodes {
-        number
-        title
-        url
-        id
       }
     }
   }
@@ -18709,29 +18556,6 @@ const MUTATION_UPDATE_PROJECT_FIELD = `mutation ($fieldId: ID!, $options: [Proje
     }
   }
 }`;
-// ユーザーNode ID取得
-const QUERY_GET_USER_NODE_ID = `query ($login: String!) {
-  user(login: $login) {
-    id
-  }
-}`;
-// 組織Node ID取得
-const QUERY_GET_ORG_NODE_ID = `query ($login: String!) {
-  organization(login: $login) {
-    id
-  }
-}`;
-// プロジェクト作成
-const MUTATION_CREATE_PROJECT = `mutation ($ownerId: ID!, $title: String!) {
-  createProjectV2(input: { ownerId: $ownerId, title: $title }) {
-    projectV2 {
-      id
-      number
-      title
-      url
-    }
-  }
-}`;
 // Issue 種別判定用クエリ（軽量・Epic 判定専用）
 // Phase2: issueType.name == "Epic" を一次判定
 const QUERY_GET_ISSUE_KIND = `query ($owner: String!, $repo: String!, $number: Int!) {
@@ -18841,56 +18665,6 @@ const QUERY_GET_ISSUE_SLIM = getIssueSlimQuery('', `
       }`);
 // 上のクエリから、前提の件数を除いたもの。Issue の依存関係を持たない GHES で読み直すのに使う
 const QUERY_GET_ISSUE_SLIM_WITHOUT_BLOCKED_BY = getIssueSlimQuery('GetIssueSlimWithoutBlockedBy', '');
-// Python 版 queries.py の QUERY_GET_SUB_ISSUES_PAGE と逐語で一致させる。
-const QUERY_GET_SUB_ISSUES_PAGE = `query ($owner: String!, $repo: String!, $number: Int!, $after: String!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      subIssues(first: 100, after: $after) {
-        nodes {
-          number
-          state
-          title
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-    }
-  }
-}`;
-// PR詳細取得（スリム版 - 必要なフィールドのみ）
-const QUERY_GET_PULL_REQUEST_SLIM = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      title
-      body
-      headRefName
-      baseRefName
-      isDraft
-      mergeable
-      comments {
-        totalCount
-      }
-      closingIssuesReferences(first: 10) {
-        nodes {
-          number
-          title
-        }
-      }
-      reviews(first: 10) {
-        nodes {
-          state
-          author {
-            login
-          }
-        }
-      }
-    }
-  }
-}`;
 // session finish が読む PR。closing issues のリポと、既定ブランチの名前を足す
 const QUERY_GET_PULL_REQUEST_FOR_FINISH = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
@@ -18915,83 +18689,6 @@ const QUERY_GET_PULL_REQUEST_FOR_FINISH = `query ($owner: String!, $repo: String
       baseRepository {
         defaultBranchRef {
           name
-        }
-      }
-    }
-  }
-}`;
-// pr merge が読む PR の状態。GetPullRequestSlim を変えずに、マージの判断に要る項目だけを読む
-const QUERY_GET_PULL_REQUEST_FOR_MERGE = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      isDraft
-      baseRefName
-      headRefOid
-      isMergeQueueEnabled
-      isInMergeQueue
-    }
-  }
-}`;
-// 上のクエリから merge queue の項目を除いたもの。その項目を持たない GHES で読み直すのに使う
-const QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      isDraft
-      baseRefName
-      headRefOid
-    }
-  }
-}`;
-// PR詳細取得（レビュー詳細付き - --reviews オプション用）
-const QUERY_GET_PULL_REQUEST_WITH_REVIEWS = `query ($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
-      number
-      state
-      title
-      body
-      headRefName
-      baseRefName
-      isDraft
-      mergeable
-      comments {
-        totalCount
-      }
-      closingIssuesReferences(first: 10) {
-        nodes {
-          number
-          title
-        }
-      }
-      reviews(first: 20) {
-        nodes {
-          state
-          body
-          author {
-            login
-          }
-          submittedAt
-        }
-      }
-      reviewThreads(first: 50) {
-        nodes {
-          isResolved
-          path
-          line
-          comments(first: 10) {
-            nodes {
-              author {
-                login
-              }
-              body
-              createdAt
-              url
-            }
-          }
         }
       }
     }
@@ -19074,12 +18771,6 @@ const QUERY_LIST_OPEN_PULL_REQUESTS = `query ($owner: String!, $repo: String!, $
         }
       }
     }
-  }
-}`;
-// 前提（blocked by）を付ける入力の型があるか。対応しない GHES（3.19 より前）では null になる
-const QUERY_HAS_ADD_BLOCKED_BY_INPUT = `{
-  __type(name: "AddBlockedByInput") {
-    name
   }
 }`;
 // 前提（blocked by）を付ける。issueId が待つ側、blockingIssueId が前提
@@ -19234,26 +18925,6 @@ const QUERY_LIST_PULL_REQUESTS_BY_HEAD = `query ($owner: String!, $repo: String!
 }
 
 ${PULL_REQUEST_FIELDS}`;
-// base のブランチ名で開いている PR を引く（古い順）
-const QUERY_LIST_PULL_REQUESTS_BY_BASE = `query ($owner: String!, $repo: String!, $baseRefName: String!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequests(
-      baseRefName: $baseRefName
-      states: [OPEN]
-      first: 20
-      orderBy: { field: CREATED_AT, direction: ASC }
-    ) {
-      pageInfo {
-        hasNextPage
-      }
-      nodes {
-        ...PullRequestFields
-      }
-    }
-  }
-}
-
-${PULL_REQUEST_FIELDS}`;
 const BLOCKED_BY_REFERENCE_FIELDS = `fragment BlockedByReferenceFields on Issue {
   id
   number
@@ -19265,39 +18936,6 @@ const BLOCKED_BY_REFERENCE_FIELDS = `fragment BlockedByReferenceFields on Issue 
     name
   }
 }`;
-// 前提の追加・削除の前の読み取り。判定の読み取りより軽く、本文と前提の参照だけを取る
-const QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES = `query ($owner: String!, $repo: String!, $number: Int!, $blockedByFirst: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      id
-      body
-      blockedBy(first: $blockedByFirst) {
-        totalCount
-        nodes {
-          ...BlockedByReferenceFields
-        }
-      }
-    }
-  }
-}
-
-${BLOCKED_BY_REFERENCE_FIELDS}`;
-// 輪をたどる 1 段分。node ID の並びのそれぞれの前提を、まとめて読む
-const QUERY_GET_BLOCKED_BY_OF_NODES = `query ($ids: [ID!]!, $blockedByFirst: Int!) {
-  nodes(ids: $ids) {
-    ... on Issue {
-      id
-      blockedBy(first: $blockedByFirst) {
-        totalCount
-        nodes {
-          ...BlockedByReferenceFields
-        }
-      }
-    }
-  }
-}
-
-${BLOCKED_BY_REFERENCE_FIELDS}`;
 // その Issue を前提にしている Issue（blocking）の参照。PR を作った後に、待つ側の Issue を絞るために読む
 const QUERY_GET_ISSUE_BLOCKING_REFERENCES = `query ($owner: String!, $repo: String!, $number: Int!, $blockingFirst: Int!) {
   repository(owner: $owner, name: $repo) {
@@ -19351,161 +18989,6 @@ const QUERY_GET_ISSUE_BOARD_ITEM = `query ($owner: String!, $repo: String!, $num
     }
   }
 }`;
-// Issue のボードの Item の pecot-lane の値。親の Epic の値を引き継ぐときに読む
-const QUERY_GET_ISSUE_LANE = `query ($owner: String!, $repo: String!, $number: Int!, $laneFieldName: String!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      projectItems(first: 20, includeArchived: false) {
-        nodes {
-          project {
-            id
-          }
-          lane: fieldValueByName(name: $laneFieldName) {
-            ... on ProjectV2ItemFieldSingleSelectValue {
-              name
-            }
-          }
-        }
-      }
-    }
-  }
-}`;
-// Issue の機能を読むクエリ。hasIssueFields が false の版は、Issue fields・Issue type を持たない GHES 向け
-function projectFieldFragment(hasIssueFields) {
-    return `fragment ProjectFieldFields on ProjectV2FieldConfiguration {
-  ... on ProjectV2FieldCommon {
-    id
-    name
-    dataType${hasIssueFields ? '\n    isIssueField' : ''}
-  }
-}`;
-}
-const ISSUE_FIELD_FIELDS = `fragment IssueFieldFields on IssueFields {
-  ... on IssueFieldCommon {
-    name
-    dataType
-  }
-}`;
-// 値の型それぞれに field を読む。知らない型は __typename と、共通の interface を実装していれば field で見分ける
-const PROJECT_FIELD_VALUE_TYPES = [
-    ['ProjectV2ItemFieldDateValue', 'date'],
-    ['ProjectV2ItemFieldIterationValue', 'title'],
-    ['ProjectV2ItemFieldLabelValue', ''],
-    ['ProjectV2ItemFieldMilestoneValue', ''],
-    ['ProjectV2ItemFieldMultiSelectValue', 'options {\n                  name\n                }'],
-    ['ProjectV2ItemFieldNumberValue', 'number'],
-    ['ProjectV2ItemFieldPullRequestValue', ''],
-    ['ProjectV2ItemFieldRepositoryValue', ''],
-    ['ProjectV2ItemFieldReviewerValue', ''],
-    ['ProjectV2ItemFieldSingleSelectValue', 'name'],
-    ['ProjectV2ItemFieldTextValue', 'text'],
-    ['ProjectV2ItemFieldUserValue', ''],
-    ['ProjectV2ItemIssueFieldValue', ''],
-];
-// Issue fields と同じ頃に入った型。Issue fields を持たない GHES の版のクエリには書かない
-const TYPES_WITH_ISSUE_FIELDS = new Set(['ProjectV2ItemIssueFieldValue', 'ProjectV2ItemFieldMultiSelectValue']);
-function projectFieldValueSelections(hasIssueFields) {
-    return PROJECT_FIELD_VALUE_TYPES
-        .filter(([type]) => hasIssueFields || !TYPES_WITH_ISSUE_FIELDS.has(type))
-        .map(([type, value]) => `
-              ... on ${type} {${value === '' ? '' : `\n                ${value}`}
-                field {
-                  ...ProjectFieldFields
-                }
-              }`)
-        .join('');
-}
-const ISSUE_FIELD_VALUES = `
-      issueType {
-        name
-      }
-      issueFieldValues(first: 100) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          __typename
-          ... on IssueFieldValueCommon {
-            field {
-              ...IssueFieldFields
-            }
-          }
-          ... on IssueFieldDateValue {
-            value
-          }
-          ... on IssueFieldMultiSelectValue {
-            options {
-              name
-            }
-          }
-          ... on IssueFieldNumberValue {
-            numberValue: value
-          }
-          ... on IssueFieldSingleSelectValue {
-            name
-          }
-          ... on IssueFieldTextValue {
-            value
-          }
-        }
-      }`;
-function getIssueAttributesQuery(name, hasIssueFields) {
-    return `query ${name}($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      assignees(first: 100) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          login
-        }
-      }
-      milestone {
-        title
-      }
-      labels(first: 100) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          name
-        }
-      }${hasIssueFields ? ISSUE_FIELD_VALUES : ''}
-      projectItems(first: 100, includeArchived: false) {
-        pageInfo {
-          hasNextPage
-        }
-        nodes {
-          id
-          project {
-            id
-          }
-          fieldValues(first: 100) {
-            pageInfo {
-              hasNextPage
-            }
-            nodes {
-              __typename
-              ... on ProjectV2ItemFieldValueCommon {
-                field {
-                  ...ProjectFieldFields
-                }
-              }${projectFieldValueSelections(hasIssueFields)}
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-${projectFieldFragment(hasIssueFields)}${hasIssueFields ? `\n\n${ISSUE_FIELD_FIELDS}` : ''}`;
-}
-// Issue 1 件の、値の入っている機能（担当者・マイルストーン・ラベル・Issue type・Issue fields・ボードのフィールド）
-getIssueAttributesQuery('', true);
-// 上のクエリから、Issue fields と Issue type を除いたもの
-getIssueAttributesQuery('GetIssueAttributesWithoutIssueFields', false);
 // Lanes のビューを作る先。所有者の種類と個人の数値の id（REST のパス）、ビューの名前、欄の databaseId
 const QUERY_GET_PROJECT_VIEW_TARGET = `query ($owner: String!, $projectNumber: Int!) {
   repositoryOwner(login: $owner) {
@@ -19751,9 +19234,9 @@ const ALERTS_PER_PAGE = 100;
 // 一覧の per_page の上限。secret は 100、変数は 30（REST の文書）
 const SECRETS_PER_PAGE = 100;
 const VARIABLES_PER_PAGE = 30;
-const NO_CONTENT$1 = 204;
+const NO_CONTENT = 204;
 const FORBIDDEN$2 = 403;
-const NOT_FOUND$2 = 404;
+const NOT_FOUND$1 = 404;
 class ReposApi extends GitHubClientBase {
     // 名前だけを返し、変数の値は外へ渡さない。読めない（403・404）ときは undefined
     async listNamesOrUndefined(path, perPage, itemsKey) {
@@ -19762,30 +19245,11 @@ class ReposApi extends GitHubClientBase {
             items = await this.listAll(path, { per_page: perPage }, itemsKey);
         }
         catch (error) {
-            if (error instanceof GitHubAPIError && (error.statusCode === FORBIDDEN$2 || error.statusCode === NOT_FOUND$2) && !(error instanceof GitHubRateLimitError))
+            if (error instanceof GitHubAPIError && (error.statusCode === FORBIDDEN$2 || error.statusCode === NOT_FOUND$1) && !(error instanceof GitHubRateLimitError))
                 return undefined;
             throw error;
         }
         return items.map(item => jsonField(item, 'name')).filter(name => typeof name === 'string');
-    }
-    // GitHub は同じ名前のブランチがあっても errors を返さず linkedBranch を null にするので、作り先のリポを読んで理由を書く
-    async linkedBranchFailure(id, name) {
-        let repository;
-        let hasBranch = false;
-        try {
-            const node = jsonField(await this.executeGraphql(QUERY_GET_BRANCH_REF_BY_NODE, { id, qualifiedName: `refs/heads/${name}` }), 'node');
-            const target = jsonField(node, 'repository') ?? node;
-            const fullName = jsonField(target, 'nameWithOwner');
-            repository = typeof fullName === 'string' ? fullName : undefined;
-            hasBranch = repository !== undefined && isTruthy(jsonField(target, 'ref'));
-        }
-        catch (error) {
-            if (!(error instanceof GitHubAPIError))
-                throw error;
-        }
-        return hasBranch
-            ? `GitHub did not create the linked branch: a branch named ${name} already exists in ${repository ?? ''}. Use another branch name, or delete that branch if nothing uses it`
-            : `GitHub did not create the linked branch ${name} and gave no reason: check the branches of ${repository ?? 'the repository'} for the same name, and that the token can write its contents`;
     }
     /**
     Link ヘッダの next を最後まで辿る。2 ページ目以降は next の絶対 URL を使い、params を再送すると cursor と二重になる
@@ -19853,20 +19317,6 @@ class ReposApi extends GitHubClientBase {
         return requireString$1(jsonField(reference, 'sha'), 'object.sha');
     }
     /**
-    タグが指す commit の SHA（REST）。注釈付きのタグは git/tags で commit まで辿る。見つからなければ GitHubNotFoundError
-    */
-    async getTagCommitSha(owner, repository, tag) {
-        let target = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/git/ref/tags/${encodePath(tag)}`), 'object');
-        // タグを指すタグもあるので、commit に着くまで辿る
-        for (let depth = 0; depth < 5 && jsonField(target, 'type') === 'tag'; depth += 1) {
-            const sha = requireString$1(jsonField(target, 'sha'), 'object.sha');
-            target = jsonField(await this.restJson('GET', `${repositoryPath(owner, repository)}/git/tags/${encodePathSegment(sha)}`), 'object');
-        }
-        if (jsonField(target, 'type') !== 'commit')
-            throw new GitHubAPIError(`tag ${tag} does not point to a commit`);
-        return requireString$1(jsonField(target, 'sha'), 'object.sha');
-    }
-    /**
     head_sha の workflow の run の id と conclusion。終わっていない run の conclusion は空。先頭の 100 件だけ読む
     */
     async listWorkflowRunConclusions(owner, repository, headSha) {
@@ -19901,23 +19351,8 @@ class ReposApi extends GitHubClientBase {
         const result = await this.executeGraphql(MUTATION_CREATE_LINKED_BRANCH, { input });
         const linkedBranch = jsonField(jsonField(result, 'createLinkedBranch'), 'linkedBranch');
         if (!isTruthy(linkedBranch))
-            throw new GitHubAPIError(await this.linkedBranchFailure(repositoryId === undefined || repositoryId === '' ? issueId : repositoryId, name));
+            throw new GitHubAPIError('failed to create the linked branch');
         return requireString$1(jsonField(jsonField(linkedBranch, 'ref'), 'name'), 'linkedBranch.ref.name');
-    }
-    /**
-    base と head の分かれ目の commit の SHA（REST の compare の merge_base_commit）
-    */
-    async getMergeBase(owner, repository, base, head) {
-        const comparison = await this.restJson('GET', `${repositoryPath(owner, repository)}/compare/${encodePath(base)}...${encodePath(head)}`, { params: { per_page: 1 } });
-        return requireString$1(jsonField(jsonField(comparison, 'merge_base_commit'), 'sha'), 'merge_base_commit.sha');
-    }
-    /**
-    ブランチを削除する。保護されたブランチなどは GitHubAPIError
-    */
-    async deleteBranch(owner, repository, branch) {
-        const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/git/refs/heads/${encodePath(branch)}`);
-        if (!response.isSuccess)
-            this.handleHttpError(response);
     }
     /**
     GitHub のリリースを作る。target_commitish を指定するので、タグも自動で作られる
@@ -19969,13 +19404,6 @@ class ReposApi extends GitHubClientBase {
         return typeof type === 'string' ? type : undefined;
     }
     /**
-    リポジトリの既定ブランチ名
-    */
-    async getRepositoryDefaultBranch(owner, repository) {
-        const settings = await this.getRepositorySettings(owner, repository);
-        return settings.defaultBranch;
-    }
-    /**
     open な Dependabot alert を全件取得する（REST）。
     alerts が無効（403）などで取得できなければ GitHubAPIError
     */
@@ -20011,9 +19439,9 @@ class ReposApi extends GitHubClientBase {
     */
     async isDependabotAlertsEnabled(owner, repository) {
         const response = await this.restRequest('GET', `${repositoryPath(owner, repository)}/vulnerability-alerts`);
-        if (response.statusCode === NO_CONTENT$1)
+        if (response.statusCode === NO_CONTENT)
             return true;
-        if (response.statusCode === NOT_FOUND$2)
+        if (response.statusCode === NOT_FOUND$1)
             return false;
         return this.handleHttpError(response);
     }
@@ -20058,7 +19486,6 @@ function viewTargetOf(owner, number, ownerNode) {
     return { owner, number, ownerKind: typename, userId: typeof userId === 'number' ? userId : undefined, url: requireString$1(jsonField(project, 'url'), 'projectV2.url'), views, fieldDatabaseIds };
 }
 const MAX_ARCHIVED_CONSECUTIVE = 50;
-const DEFAULT_PROJECT_LIMIT = 20;
 // ワークフローのフィールドの値が Archived か。そのフィールドが無ければ false
 function isItemArchived(item, workflowFieldId) {
     return extractFieldValueById(item, workflowFieldId)?.toLowerCase() === 'archived';
@@ -20066,12 +19493,6 @@ function isItemArchived(item, workflowFieldId) {
 // オブジェクトの要素だけを残す（null などは落とす）
 function objectsOf(items) {
     return items.filter(item => isJsonObject(item));
-}
-function linkedRepositoriesOf(project) {
-    return truthyNodes(jsonField(project, 'repositories')).map(node => ({
-        owner: requireString$1(jsonField(jsonField(node, 'owner'), 'login'), 'repositories.nodes.owner.login'),
-        name: requireString$1(jsonField(node, 'name'), 'repositories.nodes.name'),
-    }));
 }
 class ProjectsApi extends ReposApi {
     // user のクエリ。GitHub の失敗は、認証エラーとレート制限も含めて undefined にし、org のクエリへ進む。
@@ -20193,24 +19614,6 @@ class ProjectsApi extends ReposApi {
         return requireString$1(jsonField(item, 'id'), 'projectV2Item.id');
     }
     /**
-    プロジェクトアイテムのフィールドに、種類ごとの値（ProjectV2FieldValue）を書き、アイテムの ID を返す
-    */
-    async setProjectItemFieldValue(projectId, itemId, fieldId, value) {
-        const result = await this.executeGraphql(MUTATION_UPDATE_PROJECT_ITEM_FIELD_VALUE, { projectId, itemId, fieldId, value });
-        const item = jsonField(jsonField(result, 'updateProjectV2ItemFieldValue'), 'projectV2Item');
-        if (!isTruthy(item))
-            throw new GitHubAPIError('failed to update the field');
-        return requireString$1(jsonField(item, 'id'), 'projectV2Item.id');
-    }
-    /**
-    プロジェクトアイテムのフィールドの値を消す
-    */
-    async clearProjectItemField(projectId, itemId, fieldId) {
-        const result = await this.executeGraphql(MUTATION_CLEAR_PROJECT_ITEM_FIELD, { projectId, itemId, fieldId });
-        if (!isTruthy(jsonField(jsonField(result, 'clearProjectV2ItemFieldValue'), 'projectV2Item')))
-            throw new GitHubAPIError('failed to clear the field');
-    }
-    /**
     プロジェクトボードからアイテムを削除し、削除したアイテムの ID を返す
     */
     async deleteProjectItem(projectId, itemId) {
@@ -20219,37 +19622,6 @@ class ProjectsApi extends ReposApi {
         if (!isTruthy(deletedId))
             throw new GitHubAPIError('failed to delete the project item');
         return requireString$1(deletedId, 'deletedItemId');
-    }
-    /**
-    プロジェクトにリンクされたリポジトリの一覧。user 所有を先に試し、無ければ organization 所有を試す
-    */
-    async getLinkedRepositories(owner, projectNumber) {
-        const variables = { owner, projectNumber };
-        const userResult = await this.queryAsUser(QUERY_GET_LINKED_REPOSITORIES_USER, variables);
-        const userProject = jsonField(jsonField(userResult, 'user'), 'projectV2');
-        if (isTruthy(userProject))
-            return linkedRepositoriesOf(userProject);
-        const orgResult = await this.executeGraphql(QUERY_GET_LINKED_REPOSITORIES_ORG, variables);
-        const organizationProject = jsonField(jsonField(orgResult, 'organization'), 'projectV2');
-        return isTruthy(organizationProject) ? linkedRepositoriesOf(organizationProject) : [];
-    }
-    /**
-    リンクされたリポジトリの一覧（キャッシュ付き）。同じクライアントの中で同じ引数なら、2 回目以降はキャッシュを返す
-    */
-    async getLinkedRepositoriesCached(owner, projectNumber) {
-        const cacheKey = `${owner}/${String(projectNumber)}`;
-        const cached = this.linkedRepositoriesCache.get(cacheKey);
-        if (cached !== undefined)
-            return cached;
-        const repositories = await this.getLinkedRepositories(owner, projectNumber);
-        this.linkedRepositoriesCache.set(cacheKey, repositories);
-        return repositories;
-    }
-    /**
-    RepositoryMembership（domain/config.ts）の実体。キャッシュ付きの一覧を返す
-    */
-    async linkedRepositories(owner, projectNumber) {
-        return this.getLinkedRepositoriesCached(owner, projectNumber);
     }
     /**
     プロジェクト番号から GraphQL Node ID を取る。user 所有を先に試す。無ければ GitHubNotFoundError
@@ -20303,16 +19675,6 @@ class ProjectsApi extends ReposApi {
         };
     }
     /**
-    Issue の、指定のプロジェクトの Item の pecot-lane の値。Issue・Item・値のどれかが無ければ undefined
-    */
-    async getIssueLane(projectId, owner, repository, issueNumber) {
-        const result = await this.executeGraphql(QUERY_GET_ISSUE_LANE, { owner, repo: repository, number: issueNumber, laneFieldName: LANE_FIELD_NAME });
-        const issue = jsonField(jsonField(result, 'repository'), 'issue');
-        const item = truthyNodes(jsonField(issue, 'projectItems')).find(node => jsonField(jsonField(node, 'project'), 'id') === projectId);
-        const name = jsonField(jsonField(item, 'lane'), 'name');
-        return typeof name === 'string' ? name : undefined;
-    }
-    /**
     プロジェクトアイテムで値が入っている単一選択フィールドの ID を取る。アイテムが見つからなければ空
     */
     async getItemSetFieldIds(projectId, owner, repository, issueNumber, itemId) {
@@ -20354,19 +19716,6 @@ class ProjectsApi extends ReposApi {
             }
             throw error;
         }
-    }
-    /**
-    オーナーのプロジェクト一覧（number・title・url・id）。user 所有を先に試す
-    */
-    async listProjects(owner, limit = DEFAULT_PROJECT_LIMIT) {
-        const variables = { owner, first: limit };
-        const userResult = await this.queryAsUser(QUERY_LIST_PROJECTS_USER, variables);
-        const userProjects = jsonField(jsonField(userResult, 'user'), 'projectsV2');
-        if (isTruthy(userProjects))
-            return objectsOf(truthyNodes(userProjects));
-        const orgResult = await this.executeGraphql(QUERY_LIST_PROJECTS_ORG, variables);
-        const organizationProjects = jsonField(jsonField(orgResult, 'organization'), 'projectsV2');
-        return isTruthy(organizationProjects) ? objectsOf(truthyNodes(organizationProjects)) : [];
     }
     /**
     プロジェクトの情報（id・title・url・fields）。user 所有を先に試す。見つからなければ undefined
@@ -20423,30 +19772,6 @@ class ProjectsApi extends ReposApi {
         return asObject(updated);
     }
     /**
-    オーナー（user か organization）の GraphQL Node ID。user を先に試し、無ければ GitHubNotFoundError
-    */
-    async getOwnerNodeId(owner) {
-        const userResult = await this.queryAsUser(QUERY_GET_USER_NODE_ID, { login: owner });
-        const userId = jsonField(jsonField(userResult, 'user'), 'id');
-        if (isTruthy(userId))
-            return requireString$1(userId, 'user.id');
-        const orgResult = await this.executeGraphql(QUERY_GET_ORG_NODE_ID, { login: owner });
-        const organizationId = jsonField(jsonField(orgResult, 'organization'), 'id');
-        if (isTruthy(organizationId))
-            return requireString$1(organizationId, 'organization.id');
-        throw new GitHubNotFoundError(`owner not found: ${owner}`);
-    }
-    /**
-    GitHub Projects V2 を作り、作ったプロジェクト（id・number・title・url）を返す
-    */
-    async createProject(ownerId, title) {
-        const result = await this.executeGraphql(MUTATION_CREATE_PROJECT, { ownerId, title });
-        const project = jsonField(jsonField(result, 'createProjectV2'), 'projectV2');
-        if (!isTruthy(project))
-            throw new GitHubAPIError('failed to create the project');
-        return asObject(project);
-    }
-    /**
     ビューを作る先（所有者の種類・ビュー・欄の databaseId）を読む。所有者かボードが無ければ GitHubNotFoundError
     */
     async getProjectViewTarget(owner, projectNumber) {
@@ -20475,10 +19800,6 @@ class ProjectsApi extends ReposApi {
 // 返す値のキー名は、Python の辞書と同じ snake_case にする（CLI の JSON 出力がそのまま使う）。
 const ISSUES_PER_PAGE = 100;
 const DEFAULT_COMMENT_LIMIT = 5;
-const NO_CONTENT = 204;
-const NOT_FOUND$1 = 404;
-// POST .../issue-field-values の issue_field_values の maxItems
-const MAX_ISSUE_FIELD_VALUES_PER_REQUEST = 25;
 /**
 前提を 1 回で読む件数の上限
 */
@@ -20493,17 +19814,9 @@ const DEPENDENCIES_UNSUPPORTED = 'this GitHub Enterprise Server does not support
 function asDependenciesError(error) {
     return isSchemaError(error) && /blockedBy|blocking|issueType/iu.test(error.message) ? new DependenciesUnsupportedError(DEPENDENCIES_UNSUPPORTED, { cause: error }) : error;
 }
-/**
-nodes(ids:) の 1 回で渡せる node ID の上限
-*/
-const MAX_NODES_PER_QUERY = 100;
 // 部分エラーのうち、対象の Issue の blockedBy の下のもの
 function isBlockedByPath(path) {
     return path[0] === 'repository' && path[1] === 'issue' && path[2] === 'blockedBy';
-}
-// nodes(ids:) の部分エラーのうち、node の下のもの
-function isNodesPath(path) {
-    return path[0] === 'nodes';
 }
 // 部分エラーのうち、対象の Issue の blocking の下のもの
 function isBlockingPath(path) {
@@ -20522,14 +19835,6 @@ function readBlockedByReferences(connection, field = 'blockedBy') {
         return { kind: 'read-failed', reason: `${field} has a null node` };
     const issues = nodes.map(node => readIssueReference(node));
     return { kind: 'ok', total: requireNumber(jsonField(connection, 'totalCount'), `${field}.totalCount`), issues };
-}
-// nodes(ids:) の 1 件を前提にする。message は、その node の部分エラー
-function readNodeBlockedBy(node, id, message) {
-    if (message !== undefined)
-        return { kind: 'read-failed', reason: `blockedBy could not be read: ${message}` };
-    if (!isTruthy(node) || jsonField(node, 'id') !== id)
-        return { kind: 'read-failed', reason: 'the node is not an Issue or was not found' };
-    return readBlockedByReferences(jsonField(node, 'blockedBy'));
 }
 function numberOrUndefined(value) {
     return typeof value === 'number' ? value : undefined;
@@ -20653,45 +19958,6 @@ class IssuesApi extends ProjectsApi {
         return this.restObject('POST', `${repositoryPath(owner, repository)}/issues`, { json: data });
     }
     /**
-    組み込みの機能（担当者・ラベル・マイルストーン・Issue type）を、PATCH 1 回で書き、応答の Issue を返す
-    */
-    async updateIssueAttributes(owner, repository, number, writes) {
-        const data = Object.fromEntries(writes.map(write => [write.key, write.value]));
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/issues/${String(number)}`, { json: data });
-    }
-    /**
-    Issue fields の値を足す（今の値に重ねる）。0 件なら要求しない。空の配列はすべての値を消す仕様のため
-    */
-    async addIssueFieldValues(owner, repository, number, values) {
-        const target = `${repositoryPath(owner, repository)}/issues/${String(number)}/issue-field-values`;
-        for (let start = 0; start < values.length; start += MAX_ISSUE_FIELD_VALUES_PER_REQUEST) {
-            const chunk = values.slice(start, start + MAX_ISSUE_FIELD_VALUES_PER_REQUEST);
-            await this.restJson('POST', target, { json: { issue_field_values: chunk.map(({ fieldId, value }) => ({ field_id: fieldId, value })) } });
-        }
-    }
-    /**
-    Issue field の値を 1 つ外す。値が無い 404 は 'absent'
-    */
-    async deleteIssueFieldValue(owner, repository, number, fieldId) {
-        const response = await this.restRequest('DELETE', `${repositoryPath(owner, repository)}/issues/${String(number)}/issue-field-values/${String(fieldId)}`);
-        if (response.statusCode === NOT_FOUND$1)
-            return 'absent';
-        if (!response.isSuccess)
-            this.handleHttpError(response);
-        return 'deleted';
-    }
-    /**
-    そのログイン名を、リポの Issue の担当にできるか。204 は true、404 は false、ほかの応答は例外
-    */
-    async isAssignable(owner, repository, login) {
-        const response = await this.restRequest('GET', `${repositoryPath(owner, repository)}/assignees/${encodePathSegment(login)}`);
-        if (response.statusCode === NO_CONTENT)
-            return true;
-        if (response.statusCode === NOT_FOUND$1)
-            return false;
-        return this.handleHttpError(response);
-    }
-    /**
     Issue にコメントを足す
     */
     async addIssueComment(owner, repository, number, body) {
@@ -20757,19 +20023,6 @@ class IssuesApi extends ProjectsApi {
         };
     }
     /**
-    Issue の Node ID と、Issue のリポにある、つながったブランチの名前。見つからなければ GitHubNotFoundError
-    */
-    async getIssueLinkedBranches(owner, repository, number) {
-        const result = await this.queryIssue(QUERY_GET_ISSUE_LINKED_BRANCHES, { owner, repo: repository, number });
-        const issue = issueNode(result, owner, repository, number);
-        const fullName = `${owner}/${repository}`.toLowerCase();
-        const branches = truthyNodes(jsonField(issue, 'linkedBranches'))
-            .map(branch => jsonField(branch, 'ref'))
-            .filter(reference => stringOrNull(jsonField(jsonField(reference, 'repository'), 'nameWithOwner'))?.toLowerCase() === fullName)
-            .map(reference => requireString$1(jsonField(reference, 'name'), 'linkedBranch.ref.name'));
-        return { id: requireString$1(jsonField(issue, 'id'), 'issue.id'), branches };
-    }
-    /**
     サブ Issue を紐づける。紐づけ結果は親と子の Issue 番号
     */
     async addSubIssue(parentIssueId, childIssueId) {
@@ -20791,13 +20044,6 @@ class IssuesApi extends ProjectsApi {
     */
     async addBlockedBy(issueId, blockingIssueId) {
         await this.executeDependencyMutation(MUTATION_ADD_BLOCKED_BY, { issueId, blockingIssueId });
-    }
-    /**
-    Issue の依存関係（blocked by）に対応するか。対応しない GHES（3.19 より前）は false
-    */
-    async supportsBlockedBy() {
-        const result = await this.executeGraphql(QUERY_HAS_ADD_BLOCKED_BY_INPUT, {});
-        return jsonField(result, '__type') !== JSON_NULL;
     }
     /**
     前提（blocked by）を外す。addBlockedBy と同じ失敗をする
@@ -20828,27 +20074,6 @@ class IssuesApi extends ProjectsApi {
         };
     }
     /**
-    Issue の node ID・本文・前提（先頭 blockedByFirst 件の参照と全体の件数）を、判定の読み取りより軽く読む。
-    blockedBy の部分エラーと null の node は、例外にせず read-failed で返す。
-    Issue の依存関係に対応しない GHES（3.19 より前）は DependenciesUnsupportedError
-    */
-    async getIssueBlockedByReferences(owner, repository, number, blockedByFirst = MAX_BLOCKED_BY) {
-        let outcome;
-        try {
-            outcome = await this.queryIssueTolerating(QUERY_GET_ISSUE_BLOCKED_BY_REFERENCES, { owner, repo: repository, number, blockedByFirst }, isBlockedByPath);
-        }
-        catch (error) {
-            throw asDependenciesError(error);
-        }
-        const issue = issueNode(outcome.data, owner, repository, number);
-        const messages = outcome.errors.map(error => stringOrEmpty(jsonField(error, 'message')));
-        return {
-            id: requireString$1(jsonField(issue, 'id'), 'issue.id'),
-            body: requireString$1(jsonField(issue, 'body'), 'issue.body'),
-            blockedBy: messages.length > 0 ? { kind: 'read-failed', reason: `blockedBy could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blockedBy')),
-        };
-    }
-    /**
     その Issue を前提にしている Issue（blocking 先頭 blockingFirst 件）の参照と、全体の件数を読む。
     total が issues の数より多ければ、読めなかった分がある。blocking の部分エラーと null の node は read-failed。
     Issue の依存関係に対応しない GHES は DependenciesUnsupportedError
@@ -20865,30 +20090,6 @@ class IssuesApi extends ProjectsApi {
         const issue = issueNode(outcome.data, owner, repository, number);
         const messages = outcome.errors.filter(error => isBlockingPath(asArray(error['path']))).map(error => stringOrEmpty(jsonField(error, 'message')));
         return messages.length > 0 ? { kind: 'read-failed', reason: `blocking could not be read: ${messages.join('; ')}` } : readBlockedByReferences(jsonField(issue, 'blocking'), 'blocking');
-    }
-    /**
-    node ID の並びのそれぞれの前提を、まとめて読む（輪の探索の 1 段）。結果の鍵は node ID。
-    Issue でない・見つからない node と部分エラーは、その node だけ read-failed。
-    Issue の依存関係に対応しない GHES は DependenciesUnsupportedError
-    */
-    async getBlockedByOfNodes(ids) {
-        const result = new Map();
-        for (let start = 0; start < ids.length; start += MAX_NODES_PER_QUERY) {
-            const chunk = ids.slice(start, start + MAX_NODES_PER_QUERY);
-            let outcome;
-            try {
-                outcome = await this.executeGraphqlTolerating(QUERY_GET_BLOCKED_BY_OF_NODES, { ids: [...chunk], blockedByFirst: MAX_BLOCKED_BY }, isNodesPath);
-            }
-            catch (error) {
-                throw asDependenciesError(error);
-            }
-            const nodes = asArray(jsonField(outcome.data, 'nodes'));
-            const failed = new Map(outcome.errors.map(error => [asArray(error['path'])[1], stringOrEmpty(jsonField(error, 'message'))]));
-            for (const [index, id] of chunk.entries()) {
-                result.set(id, readNodeBlockedBy(nodes.at(index), id, failed.get(index)));
-            }
-        }
-        return result;
     }
     /**
     Issue 種別を軽く取る。issueType フィールドに対応しない GHES では、subIssues だけで判定する
@@ -20912,23 +20113,6 @@ class IssuesApi extends ProjectsApi {
             issue_type: stringOrNull(jsonField(jsonField(issue, 'issueType'), 'name')),
             sub_issues_total: subIssuesTotal(issue),
         };
-    }
-    /**
-    親のサブ Issue を全件読む。1 ページ目は getIssueSlim と同じクエリで読み、続きがあるときだけ GetSubIssuesPage を回す
-    */
-    async getAllSubIssues(owner, repository, number) {
-        const issue = await this.fetchSlimIssue(owner, repository, number, 0);
-        const subIssues = [];
-        let connection = jsonField(issue, 'subIssues');
-        for (;;) {
-            subIssues.push(...readSubIssueNodes(connection));
-            const pageInfo = jsonField(connection, 'pageInfo');
-            const cursor = jsonField(pageInfo, 'endCursor');
-            if (typeof cursor !== 'string' || jsonField(pageInfo, 'hasNextPage') !== true)
-                return subIssues;
-            const result = await this.queryIssue(QUERY_GET_SUB_ISSUES_PAGE, { owner, repo: repository, number, after: cursor });
-            connection = jsonField(issueNode(result, owner, repository, number), 'subIssues');
-        }
     }
     /**
     Issue の詳細を取る（GraphQL）。親・サブ Issue・リンクブランチ・リンク PR を 1 回のクエリで取る
@@ -20987,38 +20171,8 @@ const REVIEW_COMMENTS_PER_PAGE = 100;
 Stacks API が求める X-GitHub-Api-Version（https://docs.github.com/en/rest/pulls/stacks）
 */
 const STACKS_API_VERSION = '2026-03-10';
-const MERGE_QUEUE_FIELD_ERROR = /(?:Field '|field ")(?:isMergeQueueEnabled|isInMergeQueue)['"]/u;
-// eslint-disable-next-line no-restricted-syntax -- 配列から型を作るための as const
-const ASYNC_MERGE_STATUSES = ['pending', 'merged', 'enqueued', 'failed'];
 function requiresBoolean(value, path) {
     return typeof value === 'boolean' ? value : throwMalformed(path);
-}
-function isAsyncMergeStatus(value) {
-    return ASYNC_MERGE_STATUSES.some(status => status === value);
-}
-function readAsyncMergeResult(value) {
-    const status = jsonField(value, 'status');
-    if (!isAsyncMergeStatus(status))
-        throwMalformed(`mergeAsync.status (${typeof status === 'string' ? status : JSON.stringify(status)})`);
-    const details = jsonField(value, 'details');
-    const uuid = jsonField(details, 'uuid');
-    const message = jsonField(details, 'message');
-    if (status === 'pending' && typeof uuid !== 'string')
-        throwMalformed('mergeAsync.details.uuid');
-    return {
-        status,
-        ...status === 'pending' && typeof uuid === 'string' && { uuid },
-        ...typeof message === 'string' && { message },
-    };
-}
-// 文書は 400・409 の本文の形を示していないので、JSON でなくても止めない
-function bodyOrUndefined(response) {
-    try {
-        return response.json();
-    }
-    catch {
-        return undefined;
-    }
 }
 function readStack(value) {
     if (!isJsonObject(value))
@@ -21039,44 +20193,11 @@ function hasPullRequestNumber(stack, pullRequestNumber) {
         return number === pullRequestNumber || number === String(pullRequestNumber);
     });
 }
-// author がある場合だけ login を読む。author が無い（削除されたユーザーなど）、または login が空なら null
-function loginOrNull(author) {
-    const login = jsonField(author, 'login');
-    return isTruthy(login) ? stringOrNull(login) : JSON_NULL;
-}
-function formatPullRequestBase(pullRequest, owner, repository) {
-    const closingIssues = truthyNodes(jsonField(pullRequest, 'closingIssuesReferences')).map(issue => ({
-        number: requireNumber(jsonField(issue, 'number'), 'closingIssue.number'),
-        title: requireString$1(jsonField(issue, 'title'), 'closingIssue.title'),
-    }));
-    // Refs #XXX（本文から抽出）。Closing Issues と重複しないものだけ
-    const closingNumbers = new Set(closingIssues.map(issue => issue.number));
-    const body = jsonField(pullRequest, 'body');
-    const referenced = extractReferencesIssueNumbers(typeof body === 'string' ? body : undefined, { owner, repository });
-    const referencedIssues = [...referenced].filter(number => !closingNumbers.has(number)).toSorted((a, b) => a - b).map(number => ({ number, title: '' }));
-    const isDraft = jsonField(pullRequest, 'isDraft');
-    return {
-        number: requireNumber(jsonField(pullRequest, 'number'), 'pullRequest.number'),
-        state: requireString$1(jsonField(pullRequest, 'state'), 'pullRequest.state'),
-        title: requireString$1(jsonField(pullRequest, 'title'), 'pullRequest.title'),
-        body: requireString$1(body, 'pullRequest.body'),
-        head_ref: requireString$1(jsonField(pullRequest, 'headRefName'), 'pullRequest.headRefName'),
-        base_ref: requireString$1(jsonField(pullRequest, 'baseRefName'), 'pullRequest.baseRefName'),
-        is_draft: typeof isDraft === 'boolean' ? isDraft : throwMalformed('pullRequest.isDraft'),
-        mergeable: requireString$1(jsonField(pullRequest, 'mergeable'), 'pullRequest.mergeable'),
-        comments: requireNumber(jsonField(jsonField(pullRequest, 'comments'), 'totalCount'), 'pullRequest.comments.totalCount'),
-        closing_issues: closingIssues,
-        referenced_issues: referencedIssues,
-    };
-}
 function isDependabotAuthor(node) {
     if (!isJsonObject(node))
         return false;
     const author = jsonField(node, 'author');
     return jsonField(author, '__typename') === 'Bot' && jsonField(author, 'login') === 'dependabot';
-}
-function requiredTextOrEmpty(value) {
-    return isTruthy(value) ? requireString$1(value, 'text') : '';
 }
 class PullsApi extends IssuesApi {
     // PR の取得クエリを実行し、pullRequest ノードを返す
@@ -21106,85 +20227,6 @@ class PullsApi extends IssuesApi {
         };
     }
     /**
-    base のブランチ名で開いている PR を引き、同じリポの PR だけを返す（古い順に先頭 20 件）。
-    20 件に収まらないときは hasNextPage が真。リポが無ければ GitHubNotFoundError
-    */
-    async listPullRequestsByBase(owner, repository, baseReferenceName) {
-        const result = await this.executeGraphql(QUERY_LIST_PULL_REQUESTS_BY_BASE, { owner, repo: repository, baseRefName: baseReferenceName });
-        const repositoryNode = jsonField(result, 'repository');
-        if (!isTruthy(repositoryNode))
-            throw new GitHubNotFoundError(`repository not found: ${owner}/${repository}`);
-        const connection = jsonField(repositoryNode, 'pullRequests');
-        return {
-            pullRequests: readPullRequests(truthyNodes(connection))
-                .filter(pullRequest => !pullRequest.isCrossRepository)
-                .map(pullRequest => ({ number: pullRequest.number, headRefName: pullRequest.headRefName })),
-            hasNextPage: jsonField(jsonField(connection, 'pageInfo'), 'hasNextPage') === true,
-        };
-    }
-    /**
-    PR を作る
-    */
-    async createPullRequest(owner, repository, title, body, head, base, isDraft = false) {
-        return this.restObject('POST', `${repositoryPath(owner, repository)}/pulls`, {
-            json: { title, body, head, base, draft: isDraft },
-        });
-    }
-    /**
-    PR の本文を置き換える。同じ本文で保存すると、GitHub が Closes を読み直す
-    */
-    async updatePullRequestBody(owner, repository, number, body) {
-        return this.restObject('PATCH', `${repositoryPath(owner, repository)}/pulls/${String(number)}`, { json: { body } });
-    }
-    /**
-    PR の詳細を取る（GraphQL）。関連 Issue とレビューを 1 回のクエリで取る
-    */
-    async getPullRequestSlim(owner, repository, number) {
-        const pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_SLIM, owner, repository, number);
-        return {
-            ...formatPullRequestBase(pullRequest, owner, repository),
-            reviews: truthyNodes(jsonField(pullRequest, 'reviews')).map(review => ({
-                state: requireString$1(jsonField(review, 'state'), 'review.state'),
-                author: isTruthy(jsonField(review, 'author')) ? requireString$1(jsonField(jsonField(review, 'author'), 'login'), 'review.author.login') : JSON_NULL,
-            })),
-        };
-    }
-    /**
-    PR の詳細をレビュー情報付きで取る。getPullRequestSlim に、レビュー本文と行コメント（reviewThreads）を足したもの
-    */
-    async getPullRequestWithReviews(owner, repository, number) {
-        const pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_WITH_REVIEWS, owner, repository, number);
-        return {
-            ...formatPullRequestBase(pullRequest, owner, repository),
-            reviews: truthyNodes(jsonField(pullRequest, 'reviews')).map(review => ({
-                state: requireString$1(jsonField(review, 'state'), 'review.state'),
-                author: loginOrNull(jsonField(review, 'author')),
-                body: requiredTextOrEmpty(jsonField(review, 'body')),
-                submitted_at: stringOrNull(jsonField(review, 'submittedAt')),
-            })),
-            review_threads: truthyNodes(jsonField(pullRequest, 'reviewThreads')).map(thread => ({
-                is_resolved: jsonField(thread, 'isResolved') === true,
-                path: stringOrNull(jsonField(thread, 'path')),
-                line: numberOrNull(jsonField(thread, 'line')),
-                comments: truthyNodes(jsonField(thread, 'comments')).map(comment => ({
-                    author: loginOrNull(jsonField(comment, 'author')),
-                    body: requiredTextOrEmpty(jsonField(comment, 'body')),
-                    created_at: stringOrNull(jsonField(comment, 'createdAt')),
-                    url: stringOrNull(jsonField(comment, 'url')),
-                })),
-            })),
-        };
-    }
-    /**
-    PR をマージする。mergeMethod は merge・squash・rebase。既定は squash。
-    sha を渡すと、head がその SHA でなければ GitHub が 409 で拒む
-    */
-    async mergePullRequest(owner, repository, number, mergeMethod = 'squash', sha) {
-        return this.restObject('PUT', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge`, {
-            json: sha === undefined ? { merge_method: mergeMethod } : { merge_method: mergeMethod, sha },
-        });
-    }
-    /**
     session finish が閉じる Issue を決めるのに使う PR を読む（GraphQL）。PR が無ければ GitHubNotFoundError
     */
     async getPullRequestForFinish(owner, repository, number) {
@@ -21206,66 +20248,6 @@ class PullsApi extends IssuesApi {
             }),
             default_branch: typeof defaultBranch === 'string' ? defaultBranch : undefined,
         };
-    }
-    /**
-    pr merge の判断に使う PR の状態を読む（GraphQL）。
-    merge queue の項目を持たない GHES は、項目なしのクエリで読み直し、どちらも false にする
-    */
-    async getPullRequestForMerge(owner, repository, number) {
-        let pullRequest;
-        let hasQueueFields = true;
-        try {
-            pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_MERGE, owner, repository, number);
-        }
-        catch (error) {
-            if (!isSchemaError(error) || !MERGE_QUEUE_FIELD_ERROR.test(error.message))
-                throw error;
-            pullRequest = await this.fetchPullRequest(QUERY_GET_PULL_REQUEST_FOR_MERGE_WITHOUT_QUEUE, owner, repository, number);
-            hasQueueFields = false;
-        }
-        return {
-            number: requireNumber(jsonField(pullRequest, 'number'), 'pullRequest.number'),
-            state: requireString$1(jsonField(pullRequest, 'state'), 'pullRequest.state'),
-            isDraft: requiresBoolean(jsonField(pullRequest, 'isDraft'), 'pullRequest.isDraft'),
-            baseRefName: requireString$1(jsonField(pullRequest, 'baseRefName'), 'pullRequest.baseRefName'),
-            headRefOid: requireString$1(jsonField(pullRequest, 'headRefOid'), 'pullRequest.headRefOid'),
-            isMergeQueueEnabled: hasQueueFields && requiresBoolean(jsonField(pullRequest, 'isMergeQueueEnabled'), 'pullRequest.isMergeQueueEnabled'),
-            isInMergeQueue: hasQueueFields && requiresBoolean(jsonField(pullRequest, 'isInMergeQueue'), 'pullRequest.isInMergeQueue'),
-        };
-    }
-    /**
-    非同期のマージを頼む（https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request-asynchronously）。
-    403・422 などは handleHttpError の例外
-    */
-    async requestAsyncMerge(owner, repository, number, options) {
-        const response = await this.restRequest('PUT', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge-async`, {
-            json: options.mergeQueue ? { sha: options.sha } : { sha: options.sha, merge_method: 'squash' },
-            apiVersion: STACKS_API_VERSION,
-        });
-        if (response.statusCode === 400) {
-            const message = jsonField(bodyOrUndefined(response), 'message');
-            return { outcome: 'rejected', message: typeof message === 'string' ? message : response.text };
-        }
-        if (response.statusCode === 409) {
-            const uuid = jsonField(jsonField(bodyOrUndefined(response), 'details'), 'uuid');
-            return typeof uuid === 'string' ? { outcome: 'conflict', uuid } : { outcome: 'conflict' };
-        }
-        if (!response.isSuccess)
-            this.handleHttpError(response);
-        return { outcome: 'accepted', result: readAsyncMergeResult(response.json()) };
-    }
-    /**
-    非同期のマージの結果を読む。結果が消えていれば（24 時間で消える）undefined
-    */
-    async getAsyncMergeResult(owner, repository, number, uuid) {
-        const response = await this.restRequest('GET', `${repositoryPath(owner, repository)}/pulls/${String(number)}/merge-async/${encodeURIComponent(uuid)}`, {
-            apiVersion: STACKS_API_VERSION,
-        });
-        if (response.statusCode === 404)
-            return undefined;
-        if (!response.isSuccess)
-            this.handleHttpError(response);
-        return readAsyncMergeResult(response.json());
     }
     /**
     その PR が入っているスタックを読む。入っていなければ undefined。
@@ -21354,8 +20336,6 @@ GitHub API クライアント。操作は責務別のクラスから合成する
 使い方は次のとおり。
 - 作る: `new GitHubClient({ host: 'ghes.example.com', diagnostics })`。
 - 呼ぶ: `await client.getIssueSlim('owner', 'repo', 123)`。
-
-RepositoryMembership（domain/config.ts）と同じ形の linkedRepositories も持つ。
 */
 class GitHubClient extends PullsApi {
 }
@@ -21594,7 +20574,7 @@ async function runDependabotSync(input, io) {
             throw error;
         return stopWith(out, `could not list pull requests or issues: ${detail}`, kindOfFailure(error));
     }
-    const { tracker, others } = findTracker(issues, TRACKER_PATTERN$1);
+    const { tracker, others } = findTracker(issues, TRACKER_PATTERN$2);
     if (tracker !== undefined)
         warnExtraTrackers(out, tracker, others);
     const existingBody = tracker?.body;
@@ -21605,8 +20585,8 @@ async function runDependabotSync(input, io) {
     out.count('PRs awaiting a decision', waiting.length);
     out.count('PRs awaiting a decision without check results', waiting.filter(item => rollupState(item.node) === undefined).length);
     const plan = planTracker$1(waiting.map(item => ({ ...entryOf(item.node), reasons: item.reasons })), oldNumbers);
-    const title = buildTrackerTitle$1(todayUtc(now));
-    const body = renderTrackerBody$1(plan.entries, existingBody);
+    const title = buildTrackerTitle$2(todayUtc(now));
+    const body = renderTrackerBody$2(plan.entries, existingBody);
     const number = tracker?.number;
     const isUnchanged = isBodyUnchanged(body, existingBody);
     const stages = operationsFor(plan, number, title, isUnchanged);
@@ -21615,6 +20595,2297 @@ async function runDependabotSync(input, io) {
     if (input.dry_run)
         return 0;
     const failures = await applyChanges$1(out, { client, config, owner, repository, plan, title, body, stages, number, isUnchanged });
+    if (failures > 0)
+        throw new CommandExit(1, 'partial-failure');
+    return 0;
+}
+
+// 近い語の候補。Python の difflib.get_close_matches（n=3、cutoff=0.6）を写す。
+// click の `Possible options` と `Did you mean` の元になる。
+/**
+word に近い候補を、近い順に最大 3 件返す。近さが同じなら、文字列の大きい方が先。
+Python の heapq.nlargest が (近さ, 候補) の組で比べるため
+*/
+function compareCodePoints(left, right) {
+    if (left === right)
+        return 0;
+    return left < right ? -1 : 1;
+}
+
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- zod の推論型は変えられない */
+// GitHub の Issue の機能の写し（interface/github-issue-surface.json）と担保の一覧の形、その照らし合わせと、今のスキーマとの差。
+// SDL と OpenAPI から項目を抜く処理は graphql を読むので、actions の src/infra/issue-surface.ts に置く。
+const coverageEntrySchema = strictObject({
+    id: string$1(),
+    status: _enum(['supported', 'excluded']),
+    handler: string$1().optional(),
+    tool: string$1().optional(),
+    reason: string$1().optional(),
+});
+/**
+担保の一覧（issue-coverage.yaml）の形。組み合わせの誤りは id を挙げるため checkIssueCoverage で見る
+*/
+strictObject({ items: array(coverageEntrySchema) });
+/**
+写し（github-issue-surface.json）の形
+*/
+const issueSurfaceSchema = strictObject({
+    sources: strictObject({ graphql: string$1(), rest: string$1(), rest_api_version: string$1(), fetched_at: string$1() }),
+    items: array(string$1()),
+});
+function diffIssueSurface(snapshot, current) {
+    const before = new Set(snapshot);
+    const after = new Set(current);
+    return {
+        added: [...after].filter(id => !before.has(id)).toSorted(compareCodePoints),
+        removed: [...before].filter(id => !after.has(id)).toSorted(compareCodePoints),
+    };
+}
+function hasIssueSurfaceDifference(diff) {
+    return diff.added.length > 0 || diff.removed.length > 0;
+}
+
+// 写しと今のスキーマの差を載せる Tracker の本文と題。dependabot PR の Tracker と同じ印と一覧の形にする。
+class IssueSurfaceTrackerError extends PecotError {
+}
+const SURFACE_LABEL = 'issue-surface';
+const TRACKER_MARKER$1 = '<!-- pecot-issue-surface: tracker -->';
+const LIST_BEGIN$1 = '<!-- pecot-issue-surface: list-begin -->';
+const LIST_END$1 = '<!-- pecot-issue-surface: list-end -->';
+const MARKERS$1 = markerPatterns('pecot-issue-surface');
+const TRACKER_PATTERN$1 = MARKERS$1.tracker;
+function section$1(heading, ids) {
+    return `${heading}\n\n${ids.length === 0 ? 'none' : ids.map(id => `- \`${id}\``).join('\n')}`;
+}
+/**
+Tracker の本文。existingBody があれば list-begin から list-end の間だけを書き直し、外の文は残す。
+existingBody の印が 1 組でなければ IssueSurfaceTrackerError
+*/
+function renderTrackerBody$1(diff, sources, existingBody) {
+    const list = [`## Source\n\n- SDL: ${sources.graphql}\n- OpenAPI: ${sources.rest}`, section$1('## Added', diff.added), section$1('## Removed', diff.removed)].join('\n\n');
+    if (existingBody === undefined)
+        return `${TRACKER_MARKER$1}\n\n${LIST_BEGIN$1}\n${list}\n${LIST_END$1}\n`;
+    const text = normalizeNewlines(existingBody);
+    const { begin, end } = listRegion(text, MARKERS$1.begin, MARKERS$1.end, IssueSurfaceTrackerError);
+    return `${text.slice(0, begin)}\n${list}\n${text.slice(end)}`;
+}
+/**
+Tracker の題。today は立てた日（UTC）の YYYY-MM-DD
+*/
+function buildTrackerTitle$1(today) {
+    return `[Tracker] GitHub issue surface — ${today}`;
+}
+
+function prodInstanceOf(value, symbol) {
+    return value?.__kind === symbol;
+}
+let instanceOf = prodInstanceOf;
+
+function isObjectLike(value) {
+    return typeof value == 'object' && value !== null;
+}
+
+class AccumulatorMap extends Map {
+    get [Symbol.toStringTag]() {
+        return 'AccumulatorMap';
+    }
+    add(key, item) {
+        const group = this.get(key);
+        if (group === undefined) {
+            this.set(key, [item]);
+        }
+        else {
+            group.push(item);
+        }
+    }
+}
+
+const LineRegExp = /\r\n|[\n\r]/g;
+function getLocation(source, position) {
+    const matches = source.body.matchAll(LineRegExp);
+    let match = matches.next().value;
+    let line = 1;
+    let lastLineStart = 0;
+    while (match !== undefined && match.index < position) {
+        lastLineStart = match.index + match[0].length;
+        line++;
+        match = matches.next().value;
+    }
+    return { line, column: position + 1 - lastLineStart };
+}
+function getLocations(locations) {
+    if (locations.length < 2) {
+        return locations.map(({ source, start }) => getLocation(source, start));
+    }
+    const bySource = new AccumulatorMap();
+    locations.forEach(({ source, start }, index) => {
+        bySource.add(source, {
+            position: start,
+            index,
+        });
+    });
+    const result = new Array(locations.length);
+    for (const [source, positions] of bySource) {
+        const matches = source.body.matchAll(LineRegExp);
+        let match = matches.next().value;
+        let line = 1;
+        let lastLineStart = 0;
+        for (const { position, index } of positions.toSorted((a, b) => a.position - b.position)) {
+            while (match !== undefined && match.index < position) {
+                lastLineStart = match.index + match[0].length;
+                line++;
+                match = matches.next().value;
+            }
+            result[index] = {
+                line,
+                column: position + 1 - lastLineStart,
+            };
+        }
+    }
+    return result;
+}
+
+function printLocation(location) {
+    return printSourceLocation(location.source, getLocation(location.source, location.start));
+}
+function printSourceLocation(source, sourceLocation) {
+    const firstLineColumnOffset = source.locationOffset.column - 1;
+    const body = ''.padStart(firstLineColumnOffset) + source.body;
+    const lineIndex = sourceLocation.line - 1;
+    const lineOffset = source.locationOffset.line - 1;
+    const lineNum = sourceLocation.line + lineOffset;
+    const columnOffset = sourceLocation.line === 1 ? firstLineColumnOffset : 0;
+    const columnNum = sourceLocation.column + columnOffset;
+    const locationStr = `${source.name}:${lineNum}:${columnNum}\n`;
+    const lines = body.split(/\r\n|[\n\r]/g);
+    const locationLine = lines[lineIndex];
+    if (locationLine.length > 120) {
+        const subLines = [];
+        for (let i = 0; i < locationLine.length; i += 80) {
+            subLines.push(locationLine.slice(i, i + 80));
+        }
+        const zeroBasedColumn = columnNum - 1;
+        const subLineIndex = Math.min(Math.floor(zeroBasedColumn / 80), subLines.length - 1);
+        const subLineColumnNum = columnNum - subLineIndex * 80;
+        return (locationStr +
+            printPrefixedLines([
+                [`${lineNum} |`, subLines[0]],
+                ...subLines
+                    .slice(1, subLineIndex + 1)
+                    .map((subLine) => ['|', subLine]),
+                ['|', '^'.padStart(subLineColumnNum)],
+                ['|', subLines[subLineIndex + 1]],
+            ]));
+    }
+    return (locationStr +
+        printPrefixedLines([
+            [`${lineNum - 1} |`, lines[lineIndex - 1]],
+            [`${lineNum} |`, locationLine],
+            ['|', '^'.padStart(columnNum)],
+            [`${lineNum + 1} |`, lines[lineIndex + 1]],
+        ]));
+}
+function printPrefixedLines(lines) {
+    const existingLines = lines.filter(([_, line]) => line !== undefined);
+    const padLen = Math.max(...existingLines.map(([prefix]) => prefix.length));
+    return existingLines
+        .map(([prefix, line]) => prefix.padStart(padLen) + (line ? ' ' + line : ''))
+        .join('\n');
+}
+
+class GraphQLError extends Error {
+    constructor(message, options = {}) {
+        const { nodes, source, positions, path, originalError, cause, extensions } = options;
+        const hasCause = 'cause' in options;
+        const errorCause = hasCause ? cause : originalError;
+        const errorOptions = hasCause || originalError != null ? { cause: errorCause } : undefined;
+        super(message, errorOptions);
+        this.name = 'GraphQLError';
+        this.path = path ?? undefined;
+        const underlyingError = originalError ?? (cause instanceof Error ? cause : undefined);
+        this.originalError = underlyingError;
+        this.nodes = undefinedIfEmpty(Array.isArray(nodes) ? nodes : nodes ? [nodes] : undefined);
+        const nodeLocations = undefinedIfEmpty(this.nodes
+            ?.map((node) => node.loc)
+            .filter((loc) => loc != null));
+        this.source = source ?? nodeLocations?.[0]?.source;
+        this.positions = positions ?? nodeLocations?.map((loc) => loc.start);
+        this.locations =
+            positions && source
+                ? getLocations(positions.map((start) => ({ source, start })))
+                : nodeLocations && getLocations(nodeLocations);
+        const originalExtensions = isObjectLike(underlyingError?.extensions)
+            ? underlyingError.extensions
+            : undefined;
+        this.extensions = extensions ?? originalExtensions ?? Object.create(null);
+        Object.defineProperties(this, {
+            message: {
+                writable: true,
+                enumerable: true,
+            },
+            name: { enumerable: false },
+            nodes: { enumerable: false },
+            source: { enumerable: false },
+            positions: { enumerable: false },
+            originalError: { enumerable: false },
+        });
+        if (originalError?.stack != null) {
+            Object.defineProperty(this, 'stack', {
+                value: originalError.stack,
+                writable: true,
+                configurable: true,
+            });
+        }
+        else if (Error.captureStackTrace != null) {
+            Error.captureStackTrace(this, GraphQLError);
+        }
+        else {
+            Object.defineProperty(this, 'stack', {
+                value: Error().stack,
+                writable: true,
+                configurable: true,
+            });
+        }
+    }
+    get [Symbol.toStringTag]() {
+        return 'GraphQLError';
+    }
+    toString() {
+        let output = this.message;
+        if (this.nodes) {
+            for (const node of this.nodes) {
+                if (node.loc) {
+                    output += '\n\n' + printLocation(node.loc);
+                }
+            }
+        }
+        else if (this.source && this.locations) {
+            for (const location of this.locations) {
+                output += '\n\n' + printSourceLocation(this.source, location);
+            }
+        }
+        return output;
+    }
+    toJSON() {
+        const formattedError = {
+            message: this.message,
+        };
+        if (this.locations != null) {
+            formattedError.locations = this.locations;
+        }
+        if (this.path != null) {
+            formattedError.path = this.path;
+        }
+        if (this.extensions != null && Object.keys(this.extensions).length > 0) {
+            formattedError.extensions = this.extensions;
+        }
+        return formattedError;
+    }
+}
+function undefinedIfEmpty(array) {
+    return array === undefined || array.length === 0 ? undefined : array;
+}
+
+class Location {
+    constructor(startToken, endToken, source) {
+        this.start = startToken.start;
+        this.end = endToken.end;
+        this.startToken = startToken;
+        this.endToken = endToken;
+        this.source = source;
+    }
+    get [Symbol.toStringTag]() {
+        return 'Location';
+    }
+    toJSON() {
+        return { start: this.start, end: this.end };
+    }
+}
+class Token {
+    constructor(kind, start, end, line, column, value) {
+        this.kind = kind;
+        this.start = start;
+        this.end = end;
+        this.line = line;
+        this.column = column;
+        this.value = value;
+        this.prev = null;
+        this.next = null;
+    }
+    get [Symbol.toStringTag]() {
+        return 'Token';
+    }
+    toJSON() {
+        return {
+            kind: this.kind,
+            value: this.value,
+            line: this.line,
+            column: this.column,
+        };
+    }
+}
+const QueryDocumentKeys = {
+    Name: [],
+    Document: ['definitions'],
+    OperationDefinition: [
+        'description',
+        'name',
+        'variableDefinitions',
+        'directives',
+        'selectionSet',
+    ],
+    VariableDefinition: [
+        'description',
+        'variable',
+        'type',
+        'defaultValue',
+        'directives',
+    ],
+    Variable: ['name'],
+    SelectionSet: ['selections'],
+    Field: ['alias', 'name', 'arguments', 'directives', 'selectionSet'],
+    Argument: ['name', 'value'],
+    FragmentArgument: ['name', 'value'],
+    FragmentSpread: [
+        'name',
+        'arguments',
+        'directives',
+    ],
+    InlineFragment: ['typeCondition', 'directives', 'selectionSet'],
+    FragmentDefinition: [
+        'description',
+        'name',
+        'variableDefinitions',
+        'typeCondition',
+        'directives',
+        'selectionSet',
+    ],
+    IntValue: [],
+    FloatValue: [],
+    StringValue: [],
+    BooleanValue: [],
+    NullValue: [],
+    EnumValue: [],
+    ListValue: ['values'],
+    ObjectValue: ['fields'],
+    ObjectField: ['name', 'value'],
+    Directive: ['name', 'arguments'],
+    NamedType: ['name'],
+    ListType: ['type'],
+    NonNullType: ['type'],
+    SchemaDefinition: ['description', 'directives', 'operationTypes'],
+    OperationTypeDefinition: ['type'],
+    ScalarTypeDefinition: ['description', 'name', 'directives'],
+    ObjectTypeDefinition: [
+        'description',
+        'name',
+        'interfaces',
+        'directives',
+        'fields',
+    ],
+    FieldDefinition: ['description', 'name', 'arguments', 'type', 'directives'],
+    InputValueDefinition: [
+        'description',
+        'name',
+        'type',
+        'defaultValue',
+        'directives',
+    ],
+    InterfaceTypeDefinition: [
+        'description',
+        'name',
+        'interfaces',
+        'directives',
+        'fields',
+    ],
+    UnionTypeDefinition: ['description', 'name', 'directives', 'types'],
+    EnumTypeDefinition: ['description', 'name', 'directives', 'values'],
+    EnumValueDefinition: ['description', 'name', 'directives'],
+    InputObjectTypeDefinition: ['description', 'name', 'directives', 'fields'],
+    DirectiveDefinition: [
+        'description',
+        'name',
+        'arguments',
+        'directives',
+        'locations',
+    ],
+    SchemaExtension: ['directives', 'operationTypes'],
+    DirectiveExtension: ['name', 'directives'],
+    ScalarTypeExtension: ['name', 'directives'],
+    ObjectTypeExtension: ['name', 'interfaces', 'directives', 'fields'],
+    InterfaceTypeExtension: ['name', 'interfaces', 'directives', 'fields'],
+    UnionTypeExtension: ['name', 'directives', 'types'],
+    EnumTypeExtension: ['name', 'directives', 'values'],
+    InputObjectTypeExtension: ['name', 'directives', 'fields'],
+    TypeCoordinate: ['name'],
+    MemberCoordinate: ['name', 'memberName'],
+    ArgumentCoordinate: ['name', 'fieldName', 'argumentName'],
+    DirectiveCoordinate: ['name'],
+    DirectiveArgumentCoordinate: ['name', 'argumentName'],
+};
+new Set(Object.keys(QueryDocumentKeys));
+const OperationTypeNode = {
+    QUERY: 'query',
+    MUTATION: 'mutation',
+    SUBSCRIPTION: 'subscription',
+};
+
+const NAME = 'Name';
+const DOCUMENT = 'Document';
+const OPERATION_DEFINITION = 'OperationDefinition';
+const VARIABLE_DEFINITION = 'VariableDefinition';
+const SELECTION_SET = 'SelectionSet';
+const FIELD = 'Field';
+const ARGUMENT = 'Argument';
+const FRAGMENT_ARGUMENT = 'FragmentArgument';
+const FRAGMENT_SPREAD = 'FragmentSpread';
+const INLINE_FRAGMENT = 'InlineFragment';
+const FRAGMENT_DEFINITION = 'FragmentDefinition';
+const VARIABLE = 'Variable';
+const INT = 'IntValue';
+const FLOAT = 'FloatValue';
+const STRING = 'StringValue';
+const BOOLEAN = 'BooleanValue';
+const NULL = 'NullValue';
+const ENUM = 'EnumValue';
+const LIST = 'ListValue';
+const OBJECT = 'ObjectValue';
+const OBJECT_FIELD = 'ObjectField';
+const DIRECTIVE = 'Directive';
+const NAMED_TYPE = 'NamedType';
+const LIST_TYPE = 'ListType';
+const NON_NULL_TYPE = 'NonNullType';
+const SCHEMA_DEFINITION = 'SchemaDefinition';
+const OPERATION_TYPE_DEFINITION = 'OperationTypeDefinition';
+const SCALAR_TYPE_DEFINITION = 'ScalarTypeDefinition';
+const OBJECT_TYPE_DEFINITION = 'ObjectTypeDefinition';
+const FIELD_DEFINITION = 'FieldDefinition';
+const INPUT_VALUE_DEFINITION = 'InputValueDefinition';
+const INTERFACE_TYPE_DEFINITION = 'InterfaceTypeDefinition';
+const UNION_TYPE_DEFINITION = 'UnionTypeDefinition';
+const ENUM_TYPE_DEFINITION = 'EnumTypeDefinition';
+const ENUM_VALUE_DEFINITION = 'EnumValueDefinition';
+const INPUT_OBJECT_TYPE_DEFINITION = 'InputObjectTypeDefinition';
+const DIRECTIVE_DEFINITION = 'DirectiveDefinition';
+const SCHEMA_EXTENSION = 'SchemaExtension';
+const DIRECTIVE_EXTENSION = 'DirectiveExtension';
+const SCALAR_TYPE_EXTENSION = 'ScalarTypeExtension';
+const OBJECT_TYPE_EXTENSION = 'ObjectTypeExtension';
+const INTERFACE_TYPE_EXTENSION = 'InterfaceTypeExtension';
+const UNION_TYPE_EXTENSION = 'UnionTypeExtension';
+const ENUM_TYPE_EXTENSION = 'EnumTypeExtension';
+const INPUT_OBJECT_TYPE_EXTENSION = 'InputObjectTypeExtension';
+const TYPE_COORDINATE = 'TypeCoordinate';
+const MEMBER_COORDINATE = 'MemberCoordinate';
+const ARGUMENT_COORDINATE = 'ArgumentCoordinate';
+const DIRECTIVE_COORDINATE = 'DirectiveCoordinate';
+const DIRECTIVE_ARGUMENT_COORDINATE = 'DirectiveArgumentCoordinate';
+
+function devAssert(condition, message) {
+    {
+        throw new Error(message);
+    }
+}
+
+function isWhiteSpace(code) {
+    return code === 0x0009 || code === 0x0020;
+}
+function isDigit(code) {
+    return code >= 0x0030 && code <= 0x0039;
+}
+function isLetter(code) {
+    return ((code >= 0x0061 && code <= 0x007a) ||
+        (code >= 0x0041 && code <= 0x005a));
+}
+function isNameStart(code) {
+    return isLetter(code) || code === 0x005f;
+}
+function isNameContinue(code) {
+    return isLetter(code) || isDigit(code) || code === 0x005f;
+}
+
+function dedentBlockStringLines(lines) {
+    let commonIndent = Number.MAX_SAFE_INTEGER;
+    let firstNonEmptyLine = null;
+    let lastNonEmptyLine = -1;
+    for (let i = 0; i < lines.length; ++i) {
+        const line = lines[i];
+        const indent = leadingWhitespace(line);
+        if (indent === line.length) {
+            continue;
+        }
+        firstNonEmptyLine ??= i;
+        lastNonEmptyLine = i;
+        if (i !== 0 && indent < commonIndent) {
+            commonIndent = indent;
+        }
+    }
+    return (lines
+        .map((line, i) => (i === 0 ? line : line.slice(commonIndent)))
+        .slice(firstNonEmptyLine ?? 0, lastNonEmptyLine + 1));
+}
+function leadingWhitespace(str) {
+    let i = 0;
+    while (i < str.length && isWhiteSpace(str.charCodeAt(i))) {
+        ++i;
+    }
+    return i;
+}
+
+const DirectiveLocation = {
+    QUERY: 'QUERY',
+    MUTATION: 'MUTATION',
+    SUBSCRIPTION: 'SUBSCRIPTION',
+    FIELD: 'FIELD',
+    FRAGMENT_DEFINITION: 'FRAGMENT_DEFINITION',
+    FRAGMENT_SPREAD: 'FRAGMENT_SPREAD',
+    INLINE_FRAGMENT: 'INLINE_FRAGMENT',
+    VARIABLE_DEFINITION: 'VARIABLE_DEFINITION',
+    FRAGMENT_VARIABLE_DEFINITION: 'FRAGMENT_VARIABLE_DEFINITION',
+    SCHEMA: 'SCHEMA',
+    SCALAR: 'SCALAR',
+    OBJECT: 'OBJECT',
+    FIELD_DEFINITION: 'FIELD_DEFINITION',
+    ARGUMENT_DEFINITION: 'ARGUMENT_DEFINITION',
+    INTERFACE: 'INTERFACE',
+    UNION: 'UNION',
+    ENUM: 'ENUM',
+    ENUM_VALUE: 'ENUM_VALUE',
+    INPUT_OBJECT: 'INPUT_OBJECT',
+    INPUT_FIELD_DEFINITION: 'INPUT_FIELD_DEFINITION',
+    DIRECTIVE_DEFINITION: 'DIRECTIVE_DEFINITION',
+};
+
+function syntaxError(source, position, description) {
+    return new GraphQLError(`Syntax Error: ${description}`, {
+        source,
+        positions: [position],
+    });
+}
+
+function resolveDiagnosticsChannel() {
+    let dc;
+    try {
+        const processRef = globalThis.process;
+        if (typeof processRef?.getBuiltinModule === 'function') {
+            dc = processRef.getBuiltinModule('node:diagnostics_channel');
+        }
+    }
+    catch {
+    }
+    return dc;
+}
+const dc = resolveDiagnosticsChannel();
+const parseChannel = dc?.tracingChannel('graphql:parse');
+dc?.tracingChannel('graphql:validate');
+dc?.tracingChannel('graphql:execute');
+dc?.tracingChannel('graphql:execute:variableCoercion');
+dc?.tracingChannel('graphql:execute:rootSelectionSet');
+dc?.tracingChannel('graphql:subscribe');
+dc?.tracingChannel('graphql:resolve');
+const SUB_CHANNEL_KEYS = ['start', 'end', 'asyncStart', 'asyncEnd', 'error'];
+function shouldTrace(channel) {
+    if (channel == null) {
+        return false;
+    }
+    const aggregate = channel.hasSubscribers;
+    if (aggregate !== undefined) {
+        return aggregate;
+    }
+    for (const key of SUB_CHANNEL_KEYS) {
+        if (channel[key].hasSubscribers) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const TokenKind = {
+    SOF: '<SOF>',
+    EOF: '<EOF>',
+    BANG: '!',
+    DOLLAR: '$',
+    AMP: '&',
+    PAREN_L: '(',
+    PAREN_R: ')',
+    DOT: '.',
+    SPREAD: '...',
+    COLON: ':',
+    EQUALS: '=',
+    AT: '@',
+    BRACKET_L: '[',
+    BRACKET_R: ']',
+    BRACE_L: '{',
+    PIPE: '|',
+    BRACE_R: '}',
+    NAME: 'Name',
+    INT: 'Int',
+    FLOAT: 'Float',
+    STRING: 'String',
+    BLOCK_STRING: 'BlockString',
+    COMMENT: 'Comment',
+};
+
+class Lexer {
+    constructor(source) {
+        const startOfFileToken = new Token(TokenKind.SOF, 0, 0, 0, 0);
+        this.source = source;
+        this.lastToken = startOfFileToken;
+        this.token = startOfFileToken;
+        this.line = 1;
+        this.lineStart = 0;
+        this._maxComments = undefined;
+        this._commentCount = 0;
+    }
+    get [Symbol.toStringTag]() {
+        return 'Lexer';
+    }
+    advance() {
+        this.lastToken = this.token;
+        const token = (this.token = this.lookahead());
+        return token;
+    }
+    lookahead() {
+        let token = this.token;
+        if (token.kind !== TokenKind.EOF) {
+            do {
+                if (token.next) {
+                    token = token.next;
+                }
+                else {
+                    const nextToken = readNextToken(this, token.end);
+                    token.next = nextToken;
+                    nextToken.prev = token;
+                    token = nextToken;
+                }
+            } while (token.kind === TokenKind.COMMENT);
+        }
+        return token;
+    }
+}
+function isPunctuatorTokenKind(kind) {
+    return (kind === TokenKind.BANG ||
+        kind === TokenKind.DOLLAR ||
+        kind === TokenKind.AMP ||
+        kind === TokenKind.PAREN_L ||
+        kind === TokenKind.PAREN_R ||
+        kind === TokenKind.DOT ||
+        kind === TokenKind.SPREAD ||
+        kind === TokenKind.COLON ||
+        kind === TokenKind.EQUALS ||
+        kind === TokenKind.AT ||
+        kind === TokenKind.BRACKET_L ||
+        kind === TokenKind.BRACKET_R ||
+        kind === TokenKind.BRACE_L ||
+        kind === TokenKind.PIPE ||
+        kind === TokenKind.BRACE_R);
+}
+function isUnicodeScalarValue(code) {
+    return ((code >= 0x0000 && code <= 0xd7ff) || (code >= 0xe000 && code <= 0x10ffff));
+}
+function isSupplementaryCodePoint(body, location) {
+    return (isLeadingSurrogate(body.charCodeAt(location)) &&
+        isTrailingSurrogate(body.charCodeAt(location + 1)));
+}
+function isLeadingSurrogate(code) {
+    return code >= 0xd800 && code <= 0xdbff;
+}
+function isTrailingSurrogate(code) {
+    return code >= 0xdc00 && code <= 0xdfff;
+}
+function printCodePointAt(lexer, location) {
+    const code = lexer.source.body.codePointAt(location);
+    if (code === undefined) {
+        return TokenKind.EOF;
+    }
+    else if (code >= 0x0020 && code <= 0x007e) {
+        const char = String.fromCodePoint(code);
+        return char === '"' ? "'\"'" : `"${char}"`;
+    }
+    return 'U+' + code.toString(16).toUpperCase().padStart(4, '0');
+}
+function createToken(lexer, kind, start, end, value) {
+    const line = lexer.line;
+    const col = 1 + start - lexer.lineStart;
+    return new Token(kind, start, end, line, col, value);
+}
+function readNextToken(lexer, start) {
+    const body = lexer.source.body;
+    const bodyLength = body.length;
+    let position = start;
+    while (position < bodyLength) {
+        const code = body.charCodeAt(position);
+        switch (code) {
+            case 0xfeff:
+            case 0x0009:
+            case 0x0020:
+            case 0x002c:
+                ++position;
+                continue;
+            case 0x000a:
+                ++position;
+                ++lexer.line;
+                lexer.lineStart = position;
+                continue;
+            case 0x000d:
+                if (body.charCodeAt(position + 1) === 0x000a) {
+                    position += 2;
+                }
+                else {
+                    ++position;
+                }
+                ++lexer.line;
+                lexer.lineStart = position;
+                continue;
+            case 0x0023:
+                return readComment(lexer, position);
+            case 0x0021:
+                return createToken(lexer, TokenKind.BANG, position, position + 1);
+            case 0x0024:
+                return createToken(lexer, TokenKind.DOLLAR, position, position + 1);
+            case 0x0026:
+                return createToken(lexer, TokenKind.AMP, position, position + 1);
+            case 0x0028:
+                return createToken(lexer, TokenKind.PAREN_L, position, position + 1);
+            case 0x0029:
+                return createToken(lexer, TokenKind.PAREN_R, position, position + 1);
+            case 0x002e: {
+                const nextCode = body.charCodeAt(position + 1);
+                if (nextCode === 0x002e && body.charCodeAt(position + 2) === 0x002e) {
+                    return createToken(lexer, TokenKind.SPREAD, position, position + 3);
+                }
+                if (nextCode === 0x002e) {
+                    throw syntaxError(lexer.source, position, 'Unexpected "..", did you mean "..."?');
+                }
+                else if (isDigit(nextCode)) {
+                    const digits = lexer.source.body.slice(position + 1, readDigits(lexer, position + 1, nextCode));
+                    throw syntaxError(lexer.source, position, `Invalid number, expected digit before ".", did you mean "0.${digits}"?`);
+                }
+                break;
+            }
+            case 0x003a:
+                return createToken(lexer, TokenKind.COLON, position, position + 1);
+            case 0x003d:
+                return createToken(lexer, TokenKind.EQUALS, position, position + 1);
+            case 0x0040:
+                return createToken(lexer, TokenKind.AT, position, position + 1);
+            case 0x005b:
+                return createToken(lexer, TokenKind.BRACKET_L, position, position + 1);
+            case 0x005d:
+                return createToken(lexer, TokenKind.BRACKET_R, position, position + 1);
+            case 0x007b:
+                return createToken(lexer, TokenKind.BRACE_L, position, position + 1);
+            case 0x007c:
+                return createToken(lexer, TokenKind.PIPE, position, position + 1);
+            case 0x007d:
+                return createToken(lexer, TokenKind.BRACE_R, position, position + 1);
+            case 0x0022:
+                if (body.charCodeAt(position + 1) === 0x0022 &&
+                    body.charCodeAt(position + 2) === 0x0022) {
+                    return readBlockString(lexer, position);
+                }
+                return readString(lexer, position);
+        }
+        if (isDigit(code) || code === 0x002d) {
+            return readNumber(lexer, position, code);
+        }
+        if (isNameStart(code)) {
+            return readName(lexer, position);
+        }
+        throw syntaxError(lexer.source, position, code === 0x0027
+            ? 'Unexpected single quote character (\'), did you mean to use a double quote (")?'
+            : isUnicodeScalarValue(code) || isSupplementaryCodePoint(body, position)
+                ? `Unexpected character: ${printCodePointAt(lexer, position)}.`
+                : `Invalid character: ${printCodePointAt(lexer, position)}.`);
+    }
+    return createToken(lexer, TokenKind.EOF, bodyLength, bodyLength);
+}
+function readComment(lexer, start) {
+    const maxComments = lexer._maxComments;
+    if (maxComments !== undefined) {
+        const nextCommentCount = lexer._commentCount + 1;
+        if (nextCommentCount > maxComments) {
+            throw syntaxError(lexer.source, start, `Document contains more than ${maxComments} comments. Parsing aborted.`);
+        }
+        lexer._commentCount = nextCommentCount;
+    }
+    const body = lexer.source.body;
+    const bodyLength = body.length;
+    let position = start + 1;
+    while (position < bodyLength) {
+        const code = body.charCodeAt(position);
+        if (code === 0x000a || code === 0x000d) {
+            break;
+        }
+        if (isUnicodeScalarValue(code)) {
+            ++position;
+        }
+        else if (isSupplementaryCodePoint(body, position)) {
+            position += 2;
+        }
+        else {
+            break;
+        }
+    }
+    return createToken(lexer, TokenKind.COMMENT, start, position, body.slice(start + 1, position));
+}
+function readNumber(lexer, start, firstCode) {
+    const body = lexer.source.body;
+    let position = start;
+    let code = firstCode;
+    let isFloat = false;
+    if (code === 0x002d) {
+        code = body.charCodeAt(++position);
+    }
+    if (code === 0x0030) {
+        code = body.charCodeAt(++position);
+        if (isDigit(code)) {
+            throw syntaxError(lexer.source, position, `Invalid number, unexpected digit after 0: ${printCodePointAt(lexer, position)}.`);
+        }
+    }
+    else {
+        position = readDigits(lexer, position, code);
+        code = body.charCodeAt(position);
+    }
+    if (code === 0x002e) {
+        isFloat = true;
+        code = body.charCodeAt(++position);
+        position = readDigits(lexer, position, code);
+        code = body.charCodeAt(position);
+    }
+    if (code === 0x0045 || code === 0x0065) {
+        isFloat = true;
+        code = body.charCodeAt(++position);
+        if (code === 0x002b || code === 0x002d) {
+            code = body.charCodeAt(++position);
+        }
+        position = readDigits(lexer, position, code);
+        code = body.charCodeAt(position);
+    }
+    if (code === 0x002e || isNameStart(code)) {
+        throw syntaxError(lexer.source, position, `Invalid number, expected digit but got: ${printCodePointAt(lexer, position)}.`);
+    }
+    return createToken(lexer, isFloat ? TokenKind.FLOAT : TokenKind.INT, start, position, body.slice(start, position));
+}
+function readDigits(lexer, start, firstCode) {
+    if (!isDigit(firstCode)) {
+        throw syntaxError(lexer.source, start, `Invalid number, expected digit but got: ${printCodePointAt(lexer, start)}.`);
+    }
+    const body = lexer.source.body;
+    let position = start + 1;
+    while (isDigit(body.charCodeAt(position))) {
+        ++position;
+    }
+    return position;
+}
+function readString(lexer, start) {
+    const body = lexer.source.body;
+    const bodyLength = body.length;
+    let position = start + 1;
+    let chunkStart = position;
+    let value = '';
+    while (position < bodyLength) {
+        const code = body.charCodeAt(position);
+        if (code === 0x0022) {
+            value += body.slice(chunkStart, position);
+            return createToken(lexer, TokenKind.STRING, start, position + 1, value);
+        }
+        if (code === 0x005c) {
+            value += body.slice(chunkStart, position);
+            const escape = body.charCodeAt(position + 1) === 0x0075
+                ? body.charCodeAt(position + 2) === 0x007b
+                    ? readEscapedUnicodeVariableWidth(lexer, position)
+                    : readEscapedUnicodeFixedWidth(lexer, position)
+                : readEscapedCharacter(lexer, position);
+            value += escape.value;
+            position += escape.size;
+            chunkStart = position;
+            continue;
+        }
+        if (code === 0x000a || code === 0x000d) {
+            break;
+        }
+        if (isUnicodeScalarValue(code)) {
+            ++position;
+        }
+        else if (isSupplementaryCodePoint(body, position)) {
+            position += 2;
+        }
+        else {
+            throw syntaxError(lexer.source, position, `Invalid character within String: ${printCodePointAt(lexer, position)}.`);
+        }
+    }
+    throw syntaxError(lexer.source, position, 'Unterminated string.');
+}
+function readEscapedUnicodeVariableWidth(lexer, position) {
+    const body = lexer.source.body;
+    let point = 0;
+    let size = 3;
+    while (size < 12) {
+        const code = body.charCodeAt(position + size++);
+        if (code === 0x007d) {
+            if (size < 5 || !isUnicodeScalarValue(point)) {
+                break;
+            }
+            return { value: String.fromCodePoint(point), size };
+        }
+        point = (point << 4) | readHexDigit(code);
+        if (point < 0) {
+            break;
+        }
+    }
+    throw syntaxError(lexer.source, position, `Invalid Unicode escape sequence: "${body.slice(position, position + size)}".`);
+}
+function readEscapedUnicodeFixedWidth(lexer, position) {
+    const body = lexer.source.body;
+    const code = read16BitHexCode(body, position + 2);
+    if (isUnicodeScalarValue(code)) {
+        return { value: String.fromCodePoint(code), size: 6 };
+    }
+    if (isLeadingSurrogate(code)) {
+        if (body.charCodeAt(position + 6) === 0x005c &&
+            body.charCodeAt(position + 7) === 0x0075) {
+            const trailingCode = read16BitHexCode(body, position + 8);
+            if (isTrailingSurrogate(trailingCode)) {
+                return { value: String.fromCodePoint(code, trailingCode), size: 12 };
+            }
+        }
+    }
+    throw syntaxError(lexer.source, position, `Invalid Unicode escape sequence: "${body.slice(position, position + 6)}".`);
+}
+function read16BitHexCode(body, position) {
+    return ((readHexDigit(body.charCodeAt(position)) << 12) |
+        (readHexDigit(body.charCodeAt(position + 1)) << 8) |
+        (readHexDigit(body.charCodeAt(position + 2)) << 4) |
+        readHexDigit(body.charCodeAt(position + 3)));
+}
+function readHexDigit(code) {
+    return code >= 0x0030 && code <= 0x0039
+        ? code - 0x0030
+        : code >= 0x0041 && code <= 0x0046
+            ? code - 0x0037
+            : code >= 0x0061 && code <= 0x0066
+                ? code - 0x0057
+                : -1;
+}
+function readEscapedCharacter(lexer, position) {
+    const body = lexer.source.body;
+    const code = body.charCodeAt(position + 1);
+    switch (code) {
+        case 0x0022:
+            return { value: '\u0022', size: 2 };
+        case 0x005c:
+            return { value: '\u005c', size: 2 };
+        case 0x002f:
+            return { value: '\u002f', size: 2 };
+        case 0x0062:
+            return { value: '\u0008', size: 2 };
+        case 0x0066:
+            return { value: '\u000c', size: 2 };
+        case 0x006e:
+            return { value: '\u000a', size: 2 };
+        case 0x0072:
+            return { value: '\u000d', size: 2 };
+        case 0x0074:
+            return { value: '\u0009', size: 2 };
+    }
+    throw syntaxError(lexer.source, position, `Invalid character escape sequence: "${body.slice(position, position + 2)}".`);
+}
+function readBlockString(lexer, start) {
+    const body = lexer.source.body;
+    const bodyLength = body.length;
+    let lineStart = lexer.lineStart;
+    let position = start + 3;
+    let chunkStart = position;
+    let currentLine = '';
+    const blockLines = [];
+    while (position < bodyLength) {
+        const code = body.charCodeAt(position);
+        if (code === 0x0022 &&
+            body.charCodeAt(position + 1) === 0x0022 &&
+            body.charCodeAt(position + 2) === 0x0022) {
+            currentLine += body.slice(chunkStart, position);
+            blockLines.push(currentLine);
+            const token = createToken(lexer, TokenKind.BLOCK_STRING, start, position + 3, dedentBlockStringLines(blockLines).join('\n'));
+            lexer.line += blockLines.length - 1;
+            lexer.lineStart = lineStart;
+            return token;
+        }
+        if (code === 0x005c &&
+            body.charCodeAt(position + 1) === 0x0022 &&
+            body.charCodeAt(position + 2) === 0x0022 &&
+            body.charCodeAt(position + 3) === 0x0022) {
+            currentLine += body.slice(chunkStart, position);
+            chunkStart = position + 1;
+            position += 4;
+            continue;
+        }
+        if (code === 0x000a || code === 0x000d) {
+            currentLine += body.slice(chunkStart, position);
+            blockLines.push(currentLine);
+            if (code === 0x000d && body.charCodeAt(position + 1) === 0x000a) {
+                position += 2;
+            }
+            else {
+                ++position;
+            }
+            currentLine = '';
+            chunkStart = position;
+            lineStart = position;
+            continue;
+        }
+        if (isUnicodeScalarValue(code)) {
+            ++position;
+        }
+        else if (isSupplementaryCodePoint(body, position)) {
+            position += 2;
+        }
+        else {
+            throw syntaxError(lexer.source, position, `Invalid character within String: ${printCodePointAt(lexer, position)}.`);
+        }
+    }
+    throw syntaxError(lexer.source, position, 'Unterminated string.');
+}
+function readName(lexer, start) {
+    const body = lexer.source.body;
+    const bodyLength = body.length;
+    let position = start + 1;
+    while (position < bodyLength) {
+        const code = body.charCodeAt(position);
+        if (isNameContinue(code)) {
+            ++position;
+        }
+        else {
+            break;
+        }
+    }
+    return createToken(lexer, TokenKind.NAME, start, position, body.slice(start, position));
+}
+
+const sourceSymbol = Symbol('Source');
+class Source {
+    constructor(body, name = 'GraphQL request', locationOffset = { line: 1, column: 1 }) {
+        this.__kind = sourceSymbol;
+        this.body = body;
+        this.name = name;
+        this.locationOffset = locationOffset;
+        if (!(this.locationOffset.line > 0))
+            devAssert(false, 'line in locationOffset is 1-indexed and must be positive.');
+        if (!(this.locationOffset.column > 0))
+            devAssert(false, 'column in locationOffset is 1-indexed and must be positive.');
+    }
+    get [Symbol.toStringTag]() {
+        return 'Source';
+    }
+}
+function isSource(source) {
+    return instanceOf(source, sourceSymbol);
+}
+
+function parse$1(source, options) {
+    return shouldTrace(parseChannel)
+        ? parseChannel.traceSync(() => parseImpl(source, options), { source })
+        : parseImpl(source, options);
+}
+function parseImpl(source, options) {
+    const parser = new Parser(source, options);
+    const document = parser.parseDocument();
+    Object.defineProperty(document, 'tokenCount', {
+        enumerable: false,
+        value: parser.tokenCount,
+    });
+    return document;
+}
+class Parser {
+    constructor(source, options = {}) {
+        const { lexer, ..._options } = options;
+        if (lexer) {
+            this._lexer = lexer;
+        }
+        else {
+            const sourceObj = isSource(source) ? source : new Source(source);
+            this._lexer = new Lexer(sourceObj);
+        }
+        this._options = _options;
+        this._tokenCounter = 0;
+        this._lexer._maxComments = _options.maxComments;
+        this._lexer._commentCount = 0;
+        const maxSourceLength = _options.maxSourceLength;
+        if (maxSourceLength !== undefined &&
+            this._lexer.source.body.length > maxSourceLength) {
+            throw syntaxError(this._lexer.source, maxSourceLength, `Source contains more than ${maxSourceLength} UTF-16 code units. Parsing aborted.`);
+        }
+    }
+    get tokenCount() {
+        return this._tokenCounter;
+    }
+    parseName() {
+        const token = this.expectToken(TokenKind.NAME);
+        return this.node(token, {
+            kind: NAME,
+            value: token.value,
+        });
+    }
+    parseDocument() {
+        return this.node(this._lexer.token, {
+            kind: DOCUMENT,
+            definitions: this.many(TokenKind.SOF, this.parseDefinition, TokenKind.EOF),
+        });
+    }
+    parseDefinition() {
+        if (this.peek(TokenKind.BRACE_L)) {
+            return this.parseOperationDefinition();
+        }
+        const hasDescription = this.peekDescription();
+        const keywordToken = hasDescription
+            ? this._lexer.lookahead()
+            : this._lexer.token;
+        if (hasDescription && keywordToken.kind === TokenKind.BRACE_L) {
+            throw syntaxError(this._lexer.source, this._lexer.token.start, 'Unexpected description, descriptions are not supported on shorthand queries.');
+        }
+        if (keywordToken.kind === TokenKind.NAME) {
+            switch (keywordToken.value) {
+                case 'schema':
+                    return this.parseSchemaDefinition();
+                case 'scalar':
+                    return this.parseScalarTypeDefinition();
+                case 'type':
+                    return this.parseObjectTypeDefinition();
+                case 'interface':
+                    return this.parseInterfaceTypeDefinition();
+                case 'union':
+                    return this.parseUnionTypeDefinition();
+                case 'enum':
+                    return this.parseEnumTypeDefinition();
+                case 'input':
+                    return this.parseInputObjectTypeDefinition();
+                case 'directive':
+                    return this.parseDirectiveDefinition();
+            }
+            switch (keywordToken.value) {
+                case 'query':
+                case 'mutation':
+                case 'subscription':
+                    return this.parseOperationDefinition();
+                case 'fragment':
+                    return this.parseFragmentDefinition();
+            }
+            if (hasDescription) {
+                throw syntaxError(this._lexer.source, this._lexer.token.start, 'Unexpected description, only GraphQL definitions support descriptions.');
+            }
+            switch (keywordToken.value) {
+                case 'extend':
+                    return this.parseTypeSystemExtension();
+            }
+        }
+        throw this.unexpected(keywordToken);
+    }
+    parseOperationDefinition() {
+        const start = this._lexer.token;
+        if (this.peek(TokenKind.BRACE_L)) {
+            return this.node(start, {
+                kind: OPERATION_DEFINITION,
+                operation: OperationTypeNode.QUERY,
+                description: undefined,
+                name: undefined,
+                variableDefinitions: undefined,
+                directives: undefined,
+                selectionSet: this.parseSelectionSet(),
+            });
+        }
+        const description = this.parseDescription();
+        const operation = this.parseOperationType();
+        let name;
+        if (this.peek(TokenKind.NAME)) {
+            name = this.parseName();
+        }
+        return this.node(start, {
+            kind: OPERATION_DEFINITION,
+            operation,
+            description,
+            name,
+            variableDefinitions: this.parseVariableDefinitions(),
+            directives: this.parseDirectives(false),
+            selectionSet: this.parseSelectionSet(),
+        });
+    }
+    parseOperationType() {
+        const operationToken = this.expectToken(TokenKind.NAME);
+        switch (operationToken.value) {
+            case 'query':
+                return OperationTypeNode.QUERY;
+            case 'mutation':
+                return OperationTypeNode.MUTATION;
+            case 'subscription':
+                return OperationTypeNode.SUBSCRIPTION;
+        }
+        throw this.unexpected(operationToken);
+    }
+    parseVariableDefinitions() {
+        return this.optionalMany(TokenKind.PAREN_L, this.parseVariableDefinition, TokenKind.PAREN_R);
+    }
+    parseVariableDefinition() {
+        return this.node(this._lexer.token, {
+            kind: VARIABLE_DEFINITION,
+            description: this.parseDescription(),
+            variable: this.parseVariable(),
+            type: (this.expectToken(TokenKind.COLON), this.parseTypeReference()),
+            defaultValue: this.expectOptionalToken(TokenKind.EQUALS)
+                ? this.parseConstValueLiteral()
+                : undefined,
+            directives: this.parseConstDirectives(),
+        });
+    }
+    parseVariable() {
+        const start = this._lexer.token;
+        this.expectToken(TokenKind.DOLLAR);
+        return this.node(start, {
+            kind: VARIABLE,
+            name: this.parseName(),
+        });
+    }
+    parseSelectionSet() {
+        return this.node(this._lexer.token, {
+            kind: SELECTION_SET,
+            selections: this._options.allowEmptySelectionSets === false
+                ? this.many(TokenKind.BRACE_L, this.parseSelection, TokenKind.BRACE_R)
+                : this.any(TokenKind.BRACE_L, this.parseSelection, TokenKind.BRACE_R),
+        });
+    }
+    parseSelection() {
+        return this.peek(TokenKind.SPREAD)
+            ? this.parseFragment()
+            : this.parseField();
+    }
+    parseField() {
+        const start = this._lexer.token;
+        const nameOrAlias = this.parseName();
+        let alias;
+        let name;
+        if (this.expectOptionalToken(TokenKind.COLON)) {
+            alias = nameOrAlias;
+            name = this.parseName();
+        }
+        else {
+            name = nameOrAlias;
+        }
+        return this.node(start, {
+            kind: FIELD,
+            alias,
+            name,
+            arguments: this.parseArguments(false),
+            directives: this.parseDirectives(false),
+            selectionSet: this.peek(TokenKind.BRACE_L)
+                ? this.parseSelectionSet()
+                : undefined,
+        });
+    }
+    parseArguments(isConst) {
+        const item = isConst ? this.parseConstArgument : this.parseArgument;
+        return this.optionalMany(TokenKind.PAREN_L, item, TokenKind.PAREN_R);
+    }
+    parseFragmentArguments() {
+        const item = this.parseFragmentArgument;
+        return this.optionalMany(TokenKind.PAREN_L, item, TokenKind.PAREN_R);
+    }
+    parseArgument(isConst = false) {
+        const start = this._lexer.token;
+        const name = this.parseName();
+        this.expectToken(TokenKind.COLON);
+        return this.node(start, {
+            kind: ARGUMENT,
+            name,
+            value: this.parseValueLiteral(isConst),
+        });
+    }
+    parseConstArgument() {
+        return this.parseArgument(true);
+    }
+    parseFragmentArgument() {
+        const start = this._lexer.token;
+        const name = this.parseName();
+        this.expectToken(TokenKind.COLON);
+        return this.node(start, {
+            kind: FRAGMENT_ARGUMENT,
+            name,
+            value: this.parseValueLiteral(false),
+        });
+    }
+    parseFragment() {
+        const start = this._lexer.token;
+        this.expectToken(TokenKind.SPREAD);
+        const hasTypeCondition = this.expectOptionalKeyword('on');
+        if (!hasTypeCondition && this.peek(TokenKind.NAME)) {
+            const name = this.parseFragmentName();
+            if (this.peek(TokenKind.PAREN_L) &&
+                this._options.experimentalFragmentArguments) {
+                return this.node(start, {
+                    kind: FRAGMENT_SPREAD,
+                    name,
+                    arguments: this.parseFragmentArguments(),
+                    directives: this.parseDirectives(false),
+                });
+            }
+            return this.node(start, {
+                kind: FRAGMENT_SPREAD,
+                name,
+                directives: this.parseDirectives(false),
+            });
+        }
+        return this.node(start, {
+            kind: INLINE_FRAGMENT,
+            typeCondition: hasTypeCondition ? this.parseNamedType() : undefined,
+            directives: this.parseDirectives(false),
+            selectionSet: this.parseSelectionSet(),
+        });
+    }
+    parseFragmentDefinition() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        this.expectKeyword('fragment');
+        if (this._options.experimentalFragmentArguments === true) {
+            return this.node(start, {
+                kind: FRAGMENT_DEFINITION,
+                description,
+                name: this.parseFragmentName(),
+                variableDefinitions: this.parseVariableDefinitions(),
+                typeCondition: (this.expectKeyword('on'), this.parseNamedType()),
+                directives: this.parseDirectives(false),
+                selectionSet: this.parseSelectionSet(),
+            });
+        }
+        return this.node(start, {
+            kind: FRAGMENT_DEFINITION,
+            description,
+            name: this.parseFragmentName(),
+            typeCondition: (this.expectKeyword('on'), this.parseNamedType()),
+            directives: this.parseDirectives(false),
+            selectionSet: this.parseSelectionSet(),
+        });
+    }
+    parseFragmentName() {
+        if (this._lexer.token.value === 'on') {
+            throw this.unexpected();
+        }
+        return this.parseName();
+    }
+    parseValueLiteral(isConst) {
+        const token = this._lexer.token;
+        switch (token.kind) {
+            case TokenKind.BRACKET_L:
+                return this.parseList(isConst);
+            case TokenKind.BRACE_L:
+                return this.parseObject(isConst);
+            case TokenKind.INT:
+                this.advanceLexer();
+                return this.node(token, {
+                    kind: INT,
+                    value: token.value,
+                });
+            case TokenKind.FLOAT:
+                this.advanceLexer();
+                return this.node(token, {
+                    kind: FLOAT,
+                    value: token.value,
+                });
+            case TokenKind.STRING:
+            case TokenKind.BLOCK_STRING:
+                return this.parseStringLiteral();
+            case TokenKind.NAME:
+                this.advanceLexer();
+                switch (token.value) {
+                    case 'true':
+                        return this.node(token, {
+                            kind: BOOLEAN,
+                            value: true,
+                        });
+                    case 'false':
+                        return this.node(token, {
+                            kind: BOOLEAN,
+                            value: false,
+                        });
+                    case 'null':
+                        return this.node(token, { kind: NULL });
+                    default:
+                        return this.node(token, {
+                            kind: ENUM,
+                            value: token.value,
+                        });
+                }
+            case TokenKind.DOLLAR:
+                if (isConst) {
+                    this.expectToken(TokenKind.DOLLAR);
+                    if (this._lexer.token.kind === TokenKind.NAME) {
+                        const varName = this._lexer.token.value;
+                        throw syntaxError(this._lexer.source, token.start, `Unexpected variable "$${varName}" in constant value.`);
+                    }
+                    else {
+                        throw this.unexpected(token);
+                    }
+                }
+                return this.parseVariable();
+            default:
+                throw this.unexpected();
+        }
+    }
+    parseConstValueLiteral() {
+        return this.parseValueLiteral(true);
+    }
+    parseStringLiteral() {
+        const token = this._lexer.token;
+        this.advanceLexer();
+        return this.node(token, {
+            kind: STRING,
+            value: token.value,
+            block: token.kind === TokenKind.BLOCK_STRING,
+        });
+    }
+    parseList(isConst) {
+        const item = () => this.parseValueLiteral(isConst);
+        return this.node(this._lexer.token, {
+            kind: LIST,
+            values: this.any(TokenKind.BRACKET_L, item, TokenKind.BRACKET_R),
+        });
+    }
+    parseObject(isConst) {
+        const item = () => this.parseObjectField(isConst);
+        return this.node(this._lexer.token, {
+            kind: OBJECT,
+            fields: this.any(TokenKind.BRACE_L, item, TokenKind.BRACE_R),
+        });
+    }
+    parseObjectField(isConst) {
+        const start = this._lexer.token;
+        const name = this.parseName();
+        this.expectToken(TokenKind.COLON);
+        return this.node(start, {
+            kind: OBJECT_FIELD,
+            name,
+            value: this.parseValueLiteral(isConst),
+        });
+    }
+    parseDirectives(isConst) {
+        const directives = [];
+        while (this.peek(TokenKind.AT)) {
+            directives.push(this.parseDirective(isConst));
+        }
+        if (directives.length) {
+            return directives;
+        }
+        return undefined;
+    }
+    parseConstDirectives() {
+        return this.parseDirectives(true);
+    }
+    parseDirective(isConst) {
+        const start = this._lexer.token;
+        this.expectToken(TokenKind.AT);
+        return this.node(start, {
+            kind: DIRECTIVE,
+            name: this.parseName(),
+            arguments: this.parseArguments(isConst),
+        });
+    }
+    parseTypeReference() {
+        const start = this._lexer.token;
+        let type;
+        if (this.expectOptionalToken(TokenKind.BRACKET_L)) {
+            const innerType = this.parseTypeReference();
+            this.expectToken(TokenKind.BRACKET_R);
+            type = this.node(start, {
+                kind: LIST_TYPE,
+                type: innerType,
+            });
+        }
+        else {
+            type = this.parseNamedType();
+        }
+        if (this.expectOptionalToken(TokenKind.BANG)) {
+            return this.node(start, {
+                kind: NON_NULL_TYPE,
+                type,
+            });
+        }
+        return type;
+    }
+    parseNamedType() {
+        return this.node(this._lexer.token, {
+            kind: NAMED_TYPE,
+            name: this.parseName(),
+        });
+    }
+    peekDescription() {
+        return this.peek(TokenKind.STRING) || this.peek(TokenKind.BLOCK_STRING);
+    }
+    parseDescription() {
+        if (this.peekDescription()) {
+            return this.parseStringLiteral();
+        }
+    }
+    parseSchemaDefinition() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        this.expectKeyword('schema');
+        const directives = this.parseConstDirectives();
+        const operationTypes = this.many(TokenKind.BRACE_L, this.parseOperationTypeDefinition, TokenKind.BRACE_R);
+        return this.node(start, {
+            kind: SCHEMA_DEFINITION,
+            description,
+            directives,
+            operationTypes,
+        });
+    }
+    parseOperationTypeDefinition() {
+        const start = this._lexer.token;
+        const operation = this.parseOperationType();
+        this.expectToken(TokenKind.COLON);
+        const type = this.parseNamedType();
+        return this.node(start, {
+            kind: OPERATION_TYPE_DEFINITION,
+            operation,
+            type,
+        });
+    }
+    parseScalarTypeDefinition() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        this.expectKeyword('scalar');
+        const name = this.parseName();
+        const directives = this.parseConstDirectives();
+        return this.node(start, {
+            kind: SCALAR_TYPE_DEFINITION,
+            description,
+            name,
+            directives,
+        });
+    }
+    parseObjectTypeDefinition() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        this.expectKeyword('type');
+        const name = this.parseName();
+        const interfaces = this.parseImplementsInterfaces();
+        const directives = this.parseConstDirectives();
+        const fields = this.parseFieldsDefinition();
+        return this.node(start, {
+            kind: OBJECT_TYPE_DEFINITION,
+            description,
+            name,
+            interfaces,
+            directives,
+            fields,
+        });
+    }
+    parseImplementsInterfaces() {
+        return this.expectOptionalKeyword('implements')
+            ? this.delimitedMany(TokenKind.AMP, this.parseNamedType)
+            : undefined;
+    }
+    parseFieldsDefinition() {
+        return this.optionalMany(TokenKind.BRACE_L, this.parseFieldDefinition, TokenKind.BRACE_R);
+    }
+    parseFieldDefinition() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        const name = this.parseName();
+        const args = this.parseArgumentDefs();
+        this.expectToken(TokenKind.COLON);
+        const type = this.parseTypeReference();
+        const directives = this.parseConstDirectives();
+        return this.node(start, {
+            kind: FIELD_DEFINITION,
+            description,
+            name,
+            arguments: args,
+            type,
+            directives,
+        });
+    }
+    parseArgumentDefs() {
+        return this.optionalMany(TokenKind.PAREN_L, this.parseInputValueDef, TokenKind.PAREN_R);
+    }
+    parseInputValueDef() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        const name = this.parseName();
+        this.expectToken(TokenKind.COLON);
+        const type = this.parseTypeReference();
+        let defaultValue;
+        if (this.expectOptionalToken(TokenKind.EQUALS)) {
+            defaultValue = this.parseConstValueLiteral();
+        }
+        const directives = this.parseConstDirectives();
+        return this.node(start, {
+            kind: INPUT_VALUE_DEFINITION,
+            description,
+            name,
+            type,
+            defaultValue,
+            directives,
+        });
+    }
+    parseInterfaceTypeDefinition() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        this.expectKeyword('interface');
+        const name = this.parseName();
+        const interfaces = this.parseImplementsInterfaces();
+        const directives = this.parseConstDirectives();
+        const fields = this.parseFieldsDefinition();
+        return this.node(start, {
+            kind: INTERFACE_TYPE_DEFINITION,
+            description,
+            name,
+            interfaces,
+            directives,
+            fields,
+        });
+    }
+    parseUnionTypeDefinition() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        this.expectKeyword('union');
+        const name = this.parseName();
+        const directives = this.parseConstDirectives();
+        const types = this.parseUnionMemberTypes();
+        return this.node(start, {
+            kind: UNION_TYPE_DEFINITION,
+            description,
+            name,
+            directives,
+            types,
+        });
+    }
+    parseUnionMemberTypes() {
+        return this.expectOptionalToken(TokenKind.EQUALS)
+            ? this.delimitedMany(TokenKind.PIPE, this.parseNamedType)
+            : undefined;
+    }
+    parseEnumTypeDefinition() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        this.expectKeyword('enum');
+        const name = this.parseName();
+        const directives = this.parseConstDirectives();
+        const values = this.parseEnumValuesDefinition();
+        return this.node(start, {
+            kind: ENUM_TYPE_DEFINITION,
+            description,
+            name,
+            directives,
+            values,
+        });
+    }
+    parseEnumValuesDefinition() {
+        return this.optionalMany(TokenKind.BRACE_L, this.parseEnumValueDefinition, TokenKind.BRACE_R);
+    }
+    parseEnumValueDefinition() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        const name = this.parseEnumValueName();
+        const directives = this.parseConstDirectives();
+        return this.node(start, {
+            kind: ENUM_VALUE_DEFINITION,
+            description,
+            name,
+            directives,
+        });
+    }
+    parseEnumValueName() {
+        if (this._lexer.token.value === 'true' ||
+            this._lexer.token.value === 'false' ||
+            this._lexer.token.value === 'null') {
+            throw syntaxError(this._lexer.source, this._lexer.token.start, `${getTokenDesc(this._lexer.token)} is reserved and cannot be used for an enum value.`);
+        }
+        return this.parseName();
+    }
+    parseInputObjectTypeDefinition() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        this.expectKeyword('input');
+        const name = this.parseName();
+        const directives = this.parseConstDirectives();
+        const fields = this.parseInputFieldsDefinition();
+        return this.node(start, {
+            kind: INPUT_OBJECT_TYPE_DEFINITION,
+            description,
+            name,
+            directives,
+            fields,
+        });
+    }
+    parseInputFieldsDefinition() {
+        return this.optionalMany(TokenKind.BRACE_L, this.parseInputValueDef, TokenKind.BRACE_R);
+    }
+    parseTypeSystemExtension() {
+        const keywordToken = this._lexer.lookahead();
+        if (keywordToken.kind === TokenKind.NAME) {
+            switch (keywordToken.value) {
+                case 'schema':
+                    return this.parseSchemaExtension();
+                case 'scalar':
+                    return this.parseScalarTypeExtension();
+                case 'type':
+                    return this.parseObjectTypeExtension();
+                case 'interface':
+                    return this.parseInterfaceTypeExtension();
+                case 'union':
+                    return this.parseUnionTypeExtension();
+                case 'enum':
+                    return this.parseEnumTypeExtension();
+                case 'input':
+                    return this.parseInputObjectTypeExtension();
+                case 'directive':
+                    return this.parseDirectiveExtension();
+            }
+        }
+        throw this.unexpected(keywordToken);
+    }
+    parseSchemaExtension() {
+        const start = this._lexer.token;
+        this.expectKeyword('extend');
+        this.expectKeyword('schema');
+        const directives = this.parseConstDirectives();
+        const operationTypes = this.optionalMany(TokenKind.BRACE_L, this.parseOperationTypeDefinition, TokenKind.BRACE_R);
+        if (directives === undefined && operationTypes === undefined) {
+            throw this.unexpected();
+        }
+        return this.node(start, {
+            kind: SCHEMA_EXTENSION,
+            directives,
+            operationTypes,
+        });
+    }
+    parseScalarTypeExtension() {
+        const start = this._lexer.token;
+        this.expectKeyword('extend');
+        this.expectKeyword('scalar');
+        const name = this.parseName();
+        const directives = this.parseConstDirectives();
+        if (directives === undefined) {
+            throw this.unexpected();
+        }
+        return this.node(start, {
+            kind: SCALAR_TYPE_EXTENSION,
+            name,
+            directives,
+        });
+    }
+    parseObjectTypeExtension() {
+        const start = this._lexer.token;
+        this.expectKeyword('extend');
+        this.expectKeyword('type');
+        const name = this.parseName();
+        const interfaces = this.parseImplementsInterfaces();
+        const directives = this.parseConstDirectives();
+        const fields = this.parseFieldsDefinition();
+        if (interfaces === undefined &&
+            directives === undefined &&
+            fields === undefined) {
+            throw this.unexpected();
+        }
+        return this.node(start, {
+            kind: OBJECT_TYPE_EXTENSION,
+            name,
+            interfaces,
+            directives,
+            fields,
+        });
+    }
+    parseInterfaceTypeExtension() {
+        const start = this._lexer.token;
+        this.expectKeyword('extend');
+        this.expectKeyword('interface');
+        const name = this.parseName();
+        const interfaces = this.parseImplementsInterfaces();
+        const directives = this.parseConstDirectives();
+        const fields = this.parseFieldsDefinition();
+        if (interfaces === undefined &&
+            directives === undefined &&
+            fields === undefined) {
+            throw this.unexpected();
+        }
+        return this.node(start, {
+            kind: INTERFACE_TYPE_EXTENSION,
+            name,
+            interfaces,
+            directives,
+            fields,
+        });
+    }
+    parseUnionTypeExtension() {
+        const start = this._lexer.token;
+        this.expectKeyword('extend');
+        this.expectKeyword('union');
+        const name = this.parseName();
+        const directives = this.parseConstDirectives();
+        const types = this.parseUnionMemberTypes();
+        if (directives === undefined && types === undefined) {
+            throw this.unexpected();
+        }
+        return this.node(start, {
+            kind: UNION_TYPE_EXTENSION,
+            name,
+            directives,
+            types,
+        });
+    }
+    parseEnumTypeExtension() {
+        const start = this._lexer.token;
+        this.expectKeyword('extend');
+        this.expectKeyword('enum');
+        const name = this.parseName();
+        const directives = this.parseConstDirectives();
+        const values = this.parseEnumValuesDefinition();
+        if (directives === undefined && values === undefined) {
+            throw this.unexpected();
+        }
+        return this.node(start, {
+            kind: ENUM_TYPE_EXTENSION,
+            name,
+            directives,
+            values,
+        });
+    }
+    parseInputObjectTypeExtension() {
+        const start = this._lexer.token;
+        this.expectKeyword('extend');
+        this.expectKeyword('input');
+        const name = this.parseName();
+        const directives = this.parseConstDirectives();
+        const fields = this.parseInputFieldsDefinition();
+        if (directives === undefined && fields === undefined) {
+            throw this.unexpected();
+        }
+        return this.node(start, {
+            kind: INPUT_OBJECT_TYPE_EXTENSION,
+            name,
+            directives,
+            fields,
+        });
+    }
+    parseDirectiveExtension() {
+        const start = this._lexer.token;
+        this.expectKeyword('extend');
+        this.expectKeyword('directive');
+        this.expectToken(TokenKind.AT);
+        const name = this.parseName();
+        const directives = this.parseConstDirectives();
+        if (directives === undefined) {
+            throw this.unexpected();
+        }
+        return this.node(start, {
+            kind: DIRECTIVE_EXTENSION,
+            name,
+            directives,
+        });
+    }
+    parseDirectiveDefinition() {
+        const start = this._lexer.token;
+        const description = this.parseDescription();
+        this.expectKeyword('directive');
+        this.expectToken(TokenKind.AT);
+        const name = this.parseName();
+        const args = this.parseArgumentDefs();
+        const directives = this.parseConstDirectives();
+        const repeatable = this.expectOptionalKeyword('repeatable');
+        this.expectKeyword('on');
+        const locations = this.parseDirectiveLocations();
+        return this.node(start, {
+            kind: DIRECTIVE_DEFINITION,
+            description,
+            name,
+            arguments: args,
+            directives,
+            repeatable,
+            locations,
+        });
+    }
+    parseDirectiveLocations() {
+        return this.delimitedMany(TokenKind.PIPE, this.parseDirectiveLocation);
+    }
+    parseDirectiveLocation() {
+        const start = this._lexer.token;
+        const name = this.parseName();
+        if (Object.hasOwn(DirectiveLocation, name.value)) {
+            return name;
+        }
+        throw this.unexpected(start);
+    }
+    parseSchemaCoordinate() {
+        const start = this._lexer.token;
+        const ofDirective = this.expectOptionalToken(TokenKind.AT);
+        const name = this.parseName();
+        let memberName;
+        if (!ofDirective && this.expectOptionalToken(TokenKind.DOT)) {
+            memberName = this.parseName();
+        }
+        let argumentName;
+        if ((ofDirective || memberName) &&
+            this.expectOptionalToken(TokenKind.PAREN_L)) {
+            argumentName = this.parseName();
+            this.expectToken(TokenKind.COLON);
+            this.expectToken(TokenKind.PAREN_R);
+        }
+        if (ofDirective) {
+            if (argumentName) {
+                return this.node(start, {
+                    kind: DIRECTIVE_ARGUMENT_COORDINATE,
+                    name,
+                    argumentName,
+                });
+            }
+            return this.node(start, {
+                kind: DIRECTIVE_COORDINATE,
+                name,
+            });
+        }
+        else if (memberName) {
+            if (argumentName) {
+                return this.node(start, {
+                    kind: ARGUMENT_COORDINATE,
+                    name,
+                    fieldName: memberName,
+                    argumentName,
+                });
+            }
+            return this.node(start, {
+                kind: MEMBER_COORDINATE,
+                name,
+                memberName,
+            });
+        }
+        return this.node(start, {
+            kind: TYPE_COORDINATE,
+            name,
+        });
+    }
+    node(startToken, node) {
+        if (this._options.noLocation !== true) {
+            node.loc = new Location(startToken, this._lexer.lastToken, this._lexer.source);
+        }
+        return node;
+    }
+    peek(kind) {
+        return this._lexer.token.kind === kind;
+    }
+    expectToken(kind) {
+        const token = this._lexer.token;
+        if (token.kind === kind) {
+            this.advanceLexer();
+            return token;
+        }
+        throw syntaxError(this._lexer.source, token.start, `Expected ${getTokenKindDesc(kind)}, found ${getTokenDesc(token)}.`);
+    }
+    expectOptionalToken(kind) {
+        const token = this._lexer.token;
+        if (token.kind === kind) {
+            this.advanceLexer();
+            return true;
+        }
+        return false;
+    }
+    expectKeyword(value) {
+        const token = this._lexer.token;
+        if (token.kind === TokenKind.NAME && token.value === value) {
+            this.advanceLexer();
+        }
+        else {
+            throw syntaxError(this._lexer.source, token.start, `Expected "${value}", found ${getTokenDesc(token)}.`);
+        }
+    }
+    expectOptionalKeyword(value) {
+        const token = this._lexer.token;
+        if (token.kind === TokenKind.NAME && token.value === value) {
+            this.advanceLexer();
+            return true;
+        }
+        return false;
+    }
+    unexpected(atToken) {
+        const token = atToken ?? this._lexer.token;
+        return syntaxError(this._lexer.source, token.start, `Unexpected ${getTokenDesc(token)}.`);
+    }
+    any(openKind, parseFn, closeKind) {
+        this.expectToken(openKind);
+        const nodes = [];
+        while (!this.expectOptionalToken(closeKind)) {
+            nodes.push(parseFn.call(this));
+        }
+        return nodes;
+    }
+    optionalMany(openKind, parseFn, closeKind) {
+        if (this.expectOptionalToken(openKind)) {
+            const nodes = [];
+            do {
+                nodes.push(parseFn.call(this));
+            } while (!this.expectOptionalToken(closeKind));
+            return nodes;
+        }
+        return undefined;
+    }
+    many(openKind, parseFn, closeKind) {
+        this.expectToken(openKind);
+        const nodes = [];
+        do {
+            nodes.push(parseFn.call(this));
+        } while (!this.expectOptionalToken(closeKind));
+        return nodes;
+    }
+    delimitedMany(delimiterKind, parseFn) {
+        this.expectOptionalToken(delimiterKind);
+        const nodes = [];
+        do {
+            nodes.push(parseFn.call(this));
+        } while (this.expectOptionalToken(delimiterKind));
+        return nodes;
+    }
+    advanceLexer() {
+        const { maxLexicalTokens = this._options.maxTokens } = this._options;
+        const token = this._lexer.advance();
+        if (token.kind !== TokenKind.EOF) {
+            ++this._tokenCounter;
+            if (maxLexicalTokens !== undefined &&
+                this._tokenCounter > maxLexicalTokens) {
+                throw syntaxError(this._lexer.source, token.start, `Document contains more than ${maxLexicalTokens} tokens. Parsing aborted.`);
+            }
+        }
+    }
+}
+function getTokenDesc(token) {
+    const value = token.value;
+    return getTokenKindDesc(token.kind) + (value != null ? ` "${value}"` : '');
+}
+function getTokenKindDesc(kind) {
+    return isPunctuatorTokenKind(kind) ? `"${kind}"` : kind;
+}
+
+const GRAPHQL_SCHEMA_URL = 'https://docs.github.com/public/fpt/schema.docs.graphql';
+const REST_DESCRIPTION_BASE = 'https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com';
+const FETCH_TIMEOUT_MS = 120_000;
+const INPUT_TYPES = ['CreateIssueInput', 'UpdateIssueInput', 'ProjectV2FieldValue'];
+const ENUM_TYPES = new Set(['ProjectV2FieldType', 'ProjectV2CustomFieldType', 'IssueFieldDataType']);
+const CREATE_ISSUE_PATH = '/repos/{owner}/{repo}/issues';
+function namedTypeOf(type) {
+    return type.kind === NAMED_TYPE ? type.name.value : namedTypeOf(type.type);
+}
+function concreteTypesOf(directives) {
+    const directive = directives?.find(candidate => candidate.name.value === 'possibleTypes');
+    const value = directive?.arguments?.find(argument => argument.name.value === 'concreteTypes')?.value;
+    return value?.kind === LIST ? value.values.map(item => item.kind === STRING ? item.value : '') : undefined;
+}
+// ID の項目のうち 1 つでも、受ける型が Issue だけのものがあるか（GitHub の @possibleTypes の目印で見る）
+function hasIssueOnlyField(input) {
+    return (input?.fields ?? []).some((field) => {
+        const types = concreteTypesOf(field.directives);
+        return types?.length === 1 && types[0] === 'Issue';
+    });
+}
+function enumItems(definitions) {
+    return definitions.flatMap((definition) => {
+        if (definition.kind !== ENUM_TYPE_DEFINITION || !ENUM_TYPES.has(definition.name.value))
+            return [];
+        const values = definition.values ?? [];
+        return values.map(value => `graphql:enum:${definition.name.value}.${value.name.value}`);
+    });
+}
+function inputItems(inputs) {
+    return INPUT_TYPES.flatMap((name) => {
+        const fields = inputs.get(name)?.fields ?? [];
+        return fields.map(field => `graphql:${name}.${field.name.value}`);
+    });
+}
+function mutationItems(definitions, inputs) {
+    return definitions.flatMap((definition) => {
+        if (definition.kind !== OBJECT_TYPE_DEFINITION || definition.name.value !== 'Mutation')
+            return [];
+        const fields = definition.fields ?? [];
+        return fields.filter((field) => {
+            const argument = field.arguments?.find(candidate => candidate.name.value === 'input');
+            return argument !== undefined && hasIssueOnlyField(inputs.get(namedTypeOf(argument.type)));
+        }).map(field => `graphql:mutation:${field.name.value}`);
+    });
+}
+function graphqlItems(definitions) {
+    const inputs = new Map();
+    for (const definition of definitions) {
+        if (definition.kind === INPUT_OBJECT_TYPE_DEFINITION)
+            inputs.set(definition.name.value, definition);
+    }
+    return [...enumItems(definitions), ...inputItems(inputs), ...mutationItems(definitions, inputs)];
+}
+function fieldAt(value, keys) {
+    let target = value;
+    for (const key of keys)
+        target = jsonField(target, key);
+    return target;
+}
+// 文書の中を指す $ref（#/...）をたどる。外を指す・先が無いときは undefined
+function resolveReference(document, value) {
+    const reference = jsonField(value, '$ref');
+    if (reference === undefined)
+        return value;
+    if (typeof reference !== 'string' || !reference.startsWith('#/'))
+        return undefined;
+    return fieldAt(document, reference.slice(2).split('/').map(key => key.replaceAll('~1', '/').replaceAll('~0', '~')));
+}
+function restItems(openapi) {
+    const operation = fieldAt(openapi, ['paths', CREATE_ISSUE_PATH, 'post']);
+    const body = resolveReference(openapi, jsonField(operation, 'requestBody'));
+    const schema = resolveReference(openapi, fieldAt(body, ['content', 'application/json', 'schema']));
+    const properties = jsonField(schema, 'properties');
+    return isJsonObject(properties) ? Object.keys(properties).map(key => `rest:POST ${CREATE_ISSUE_PATH}#${key}`) : [];
+}
+/**
+公開スキーマの SDL と REST の OpenAPI から、写しの項目の id を符号位置の順で返す。
+範囲の型が無ければその項目を出さない。SDL の構文の誤りは graphql の parse が投げる
+*/
+function extractIssueSurface(sdl, openapi) {
+    return [...graphqlItems(parse$1(sdl).definitions), ...restItems(openapi)].toSorted(compareCodePoints);
+}
+function restDescriptionUrl(apiVersion) {
+    return `${REST_DESCRIPTION_BASE}/api.github.com.${apiVersion}.json`;
+}
+async function fetchText(url) {
+    const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (!response.ok)
+        throw new Error(`GET ${url} failed: ${String(response.status)} ${response.statusText}`);
+    return response.text();
+}
+async function fetchJson(url) {
+    return parseJsonText(await fetchText(url));
+}
+/**
+SDL と、apiVersion の版の OpenAPI を取る。sources には取った URL・版・取り始めの日時を入れる。
+取れないときと OpenAPI が JSON でないときは投げる
+*/
+async function fetchIssueSurfaceSources(apiVersion) {
+    const fetchedAt = new Date().toISOString();
+    const rest = restDescriptionUrl(apiVersion);
+    const [sdl, openapi] = await Promise.all([fetchText(GRAPHQL_SCHEMA_URL), fetchJson(rest)]);
+    return { sdl, openapi, sources: { graphql: GRAPHQL_SCHEMA_URL, rest, rest_api_version: apiVersion, fetched_at: fetchedAt } };
+}
+
+// tracker-sync の source issue-surface の本体。GitHub の今のスキーマを写し（surface-file）と比べ、差を Tracker 1 件に書き直す。差が無くなれば閉じる。
+// 途中で抜ける箇所は CommandExit を投げ、runAction が終了コードにする。
+function messageOf(error) {
+    return error instanceof Error ? error.message : String(error);
+}
+// 読めないファイルは other、写しの形でないファイルは content-invalid で止める
+function readSnapshot(out, file) {
+    let text;
+    try {
+        // eslint-disable-next-line security/detect-non-literal-fs-filename -- 読む先はワークフローが input で渡す写し
+        text = readFileSync(file, 'utf8');
+    }
+    catch (error) {
+        return stopWith(out, `could not read surface-file ${file}: ${messageOf(error)}`, 'other');
+    }
+    try {
+        return issueSurfaceSchema.parse(parseJsonText(text));
+    }
+    catch (error) {
+        return stopWith(out, `surface-file ${file} is not an issue surface: ${messageOf(error)}`, 'content-invalid');
+    }
+}
+// 今のスキーマから抜いた項目と、本文に載せる取得元。取れない・読めないときは other で止める
+async function currentSurface(out) {
+    try {
+        const { sdl, openapi, sources } = await fetchIssueSurfaceSources(DEFAULT_API_VERSION);
+        return { items: extractIssueSurface(sdl, openapi), names: { graphql: sources.graphql, rest: sources.rest } };
+    }
+    catch (error) {
+        if (!(error instanceof Error))
+            throw error;
+        return stopWith(out, `could not read the current GitHub schema: ${error.message}`, 'other');
+    }
+}
+// open の Tracker が無いとき。差があれば作ってボードに載せる。失敗の数を返す。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は書き換わる
+async function createTracker(context) {
+    const { out, client, target, diff, names, isDryRun } = context;
+    if (!hasIssueSurfaceDifference(diff)) {
+        settle(out, { verb: 'skip', target: 'Tracker creation' });
+        return 0;
+    }
+    const title = buildTrackerTitle$1(todayUtc(new Date()));
+    const operation = { verb: 'create', target: `Tracker "${title}"` };
+    out.planned(operation);
+    if (isDryRun)
+        return 0;
+    const issue = await createIssue(client, target.owner, target.repository, title, renderTrackerBody$1(diff, names), [SURFACE_LABEL]);
+    out.done(operation);
+    return await putOnBoard(out, client, target.config, target.owner, target.repository, requireNumber(issue['number'], 'number'), { onlyIfEmpty: false });
+}
+function bodyOf(out, diff, names, tracker) {
+    try {
+        return renderTrackerBody$1(diff, names, tracker.body);
+    }
+    catch (error) {
+        if (!(error instanceof IssueSurfaceTrackerError))
+            throw error;
+        return stopWith(out, `Tracker #${String(tracker.number)}: ${error.message}`, 'content-invalid');
+    }
+}
+// open の Tracker があるとき。一覧を書き直し、差が無くなっていれば閉じる。失敗の数を返す。
+// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- GitHubClient は書き換わる
+async function rewriteTracker(context, tracker) {
+    const { out, client, target, diff, names, isDryRun } = context;
+    const label = `Tracker #${String(tracker.number)}`;
+    const body = bodyOf(out, diff, names, tracker);
+    const isUnchanged = isBodyUnchanged(body, tracker.body);
+    const rewrite = isUnchanged ? { verb: 'unchanged', target: label } : { verb: 'update', target: `${label} body` };
+    const closing = hasIssueSurfaceDifference(diff) ? undefined : { verb: 'close', target: label };
+    out.planned(rewrite);
+    if (closing !== undefined)
+        out.planned(closing);
+    if (isDryRun)
+        return 0;
+    if (!isUnchanged)
+        await client.updateIssueBody(target.owner, target.repository, tracker.number, body);
+    out.done(rewrite);
+    if (closing !== undefined) {
+        await client.closeIssue(target.owner, target.repository, tracker.number, 'completed');
+        out.done(closing);
+        return 0;
+    }
+    // 作った後にボード登録が失敗した実行を直す。Status は空のときだけ入れる
+    return await putOnBoard(out, client, target.config, target.owner, target.repository, tracker.number, { onlyIfEmpty: true });
+}
+/**
+tracker-sync の source issue-surface の本体。今のスキーマを写しと比べ、Tracker を作る・書き直す・閉じる
+*/
+async function runIssueSurfaceSync(input, io) {
+    const out = createOutput(input.dry_run, io);
+    // 入力の schema が、source が issue-surface のときに surface_file を求める
+    const snapshot = readSnapshot(out, input.surface_file ?? '');
+    const target = loadTarget(out, input.project);
+    const client = await makeClient(out, target.config);
+    const current = await currentSurface(out);
+    let issues;
+    try {
+        issues = await client.listIssuesByLabel(target.owner, target.repository, SURFACE_LABEL);
+    }
+    catch (error) {
+        const detail = apiErrorDetail(error);
+        if (detail === undefined)
+            throw error;
+        return stopWith(out, `could not list issues: ${detail}`, kindOfFailure(error));
+    }
+    const { tracker, others } = findTracker(issues, TRACKER_PATTERN$1);
+    warnExtraTrackers(out, tracker, others);
+    const context = { out, client, target, diff: diffIssueSurface(snapshot.items, current.items), names: current.names, isDryRun: input.dry_run };
+    let failures;
+    try {
+        failures = tracker === undefined ? await createTracker(context) : await rewriteTracker(context, tracker);
+    }
+    catch (error) {
+        const detail = apiErrorDetail(error);
+        if (detail === undefined)
+            throw error;
+        out.error(`Tracker: ${detail}`);
+        failures = 1;
+    }
     if (failures > 0)
         throw new CommandExit(1, 'partial-failure');
     return 0;
@@ -51100,7 +52371,7 @@ actions/ に移した処理の形。name の `_` を `-` にしたものが acti
 const ACTION_HINT_COMMANDS = [
     { name: 'board_sync', inputs: ['project', 'dry_run'] },
     { name: 'review_finish', inputs: ['pr', 'job_status', 'execution_file', 'since', 'review_outcome', 'review_conclusion', 'review_has_token'] },
-    { name: 'tracker_sync', inputs: ['source', 'project', 'dry_run'] },
+    { name: 'tracker_sync', inputs: ['source', 'surface_file', 'project', 'dry_run'] },
     { name: 'auto_gate', inputs: ['max_ci_attempts', 'project'] },
     { name: 'auto_start', inputs: ['issue', 'project'] },
     { name: 'auto_finish', inputs: ['issue', 'project', 'result_file', 'job_status', 'execution_file', 'start_outcome', 'result', 'body_file'] },
@@ -51201,13 +52472,24 @@ function fail(code) {
 }
 
 async function run(input, io) {
-    return await (input.source === 'dependabot' ? runDependabotSync(input, io) : runSecuritySync(input, io));
+    switch (input.source) {
+        case 'dependabot': {
+            return await runDependabotSync(input, io);
+        }
+        case 'security': {
+            return await runSecuritySync(input, io);
+        }
+        case 'issue-surface': {
+            return await runIssueSurfaceSync(input, io);
+        }
+    }
 }
 async function main(io) {
     return await runAction({ input: TRACKER_SYNC_INPUT, run }, {
         source: optionalInput('source'),
         dry_run: booleanInput('dry-run'),
         project: optionalInput('project'),
+        surface_file: optionalInput('surface-file'),
     }, io);
 }
 

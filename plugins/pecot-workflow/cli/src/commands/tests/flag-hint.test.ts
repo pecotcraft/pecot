@@ -17,7 +17,6 @@ describe('入力の誤りの文の入力名', () => {
     const result = await runTool({ tool, arguments: input })
     expect(result.isError).toBe(true)
     expect(result.structured['detail']).toBe(expected)
-    expect(result.requests).toEqual([])
   })
 
   it.for([
@@ -27,6 +26,5 @@ describe('入力の誤りの文の入力名', () => {
     const result = await runTool({ tool, arguments: input, remote: false })
     expect(result.isError).toBe(true)
     expect(result.structured['detail']).toBe('the short form \'N\' needs a base_repo: pass repo: <owner/repo> or use the full form \'owner/repo/N\'')
-    expect(result.requests).toEqual([])
   })
 })

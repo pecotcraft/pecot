@@ -2,13 +2,13 @@
 /* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
 // 待たれている Issue を待つ Issue の列を、判定で動かす。GitHub は偽サーバにする。
 import { describe, expect, it, vi } from 'vitest'
-import { step, stepSync } from '../../../tests/_helpers/step.js'
+import { step } from '../../../tests/_helpers/step.js'
 import { explains } from '../../../tests/_helpers/explains.js'
 
 import { capture } from '../../../tests/_helpers/captured-io.js'
 import type { CapturedIo } from '../../../tests/_helpers/captured-io.js'
 import { prerequisitesRule } from '../../../tests/_helpers/prerequisites.js'
-import type { IssueSpec, TargetSpec } from '../../../tests/_helpers/prerequisites.js'
+import type { TargetSpec } from '../../../tests/_helpers/prerequisites.js'
 import type { ResponseRule } from '../../../tests/_helpers/fake-github/server.js'
 import { parseProjectConfig } from '../../domain/config.js'
 import type { ProjectConfig } from '../../domain/config.js'
@@ -19,8 +19,8 @@ import type { StartedClient } from '../../infra/github/tests/fake-client.js'
 import type { BoardContext } from '../board-judgment.js'
 import { createReadinessCache } from '../issue-readiness.js'
 import { createOutput } from '../output.js'
-import { moveIssuesWaitingFor, moveWaitingIssues } from '../pr-waiting.js'
-import type { CreatedPullRequest, WaitingCheck } from '../pr-waiting.js'
+import { moveIssuesWaitingFor } from '../pr-waiting.js'
+import type { WaitingCheck } from '../pr-waiting.js'
 // 案内のコマンドの形を登録する
 import '../../../tests/_helpers/hint-commands.js'
 
@@ -34,7 +34,6 @@ useFakeGithub()
 
 const HOME = createRepositoryReference('acme', 'demo')
 const BRANCH = 'feat/demo/12'
-const CREATED: CreatedPullRequest = { repository: HOME, issueNumber: 12, pullRequest: 21 }
 const MOVED_13 = 'moved: #13 Blocked -> Ready (stackable on #12)\n'
 const BOOM = { status: 500, body: { message: 'boom' } }
 
@@ -63,11 +62,8 @@ function boardItemRule(column?: string): ResponseRule {
   return graphql('GetIssueBoardItem', { repository: { issue } }, { number: 13 })
 }
 
-// #13 の前提の読み取り。hasPullRequest なら、#12 のブランチに作った PR #21 が出る
-function waitingTarget(hasPullRequest: boolean): TargetSpec {
-  const blocker: IssueSpec = hasPullRequest ? { number: 12, branch: BRANCH, pullRequests: [{ number: 21, head: BRANCH }] } : { number: 12 }
-  return { number: 13, blockedBy: [blocker] }
-}
+// #13 の前提の読み取り。#12 のブランチに作った PR #21 が出る
+const WAITING_TARGET: TargetSpec = { number: 13, blockedBy: [{ number: 12, branch: BRANCH, pullRequests: [{ number: 21, head: BRANCH }] }] }
 
 const READY_WRITE_13 = graphql('UpdateProjectItemField', { updateProjectV2ItemFieldValue: { projectV2Item: { id: 'PVTI_13' } } }, { itemId: 'PVTI_13', optionId: 'o3' })
 
@@ -96,57 +92,6 @@ async function moveFor(started: Readonly<Started>, heads: readonly number[] = [1
   return judged.length
 }
 
-describe('moveWaitingIssues', () => {
-  it('作った PR が待つ Issue の判定に出ていると、列を動かし、moved の行と動かした列を返す', async () => {
-    await explains('PR を作った後に、その PR を待つ Issue の列を動かす `moveWaitingIssues` のテストです。判定に作った PR が反映されている場合に、列を `Ready` へ動かし、`moved` の行を出力することを確認します。')
-    const started = await step('偽サーバとクライアントを用意する', async () => await start([blockingRule([13]), boardItemRule('Blocked'), prerequisitesRule(waitingTarget(true)), READY_WRITE_13]))
-    const moves = await step('待つ Issue を動かす', async () => await moveWaitingIssues(started.context.out, started.client, config(), CREATED, { hasHinted: false }))
-    stepSync('結果を確認する', () => {
-      expect({ moves, stderr: started.io.err.join(''), operations: operationsOf(started) }).toEqual({
-        moves: [{ issue: '#13', column: { from: 'Blocked', to: 'Ready' }, label: undefined, reason: 'stackable on #12' }],
-        stderr: MOVED_13,
-        operations: ['GetIssueBlockingReferences', 'GetIssueBoardItem', 'GetIssuePrerequisites', 'UpdateProjectItemField'],
-      })
-    })
-  })
-
-  it('判定に作った PR が出ていなければ、1 回だけ読み直してから動かす', async () => {
-    await explains('PR を作った後に、その PR を待つ Issue の列を動かす `moveWaitingIssues` のテストです。判定に作った PR が反映されていない場合に、1 回だけ待って読み直してから列を動かすことを確認します。')
-    const started = await step('偽サーバとクライアントを用意する', async () => await start([blockingRule([13]), boardItemRule('Blocked'), prerequisitesRule(waitingTarget(false)), prerequisitesRule(waitingTarget(true)), READY_WRITE_13]))
-    await step('待つ Issue を動かす', async () => {
-      await moveWaitingIssues(started.context.out, started.client, config(), CREATED, { hasHinted: false })
-    })
-    stepSync('結果を確認する', () => {
-      expect(started.io.err.join('')).toBe(MOVED_13)
-      expect(operationsOf(started).filter(operation => operation === 'GetIssuePrerequisites')).toHaveLength(2)
-      expect(delay).toHaveBeenCalledWith(1500)
-    })
-  })
-
-  it('読み直しても作った PR が判定に出なければ、pecot-board-sync のワークフローを案内する warning を出して列を動かさない', async () => {
-    await explains('PR を作った後に、その PR を待つ Issue の列を動かす `moveWaitingIssues` のテストです。読み直しても反映されない場合に、列を動かさず、board sync のワークフローを案内する警告を出力することを確認します。')
-    const started = await step('偽サーバとクライアントを用意する', async () => await start([blockingRule([13]), boardItemRule('Blocked'), prerequisitesRule(waitingTarget(false)), prerequisitesRule(waitingTarget(false))]))
-    const moves = await step('待つ Issue を動かす', async () => await moveWaitingIssues(started.context.out, started.client, config(), CREATED, { hasHinted: false }))
-    stepSync('結果を確認する', () => {
-      expect({ moves, stderr: started.io.err.join('') }).toEqual({
-        moves: [],
-        stderr: 'warning: could not confirm that GitHub reflects PR #21 in the readiness of #13; its column was not moved; run the pecot-board-sync workflow (Run workflow on its page in the Actions tab) later to move it\n',
-      })
-    })
-  })
-
-  it('作った PR の番号が無ければ、判定を読み直さずに動かす', async () => {
-    await explains('PR を作った後に、その PR を待つ Issue の列を動かす `moveWaitingIssues` のテストです。作った PR の番号が無い場合に、判定を読み直さずに列を動かすことを確認します。')
-    const started = await step('偽サーバとクライアントを用意する', async () => await start([blockingRule([13]), boardItemRule('Blocked'), prerequisitesRule(waitingTarget(true)), READY_WRITE_13]))
-    await step('待つ Issue を動かす', async () => {
-      await moveWaitingIssues(started.context.out, started.client, config(), { ...CREATED, pullRequest: undefined }, { hasHinted: false })
-    })
-    stepSync('結果を確認する', () => {
-      expect(started.io.err.join('')).toBe(MOVED_13)
-    })
-  })
-})
-
 describe('moveIssuesWaitingFor', () => {
   it.for([
     { name: 'Issue が無い', rules: [graphql('GetIssueBlockingReferences', { repository: { issue: null } })], expected: '' },
@@ -172,7 +117,7 @@ describe('moveIssuesWaitingFor', () => {
 
   it('待つ Issue を全件読めなければ、読めた分を動かしてから warning の行を出す', async () => {
     await explains('Issue を待つ Issue の列を動かす `moveIssuesWaitingFor` のテストです。待つ Issue を全件読めない場合に、読めた分の列を動かしてから警告を出力することを確認します。')
-    const started = await step('偽サーバとクライアントを用意する', async () => await start([blockingRule([13], { total: 2 }), boardItemRule('Blocked'), prerequisitesRule(waitingTarget(true)), READY_WRITE_13]))
+    const started = await step('偽サーバとクライアントを用意する', async () => await start([blockingRule([13], { total: 2 }), boardItemRule('Blocked'), prerequisitesRule(WAITING_TARGET), READY_WRITE_13]))
     await step('結果を確認する', async () => {
       expect(await moveFor(started)).toBe(1)
       expect(started.io.err.join('')).toBe(`${MOVED_13}warning: read 1 of 2 Issues waiting for #12; the rest were not moved\n`)
@@ -190,7 +135,7 @@ describe('moveIssuesWaitingFor', () => {
 
   it('2 つの Issue が同じ Issue に待たれていると、その Issue を 1 回だけ読んで動かす', async () => {
     await explains('Issue を待つ Issue の列を動かす `moveIssuesWaitingFor` のテストです。2 つの Issue が同じ Issue に待たれている場合に、その Issue を 1 回だけ読んで動かすことを確認します。')
-    const started = await step('偽サーバとクライアントを用意する', async () => await start([blockingRule([13]), blockingRule([13], { number: 15 }), boardItemRule('Blocked'), prerequisitesRule(waitingTarget(true)), READY_WRITE_13]))
+    const started = await step('偽サーバとクライアントを用意する', async () => await start([blockingRule([13]), blockingRule([13], { number: 15 }), boardItemRule('Blocked'), prerequisitesRule(WAITING_TARGET), READY_WRITE_13]))
     await step('結果を確認する', async () => {
       expect(await moveFor(started, [12, 15])).toBe(1)
       expect(operationsOf(started).filter(operation => operation === 'GetIssueBoardItem')).toHaveLength(1)

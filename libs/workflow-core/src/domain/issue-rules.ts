@@ -17,11 +17,6 @@ const TYPE_PREFIX_MAP: ReadonlyMap<string, string> = new Map([
 ])
 
 /**
-起票時の status は、型対応テンプレートの既定値だけを受ける。pending / archived への配置はボード上の手動操作
-*/
-export const TYPE_DEFAULT_STATUS: Readonly<Record<IssueType, string>> = { epic: 'backlog', tracker: 'backlog', task: 'ready', bug: 'ready' }
-
-/**
 種別の題の接頭辞（`[Task]` など）。知らない種別は空
 */
 export function titlePrefixOf(issueType: string): string {
@@ -84,16 +79,6 @@ export function splitIssueTitle(issueType: string, title: string): TitleParts {
   if (match === null) return { hasPrefix, parentEpic: undefined, order: undefined, orderText: '', rest: afterPrefix }
   const [orderText, parent = '', order = ''] = match
   return { hasPrefix, parentEpic: Number(parent), order: Number(order), orderText, rest: afterPrefix.slice(orderText.length) }
-}
-
-/**
-起票時の status が許す値か。許す値の既定は、型対応テンプレートの既定値だけ。合わなければ理由の文、合えば undefined
-*/
-export function statusViolation(issueType: IssueType, status: string, allowed?: readonly string[]): string | undefined {
-  if (!VALID_STATUSES.has(status)) return `invalid status: ${status}\nvalid values: backlog/pending/blocked/ready/active/in_review/archived`
-  // eslint-disable-next-line security/detect-object-injection -- issueType は列挙型
-  const accepted = allowed ?? [TYPE_DEFAULT_STATUS[issueType]]
-  return accepted.includes(status) ? undefined : `the status at creation for type '${issueType}' is only ${accepted.map(value => `'${value}'`).join(' or ')} (given: ${status})\nhint: move it to pending or another status on the board after creation`
 }
 
 export type EpicTarget

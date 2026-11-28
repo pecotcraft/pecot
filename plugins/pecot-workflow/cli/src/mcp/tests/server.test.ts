@@ -10,7 +10,7 @@ import { defineTool } from '../../commands/registry.js'
 import type { ToolDefinition } from '../../commands/registry.js'
 import { UsageError } from '@pecot/workflow-core/commands-shared/usage-error.js'
 import { exitWith, failWith, throwFailure } from '../../commands/tests/support.js'
-import { setEnvironment, useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
+import { useIsolatedEnvironment } from '../../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { prepareProject } from '../../../tests/_helpers/board-issue-case.js'
 import { connectInMemory, outcomeOf, outputSchemaIssues, structuredOf, toolOutcomeOf } from '../../../tests/_helpers/mcp-client.js'
 import type { ConnectedClient } from '../../../tests/_helpers/mcp-client.js'
@@ -255,27 +255,6 @@ describe('ツールの呼び出し', () => {
     ])
     expect(broken.isError).toBe(true)
     expect(toolOutcomeOf(fine)).toMatchObject({ isError: false, text: 'echo after' })
-  })
-})
-
-describe('PECOT_GITHUB_API_URL', () => {
-  it('ループバックの http でなければ、入力の検証より先に失敗を返し、detail は error の行の文にする', async () => {
-    await explains('環境変数 `PECOT_GITHUB_API_URL` のテストです。`https://example.com` のようにループバックの http でない値を設定した場合に、入力の検証より先に失敗を返し、コマンドを実行しないことを確認します。')
-    setEnvironment({ PECOT_GITHUB_API_URL: 'https://example.com' })
-    const result = await call('echo', { unknown: true })
-    expect(outcomeOf(result)).toEqual({
-      isError: true,
-      detail: 'PECOT_GITHUB_API_URL accepts only an http://127.0.0.1 or http://localhost URL: https://example.com',
-      warnings: [],
-    })
-    expect(calls).toEqual([])
-  })
-
-  it('ループバックの http なら、そのまま実行する', async () => {
-    await explains('環境変数 `PECOT_GITHUB_API_URL` のテストです。`http://127.0.0.1` のループバックの URL を設定した場合に、コマンドをそのまま実行することを確認します。')
-    setEnvironment({ PECOT_GITHUB_API_URL: 'http://127.0.0.1:9' })
-    const result = await call('echo', { text: 'hi' })
-    expect(toolOutcomeOf(result)).toMatchObject({ isError: false, text: 'echo hi' })
   })
 })
 

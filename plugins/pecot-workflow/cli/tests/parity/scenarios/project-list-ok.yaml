@@ -103,4 +103,3 @@ setup:
         }
       .pecot/config/projects/.active: |
         ghes.example.com_acme_board_acme.json
-github: []

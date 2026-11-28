@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのはケースの一時ディレクトリ配下のみ */
-// pecot-dir-init.sh のテスト。新規作成、CLAUDE_PROJECT_DIR ガード、mtime ガード、冪等性、hosts.json/.env 保護を確かめる。
+// pecot-dir-init.sh のテスト。新規作成、CLAUDE_PROJECT_DIR ガード、mtime ガード、冪等性、利用者が持つ hosts.json/.env を触らないことを確かめる。
 // gitignore-ensure は、コピーより前に .gitignore を更新する。
 import { cpSync, existsSync, mkdirSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -58,8 +58,8 @@ function setUpIsolatedPluginHooks(hookCase: HookCase): void {
 }
 
 describe('pecot-dir-init.sh', () => {
-  it('.pecot が無いとき、必要なディレクトリとファイルを作る', async () => {
-    await explains('`pecot-dir-init.sh` のテストです。`.pecot` が存在しない場合に、必要なディレクトリ（`state` や `config` など）とファイルを作成し、`.gitkeep` は作成しないことを確認します。')
+  it('.pecot が無いとき、必要なディレクトリとファイルを作り、hosts.json と .env は作らない', async () => {
+    await explains('`pecot-dir-init.sh` のテストです。`.pecot` が存在しない場合に、必要なディレクトリ（`state` や `config` など）とファイルを作成することを確認します。`hosts.json`・`.env`・`.gitkeep` は作成しません。')
     const hookCase = createHookCase()
     const project = setUpDirectoryInit(hookCase)
     const result = runInit(hookCase)
@@ -75,8 +75,8 @@ describe('pecot-dir-init.sh', () => {
     // .gitkeep は作らない（dir-init と CLI の mkdir -p で十分。git 追跡は共有物の commit が担う）。
     expect(existsSync(path.join(pecot, 'config', '.gitkeep'))).toBe(false)
     expect(existsSync(path.join(pecot, 'config', 'projects', '.gitkeep'))).toBe(false)
-    expect(statSync(path.join(pecot, 'config', 'hosts.json')).isFile()).toBe(true)
-    expect(statSync(path.join(pecot, 'config', '.env')).isFile()).toBe(true)
+    expect(existsSync(path.join(pecot, 'config', 'hosts.json'))).toBe(false)
+    expect(existsSync(path.join(pecot, 'config', '.env'))).toBe(false)
     expect(statSync(path.join(pecot, 'state', '.plugin-sync-version')).isFile()).toBe(true)
 
     const gitignoreLines = splitLines(readOutput(path.join(pecot, '.gitignore')))
@@ -141,8 +141,8 @@ describe('pecot-dir-init.sh', () => {
     expect(modifiedSeconds(readme)).toBeGreaterThan(before)
   })
 
-  it('既存の hosts.json と .env は、上書きしない', async () => {
-    await explains('`pecot-dir-init.sh` のテストです。利用者が編集した `hosts.json` と `.env` が既に存在する場合に、その内容を上書きせず保持することを確認します。')
+  it('既存の hosts.json と .env は、消さず書き換えない', async () => {
+    await explains('`pecot-dir-init.sh` のテストです。利用者が編集した `hosts.json` と `.env` が既に存在する場合に、その内容を消さず書き換えずに保持することを確認します。')
     const hookCase = createHookCase()
     const project = setUpDirectoryInit(hookCase)
     const config = path.join(project, '.pecot', 'config')

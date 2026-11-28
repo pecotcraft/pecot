@@ -3,4 +3,3 @@ id: project-list-state
 tool: project_list
 arguments: {}
 setup: {}
-github: []

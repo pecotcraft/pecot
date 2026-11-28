@@ -22,6 +22,7 @@ const LEGACY_FORM = '<host>_<owner>_<題>_<suffix>.json'
 const script = pluginScript('scripts/sandbox/sandbox-diff.sh')
 
 // GraphQL は `-F number=` の値で graphql_<番号> を返す。FAKE_GH_AUTH_FAIL が立っていれば認証の失敗を返す。
+// 呼ばれた先と、渡された GH_TOKEN を calls.log に書く。
 const FAKE_GH = [
   'if [ -n "${FAKE_GH_AUTH_FAIL:-}" ]; then',
   '    echo "HTTP 401: Bad credentials (https://api.github.com/graphql)" >&2',
@@ -39,6 +40,7 @@ const FAKE_GH = [
   '    shift',
   'done',
   '[ "$url" = "graphql" ] && url="graphql_$number"',
+  'printf \'%s %s\\n\' "${GH_TOKEN:-<none>}" "$url" >> "$FAKE_GH_DIR/calls.log"',
   'f="$FAKE_GH_DIR/${url//[^A-Za-z0-9]/_}"',
   '[ -f "$f" ] || exit 1',
   'cat "$f"',
@@ -607,6 +609,25 @@ describe('sandbox-diff.sh', { timeout: 30_000 }, () => {
     await explains('リポジトリのマージ設定の比較のテストです。検証用の `allow_rebase_merge` だけが違う場合に、`merge-settings / allow_rebase_merge` の差異として両方の値を表示することを確認します。')
     scene.sandbox.settings['allow_rebase_merge'] = true
     expect(drifted(scene.run())).toStrictEqual(expectedDrifts(drift('merge-settings / allow_rebase_merge', 'false', 'true')))
+  })
+
+  it('2 つの token を渡すと、このリポの先にはこのリポの token を、検証用とボードには検証用の token を使う', async () => {
+    await explains('`sandbox-ops.yml` が渡す 2 つの token の選び分けのテストです。`repos/pecotcraft/pecot` の先にはこのリポの token を `GH_TOKEN` として渡すことを確認します。検証用のリポと GraphQL（ボード）には、検証用の token を渡します。')
+    const result = scene.run({ SANDBOX_DIFF_THIS_REPO_TOKEN: 'this-token', SANDBOX_DIFF_SANDBOX_TOKEN: 'sandbox-token' })
+    expect(result.status).toBe(0)
+    const calls = splitLines(readFileSync(path.join(scene.workspace.fake, 'calls.log'), 'utf8')).map(line => line.split(' ', 2))
+    const tokensOf = (isWanted: (url: string) => boolean): string[] => [...new Set(calls.filter(([, url = '']) => isWanted(url)).map(([token = '']) => token))]
+    expect(tokensOf(url => url.startsWith(`repos/${THIS}/`) || url === `repos/${THIS}`)).toStrictEqual(['this-token'])
+    expect(tokensOf(url => url.startsWith(`repos/${SANDBOX}`) || url.startsWith('graphql_'))).toStrictEqual(['sandbox-token'])
+  })
+
+  it('token の環境変数が無いと、GH_TOKEN を渡さず gh の認証を使う', async () => {
+    await explains('端末で打つ場合のテストです。2 つの token の環境変数が無いと、どの先にも `GH_TOKEN` を渡さず、`gh` の認証のまま読むことを確認します。')
+    const result = scene.run({ GH_TOKEN: '' })
+    expect(result.status).toBe(0)
+    const log = readFileSync(path.join(scene.workspace.fake, 'calls.log'), 'utf8')
+    const tokens = new Set(splitLines(log).map(line => line.split(' ', 1)[0]))
+    expect([...tokens]).toStrictEqual(['<none>'])
   })
 
   it('認証に失敗すると、エラーを表示して終了コード 2 で止まる', async () => {

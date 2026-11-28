@@ -1,18 +1,17 @@
-// GitHub の Issue の機能の写し（interface/github-issue-surface.json）を作り直す。
-// 使い方: tsx scripts/github-surface/extract.ts --out <ファイル> [--api-version <版>]
+// GitHub の Issue の機能の写し（plugins/pecot-workflow/interface/github-issue-surface.json）を作り直す。
+// 使い方: tsx scripts/issue-surface-extract.ts --out <ファイル> [--api-version <版>]
 import { realpathSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 import { parseArgs } from 'node:util'
 
+import type { CommandIo } from '@pecot/workflow-core/commands-shared/command-definition.js'
 import { createOutput } from '@pecot/workflow-core/commands-shared/output.js'
-import type { CommandIo } from '../../src/commands/registry.js'
-import { extractIssueSurface } from '../../src/domain/issue-surface.js'
-import type { IssueSurface } from '../../src/domain/issue-surface.js'
+import type { IssueSurface } from '@pecot/workflow-core/domain/issue-surface.js'
 import { DEFAULT_API_VERSION } from '@pecot/workflow-core/infra/github/client.js'
-import { fetchIssueSurfaceSources } from '../../src/infra/github/issue-surface.js'
+import { extractIssueSurface, fetchIssueSurfaceSources } from '../src/infra/issue-surface.js'
 
-const USAGE = 'usage: extract.ts --out <file> [--api-version <version>]'
+const USAGE = 'usage: issue-surface-extract.ts --out <file> [--api-version <version>]'
 
 const STANDARD_IO: CommandIo = {
   stdout: (text) => { process.stdout.write(text) },

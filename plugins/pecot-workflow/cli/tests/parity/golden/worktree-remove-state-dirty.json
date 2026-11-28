@@ -7,7 +7,6 @@
     "log": "fatal: '{{TMP}}/wt1/demo' contains modified or untracked files, use --force to delete it\n"
   },
   "stderr": "",
-  "requests": [],
   "files": {
     "../../wt1/demo/.gitignore": ".pecot/\n",
     "../../wt1/demo/README.md": "変更した中身\n",

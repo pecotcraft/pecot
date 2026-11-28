@@ -3,4 +3,3 @@ id: worktree-link-usage
 tool: worktree_link
 arguments: {}
 setup: {}
-github: []

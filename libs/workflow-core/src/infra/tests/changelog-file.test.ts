@@ -4,10 +4,8 @@ import { describe, expect, it } from 'vitest'
 
 import { explains } from '../../../tests/_helpers/explains.js'
 import { stepSync } from '../../../tests/_helpers/step.js'
-
-import { ChangelogFileNotFoundError, VersionNotFoundError } from '../../domain/changelog.js'
 import { makeTemporaryDirectory, writeTree } from '../../../tests/_helpers/temporary.js'
-import { extractReleaseNotesFromFile, readChangelogIfExists, readLatestVersionFromFile, resolveChangelogPath } from '../changelog-file.js'
+import { readChangelogIfExists, resolveChangelogPath } from '../changelog-file.js'
 
 describe('resolveChangelogPath', () => {
   it('ファイル名を明示した場合は、そのファイル名を使う', async () => {
@@ -109,74 +107,6 @@ describe('readChangelogIfExists', () => {
     stepSync('読んだ結果を比べる', () => {
       expect(existing).toBe('日本語\n')
       expect(missing).toBeUndefined()
-    })
-  })
-})
-
-describe('readLatestVersionFromFile / extractReleaseNotesFromFile', () => {
-  it('ファイルから最新のバージョンを取得する', async () => {
-    await explains('ファイルから最新のバージョンを取得する `readLatestVersionFromFile` のテストです。`[Unreleased]` の次にある `[0.3.1]` を、最新のバージョンとして返すことを確認します。')
-    const root = makeTemporaryDirectory()
-    stepSync('CHANGELOG.md を置く', () => {
-      writeTree(root, { 'CHANGELOG.md': '## [Unreleased]\n\n## [0.3.1] - 2026-01-19\n' })
-    })
-    const version = stepSync('最新のバージョンを読む', () => readLatestVersionFromFile(path.join(root, 'CHANGELOG.md')))
-    stepSync('バージョンを比べる', () => {
-      expect(version).toBe('0.3.1')
-    })
-  })
-
-  it('ファイルが存在しない場合は、パスを含む ChangelogFileNotFoundError を送出する', async () => {
-    await explains('CHANGELOG のファイルが存在しない場合のテストです。どちらも `ChangelogFileNotFoundError` が発生し、前者のメッセージは `CHANGELOG.md not found: <パス>` になることを確認します。')
-    const file = path.join(makeTemporaryDirectory(), 'CHANGELOG.md')
-    stepSync('エラーの種類とメッセージを確かめる', () => {
-      expect(() => readLatestVersionFromFile(file)).toThrow(ChangelogFileNotFoundError)
-      expect(() => readLatestVersionFromFile(file)).toThrow(`CHANGELOG.md not found: ${file}`)
-      expect(() => extractReleaseNotesFromFile(file, '0.6.1')).toThrow(ChangelogFileNotFoundError)
-    })
-  })
-
-  it('ファイル名が CHANGELOG.md 以外の場合は、メッセージにもそのファイル名を使う', async () => {
-    await explains('`AIST-CHANGELOG.md` が存在しない場合のテストです。メッセージが `AIST-CHANGELOG.md not found: <パス>` のように、実際のファイル名を使うことを確認します。')
-    const file = path.join(makeTemporaryDirectory(), 'AIST-CHANGELOG.md')
-    stepSync('メッセージを確かめる', () => {
-      expect(() => readLatestVersionFromFile(file)).toThrow(`AIST-CHANGELOG.md not found: ${file}`)
-    })
-  })
-
-  it('バージョンが存在しない場合のメッセージにも、読み込んだファイル名を使う', async () => {
-    await explains('バージョンを持たない `AIST-CHANGELOG.md` のテストです。メッセージが `no version found in AIST-CHANGELOG.md` のように、読み込んだファイル名を使うことを確認します。')
-    const root = makeTemporaryDirectory()
-    stepSync('バージョンの無いファイルを置く', () => {
-      writeTree(root, { 'AIST-CHANGELOG.md': '## [Unreleased]\n' })
-    })
-    const file = path.join(root, 'AIST-CHANGELOG.md')
-    stepSync('メッセージを確かめる', () => {
-      expect(() => readLatestVersionFromFile(file)).toThrow('no version found in AIST-CHANGELOG.md')
-      expect(() => extractReleaseNotesFromFile(file, '9.9.9')).toThrow('version not found in AIST-CHANGELOG.md: 9.9.9')
-    })
-  })
-
-  it('バージョンが存在しない場合は、VersionNotFoundError を送出する', async () => {
-    await explains('バージョンを持たない CHANGELOG のテストです。`readLatestVersionFromFile` が `VersionNotFoundError` を送出することを確認します。')
-    const root = makeTemporaryDirectory()
-    stepSync('バージョンの無いファイルを置く', () => {
-      writeTree(root, { 'CHANGELOG.md': '## [Unreleased]\n' })
-    })
-    stepSync('エラーの種類を確かめる', () => {
-      expect(() => readLatestVersionFromFile(path.join(root, 'CHANGELOG.md'))).toThrow(VersionNotFoundError)
-    })
-  })
-
-  it('ファイルからリリースノートを抽出する', async () => {
-    await explains('ファイルからリリースノートを抽出する `extractReleaseNotesFromFile` のテストです。バージョン `0.6.1` を指定した場合に、その節の本文 `- a` だけを返すことを確認します。')
-    const root = makeTemporaryDirectory()
-    stepSync('CHANGELOG.md を置く', () => {
-      writeTree(root, { 'CHANGELOG.md': '## [0.6.1]\n\n- a\n\n## [0.6.0]\n- b\n' })
-    })
-    const notes = stepSync('リリースノートを抽出する', () => extractReleaseNotesFromFile(path.join(root, 'CHANGELOG.md'), '0.6.1'))
-    stepSync('本文を比べる', () => {
-      expect(notes).toBe('- a')
     })
   })
 })

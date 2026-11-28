@@ -79,6 +79,7 @@ describe('featureStory', () => {
     { name: 'ID が無い', ids: [], file: FILE, expected: { feature: 'plugins/pecot-tools/cli/tests/integration', story: FILE } },
     { name: 'ルートの直下のファイルで ID が無い', ids: [], file: 'a.test.ts', expected: { feature: '.', story: 'a.test.ts' } },
     { name: '項目の ID が 1 つ', ids: ['PT-AWS-S3-LS-03'], file: FILE, expected: { feature: 'aws_s3_ls', story: 'PT-AWS-S3-LS-03' } },
+    { name: '番号が 3 桁の項目の ID', ids: ['PT-AWS-S3-LS-103'], file: FILE, expected: { feature: 'aws_s3_ls', story: 'PT-AWS-S3-LS-103' } },
     { name: 'COMMON の後に項目の ID', ids: ['PT-COMMON-14', 'PT-AWS-S3-LS-03'], file: FILE, expected: { feature: 'aws_s3_ls', story: 'PT-AWS-S3-LS-03' } },
     { name: '項目の ID が 2 つ', ids: ['PT-AWS-STS-GET-CALLER-IDENTITY-01', 'PT-AWS-S3-LS-03'], file: FILE, expected: { feature: 'aws_sts_get_caller_identity', story: 'PT-AWS-STS-GET-CALLER-IDENTITY-01' } },
     { name: 'COMMON の ID だけが 2 つ', ids: ['PT-COMMON-02', 'PT-COMMON-14'], file: FILE, expected: { feature: 'pecot-tools 共通', story: 'PT-COMMON-02' } },

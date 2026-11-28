@@ -12,20 +12,16 @@ import { createIssueReference } from '../../domain/reference-parser.js'
 import { createRepositoryReference } from '../../domain/repository-resolver.js'
 import { graphqlError, rejection, startClient, useFakeGithub } from '../../infra/github/tests/fake-client.js'
 import { DependenciesUnsupportedError } from '../../infra/github/errors.js'
-import { DEPENDENCIES_UNSUPPORTED } from '../../infra/github/issues.js'
+import type { GitHubClient } from '../../infra/github/index.js'
 import {
   blockedByReadCount,
   createReadinessCache,
   judgeAssuming,
   judgeSnapshot,
-  readinessJson,
-  readIssueReadiness,
-  readIssueReadinessIfSupported,
   readIssueSnapshot,
   readIssueSnapshotWithReadout,
-  snapshotWithoutPrerequisites,
 } from '../issue-readiness.js'
-import type { IssueReadiness, IssueSnapshot, JudgedIssue, UnreadableIssue } from '../issue-readiness.js'
+import type { IssueReadiness, IssueSnapshot, JudgedIssue, ReadinessCache, UnreadableIssue } from '../issue-readiness.js'
 
 useFakeGithub()
 
@@ -76,9 +72,15 @@ async function readSnapshot(rules: readonly ResponseRule[], shouldReadComments =
   return await readIssueSnapshot(client, config(), TARGET, undefined, shouldReadComments)
 }
 
+// 読み取りから判定までを通す。読めなかった Issue は判定しない
+async function readIssueReadiness(client: Readonly<GitHubClient>, cache: ReadinessCache): Promise<IssueReadiness> {
+  const snapshot = await readIssueSnapshot(client, config(), TARGET)
+  return snapshot.kind === 'unreadable' ? snapshot : await judgeSnapshot(client, snapshot, cache)
+}
+
 async function readJudged(rules: readonly ResponseRule[]): Promise<JudgedIssue> {
   const { client } = await startClient(rules)
-  return judgedOf(await readIssueReadiness(client, config(), TARGET, createReadinessCache()))
+  return judgedOf(await readIssueReadiness(client, createReadinessCache()))
 }
 
 describe('blockedByReadCount', () => {
@@ -169,28 +171,6 @@ describe('readIssueSnapshot', () => {
   })
 })
 
-describe('snapshotWithoutPrerequisites', () => {
-  it('一覧から得た値だけで、前提を持たない読み取り結果を作成する', async () => {
-    await explains('ボードの一覧から得たタイトルと対象の情報だけで、読み取り結果を作成する関数（`snapshotWithoutPrerequisites`）のテストです。前提・不一致・理由がすべて空で、親は未設定の結果を作成することを確認します。')
-    const { target } = await step('Issue の状態を読む', async () => snapshotOf(await readSnapshot([prerequisitesRule({ number: 1 })])))
-    stepSync('結果を確認する', () => {
-      expect(snapshotWithoutPrerequisites(config(), { title: 'T', target, parent: undefined })).toEqual({
-        kind: 'snapshot',
-        ref: TARGET,
-        title: 'T',
-        target,
-        prerequisites: [],
-        titles: new Map(),
-        mismatches: [],
-        malformedReason: undefined,
-        parent: undefined,
-        developmentBranch: 'main',
-        labelWrittenByAutomation: false,
-      })
-    })
-  })
-})
-
 describe('judgeSnapshot', () => {
   it('前提が完了していないのに開発ブランチが設定されていない場合は、読み取り結果を添えて判定不能（unreadable）にする', async () => {
     await explains('前提が完了していない Issue で、リポジトリに `develop_branch` が設定されていない場合のテストです。`develop_branch is not set for acme/demo` を理由に持ち、読み取り結果を含む `unreadable` を返すことを確認します。')
@@ -229,8 +209,8 @@ describe('judgeSnapshot', () => {
     await explains('同じ Issue を 2 回判定する場合のテストです。2 回目は、PR の取得結果を保存したキャッシュを再利用し、1 回目と同じ判定になることを確認します。')
     const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient([stackedOnFeature(), stackedOnFeature(), byHead([pullRequestNode(30)])]))
     const cache = createReadinessCache()
-    const first = await step('Issue の着手可否を判定する', async () => judgedOf(await readIssueReadiness(client, config(), TARGET, cache)))
-    const second = await step('Issue の着手可否を判定する', async () => judgedOf(await readIssueReadiness(client, config(), TARGET, cache)))
+    const first = await step('Issue の着手可否を判定する', async () => judgedOf(await readIssueReadiness(client, cache)))
+    const second = await step('Issue の着手可否を判定する', async () => judgedOf(await readIssueReadiness(client, cache)))
     stepSync('結果を確認する', () => {
       expect(second.readiness).toEqual(first.readiness)
     })
@@ -239,7 +219,7 @@ describe('judgeSnapshot', () => {
   it('PR の追加取得に失敗した場合は、読み取り結果を添えて判定不能（unreadable）にする', async () => {
     await explains('前提の PR の追加取得が失敗した場合のテストです。エラーの内容を理由に持ち、読み取り結果を含む `unreadable` を返すことを確認します。')
     const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient([stackedOnFeature(), graphqlError('ListPullRequestsByHead', 'boom')]))
-    const result = await step('Issue の着手可否を判定する', async () => await readIssueReadiness(client, config(), TARGET, createReadinessCache()))
+    const result = await step('Issue の着手可否を判定する', async () => await readIssueReadiness(client, createReadinessCache()))
     stepSync('結果を確認する', () => {
       expect(result.kind === 'unreadable' ? { reason: result.reason, hasSnapshot: result.snapshot !== undefined } : result).toEqual({ reason: BOOM, hasSnapshot: true })
     })
@@ -249,7 +229,7 @@ describe('judgeSnapshot', () => {
     await explains('Issue の取得に失敗した場合のテストです。判定は行わず、取得の失敗を示す `unreadable` をそのまま返すことを確認します。')
     const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient([graphqlError('GetIssuePrerequisites', 'boom')]))
     await step('結果を確認する', async () => {
-      expect(await readIssueReadiness(client, config(), TARGET, createReadinessCache())).toEqual({ kind: 'unreadable', reason: BOOM })
+      expect(await readIssueReadiness(client, createReadinessCache())).toEqual({ kind: 'unreadable', reason: BOOM })
     })
   })
 })
@@ -258,51 +238,10 @@ describe('judgeAssuming', () => {
   it('前提を置き換えて、判定をやり直す', async () => {
     await explains('前提を仮定して判定する関数（`judgeAssuming`）のテストです。未完了の前提によって `blocked` だった Issue が、前提を空に置き換えると `startable` になることを確認します。')
     const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient([prerequisitesRule({ number: 1, column: 'Blocked', blockedBy: [{ number: 2 }] })]))
-    const judged = await step('Issue の着手可否を判定する', async () => judgedOf(await readIssueReadiness(client, config(), TARGET, createReadinessCache())))
+    const judged = await step('Issue の着手可否を判定する', async () => judgedOf(await readIssueReadiness(client, createReadinessCache())))
     const assumed = await step('Issue の着手可否を判定する', async () => judgedOf(await judgeAssuming(client, config(), judged, () => [], createReadinessCache())))
     stepSync('結果を確認する', () => {
       expect({ before: judged.readiness?.kind, after: assumed.readiness?.kind, prerequisites: assumed.prerequisites }).toEqual({ before: 'blocked', after: 'startable', prerequisites: [] })
-    })
-  })
-})
-
-describe('readinessJson', () => {
-  it('スタック先と理由のコードが存在しない場合は、null として JSON に出力する', async () => {
-    await explains('判定を JSON の形に変換する関数（`readinessJson`）のテストです。スタック先が存在しない場合は `null`、存在する場合は番号・リポジトリ・ブランチの形になり、理由のコードは `null` になることを確認します。')
-    const stackOn = { issue: createIssueReference(DEMO, 2), branch: 'feat/2' }
-    stepSync('結果を確認する', () => {
-      expect([
-        readinessJson({ kind: 'startable', stackOn: undefined, reason: undefined, needsReview: false, attention: [] }, '着手できる'),
-        readinessJson({ kind: 'stackable', stackOn, reason: undefined, needsReview: false, attention: [] }, 'スタック'),
-      ]).toEqual([
-        // eslint-disable-next-line unicorn/no-null -- JSON の出力の null
-        { kind: 'startable', stackOn: null, reason: null, text: '着手できる' },
-        // eslint-disable-next-line unicorn/no-null -- JSON の出力の null
-        { kind: 'stackable', stackOn: { number: 2, repository: 'acme/demo', branch: 'feat/2' }, reason: null, text: 'スタック' },
-      ])
-    })
-  })
-})
-
-describe('readIssueReadinessIfSupported', () => {
-  it('依存関係に対応していない GHES の場合は、理由を通知して undefined を返す', async () => {
-    await explains('依存関係に対応していない GHES での、読み取り関数（`readIssueReadinessIfSupported`）のテストです。理由を受け取る関数へ `DEPENDENCIES_UNSUPPORTED` を渡し、`undefined` を返すことを確認します。')
-    const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient([UNSUPPORTED_RULE]))
-    const reasons: string[] = []
-    const result = await step('Issue の着手可否を判定する', async () => await readIssueReadinessIfSupported(client, config(), TARGET, createReadinessCache(), (reason) => {
-      reasons.push(reason)
-    }))
-    stepSync('結果を確認する', () => {
-      expect({ result, reasons }).toEqual({ result: undefined, reasons: [DEPENDENCIES_UNSUPPORTED] })
-    })
-  })
-
-  it('依存関係に対応している場合は、判定の結果を返す', async () => {
-    await explains('依存関係に対応している環境のテストです。`startable` と判定された結果が返ることを確認します。')
-    const { client } = await step('GitHub の偽サーバを起動する', async () => await startClient([prerequisitesRule({ number: 1 })]))
-    const result = await step('Issue の着手可否を判定する', async () => await readIssueReadinessIfSupported(client, config(), TARGET, createReadinessCache()))
-    stepSync('結果を確認する', () => {
-      expect(result?.kind === 'judged' ? result.readiness?.kind : result).toBe('startable')
     })
   })
 })

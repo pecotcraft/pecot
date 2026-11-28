@@ -539,10 +539,11 @@ entries:
         pattern: event
         statement: '自動レビューの step が `success` で `conclusion` が空だと、PR を読まずに、雛形の食い違いを理由に添えた `skipped` の行を出します'
   PA-TRACKER-SYNC:
-    summary: 'ワークフローが動くリポで、`source` に選んだものの一覧を、open の Tracker に書き直します。`dependabot` は人の判断を待つ Dependabot の PR、`security` は open のセキュリティ alert です。'
+    summary: 'ワークフローが動くリポで、`source` に選んだものの一覧を、open の Tracker に書き直します。`dependabot` は人の判断を待つ Dependabot の PR、`security` は open のセキュリティ alert です。`issue-surface` は、GitHub の今のスキーマと Issue の機能の写しとの差です。'
     arguments:
       token: 'PR か alert を読み、Tracker とボードに書くトークンです。ワークフローの App のトークンか PAT を渡します。'
-      source: 'Tracker に載せるものです。`dependabot` は人の判断を待つ Dependabot の PR、`security` は open のセキュリティ alert です。どちらかを必ず渡します。'
+      source: 'Tracker に載せるものです。`dependabot` は人の判断を待つ PR、`security` は open の alert です。`issue-surface` は、GitHub の今のスキーマと `surface-file` の写しとの差です。どれかを必ず渡します。'
+      surface-file: 'checkout したリポの中の、Issue の機能の写し（`github-issue-surface.json`）のパスです。`source` が `issue-surface` のときは必ず渡します。'
       project: '`.pecot/config/projects` の下にある、プロジェクトの設定の名前です。`.json` を付けずに渡します。省くと、ワークフローが動くリポを含む設定を使います。'
       dry-run: '`true` なら、何も変えずに、Tracker を変える予定の行だけを出します。既定は `false` です。'
     constraints: []
@@ -586,6 +587,14 @@ entries:
       - '`security` では、Tracker を閉じることはありません。'
       - '`security` では、alert がすべて無くなると、どの種類も `none` と書きます。Tracker を閉じて Archived へ動かすのは、人です。'
       - '`security` では、既にある Tracker には、Status が空の間だけ値を入れます。人が変えた値は残ります。'
+      - '`issue-surface` では、GitHub の公開スキーマ（GraphQL の SDL）と、REST の版 `2022-11-28` の OpenAPI を取ります。どちらも認証なしで取ります。'
+      - '`issue-surface` では、2 つから Issue の機能に関わる項目の id を抜き、`surface-file` の写しの項目と比べます。'
+      - '`issue-surface` では、ラベルが `issue-surface` で、本文に Tracker の印がある open の Tracker の Issue を探します。'
+      - '`issue-surface` では、Tracker の本文の `list-begin` と `list-end` の間に、取得元の URL と、増えた項目と消えた項目の一覧を書きます。'
+      - '`issue-surface` では、open の Tracker が無く、差があるときは、Tracker を作ってプロジェクトのボードに足します。Status を Backlog にします。ほかの欄には値を入れません。'
+      - '`issue-surface` では、open の Tracker が無く、差も無いときは、何も作りません。'
+      - '`issue-surface` では、差が無くなって open の Tracker があるときは、一覧を none にし、Tracker を completed として閉じます。'
+      - '`issue-surface` では、閉じない open の Tracker には、Status が空の間だけ値を入れます。人が変えた値は残ります。'
       - 'Tracker の本文のうち、一覧の印の外にある文はそのまま残します。'
       - 'プロジェクトの設定が定義していないフィールドは設定しません。'
       - 'open の Tracker が複数あるときは、番号が最小のものを使い、ほかは open のまま残します。'
@@ -593,7 +602,7 @@ entries:
     stdin: none
     output:
       format: none
-    diagnostics: '`dependabot` では、`count` の行で、open の Dependabot の PR の数、判断を待つ PR の数、判断を待つ PR のうち検証の結果が無いものの数を出します。変更ごとに結果の行（`created`・`added`・`removed`・`updated`・`unchanged`・`closed`・`skipped`）を出します。`dry-run` が `true` のときは、代わりに `dry-run` の行を出します。open の Tracker が複数あるときは、`warning` の行を出します。失敗ごとに `error` の行を出します。`security` では、変更ごとに結果の行（`created`・`added`・`removed`・`updated`・`unchanged`・`skipped`）を出します。`dry-run` が `true` のときは、代わりに `dry-run` の行を出します。open の Tracker が複数あるときは、`warning` の行を出します。失敗ごとに `error` の行を出します。一覧を取れなかった種類ごとの行も含みます。'
+    diagnostics: '`dependabot` では、`count` の行で、open の Dependabot の PR の数、判断を待つ PR の数、判断を待つ PR のうち検証の結果が無いものの数を出します。変更ごとに結果の行（`created`・`added`・`removed`・`updated`・`unchanged`・`closed`・`skipped`）を出します。`dry-run` が `true` のときは、代わりに `dry-run` の行を出します。open の Tracker が複数あるときは、`warning` の行を出します。失敗ごとに `error` の行を出します。`security` では、変更ごとに結果の行（`created`・`added`・`removed`・`updated`・`unchanged`・`skipped`）を出します。`dry-run` が `true` のときは、代わりに `dry-run` の行を出します。open の Tracker が複数あるときは、`warning` の行を出します。失敗ごとに `error` の行を出します。一覧を取れなかった種類ごとの行も含みます。`issue-surface` では、変更ごとに結果の行（`created`・`updated`・`unchanged`・`closed`・`skipped`）を出します。`dry-run` が `true` のときは、代わりに `dry-run` の行を出します。open の Tracker が複数あるときは、`warning` の行を出します。失敗ごとに `error` の行を出します。'
     environment:
       - name: GITHUB_REPOSITORY
         effect: '対象のリポの `owner/repo` です。この形でなければ、step を失敗にします。'
@@ -605,11 +614,11 @@ entries:
       - kind: project-not-found
         when: '`project` の名前の設定がありません。'
       - kind: content-invalid
-        when: 'Tracker の本文にある `list-begin` と `list-end` の印が、ちょうど 1 組ではありません。'
+        when: 'Tracker の本文にある `list-begin` と `list-end` の印が、ちょうど 1 組ではありません。`issue-surface` で、`surface-file` が写しの形でないときも含みます。'
       - kind: partial-failure
         when: 'Tracker の作成・書き直し・クローズ・ボードへの配置のどれかに失敗しました。`security` で取れない種類があるときも含みます。'
       - kind: invalid-input
-        when: '`source` が無いか、`dependabot` でも `security` でもありません。`dry-run` が `true` でも `false` でもないときも含みます。'
+        when: '`source` が無いか、`dependabot`・`security`・`issue-surface` のどれでもありません。`source` が `issue-surface` で `surface-file` が無いときと、`dry-run` が `true` でも `false` でもないときも含みます。'
       - kind: github-auth
         when: 'GitHub トークンが見つからないか、GitHub がトークンを拒みました。'
       - kind: github-not-found
@@ -619,8 +628,8 @@ entries:
       - kind: github-api
         when: 'GitHub API がほかのエラーを返しました。'
       - kind: other
-        when: '`GITHUB_REPOSITORY` が `owner/repo` の形でありません。ほかの名前に当たらない失敗も含みます。'
-    on_error: '`dependabot` では、作った Tracker は、ボードへの配置に失敗しても GitHub に open のまま残り、次の実行でボードに置きます。本文の書き直しに失敗したときは、本文は元のままで、Tracker は open のままです。クローズに失敗したときは、一覧は none のまま、Tracker は open のままで、次の実行で閉じます。`security` では、作った Tracker は、ボードへの配置に失敗しても GitHub に open のまま残り、次の実行でボードに置きます。本文の書き直しに失敗したときは、本文は元のままで、次の実行でやり直します。どちらも、済んだ変更は巻き戻さず、step を失敗にします。'
+        when: '`GITHUB_REPOSITORY` が `owner/repo` の形でありません。`issue-surface` で、`surface-file` を読めないときと、今のスキーマを取れないか読めないときも含みます。ほかの名前に当たらない失敗も含みます。'
+    on_error: '`dependabot` と `issue-surface` では、作った Tracker は、ボードへの配置に失敗しても GitHub に open のまま残り、次の実行でボードに置きます。本文の書き直しに失敗したときは、本文は元のままで、Tracker は open のままです。クローズに失敗したときは、一覧は none のまま、Tracker は open のままで、次の実行で閉じます。`security` では、作った Tracker は、ボードへの配置に失敗しても GitHub に open のまま残り、次の実行でボードに置きます。本文の書き直しに失敗したときは、本文は元のままで、次の実行でやり直します。どちらも、済んだ変更は巻き戻さず、step を失敗にします。'
     effects:
       - target: github
         kind: read
@@ -640,12 +649,28 @@ entries:
       - target: github
         kind: destructive
         what: '`security` では、Tracker の Issue の本文を書き直します。'
+      - target: github
+        kind: read
+        what: '`issue-surface` では、`docs.github.com` の公開スキーマと、`raw.githubusercontent.com` の REST の OpenAPI を、認証なしで取ります。'
+      - target: github
+        kind: read
+        what: '`issue-surface` では、`issue-surface` のラベルが付いた Issue の一覧を読みます。'
+      - target: github
+        kind: write
+        what: '`issue-surface` では、Tracker の Issue を作り、プロジェクトのボードに足します。'
+      - target: github
+        kind: destructive
+        what: '`issue-surface` では、Tracker の Issue の本文を書き直し、閉じます。ボードの項目の Status を設定します。'
       - target: file
         kind: read
         what: 'checkout したリポの `.pecot/config/projects` の設定ファイルを読みます。対象のリポを含む設定を探すため、全部読みます。'
+      - target: file
+        kind: read
+        what: '`issue-surface` では、`surface-file` の写しを読みます。'
     prerequisites:
       - 'checkout したリポに、ワークフローが動くリポを `repositories` か `aggregation_repo` に持つプロジェクトの設定が要ります。2 つ以上あるときは、`project` で選びます。'
       - '設定のホストの GitHub トークンと、Issue とプロジェクトを編集する権限が要ります。`security` では、セキュリティ alert を読む権限も要ります。'
+      - '`issue-surface` では、`surface-file` の写しを checkout したリポに置きます。'
     idempotent: true
     examples:
       - arguments:
@@ -655,6 +680,10 @@ entries:
           source: security
           dry-run: 'true'
         note: 'GitHub へ書き込まず、Tracker を変える予定を出します。'
+      - arguments:
+          source: issue-surface
+          surface-file: plugins/pecot-workflow/interface/github-issue-surface.json
+        note: 'GitHub の今のスキーマを写しと比べ、差を Tracker に書き直します。差が無くなれば、Tracker を閉じます。'
     default_notes: {}
     behaviors:
       - id: PA-TRACKER-SYNC-01
@@ -923,7 +952,7 @@ entries:
         statement: 'もし `source` を省いたなら、入力の誤りとして、終了コード 2 で step を失敗にします'
       - id: PA-TRACKER-SYNC-92
         pattern: unwanted
-        statement: 'もし `source` に `dependabot` でも `security` でもない値を渡したなら、入力の誤りとして、終了コード 2 で step を失敗にします'
+        statement: 'もし `source` に `dependabot`・`security`・`issue-surface` のどれでもない値を渡したなら、入力の誤りとして、終了コード 2 で step を失敗にします'
       - id: PA-TRACKER-SYNC-93
         pattern: unwanted
         statement: 'もし `dependabot` で、Tracker の Status の書き込みに失敗したなら、書けなかった欄と値を `error` の行に出し、最後に step を失敗にします。選択肢の ID が古くて書けないときは、ID を読み直す案内を、1 回の実行で 1 回だけ添えます'
@@ -945,6 +974,48 @@ entries:
       - id: PA-TRACKER-SYNC-99
         pattern: event
         statement: '`security` で、既存の本文の行の印に旧い `priority=` があると、それを重大度として読み、次の書き直しで `severity=` の印にします'
+      - id: PA-TRACKER-SYNC-100
+        pattern: event
+        statement: '`issue-surface` で呼ぶと、公開スキーマの SDL と、REST の版 `2022-11-28` の OpenAPI を、認証なしで取ります'
+      - id: PA-TRACKER-SYNC-101
+        pattern: event
+        statement: '`issue-surface` で、open の Tracker が無く写しとの差があると、Tracker の Issue を作ってボードに足し、Status を Backlog にします'
+      - id: PA-TRACKER-SYNC-102
+        pattern: event
+        statement: '`issue-surface` で、open の Tracker も写しとの差も無いと、Tracker の Issue を作らずに、`skipped` の行を出します'
+      - id: PA-TRACKER-SYNC-103
+        pattern: event
+        statement: '`issue-surface` で、差が変わると、open の Tracker の `list-begin` と `list-end` の間だけを書き直し、外の文を残します'
+      - id: PA-TRACKER-SYNC-104
+        pattern: event
+        statement: '`issue-surface` で、open の Tracker の一覧が今の差と同じだと、本文を書き直さずに、`unchanged` の行を出します'
+      - id: PA-TRACKER-SYNC-105
+        pattern: event
+        statement: '`issue-surface` で、差が無くなると、open の Tracker の一覧を none に書き直してから、Tracker を completed として閉じます'
+      - id: PA-TRACKER-SYNC-106
+        pattern: event
+        statement: '`issue-surface` で、open の Tracker が 2 件以上あると、番号が最小のものを使い、ほかを `warning` の行に挙げます'
+      - id: PA-TRACKER-SYNC-107
+        pattern: event
+        statement: '`issue-surface` で `dry-run` が `true` だと、GitHub へ書き込まずに、作る・書き直す・閉じる予定を `dry-run` の行に出します'
+      - id: PA-TRACKER-SYNC-108
+        pattern: unwanted
+        statement: 'もし `source` が `issue-surface` で `surface-file` を省いたなら、GitHub を呼ばずに、入力の誤りとして終了コード 2 で step を失敗にします'
+      - id: PA-TRACKER-SYNC-109
+        pattern: unwanted
+        statement: 'もし `issue-surface` で、`surface-file` を読めないか写しの形でないなら、スキーマを取らずに、`error` の行を出して step を失敗にします'
+      - id: PA-TRACKER-SYNC-110
+        pattern: unwanted
+        statement: 'もし `issue-surface` で、今のスキーマを取れないなら、Tracker を探さずに、`error` の行を出して step を失敗にします'
+      - id: PA-TRACKER-SYNC-111
+        pattern: unwanted
+        statement: 'もし `issue-surface` で、Issue の一覧を取れないなら、`error` の行を出して、step を失敗にします'
+      - id: PA-TRACKER-SYNC-112
+        pattern: unwanted
+        statement: 'もし `issue-surface` で、使う Tracker の本文に一覧の印が 1 組だけ無いなら、何も書かずに、`error` の行を出して step を失敗にします'
+      - id: PA-TRACKER-SYNC-113
+        pattern: unwanted
+        statement: 'もし `issue-surface` で、Tracker の作成かボードの Status の書き込みに失敗したなら、`error` の行を出して、step を失敗にします'
   PA-RELEASE-CHECK:
     summary: 'リリースを出す前の確認をします。open の code scanning と secret scanning の alert があれば止めます。Nx でリリースしないリポジトリでは、CHANGELOG・タグ・リリースするコミットも確かめます。'
     arguments:

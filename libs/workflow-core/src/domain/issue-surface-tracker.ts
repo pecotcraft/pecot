@@ -1,8 +1,8 @@
 // 写しと今のスキーマの差を載せる Tracker の本文と題。dependabot PR の Tracker と同じ印と一覧の形にする。
-import { PecotError } from '@pecot/workflow-core/domain/errors.js'
+import { PecotError } from './errors.js'
 import type { IssueSurface, IssueSurfaceDiff } from './issue-surface.js'
-import { normalizeNewlines } from '@pecot/workflow-core/domain/python-format.js'
-import { listRegion, markerPatterns } from '@pecot/workflow-core/domain/tracker-body.js'
+import { normalizeNewlines } from './python-format.js'
+import { listRegion, markerPatterns } from './tracker-body.js'
 
 export class IssueSurfaceTrackerError extends PecotError {}
 
@@ -14,7 +14,7 @@ const MARKERS = markerPatterns('pecot-issue-surface')
 export const TRACKER_PATTERN = MARKERS.tracker
 
 /**
-本文に載せる、比べに使った SDL と OpenAPI の出どころ（URL か、渡されたファイル）
+本文に載せる、比べに使った SDL と OpenAPI の出どころ（URL）
 */
 export type IssueSurfaceSourceNames = Pick<IssueSurface['sources'], 'graphql' | 'rest'>
 

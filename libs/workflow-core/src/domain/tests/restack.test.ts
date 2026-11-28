@@ -5,7 +5,7 @@ import { stepSync } from '../../../tests/_helpers/step.js'
 import type { PullRequestReadout } from '../issue-readout.js'
 import { createIssueReference } from '../reference-parser.js'
 import { createRepositoryReference } from '../repository-resolver.js'
-import { decideRestack, describeGone, describeNeedsRestack, describeRestackCheck } from '../restack.js'
+import { decideRestack, describeGone, describeRestackCheck } from '../restack.js'
 import type { RestackDecision, RestackInput } from '../restack.js'
 
 const RECORDED = 'a'.repeat(40)
@@ -73,22 +73,6 @@ describe('describeGone', () => {
     await explains('親ブランチが消えた場合の、`describeGone` のテストです。親の PR が存在しない場合に、マージされた PR がないことを示すメッセージを返すことを確認します。')
     stepSync('結果を比べる', () => {
       expect(describeGone({ kind: 'gone', base: 'feat/lower/3', pullRequest: undefined })).toBe('base branch feat/lower/3 is gone and it has no merged PR')
-    })
-  })
-})
-
-describe('describeNeedsRestack', () => {
-  it.for<{ readonly decision: RestackDecision, readonly expected: string | undefined }>([
-    { decision: { kind: 'up-to-date', base: 'feat/lower/3' }, expected: '- needs restack: no' },
-    { decision: { kind: 'not-stacked', base: 'main' }, expected: '- needs restack: no' },
-    { decision: { kind: 'moved', base: 'feat/lower/3' }, expected: '- needs restack: yes' },
-    { decision: { kind: 'merged', base: 'main', pullRequest: 21 }, expected: '- needs restack: yes' },
-    { decision: { kind: 'rebased', base: 'feat/lower/3' }, expected: '- needs restack: no' },
-    { decision: { kind: 'gone', base: 'feat/lower/3', pullRequest: 21 }, expected: undefined },
-  ])('$decision.kind の判断では、$expected を返す', async ({ decision, expected }) => {
-    await explains('判断を `needs restack` の行にする `describeNeedsRestack` のテストです。載せ替えが不要な判断では `no`、必要な判断では `yes` の行を返し、親ブランチが消えた判断では `undefined` を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(describeNeedsRestack(decision)).toBe(expected)
     })
   })
 })

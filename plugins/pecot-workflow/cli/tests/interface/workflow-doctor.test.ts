@@ -82,8 +82,6 @@ describe('workflow_doctor', () => {
       { name: TOKEN_MISSING, state: 'ok' },
       { name: 'Claude GitHub App', state: 'skipped' },
     ])
-    expect(result.problems).toEqual([])
-    expect(result.requests).toEqual([])
   })
 
   it('ファイルと設定がそろっていると、ready を true にして成功を返す', async (context) => {

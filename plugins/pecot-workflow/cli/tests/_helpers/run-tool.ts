@@ -1,7 +1,6 @@
 // ツールの本体をプロセス内で呼び、終了コードと出力を返す。interface-case と command-harness が共有する。
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 定義の型は readonly にできない */
 import { exitCodeOfFailure } from '@pecot/workflow-core/commands-shared/failure.js'
-import { resolveApiUrlOverride } from '@pecot/workflow-core/infra/github/client.js'
 import type { ToolDefinition } from '../../src/commands/registry.js'
 import { capture } from '../../src/commands/tests/support.js'
 import { attachOutput } from '../../../../../libs/interface-spec/src/vitest/attach.js'
@@ -19,7 +18,6 @@ export async function runToolInProcess(tools: readonly ToolDefinition[], name: s
   const definition = tools.find(tool => tool.name === name)
   if (definition === undefined) throw new TypeError(`${name} は渡したツールの一覧に無い`)
   const io = capture({ attach: false })
-  resolveApiUrlOverride()
   const prepared = definition.parse(arguments_)
   let code: number
   try {

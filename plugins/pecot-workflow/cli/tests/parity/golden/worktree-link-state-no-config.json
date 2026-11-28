@@ -6,7 +6,6 @@
     "detail": "worktree config not found\n  call worktree_init with directory: <directory>"
   },
   "stderr": "",
-  "requests": [],
   "files": {
     "../../wt1/demo/.gitignore": ".pecot/\n",
     "../../wt1/demo/README.md": "# demo\n",

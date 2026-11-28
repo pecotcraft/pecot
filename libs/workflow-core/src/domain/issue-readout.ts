@@ -135,9 +135,3 @@ null の node と部分エラーは read-failed
 export type BlockedByReferences
   = | { readonly kind: 'ok', readonly total: number, readonly issues: readonly BlockedByReference[] }
     | { readonly kind: 'read-failed', readonly reason: string }
-
-export interface IssueBlockedByReferences {
-  readonly id: string
-  readonly body: string
-  readonly blockedBy: BlockedByReferences
-}

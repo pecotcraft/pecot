@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
-// ツールをプロセス内で動かすための作業場。一時 git リポ（origin は bare リポ）と偽の GitHub サーバを用意する。
+// ツールをプロセス内で動かすための作業場。一時 git リポ（origin は bare リポ）を用意する。
 //
-// 使い方: `await openWorkspace({ branch, branches, github })` で作り、`workspace.run(name, arguments)` で動かす。
+// 使い方: `await openWorkspace({ branch, branches })` で作り、`workspace.run(name, arguments)` で動かす。
 // 後始末は、このファイルを import したテストの afterEach が行う。
 // 環境変数を戻すのは useIsolatedEnvironment の afterEach。
 import { execFileSync } from 'node:child_process'
@@ -13,8 +13,6 @@ import { afterEach } from 'vitest'
 import { TOOLS } from '../../src/commands/registry.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { gitEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
-import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
-import type { FakeGithub, RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import type { CommitSetup, Scenario, WorktreeSetup } from '../parity/scenario.js'
 import { baseEnvironment, createSandbox, destroySandbox } from '../parity/setup.js'
 import type { Sandbox } from '../parity/setup.js'
@@ -27,7 +25,6 @@ import type { ToolRunResult } from './run-tool.js'
 export const OWNER = 'acme'
 export const REPOSITORY = 'demo'
 export const HOST = 'ghes.example.com'
-const TOKEN_VARIABLE = 'PECOT_GITHUB_GHES_EXAMPLE_COM_TOKEN'
 
 // 設定ファイル
 
@@ -98,7 +95,6 @@ export interface WorkspaceOptions extends BaseRecordOption {
   アクティブなプロジェクトの設定。false なら置かない。既定は develop_branch が main の設定
   */
   readonly config?: ConfigOptions | false
-  readonly github?: readonly ResponseRule[]
   readonly env?: Readonly<Record<string, string | undefined>>
 }
 
@@ -111,7 +107,6 @@ export interface Workspace {
   一時 root。リポジトリの外に置くファイルの置き場
   */
   readonly root: string
-  readonly server: FakeGithub
   /**
   既定は作業リポジトリで実行する。cwd を渡すと、そこで実行する
   */
@@ -134,24 +129,15 @@ export interface Workspace {
   作業リポジトリの外（一時 root の files/）にファイルを書き、そのパスを返す
   */
   readonly scratch: (name: string, content: string) => string
-  readonly requests: () => readonly RecordedRequest[]
 }
 
-interface Opened {
-  readonly sandbox: Sandbox
-  readonly server: FakeGithub
-}
+const opened: Sandbox[] = []
 
-const opened: Opened[] = []
-
-afterEach(async () => {
-  for (const { sandbox, server } of opened.splice(0)) {
-    await server.close()
-    destroySandbox(sandbox)
-  }
+afterEach(() => {
+  for (const sandbox of opened.splice(0)) destroySandbox(sandbox)
 })
 
-// 偽サーバの代わりに、プロキシと PATH は触らない
+// プロセス内で動かすので、プロキシと PATH は触らない
 const NOT_APPLIED = new Set(['PATH', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'NODE_USE_ENV_PROXY'])
 
 function scenarioOf(options: Readonly<WorkspaceOptions>): Scenario {
@@ -177,17 +163,15 @@ function scenarioOf(options: Readonly<WorkspaceOptions>): Scenario {
       env: {},
       ghToken: undefined,
     },
-    github: [],
   }
 }
 
-export async function openWorkspace(options: Readonly<WorkspaceOptions> = {}): Promise<Workspace> {
+export function openWorkspace(options: Readonly<WorkspaceOptions> = {}): Workspace {
   const sandbox = createSandbox(scenarioOf(options))
-  const server = await startFakeGithub(options.github ?? [])
-  opened.push({ sandbox, server })
+  opened.push(sandbox)
 
   const environment = Object.fromEntries(Object.entries(baseEnvironment(sandbox)).filter(([name]) => !NOT_APPLIED.has(name)))
-  setEnvironment({ ...environment, PECOT_GITHUB_API_URL: server.url, [TOKEN_VARIABLE]: 'dummy-token', ...options.env })
+  setEnvironment({ ...environment, ...options.env })
 
   const bare = path.join(sandbox.root, 'remotes', OWNER, `${REPOSITORY}.git`)
   const gitIn = (cwd: string, arguments_: readonly string[]): string => execFileSync('git', [...arguments_], { cwd, env: { ...gitEnvironment(), ...baseEnvironment(sandbox) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
@@ -196,7 +180,6 @@ export async function openWorkspace(options: Readonly<WorkspaceOptions> = {}): P
   return {
     directory: sandbox.repositoryDirectory,
     root: sandbox.root,
-    server,
     run: async (name, arguments_, cwd = sandbox.repositoryDirectory) => {
       const previous = process.cwd()
       process.chdir(cwd)
@@ -222,6 +205,5 @@ export async function openWorkspace(options: Readonly<WorkspaceOptions> = {}): P
       writeFileSync(target, content)
       return target
     },
-    requests: () => server.requests(),
   }
 }

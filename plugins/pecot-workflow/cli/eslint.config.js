@@ -57,6 +57,18 @@ const directHintSyntax = [
   { selector: `${flagHintCall} > TemplateLiteral > ConditionalExpression > TemplateLiteral > ${flagHintTemplate}`, message: flagHintMessage },
 ]
 
+// cli は GitHub の API を呼ばない。GitHub の client と偽の GitHub の import を、src・tests・scripts のすべてで止める。
+// 途中に / を含む型は根に固定されるので、相対パスの型は先頭に **/ を付ける
+const githubIoPattern = {
+  group: [
+    '@pecot/workflow-core/infra/github/*',
+    '@pecot/workflow-core/commands-shared/github-client.js',
+    '**/libs/workflow-core/src/infra/github/**',
+    '**/libs/workflow-core/tests/_helpers/fake-github/**',
+  ],
+  message: 'cli から GitHub の client と偽の GitHub を import しない（GitHub の読み書きは公式の MCP と actions/ が担う）',
+}
+
 function libraryCommandsPattern(layer) {
   return { group: ['@pecot/workflow-core/commands-shared/*'], message: `${layer} から commands への import 禁止 (依存方向違反)` }
 }
@@ -109,14 +121,12 @@ export default defineConfig(
       'unicorn/no-null': 'error',
       'no-restricted-syntax': ['error', ...baseRestrictedSyntax],
       'unused-imports/no-unused-imports': 'error',
+      'no-restricted-imports': ['error', { patterns: [githubIoPattern] }],
       // n は .js を .ts に読み替えて dist を探し、build した lib の subpath を見つけられない。解決は tsc が確かめる
       'n/no-missing-import': ['error', { allowModules: ['@pecot/workflow-core'] }],
-      // DDD レイヤ依存方向: domain ← infra ← commands / mcp の一方向のみ許す。lib（@pecot/workflow-core）の層にも同じ向きを当てる。
+      // レイヤ依存方向: infra ← commands / mcp の一方向のみ許す。lib（@pecot/workflow-core）の層にも同じ向きを当てる。
       'import-x/no-restricted-paths': ['error', {
         zones: [
-          { target: './src/domain', from: './src/infra', message: 'domain から infra への import 禁止 (依存方向違反)' },
-          { target: './src/domain', from: './src/commands', message: 'domain から commands への import 禁止 (依存方向違反)' },
-          { target: './src/domain', from: './src/mcp', message: 'domain から mcp への import 禁止 (依存方向違反)' },
           { target: './src/infra', from: './src/commands', message: 'infra から commands への import 禁止 (依存方向違反)' },
           { target: './src/infra', from: './src/mcp', message: 'infra から mcp への import 禁止 (依存方向違反)' },
         ],
@@ -124,37 +134,11 @@ export default defineConfig(
     },
   },
   {
-    // domain は文字列を受けて値を返す純粋な関数だけにする。ファイル・git・GitHub は infra に置く。
-    files: ['src/domain/**/*.ts'],
-    ignores: ['src/domain/tests/**'],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [libraryCommandsPattern('domain'), {
-          group: ['@pecot/workflow-core/infra/*'],
-          message: 'domain から infra への import 禁止 (依存方向違反)',
-        }, {
-          group: ['node:fs', 'node:fs/*', 'fs', 'fs/*', 'node:child_process', 'child_process'],
-          message: 'domain から node:fs・node:child_process の import 禁止 (I/O は infra に置く)',
-        }, {
-          group: ['node:os', 'os', 'node:net', 'net', 'node:http', 'http', 'node:https', 'https', 'node:process', 'process'],
-          message: 'domain から node:os・node:net・node:http・node:https・node:process の import 禁止 (環境と通信は infra に置く)',
-        }],
-      }],
-      'no-restricted-globals': ['error',
-        { name: 'fetch', message: 'domain ではグローバルの fetch を使わない (通信を担うのは infra)' },
-        { name: 'process', message: 'domain ではグローバルの process を使わない (env と終了を担うのは infra)' },
-      ],
-      'no-restricted-properties': ['error',
-        { object: 'globalThis', property: 'fetch', message: 'domain ではグローバルの fetch を使わない (通信を担うのは infra)' },
-        { object: 'globalThis', property: 'process', message: 'domain ではグローバルの process を使わない (env と終了を担うのは infra)' },
-      ],
-    },
-  },
-  {
     files: ['src/infra/**/*.ts'],
-    ignores: ['src/infra/tests/**', 'src/infra/github/tests/**'],
+    ignores: ['src/infra/tests/**'],
     rules: {
-      'no-restricted-imports': ['error', { patterns: [libraryCommandsPattern('infra')] }],
+      // flat config は options 付きの同じ規則を丸ごと置き換えるので、GitHub の型も合わせて置く
+      'no-restricted-imports': ['error', { patterns: [githubIoPattern, libraryCommandsPattern('infra')] }],
     },
   },
   {

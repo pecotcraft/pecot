@@ -29,22 +29,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "24.22.1"
-          package-manager-cache: false
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      # ... は依存先の libs/workflow-core も入れる。cli は @pecot/workflow-core をその dist から読むので、続けて build する。
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile --ignore-scripts --filter @pecot/pecot-workflow-cli...
-
-      - name: Build workflow-core
-        run: pnpm --filter @pecot/workflow-core-src run build
-
       - name: Generate GitHub App token
         id: app-token
         uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
@@ -55,12 +39,9 @@ jobs:
           permission-organization-projects: write
 
       - name: Compare the issue surface
-        env:
-          PECOT_GITHUB_COM_TOKEN: ${{ steps.app-token.outputs.token }}
-          DRY_RUN: ${{ inputs.dry-run }}
-        run: |
-          args=(--repo "$GITHUB_REPOSITORY")
-          if [ "$DRY_RUN" = "true" ]; then
-            args+=(--dry-run)
-          fi
-          pnpm --dir plugins/pecot-workflow/cli exec tsx scripts/github-surface/drift.ts "${args[@]}"
+        uses: ./actions/tracker-sync
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          source: issue-surface
+          surface-file: plugins/pecot-workflow/interface/github-issue-surface.json
+          dry-run: ${{ inputs.dry-run }}

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { explains } from '../../../tests/_helpers/explains.js'
 import { stepSync } from '../../../tests/_helpers/step.js'
 
-import { buildIssueTitle, epicTargetRepository, splitIssueTitle, statusViolation } from '../issue-rules.js'
+import { buildIssueTitle, epicTargetRepository, splitIssueTitle } from '../issue-rules.js'
 
 const prefixRows: readonly (readonly [string, string, string])[] = [
   ['task', 'タイトル', '[Task] タイトル'],
@@ -57,45 +57,6 @@ describe('splitIssueTitle', () => {
     stepSync('splitIssueTitle を呼び、結果を比べる', () => {
       expect(splitIssueTitle('task', '#12-01: 題')).toEqual({ hasPrefix: false, parentEpic: 12, order: 1, orderText: '#12-01: ', rest: '題' })
       expect(splitIssueTitle('task', '[Task] 題')).toEqual({ hasPrefix: true, parentEpic: undefined, order: undefined, orderText: '', rest: '題' })
-    })
-  })
-})
-
-describe('statusViolation', () => {
-  it('Issue の種類の既定の status と同じ値の場合は、違反にしない', async () => {
-    await explains('起票時の status を検証する関数（`statusViolation`）のテストです。`task` に `ready`、`epic` に `backlog` を指定した場合に、違反が無い（`undefined`）ことを確認します。')
-    stepSync('statusViolation を呼び、結果を比べる', () => {
-      expect(statusViolation('task', 'ready')).toBeUndefined()
-      expect(statusViolation('epic', 'backlog')).toBeUndefined()
-    })
-  })
-
-  it('既定の status と異なる場合は、既定の値と、作成後に動かす手順を案内する', async () => {
-    await explains('`bug` に `ready` 以外の status を指定した場合のテストです。許される値と、作成後にボードで動かす手順を案内する文を返すことを確認します。')
-    stepSync('statusViolation を呼び、結果を比べる', () => {
-      expect(statusViolation('bug', 'backlog')).toBe('the status at creation for type \'bug\' is only \'ready\' (given: backlog)\nhint: move it to pending or another status on the board after creation')
-    })
-  })
-
-  it('許可する値を指定した場合は、その値も受け付け、それ以外の場合は許可する値を並べて案内する', async () => {
-    await explains('許可する値の一覧（`ready` と `blocked`）を指定した場合のテストです。`blocked` は受け付け、`active` の場合は許可する値を並べた文を返すことを確認します。')
-    stepSync('statusViolation を呼び、結果を比べる', () => {
-      expect(statusViolation('task', 'blocked', ['ready', 'blocked'])).toBeUndefined()
-      expect(statusViolation('task', 'active', ['ready', 'blocked'])).toBe('the status at creation for type \'task\' is only \'ready\' or \'blocked\' (given: active)\nhint: move it to pending or another status on the board after creation')
-    })
-  })
-
-  it('許可する値を指定しない場合は、blocked は既定の status ではないため違反にする', async () => {
-    await explains('許可する値を指定せず、`task` に `blocked` を指定した場合のテストです。`blocked` は既定の status ではないため、違反の文を返すことを確認します。')
-    stepSync('statusViolation を呼び、結果を比べる', () => {
-      expect(statusViolation('task', 'blocked')).toMatch(/^the status at creation for type 'task' is only 'ready' \(given: blocked\)/u)
-    })
-  })
-
-  it('定義外の status は、種類ごとの検証より先に違反とする', async () => {
-    await explains('`task` に定義外の status（`foo`）を指定した場合のテストです。種類ごとの検証より前に、`invalid status: foo` と有効な値の一覧を返すことを確認します。')
-    stepSync('statusViolation を呼び、結果を比べる', () => {
-      expect(statusViolation('task', 'foo')).toBe('invalid status: foo\nvalid values: backlog/pending/blocked/ready/active/in_review/archived')
     })
   })
 })

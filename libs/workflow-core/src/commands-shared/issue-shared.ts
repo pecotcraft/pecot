@@ -89,15 +89,6 @@ export function parseIssueReferenceOrExit(output: Output, repository: string | u
   }
 }
 
-// --- status ---
-
-/**
-不正な status と、有効な値を出して終了コード 1
-*/
-export function exitInvalidStatus(output: Output, status: string): never {
-  return stopWith(output, `invalid status: ${status}\nvalid values: backlog/pending/blocked/ready/active/in_review/archived`, 'invalid-input')
-}
-
 // --- テンプレートの検証 ---
 
 /**

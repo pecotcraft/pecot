@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { explains } from '../../../tests/_helpers/explains.js'
 import { stepSync } from '../../../tests/_helpers/step.js'
-import { appendOptions, choosePlacement, copyOption, findOptionByName, insertOption } from '../field-options.js'
+import { appendOptions, choosePlacement, copyOption, findOptionByName } from '../field-options.js'
 
 const existing = [
   { id: 'a', name: 'Pending', color: 'GRAY', description: 'p' },
@@ -10,77 +10,6 @@ const existing = [
   { id: 'c', name: 'Ready', color: 'GREEN', description: 'r' },
 ]
 const blocked = { name: 'Blocked', color: 'ORANGE', description: 'x' }
-
-describe('insertOption', () => {
-  it('after で指定した名前の直後に挿入し、新しい選択肢は id を持たない', async () => {
-    await explains('ボードの選択肢の一覧へ、新しい選択肢を挿入する `insertOption` のテストです。`after` に既存の名前を指定した場合に、その直後に挿入され、新しい選択肢には `id` が付かないことを確認します。')
-    const result = stepSync('insertOption を呼ぶ', () => insertOption(existing, blocked, { after: 'Backlog' }))
-    stepSync('結果を比べる', () => {
-      expect(result?.map(option => option.name)).toEqual(['Pending', 'Backlog', 'Blocked', 'Ready'])
-      expect(result?.[2]).toEqual({ name: 'Blocked', color: 'ORANGE', description: 'x' })
-      expect(result?.[2]).not.toHaveProperty('id')
-    })
-  })
-
-  it('既存の選択肢は、id・name・color・description をそのまま保持する', async () => {
-    await explains('ボードの選択肢の一覧へ、新しい選択肢を挿入する `insertOption` のテストです。選択肢を挿入した場合に、既存の選択肢が `id`・`name`・`color`・`description` を含めて変更されないことを確認します。')
-    const result = stepSync('insertOption を呼ぶ', () => insertOption(existing, blocked, { after: 'Backlog' }))
-    stepSync('結果を比べる', () => {
-      expect(result?.[0]).toEqual(existing[0])
-      expect(result?.[1]).toEqual(existing[1])
-      expect(result?.[3]).toEqual(existing[2])
-    })
-  })
-
-  it('after で指定した名前が存在しない場合は、末尾に挿入する', async () => {
-    await explains('ボードの選択肢の一覧へ、新しい選択肢を挿入する `insertOption` のテストです。`after` に存在しない名前を指定した場合に、新しい選択肢が末尾に挿入されることを確認します。')
-    stepSync('insertOption を呼び、結果を比べる', () => {
-      expect(insertOption(existing, blocked, { after: 'Nothing' })?.map(option => option.name)).toEqual(['Pending', 'Backlog', 'Ready', 'Blocked'])
-    })
-  })
-
-  it('before で指定した名前の直前に挿入する', async () => {
-    await explains('ボードの選択肢の一覧へ、新しい選択肢を挿入する `insertOption` のテストです。`before` に既存の名前を指定した場合に、その直前に挿入されることを確認します。')
-    stepSync('insertOption を呼び、結果を比べる', () => {
-      expect(insertOption(existing, blocked, { before: 'Ready' })?.map(option => option.name)).toEqual(['Pending', 'Backlog', 'Blocked', 'Ready'])
-    })
-  })
-
-  it('before で指定した名前が存在しない場合は、末尾に挿入する', async () => {
-    await explains('ボードの選択肢の一覧へ、新しい選択肢を挿入する `insertOption` のテストです。`before` に存在しない名前を指定した場合に、新しい選択肢が末尾に挿入されることを確認します。')
-    stepSync('insertOption を呼び、結果を比べる', () => {
-      expect(insertOption(existing, blocked, { before: 'Nothing' })?.at(-1)?.name).toBe('Blocked')
-    })
-  })
-
-  it('end を指定した場合は、末尾に挿入する', async () => {
-    await explains('ボードの選択肢の一覧へ、新しい選択肢を挿入する `insertOption` のテストです。位置に `end` を指定した場合に、新しい選択肢が末尾に挿入されることを確認します。')
-    stepSync('insertOption を呼び、結果を比べる', () => {
-      expect(insertOption(existing, blocked, { end: true })?.at(-1)?.name).toBe('Blocked')
-    })
-  })
-
-  it('挿入位置の名前は、大文字と小文字を区別せずに探す', async () => {
-    await explains('ボードの選択肢の一覧へ、新しい選択肢を挿入する `insertOption` のテストです。`after` に小文字の `backlog` を指定した場合でも、`Backlog` の直後に挿入されることを確認します。')
-    stepSync('insertOption を呼び、結果を比べる', () => {
-      expect(insertOption(existing, blocked, { after: 'backlog' })?.[2]?.name).toBe('Blocked')
-    })
-  })
-
-  it('大文字と小文字だけが異なる同じ名前の選択肢が既に存在する場合は、undefined を返す', async () => {
-    await explains('ボードの選択肢の一覧へ、新しい選択肢を挿入する `insertOption` のテストです。既存の `Ready` に対して `ready` を挿入しようとした場合に、重複として `undefined` を返すことを確認します。')
-    stepSync('insertOption を呼び、結果を比べる', () => {
-      expect(insertOption(existing, { ...blocked, name: 'ready' }, { end: true })).toBeUndefined()
-    })
-  })
-
-  it('既存の選択肢が空の場合は、新しい選択肢だけの一覧を返す', async () => {
-    await explains('ボードの選択肢の一覧へ、新しい選択肢を挿入する `insertOption` のテストです。既存の選択肢が空の場合に、新しい選択肢だけを含む一覧を返すことを確認します。')
-    stepSync('insertOption を呼び、結果を比べる', () => {
-      expect(insertOption([], blocked, { end: true })).toEqual([blocked])
-    })
-  })
-})
 
 describe('choosePlacement', () => {
   it('基準の名前が既存の選択肢に存在する最初の候補を選ぶ（大文字と小文字は区別しない）', async () => {

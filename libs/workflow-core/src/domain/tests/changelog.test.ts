@@ -2,18 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { explains } from '../../../tests/_helpers/explains.js'
 import { stepSync } from '../../../tests/_helpers/step.js'
 
-import {
-  CHANGELOG_FALLBACK_FILES,
-  ChangelogError,
-  ChangelogFileNotFoundError,
-  changelogNotFoundMessage,
-  DEFAULT_CHANGELOG_FILE,
-  extractVersionReleaseNotes,
-  getLatestVersion,
-  InvalidVersionError,
-  validateSemver,
-  VersionNotFoundError,
-} from '../changelog.js'
+import { CHANGELOG_FALLBACK_FILES, ChangelogError, changelogNotFoundMessage, DEFAULT_CHANGELOG_FILE, extractVersionReleaseNotes, getLatestVersion, InvalidVersionError, validateSemver, VersionNotFoundError } from '../changelog.js'
 import { PecotError } from '../errors.js'
 
 describe('例外クラス', () => {
@@ -38,16 +27,6 @@ describe('例外クラス', () => {
     await explains('バージョンが存在しないときの例外クラス（`VersionNotFoundError`）のテストです。`ChangelogError` のインスタンスであることを確認します。')
     stepSync('結果を比べる', () => {
       expect(new VersionNotFoundError('バージョンが見つかりません')).toBeInstanceOf(ChangelogError)
-    })
-  })
-
-  it('ChangelogFileNotFoundError は PecotError を継承せず、標準の Error を継承している', async () => {
-    await explains('変更履歴のファイルが存在しないときの例外クラス（`ChangelogFileNotFoundError`）のテストです。Python の `FileNotFoundError` に相当し、`Error` のインスタンスだが `PecotError` ではないことを確認します。')
-    const error = stepSync('`ChangelogFileNotFoundError` を作る', () => new ChangelogFileNotFoundError('x'))
-
-    stepSync('結果を比べる', () => {
-      expect(error).toBeInstanceOf(Error)
-      expect(error).not.toBeInstanceOf(PecotError)
     })
   })
 })

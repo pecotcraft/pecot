@@ -21,13 +21,6 @@ export function hasErrorCode(error: unknown): error is Error & { readonly code: 
   return error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code.startsWith('E')
 }
 
-/**
-システムコールの失敗（Node の fs 等が投げる、syscall を持つエラー）か
-*/
-export function isSystemCallError(error: unknown): boolean {
-  return hasErrorCode(error) && 'syscall' in error
-}
-
 export function isFileNotFound(error: unknown): boolean {
   return hasErrorCode(error) && error.code === 'ENOENT'
 }

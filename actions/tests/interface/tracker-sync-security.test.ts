@@ -710,7 +710,7 @@ describe('tracker sync', () => {
   describe('source が使えない', () => {
     it.for([
       { name: 'source を省く', source: undefined, id: 'PA-TRACKER-SYNC-91' },
-      { name: 'source に dependabot でも security でもない値を渡す', source: 'foo', id: 'PA-TRACKER-SYNC-92' },
+      { name: 'source に dependabot・security・issue-surface のどれでもない値を渡す', source: 'foo', id: 'PA-TRACKER-SYNC-92' },
     ])('$name と、GitHub を呼ばずに入力の誤りとして終了コード 2 で step を失敗にする', async (row, context) => {
       await verifies(context, row.id)
       await explains(`input の \`source\` が使えない場合のテストです。${row.name}と、GitHub を呼び出さず、項目 \`source\` を示す入力の誤りとして終了コード 2 で step を失敗にすることを確認します。`)

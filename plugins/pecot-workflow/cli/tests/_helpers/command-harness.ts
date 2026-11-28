@@ -1,5 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
-// ツールを、一時 git リポ・設定ファイル・偽の GitHub サーバの上で、プロセス内で動かす補助。describe の外で useIsolatedEnvironment() を 1 回呼んでおく。
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- ツールの定義の型は readonly にできない */
+// ツールを、一時 git リポと設定ファイルの上で、プロセス内で動かす補助。describe の外で useIsolatedEnvironment() を 1 回呼んでおく。
 // runCommand は本体を呼んで終了コードと出力を、runTool は MCP のクライアントから呼んで結果の項目を返す。process.chdir を使うので it.concurrent では使えない
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -7,12 +8,9 @@ import path from 'node:path'
 import { TOOLS } from '../../src/commands/registry.js'
 import type { ToolDefinition } from '../../src/commands/registry.js'
 import { attachReadText } from '../../../../../libs/interface-spec/src/vitest/attach.js'
-import { getEnvironmentVariableName } from '@pecot/workflow-core/infra/github/auth.js'
 import { setEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
-import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
-import type { RecordedRequest, ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { callToolOnce } from './mcp-client.js'
 import type { ToolOutcome } from './mcp-client.js'
 import { runToolInProcess } from './run-tool.js'
@@ -68,10 +66,6 @@ export interface CommandRun {
   readonly tool: string
   readonly arguments: Readonly<Record<string, unknown>>
   /**
-  偽サーバの応答。受けた要求が当たらなければ problems に出る
-  */
-  readonly github?: readonly ResponseRule[]
-  /**
   origin の指す先。`false` なら git の外で動かす。既定は ghes.example.com の acme/demo
   */
   readonly remote?: RepositoryOptions | false
@@ -110,18 +104,6 @@ export interface CommandResult {
   readonly stdout: string
   readonly stderr: string
   /**
-  偽サーバが受けた要求（受けた順）
-  */
-  readonly requests: readonly RecordedRequest[]
-  /**
-  偽サーバの誤り（応答に当たらない要求など）
-  */
-  readonly problems: readonly string[]
-  /**
-  使われなかった応答
-  */
-  readonly unused: readonly string[]
-  /**
   動かしたディレクトリ（リポのルート）
   */
   readonly directory: string
@@ -156,16 +138,14 @@ function prepareDirectory(run: Readonly<Pick<CommandRun, 'remote' | 'remoteUrl' 
   return directory
 }
 
-type Sandboxed = Pick<CommandResult, 'requests' | 'problems' | 'unused' | 'directory' | 'read'>
+type Sandboxed = Pick<CommandResult, 'directory' | 'read'>
 
 /**
-一時リポ・設定・偽サーバを用意して、そのリポの中で body を呼ぶ。終わったら cwd と env を戻し、偽サーバを閉じる
+一時リポと設定を用意して、そのリポの中で body を呼ぶ。終わったら cwd と env を戻す
 */
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
 async function inSandbox<T>(run: Readonly<Omit<CommandRun, 'tool' | 'arguments'>>, body: (directory: string) => Promise<T>): Promise<T & Sandboxed> {
   const originalDirectory = process.cwd()
   const originalEnvironment = { ...process.env }
-  const server = await startFakeGithub(run.github ?? [])
   try {
     const directory = prepareDirectory(run)
     if (run.config !== false) {
@@ -177,17 +157,12 @@ async function inSandbox<T>(run: Readonly<Omit<CommandRun, 'tool' | 'arguments'>
     writeTree(directory, run.files ?? {})
     setEnvironment({
       CLAUDE_PROJECT_DIR: directory,
-      PECOT_GITHUB_API_URL: server.url,
-      [getEnvironmentVariableName(DEFAULT_HOST)]: 'dummy-token',
       ...run.environment,
     })
     process.chdir(directory)
     const result = await body(directory)
     return {
       ...result,
-      requests: [...server.requests()],
-      problems: [...server.problems()],
-      unused: [...server.unused()],
       directory,
       read: (relative) => {
         const text = readIfExists(directory, relative)
@@ -199,14 +174,12 @@ async function inSandbox<T>(run: Readonly<Omit<CommandRun, 'tool' | 'arguments'>
   finally {
     process.chdir(originalDirectory)
     restoreEnvironment(originalEnvironment)
-    await server.close()
   }
 }
 
 /**
-一時リポ・設定・偽サーバを用意して、ツールの本体をプロセス内で呼ぶ。終わったら cwd を戻し、偽サーバを閉じる
+一時リポと設定を用意して、ツールの本体をプロセス内で呼ぶ。終わったら cwd を戻す
 */
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
 export async function runCommand(run: Readonly<CommandRun>): Promise<CommandResult> {
   return await inSandbox(run, async () => await runToolInProcess(run.tools ?? TOOLS, run.tool, run.arguments))
 }
@@ -218,7 +191,6 @@ export interface ToolResult extends Sandboxed, ToolOutcome {}
 /**
 runCommand と同じ用意の上で、MCP のツールを同じプロセスの中のクライアントから 1 回呼ぶ。structuredContent の項目を確かめるときに使う
 */
-// eslint-disable-next-line @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの規則は入れ子が深く、読むだけ
 export async function runTool(run: Readonly<ToolRun>): Promise<ToolResult> {
   return await inSandbox(run, async () => {
     return await callToolOnce(run.tools ?? TOOLS, run.tool, run.arguments)

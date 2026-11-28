@@ -4,80 +4,15 @@ import { stepSync } from '../../../tests/_helpers/step.js'
 
 import '../../../tests/_helpers/hint-commands.js'
 import { formatHinted } from '../command-hint.js'
-import { describeReadiness, judgeReadiness } from '../readiness.js'
-import type { IssueFacts, IssuePullRequest, Prerequisite, Readiness } from '../readiness.js'
+import { judgeReadiness } from '../readiness.js'
+import type { IssueFacts, IssuePullRequest, Prerequisite } from '../readiness.js'
 import { createIssueReference } from '../reference-parser.js'
 import { createRepositoryReference } from '../repository-resolver.js'
-import { decideStart, inferStackedBase } from '../work-start.js'
-import type { LowerProbe } from '../work-start.js'
+import { decideStart } from '../work-start.js'
 
 const repository = createRepositoryReference('acme', 'demo')
 const target = createIssueReference(repository, 7)
 const lower = createIssueReference(repository, 3)
-const SHA = '0123456789abcdef0123456789abcdef01234567'
-
-function readiness(kind: Readiness['kind'], over: Partial<Readiness> = {}): Readiness {
-  return { kind, stackOn: undefined, reason: undefined, needsReview: false, attention: [], ...over }
-}
-
-const stackable = readiness('stackable', { stackOn: { branch: 'feat/3', issue: lower } })
-
-function probeOf(result: LowerProbe): () => LowerProbe {
-  return () => result
-}
-
-function unexpectedProbe(): LowerProbe {
-  throw new Error('probe must not be called')
-}
-
-describe('inferStackedBase', () => {
-  it('判定が stackable で、HEAD が親ブランチの変更を持つと、親ブランチにスタックした記録を返す', async () => {
-    await explains('スタックの推定のテストです。判定が `stackable` で HEAD が親ブランチの変更を持つ場合に、親ブランチにスタックした記録を返すことを確認します。')
-    const inferred = stepSync('inferStackedBase を呼ぶ', () => inferStackedBase(stackable, [], target, probeOf({ kind: 'probed', isShared: true, sha: SHA })))
-    stepSync('結果を比べる', () => {
-      expect(inferred).toEqual({ kind: 'stacked', record: { branch: 'feat/3', sha: SHA, stackedOn: lower }, stackedOn: lower })
-    })
-  })
-
-  it('判定が stackable でも、HEAD が親ブランチの変更を持たないと、開発ブランチからの着手として返す', async () => {
-    await explains('スタックの推定のテストです。判定が `stackable` でも HEAD が親ブランチの変更を持たない場合に、開発ブランチからの着手として返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(inferStackedBase(stackable, [], target, probeOf({ kind: 'probed', isShared: false, sha: SHA }))).toEqual({ kind: 'development' })
-    })
-  })
-
-  it('親ブランチの追跡参照が手元に無いと、git fetch の案内を添えた理由を返す', async () => {
-    await explains('スタックの推定のテストです。親ブランチの追跡参照が手元に存在しない場合は、`git fetch` を案内する理由を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(inferStackedBase(stackable, [], target, probeOf({ kind: 'untracked', reference: 'origin/feat/3' }))).toEqual({ kind: 'unknown', reason: 'origin/feat/3 is not found; fetch it with: git fetch' })
-    })
-  })
-
-  it('親ブランチから分かれた点を求められないと、その理由を返す', async () => {
-    await explains('スタックの推定のテストです。親ブランチから分かれた位置を求められない場合に、その理由を返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(inferStackedBase(stackable, [], target, probeOf({ kind: 'probed', isShared: true, sha: undefined }))).toEqual({ kind: 'unknown', reason: 'cannot find where HEAD forked from feat/3' })
-    })
-  })
-
-  it.for([
-    { name: 'startable', value: readiness('startable') },
-    { name: '判定が無い Epic・Tracker', value: undefined },
-  ])('判定が $name のときは、git を調べずに開発ブランチからの着手として返す', async ({ value }) => {
-    await explains('スタックの推定のテストです。判定が `startable` の場合と、判定が存在しない Epic・Tracker の場合に、git を調べずに開発ブランチからの着手として返すことを確認します。')
-    stepSync('結果を比べる', () => {
-      expect(inferStackedBase(value, [], target, unexpectedProbe)).toEqual({ kind: 'development' })
-    })
-  })
-
-  it('判定が blocked のときは、判定の文を理由に返す', async () => {
-    await explains('スタックの推定のテストです。判定が `blocked` の場合に、判定の文を理由として返すことを確認します。')
-    const blocked = stepSync('準備の状態を用意する', () => readiness('blocked', { reason: { code: 'unreadable' } }))
-    stepSync('結果を比べる', () => {
-      expect(inferStackedBase(blocked, [], target, probeOf({ kind: 'probed', isShared: true, sha: SHA }))).toEqual({ kind: 'unknown', reason: describeReadiness(blocked, [], repository) })
-    })
-  })
-})
 
 describe('decideStart', () => {
   const targetFacts: IssueFacts = { ref: target, state: 'open', column: undefined, label: undefined, kind: 'task', branches: [], pullRequests: [] }

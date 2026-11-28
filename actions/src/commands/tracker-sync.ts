@@ -12,9 +12,13 @@ import { syncTargetOf } from '@pecot/workflow-core/commands-shared/tracker-share
 import type { SyncTarget } from '@pecot/workflow-core/commands-shared/tracker-shared.js'
 
 export const TRACKER_SYNC_INPUT = z.strictObject({
-  source: z.enum(['dependabot', 'security']),
+  source: z.enum(['dependabot', 'security', 'issue-surface']),
   dry_run: z.boolean().default(false),
   project: z.string().optional(),
+  surface_file: z.string().optional(),
+}).refine(input => input.source !== 'issue-surface' || input.surface_file !== undefined, {
+  error: 'surface-file is required when source is issue-surface',
+  path: ['surface_file'],
 })
 
 export type TrackerSyncInput = z.output<typeof TRACKER_SYNC_INPUT>

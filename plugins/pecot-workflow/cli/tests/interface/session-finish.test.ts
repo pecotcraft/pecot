@@ -1,5 +1,5 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
-// session_finish の振る舞いを、ツールをプロセス内で呼んで確かめる。GitHub の読み取りは reads に渡し、偽サーバは応答を持たない。
+// session_finish の振る舞いを、ツールをプロセス内で呼んで確かめる。GitHub の読み取りは reads に渡す。
 // git は一時リポ（origin は bare）、設定は一時ディレクトリのファイルにする
 import { writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -7,7 +7,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
-import { step } from '../../../../../libs/interface-spec/src/vitest/step.js'
+import { step, stepSync } from '../../../../../libs/interface-spec/src/vitest/step.js'
 import { TOOLS } from '../../src/commands/registry.js'
 import { ambiguousWorkspaceFiles, SECOND_PROJECT } from '../_helpers/project-selection.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
@@ -91,8 +91,8 @@ function hasBranch(workspace: Readonly<Workspace>): boolean {
   return workspace.git(['branch', '--list', BRANCH]).trim() !== ''
 }
 
-async function cleanupBranch(extra: Readonly<WorkspaceOptions> = {}): Promise<Workspace> {
-  return await step('作業ブランチのある一時リポを用意する', async () => await openWorkspace({
+function cleanupBranch(extra: Readonly<WorkspaceOptions> = {}): Workspace {
+  return stepSync('作業ブランチのある一時リポを用意する', () => openWorkspace({
     branch: BRANCH,
     branches: [{ name: BRANCH, commits: [{ message: '未マージの変更', files: { 'feature.txt': 'x\n' } }] }],
     ...extra,
@@ -113,18 +113,13 @@ async function finish(workspace: Readonly<Workspace>, arguments_: Json = {}, cwd
   })
 }
 
-function expectNoGithub(workspace: Readonly<Workspace>): void {
-  expect(workspace.requests()).toEqual([])
-}
-
 describe('session_finish', () => {
-  it('マージ済みの PR の読み取りを渡すと、GitHub を呼ばずに手元を片付ける', async (context) => {
+  it('マージ済みの PR の読み取りを渡すと、手元を片付ける', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-01')
-    await explains('マージ済みの PR の `pull_request_read` の結果を渡した場合のテストです。GitHub へ要求を送らずに、開発ブランチへ切り替えて head ブランチを削除し、結果の項目を返すことを確認します。')
-    const workspace = await cleanupBranch()
+    await explains('マージ済みの PR の `pull_request_read` の結果を渡した場合のテストです。開発ブランチへ切り替えて head ブランチを削除し、結果の項目を返すことを確認します。')
+    const workspace = cleanupBranch()
     const outcome = await finish(workspace)
     await step('結果と手元を確かめる', () => {
-      expectNoGithub(workspace)
       expect(outcome.isError).toBe(false)
       expect(outcome.structured).toEqual({ deletedBranches: [{ branch: BRANCH, location: 'local' }], readinessChanges: [], restack: [], currentBranch: 'main' })
       expect(currentBranch(workspace)).toBe('main')
@@ -134,7 +129,7 @@ describe('session_finish', () => {
   it('カレントのリポジトリが PR のリポジトリと同じで worktree の外だと、develop_branch のブランチに切り替える', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-06')
     await explains('戻り先のブランチのテストです。カレントのリポジトリが PR のリポジトリと同じで、worktree の外の場合に、`develop_branch` のブランチへ切り替えることを確認します。')
-    const workspace = await cleanupBranch()
+    const workspace = cleanupBranch()
     const outcome = await finish(workspace)
     await step('切り替えた先を確かめる', () => {
       expect(outcome.structured['currentBranch']).toBe('main')
@@ -145,7 +140,7 @@ describe('session_finish', () => {
   it('カレントが worktree だと、置き場所の親ディレクトリの名前の wtN のブランチに切り替える', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-06')
     await explains('戻り先のブランチのテストです。カレントが worktree の場合に、置き場所の親ディレクトリの名前に対応する `wtN` のブランチへ切り替えることを確認します。')
-    const workspace = await cleanupBranch({ branch: 'main', branches: [{ name: 'wt1' }, { name: BRANCH }], worktrees: [{ name: 'wt1', branch: 'wt1-work', files: {} }] })
+    const workspace = cleanupBranch({ branch: 'main', branches: [{ name: 'wt1' }, { name: BRANCH }], worktrees: [{ name: 'wt1', branch: 'wt1-work', files: {} }] })
     const worktree = path.join(workspace.root, 'wt1', 'demo')
     workspace.git(['checkout', '-q', BRANCH], worktree)
     const outcome = await finish(workspace, {}, worktree)
@@ -158,7 +153,7 @@ describe('session_finish', () => {
   it('カレントが worktree で add の記録があると、記録の wtN のブランチに切り替える', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-06')
     await explains('戻り先のブランチのテストです。カレントが worktree で追加時の記録がある場合に、記録された `wtN` のブランチへ切り替えることを確認します。')
-    const workspace = await cleanupBranch({ branch: 'main', branches: [{ name: 'wt1' }, { name: BRANCH }], worktrees: [{ name: 'wt2', branch: 'wt2-work', files: {} }] })
+    const workspace = cleanupBranch({ branch: 'main', branches: [{ name: 'wt1' }, { name: BRANCH }], worktrees: [{ name: 'wt2', branch: 'wt2-work', files: {} }] })
     const worktree = path.join(workspace.root, 'wt2', 'demo')
     workspace.git(['checkout', '-q', BRANCH], worktree)
     writeFileSync(workspace.git(['rev-parse', '--path-format=absolute', '--git-path', 'pecot-worktree-name'], worktree).trim(), 'wt1\n')
@@ -175,7 +170,7 @@ describe('session_finish', () => {
   ])('カレントが Claude Code の作った .claude/worktrees/$name だと、$branch のブランチに切り替える', async (row, context) => {
     await verifies(context, 'PW-SESSION-FINISH-06')
     await explains(`カレントが \`.claude/worktrees/${row.name}\` の場合のテストです。フォルダ名の \`+\` を \`/\` と読み替えた \`${row.branch}\` へ切り替え、head ブランチを削除することを確認します。`)
-    const workspace = await cleanupBranch({ branch: 'main' })
+    const workspace = cleanupBranch({ branch: 'main' })
     const worktree = path.join(workspace.directory, '.claude', 'worktrees', row.name)
     workspace.git(['worktree', 'add', '-q', '-b', row.branch, worktree])
     workspace.git(['checkout', '-q', BRANCH], worktree)
@@ -189,7 +184,7 @@ describe('session_finish', () => {
   it('worktree の中で戻り先のブランチが決まらないと、ブランチを切り替えずにローカルの片付けを飛ばす', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-47')
     await explains('戻り先のブランチが決まらない場合のテストです。worktree の中で戻り先を決定できないときに、ブランチを切り替えず、警告を入れてローカルの後始末を実施しないことを確認します。')
-    const workspace = await cleanupBranch({ branch: 'main' })
+    const workspace = cleanupBranch({ branch: 'main' })
     const worktree = path.join(workspace.root, 'elsewhere', 'demo')
     workspace.git(['worktree', 'add', '-q', worktree, BRANCH])
     const outcome = await finish(workspace, {}, worktree)
@@ -204,7 +199,7 @@ describe('session_finish', () => {
   it('ブランチを切り替えると、origin の remote（無ければ最初の remote）から develop_branch を pull する', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-07')
     await explains('pull のテストです。ブランチを切り替えた場合に、`origin` が存在しなければ最初の remote（`upstream`）から `develop_branch` を pull することを確認します。')
-    const workspace = await cleanupBranch()
+    const workspace = cleanupBranch()
     workspace.git(['remote', 'rename', 'origin', 'upstream'])
     workspace.advanceRemote('main')
     await finish(workspace)
@@ -216,7 +211,7 @@ describe('session_finish', () => {
   it('pull すると、ローカルの head ブランチを削除し、deletedBranches に local で入れる', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-08')
     await explains('ローカルブランチの削除のテストです。pull が終わった場合に、ローカルの head ブランチを削除し、`deletedBranches` に `local` として入れることを確認します。')
-    const workspace = await cleanupBranch()
+    const workspace = cleanupBranch()
     const outcome = await finish(workspace)
     await step('結果と手元を確かめる', () => {
       expect(outcome.structured['deletedBranches']).toEqual([{ branch: BRANCH, location: 'local' }])
@@ -227,7 +222,7 @@ describe('session_finish', () => {
   it('ローカルの片付けを終えると、.pecot-base と .pecot-session-title を削除し、古い版のファイルは残す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-09')
     await explains('フラグのファイルの削除のテストです。ローカルの後始末が終わった場合に、作業の記録のファイルを削除し、古い版の `.pecot-quick-mode` と `.pecot-active` は残すことを確認します。')
-    const workspace = await cleanupBranch({ files: flagFiles() })
+    const workspace = cleanupBranch({ files: flagFiles() })
     await finish(workspace)
     await step('残ったファイルを確かめる', () => {
       expect(RECORDS.map(name => workspace.exists(stateFile(name)))).toStrictEqual([false, false])
@@ -238,7 +233,7 @@ describe('session_finish', () => {
   it('.pecot-session-title が PR の閉じる Issue のものでないと、.pecot-base と .pecot-session-title を残す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-46')
     await explains('作業対象の記録のテストです。`.pecot-session-title` が PR の閉じる Issue でない #30 のものの場合に、`.pecot-base` と `.pecot-session-title` を残すことを確認します。')
-    const workspace = await cleanupBranch({ files: { [stateFile('.pecot-base')]: `main ${'0'.repeat(40)}\n`, [stateFile('.pecot-session-title')]: '#30 次の作業\n' } })
+    const workspace = cleanupBranch({ files: { [stateFile('.pecot-base')]: `main ${'0'.repeat(40)}\n`, [stateFile('.pecot-session-title')]: '#30 次の作業\n' } })
     const outcome = await finish(workspace)
     await step('残ったファイルを確かめる', () => {
       expect(outcome.isError).toBe(false)
@@ -249,7 +244,7 @@ describe('session_finish', () => {
   it('カレントのリポジトリが PR のリポジトリと違うと、warnings に 1 つ入れ、ローカルの片付けを飛ばす', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-19')
     await explains('リポジトリの不一致のテストです。カレントのリポジトリが PR のリポジトリ（`acme/other`）と異なる場合に、警告を 1 つ入れ、ローカルの後始末を実施しないことを確認します。')
-    const workspace = await cleanupBranch({ config: { hasSecondRepository: true } })
+    const workspace = cleanupBranch({ config: { hasSecondRepository: true } })
     const reads = { ...PLAIN_READS, pull_request: pullRequestRead({ repository: 'acme/other', body: '' }), blocking: [dependency('acme/other/12', [])] }
     const outcome = await finish(workspace, { pr_ref: 'acme/other/21', reads })
     await step('結果と手元を確かめる', () => {
@@ -262,7 +257,7 @@ describe('session_finish', () => {
   it('checkout に失敗すると、pull とローカルの head ブランチの削除を飛ばす', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-23')
     await explains('checkout の失敗のテストです。`develop_branch` の `ghost` を checkout できない場合は、pull とローカルブランチの削除をしないことを確認します。')
-    const workspace = await cleanupBranch({ config: { developBranch: 'ghost' } })
+    const workspace = cleanupBranch({ config: { developBranch: 'ghost' } })
     const outcome = await finish(workspace)
     await step('結果と手元を確かめる', () => {
       expect(outcome.structured['warnings']).toEqual([expect.stringMatching(/^checking out ghost failed: /u)])
@@ -274,7 +269,7 @@ describe('session_finish', () => {
   it('PR がマージされていないと、GitHub の画面でマージするよう案内して kind が pr-state の失敗を返し、何も変えない', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-24')
     await explains('開いたままの PR の読み取りを渡した場合のテストです。`kind` が `pr-state` の失敗と、GitHub でマージするよう案内する `detail` を返し、手元のブランチと記録を変えないことを確認します。')
-    const workspace = await cleanupBranch({ files: flagFiles() })
+    const workspace = cleanupBranch({ files: flagFiles() })
     const outcome = await finish(workspace, { reads: { ...PLAIN_READS, pull_request: pullRequestRead({ state: 'open' }) } })
     await step('結果と手元を確かめる', () => {
       expect(outcome.isError).toBe(true)
@@ -290,7 +285,7 @@ describe('session_finish', () => {
   ])('$name と、kind が invalid-input の失敗を返す', async ({ name, arguments_ }, context) => {
     await verifies(context, 'PW-SESSION-FINISH-28')
     await explains(`${name}場合のテストです。手元を変えずに、\`kind\` が \`invalid-input\` の失敗を返すことを確認します。`)
-    const workspace = await cleanupBranch()
+    const workspace = cleanupBranch()
     const outcome = await finish(workspace, arguments_)
     await step('結果と手元を確かめる', () => {
       expect(outcome).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
@@ -301,10 +296,9 @@ describe('session_finish', () => {
   it('閉じる Issue を待つ Issue の判定がマージで変わると、readinessChanges に入れる', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-33')
     await explains('PR が閉じる #12 を、未着手の #13 とスタックした #14 が待つ場合のテストです。マージの前後で判定が変わる #13 と #14 を、`readinessChanges` に入れることを確認します。')
-    const workspace = await cleanupBranch()
+    const workspace = cleanupBranch()
     const outcome = await finish(workspace, { reads: WAITING_READS })
     await step('結果を確かめる', () => {
-      expectNoGithub(workspace)
       expect(outcome.structured['readinessChanges']).toEqual([{ issue: '#13', from: 'stackable on #12', to: 'startable' }, { issue: '#14', from: 'stackable on #12', to: 'startable' }])
     })
   })
@@ -312,7 +306,7 @@ describe('session_finish', () => {
   it('マージしたブランチの上にスタックした Issue があると、restack に入れ、pr_restack を warnings で案内する', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-35')
     await explains('マージしたブランチ `feat/demo/12` の上に、#14 の PR がスタックしている場合のテストです。`restack` に #14 とそのブランチを 1 回だけ入れ、`pr_restack` を `warnings` で案内することを確認します。')
-    const workspace = await cleanupBranch()
+    const workspace = cleanupBranch()
     const outcome = await finish(workspace, { reads: WAITING_READS })
     await step('結果を確かめる', () => {
       expect(outcome.structured['restack']).toEqual([{ issue: '#14', branch: 'feat/demo/14' }])
@@ -323,7 +317,7 @@ describe('session_finish', () => {
   it('対象のリポを含む設定が無いと、kind が repo-not-in-project の失敗を返す', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-43')
     await explains('プロジェクトの設定が存在しない場合のテストです。`kind` が `repo-not-in-project` の失敗を返すことを確認します。')
-    const outcome = await finish(await cleanupBranch({ config: false }))
+    const outcome = await finish(cleanupBranch({ config: false }))
     await step('結果を確かめる', () => {
       expect(outcome).toMatchObject({ isError: true, structured: { kind: 'repo-not-in-project' } })
     })
@@ -332,7 +326,7 @@ describe('session_finish', () => {
   it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で片付ける', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-44')
     await explains('`project` のテストです。対象のリポジトリを含む設定が 2 つあっても、`project` で指定した設定で後始末することを確認します。')
-    const workspace = await cleanupBranch({ files: ambiguousWorkspaceFiles() })
+    const workspace = cleanupBranch({ files: ambiguousWorkspaceFiles() })
     const outcome = await finish(workspace, { project: SECOND_PROJECT })
     await step('結果を確かめる', () => {
       expect(outcome.isError).toBe(false)
@@ -343,7 +337,7 @@ describe('session_finish', () => {
   it('判定に要る読み取りが足りないと、その Issue を判定せず、足りない読み取りを warnings で案内する', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-48')
     await explains('`reads.blocking` と `reads.children` を渡さない場合のテストです。待つ Issue と子 PR を判定せずに後始末を続け、それぞれの読み取りを `warnings` で案内することを確認します。')
-    const workspace = await cleanupBranch()
+    const workspace = cleanupBranch()
     const outcome = await finish(workspace, { reads: { pull_request: pullRequestRead() } })
     await step('結果を確かめる', () => {
       expect(outcome.isError).toBe(false)
@@ -358,7 +352,7 @@ describe('session_finish', () => {
   it('待つ Issue の読み取りが無いと、その Issue の判定を飛ばして warnings に入れる', async (context) => {
     await verifies(context, 'PW-SESSION-FINISH-48')
     await explains('#12 を待つ #13 の `issue_read` を渡さない場合のテストです。#13 の判定を飛ばし、判定できない理由を `warnings` に入れて後始末を続けることを確認します。')
-    const workspace = await cleanupBranch()
+    const workspace = cleanupBranch()
     const reads = { ...WAITING_READS, blocking: [dependency('acme/demo/12', [13])], children: [], issues: [issueRead(12, 21)] }
     const outcome = await finish(workspace, { reads })
     await step('結果を確かめる', () => {
@@ -371,7 +365,7 @@ describe('session_finish', () => {
   it('短い形 N の pr_ref を repo なしで渡し、remote の URL から owner/repo を読めないと、短い形の案内と理由を出して終了コード 2 で終わる', async (context) => {
     await verifies(context, 'PW-COMMON-22')
     await explains('短い形の `N` で `pr_ref` を指定し、`repo` も指定せず、remote の URL から `owner/repo` を取得できない場合のテストです。短い形の案内と理由を出力して、終了コード 2 で終了することを確認します。')
-    const workspace = await cleanupBranch()
+    const workspace = cleanupBranch()
     workspace.git(['remote', 'set-url', 'origin', '/srv/git/demo.git'])
     const result = await step('session_finish を短い形で動かす', async () => await workspace.run('session_finish', { pr_ref: '21', reads: PLAIN_READS }))
     await step('終了コードと標準エラーを確かめる', () => {

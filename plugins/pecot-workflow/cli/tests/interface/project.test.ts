@@ -1,14 +1,13 @@
-/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 偽サーバの応答は readonly にしない */
+/* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- 読み取りの JSON は readonly にしない */
 /* eslint-disable unicorn/consistent-function-scoping -- 補助は、使う describe の近くに置く */
 /* eslint-disable unicorn/no-unnecessary-parameters -- 補助の引数を、行ごとにそろえる */
-/* eslint-disable unicorn/no-null -- 偽サーバの応答に JSON の null を使う */
+/* eslint-disable unicorn/no-null -- 読み取りと設定の JSON の null を使う */
 // project の 7 個のツールのうち 6 個（PW-PROJECT-*）の振る舞いを、ツールをプロセス内で呼んで確かめる。
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
-import type { ResponseRule } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 import { CONFIG_FILE as LEGACY_CONFIG_FILE, DEFAULT_HOST, projectConfig, runCommand, runTool } from '../_helpers/command-harness.js'
@@ -47,13 +46,8 @@ const boardWith = (...fields: Json[]): Json => boardReads(fieldsRead(fields))
 
 const GHES: Partial<CommandRun> = { remote: { host: DEFAULT_HOST }, configFile: CONFIG_FILE }
 
-async function run(name: string, input: Readonly<Record<string, unknown>>, github: readonly ResponseRule[] = [], extra: Partial<CommandRun> = {}): Promise<CommandResult> {
-  return await runCommand({ tool: name, arguments: input, github, ...GHES, ...extra })
-}
-
-function expectClean(result: Readonly<Pick<CommandResult, 'problems' | 'unused'>>): void {
-  expect(result.problems).toEqual([])
-  expect(result.unused).toEqual([])
+async function run(name: string, input: Readonly<Record<string, unknown>>, extra: Partial<CommandRun> = {}): Promise<CommandResult> {
+  return await runCommand({ tool: name, arguments: input, ...GHES, ...extra })
 }
 
 function asJson(value: unknown): Json {
@@ -87,8 +81,8 @@ const configPathOf = (result: Readonly<CommandResult>): string => path.join(resu
 const CONFIG_NAME = path.parse(CONFIG_FILE).name
 const OTHER_NAME = `${DEFAULT_HOST}_acme_other_acme`
 const otherFile = { [`${PROJECTS_DIRECTORY}/${OTHER_NAME}.json`]: `${JSON.stringify(projectConfig(), undefined, 2)}\n` }
-const tool = async (name: string, toolArguments: Record<string, unknown>, github: readonly ResponseRule[] = [], extra: Partial<CommandRun> = {}): ReturnType<typeof runTool> =>
-  await runTool({ tool: name, arguments: toolArguments, github, ...GHES, ...extra })
+const tool = async (name: string, toolArguments: Record<string, unknown>, extra: Partial<CommandRun> = {}): ReturnType<typeof runTool> =>
+  await runTool({ tool: name, arguments: toolArguments, ...GHES, ...extra })
 const withAggregation = (value?: string): Partial<CommandRun> => ({ config: projectConfig(value === undefined ? {} : { extra: { aggregation_repo: value } }) })
 // 移行の前の形（進行の欄の旧い名前と、旧い名前の設定ファイル）
 const LEGACY_FIELD = 'pecot-workflow-acme'
@@ -109,7 +103,7 @@ describe('project_list', () => {
 
   it('設定ファイルがあると、ファイル名の順に 1 行ずつ出す', async () => {
     await explains('`project_list` の出力のテストです。設定ファイルが存在する場合は、ファイル名の順に 1 行ずつ標準出力へ出力することを確認します。')
-    const result = await run('project_list', {}, [], { files: other })
+    const result = await run('project_list', {}, { files: other })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`=== Projects ===\n  ${DEFAULT_HOST}_acme_1 [ACTIVE]\n  ${DEFAULT_HOST}_acme_other_acme\n`)
     expect(result.stderr).toBe('')
@@ -117,14 +111,14 @@ describe('project_list', () => {
 
   it('アクティブなプロジェクトの設定ファイルの行の末尾に、[ACTIVE] を付ける', async () => {
     await explains('`project_list` のアクティブなプロジェクトの表示のテストです。アクティブなプロジェクトの設定ファイルの行の末尾にだけ、`[ACTIVE]` を付けることを確認します。')
-    const result = await run('project_list', {}, [], { files: other })
+    const result = await run('project_list', {}, { files: other })
     const lines = result.stdout.split('\n')
     expect(lines.filter(line => line.endsWith('[ACTIVE]'))).toEqual([`  ${DEFAULT_HOST}_acme_1 [ACTIVE]`])
   })
 
   it('設定ファイルが 1 つも存在しないと、none の行を出す', async () => {
     await explains('`project_list` の設定ファイルが存在しない場合のテストです。設定ファイルが 1 つも存在しない場合は、`none` の行を出力して終了コード 0 で終わることを確認します。')
-    const result = await run('project_list', {}, [], { config: false })
+    const result = await run('project_list', {}, { config: false })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('=== Projects ===\n  none\n')
   })
@@ -134,14 +128,14 @@ describe('project_list', () => {
       await verifies(context, 'PW-PROJECT-LIST-01')
       await verifies(context, 'PW-PROJECT-LIST-02')
       await explains('`project_list` の MCP の結果のテストです。設定ファイルが存在する場合は、ファイル名の順に `projects` へ並べ、アクティブな設定の `active` を `true` にすることを確認します。')
-      const result = await tool('project_list', {}, [], { files: otherFile })
+      const result = await tool('project_list', {}, { files: otherFile })
       expect(result.structured).toEqual({ projects: [{ name: CONFIG_NAME, active: true, owner: 'acme', project_number: 1 }, { name: OTHER_NAME, active: false, owner: 'acme', project_number: 1 }] })
     })
 
     it('設定が 1 つも存在しないと projects を空の配列で返す', async (context) => {
       await verifies(context, 'PW-PROJECT-LIST-03')
       await explains('`project_list` の MCP の結果のテストです。設定ファイルが 1 つも存在しない場合は、`projects` を空の配列で返すことを確認します。')
-      const result = await tool('project_list', {}, [], { config: false })
+      const result = await tool('project_list', {}, { config: false })
       expect(result.structured).toEqual({ projects: [] })
     })
   })
@@ -151,7 +145,7 @@ describe('project_activate', () => {
   const NAME = path.parse(CONFIG_FILE).name
   const reference = (project: string, reads: Json = boardReads()): Readonly<Record<string, unknown>> => ({ project, host: DEFAULT_HOST, owner: 'acme', owner_type: 'user', reads })
   const activateByNumber = async (extra: Partial<CommandRun> = {}, reads: Json = boardReads()): Promise<CommandResult> =>
-    await run('project_activate', reference('1', reads), [], { config: false, ...extra })
+    await run('project_activate', reference('1', reads), { config: false, ...extra })
   const existing = (repositories: Json[], extra: Json = {}): Partial<CommandRun> => ({ config: projectConfig({ repositories, extra }) })
   const byTitle = (titles: readonly string[], hasNextPage = false): Json => ({ ...boardReads(), project: undefined, projects: [listProjectsRead(titles, hasNextPage)] })
 
@@ -160,13 +154,10 @@ describe('project_activate', () => {
     await explains('`project_activate` の設定ファイルの作成のテストです。プロジェクトの番号か名前と、公式の GitHub MCP で読んだボードを渡した場合は、同じ内容の設定ファイルを作成し、標準エラーに `created` の行を出力することを確認します。')
     const byNumber = await activateByNumber()
     expect(byNumber.code).toBe(0)
-    expectClean(byNumber)
-    expect(byNumber.requests).toEqual([])
     expect(byNumber.stderr).toBe(`created: config file ${configPathOf(byNumber)}\nset: active project to ${NAME}\n`)
     expect(savedConfig(byNumber)).toMatchObject({ host: DEFAULT_HOST, owner: 'acme', project: { number: 1, id: 'PVT_1' }, repositories: [] })
-    const byName = await run('project_activate', reference('board', byTitle(['board'])), [], { config: false })
+    const byName = await run('project_activate', reference('board', byTitle(['board'])), { config: false })
     expect(byName.code).toBe(0)
-    expectClean(byName)
     expect(byName.read(CONFIG_FILE)).toBe(byNumber.read(CONFIG_FILE))
   })
 
@@ -182,12 +173,10 @@ describe('project_activate', () => {
     await explains('`project_activate` の設定ファイルの指定のテストです。設定ファイルのパスかファイル名を指定した場合は、`host` と `owner` を省略しても設定ファイルの値で同期することを確認します。')
     const result = await run('project_activate', { project: NAME, reads: boardReads() })
     expect(result.code).toBe(0)
-    expectClean(result)
     expect(result.stderr).toBe(`updated: config file ${configPathOf(result)}\nset: active project to ${NAME}\n`)
     const filePath = path.join(PROJECTS_DIRECTORY, path.basename(CONFIG_FILE))
     const byPath = await run('project_activate', { project: filePath, reads: boardReads() })
     expect(byPath.code).toBe(0)
-    expectClean(byPath)
   })
 
   it('同期した中身が既存の設定ファイルと同じだと、書き換えずに change を unchanged にし、アクティブにする', async (context) => {
@@ -196,11 +185,10 @@ describe('project_activate', () => {
     const first = await activateByNumber()
     const again = await activateByNumber({ config: savedConfig(first) })
     expect(again.code).toBe(0)
-    expectClean(again)
     expect(again.stderr).toBe(`set: active project to ${NAME}\n`)
     expect(again.read(CONFIG_FILE)).toBe(first.read(CONFIG_FILE))
     expect(again.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
-    const data = await tool('project_activate', reference('1'), [], { config: savedConfig(first) })
+    const data = await tool('project_activate', reference('1'), { config: savedConfig(first) })
     expect(data.structured).toMatchObject({ change: 'unchanged', project: NAME })
   })
 
@@ -210,10 +198,9 @@ describe('project_activate', () => {
     const first = await activateByNumber()
     const again = await activateByNumber({ config: withOldFields(savedConfig(first)) })
     expect(again.code).toBe(0)
-    expectClean(again)
     expect(again.stderr).toBe(`updated: config file ${configPathOf(again)}\nset: active project to ${NAME}\n`)
     expect(again.read(CONFIG_FILE)).toBe(first.read(CONFIG_FILE))
-    const data = await tool('project_activate', reference('1'), [], { config: withOldFields(savedConfig(first)) })
+    const data = await tool('project_activate', reference('1'), { config: withOldFields(savedConfig(first)) })
     expect(data.structured).toMatchObject({ change: 'update', project: NAME })
   })
 
@@ -223,7 +210,6 @@ describe('project_activate', () => {
     const legacy = readField(455, 'PVTSSF_legacy', LEGACY_FIELD, WORKFLOW_NAMES)
     const result = await run('project_activate', { project: NAME, reads: boardWith(TITLE_READ, legacy, workflowRead(), statusRead()) })
     expect(result.code).toBe(0)
-    expectClean(result)
     expect(savedConfig(result)).toMatchObject({ project: { fields: { workflow: { id: 'PVTSSF_workflow' } } } })
     expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
   })
@@ -233,16 +219,14 @@ describe('project_activate', () => {
     await explains('`project_activate` の旧い名前の進行の欄のテストです。旧い名前の進行の欄だけがあるボードの場合は、初期化済みとして同期することを確認します。')
     const result = await activateByNumber({}, boardWith(TITLE_READ, workflowRead(WORKFLOW_NAMES, LEGACY_FIELD), statusRead()))
     expect(result.code).toBe(0)
-    expectClean(result)
     expect(savedConfig(result)).toMatchObject({ project: { fields: { workflow: { id: 'PVTSSF_workflow' } } } })
   })
 
   it('旧い名前の設定ファイルを渡すと、新しい名前に移し、アクティブな設定を新しい名前にする', async (context) => {
     await verifies(context, 'PW-PROJECT-ACTIVATE-26')
     await explains('`project_activate` の旧い名前の設定ファイルのテストです。旧い名前の設定ファイルを指定した場合は、新しい名前へ移動し、アクティブな設定も新しい名前にすることを確認します。')
-    const result = await run('project_activate', { project: LEGACY_NAME, reads: boardReads() }, [], legacyConfig)
+    const result = await run('project_activate', { project: LEGACY_NAME, reads: boardReads() }, legacyConfig)
     expect(result.code).toBe(0)
-    expectClean(result)
     expect(result.stderr).toBe(`moved: config file ${path.join(result.directory, LEGACY_CONFIG_FILE)} to ${configPathOf(result)}\n${movedNote(NAME)}updated: config file ${configPathOf(result)}\nset: active project to ${NAME}\n`)
     expect(result.read(LEGACY_CONFIG_FILE)).toBeUndefined()
     expect(result.read(ACTIVE_FILE)?.trim()).toBe(path.basename(CONFIG_FILE))
@@ -270,7 +254,7 @@ describe('project_activate', () => {
     await explains('`project_activate` の `owner_type` のテストです。`owner_type` が `user` なら `/users/`、`org` なら `/orgs/` の `board_url` を書き、最初のビューを開く URL にすることを確認します。')
     const user = await activateByNumber()
     expect(boardUrlOf(user)).toMatch(/^https:\/\/ghes\.example\.com\/users\/acme\/projects\/1\/views\/1\?/u)
-    const org = await run('project_activate', { ...reference('1'), owner_type: 'org' }, [], { config: false })
+    const org = await run('project_activate', { ...reference('1'), owner_type: 'org' }, { config: false })
     expect(org.code).toBe(0)
     expect(boardUrlOf(org)).toMatch(/^https:\/\/ghes\.example\.com\/orgs\/acme\/projects\/1\/views\/1\?/u)
   })
@@ -285,7 +269,7 @@ describe('project_activate', () => {
 
   it('host が要る場面で渡していないと、終了コード 1 で終わる', async () => {
     await explains('`project_activate` の `host` が不足している場合のテストです。`host` が必要な場面で指定していない場合は、使い方を示すエラーを標準エラーへ出力し、終了コード 1 で終わることを確認します。')
-    const result = await run('project_activate', { project: '1' }, [], { config: false })
+    const result = await run('project_activate', { project: '1' }, { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('error: host is required\n  example: project_activate with project: "1", host: "github.com", owner: "example-org", owner_type: "org"\n  example: project_activate with project: "ghes.example.com_example-org_1"\n')
@@ -293,10 +277,10 @@ describe('project_activate', () => {
 
   it('名前で指定したプロジェクトが list_projects の結果に無いと、終了コード 1 で終わる', async () => {
     await explains('`project_activate` の名前で指定したプロジェクトが存在しない場合のテストです。読んだボードの一覧に無い場合は、一覧の名前を添えたエラーを出力して終了コード 1 で終わることを確認します。')
-    const result = await run('project_activate', reference('Non Existent', byTitle(['Other Project'])), [], { config: false })
+    const result = await run('project_activate', reference('Non Existent', byTitle(['Other Project'])), { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe('error: project not found: Non Existent\n  available projects:\n  - Other Project\n')
-    const more = await run('project_activate', reference('Non Existent', byTitle(['Other Project'], true)), [], { config: false })
+    const more = await run('project_activate', reference('Non Existent', byTitle(['Other Project'], true)), { config: false })
     expect(more.stderr).toBe('error: project not found: Non Existent\n  available projects:\n  - Other Project\n  the last page of list_projects has a next page; read it with after and add it to reads.projects\n')
   })
 
@@ -320,7 +304,7 @@ describe('project_activate', () => {
 
   it('渡した設定ファイルを読めないと、終了コード 1 で終わる', async () => {
     await explains('`project_activate` の読み込めない設定ファイルのテストです。指定した設定ファイルを読み込めない場合は、エラーを出力して終了コード 1 で終わることを確認します。')
-    const result = await run('project_activate', { project: 'broken' }, [], { config: false, files: { [`${PROJECTS_DIRECTORY}/broken.json`]: '{ not json' } })
+    const result = await run('project_activate', { project: 'broken' }, { config: false, files: { [`${PROJECTS_DIRECTORY}/broken.json`]: '{ not json' } })
     expect(result.code).toBe(1)
     expect(result.stderr).toMatch(/^error: could not load config file broken\.json: /u)
   })
@@ -337,7 +321,6 @@ describe('project_activate', () => {
     await explains('`project_activate` の `host` が設定ファイルの host と異なる場合のテストです。設定ファイルの host を使って同期し、保存する host と `board_url` も設定ファイルの host のままであることを確認します。')
     const result = await run('project_activate', { project: NAME, host: 'github.com', reads: boardReads() })
     expect(result.code).toBe(0)
-    expectClean(result)
     expect(savedConfig(result)['host']).toBe(DEFAULT_HOST)
     expect(boardUrlOf(result)).toMatch(/^https:\/\/ghes\.example\.com\/users\/acme\/projects\/1\//u)
   })
@@ -347,7 +330,6 @@ describe('project_activate', () => {
     await explains('`project_activate` の Blocked を持たないボードのテストです。Blocked の選択肢が存在しないボードでも同期が成功し、設定ファイルに `blocked` のキーを書かないことを確認します。')
     const result = await activateByNumber()
     expect(result.code).toBe(0)
-    expectClean(result)
     const fields = asJson(asJson(savedConfig(result)['project'])['fields'])
     expect(asJson(fields['workflow'])['options']).not.toHaveProperty('blocked')
     expect(asJson(savedConfig(result)['project'])['board_url']).not.toContain('Blocked')
@@ -359,7 +341,6 @@ describe('project_activate', () => {
     await explains('`project_activate` の Blocked を持つボードのテストです。`Blocked` や `In Progress` や `Needs Attention` の選択肢があるボードを同期した場合は、その id を設定ファイルに書くことを確認します。')
     const result = await activateByNumber({}, boardWith(TITLE_READ, workflowRead(WORKFLOW_NAMES_WITH_BLOCKED), statusRead([...STATUS_NAMES, 'Needs Attention'])))
     expect(result.code).toBe(0)
-    expectClean(result)
     const saved = asJson(asJson(savedConfig(result)['project'])['fields'])
     expect(asJson(saved['workflow'])['options']).toMatchObject({ blocked: 'o2', ready: 'o4' })
     expect(saved['status']).toEqual({ id: 'PVTSSF_status', options: { todo: 'o1', in_progress: 'o2', needs_attention: 'o4' } })
@@ -396,7 +377,7 @@ describe('project_activate', () => {
   describe('MCP の data', () => {
     it('アクティブにした設定の名前・パス・change を返す', async () => {
       await explains('`project_activate` の結果のテストです。設定をアクティブにした場合は、結果に設定の名前とパスと `change` を含めることを確認します。')
-      const result = await tool('project_activate', reference('1'), [], { config: false })
+      const result = await tool('project_activate', reference('1'), { config: false })
       const configPath = path.join(result.directory, CONFIG_FILE)
       expect(result.structured).toEqual({ project: CONFIG_NAME, configPath, change: 'create', config_moved: null })
     })
@@ -404,8 +385,7 @@ describe('project_activate', () => {
     it('旧い名前の設定ファイルを新しい名前に移すと、移した元と先を config_moved に返す', async (context) => {
       await verifies(context, 'PW-PROJECT-ACTIVATE-26')
       await explains('`project_activate` の旧い名前の設定ファイルのテストです。旧い名前の設定ファイルを新しい名前へ移動した場合は、移動の元と先を `config_moved` に含めることを確認します。')
-      const result = await tool('project_activate', reference('1'), [], legacyConfig)
-      expectClean(result)
+      const result = await tool('project_activate', reference('1'), legacyConfig)
       expect(result.structured).toMatchObject({ project: CONFIG_NAME, config_moved: { from: path.basename(LEGACY_CONFIG_FILE), to: path.basename(CONFIG_FILE) } })
       expect(result.read(LEGACY_CONFIG_FILE)).toBeUndefined()
     })
@@ -419,7 +399,7 @@ describe('project_activate', () => {
     it('host が要る場面で渡していないと、kind が invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-ACTIVATE-12')
       await explains('`project_activate` の `host` が不足している場合のテストです。`host` が必要な場面で指定していない場合は、`kind` が `invalid-input` の失敗を返すことを確認します。')
-      const result = await tool('project_activate', { project: '1' }, [], { config: false })
+      const result = await tool('project_activate', { project: '1' }, { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
       expect(result.structured['detail']).toMatch(/^host is required/u)
     })
@@ -427,7 +407,7 @@ describe('project_activate', () => {
     it('名前で指定したプロジェクトが list_projects の結果に無いと、kind が project-not-found の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-ACTIVATE-13')
       await explains('`project_activate` の名前で指定したプロジェクトが存在しない場合のテストです。読んだボードの一覧に無い場合は、`kind` が `project-not-found` の失敗を返すことを確認します。')
-      const result = await tool('project_activate', reference('Non Existent', byTitle(['Other Project'])), [], { config: false })
+      const result = await tool('project_activate', reference('Non Existent', byTitle(['Other Project'])), { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'project-not-found' } })
       expect(result.structured['detail']).toMatch(/^project not found: Non Existent\n/u)
     })
@@ -436,7 +416,7 @@ describe('project_activate', () => {
       await verifies(context, 'PW-PROJECT-ACTIVATE-14')
       await explains('`project_activate` の初期化されていないプロジェクトのテストです。プロジェクトに進行の欄が無い場合は、`kind` が `not-initialized` の失敗を返し、`project_check` を案内することを確認します。')
       const reads = boardWith(TITLE_READ, statusRead())
-      const result = await tool('project_activate', reference('1', reads), [], { config: false })
+      const result = await tool('project_activate', reference('1', reads), { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'not-initialized' } })
       expect(result.structured['detail']).toContain('project_check with method: "fields"')
       expect(result.read(CONFIG_FILE)).toBeUndefined()
@@ -445,10 +425,10 @@ describe('project_activate', () => {
     it('要る読み取りが無いか、欄の一覧に続きのページがあると、kind が invalid-input の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-ACTIVATE-30')
       await explains('`project_activate` の読み取りのテストです。ボードの読み取りが無い場合と、欄の一覧に続きのページがある場合は、`invalid-input` の失敗を返し、設定ファイルを作らないことを確認します。')
-      const noProject = await tool('project_activate', reference('1', { ...boardReads(), project: undefined }), [], { config: false })
+      const noProject = await tool('project_activate', reference('1', { ...boardReads(), project: undefined }), { config: false })
       expect(noProject).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
       const reads = boardReads(fieldsRead([TITLE_READ, workflowRead()], true))
-      const nextPage = await tool('project_activate', reference('1', reads), [], { config: false })
+      const nextPage = await tool('project_activate', reference('1', reads), { config: false })
       expect(nextPage).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
       expect(nextPage.structured['detail']).toMatch(/^list_project_fields in reads\.fields has a next page/u)
       expect(nextPage.read(CONFIG_FILE)).toBeUndefined()
@@ -457,24 +437,24 @@ describe('project_activate', () => {
     it('reads の形が公式の GitHub MCP の結果と違うと、kind が github-mcp-shape の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-ACTIVATE-31')
       await explains('`project_activate` の読み取りの形のテストです。欄の一覧が配列でない場合と、単一選択の欄に `node_id` が無い場合は、`kind` が `github-mcp-shape` の失敗を返すことを確認します。')
-      const notList = await tool('project_activate', reference('1', { ...boardReads(), fields: { fields: { fields: 'none' } } }), [], { config: false })
+      const notList = await tool('project_activate', reference('1', { ...boardReads(), fields: { fields: { fields: 'none' } } }), { config: false })
       expect(notList).toMatchObject({ isError: true, structured: { kind: 'github-mcp-shape' } })
       const withoutNodeId = { ...workflowRead(), node_id: undefined }
-      const noNodeId = await tool('project_activate', reference('1', boardWith(TITLE_READ, withoutNodeId)), [], { config: false })
+      const noNodeId = await tool('project_activate', reference('1', boardWith(TITLE_READ, withoutNodeId)), { config: false })
       expect(noNodeId).toMatchObject({ isError: true, structured: { kind: 'github-mcp-shape', detail: 'the result of projects_list in reads.fields has no node_id for field pecot-status' } })
     })
 
     it('owner の種類が分からないと、kind が invalid-input の失敗を返し、owner_type を案内する', async (context) => {
       await verifies(context, 'PW-PROJECT-ACTIVATE-29')
       await explains('`project_activate` の `owner_type` のテストです。入力と読み取りのどちらでも個人か organization かが分からない場合は、`invalid-input` の失敗を返し、`owner_type` を案内することを確認します。')
-      const result = await tool('project_activate', { ...reference('1'), owner_type: undefined }, [], { config: false })
+      const result = await tool('project_activate', { ...reference('1'), owner_type: undefined }, { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input', detail: 'cannot tell whether acme is a user or an organization\n  pass owner_type, the value given to projects_get' } })
     })
 
     it('渡した設定ファイルを読めないと、kind が config-invalid の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-ACTIVATE-16')
       await explains('`project_activate` の読み込めない設定ファイルのテストです。指定した設定ファイルを読み込めない場合は、`kind` が `config-invalid` の失敗を返すことを確認します。')
-      const result = await tool('project_activate', { project: 'broken' }, [], { config: false, files: { [`${PROJECTS_DIRECTORY}/broken.json`]: '{ not json' } })
+      const result = await tool('project_activate', { project: 'broken' }, { config: false, files: { [`${PROJECTS_DIRECTORY}/broken.json`]: '{ not json' } })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'config-invalid' } })
     })
 
@@ -490,7 +470,7 @@ describe('project_activate', () => {
       await verifies(context, 'PW-PROJECT-ACTIVATE-22')
       await explains('`project_activate` の必須の選択肢が不足しているボードのテストです。進行の欄の必須の選択肢が不足している場合は、`kind` が `not-initialized` の失敗を返すことを確認します。')
       const reads = boardWith(TITLE_READ, workflowRead(['Backlog', 'Blocked']))
-      const result = await tool('project_activate', reference('1', reads), [], { config: false })
+      const result = await tool('project_activate', reference('1', reads), { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'not-initialized' } })
       expect(result.read(CONFIG_FILE)).toBeUndefined()
     })
@@ -500,15 +480,13 @@ describe('project_activate', () => {
 describe('project_link', () => {
   const demo = { owner: 'acme', name: 'demo', develop_branch: 'main' }
   const withRepository = (...repositories: Json[]): Partial<CommandRun> => ({ config: projectConfig({ repositories }) })
-  const setRepository = async (input: Readonly<Record<string, unknown>>, extra: Partial<CommandRun> = {}): Promise<CommandResult> => await run('project_link', input, [], extra)
+  const setRepository = async (input: Readonly<Record<string, unknown>>, extra: Partial<CommandRun> = {}): Promise<CommandResult> => await run('project_link', input, extra)
 
   it('未登録のリポジトリを渡すと、ボードへのリンクの要求を送らずに設定ファイルへ足す', async (context) => {
     await verifies(context, 'PW-PROJECT-LINK-01')
-    await explains('`project_link` の未登録のリポジトリのテストです。未登録のリポジトリを指定した場合は、GitHub へ要求を送信せず、設定ファイルにだけ追加することを確認します。')
+    await explains('`project_link` の未登録のリポジトリのテストです。未登録のリポジトリを指定した場合は、設定ファイルに追加することを確認します。')
     const result = await setRepository({ repo: 'acme/other' })
     expect(result.code).toBe(0)
-    expectClean(result)
-    expect(result.requests).toEqual([])
     expect(repositoriesOf(result)).toEqual([demo, { owner: 'acme', name: 'other' }])
   })
 
@@ -522,10 +500,9 @@ describe('project_link', () => {
 
   it('登録済みのリポジトリを渡すと、渡したオプションの値だけを更新する', async (context) => {
     await verifies(context, 'PW-PROJECT-LINK-03')
-    await explains('`project_link` の登録済みのリポジトリのテストです。登録済みのリポジトリを指定した場合は、指定したオプションの値だけを更新し、GitHub へ要求を送信しないことを確認します。')
+    await explains('`project_link` の登録済みのリポジトリのテストです。登録済みのリポジトリを指定した場合は、指定したオプションの値だけを更新することを確認します。')
     const result = await setRepository({ repo: 'acme/demo', develop_branch: 'dev' }, withRepository({ ...demo, release_branch: 'release' }))
     expect(result.code).toBe(0)
-    expect(result.requests).toEqual([])
     expect(repositoriesOf(result)).toEqual([{ owner: 'acme', name: 'demo', develop_branch: 'dev', release_branch: 'release' }])
     expect(result.stderr).toBe(`updated: acme/demo in ${configPathOf(result)}\n`)
   })
@@ -673,7 +650,7 @@ describe('project_link', () => {
     it('アクティブなプロジェクトが存在しないと、kind が no-active-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-LINK-15')
       await explains('`project_link` のアクティブなプロジェクトが存在しない場合のテストです。アクティブなプロジェクトが存在しない場合は、`kind` が `no-active-project` の失敗を返すことを確認します。')
-      const result = await tool('project_link', { repo: 'acme/demo' }, [], { config: false })
+      const result = await tool('project_link', { repo: 'acme/demo' }, { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
     })
 
@@ -681,7 +658,7 @@ describe('project_link', () => {
       await verifies(context, 'PW-PROJECT-LINK-17')
       await explains('`project_link` の `packages` を持つリポジトリのテストです。`packages` を持つリポジトリに `changelog_file` を指定した場合は、`kind` が `invalid-input` の失敗を返し、設定ファイルを書き換えないことを確認します。')
       const packaged = { ...demo, packages: [{ name: 'a', changelog: 'a.md' }] }
-      const result = await tool('project_link', { repo: 'acme/demo', changelog_file: 'C.md' }, [], withRepository(packaged))
+      const result = await tool('project_link', { repo: 'acme/demo', changelog_file: 'C.md' }, withRepository(packaged))
       expect(result).toMatchObject({ isError: true, structured: { kind: 'invalid-input' } })
       expect(repositoriesOf(result)).toEqual([packaged])
     })
@@ -690,7 +667,7 @@ describe('project_link', () => {
 
 describe('project_set', () => {
   const withAggregation = (value?: string): Partial<CommandRun> => ({ config: projectConfig(value === undefined ? {} : { extra: { aggregation_repo: value } }) })
-  const set = async (input: Readonly<Record<string, unknown>>, extra: Partial<CommandRun> = {}): Promise<CommandResult> => await run('project_set', { key: 'aggregation_repo', ...input }, [], extra)
+  const set = async (input: Readonly<Record<string, unknown>>, extra: Partial<CommandRun> = {}): Promise<CommandResult> => await run('project_set', { key: 'aggregation_repo', ...input }, extra)
 
   it('未設定の状態で値を渡すと、設定ファイルに書く', async (context) => {
     await verifies(context, 'PW-PROJECT-SET-01')
@@ -755,7 +732,7 @@ describe('project_set', () => {
     it('別の値に上書きすると、change を update にして previous を返し、上書きの知らせを warnings に返す', async (context) => {
       await verifies(context, 'PW-PROJECT-SET-04')
       await explains('`project_set` の上書きのテストです。別の値で上書きした場合は、`change` を `update` にし、`previous` と上書きの警告を結果に含めることを確認します。')
-      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/new' }, [], withAggregation('acme/roadmap'))
+      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/new' }, withAggregation('acme/roadmap'))
       expect(result.structured).toMatchObject({ key: 'aggregation_repo', value: 'acme/new', previous: 'acme/roadmap', change: 'update', configPath: path.join(result.directory, CONFIG_FILE) })
       expect(result.structured['warnings']).toEqual(['overwriting aggregation_repo: acme/roadmap -> acme/new\n  pass yes: true to omit this hint'])
     })
@@ -763,7 +740,7 @@ describe('project_set', () => {
     it('yes を付けて上書きすると、上書きの知らせから確認の案内を省く', async (context) => {
       await verifies(context, 'PW-PROJECT-SET-05')
       await explains('`project_set` の `yes` のテストです。`yes` を指定して上書きした場合は、上書きの警告から確認の案内を省略することを確認します。')
-      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/new', yes: true }, [], withAggregation('acme/roadmap'))
+      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/new', yes: true }, withAggregation('acme/roadmap'))
       expect(result.structured['warnings']).toEqual(['overwriting aggregation_repo: acme/roadmap -> acme/new'])
     })
 
@@ -778,7 +755,7 @@ describe('project_set', () => {
     it('アクティブなプロジェクトが存在しないと、kind が no-active-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-SET-07')
       await explains('`project_set` のアクティブなプロジェクトが存在しない場合のテストです。アクティブなプロジェクトが存在しない場合は、`kind` が `no-active-project` の失敗を返すことを確認します。')
-      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' }, [], { config: false })
+      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' }, { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
     })
 
@@ -792,7 +769,7 @@ describe('project_set', () => {
     it('同じ値だと change を unchanged にする', async (context) => {
       await verifies(context, 'PW-PROJECT-SET-03')
       await explains('`project_set` の同じ値のテストです。既に設定している値と同じ値を指定した場合は、`change` を `unchanged` にすることを確認します。')
-      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' }, [], withAggregation('acme/roadmap'))
+      const result = await tool('project_set', { key: 'aggregation_repo', value: 'acme/roadmap' }, withAggregation('acme/roadmap'))
       expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap', previous: 'acme/roadmap', change: 'unchanged', configPath: path.join(result.directory, CONFIG_FILE) })
     })
   })
@@ -804,14 +781,14 @@ describe('project_unset', () => {
   it('値を設定していると、設定ファイルから消す', async (context) => {
     await verifies(context, 'PW-PROJECT-UNSET-01')
     await explains('`project_unset` の `aggregation_repo` のテストです。値を設定している場合は、設定ファイルから `aggregation_repo` を削除することを確認します。')
-    const result = await run('project_unset', { key: 'aggregation_repo' }, [], configured)
+    const result = await run('project_unset', { key: 'aggregation_repo' }, configured)
     expect(result.code).toBe(0)
     expect(savedConfig(result)).not.toHaveProperty('aggregation_repo')
   })
 
   it('値を設定していると、removed の行を標準エラーに出す', async () => {
     await explains('`project_unset` の標準エラーのテストです。値を設定している場合は、標準出力に何も出力せず、`removed` の行を標準エラーへ出力することを確認します。')
-    const result = await run('project_unset', { key: 'aggregation_repo' }, [], configured)
+    const result = await run('project_unset', { key: 'aggregation_repo' }, configured)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe('removed: aggregation_repo (was acme/roadmap)\n')
   })
@@ -825,7 +802,7 @@ describe('project_unset', () => {
 
   it('アクティブなプロジェクトが存在しないと、終了コード 1 で終わる', async () => {
     await explains('`project_unset` のアクティブなプロジェクトが存在しない場合のテストです。アクティブなプロジェクトが存在しない場合は、エラーを出力して終了コード 1 で終わることを確認します。')
-    const result = await run('project_unset', { key: 'aggregation_repo' }, [], { config: false })
+    const result = await run('project_unset', { key: 'aggregation_repo' }, { config: false })
     expect(result.code).toBe(1)
     expect(result.stderr).toBe(NO_ACTIVE)
   })
@@ -834,7 +811,7 @@ describe('project_unset', () => {
     it('値を消すと change を delete にして、消した値を previous に、書いた設定ファイルのパスを configPath に返す', async (context) => {
       await verifies(context, 'PW-PROJECT-UNSET-02')
       await explains('`project_unset` の結果のテストです。値を削除した場合は、`change` を `delete` にし、削除した値を `previous` に、設定ファイルのパスを `configPath` に含めることを確認します。')
-      const result = await tool('project_unset', { key: 'aggregation_repo' }, [], withAggregation('acme/roadmap'))
+      const result = await tool('project_unset', { key: 'aggregation_repo' }, withAggregation('acme/roadmap'))
       expect(result.structured).toEqual({ key: 'aggregation_repo', previous: 'acme/roadmap', change: 'delete', configPath: path.join(result.directory, CONFIG_FILE) })
     })
 
@@ -848,7 +825,7 @@ describe('project_unset', () => {
     it('アクティブなプロジェクトが存在しないと、kind が no-active-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-UNSET-04')
       await explains('`project_unset` のアクティブなプロジェクトが存在しない場合のテストです。アクティブなプロジェクトが存在しない場合は、`kind` が `no-active-project` の失敗を返すことを確認します。')
-      const result = await tool('project_unset', { key: 'aggregation_repo' }, [], { config: false })
+      const result = await tool('project_unset', { key: 'aggregation_repo' }, { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
     })
 
@@ -864,7 +841,7 @@ describe('project_unset', () => {
 describe('project_get', () => {
   it('値を設定していると、その値を標準出力に出す', async () => {
     await explains('`project_get` の値の出力のテストです。値を設定している場合は、その値を標準出力へ出力することを確認します。')
-    const result = await run('project_get', { key: 'aggregation_repo' }, [], { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) })
+    const result = await run('project_get', { key: 'aggregation_repo' }, { config: projectConfig({ extra: { aggregation_repo: 'acme/roadmap' } }) })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe('acme/roadmap\n')
   })
@@ -880,16 +857,16 @@ describe('project_get', () => {
     await verifies(context, 'PW-PROJECT-GET-05')
     await explains('`project_get` の `key` を省略した場合のテストです。プロジェクトの名前と host と番号、`aggregation_repo`、リポジトリごとのブランチとリリースの方法を標準出力へ出力することを確認します。')
     const repositories = [{ owner: 'acme', name: 'demo', develop_branch: 'main', release_branch: 'release' }, { owner: 'acme', name: 'mono', packages: [{ name: 'a', changelog: 'a/CHANGELOG.md' }] }]
-    const result = await run('project_get', {}, [], { config: projectConfig({ repositories, extra: { aggregation_repo: 'acme/roadmap' } }) })
+    const result = await run('project_get', {}, { config: projectConfig({ repositories, extra: { aggregation_repo: 'acme/roadmap' } }) })
     expect(result.code).toBe(0)
     expect(result.stdout).toBe(`project: ${CONFIG_NAME} (${DEFAULT_HOST}, acme #1)\naggregation_repo: acme/roadmap\nrepositories:\n- acme/demo (develop: main, release: release), release_type: single\n- acme/mono, release_type: multi\n`)
-    const empty = await run('project_get', {}, [], { config: projectConfig({ repositories: [] }) })
+    const empty = await run('project_get', {}, { config: projectConfig({ repositories: [] }) })
     expect(empty.stdout).toBe(`project: ${CONFIG_NAME} (${DEFAULT_HOST}, acme #1)\naggregation_repo: none\nrepositories:\n- none\n`)
   })
 
   it('アクティブなプロジェクトが存在しないと、終了コード 1 で終わる', async () => {
     await explains('`project_get` のアクティブなプロジェクトが存在しない場合のテストです。アクティブなプロジェクトが存在しない場合は、エラーを出力して終了コード 1 で終わることを確認します。')
-    const result = await run('project_get', { key: 'aggregation_repo' }, [], { config: false })
+    const result = await run('project_get', { key: 'aggregation_repo' }, { config: false })
     expect(result.code).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.stderr).toBe(NO_ACTIVE)
@@ -899,7 +876,7 @@ describe('project_get', () => {
     it('値があると key と value を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-GET-01')
       await explains('`project_get` の結果のテストです。値を設定している場合は、結果に `key` と `value` を含めることを確認します。')
-      const result = await tool('project_get', { key: 'aggregation_repo' }, [], withAggregation('acme/roadmap'))
+      const result = await tool('project_get', { key: 'aggregation_repo' }, withAggregation('acme/roadmap'))
       expect(result.structured).toEqual({ key: 'aggregation_repo', value: 'acme/roadmap' })
     })
 
@@ -914,7 +891,7 @@ describe('project_get', () => {
       await verifies(context, 'PW-PROJECT-GET-05')
       await explains('`project_get` の `key` を省略した場合の結果のテストです。`project` にプロジェクトの要約を、`repositories` にリポジトリごとのブランチとリリースの方法を含めることを確認します。')
       const repositories = [{ owner: 'acme', name: 'demo', develop_branch: 'main', changelog_file: 'docs/CHANGELOG.md' }, { owner: 'acme', name: 'mono', packages: [{ name: 'a', changelog: 'a/CHANGELOG.md' }], release_type: 'nx' }]
-      const result = await tool('project_get', {}, [], { config: projectConfig({ repositories }) })
+      const result = await tool('project_get', {}, { config: projectConfig({ repositories }) })
       expect(result.structured).toEqual({
         project: { name: CONFIG_NAME, host: DEFAULT_HOST, owner: 'acme', number: 1, aggregation_repo: null },
         repositories: [
@@ -927,14 +904,14 @@ describe('project_get', () => {
     it('key を省いてアクティブなプロジェクトが存在しないと、kind が no-active-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-GET-03')
       await explains('`project_get` の `key` を省略した場合のテストです。アクティブなプロジェクトが存在しない場合は、`kind` が `no-active-project` の失敗を返すことを確認します。')
-      const result = await tool('project_get', {}, [], { config: false })
+      const result = await tool('project_get', {}, { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
     })
 
     it('アクティブなプロジェクトが存在しないと、kind が no-active-project の失敗を返す', async (context) => {
       await verifies(context, 'PW-PROJECT-GET-03')
       await explains('`project_get` のアクティブなプロジェクトが存在しない場合のテストです。アクティブなプロジェクトが存在しない場合は、`kind` が `no-active-project` の失敗を返すことを確認します。')
-      const result = await tool('project_get', { key: 'aggregation_repo' }, [], { config: false })
+      const result = await tool('project_get', { key: 'aggregation_repo' }, { config: false })
       expect(result).toMatchObject({ isError: true, structured: { kind: 'no-active-project' } })
     })
 

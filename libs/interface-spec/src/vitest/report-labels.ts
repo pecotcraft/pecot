@@ -18,7 +18,7 @@ export interface FeatureStory {
   readonly story: string
 }
 
-const ID_NUMBER = /-\d{2}$/u
+const ID_NUMBER = /-\d{2,}$/u
 const COMMON_ITEM = /^[^-]+-COMMON$/u
 
 // 要件の ID から末尾の -NN を除いた、項目の ID。

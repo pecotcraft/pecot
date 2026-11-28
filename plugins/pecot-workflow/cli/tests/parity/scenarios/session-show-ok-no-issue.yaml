@@ -4,4 +4,3 @@ tool: session_show
 arguments:
   directory: .
 setup: {}
-github: []

@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時 root 配下のみ */
 /* eslint-disable @typescript-eslint/prefer-readonly-parameter-types -- SDK の Client と stream は mutable */
 // シナリオ 1 件を流して、golden と同じ形の結果を作る。parity.test.ts が使う。
-// 流れ: 一時 root と偽サーバを用意し、MCP のサーバを子プロセスで起動してツールを 1 回呼び、.pecot/ とデータ置き場を回収し、正規化する。
+// 流れ: 一時 root を用意し、MCP のサーバを子プロセスで起動してツールを 1 回呼び、.pecot/ とデータ置き場を回収し、正規化する。
 import { lstatSync, readdirSync, readFileSync, readlinkSync } from 'node:fs'
 import path from 'node:path'
 
@@ -9,7 +9,6 @@ import type { Client } from '@modelcontextprotocol/client'
 import { SdkError, SdkErrorCode } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 
-import { startFakeGithub } from '../../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { AttachingClient } from '../_helpers/attaching-client.js'
 import { outputSchemaIssues, toolOutcomeOf } from '../_helpers/mcp-client.js'
 import { compareStrings } from './baseline.js'
@@ -35,14 +34,6 @@ export interface Outcome {
   */
   readonly spawnError: string | undefined
   readonly timedOut: boolean
-  /**
-  偽サーバが見つけた誤り
-  */
-  readonly problems: readonly string[]
-  /**
-  使われなかった応答
-  */
-  readonly unused: readonly string[]
 }
 
 export const CHILD_TIMEOUT_MS = 25_000
@@ -173,20 +164,13 @@ async function callOnce(launcher: Launcher, scenario: Scenario, cwd: string, env
 
 export async function runScenario(scenario: Scenario, launcher: Launcher): Promise<Outcome> {
   const sandbox = createSandbox(scenario)
-  let server: Awaited<ReturnType<typeof startFakeGithub>> | undefined
   try {
-    server = await startFakeGithub(scenario.github)
-    const environment = {
-      ...baseEnvironment(sandbox),
-      PECOT_GITHUB_API_URL: server.url,
-      ...scenario.setup.env,
-    }
+    const environment = { ...baseEnvironment(sandbox), ...scenario.setup.env }
     const cwd = path.resolve(sandbox.repositoryDirectory, scenario.setup.cwd)
     const call = await callOnce(launcher, scenario, cwd, environment)
     const substitutions: readonly Substitution[] = [
       { from: sandbox.root, to: '{{TMP}}' },
       { from: pluginRoot, to: '{{PLUGIN_ROOT}}' },
-      { from: server.url, to: '{{GITHUB_API}}' },
     ]
     const normalized = (value: unknown): unknown => normalizeDeep(value, substitutions)
     const golden: Golden | undefined = call.kind === 'failed'
@@ -196,23 +180,15 @@ export async function runScenario(scenario: Scenario, launcher: Launcher): Promi
           ...call.called.text !== undefined && { text: normalizeText(call.called.text, substitutions) },
           structuredContent: recordOf(normalized(call.called.structuredContent)),
           stderr: normalizeText(call.stderr, substitutions),
-          requests: server.requests().map(request => normalized(request)),
           files: collectFiles(sandbox.root, sandbox.repositoryDirectory, sandbox.dataDirectory, substitutions),
         }
     return {
       golden,
       spawnError: call.kind === 'failed' ? call.reason : undefined,
       timedOut: call.kind === 'failed' && call.timedOut,
-      problems: server.problems(),
-      unused: server.unused(),
     }
   }
   finally {
-    try {
-      await server?.close()
-    }
-    finally {
-      destroySandbox(sandbox)
-    }
+    destroySandbox(sandbox)
   }
 }
