@@ -117,6 +117,7 @@ body.md は画像と同じ `.playwright-mcp/` に置く。gh は本文の `./<�
 リポに `pecot-github-ops.yml` と secret `PECOT_ATTACH_TOKEN` が要る。どちらかが無ければ、`screenshot` に理由を書く。
 
 1. 次を打って画像を送り、標準出力の `id=` の ID を控える。本文の `./<名前>.png` の参照は、PR の本文から消さない
+   - クラウドで保存した本文では、参照の先頭の `!` が落ちてリンクになる。`pr-attach` が画像の記法に戻すので、本文を直さない
 
    ```bash
    node <このスキルの base directory>/scripts/push-attach.cjs .playwright-mcp/<名前>.png ...

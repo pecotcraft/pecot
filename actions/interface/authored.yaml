@@ -1729,3 +1729,6 @@ entries:
       - id: PA-GITHUB-OPS-19
         pattern: unwanted
         statement: 'もし `pr-attach` の `branch` が `pecot-attach/` で始まらないなら、GitHub を呼ばず、ブランチを消さずに `invalid-input` を返します'
+      - id: PA-GITHUB-OPS-20
+        pattern: event
+        statement: '`pr-attach` を呼ぶと、PR の本文で載せる画像の `./<名前>` を指すリンクを、画像の記法に直してから載せます'

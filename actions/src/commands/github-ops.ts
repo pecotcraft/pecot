@@ -280,6 +280,14 @@ const ATTACH_LIMIT = 50
 const ATTACH_NAME = /^[\w.-]+$/u
 const SYMLINK_MODE = '120000'
 const UNPROCESSABLE = 422
+// 拡張子が .md なので、載せる画像の名前と重ならない
+const ATTACH_BODY = 'pecot-attach-body.md'
+
+// Claude Code のクラウドのセッションは、相対パスを指す画像の記法の先頭の感嘆符を落として保存する。載せる画像を指すリンクを画像の記法に戻す
+function restoreImageMarks(body: string, names: readonly string[]): string {
+  const targets = new Set(names.map(name => `./${name}`))
+  return body.replaceAll(/(!?)\[([^\]\n]*)\]\((\.\/[\w.-]+)\)/gu, (match, mark: string, alt: string, target: string) => mark === '' && targets.has(target) ? `![${alt}](${target})` : match)
+}
 
 function attachEntryProblem(entry: Readonly<TreeEntry>): string | undefined {
   if (entry.type !== 'blob' || entry.mode === SYMLINK_MODE) return `${entry.path} is not a file`
@@ -328,14 +336,22 @@ async function uploadAttachments(parameters: Readonly<{ pr: number, branch: stri
   try {
     for (const entry of entries) writeFileSync(path.join(directory, entry.path), await client.getBlobBytes(owner, repository, entry.sha))
     const host = hostOf()
+    const names = entries.map(entry => entry.path)
     // gh は本文の ./<名前> を cwd から解くので、画像のディレクトリで起こす。cwd は git のリポでないので、リポは GH_REPO で渡す
-    const result = await runProcess('gh', ['pr', 'edit', String(parameters.pr), ...entries.flatMap(entry => ['--attach', `./${entry.path}`])], {
+    const options = {
       cwd: directory,
       // interface-env: none
       env: { ...process.env, GH_TOKEN: context.attachToken, GH_HOST: host, GH_REPO: `${host}/${owner}/${repository}`, GH_PROMPT_DISABLED: '1' },
-    })
+    }
+    const view = await runProcess('gh', ['pr', 'view', String(parameters.pr), '--json', 'body', '--jq', '.body'], options)
+    if (view.exitCode !== 0) throw new OperationRefused('github-api', `gh pr view failed (exit ${String(view.exitCode)}): ${view.stderr.trim()}`)
+    const current = view.stdout.replace(/\n$/u, '')
+    const restored = restoreImageMarks(current, names)
+    if (restored !== current) writeFileSync(path.join(directory, ATTACH_BODY), restored)
+    const bodyArguments = restored === current ? [] : ['--body-file', `./${ATTACH_BODY}`]
+    const result = await runProcess('gh', ['pr', 'edit', String(parameters.pr), ...bodyArguments, ...names.flatMap(name => ['--attach', `./${name}`])], options)
     if (result.exitCode !== 0) throw new OperationRefused('github-api', `gh pr edit failed (exit ${String(result.exitCode)}): ${result.stderr.trim()}`)
-    return entries.map(entry => entry.path)
+    return names
   }
   finally {
     rmSync(directory, { recursive: true, force: true })

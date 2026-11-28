@@ -1,6 +1,6 @@
 /* eslint-disable security/detect-non-literal-fs-filename -- 触るのは一時ディレクトリ配下のみ */
 // github-ops の pr-attach を確かめる。gh は PATH の先頭の偽物で、引数・cwd・環境・cwd のファイルを記録する。
-import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
 import { describe, expect, it } from 'vitest'
@@ -31,11 +31,14 @@ interface FakeGh {
   readonly seen: () => Readonly<Record<string, string>>
 }
 
-// 偽の gh。記録を gh.seen に書き、stderr と終了コードを決める
-function fakeGh(options: { readonly stderr?: string, readonly exitCode?: number } = {}): FakeGh {
+// 偽の gh。pr view は body を出す。pr edit は記録を gh.seen に書き、stderr と終了コードを決める
+function fakeGh(options: { readonly stderr?: string, readonly exitCode?: number, readonly body?: string } = {}): FakeGh {
   const bin = makeTemporaryDirectory('pecot-attach-gh-')
   const seenFile = path.join(bin, 'gh.seen')
+  const bodyFile = path.join(bin, 'gh.body')
+  writeFileSync(bodyFile, `${options.body ?? '![shot](./shot.png)'}\n`)
   installFakeExecutable(bin, 'gh', [
+    `if [ "$2" = view ]; then cat '${bodyFile}'; exit 0; fi`,
     String.raw`{ printf 'cwd=%s\n' "$PWD"; printf 'token=%s\n' "$GH_TOKEN"; printf 'host=%s\n' "$GH_HOST"; printf 'repo=%s\n' "$GH_REPO"; for f in *; do printf 'file:%s=%s\n' "$f" "$(cat "$f")"; done; } > '${seenFile}'`,
     `printf '%s' '${options.stderr ?? ''}' >&2`,
     `exit ${String(options.exitCode ?? 0)}`,
@@ -81,13 +84,24 @@ describe('github ops', () => {
     const { result, runnerTemporary } = await attach(rules, gh)
     expect(result.code).toBe(0)
     expect(result.result).toEqual({ pr: 12, files: ['shot.png', 'demo.MP4'], deleted_branches: [BRANCH] })
-    expect(readFakeCalls(gh.bin, 'gh')).toEqual([['pr', 'edit', '12', '--attach', './shot.png', '--attach', './demo.MP4']])
+    expect(readFakeCalls(gh.bin, 'gh')).toEqual([['pr', 'view', '12', '--json', 'body', '--jq', '.body'], ['pr', 'edit', '12', '--attach', './shot.png', '--attach', './demo.MP4']])
     const seen = gh.seen()
     expect(path.dirname(seen['cwd'] ?? '')).toBe(runnerTemporary)
     expect(seen).toMatchObject({ 'token': ATTACH_TOKEN, 'host': 'github.com', 'repo': 'github.com/acme/demo', 'file:shot.png': 'PNG-A', 'file:demo.MP4': 'MP4-B' })
     expect(existsSync(seen['cwd'] ?? '')).toBe(false)
     expect(writesOf(result.github.requests())).toEqual([`DELETE ${REPO}/git/refs/heads/${BRANCH}`])
     expect(result.stdout).not.toContain(ATTACH_TOKEN)
+  })
+
+  it('pr-attach を呼ぶと、本文で載せる画像を指すリンクを画像の記法に直した本文を、gh に渡す', async (context) => {
+    await verifies(context, 'PA-GITHUB-OPS-20')
+    await explains('`pr-attach` の本文のテストです。載せる画像の `./<名前>` を指すリンクだけを画像の記法に直し、その本文を `--body-file` で gh に渡すことを確認します。')
+    const gh = fakeGh({ body: 'A [shot](./shot.png) B ![demo](./demo.MP4) C [other](./other.png)' })
+    const rules = [referencesOf([[BRANCH, HEAD]]), treeOf([file('shot.png', 'b1'), file('demo.MP4', 'b2')]), blob('b1', 'PNG-A'), blob('b2', 'MP4-B'), deleted(BRANCH)]
+    const { result } = await attach(rules, gh)
+    expect(result.code).toBe(0)
+    expect(readFakeCalls(gh.bin, 'gh').at(-1)).toEqual(['pr', 'edit', '12', '--body-file', './pecot-attach-body.md', '--attach', './shot.png', '--attach', './demo.MP4'])
+    expect(gh.seen()['file:pecot-attach-body.md']).toBe('A ![shot](./shot.png) B ![demo](./demo.MP4) C [other](./other.png)')
   })
 
   it('pr-attach を呼ぶと、渡したブランチのほかの pecot-attach のブランチのうち、24 時間より古いものだけを消す', async (context) => {
