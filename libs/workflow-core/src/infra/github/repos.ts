@@ -200,6 +200,14 @@ export class ReposApi extends GitHubClientBase {
   }
 
   /**
+  base と head の分かれ目の commit の SHA（REST の compare の merge_base_commit）
+  */
+  async getMergeBase(owner: string, repository: string, base: string, head: string): Promise<string> {
+    const comparison = await this.restJson('GET', `${repositoryPath(owner, repository)}/compare/${encodePath(base)}...${encodePath(head)}`, { params: { per_page: 1 } })
+    return requireString(jsonField(jsonField(comparison, 'merge_base_commit'), 'sha'), 'merge_base_commit.sha')
+  }
+
+  /**
   GitHub のリリースを作る。target_commitish を指定するので、タグも自動で作られる
   */
   async createRelease(owner: string, repository: string, tagName: string, name: string, body: string, options: Readonly<CreateReleaseOptions> = {}): Promise<JsonObject> {
