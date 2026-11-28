@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "build": "rollup --config rollup.config.mjs",
+    "build": "tsx scripts/clean-distribution.ts && rollup --config rollup.config.mjs",
     "lint": "node scripts/tsc.mjs --noEmit && eslint --max-warnings=0 . && knip",
     "sync-templates": "tsx scripts/sync-plugin-templates.ts"
   },
