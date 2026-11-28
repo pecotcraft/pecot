@@ -11,7 +11,7 @@ environment:
   - name: COPILOT_PLUGIN_ROOT
     effect: 'MCP のサーバが起動時に読み、値があるかどうかだけを見ます。あれば、GitHub Copilot CLI がサーバを起動したとみなし、セッションのディレクトリを決めるのに `CLAUDE_PROJECT_DIR` を使いません。空の値は無視します。'
   - name: COPILOT_SESSION_CWD
-    effect: 'MCP のサーバが起動時に読みます。サーバがプラグインのディレクトリ（`CLAUDE_PLUGIN_ROOT`）の中で起動されたときに、起動時に 1 回だけこのディレクトリへ移り、セッションのディレクトリとして扱います。`CLAUDE_PROJECT_DIR` より先に使います。値が既にあるディレクトリでないと、どのツールの呼び出しも終了コード 1 で失敗し、理由に変数の名前と値が出ます。この変数が無い 1.0.106 より古い GitHub Copilot CLI では、どのツールの呼び出しも終了コード 1 で失敗し、理由がアップグレードを求めます。空の値は無視します。'
+    effect: 'MCP のサーバが起動時に読みます。サーバがプラグインのディレクトリ（`CLAUDE_PLUGIN_ROOT`）の中で起動されたときに、起動時に 1 回だけこのディレクトリへ移り、セッションのディレクトリとして扱います。`CLAUDE_PROJECT_DIR` より先に使います。値が既にあるディレクトリでないと、どのツールも `kind` が `session-directory-unresolved` の失敗を返します。`detail` には、変数の名前と値が出ます。この変数が無い 1.0.106 より古い GitHub Copilot CLI でも、どのツールも同じ `kind` の失敗を返します。`detail` は、アップグレードを求めます。空の値は無視します。'
   - name: CLAUDE_PLUGIN_DATA
     effect: '絶対パスのときに、データディレクトリになります。`PLUGIN_DATA`・`XDG_DATA_HOME`・`HOME` より先に使う、最初の候補です。場所を調べるだけでは、ディレクトリを作りません。'
   - name: PLUGIN_DATA
@@ -43,15 +43,15 @@ entries:
       - '進行の欄（`pecot-status`）に書けるのは、pecot の列に当たる選択肢だけです。空にはできません。'
       - 'カードがボードに無いときは、`projects_write` の `add_project_item` で先に足すよう `not-found` の項目で案内します。'
       - '`Ready` か `Blocked` に書くときは、その列に置いたとして、`issue_dependency_check` と同じ規則で前提を判定します。判定が別の列を示せば、`status-mismatch` の項目を返します。'
-      - '判定が Status の札も動かすときは、`warning` の行で案内します。前提の PR を読んでおらず、スタックできるかを決められないときは、読む PR を `warning` の行で案内します。'
+      - '判定が Status の札も動かすときは、`warnings` で案内します。前提の PR を読んでおらず、スタックできるかを決められないときは、読む PR を `warnings` で案内します。'
+      - '外れた所が無ければ、成功の結果の文は `ok` です。あれば、最初の外れた所の `<引数>: <内容>` です。'
     stdin: none
     output:
-      format: text
-      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<引数>: <内容>` の行を出します。'
+      format: none
     mcp_output:
       fields:
         problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。受け付ける値が決まっているときは `candidates` に入れます。空なら、値をそのまま書けます。'
-    diagnostics: '判定が Status の札も動かすときと、スタックできるかを決められないときに、`warning` の行を出します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: github-mcp-shape
@@ -61,9 +61,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -124,16 +124,16 @@ entries:
       - '判定に要る読み取りが足りない Issue は、判定を `unknown` にし、足りない読み取りを理由に入れます。'
       - '判定と列か Status の食い違う Issue があると、件数を `mismatches` に入れ、`pecot-board-sync` のワークフローを手で動かすよう `warnings` で案内します。'
       - 'リポジトリごとの Dependabot alert は出しません。公式の MCP の `list_dependabot_alerts` で読みます。'
+      - 'ボードに `pecot-status` の欄が無いときは、項目に列を付けず、`warnings` に入れます。'
     stdin: none
     output:
-      format: text
-      description: 'Board status の節がある Markdown です。Ready と Blocked の表には、Readiness の列があります。`lanes` が空でなければ、Lanes の節を足します。`json` を付けると、`board` と `lanes` を持つ JSON のオブジェクトです。'
+      format: none
     mcp_output:
       fields:
         board: 'ボードの状態です。`items` の配列を持ち、Backlog・Pending・Blocked・Ready・Active・In Review にある開いた項目が入ります。要素は `id`・`workflow`（列。無ければ `null`）・`lane`・`title`・`updatedAt`・`content`・`readiness` を持ちます。`content` は `number`・`state`・`url`・`labels`・`repository` を持ちます。`readiness` は、判定した Issue だけが `kind`・`stackOn`・`reason`・`text` を持ち、ほかの項目は `null` です。'
         lanes: '`pecot-lane` の値ごとの Issue の数です。要素は `name`・`count`・`startable` を持ちます。選択肢の順に並び、値の無い組は `name` が `null` で末尾に来ます。ボードに `pecot-lane` が無ければ空の配列です。'
         mismatches: '判定した Issue のうち、列と Status のどちらかが判定と食い違うものの件数です。'
-    diagnostics: '判定と食い違う Issue があるとき、`reads.items` の最後のページに続きがあるとき、ボードに `pecot-status` が無いときに、`warning` の行を出します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: no-active-project
@@ -147,9 +147,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -218,10 +218,10 @@ entries:
       - 'スタックするときは、スタック先の Issue を `stacked_on` に返します。`session_start` に渡します。'
       - 'ブランチ名が `/<Issue の番号>` で終わるか、リポが設定の `repositories` にあるかを見ます。'
       - '作業ディレクトリの git remote が Issue のリポと違うときは、そのリポの worktree へ移るよう `repository-mismatch` の項目で案内します。'
+      - '外れた所が無ければ、成功の結果の文は `ok` です。あれば、最初の外れた所の `<引数>: <内容>` です。'
     stdin: none
     output:
-      format: text
-      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<引数>: <内容>` の行を出します。スタックするときは、続けてスタック先の行を出します。'
+      format: none
     mcp_output:
       fields:
         problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。受け付ける値が決まっているときは `candidates` に入れます。空なら、値をそのまま渡せます。'
@@ -236,9 +236,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -299,16 +299,17 @@ entries:
       - '題の接頭辞と番号、ボードの欄と置く列、前提の待ち方は、テンプレートによらずいつも見ます。'
       - '決まりを確かめるのに要る読み取りが `reads` に無いと、`code` が `read-required` の項目で、読むツールと `method` を案内します。'
       - '`create` では、Issue ごとの進め方を `plan` に、スタックできる並びを `stackableChains` に入れます。'
+      - '外れた所が無ければ、成功の結果の文は `ok` です。あれば、最初の外れた所の `<Issue>: <引数>: <内容>` です。'
+      - '決まりに外れはしないが注意の要る値は、`warnings` に入れます。前提の PR を読んでおらず、スタックできるかを決められないときは、読む PR を `warnings` で案内します。'
     stdin: none
     output:
-      format: text
-      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<Issue>: <引数>: <内容>` の行を出します。'
+      format: none
     mcp_output:
       fields:
         problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。`issue` は一括のキーか `owner/repo/N` で、対象が 1 つのときは入りません。受け付ける値が決まっているときは `candidates` に入れます。空なら、値をそのまま書けます。'
         plan: '`create` のときだけ入る、Issue ごとの進め方の表です。渡した順に並びます。要素は `key`・`blockedBy`・`approach` を必ず持ちます。`approach` は `alone`・`wait-merge`・`stack`・`join` のどれかです。`order` は、親 Epic があるときだけ入ります。`stackOn` は、`approach` が `stack` のときだけ入ります。'
         stackableChains: 'スタックできる並びの配列です。1 つの並びは、親から子の順に並べた文字列の配列です。一括の Issue はキー、既存の Issue は `#N` か `owner/repo#N` で書きます。スタックできる並びが無いときは入りません。'
-    diagnostics: '決まりに外れはしないが、注意の要る値に `warning` の行を出します。前提の PR を読んでおらず、スタックできるかを決められないときも出します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: github-mcp-shape
@@ -318,9 +319,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -380,7 +381,7 @@ entries:
         statement: '前提を渡すと、待ち方・理由・`Waits for merge` の節を確かめ、置く列が `Ready` か `Blocked` かを決めます'
       - id: PW-ISSUE-CHECK-11
         pattern: state
-        statement: '前提の PR を読んでいない間、`Ready` と `Blocked` のどちらも受け、読む PR を `warning` の行で案内します'
+        statement: '前提の PR を読んでいない間、`Ready` と `Blocked` のどちらも受け、読む PR を `warnings` で案内します'
       - id: PW-ISSUE-CHECK-12
         pattern: event
         statement: '前提の PR を `reads` で受けると、スタックできるかで `Ready` か `Blocked` を決め、もう一方の列を項目にします'
@@ -413,14 +414,14 @@ entries:
       - '値を受けて、決まりに外れた所を `problems` に返します。GitHub を読み書きしません。'
       - '同梱のテンプレートを指すと、本文をテンプレートの見出しと書き方に照らします。差し替えたテンプレートを指すときと、テンプレートを省くときは、本文に決まりを当てません。'
       - '`update` では、`comment_id` のコメントが `issue_number` の Issue に属することを、読み取りの結果で確かめます。'
+      - '外れた所が無ければ、成功の結果の文は `ok` です。あれば、最初の外れた所の `<引数>: <内容>` です。'
     stdin: none
     output:
-      format: text
-      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<引数>: <内容>` の行を出します。'
+      format: none
     mcp_output:
       fields:
         problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。受け付ける値が決まっているときは `candidates` に入れます。空なら、値をそのまま書けます。'
-    diagnostics: '標準エラーに行を出しません。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: github-mcp-shape
@@ -428,9 +429,9 @@ entries:
       - kind: invalid-input
         when: '引数の形が誤っています。`method` が `add`・`update` でないときを含みます。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -493,17 +494,17 @@ entries:
       - '値を受けて、決まりに外れた所を `problems` に返します。GitHub を読み書きしません。'
       - '向き・待ち方・理由・自分自身や輪になる前提・すでにある前提・前提の数の上限を見ます。'
       - '書いた後に待つ側の Issue を置く列を `expected_status` に、`Waits for merge` の節を直した待つ側の本文を `body` に返します。'
-      - '前提の PR を読んでいないときは、スタックできるかを決めず、`expected_status` を返しません。読む PR を `warning` の行で案内します。'
+      - '前提の PR を読んでいないときは、スタックできるかを決めず、`expected_status` を返しません。読む PR を `warnings` で案内します。'
+      - '外れた所が無ければ、成功の結果の文は `ok` です。あれば、最初の外れた所の `<引数>: <内容>` です。'
     stdin: none
     output:
-      format: text
-      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<引数>: <内容>` の行を出します。動かす列があれば、続けて 1 行出します。本文を直すときは、その旨の行と直した本文を続けて出します。'
+      format: none
     mcp_output:
       fields:
         problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。受け付ける値が決まっているときは `candidates` に入れます。空なら、値をそのまま書けます。'
         expected_status: '書いた後に待つ側の Issue を動かす列（`pecot-status`）の、ボードの選択肢の名前です。列が変わらないときと、決められないときは入りません。'
         body: '待つ側の Issue の本文に、`Waits for merge` の節の前提の行を足すか消したものです。`issue_check`（`update`）に通して `issue_write` で書きます。本文を直す必要が無いときは入りません。'
-    diagnostics: '前提の PR を読んでおらず、スタックできるかを決められないときに、読む PR を `warning` の行で案内します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: github-mcp-shape
@@ -513,9 +514,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -542,7 +543,7 @@ entries:
         statement: '`method` が `add` の値を受けると、GitHub を読み書きせずに、`problems` と書いた後に動かす列と直した本文を返します'
       - id: PW-ISSUE-DEPENDENCY-CHECK-02
         pattern: state
-        statement: '前提の PR を読んでいないか、PR の base を辿れない間、`expected_status` を返さず、読む PR を `warning` の行で案内します'
+        statement: '前提の PR を読んでいないか、PR の base を辿れない間、`expected_status` を返さず、読む PR を `warnings` で案内します'
       - id: PW-ISSUE-DEPENDENCY-CHECK-03
         pattern: event
         statement: '前提の PR を `reads` で受けると、スタックできるなら `Ready`、できないなら `Blocked` を `expected_status` に返します'
@@ -598,20 +599,20 @@ entries:
       - 'head が今のブランチなら、作業ディレクトリの `.pecot/state/.pecot-base` を読みます。スタックの記録があれば、`reads.pull_requests` の親 PR から base を決めます。親 PR が開いていれば親ブランチ、マージ済みなら開発ブランチです。'
       - 'スタックの記録が無ければ、base は開発ブランチです。head が今のブランチでなく、記録を読めないときは、base を照らしません。'
       - 'リリース PR は、base を `release_branch` に照らし、Issue・画像・題の scope を見ません。リリース PR とは、同梱の `release` のテンプレートの PR か、開発ブランチから `release_branch` への PR です。'
-      - 'nx を使うリポでは、題の scope を、変更した nx のプロジェクトの scope と比べます。'
+      - 'nx を使うリポでは、題の scope を、変更した nx のプロジェクトの scope と比べます。nx のプロジェクトか差分を読めないときは、題の scope を照らさず、`warnings` に入れます。'
       - '`create` では、push していないか remote とずれたブランチ、変更したファイル、stash の項目を返します。スタックして remote とずれたブランチの直し方は、親 PR と remote の先頭から決めます。'
       - '`merge` では、`reads.pull_request` の PR が開いていて、下書きでなく、衝突していないことを照らします。`expectedHeadSha` が PR の先頭と違えば、`head-moved` を返します。'
       - '`merge` で base が開発ブランチでも `release_branch` でもなければ、`reads.pull_requests` を見ます。base を head に持つ開いた PR が無いことを照らします。'
       - '`merge` の方法は、リリース PR が `merge`、ほかが `squash` です。`merge_method` を省くと、GitHub は `merge` でマージします。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
+      - '外れた所が無ければ、成功の結果の文は `ok` です。あれば、最初の外れた所の `<引数>: <内容>` です。'
     stdin: none
     output:
-      format: text
-      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<引数>: <内容>` の行を出します。'
+      format: none
     mcp_output:
       fields:
         problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。受け付ける値が決まっているときは `candidates` に入れます。空なら、値をそのまま書けます。'
-    diagnostics: '標準エラーに行を出しません。nx のプロジェクトか差分を読めないときは、`warning` の行を出して題の scope を照らしません。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: github-mcp-shape
@@ -627,9 +628,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -772,12 +773,12 @@ entries:
       - '衝突したら、衝突したファイルを `conflicts` に入れ、rebase を途中のまま残します。途中の記録を書き、`kind` が `git-conflict` の失敗を返します。'
       - '`continue` は、衝突を解いて `git add` した後に続けます。`abort` は、スタックし直す前の位置に戻します。どちらも途中の記録だけを読み、pecot が始めていない rebase は動かしません。'
       - '`check`・`continue`・`abort` は、1 つだけ渡せます。'
+      - '`check` を付けたときの成功の結果の文は、`up to date: <branch> on <base>` か `needs restack: ...` です。'
       - '書き換えるのは、セッションのディレクトリのブランチだけです。ほかの worktree には触れません。'
       - '`project` で、使うプロジェクトの設定の名前を渡します。省くと、対象のリポを含む設定を使い、2 つ以上あるときは、そのうちアクティブな設定を使います。'
     stdin: none
     output:
-      format: text
-      description: '`check` のときだけ、`up to date: <branch> on <base>` か `needs restack: ...` の 1 行を出します。'
+      format: none
     mcp_output:
       fields:
         branch: 'スタックし直すブランチです。'
@@ -788,7 +789,7 @@ entries:
         pushed: 'ブランチを push したかどうかです。`outcome` が `restacked` のときだけ入ります。'
         conflicts: '衝突したファイルの一覧です。`outcome` が `conflict` のときだけ入ります。'
         relink: '`update_pull_request` で本文を保存し直す PR です。`pullRequest`（PR の番号）と `reason`（書く値と理由）を持ちます。開発ブランチへスタックし直すか合わせた後、`reads.pull_request` の開いている PR の本文がこのリポの Issue を閉じるときだけ入ります。'
-    diagnostics: '標準エラーに、結果の行を出します。スタックし直すと `updated: <branch> restacked on <base>` です。remote に合わせると `updated: <branch> synced with <remote>/<branch>` です。変えなければ `unchanged: <branch> is up to date`、取りやめると `unchanged: <branch> restack aborted` です。`reads.pull_request` が無いまま開発ブランチへ移ると、`warning: <branch> is now on <base>: ...` の行を出します。終了コードは 0 のままです。スタックし直しの失敗は `error` の行で、続けて直し方の行を出します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: git-unresolved
@@ -812,15 +813,15 @@ entries:
       - kind: preflight-failed
         when: '未コミットの変更があります。`check`・`continue`・`abort` では確かめません。'
       - kind: git-conflict
-        when: 'スタックし直しが衝突しました。`continue` の後に、また衝突したときも含みます。'
+        when: 'スタックし直しが衝突しました。`continue` の後に、また衝突したときも含みます。`detail` が、衝突を解く手順と、`continue`・`abort` の呼び出しを案内します。'
       - kind: invalid-input
         when: '`check`・`continue`・`abort` を 2 つ以上渡したか、途中のスタックし直しが無いのに `continue`・`abort` を渡しました。pecot の記録が無い rebase の途中のときと、スタックしたブランチで `reads.pull_requests` が無いとき、ほかの引数の誤りも含みます。'
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: '衝突で止まったときは、rebase は途中のまま残り、base の記録は変わりません。push が拒否・時間切れ・取り消しで止まったときは、手元のブランチはスタックし直した後のままで、base の記録は変わりません。拒まれたか取り消されたときは、同じ引数で呼び直せば続きます。時間切れのときは、手で push してから呼び直すと、remote に合わせて続きます。remote のブランチにだけあるコミットで止まったときは、ブランチをスタックし直す前の位置へ戻します。'
     effects:
       - target: git
@@ -963,21 +964,20 @@ entries:
       - '設定ファイルの `board_url` は、所有者の種類で `/users/` か `/orgs/` にします。種類は `owner_type`・`projects_get` の結果・設定ファイルの `board_url` の順に決めます。決まらなければ失敗を返します。'
       - '`reads.views` を渡すと、`board_url` を最初のビューの URL にします。'
       - '設定ファイルに既にある次の値は残します。登録したリポジトリと、その開発ブランチ・リリースブランチ・`changelog_file`・packages・リリースの種類と、`aggregation_repo` です。'
-      - '同じプロジェクトを指す、別の名前の設定ファイルがあれば、新しい名前に移し、アクティブなプロジェクトも新しい名前にします。`project` の入力と Actions の変数 `PECOT_REVIEW_PROJECT` には、新しい名前を使います。移す元が 2 つ以上あるときは、何も移さずに失敗を返します。'
+      - '同じプロジェクトを指す、別の名前の設定ファイルがあれば、新しい名前に移し、アクティブなプロジェクトも新しい名前にします。`project` の入力と Actions の変数 `PECOT_REVIEW_PROJECT` には、新しい名前を使います。移す元が 2 つ以上あるときは、何も移さずに失敗を返します。移したときは、新しい名前を使う案内を `warnings` に入れます。'
       - '次の選択肢は、ボードにあるときだけ設定ファイルに書きます。pecot-status のフィールドの Blocked と、Status のフィールドの Todo・In Progress・Needs Attention です。'
       - 'Blocked の選択肢の無いボードも受け付けます。pecot-status のフィールドのほかの 6 つの選択肢は必須です。'
       - '`host` が、渡した設定ファイルのホストと違うときは、`warnings` に入れて、設定ファイルのホストを使います。'
     stdin: none
     output:
-      format: text
-      description: '標準出力には何も書きません。'
+      format: none
     mcp_output:
       fields:
         project: 'アクティブにした設定の名前です。'
         configPath: 'プロジェクトの設定ファイルのパスです。'
         change: '設定ファイルがどうなったかです。`create`・`update`・`unchanged` のどれかです。'
         config_moved: '新しい名前に移した設定ファイルの `from`・`to` のファイル名です。移していなければ `null` です。'
-    diagnostics: '標準エラーに、設定ファイルの結果の行（`created` か `updated`）と、アクティブなプロジェクトの結果の行（`set`）を出します。設定ファイルを移したときは、`moved` の行と、新しい名前を使うよう案内する `warning` の行を出します。`host` が渡した設定ファイルのホストと違うときは、`warning` の行を出します。このときは、設定ファイルのホストを使います。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
@@ -997,9 +997,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -1111,15 +1111,15 @@ entries:
       - '足りない欄と選択肢は、作る選択肢の色・説明と、足す位置を添えて返します。'
       - '`changes` のうち github-ops が断るものと、カードの値を消すものを、`changes` の位置の項目にします。'
       - '`fields` では、当てた後のボードにある pecot の使わない欄を `deletable` に返します。消すと全カードの値が消えるので、利用者の承認の後にだけ消します。'
+      - '外れた所が無ければ、成功の結果の文は `ok` です。あれば、最初の外れた所の `<引数>: <内容>` です。'
     stdin: none
     output:
-      format: text
-      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<引数>: <内容>` の行を出します。`deletable` があれば、続けて `deletable: <欄の名前>` の 1 行を出します。'
+      format: none
     mcp_output:
       fields:
         problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。受け付ける値が決まっているときは `candidates` に入れます。空なら、値をそのまま書けます。'
         deletable: '`fields` のときだけ入ります。当てた後のボードにある、pecot が使わない欄の名前です。`pecot-priority`・`pecot-size` と、pecot-status と並ぶ旧い `pecot-workflow-<suffix>` の欄です。'
-    diagnostics: '標準エラーに行を出しません。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: github-mcp-shape
@@ -1127,9 +1127,9 @@ entries:
       - kind: invalid-input
         when: '引数の形が誤っています。`method` が `create`・`fields` でないときを含みます。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects: []
     prerequisites: []
@@ -1200,10 +1200,10 @@ entries:
       - 'アクティブな設定ファイルに保存してある、Epic を集めるリポジトリを `value` に入れて返します。未設定のときは、`value` を入れません。'
       - 'キーは `aggregation_repo` だけです。ほかのキーを渡すと、`kind` が `invalid-input` の失敗を返します。'
       - '`key` を省くと、設定の名前・host・所有者・番号・`aggregation_repo` を `project` に、リポジトリごとのブランチとリリースの方法を `repositories` に入れます。'
+      - '`key` を渡したときの成功の結果の文は、Epic を集めるリポジトリの `owner/repo` です。未設定のときは `none` です。'
     stdin: none
     output:
-      format: text
-      description: '`key` を渡すと、Epic を集めるリポジトリを `owner/repo` の形で書いた 1 行か、`none` です。省くと、`project:`・`aggregation_repo:`・`repositories:` の行と、リポジトリごとの `- ` の行です。'
+      format: none
     mcp_output:
       fields:
         key: '`key` を渡したときだけ入ります。読んだ設定のキーです。今は `aggregation_repo` だけです。'
@@ -1218,13 +1218,13 @@ entries:
       - kind: config-invalid
         when: 'アクティブな設定ファイルの内容が不正です。'
       - kind: invalid-input
-        when: '`key` がありません。`key` が `aggregation_repo` でないときと、知らない引数などほかの引数の誤りも含みます。'
+        when: '`key` が `aggregation_repo` ではありません。知らない引数などほかの引数の誤りも含みます。'
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -1283,7 +1283,7 @@ entries:
         projectNumber: 'アクティブなプロジェクトの番号です。'
         change: '設定がどうなったかです。`create`（リポジトリを足した）か `update`（項目を変えた）です。'
         configPath: 'プロジェクトの設定ファイルのパスです。'
-    diagnostics: '標準エラーに、設定ファイルの結果の行（`added` か `updated`）を出します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: no-active-project
@@ -1299,9 +1299,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -1378,8 +1378,7 @@ entries:
       - 'アクティブなプロジェクトの要素は、`active` を `true` にします。'
     stdin: none
     output:
-      format: text
-      description: '見出しの行に続けて、設定ファイルの名前を 1 行ずつ出します。設定ファイルが無ければ、`none` を出します。'
+      format: none
     mcp_output:
       fields:
         projects: 'projects ディレクトリにあるプロジェクトの設定の配列です。1 つも無ければ空です。要素は `name`（`.json` を除いたファイル名）と `active`（アクティブな設定か）を持ちます。'
@@ -1391,9 +1390,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -1439,7 +1438,7 @@ entries:
         previous: '実行前のキーの値です。未設定だったときは入りません。'
         change: '設定がどうなったかです。`create`（未設定だった）・`update`（値を置き換えた）・`unchanged`（既に同じ値だった）のどれかです。'
         configPath: 'アクティブなプロジェクトの設定ファイルの絶対パスです。`change` がどれでも入ります。'
-    diagnostics: '標準エラーに、結果の行（`set` か `unchanged`）を出します。違う値を上書きしたときは、`warning` の行を出します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
@@ -1453,9 +1452,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -1517,7 +1516,7 @@ entries:
         previous: '実行前のキーの値です。未設定だったときは入りません。'
         change: '設定がどうなったかです。`delete`（キーを消した）か `unchanged`（もともと未設定だった）です。'
         configPath: 'アクティブなプロジェクトの設定ファイルの絶対パスです。`change` がどれでも入ります。'
-    diagnostics: '標準エラーに、結果の行（`removed`、未設定だったときは `unchanged`）を出します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: no-active-project
@@ -1529,9 +1528,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -1587,12 +1586,12 @@ entries:
       - '`sha` は、remote の `<release_branch>` の先頭でなければなりません。remote は `origin` で、`origin` が無ければ最初の remote です。'
       - '前のリリースのタグから `sha` までのコミットを、手元の git で数えます。前のタグが無いときは数えません。`git fetch` はせず、手元の ref も動かしません。'
       - 'リポジトリは、引数 `repo` から決めます。無ければ remote の `origin` から、`origin` も無ければ最初の remote から決めます。'
-      - '`repo` が今の git remote と食い違うときは、`warnings` に入れて `repo` を使います。'
-      - 'remote の URL から `owner/repo` を読めないときは、`repo` と比べません。`repo` があれば、`warnings` に入れて `repo` を使い、無ければ失敗を返します。'
+      - '`repo` が今の git remote と食い違うときは、`repo` を使います。`warnings` には `using repo <owner/repo> (current Git remote: <owner/repo>)` が入ります。'
+      - 'remote の URL から `owner/repo` を読めないときは、`repo` と比べません。`repo` があれば、`repo` を使い、`warnings` に `using repo <owner/repo>` で始まる文を入れます。文の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。無ければ失敗を返し、`detail` が `the repository is ambiguous` で始まります。理由と `repo` の案内が続きます。'
+      - '外れた所が無ければ、成功の結果の文は `ok` です。あれば、最初の外れた所の `<引数>: <内容>` です。'
     stdin: none
     output:
-      format: text
-      description: '外れた所が無ければ `ok` の 1 行です。あれば、外れた所ごとに `<引数>: <内容>` の行を出します。'
+      format: none
     mcp_output:
       fields:
         problems: '決まりに外れた所の配列です。要素は `field`・`code`・`message` を必ず持ちます。受け付ける値が決まっているときは `candidates` に入れます。空なら、`params` をそのまま `release-create` に渡せます。'
@@ -1601,11 +1600,11 @@ entries:
         version: '`params` のタグの版です。タグを読めないときと、リリースの種類が nx のときは入りません。'
         releaseNotes: 'CHANGELOG のその版の節で、リリースの本文にする文です。読めないときは入りません。'
         commitCount: '前のリリースのタグから `sha` までのコミットの数です。前のタグが無いときは入りません。'
-    diagnostics: 'open の Dependabot alert があるか読めないときは、`warning` の行を出します。続く行は 2 字下げます。機能が無効で飛ばした確認ごとに、`skipped` の行を出します。`repo` が git remote と違うときと、remote の URL から `owner/repo` を読めず `repo` があるときは、`warning` の行を出します。`repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `repo` の案内の行を続けます。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: git-unresolved
-        when: 'git のリポジトリのルートが見つからないか、remote のタグかブランチを読めません。`repo` を省いて git remote から `owner/repo` を読めないときと、git の外で `repo` を省いたときも含みます。'
+        when: 'git のリポジトリのルートが見つからないか、remote のタグかブランチを読めません。`repo` を省いて git remote から `owner/repo` を読めないときと、git の外で `repo` を省いたときも含みます。`repo` を省いて remote の URL から `owner/repo` を読めないときは、`detail` が `the repository is ambiguous` で始まります。理由と `repo` の案内が続きます。'
       - kind: no-active-project
         when: '対象のリポを含むプロジェクトの設定が 2 つ以上あり、使う設定が決まりません。アクティブなプロジェクトが候補を指さず、`project` もありません。'
       - kind: repo-not-in-project
@@ -1621,9 +1620,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: git
@@ -1687,7 +1686,7 @@ entries:
         statement: 'open の Dependabot alert があるか一覧を読めないと、止めずに `warnings` で知らせ、状態を `dependabotAlerts` に入れます'
       - id: PW-RELEASE-CHECK-13
         pattern: state
-        statement: '機能が無効の間、その種類の確認を飛ばして `skipped` に入れ、標準エラーに `skipped` の行を出します'
+        statement: '機能が無効の間、その種類の確認を飛ばして `skipped` に入れます'
       - id: PW-RELEASE-CHECK-14
         pattern: unwanted
         statement: 'もし alert の一覧が無いか、読めないか、最後のページに続きがあるなら、`alerts-unread` の項目を返します。code scanning の解析がまだ無いときは 0 件とみなします'
@@ -1731,20 +1730,20 @@ entries:
       - '判定に要る読み取りが無い Issue は判定せず、足りない読み取りを `warnings` で案内します。`reads.blocking` か `reads.children` が無いときも、`warnings` で案内します。'
       - 'ローカルのチェックアウトを切り替える先は、worktree の中では、`worktree_add` が記録した `wtN` です。記録が無ければ、worktree の親ディレクトリの名前が `wtN` か `base` のときに、その名前を使います。Claude Code が `.claude/worktrees/<name>` に作った worktree では、`worktree-<name>` を使います。どれでも決まらなければ、ローカルの片付けを飛ばします。worktree の外では、`develop_branch` です。切り替えた後、remote の `origin` から pull します。`origin` が無ければ、最初の remote を使います。その後、ローカルの head ブランチを `git branch -D` で削除します。'
       - '今のディレクトリのリポジトリが PR のリポジトリと違うときは、ローカルの片付けを飛ばします。'
+      - 'ローカルの片付けを飛ばしたときと、手順が失敗したときは、その理由を `warnings` に入れます。'
       - 'ローカルの片付けの後、`.pecot/state/` の下の `.pecot-base`・`.pecot-session-title` を消します。古い版の `.pecot-quick-mode`・`.pecot-active` が残っていても触れません。'
-      - 'フラグを消すのは、`.pecot-session-title` の番号が PR の閉じる Issue のときと、番号が無いときだけです。ほかの Issue の番号なら、次の Issue の記録なので消さず、`skipped` の行で知らせます。'
+      - 'フラグを消すのは、`.pecot-session-title` の番号が PR の閉じる Issue のときと、番号が無いときだけです。ほかの Issue の番号なら、次の Issue の記録なので消しません。'
       - '参照の短い形の `N` は、引数 `repo` の値で補います。その値が無ければ、今のディレクトリの git remote で補います。'
     stdin: none
     output:
-      format: text
-      description: '判定の変わった Issue があるときだけ、`Readiness changed:` の行と、Issue ごとの `- <Issue> <前の判定> -> <後の判定>` の行を出します。無ければ何も出しません。'
+      format: none
     mcp_output:
       fields:
         deletedBranches: '削除したローカルのブランチの配列です。要素は `branch` と `location`（常に `local`）を持ちます。'
         readinessChanges: '判定が変わった Issue の配列です。要素は `issue`（`#N` か `owner/repo#N`）・`from`・`to` を持ちます。`from` と `to` は `blocked`・`startable`・`stackable on #N` のどれかです。無ければ空の配列です。'
         restack: 'マージしたブランチの上にスタックした Issue の配列です。要素は `issue` と、分かれば `branch` を持ちます。その作業ディレクトリでスタックし直しが要ります。無ければ空の配列です。'
         currentBranch: 'ローカルの後片付けのあとのブランチです。後片付けを飛ばしたときは入りません。'
-    diagnostics: '標準エラーに、手順ごとに結果の行を 1 つ出します。結果の行は、`skipped`・`unchanged`・`deleted`・`set`・`updated` です。失敗した手順と、ローカルの片付けを飛ばしたときに、`warning` の行を出します。スタックし直す Issue があるときと、判定に要る読み取りが無いときも、`warning` の行を出します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: no-active-project
@@ -1762,9 +1761,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: 'マージされていない PR では、何も変えません。checkout に失敗したときは、pull とブランチの削除を飛ばし、フラグは消します。`warnings` に入れて飛ばした手順があっても、成功を返します。'
     effects:
       - target: git
@@ -1850,13 +1849,13 @@ entries:
       - 'Issue の題・本文と、今のブランチを base にした PR は返しません。公式の MCP の `issue_read` と `list_pull_requests` で読みます。'
       - '記録は、`directory` の git リポジトリの toplevel の `.pecot/state/.pecot-base` を読みます。スタック先の Issue を指すときは、`stack` にブランチ・Issue・着手したときのコミットを入れます。記録の形が誤っていれば、`warnings` に入れます。'
       - '`baseBranch` は、作業と比べる remote のブランチです。スタックして親ブランチが remote にあれば `<remote>/<親ブランチ>`、そうでなければ `<remote>/<develop_branch>` です。親ブランチが remote にあるかは、`git fetch` をせずに remote へ尋ねて決めます。届かないときは、追跡参照で決めます。'
+      - '親ブランチが remote で見つかっても追跡参照が無いときは、`<remote>/<develop_branch>` と比べます。`warnings` に、`git fetch` の案内を入れます。'
       - '`baseBranch` を決められないときは入れず、`warnings` に理由を入れます。設定を選べないとき、`develop_branch` が設定に無いとき、そのブランチが手元に無いときです。'
       - '`worktree` には、`git worktree list` の出力、今のディレクトリの名前、linked worktree かどうかを入れます。'
       - 'このツールは診断用です。読めない値は省き、失敗を返しません。何も書き込みません。'
     stdin: none
     output:
-      format: text
-      description: 'Session status の見出しがある Markdown です。Branch・Repository・Active Issue・Base branch・Directory の行を出します。作業をスタックしているときは Stack の節を出します。'
+      format: none
     mcp_output:
       fields:
         branch: '今のブランチです。読めなければ入りません。'
@@ -1865,7 +1864,7 @@ entries:
         stack: '`.pecot-base` のスタックの記録です。`branch`・`stackedOn`（`owner/repo/N`）・`sha` を持ちます。スタックしていなければ入りません。'
         baseBranch: '作業と比べる remote のブランチ（`<remote>/<branch>`）です。決められなければ入りません。'
         worktree: '`list`（`git worktree list` の出力）・`directoryName`（今のディレクトリの名前）・`isWorktree` を持ちます。`isWorktree` は linked worktree かどうかで、決められなければ入りません。'
-    diagnostics: '次のときに `warning` の行を出します。`.pecot-base` の形が誤っているとき、親ブランチの追跡参照が無いとき、`baseBranch` を決められないときです。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
@@ -1873,9 +1872,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: git
@@ -1931,8 +1930,7 @@ entries:
       - '`reads.pull_requests` が無いときは、取りこぼしを確かめず、読むツールを `warnings` で案内します。'
     stdin: none
     output:
-      format: text
-      description: '何も出しません。結果は MCP の結果の項目で返します。'
+      format: none
     mcp_output:
       fields:
         repository: 'ブランチのリポジトリ（`owner/repo`）です。'
@@ -1941,7 +1939,7 @@ entries:
         issue: '作業の Issue（`owner/repo/N`）です。'
         workDirectory: '作業ディレクトリの絶対パスです。作れなかったときは入りません。'
         leftovers: '手元の後片付けが残った、前にマージされた PR の配列です。要素は `pullRequest`（`owner/repo/N`）を持ちます。無ければ入りません。'
-    diagnostics: '後片付けの取りこぼしがあるときと、`reads.pull_requests` が無く確かめられないときに、`warning` の行を出します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: invalid-input
@@ -1951,9 +1949,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: default
     effects:
       - target: file
@@ -2014,26 +2012,25 @@ entries:
       - '`missing` か `outdated` の項目が 1 つでもあると、失敗を返します。'
     stdin: none
     output:
-      format: text
-      description: '確かめた項目ごとに、`<状態>: <名前>` の行を出します。'
+      format: none
     mcp_output:
       fields:
         repository: 'git remote のリポジトリです。`owner/repo` の形です。'
         items: '確かめた項目の一覧です。項目ごとに `name`（確かめたもの）と `state`（`ok`・`missing`・`outdated`・`skipped`）を持ちます。失敗のときも入ります。'
         ready: '`missing` と `outdated` の項目が無いかどうかです。'
-    diagnostics: '足りない項目があると、その数を書いた `error` の行を標準エラーに出します。ほかの失敗でも `error` の行を出します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: repo-setting-missing
-        when: '`missing` か `outdated` の項目があります。'
+        when: '`missing` か `outdated` の項目があります。`detail` が、足りない項目の数を示します。'
       - kind: invalid-input
         when: '名前が雛形の一覧に無いか、`directory` が無いパス・ファイル・読めないディレクトリです。`reads.settings` が `workflow-doctor` の結果の形でないときと、ほかの引数の誤りも含みます。'
       - kind: git-unresolved
         when: '`directory` が Git リポジトリの外か、その git remote からリポジトリを読めません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: '`missing` か `outdated` の項目があるときは、`kind` が `repo-setting-missing` の失敗を返し、`detail` に足りない項目の数を入れます。この失敗の結果にも、`repository`・`items`・`ready` が入ります。'
     effects:
       - target: git
@@ -2131,8 +2128,7 @@ entries:
       - '合言葉や上限など利用者が変える値は、リポの変数にあります。ファイルを上書きしても消えません。'
     stdin: none
     output:
-      format: text
-      description: '書き出したときは、`created: <パス>` か `updated: <パス>` の 1 行を出します。'
+      format: none
     mcp_output:
       fields:
         path: 'リポのルートからのワークフローのファイルのパスです。'
@@ -2141,7 +2137,7 @@ entries:
         written: 'ファイルを書いたかどうかです。`check` のときは、いつも `false` です。'
         upToDate: '`check` のときだけ入ります。置いたファイルの版が同梱の雛形と同じかどうかです。'
         removedLines: '既にあるファイルを上書きするときだけ入ります。利用者が印の間に足した行で、雛形の中身に置き換わります。'
-    diagnostics: '標準エラーに、書いたファイルの結果の行（`created`・`updated`）を出します。`check` で版が同じときは、`unchanged` の行を出します。消える行があると `warning` の行を出します。失敗では `error` の行を出します。'
+    diagnostics: default
     environment: []
     exit_status:
       - kind: already-exists
@@ -2155,9 +2151,9 @@ entries:
       - kind: git-unresolved
         when: '`directory` が Git リポジトリの外です。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。ファイルを書けないときも含みます。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ファイルを書けないときも含みます。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: '`check` でファイルが無いか古いときは、`kind` が `not-ready` の失敗を返し、`detail` に `workflow_install` での更新の呼び方を入れます。この失敗の結果にも、`path`・`version`・`written`・`upToDate` が入ります。ファイルが既にあって `force` が無いときは、`kind` が `already-exists` の失敗を返し、`detail` に `force` を付けた呼び方を入れます。'
     effects:
       - target: git
@@ -2266,11 +2262,10 @@ entries:
       - '次のリンクは、`warnings` に入れて飛ばし、成功を返します。リンク先が無いもの、パスを git が追跡しているもの、作れないものです。'
       - 'devcontainer が要ります。'
       - 'devcontainer の確認がどれも通らないときは、何もせずに失敗を返します。'
-      - 'remote の URL から `owner/repo` を読めないときは、引数 `repo` と比べません。`repo` があれば `warnings` に入れ、無ければ失敗を返します。このツールは使う remote の URL も要るので、`repo` があっても、そのあと `PW-WORKTREE-ADD-39` の失敗を返します。'
+      - 'remote の URL から `owner/repo` を読めないときは、引数 `repo` と比べません。`repo` があれば、`warnings` に `using repo <owner/repo>` で始まる文を入れます。文の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。無ければ失敗を返し、`detail` が `the repository is ambiguous` で始まります。理由と `repo` の案内が続きます。このツールは使う remote の URL も要るので、`repo` があっても、そのあと `PW-WORKTREE-ADD-39` の失敗を返します。'
     stdin: none
     output:
-      format: text
-      description: '作った worktree のパスの 1 行です。'
+      format: none
     mcp_output:
       fields:
         name: 'worktree の名前です。`wtN` の形で番号を振ります。'
@@ -2278,7 +2273,7 @@ entries:
         branch: 'worktree で checkout したブランチです。'
         base: 'ブランチの起点にした base ブランチです。'
         setupFailed: 'setup のコマンドが失敗したか、時間切れになったかです。成功したときと、実行しなかったときは `false` です。'
-    diagnostics: '標準エラーに、`created` の行を出します。シンボリックリンクとコピーしたファイルの `count` の行も出します。`warning` の行を出すのは、次のものです。飛ばしたリンクそれぞれ、コピーできなかったファイルそれぞれ、失敗した setup のコマンド、書けなかった `wtN` の記録です。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `repo` があるときは、`warning: using repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `repo` の案内の行を続けます。'
+    diagnostics: default
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -2288,9 +2283,9 @@ entries:
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
     exit_status:
       - kind: repo-mismatch
-        when: '引数 `repo` が今の git remote と違います。'
+        when: '引数 `repo` が今の git remote と違います。`detail` が、渡した `repo` と今の git remote を並べて伝えます。'
       - kind: git-unresolved
-        when: 'git のリポジトリの外で `repo` を省きました。選んだ remote のリポジトリを GitHub の `owner/repo` として読めないときも含みます。`repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
+        when: 'git のリポジトリの外で `repo` を省きました。選んだ remote のリポジトリを GitHub の `owner/repo` として読めないときも含みます。`repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。このときの `detail` は `the repository is ambiguous` で始まり、理由と `repo` の案内が続きます。'
       - kind: not-initialized
         when: '`worktree-config.json` か `.worktreeignore` がありません。'
       - kind: config-invalid
@@ -2310,9 +2305,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: '最初のエラーで止まり、失敗を返します。`git worktree add` の後で `worktree-config.json` の内容が不正だと分かったときは、worktree とブランチは残ります。リンク・コピーしたファイル・setup の実行はありません。`wtN` の記録を書けなくても、worktree はそのままです。prune した管理情報と、消した未使用のブランチは、元に戻しません。飛ばしたリンク・コピーできなかったファイル・失敗した setup のコマンド・書けなかった `wtN` の記録は、`warnings` に入れて成功を返します。'
     effects:
       - target: git
@@ -2528,7 +2523,7 @@ entries:
       - '`.worktreeignore` には、`worktree_add` がコピーしないパターンを、gitignore の書き方で並べます。'
       - 'どちらかのファイルが既にあるときは、何も書かずに失敗を返します。'
       - 'devcontainer が要ります。'
-      - 'remote の URL から `owner/repo` を読めないときは、引数 `repo` と比べません。`repo` があれば、`warnings` に入れて `repo` を使い、無ければ失敗を返します。'
+      - 'remote の URL から `owner/repo` を読めないときは、引数 `repo` と比べません。`repo` があれば、`repo` を使い、`warnings` に `using repo <owner/repo>` で始まる文を入れます。文の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。無ければ失敗を返し、`detail` が `the repository is ambiguous` で始まります。理由と `repo` の案内が続きます。'
     stdin: none
     output:
       format: none
@@ -2536,7 +2531,7 @@ entries:
       fields:
         configFile: 'worktree の設定ファイルの絶対パスです。'
         ignoreFile: 'worktree の ignore ファイルの絶対パスです。'
-    diagnostics: '標準エラーに、2 つのファイルそれぞれの `created` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `repo` があるときは、`warning: using repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `repo` の案内の行を続けます。'
+    diagnostics: default
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -2546,9 +2541,9 @@ entries:
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
     exit_status:
       - kind: repo-mismatch
-        when: '引数 `repo` が今の git remote と違います。'
+        when: '引数 `repo` が今の git remote と違います。`detail` が、渡した `repo` と今の git remote を並べて伝えます。'
       - kind: git-unresolved
-        when: 'git のリポジトリの外で `repo` を省きました。`repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
+        when: 'git のリポジトリの外で `repo` を省きました。`repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。このときの `detail` は `the repository is ambiguous` で始まり、理由と `repo` の案内が続きます。'
       - kind: already-exists
         when: '2 つのファイルのどちらかが既にあります。'
       - kind: config-invalid
@@ -2560,9 +2555,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: '`worktree-config.json` を書いた後で `.worktreeignore` を書けなかったときは、`worktree-config.json` は残ります。この失敗の結果にも、`configFile` が入ります。ファイルが既にあるときと、アクティブな設定ファイルを読めないときは、何も書かずに失敗を返します。'
     effects:
       - target: git
@@ -2658,18 +2653,18 @@ entries:
       - '`all` を付けてサブの worktree が無いときは、`links` を空の配列にして成功を返します。'
       - 'リンク先が無いリンクは飛ばします。'
       - 'git が追跡しているパスと、作れないリンクはエラーです。`links` の `change` を `error` にして `warnings` に入れ、成功を返します。'
-      - 'リンクのパスにある実体のファイルかディレクトリは、上書きの確認に答えた後にだけ置き換えます。MCP のツールには確認に答える手段が無いので、`kind` が `aborted` の失敗を返します。`force` を付けると、尋ねずに置き換えます。'
+      - 'リンクのパスにある実体のファイルかディレクトリは、`force` を付けたときだけ置き換えます。`force` が無いと、置き換えずに、`kind` が `aborted` の失敗を返します。'
       - '`all` を付けて `force` が無いときは、実体のファイルを尋ねずに飛ばします。'
       - 'リンクのパスが `.pecot/` で始まるときは、リンクを張る前にプラグインのスクリプトを動かし、worktree に `.pecot/.gitignore` を書きます。'
       - 'devcontainer が要ります。'
-      - 'remote の URL から `owner/repo` を読めないときは、引数 `repo` と比べません。`repo` があれば、`warnings` に入れて `repo` を使い、無ければ失敗を返します。'
+      - 'remote の URL から `owner/repo` を読めないときは、引数 `repo` と比べません。`repo` があれば、`repo` を使い、`warnings` に `using repo <owner/repo>` で始まる文を入れます。文の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。無ければ失敗を返し、`detail` が `the repository is ambiguous` で始まります。理由と `repo` の案内が続きます。'
     stdin: none
     output:
       format: none
     mcp_output:
       fields:
         links: '各対象 worktree にある、設定の link ごとの結果の配列です。サブ worktree が無ければ空です。要素は `path`（symlink の絶対パス）・`destination`（向き先の絶対パス）・`change` を持ちます。`change` は `create`（新しい symlink）・`update`（既存を置き換えた）・`skip`（そのまま）・`error`（作れなかった）のどれかです。`reason` は、`skip` と `error` のときだけ入ります。'
-    diagnostics: '標準エラーに、worktree ごとに作ったシンボリックリンクの `count` の行と、飛ばしたリンクごとの `skipped` の行を出します。`all` で worktree が複数あるときは、合計の `count` の行を出します。作れなかったリンクごとに、`warning` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときと、設定ファイルの内容が不正なときも含みます。remote の URL から `owner/repo` を読めず `repo` があるときは、`warning: using repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `repo` の案内の行を続けます。'
+    diagnostics: default
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -2679,9 +2674,9 @@ entries:
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
     exit_status:
       - kind: repo-mismatch
-        when: '引数 `repo` が今の git remote と違います。'
+        when: '引数 `repo` が今の git remote と違います。`detail` が、渡した `repo` と今の git remote を並べて伝えます。'
       - kind: git-unresolved
-        when: 'git のリポジトリの外で `repo` を省きました。`repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
+        when: 'git のリポジトリの外で `repo` を省きました。`repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。このときの `detail` は `the repository is ambiguous` で始まり、理由と `repo` の案内が続きます。'
       - kind: not-initialized
         when: '設定ファイルがありません。'
       - kind: config-invalid
@@ -2689,7 +2684,7 @@ entries:
       - kind: invalid-input
         when: '`all` なしで、`directory` がメインの worktree です。'
       - kind: aborted
-        when: '上書きの確認を中断しました。MCP のツールでは、`force` なしで確認が要るときです。'
+        when: 'リンクのパスに実体のファイルかディレクトリがあり、`force` がありません。'
       - kind: other
         when: 'メインの worktree かプロジェクトのルートが見つかりません。devcontainer の外で動かしたときと、worktree の一覧を読めないときも含みます。'
       - kind: invalid-input
@@ -2697,9 +2692,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: 'この実行で既に張ったリンクは残ります。作れなかったリンクは元のままで、ほかのリンクの処理は続けます。飛ばしたリンクや作れなかったリンクがあっても、成功を返します。'
     effects:
       - target: git
@@ -2749,7 +2744,7 @@ entries:
         statement: 'リンク先が無いと、そのリンクを飛ばします'
       - id: PW-WORKTREE-LINK-05
         pattern: event
-        statement: '`force` を付けずにリンクのパスに実ファイルがあるサブの worktree を `all` なしで渡すと、上書きしてよいかを尋ねます。MCP のツールでは答えが無いので、`kind` が `aborted` の失敗を返します'
+        statement: '`force` を付けずにリンクのパスに実ファイルがあるサブの worktree を `all` なしで渡すと、`kind` が `aborted` の失敗を返します'
       - id: PW-WORKTREE-LINK-08
         pattern: event
         statement: '`force` を付けてリンクのパスに実ファイルかディレクトリがあると、尋ねずにそれを消します'
@@ -2853,7 +2848,7 @@ entries:
       - '3 段階のどれでも worktree に当たらない名前を渡すと、失敗を返します。'
       - 'devcontainer が要ります。'
       - 'worktree の設定ファイルとアクティブなプロジェクトは読みません。'
-      - 'remote の URL から `owner/repo` を読めないときは、引数 `repo` と比べません。`repo` があれば、`warnings` に入れて `repo` を使い、無ければ失敗を返します。'
+      - 'remote の URL から `owner/repo` を読めないときは、引数 `repo` と比べません。`repo` があれば、`repo` を使い、`warnings` に `using repo <owner/repo>` で始まる文を入れます。文の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。無ければ失敗を返し、`detail` が `the repository is ambiguous` で始まります。理由と `repo` の案内が続きます。'
     stdin: none
     output:
       format: none
@@ -2861,7 +2856,7 @@ entries:
       fields:
         name: '削除した worktree の名前です。渡したままの名前です。'
         deletedBranch: 'ローカルブランチを削除したかどうかです。残したとき、削除に失敗したときは `false` です。'
-    diagnostics: '標準エラーに、`removed` の行と `deleted` の行を出します。ブランチを削除できないときは、`deleted` の行の代わりに `warning` の行を出します。セットのディレクトリを削除できないときも、`warning` の行を出します。失敗したときは、`error` の行を出します。devcontainer の外のときも含みます。remote の URL から `owner/repo` を読めず `repo` があるときは、`warning: using repo <owner/repo>` で始まる行を出します。行の末尾は `(could not read the repository from the URL of the Git remote <name>)` です。`repo` も無いときは、`error: the repository is ambiguous` の行に、理由と `repo` の案内の行を続けます。'
+    diagnostics: default
     environment:
       - name: REMOTE_CONTAINERS
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
@@ -2871,9 +2866,9 @@ entries:
         effect: '空でない値があると、環境を devcontainer とみなします。`/.dockerenv` があるときは読みません。'
     exit_status:
       - kind: repo-mismatch
-        when: '引数 `repo` が今の git remote と違います。'
+        when: '引数 `repo` が今の git remote と違います。`detail` が、渡した `repo` と今の git remote を並べて伝えます。'
       - kind: git-unresolved
-        when: 'git のリポジトリの外で `repo` を省きました。`repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。'
+        when: 'git のリポジトリの外で `repo` を省きました。`repo` を省いて remote の URL から `owner/repo` を読めないときも含みます。このときの `detail` は `the repository is ambiguous` で始まり、理由と `repo` の案内が続きます。'
       - kind: other
         when: '渡した名前に当たる worktree がありません。`git worktree remove` が失敗したときと、devcontainer の外で動かしたときも含みます。'
       - kind: invalid-input
@@ -2881,9 +2876,9 @@ entries:
       - kind: project-root-not-found
         when: 'プロジェクトのルートを決められません。'
       - kind: other
-        when: 'ほかの名前に当たらない失敗です。MCP のツールでは、コマンドの想定外の例外も含みます。'
+        when: 'ほかの名前に当たらない失敗です。ツールの想定外の例外も含みます。'
       - kind: session-directory-unresolved
-        when: 'MCP のツールだけで起きます。サーバがセッションのディレクトリを決められず、コマンドを動かしません。'
+        when: 'サーバがセッションのディレクトリを決められず、ツールを動かしません。'
     on_error: '最初のエラーで止まり、失敗を返します。`git worktree remove` が失敗したときは、worktree とブランチは残ります。worktree を削除した後でブランチの削除に失敗したときは、理由を `warnings` に入れ、ブランチを残して成功を返します。'
     effects:
       - target: git
@@ -3034,7 +3029,7 @@ common_behaviors:
     statement: 'もし `repo` を省き、git remote の URL から `owner/repo` を読めないなら、その理由を `detail` に入れて失敗を返します'
   - id: PW-COMMON-22
     pattern: unwanted
-    statement: 'もし `repo` を省いて短い形 `N` を渡し、remote の URL から `owner/repo` を読めないなら、短い形の案内と理由を出し、終了コード 2 で終わります'
+    statement: 'もし `repo` の無い短い形 `N` で `owner/repo` を remote の URL から読めないなら、`kind` が `invalid-input` の失敗を返します。`detail` には、短い形の案内と読めない理由を入れます'
   - id: PW-COMMON-23
     pattern: ubiquitous
     statement: '常に、git remote の URL から、次の 2 つの形で `owner/repo` を読みます。1 つはスキーム付きの `<scheme>://[user@]host[:port]/owner/repo[.git][/]` です。`<scheme>` は `http`・`https`・`ssh`・`git`・`ftp`・`ftps` のどれかです。もう 1 つは scp 形式の `[user@]host:[/]owner/repo[.git][/]` です'
@@ -3043,7 +3038,7 @@ common_behaviors:
     statement: 'MCP のツールが子プロセス（fetch・ls-remote・push・`git pull`・`gh auth token`・`setup_command`・`nx graph`）を待つ間、ping へすぐ答えます'
   - id: PW-COMMON-25
     pattern: event
-    statement: '子プロセスを待つ MCP のツールが取り消されると、子プロセスをその子ごと止め、コマンドの続きを動かしません'
+    statement: '子プロセスを待つ MCP のツールが取り消されると、子プロセスをその子ごと止め、ツールの続きを動かしません'
   - id: PW-COMMON-26
     pattern: unwanted
     statement: 'もし MCP のツールの失敗の文が 2 つ以上あるなら、どの文にも `error: ` の前置きを付けずに、改行でつないで `detail` に入れます'
@@ -3053,6 +3048,15 @@ common_behaviors:
   - id: PW-COMMON-28
     pattern: unwanted
     statement: 'もし MCP のツールが使い方の誤りで失敗したなら、誤りの文だけを `detail` に入れます'
+  - id: PW-COMMON-29
+    pattern: event
+    statement: 'MCP のツールが成功して結果の行を出すと、片付けの行を除いた最初の結果の行（dry-run の行を含む）を、`content` の最初の text にします'
+  - id: PW-COMMON-30
+    pattern: event
+    statement: 'MCP のツールが結果の行を出さずに成功すると、標準出力の最初の空でない行を、`content` の最初の text にします'
+  - id: PW-COMMON-31
+    pattern: ubiquitous
+    statement: '常に、応答の `structuredContent` と同じ内容の JSON を、`content` の text にも載せます'
 common_mcp_output:
   fields:
     kind: '失敗の種別です。失敗のときだけ入ります。'

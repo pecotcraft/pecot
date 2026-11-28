@@ -69,6 +69,17 @@ async function withCommon(plugin: string, replace: (text: string) => string): Pr
   return root
 }
 
+// valid の PT-AWS-S3-LS の欄の 1 行を書き換える
+async function withEntryLine(from: string, to: string): Promise<string> {
+  const root = await materialize('valid')
+  const file = path.join(root, PT, 'authored.yaml')
+  const original = await readFile(file, 'utf8')
+  const at = original.indexOf(from, original.indexOf('  PT-AWS-S3-LS:\n'))
+  expect(at).toBeGreaterThan(0)
+  await writeFile(file, `${original.slice(0, at)}${to}${original.slice(at + from.length)}`)
+  return root
+}
+
 describe('validateRepository', () => {
   it.each(CASES)('見本のリポジトリ %s を検証すると、検証エラーの行を過不足なく決まった順で返す', async (name, expected) => {
     await explains(`リポジトリ全体の定義書を検証する \`validateRepository\` のテストです。見本のリポジトリ \`${name}\` を検証した場合に、期待する検証エラーの行だけを、決まった順で返すことを確認します。`)
@@ -225,6 +236,22 @@ describe('validateRepository', () => {
       const root = await withMcpOutput(EMPTY_FIELDS, 'PT-AWS-S3-LS', { type: 'object', properties: COMMON, anyOf: [{ type: 'object', properties: { lines: { type: 'array' } }, additionalProperties: false }] })
       await step('検証して結果を比べる', async () => {
         expect(await validateRepository(root)).toEqual([NOT_CLOSED])
+      })
+    })
+  })
+
+  describe('MCP の面の決まった値', () => {
+    const FIXED_CASES: readonly (readonly [string, string, string, string])[] = [
+      ['stdin', '    stdin: none\n', '    stdin: Reads a list of keys, one per line.\n', 'must be "none" for an entry with an MCP surface (a tool reads its input only from the arguments)'],
+      ['diagnostics', '    diagnostics: default\n', '    diagnostics: Prints a warning line for each skipped key.\n', 'must be "default" for an entry with an MCP surface (write warnings in details and failure text in exit_status)'],
+      ['output.format', '    output:\n      format: none\n', '    output:\n      format: text\n      description: One line per key.\n', 'must be "none" for an entry with an MCP surface (describe the result in mcp_output)'],
+    ]
+
+    it.each(FIXED_CASES)('MCP の面を持つ項目の %s に決まった値以外を書くと、決まった値と書き先を示す検証エラーにする', async (field, from, to, reason) => {
+      await explains('MCP の面を持つ項目の `stdin`・`diagnostics`・`output.format` の検証のテストです。MCP のツールは標準入出力を使わないので、決まった値（`none`・`default`・`none`）以外を書いた場合に、その欄だけの検証エラーが返ることを確認します。')
+      const root = await withEntryLine(from, to)
+      await step('検証して結果を比べる', async () => {
+        expect(await validateRepository(root)).toEqual([`error: ${PT}/authored.yaml: PT-AWS-S3-LS: ${field}: ${reason}`])
       })
     })
   })

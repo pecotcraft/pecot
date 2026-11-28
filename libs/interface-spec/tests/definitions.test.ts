@@ -442,6 +442,7 @@ const TITLE = 'Create issues'
 function mcpExamples(examples: unknown[]): (data: Record<string, unknown>) => void {
   return (data) => {
     const target = entry(data, 'PW-ISSUE-CREATE')
+    target['output'] = { format: 'none' }
     target['mcp_output'] = { fields: {} }
     target['examples'] = examples
   }

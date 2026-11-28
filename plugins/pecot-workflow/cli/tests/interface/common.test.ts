@@ -241,3 +241,50 @@ it('失敗の文が 2 つ以上あると、error の前置きを付けずに改�
     expect(result.structured['detail']).toBe('first\nsecond')
   })
 })
+
+// 結果の行を出す見本。本題でない片付けの行を先に、本題の行を後に出す
+const RESULT_LINES = defineTool({
+  name: 'lines_show',
+  title: 'Test tool',
+  description: '結果の行を出す',
+  input: z.object({}),
+  output: z.strictObject({}),
+  run: async (_input, io) => {
+    const output = createOutput(false, io)
+    output.done({ verb: 'delete', target: 'branch old', aside: true })
+    output.done({ verb: 'create', target: 'issue #1' })
+    return await exitWith(0)
+  },
+})
+
+// 結果の行を出さず、標準出力だけに書く見本
+const STDOUT_ONLY = defineTool({
+  name: 'stdout_show',
+  title: 'Test tool',
+  description: '標準出力だけに書く',
+  input: z.object({}),
+  output: z.strictObject({}),
+  run: async (_input, io) => {
+    io.stdout('\n  first\nsecond\n')
+    return await exitWith(0)
+  },
+})
+
+it('成功して結果の行を出すと、片付けの行を除いた最初の行を content の最初の text にする', async (context) => {
+  await verifies(context, 'PW-COMMON-29')
+  await verifies(context, 'PW-COMMON-31')
+  await explains('MCP の成功の応答のテストです。片付けの行の後に結果の行を出した場合に、結果の行が `content` の最初の text になり、最後の text が `structuredContent` と同じ JSON であることを確認します。')
+  const result = await step('結果の行を出すツールを動かす', () => call(RESULT_LINES))
+  stepSync('最初の text と構造化された結果を確かめる', () => {
+    expect(result).toEqual({ isError: false, structured: {}, text: 'created: issue #1' })
+  })
+})
+
+it('成功して結果の行を出さないと、標準出力の最初の空でない行を content の最初の text にする', async (context) => {
+  await verifies(context, 'PW-COMMON-30')
+  await explains('MCP の成功の応答のテストです。結果の行を出さず、先頭に空行と字下げのある標準出力だけを書いた場合に、最初の空でない行が `content` の最初の text になることを確認します。')
+  const result = await step('標準出力だけに書くツールを動かす', () => call(STDOUT_ONLY))
+  stepSync('最初の text を確かめる', () => {
+    expect(result.text).toBe('first')
+  })
+})

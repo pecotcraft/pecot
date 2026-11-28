@@ -394,6 +394,19 @@ function mcpOutputFindings(file: string, scope: string, entry: AuthoredEntry, ge
   ]
 }
 
+// MCP のツールは標準入出力を使わないので、MCP の面を持つ項目の stdin・diagnostics・output は決まった値だけを受ける
+function mcpFixedFindings(file: string, scope: string, entry: AuthoredEntry, generated: GeneratedEntry): Finding[] {
+  if (generated.surfaces.mcp === undefined) return []
+  const fixed = (field: string, value: string, hint: string): Finding => ({
+    file, scope, field, reason: `must be ${quote(value)} for an entry with an MCP surface (${hint})`,
+  })
+  return [
+    ...(entry.stdin === 'none' ? [] : [fixed('stdin', 'none', 'a tool reads its input only from the arguments')]),
+    ...(entry.diagnostics === 'default' ? [] : [fixed('diagnostics', 'default', 'write warnings in details and failure text in exit_status')]),
+    ...(entry.output.format === 'none' ? [] : [fixed('output.format', 'none', 'describe the result in mcp_output')]),
+  ]
+}
+
 // MCP の面を持つ項目があるプラグインは、common_mcp_output に共通の 4 項目の説明を書く
 function commonMcpOutputFindings(file: string, authored: AuthoredFile, generated: GeneratedFile): Finding[] {
   const hasMcp = generated.entries.some(entry => entry.surfaces.mcp !== undefined)
@@ -454,6 +467,7 @@ function entryFindings(file: string, id: string, entry: AuthoredEntry, generated
     ...annotationFindings(file, id, entry, generated),
     ...readOnlyFindings(file, id, entry, generated, names),
     ...mcpOutputFindings(file, id, entry, generated),
+    ...mcpFixedFindings(file, id, entry, generated),
     ...behaviorFindings(file, entry.behaviors, id, id, 'behaviors'),
     ...environmentNameFindings(file, id, entry.environment),
   ]

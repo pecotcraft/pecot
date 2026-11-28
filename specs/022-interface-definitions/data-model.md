@@ -7,7 +7,7 @@
 ```text
 定義書（プラグインごとに 1 つ）
 ├── generated.json   実装から書き出す
-│   └── 項目 *       コマンドまたはツール 1 つ分
+│   └── 項目 *       ツールまたは action 1 つ分
 └── authored.yaml    人が書く
     ├── 環境変数 *    プラグインの全項目に共通のもの
     ├── 項目 *       generated.json の項目と ID で 1 対 1
@@ -22,42 +22,39 @@
 | 欄 | 型 | 決め |
 |---|---|---|
 | `id` | 文字列 | `PW-ISSUE-CREATE` の形。接頭辞と名前から機械的に作る。プラグインの中で重ならない |
-| `name` | 文字列 | 人に見せる名前。CLI は `issue create`、MCP ツールは `aws_s3_ls` |
+| `name` | 文字列 | 人に見せる名前。MCP ツールは `aws_s3_ls`、action は `auto finish` |
 | `description` | 文字列 | 実装の説明と同じ文。英語 |
-| `surfaces.cli.path` | 文字列の配列 | CLI のコマンドのパス。CLI で公開しない項目には無い |
+| `surfaces.action.path` | 文字列 | GitHub Actions の action のディレクトリ。action で公開しない項目には無い |
 | `surfaces.mcp.tool` | 文字列 | MCP ツールの名前。MCP で公開しない項目には無い |
-| `hidden` | 真偽値 | 利用者の一覧に出さないコマンドなら真 |
+| `hidden` | 真偽値 | 利用者の一覧に出さない項目なら真 |
 | `deprecated` | 真偽値 | 実装が非推奨と宣言していれば真 |
 | `input` | JSON Schema の object | 引数の名前・型・必須か・既定値・許可値・説明 |
-| `cli.positional` | 文字列の配列 | `input` のうち、CLI で位置引数になるものの順 |
-| `cli.flags` | 対応表 | `input` と `cli.only` の名前から、CLI のオプションの名前（`--title`・`-t`）へ |
-| `cli.only` | 対応表 | CLI だけが受け取る入力の名前から、その JSON Schema へ。MCP の `inputSchema`（`input`）には入れない。無い項目では省く |
-| `mcp.output` | JSON Schema の object | MCP ツールの `outputSchema`。CLI だけの項目には無い |
+| `mcp.output` | JSON Schema の object | MCP ツールの `outputSchema`。MCP の面の無い項目には無い |
+| `action.outputs` | 対応表 | `action.yml` の `outputs`。名前から説明へ。action の面の無い項目には無い |
 | `mcp.annotations` | 対応表 | MCP ツールの annotations（`readOnlyHint`・`destructiveHint`・`idempotentHint`・`openWorldHint`） |
 | `mcp.title` | 文字列 | MCP ツールの Tool の最上位の `title`（表示名）。英語。MCP の面を持つ項目では必須 |
 
-`surfaces` は `cli` と `mcp` の少なくとも一方を持つ。Epic #42 の移行の後、pecot-workflow の項目は両方を持つ。
+`surfaces` は `mcp` と `action` の少なくとも一方を持つ。
 
 ## 項目（人が書く側）
 
-`mcp_output`・`cli_reference`・`help` のほかの欄は省けない。使わない欄は、表の「使わないときの値」を書く。
+`mcp_output` のほかの欄は省けない。使わない欄は、表の「使わないときの値」を書く。
 
 | 欄 | 型 | 言語 | 使わないときの値 | 決め |
 |---|---|---|---|---|
 | `constraints` | 配列 | — | `[]` | 引数どうしの排他（`conflicts`）と依存（`requires`）。引数の名前は `input` にあるものだけ |
 | `details` | 文字列の配列 | 英語 | 必ず書く | 外から観測できる結果を 1 文ずつ。内部の手順は書かない |
-| `stdin` | 文字列 | 英語 | `none` | 標準入力から読むものと、その形 |
-| `output` | 対象 | 英語 | `format: none` | CLI の標準出力の形。`format` は `text`・`json`・`none`。`json` なら `schema` に JSON Schema を書く。実装の出力と比べる確認は置かない |
+| `stdin` | 文字列 | 英語 | `none` | MCP の面を持つ項目は `none` だけ。action の項目は、step が標準入力から読むものと、その形 |
+| `output` | 対象 | 英語 | `format: none` | MCP の面を持つ項目は `format: none` だけで、結果は `mcp_output` で説明する。action の項目は step の標準出力の形。`format` は `text`・`json`・`none`。`json` なら `schema` に JSON Schema を書く。実装の出力と比べる確認は置かない |
 | `mcp_output` | 対象 | `prose` に従う | 省く | MCP のツールの項目ごとの説明（`fields`）。`fields` のキーは `mcp.output` の最上位の項目（共通の 4 項目を除く）とそろえる。MCP の面のある項目だけに書く |
-| `diagnostics` | 文字列 | 英語 | `default` | 標準エラーに出すもの。`default` は、共通の関数の `error:`・`warning:` の行だけを指す |
+| `diagnostics` | 文字列 | 英語 | `default` | MCP の面を持つ項目は `default` だけで、警告は `details`、失敗の文は `exit_status` に書く。action の項目は step が標準エラーに出すもの。`default` は、共通の関数の `error:`・`warning:` の行だけを指す |
 | `environment` | 配列 | 英語 | `[]` | この項目だけが読む環境変数の名前と、変わる振る舞い。全項目に共通のものは、ファイルの先頭の `environment` に書く |
-| `exit_status` | 配列 | 英語 | 必ず書く | 失敗の種別と条件。終了コード（`code`）は CLI の面を持つ項目だけが書く |
+| `exit_status` | 配列 | 英語 | 必ず書く | 失敗の種別（`kind`）と条件（`when`） |
 | `on_error` | 文字列 | 英語 | `default` | 失敗の後に残る状態。`default` は、何も作らず何も変えずに終わることを指す |
 | `effects` | 配列 | 英語 | `[]` | 外部への副作用。相手は `github`・`aws`・`git`・`file`・`process`、種類は `read`・`write`・`destructive`。種類の意味は MCP の annotations に従い、`write` は足すだけ、`destructive` は上書き・削除を含む（[definition-format.md](contracts/definition-format.md)） |
 | `prerequisites` | 文字列の配列 | 英語 | `[]` | 呼ぶ側が満たす事前条件（認証、設定ファイルなど） |
 | `idempotent` | 真偽値 | — | 必ず書く | 同じ入力で 2 回呼んだ結果が、1 回と同じなら真 |
-| `examples` | 配列 | 英語 | 必ず書く | 呼び出しの例と、その説明。MCP の面を持つ項目は `arguments`（`tools/call` の引数）、持たない項目は `run`（コマンドの行） |
-| `cli_reference` | 対象 | `prose` に従う | 省く | CLI の節をページに出す項目の、CLI の使用例（`examples` の `run` と `note`）と、`cli.only` の入力の説明（`options`）。CLI の面を持つ項目だけに書く |
+| `examples` | 配列 | 英語 | 必ず書く | 呼び出しの例と、その説明。`arguments`（MCP は `tools/call` の引数、action は `with:` の入力）と `note` |
 | `default_notes` | 対応表 | 英語 | `{}` | 既定値が実行時に決まる引数の、決まり方 |
 | `behaviors` | 配列 | 日本語 | 必ず書く | 振る舞いの項目。1 つ以上 |
 
@@ -93,9 +90,8 @@
 
 | 出来事 | `generated.json` | `authored.yaml` | CI |
 |---|---|---|---|
-| 実装にコマンドを足す | 書き出し直すと項目が増える | 項目を書くまで ID が足りない | 形式の検証が止める |
+| 実装にツールか action を足す | 書き出し直すと項目が増える | 項目を書くまで ID が足りない | 形式の検証が止める |
 | 引数を足す・変える | 書き出し直すと `input` が変わる | `constraints` などが古い名前を指していれば直す | 一致の確認が止める。古い名前は形式の検証が止める |
 | 新しい環境変数を読む | 変わらない | `environment` に足す | 形式の検証が止める |
-| コマンドを消す | 書き出し直すと項目が消える | 項目と振る舞いの項目を消す | 形式の検証が止める。消した ID を書いたテストはつなぎの確認が止める |
+| ツールか action を消す | 書き出し直すと項目が消える | 項目と振る舞いの項目を消す | 形式の検証が止める。消した ID を書いたテストはつなぎの確認が止める |
 | 振る舞いの項目を足す | 変わらない | `behaviors` に足す | テストに ID を書くまで、つなぎの確認が止める |
-| Epic #42 でコマンドを Node に移す | 書き出しの元が Node になる。`surfaces.mcp` と `mcp.output` が増える | 変わらない | 一致の確認が、移行の前後の `input` の差を出す |
