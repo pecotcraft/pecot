@@ -1255,7 +1255,7 @@ describe('pr_restack', () => {
 
       it('衝突を解いてから continue を付けると、スタックし直しを終えて push し、記録を書き直す', async (context) => {
         await verifies(context, 'PW-PR-RESTACK-13')
-    await explains('`pr_restack` の `continue` のテストです。衝突を解決してから `continue` を指定した場合は、スタックし直しを終えて push し、base の記録を書き直すことを確認します。')
+        await explains('`pr_restack` の `continue` のテストです。衝突を解決してから `continue` を指定した場合は、スタックし直しを終えて push し、base の記録を書き直すことを確認します。')
         const workspace = stepSync('親 PR が開いたスタックを用意する', () => openStacked({ lower: 'OPEN' }))
         stepSync('衝突する形にする', () => {
           makeConflict(workspace)
@@ -1474,7 +1474,7 @@ describe('pr_restack', () => {
 
       it('project を渡すと、対象のリポを含む設定が 2 つあってもその設定で確かめる', async (context) => {
         await verifies(context, 'PW-PR-RESTACK-32')
-    await explains('`pr_restack` の `project` オプションのテストです。対象のリポジトリを含む設定が 2 つある場合でも、`project` で設定を指定したときに、その設定を使って確認できることを確認します。')
+        await explains('`pr_restack` の `project` オプションのテストです。対象のリポジトリを含む設定が 2 つある場合でも、`project` で設定を指定したときに、その設定を使って確認できることを確認します。')
         const workspace = stepSync('設定が曖昧なスタックを用意する', () => openStacked({ lower: 'OPEN', files: ambiguousWorkspaceFiles() }))
         const outcome = await step('project を指定してスタックし直す必要を調べる', () => callTool(workspace, { check: true, project: SECOND_PROJECT }))
         stepSync('structuredContent を比べる', () => {
@@ -1533,7 +1533,7 @@ describe('pr_restack', () => {
 
       it('push が拒まれた後に開発ブランチが進んでから呼び直すと、開発ブランチのコミットを当て直さずにスタックし直す', async (context) => {
         await verifies(context, 'PW-PR-RESTACK-25')
-      await explains('手でスタックし直した後の、MCP の `pr_restack` の `check` のテストです。`check` を指定した場合に、`outcome` が `up-to-date` になり、記録は書き換えられないことを確認します。')
+        await explains('手でスタックし直した後の、MCP の `pr_restack` の `check` のテストです。`check` を指定した場合に、`outcome` が `up-to-date` になり、記録は書き換えられないことを確認します。')
         const workspace = stepSync('親 PR がマージ済みのスタックを用意する', () => openStacked({ lower: 'MERGED' }))
         stepSync('親ブランチをマージする', () => {
           mergeLower(workspace)
