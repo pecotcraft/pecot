@@ -795,10 +795,10 @@ describe('振る舞いの項目のつなぎ', () => {
   })
 
   it('共通の項目の ID が、すべて vitest の verifies につながる', async () => {
-    await explains('振る舞いの項目のつなぎのテストです。共通の項目の ID（19 件）を調べた場合に、すべてが vitest の `verifies` につながっていることを確認します。')
+    await explains('振る舞いの項目のつなぎのテストです。共通の項目の ID（22 件）を調べた場合に、すべてが vitest の `verifies` につながっていることを確認します。')
     stepSync('共通の項目の ID の件数と、無い ID を比べる', () => {
       const common = authored.common_behaviors.map(behavior => behavior.id)
-      expect(common).toHaveLength(19)
+      expect(common).toHaveLength(22)
       expect(missingIds(common, collectVerifiedIds(root, include))).toStrictEqual([])
     })
   })

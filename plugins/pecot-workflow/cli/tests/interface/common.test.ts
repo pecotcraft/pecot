@@ -18,6 +18,7 @@ import { projectRoot } from '@pecot/workflow-core/infra/paths.js'
 import { setEnvironment, useIsolatedEnvironment } from '../../../../../libs/workflow-core/tests/_helpers/environment.js'
 import { createGitRepository, gitForTest } from '../../../../../libs/workflow-core/tests/_helpers/git-repository.js'
 import { makeTemporaryDirectory, writeTree } from '../../../../../libs/workflow-core/tests/_helpers/temporary.js'
+import { step } from '../../../../../libs/interface-spec/src/vitest/step.js'
 import { explains } from '../_helpers/explains.js'
 import { callToolOnce } from '../_helpers/mcp-client.js'
 import type { ToolOutcome } from '../_helpers/mcp-client.js'
@@ -239,5 +240,52 @@ it('失敗の文が 2 つ以上あると、error の前置きを付けずに改�
   const result = await step('見本のツールを動かす', () => call(stopping('twice_show', ['first', 'second'])))
   stepSync('失敗の kind と detail を確かめる', () => {
     expect(result.structured['detail']).toBe('first\nsecond')
+  })
+})
+
+// 結果の行を出す見本。本題でない片付けの行を先に、本題の行を後に出す
+const RESULT_LINES = defineTool({
+  name: 'result_lines',
+  title: 'Test tool',
+  description: '結果の行を出す',
+  input: z.object({}),
+  output: z.strictObject({}),
+  run: async (_input, io) => {
+    const output = createOutput(false, io)
+    output.done({ verb: 'delete', target: 'branch old', aside: true })
+    output.done({ verb: 'create', target: 'issue #1' })
+    return await exitWith(0)
+  },
+})
+
+// 結果の行を出さず、標準出力だけに書く見本
+const STDOUT_ONLY = defineTool({
+  name: 'stdout_only',
+  title: 'Test tool',
+  description: '標準出力だけに書く',
+  input: z.object({}),
+  output: z.strictObject({}),
+  run: async (_input, io) => {
+    io.stdout('\n  first\nsecond\n')
+    return await exitWith(0)
+  },
+})
+
+it('成功して結果の行を出すと、片付けの行を除いた最初の行を content の最初の text にする', async (context) => {
+  await verifies(context, 'PW-COMMON-29')
+  await verifies(context, 'PW-COMMON-31')
+  await explains('MCP の成功の応答のテストです。片付けの行の後に結果の行を出した場合に、結果の行が `content` の最初の text になり、最後の text が `structuredContent` と同じ JSON であることを確認します。')
+  const result = await step('結果の行を出すツールを呼ぶ', async () => await call(RESULT_LINES))
+  await step('最初の text と構造化された結果を確認する', () => {
+    expect(result).toEqual({ isError: false, structured: {}, text: 'created: issue #1' })
+  })
+})
+
+it('成功して結果の行を出さないと、標準出力の最初の空でない行を content の最初の text にする', async (context) => {
+  await verifies(context, 'PW-COMMON-30')
+  await explains('MCP の成功の応答のテストです。結果の行を出さず、先頭に空行と字下げのある標準出力だけを書いた場合に、最初の空でない行が `content` の最初の text になることを確認します。')
+  const result = await step('標準出力だけに書くツールを呼ぶ', async () => await call(STDOUT_ONLY))
+  await step('最初の text を確認する', () => {
+    expect(result.text).toBe('first')
   })
 })

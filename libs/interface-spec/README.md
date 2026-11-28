@@ -18,10 +18,13 @@ python3 -m http.server -d libs/interface-spec/docs/_build
 
 - トップ（`index.html`）: プラグインごとの一覧と、欄の対応表へのリンク
 - プラグインの一覧表: ツールごとに、表示名・ツール名・説明・型を 1 行にする
-  - 表示名は MCP の `title` で、ページへのリンクにする。型は MCP で、Actions から CLI でも呼ぶものは MCP・CLI
-- ツールごとのページ: 題は表示名で、その下にツール名を添える。本文は定義書の本文（POSIX の節の順）を MCP のツールの形（引数名・`tools/call` の使用例・結果の項目）で書き、その項目の機能要件の表を続ける。`_generated/<plugin>/<名前>.html` にできる
-  - CLI の節（構文・フラグ・標準入出力）と終了コードの列は、定義書に `cli_reference` を持つツールにだけ出す。今は GitHub Actions から CLI で呼ぶ pecot-workflow の 4 つ
-- 共通の振る舞いのページ: 全コマンドに共通の振る舞い。`_generated/<plugin>/_common.html` にできる
+  - 表示名は MCP の `title` で、ページへのリンクにする。型は `MCP` か `Action`（両方の面を持つ項目は `MCP・Action`）。action だけのプラグインは、ツール名の列を action の列にする
+- 項目ごとのページ: `_generated/<plugin>/<名前>.html` にできる
+  - MCP のツールは、題を表示名にし、その下にツール名を添える。本文は定義書の本文を MCP のツールの形（引数名・`tools/call` の使用例・結果の項目）で書き、その項目の機能要件の表を続ける
+  - action は、題を `name` にし、本文を action の形（入力・`uses:` の使用例・step のログと `outputs`）で書く
+  - 結果の項目の節は、MCP のツールでは `mcp_output` の表と共通の出力の節へのリンクを出す。action では、step の出力の説明（`stdin`・`diagnostics` は既定でなければ足す）と `action.outputs` の表を出す
+  - エラーの表は、`exit_status` の `kind` と `when` を出す
+- 共通の振る舞いのページ: 全項目に共通の振る舞い。`_generated/<plugin>/_common.html` にできる
 - 欄の対応表（`field-map.html`）: 定義書の欄と POSIX の節の対応
 
 `_generated/<plugin>/*.rst` は build のたびに定義書から書き直す。定義書から消えた項目のページは消える。
@@ -94,7 +97,7 @@ Chromium は pecot-visual と同じ版の playwright のものを使います。
 
 | プラグイン | 区切り | 語彙の置き場 |
 |---|---|---|
-| pecot-workflow | 空白 | `cli/src/commands/names.ts` の `COMMAND_GROUPS`・`COMMAND_VERBS`（`readOnly` が印） |
+| pecot-workflow | 空白 | `libs/workflow-core/src/commands-shared/names.ts` の `COMMAND_GROUPS`・`COMMAND_VERBS`（`readOnly` が印） |
 | pecot-visual | `_` | `cli/src/mcp/tool-names.ts` の `TOOL_SUBJECTS`・`TOOL_VERBS` |
 | pecot-tools | `_`（3 語目からは自由な語） | `cli/src/mcp/tool-names.ts` の `TOOL_PREFIXES`・`TOOL_SERVICES` |
 

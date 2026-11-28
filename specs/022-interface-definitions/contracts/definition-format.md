@@ -4,25 +4,25 @@
 
 ## 欄が従う枠組み
 
-1 コマンド・1 ツールに書く欄は、POSIX（IEEE Std 1003.1-2024）のユーティリティ記述の節立てに対応づける。POSIX に節の無い欄は、借りた先を書く。
+1 ツール・1 action に書く欄は、POSIX（IEEE Std 1003.1-2024）のユーティリティ記述の節立てに対応づける。POSIX に節の無い欄は、借りた先を書く。
 
 実装の後は、この対応の正を `libs/interface-spec/src/domain/field-map.ts` に置く。形式の定義の欄がすべて表にあることを、テストが確かめる。表示の HTML にも同じ表を出す。
 
 | POSIX の節 | 定義書の欄 | 書き手 | MCP ツールでの読み替え |
 |---|---|---|---|
-| NAME | `id`・`name`・`description`・`mcp.title` | 書き出し | Tool の `name`・`title`・`description` |
-| SYNOPSIS | `surfaces.cli.path`・`cli.positional`・`cli.flags`・`constraints` | 書き出し。`constraints` は人 | `surfaces.mcp.tool` |
+| NAME | `id`・`name`・`description`・`summary`・`mcp.title` | 書き出し。`summary` は人 | Tool の `name`・`title`・`description` |
+| SYNOPSIS | `constraints`・`surfaces.mcp.tool`・`surfaces.action.path` | 書き出し。`constraints` は人 | `surfaces.mcp.tool` |
 | DESCRIPTION | `details` | 人 | 同じ |
-| OPTIONS・OPERANDS | `input`・`cli.only`・`arguments`・`cli_reference.options`・`default_notes` | 書き出し。`arguments`・`cli_reference.options`・`default_notes` は人 | Tool の `inputSchema`。`cli.only` は MCP に出さない |
+| OPTIONS・OPERANDS | `input`・`arguments`・`default_notes` | 書き出し。`arguments`・`default_notes` は人 | Tool の `inputSchema` |
 | STDIN | `stdin` | 人 | 常に `none` |
-| INPUT FILES・OUTPUT FILES | `effects` のうち相手が `file` のもの | 人 | 同じ |
+| INPUT FILES・OUTPUT FILES | `effects` | 人 | 同じ |
 | ENVIRONMENT VARIABLES | `environment` | 人。ソースの文字列と比べる | 同じ |
 | ASYNCHRONOUS EVENTS | 欄にしない。全項目が既定の扱い | — | — |
-| STDOUT | `output`・`mcp.output`・`mcp_output.fields` | CLI は人。MCP ツールの形は書き出し（`mcp.output`）、ツールの項目の説明は人（`mcp_output`） | Tool の `outputSchema` と結果の構造 |
-| STDERR | `diagnostics` | 人 | 失敗の結果に入る文言 |
-| EXIT STATUS | `exit_status` | 人 | 失敗の種別（`isError` が真になる条件） |
+| STDOUT | `output`・`mcp.output`・`mcp_output.fields`・`action.outputs` | `output` は人。MCP ツールの形と action の `outputs` は書き出し、ツールの項目の説明は人 | Tool の `outputSchema` と結果の構造。`output` は常に `format: none` |
+| STDERR | `diagnostics` | 人 | 常に `default`。失敗の文は `exit_status`、警告は `details` に書く |
+| EXIT STATUS | `exit_status` | 人 | 失敗の種別 |
 | CONSEQUENCES OF ERRORS | `on_error` | 人 | 同じ |
-| EXAMPLES | `examples`・`cli_reference.examples` | 人 | `examples` は `tools/call` の `arguments`。CLI の例は `help.examples` と `cli_reference.examples` |
+| EXAMPLES | `examples` | 人 | `tools/call` の `arguments` |
 | FUTURE DIRECTIONS | `deprecated` | 書き出し | 同じ |
 | CHANGE HISTORY | 欄にしない。各プラグインの CHANGELOG が担う | — | — |
 
@@ -61,23 +61,33 @@ MCP ツールへの読み替えは、このリポの決めだ。POSIX の規格�
   "entries": [
     {
       "id": "PW-ISSUE-CREATE",
-      "name": "issue create",
+      "name": "issue_create",
       "description": "Create an issue from a Markdown file with front matter.",
-      "surfaces": { "cli": { "path": ["issue", "create"] } },
+      "surfaces": { "mcp": { "tool": "issue_create" } },
       "hidden": false,
       "deprecated": false,
       "input": {
         "type": "object",
         "properties": {
-          "files": { "type": "array", "items": { "type": "string" }, "description": "Markdown files to post." },
+          "file": { "type": "string", "description": "Markdown file to post." },
           "type": { "type": "string", "enum": ["task", "bug", "epic", "tracker"], "default": "task", "description": "Issue type." }
         },
-        "required": [],
+        "required": ["file"],
         "additionalProperties": false
       },
-      "cli": {
-        "positional": ["files"],
-        "flags": { "type": ["--type"] }
+      "mcp": {
+        "title": "Create Issue",
+        "output": {
+          "type": "object",
+          "properties": {
+            "url": { "type": "string", "description": "URL of the created issue." },
+            "kind": { "type": "string", "description": "Failure kind (failure only)" },
+            "detail": { "type": "string", "description": "Full failure text (failure only)" },
+            "log": { "type": "string", "description": "Raw output of a child process (failure only)" },
+            "warnings": { "type": "array", "items": { "type": "string" }, "description": "Warning messages" }
+          },
+          "additionalProperties": false
+        }
       }
     }
   ]
@@ -86,14 +96,13 @@ MCP ツールへの読み替えは、このリポの決めだ。POSIX の規格�
 
 | 決め | 内容 |
 |---|---|
-| `id` | `<prefix>-<名前を大文字にし、空白と`_` を `-`にしたもの>`。接頭辞は pecot-workflow が `PW`、pecot-tools が `PT`、pecot-visual が `PV` |
-| `input` の名前 | CLI は、オプション名の `-` を `_` にしたもの。`cli-node/` の `CommandSpec` と同じ決めにする |
-| `input` の型 | JSON Schema 2020-12。MCP ツールは `tools/list` の `inputSchema` をそのまま入れる |
+| `id` | `<prefix>-<名前を大文字にし、空白と`_` を `-`にしたもの>`。接頭辞は pecot-workflow が `PW`、pecot-tools が `PT`、pecot-visual が `PV`、actions が `PA` |
+| `input` の名前 | MCP ツールは `tools/list` の `inputSchema` の名前。action は `action.yml` の `inputs` の名前 |
+| `input` の型 | JSON Schema 2020-12。MCP ツールは `tools/list` の `inputSchema` をそのまま入れる。action は `action.yml` の `inputs` から作る |
 | 既定値 | 固定の値だけを `default` に入れる。実行時に決まるものは入れず、`authored.yaml` の `default_notes` に書く |
-| `surfaces` | CLI のコマンドは `cli.path`、MCP ツールは `mcp.tool`。両方で公開する操作は、1 つの項目が両方を持つ |
-| root のオプション | `pecot` の直後に置くオプション（`--repo`・`--show-repo`・`--version` など）は項目にしない。`input` には、コマンド自身の引数だけを入れる |
-| `cli.flags` の並び | 長い名前（宣言の順）、短い名前、否定形（`--no-checkout` など）の順 |
+| `surfaces` | MCP ツールは `mcp.tool`、GitHub Actions の action は `action.path`（action のディレクトリ）。少なくとも一方を持つ |
 | MCP ツールの出力と注釈 | `tools/list` の `outputSchema` を `mcp.output` に、`annotations` を `mcp.annotations` に入れる |
+| action の outputs | `action.yml` の `outputs` を `action.outputs` に入れる。キーは output の名前、値は `action.yml` の `description` |
 | MCP ツールの表示名 | `tools/list` の Tool の最上位の `title` を `mcp.title` に入れる。MCP の面を持つ項目では必須。英語で、4 語以内が目安。`annotations.title` は使わない |
 
 ### `resources`
@@ -123,33 +132,17 @@ MCP サーバが静的な resource を出すプラグインは、最上位に `r
 
 ### 決定性の決め
 
-書き出しは、Python（typer）と Node（`CommandSpec`）のどちらからでも、同じ実装から同じバイト列を出す。
+書き出しは、同じ実装から、いつも同じバイト列を出す。
 
 | 対象 | 決め |
 |---|---|
 | 項目の並び | `id` の順 |
-| 項目のキーの順 | `id`・`name`・`description`・`surfaces`・`hidden`・`deprecated`・`input`・`cli`・`mcp` |
-| `input.properties`・`cli.flags` のキー | 名前の順 |
+| 項目のキーの順 | `id`・`name`・`description`・`surfaces`・`hidden`・`deprecated`・`input`・`mcp`・`action` |
+| `input.properties` のキー | 名前の順 |
 | 引数の中のキーの順 | `type`・`items`・`enum`・`minimum`・`maximum`・`default`・`description` |
 | `required` | 名前の順。必須が無くても `[]` を書く |
 | `additionalProperties` | 常に `false` |
 | 書き方 | 字下げ 2 の JSON と、末尾の改行 1 つ。文字はエスケープしない |
-
-### typer の引数の型の写し
-
-pecot-workflow の書き出しは、typer が同梱する click の `type.name` から JSON Schema を作る。Node の書き出しは、`z.toJSONSchema()` の結果を同じ形に正規化する。
-
-| `type.name` | JSON Schema |
-|---|---|
-| `str` | `{"type": "string"}` |
-| `int` | `{"type": "integer"}` |
-| `int range` | `{"type": "integer", "minimum": …, "maximum": …}`。端があるものだけを書く |
-| `boolean` | `{"type": "boolean"}` |
-| `choice` | `{"type": "string", "enum": [...]}` |
-| `path`・`directory`・`file` | `{"type": "string"}` |
-| `multiple=True`・`nargs=-1` | `{"type": "array", "items": <要素の型>}` |
-
-表に無い型と、開区間・`clamp` の `int range` は、書き出しが失敗で止める。
 
 ## `authored.yaml`
 
@@ -163,62 +156,63 @@ environment:
     effect: Sends GitHub API requests to this URL instead of api.github.com.
 entries:
   PW-ISSUE-CREATE:
-    constraints:
-      - conflicts: [message, files]
-      - requires: { message: [title] }
+    constraints: []
     details:
-      - Creates one issue per file and adds each to the project board.
-      - Prints the URL of each created issue.
+      - Creates one issue from the file and adds it to the project board.
+      - Returns the URL of the created issue.
     stdin: none
     output:
-      format: text
-      description: One line per created issue, with its URL.
+      format: none
+    mcp_output:
+      fields:
+        url: 作った Issue の URL
     diagnostics: default
     environment: []
     exit_status:
-      - code: 0
-        when: Every issue was created.
-      - code: 1
-        when: The front matter is invalid, or the GitHub API returned an error.
-    on_error: Issues created before the failing file remain on GitHub.
+      - kind: invalid-front-matter
+        when: The front matter is invalid.
+      - kind: github-api
+        when: The GitHub API returned an error.
+    on_error: The issue is not created, and the board is not changed.
     effects:
       - target: github
         kind: write
         what: Creates an issue and adds it to the project board.
       - target: file
         kind: read
-        what: Reads the Markdown files given as arguments.
+        what: Reads the Markdown file given as file.
     prerequisites:
       - gh is authenticated for the target repository.
     idempotent: false
     examples:
-      - run: pecot issue create .pecot/work/199/issue.md
+      - arguments:
+          file: .pecot/work/199/issue.md
         note: Create one issue from a file.
     default_notes:
       repo: Resolved from the git remote of the current directory.
     behaviors:
       - id: PW-ISSUE-CREATE-01
         pattern: unwanted
-        statement: もしフロントマターに type が無いなら、Issue を作らずに終了コード 1 で終わる
+        statement: もしフロントマターに type が無いなら、Issue を作らずに失敗の種別 invalid-front-matter を返す
       - id: PW-ISSUE-CREATE-02
         pattern: event
-        statement: 複数のファイルを渡すと、渡した順に 1 件ずつ Issue を作る
+        statement: file を渡して呼ぶと、その内容で Issue を 1 件作り、URL を返す
 common_behaviors:
   - id: PW-COMMON-01
     pattern: unwanted
-    statement: もし知らないオプションを渡したなら、使い方のエラーを出して終了コード 2 で終わる
+    statement: もし知らない引数を渡したなら、失敗の種別 invalid-input を返す
 ```
 
-欄ごとの型・言語・使わないときの値は [data-model.md](../data-model.md) にある。`mcp_output`・`cli_reference`・`help` のほかの欄は省けない。
+欄ごとの型・言語・使わないときの値は [data-model.md](../data-model.md) にある。`mcp_output` のほかの欄は省けない。
 
-### `examples` と `cli_reference`
+### `examples`
 
-`examples` は、項目の面で形が変わる。
+`examples` の要素は、`arguments` と `note` を持つ。キーは `input.properties` にあり、`input.required` を全部持つ。
 
-| 項目 | `examples` の要素 |
+| 項目 | `arguments` の意味 |
 |---|---|
-| MCP の面を持つ | `arguments`（`tools/call` の `params` の `arguments`）と `note`。キーは `input.properties` にあり、`input.required` を全部持つ |
-| MCP の面を持たない | `run`（コマンドの行）と `note` |
+| MCP の面を持つ | `tools/call` の `params` の `arguments` |
+| action の項目 | ワークフローの step の `with:` の入力 |
 
 ```yaml
     examples:
@@ -228,27 +222,20 @@ common_behaviors:
         note: Issue をボードに足し、Status を `backlog` にします。
 ```
 
-表示は、ツール名を `name` に入れた `tools/call` の `params` の形（`{"name": ..., "arguments": {...}}`）で描く。
+表示は、MCP の項目ではツール名を `name` に入れた `tools/call` の `params` の形（`{"name": ..., "arguments": {...}}`）で描く。action の項目では、`uses:` と `with:` を持つ step の形で描く。
 
-`cli_reference` は、CLI の節をページに出す項目だけが持つ。GitHub Actions から CLI で呼ぶ項目に書く。
+### 面で変わる欄
 
-```yaml
-    cli_reference:
-      examples:
-        - run: pecot board sync --dry-run
-          note: 書かずに、する予定を出します。
-      options:
-        dry_run: 何も書かずに、する予定だけを出すかどうかです。
-```
+MCP の面を持つ項目は、標準入出力を使わない。`stdin`・`diagnostics`・`output` は、決まった値だけを受ける。
 
-| 決め | 内容 |
-|---|---|
-| 持てる項目 | CLI の面（`surfaces.cli`）を持つ項目だけ |
-| ページの表示 | 持つ項目だけが「コマンド」の節と、エラーの表の「終了コード」の列を出す。持たない項目は、標準入力・標準出力・標準エラーも出さない |
-| `options` | `cli.only` の名前ごとの説明。`cli.only` の名前と過不足なくそろえる。CLI の節が、その入力の説明として出す |
-| `help.examples` との関係 | `prose: ja` で `cli_reference` を持つ項目は、`help.examples` の `run` を `cli_reference.examples` と同じ順・同じ値にする。持たない MCP の項目は比べない。MCP の面の無い項目は `examples` と比べる |
+| 欄 | MCP の面を持つ項目 | action の項目 |
+|---|---|---|
+| `stdin` | `none` | step が標準入力から読むものと、その形 |
+| `output` | `format: none`。結果は `mcp_output` で説明する | step の標準出力の形 |
+| `diagnostics` | `default`。警告は `details`、失敗の文は `exit_status` に書く | step が標準エラーに出すもの |
+| `exit_status` | `kind` と `when` | 同じ |
 
-`exit_status[].code` は、CLI の面を持つ項目だけが書ける。
+action の項目のページは、「出力」の節に step のログと `action.outputs` の表を出し、`stdin`・`diagnostics` が既定でなければ「標準入力」「標準エラー」を足す。MCP の項目のページは、標準入出力を出さない。
 
 ### `mcp_output`
 
@@ -322,8 +309,8 @@ resources:
 
 | `pattern` | EARS の型 | 日本語の形 | 例 |
 |---|---|---|---|
-| `ubiquitous` | Ubiquitous | 「常に、〜する」 | 常に、結果の行を標準エラーに出す |
-| `event` | Event-driven（When） | 「〜すると、〜する」 | `--dry-run` を付けて呼ぶと、GitHub に書かずに予定の行を出す |
+| `ubiquitous` | Ubiquitous | 「常に、〜する」 | 常に、結果に作った Issue の URL を含める |
+| `event` | Event-driven（When） | 「〜すると、〜する」 | `dry_run` を付けて呼ぶと、GitHub に書かずに予定の行を出す |
 | `state` | State-driven（While） | 「〜の間、〜する」 | 作業中の Issue がある間、別の Issue のブランチを作らない |
 | `unwanted` | Unwanted behaviour（If / then） | 「もし〜なら、〜する」 | もし認証が切れているなら、失敗の種別 auth-expired を返す |
 | `optional` | Optional feature（Where） | 「〜が有効なら、〜する」 | ロードマップリポの設定が有効なら、Epic をそのリポに作る |
@@ -334,7 +321,7 @@ resources:
 | 観測できる応答 | 応答は、出力・終了の状態・副作用のどれかで確かめられる形で書く。「正しく処理する」のような語を使わない |
 | 型と形の一致 | 形式の検証が、`pattern` と文の形（「〜と、」「〜の間、」「もし〜なら、」など）を比べる |
 
-上の例の `PW-ISSUE-CREATE-01` は、応答が「作らない」と「終了コード 1」の 2 つある。実物を書くときは、確かめたい応答ごとに項目を分ける。
+上の例の `PW-ISSUE-CREATE-01` は、応答が「作らない」と「失敗の種別を返す」の 2 つある。実物を書くときは、確かめたい応答ごとに項目を分ける。
 
 ## 形式の検証が出す失敗
 
@@ -346,7 +333,7 @@ error: plugins/pecot-workflow/interface/authored.yaml: PW-ISSUE-CREATE: on_error
 error: plugins/pecot-workflow/interface/authored.yaml: PW-ISSUE-CREATE: constraints[0].conflicts: unknown input name "mesage"
 error: plugins/pecot-tools/interface/authored.yaml: PT-AWS-S3-LS-01: statement does not match pattern "unwanted"
 error: plugins/pecot-tools/interface/authored.yaml: PT-AWS-S3-CP: effects has kind "write" but annotations.readOnlyHint is true
-error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSION_PROJECT_DIR is read by cli/core/session.py but not listed
+error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_RESTACK is read by cli/src/commands/pr-restack.ts but not listed
 ```
 
 形の誤りと意味の誤りは、同じ実行でそろえて出す。欄が足りない項目でも、その項目の振る舞いの項目は確認する。
@@ -383,16 +370,13 @@ error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSIO
 | `authored.yaml` の `resources` の欠け | `error: <file>: pecot-template://pr/default: resource is missing (present in generated.json)` |
 | `generated.json` に無い resource | `error: <file>: pecot-template://issue/old: resource is not in generated.json (remove it)` |
 | resource の無いプラグインの `resources` | `error: <file>: resources: is only for plugins with resources in generated.json (remove it)` |
-| 終了コードが範囲外 | `error: <file>: PW-ISSUE-CREATE: exit_status[1].code: must be between 0 and 255` |
-| CLI の面の無い項目の終了コード | `error: <file>: PT-AWS-S3-LS: exit_status[0].code: is only for entries with a CLI surface (remove it)` |
-| CLI の面の無い項目の `cli_reference` | `error: <file>: PT-AWS-S3-LS: cli_reference: is only for entries with a CLI surface (remove it)` |
 | MCP の面を持つ項目の `readOnlyHint` の書き忘れ | `error: <file>: PT-AWS-S3-LS: annotations.readOnlyHint is missing` |
 | 書き込む項目の `destructiveHint`・`idempotentHint` の書き忘れ | `error: <file>: PT-AWS-S3-CP: effects has kind "write" but annotations.destructiveHint is missing`。`kind` は、項目が `write` を持てば `write`、持たなければ `destructive` |
 | `mcp.title` の書き忘れ | `error: <file>: PT-AWS-S3-LS: mcp.title: is missing (give the tool a display name in English)` |
-| MCP の面を持つ項目の `run` の使用例 | `error: <file>: PT-AWS-S3-LS: examples[0]: must be an MCP call (write arguments instead of run)` |
-| MCP の面の無い項目の `arguments` の使用例 | `error: <file>: PW-ISSUE-CREATE: examples[0]: must be a command line (write run instead of arguments; the entry has no MCP surface)` |
+| MCP の面を持つ項目の `stdin` | `error: <file>: PT-AWS-S3-LS: stdin: must be "none" for an entry with an MCP surface (a tool reads its input only from the arguments)` |
+| MCP の面を持つ項目の `diagnostics` | `error: <file>: PT-AWS-S3-LS: diagnostics: must be "default" for an entry with an MCP surface (write warnings in details and failure text in exit_status)` |
+| MCP の面を持つ項目の `output.format` | `error: <file>: PT-AWS-S3-LS: output.format: must be "none" for an entry with an MCP surface (describe the result in mcp_output)` |
 | 使用例の引数の名前 | `error: <file>: PT-AWS-S3-LS: examples[0].arguments: unknown input name "pth"`、`error: <file>: PT-AWS-S3-LS: examples[0].arguments: is missing the required input "path"` |
-| CLI の例のずれ | `error: <file>: PW-BOARD-SYNC: help.examples: must have the same run values, in the same order, as cli_reference.examples` |
 | 読み方が決まっていない zod の指摘 | `error: <file>: PW-ISSUE-CREATE: x: unknown validation issue (not_multiple_of): Invalid number: must be a multiple of 5` |
 
 並べ方は、ファイル・行・項目の ID・欄・理由の順で、同じ入力からはいつも同じ順になる。
