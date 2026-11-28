@@ -16,6 +16,8 @@
  * 親クラスの init() が各 root で `validManifestFilenames=["plugin.json"]` を first-match で展開する。
  * この流れは標準の処理に乗る。
  *
+ * release の依存には、`implicitDependencies` の辺も数える（`readDependencies`）。
+ *
  * 回帰テスト: `.nx/nx-release/tests/version-actions.test.mjs`。
  * 実際の 3 プラグインの project.json から init() を通して、manifest の展開と読み書きを単体で確かめる。
  */
@@ -135,6 +137,15 @@ class PecotVersionActions extends VersionActions {
 
   async updateProjectDependencies() {
     return [];
+  }
+
+  /**
+   * nx の既定は implicit の辺を外し、`implicitDependencies` の依存先の版上げが届かない（#907）。
+   * @param {Tree} _tree
+   * @param {import("nx/src/config/project-graph").ProjectGraph} projectGraph
+   */
+  async readDependencies(_tree, projectGraph) {
+    return projectGraph.dependencies[this.projectGraphNode.name] ?? [];
   }
 }
 

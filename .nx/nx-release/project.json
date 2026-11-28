@@ -69,6 +69,7 @@
         "{workspaceRoot}/pnpm-workspace.yaml",
         "{workspaceRoot}/plugins/pecot-workflow/project.json",
         "{workspaceRoot}/plugins/pecot-visual/project.json",
+        "{workspaceRoot}/plugins/pecot-visual/package.json",
         "{workspaceRoot}/plugins/pecot-tools/project.json",
         "{workspaceRoot}/libs/text-rules/project.json",
         "{workspaceRoot}/libs/text-rules/package.json",

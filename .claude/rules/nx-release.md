@@ -58,6 +58,8 @@ dom-to-pptx 1.1.7 の Fractional Font Precision 修正で sz が +5〜13.3% 増�
 - `nx.json` の `release.groups` には、1 group に 1 project だけを入れる
   - 複数入れると CHANGELOG が commit から抜ける（nrwl/nx#35559）
 - version-plan の frontmatter のキーは group 名だけにする
+- release の依存は、`implicitDependencies` の辺も数える（`.nx/nx-release/src/version-actions.js` の `readDependencies`）
+  - 依存先の版上げは、`release.groups` の並び順に関わらず届く。並び順に頼らない
 - config の `develop_branch` と `release_branch` が同じなら単一ブランチ
 
 ## MCP サーバの npm への初回公開

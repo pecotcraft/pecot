@@ -338,3 +338,36 @@ test("libs/text-rules: package.json の version を書き換え、他のフィ�
     type: "module",
   });
 });
+
+// --- release の依存（readDependencies） ---
+
+const { PecotActionsVersionActions } = require("../src/actions-version-actions");
+
+const PROJECT_GRAPH = {
+  dependencies: {
+    "pecot-actions": [
+      { source: "pecot-actions", target: "workflow-core", type: "implicit" },
+      { source: "pecot-actions", target: "pecot", type: "static" },
+    ],
+  },
+};
+
+test.for([
+  { name: "PecotVersionActions", Actions: PecotVersionActions },
+  { name: "PecotPackageVersionActions", Actions: PecotPackageVersionActions },
+  { name: "PecotActionsVersionActions", Actions: PecotActionsVersionActions },
+])("$name は、implicit と static の辺をどちらも release の依存として返す", async ({ Actions }) => {
+  await explains("release の依存を読み取る `readDependencies` のテストです。nx の標準の実装が除外する `implicit` の辺も、`static` の辺と同じく依存として返すことを確認します。");
+  const actions = Object.create(Actions.prototype);
+  actions.projectGraphNode = { name: "pecot-actions", data: { root: "actions" } };
+  assert.deepEqual(
+    await actions.readDependencies(makeTree({}), PROJECT_GRAPH),
+    PROJECT_GRAPH.dependencies["pecot-actions"],
+  );
+});
+
+test("project graph に依存の辺が無い project では、空の配列を返す", async () => {
+  await explains("release の依存を読み取る `readDependencies` のテストです。project graph に依存の項目が存在しない場合に、空の配列を返すことを確認します。");
+  const actions = makeActions([], "pecot-tools");
+  assert.deepEqual(await actions.readDependencies(makeTree({}), PROJECT_GRAPH), []);
+});
