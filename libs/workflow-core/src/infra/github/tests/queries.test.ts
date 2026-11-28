@@ -20,10 +20,10 @@ function pascalCase(constantName: string): string {
 const exported = new Map(Object.entries(queries))
 
 describe('export', () => {
-  it('export する GraphQL の文の定数は 59 個になる', async () => {
-    await explains('`queries.ts` が export する GraphQL の文の定数の数のテストです。定数を追加した場合は、operation の対応表とこの個数を同時に更新する必要があるため、59 個になることを確認します。')
+  it('export する GraphQL の文の定数は 61 個になる', async () => {
+    await explains('`queries.ts` が export する GraphQL の文の定数の数のテストです。定数を追加した場合は、operation の対応表とこの個数を同時に更新する必要があるため、61 個になることを確認します。')
     stepSync('定数の数を比べる', () => {
-      expect(exported.size).toBe(59)
+      expect(exported.size).toBe(61)
     })
   })
 })
