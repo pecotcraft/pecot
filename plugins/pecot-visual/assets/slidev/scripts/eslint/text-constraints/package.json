@@ -11,7 +11,7 @@
   "dependencies": {
     "@pecot/text-rules": "workspace:@pecot/text-rules-src@*",
     "@v-slidev/eslint-shared": "workspace:*",
-    "js-yaml": "^4.3.2",
+    "js-yaml": "^5.5.0",
     "synckit": "^0.12.3"
   },
   "peerDependencies": {
