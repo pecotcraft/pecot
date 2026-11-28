@@ -41,6 +41,8 @@
 | `write` | 足すだけ。新しく作る・足す・空の欄に値を入れる | `destructive` が無ければ `destructiveHint: false` |
 | `destructive` | 既にあるものを書き換える・置き換える・消す。閉じる・マージするなど、状態を変えることも含む | 1 つでもあれば `destructiveHint: true` |
 
+MCP の面を持つ項目は、`readOnlyHint` を省かない。`write`・`destructive` を持つ項目は、`destructiveHint`・`idempotentHint` も省かない。`idempotentHint` は `idempotent` と同じ値にする。
+
 足す操作と上書きを 1 つの操作で行うときは、effect を 2 つに分け、足す部分を `write`、上書きの部分を `destructive` にする。
 
 書くものと書かないものは、Diátaxis のリファレンスの決めに従う。定義書には記述だけを書く。使い方の手順・設計の理由・議論は書かない。
@@ -384,6 +386,8 @@ error: plugins/pecot-workflow/interface/authored.yaml: environment: PECOT_SESSIO
 | 終了コードが範囲外 | `error: <file>: PW-ISSUE-CREATE: exit_status[1].code: must be between 0 and 255` |
 | CLI の面の無い項目の終了コード | `error: <file>: PT-AWS-S3-LS: exit_status[0].code: is only for entries with a CLI surface (remove it)` |
 | CLI の面の無い項目の `cli_reference` | `error: <file>: PT-AWS-S3-LS: cli_reference: is only for entries with a CLI surface (remove it)` |
+| MCP の面を持つ項目の `readOnlyHint` の書き忘れ | `error: <file>: PT-AWS-S3-LS: annotations.readOnlyHint is missing` |
+| 書き込む項目の `destructiveHint`・`idempotentHint` の書き忘れ | `error: <file>: PT-AWS-S3-CP: effects has kind "write" but annotations.destructiveHint is missing`。`kind` は、項目が `write` を持てば `write`、持たなければ `destructive` |
 | `mcp.title` の書き忘れ | `error: <file>: PT-AWS-S3-LS: mcp.title: is missing (give the tool a display name in English)` |
 | MCP の面を持つ項目の `run` の使用例 | `error: <file>: PT-AWS-S3-LS: examples[0]: must be an MCP call (write arguments instead of run)` |
 | MCP の面の無い項目の `arguments` の使用例 | `error: <file>: PW-ISSUE-CREATE: examples[0]: must be a command line (write run instead of arguments; the entry has no MCP surface)` |

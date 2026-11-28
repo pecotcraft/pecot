@@ -24,7 +24,7 @@ const generatedPath = path.resolve(import.meta.dirname, '../../../../interface/g
 interface GeneratedEntry {
   readonly name: string
   readonly surfaces: { readonly mcp: { readonly tool: string } }
-  readonly mcp?: { readonly title?: string }
+  readonly mcp?: { readonly title?: string, readonly annotations?: Readonly<Record<string, unknown>> }
 }
 
 function readGeneratedEntries(): readonly GeneratedEntry[] {
@@ -60,7 +60,11 @@ const SUCCESS_REQUIRED: Readonly<Record<string, readonly (readonly string[])[]>>
   aws_scheduler_list_schedules: [['Schedules'], ...AWSCLI_OUTPUT_REQUIRED],
 }
 
-const GENERATED_TOOLS = readGeneratedEntries().map(entry => ({ name: entry.surfaces.mcp.tool, title: entry.mcp?.title }))
+const GENERATED_TOOLS = readGeneratedEntries().map(entry => ({
+  name: entry.surfaces.mcp.tool,
+  title: entry.mcp?.title,
+  annotations: entry.mcp?.annotations,
+}))
 const REGION_TOOLS = GENERATED_TOOLS.filter(tool => !SSO_TOOL_NAMES.includes(tool.name))
 
 function patternOf(properties: Readonly<Record<string, unknown>>, name: string): unknown {
@@ -245,15 +249,13 @@ describe('MCP ツール契約 (tools/list)', () => {
     expect(tool.annotations?.openWorldHint).toBe(true)
   })
 
-  it.each(GENERATED_TOOLS)('ツール $name の annotations は、読むだけなら destructiveHint と idempotentHint を持たず、書き込むなら両方を明示する', async ({ name }) => {
-    await explains('MCP サーバの `tools/list` が返すツールの `annotations` のテストです。読むだけのツールは `destructiveHint`・`idempotentHint` を持たず、書き込むツールは両方を明示することを確認します。')
-    const annotations = toolOf(name).annotations ?? {}
-    const isReadOnly = annotations.readOnlyHint === true
-    const expectedKeys = isReadOnly
+  it.each(GENERATED_TOOLS)('ツール $name の annotations は generated.json と同じで、読むだけなら destructiveHint と idempotentHint を持たない', async ({ name, annotations }) => {
+    await explains('MCP サーバの `tools/list` が返すツールの `annotations` のテストです。`generated.json` の値と一致し、`generated.json` で読むだけのツールは `destructiveHint`・`idempotentHint` を持たないことを確認します。')
+    const expectedKeys = annotations?.['readOnlyHint'] === true
       ? ['openWorldHint', 'readOnlyHint']
       : ['destructiveHint', 'idempotentHint', 'openWorldHint', 'readOnlyHint']
 
-    expect(Object.keys(annotations).toSorted(compareStrings)).toEqual(expectedKeys)
-    expect(annotations.idempotentHint).toBe(isReadOnly ? undefined : false)
+    expect(toolOf(name).annotations).toStrictEqual(annotations)
+    expect(Object.keys(annotations ?? {}).toSorted(compareStrings)).toEqual(expectedKeys)
   })
 })
