@@ -1663,7 +1663,7 @@ entries:
         statement: 'もし CHANGELOG か、その中の版の節が無いなら、`changelog-missing` の項目を返します'
       - id: PW-RELEASE-CHECK-05
         pattern: unwanted
-        statement: 'もし `body` が CHANGELOG の節と違うなら、節の本文を候補に添えた `body-mismatch` の項目を返します。前後の空白は比べません'
+        statement: 'もし `body` がリリースノート（`releaseNotes`）と違うなら、リリースノートを候補に添えた `body-mismatch` の項目を返します。前後の空白は比べません'
       - id: PW-RELEASE-CHECK-06
         pattern: unwanted
         statement: 'もしリリースの名前が期待する名前と違うなら、`release-name` の項目を返します。`name` を省くと、タグを名前とみなします'

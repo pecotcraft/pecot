@@ -272,7 +272,7 @@ async function releaseChecks(output: Readonly<Output>, target: Readonly<ReleaseT
   const notes = releaseNotesOf(changelogPathOf(target.gitRoot, target.repositoryConfig, prefix), version)
   if ('problem' in notes) problems.push(notes.problem)
   else if (pythonStrip(parameters.body) !== pythonStrip(notes.notes)) {
-    problems.push({ field: 'params.body', code: 'body-mismatch', message: `body must be the CHANGELOG section of ${version}`, candidates: [notes.notes] })
+    problems.push({ field: 'params.body', code: 'body-mismatch', message: `body must be the release notes of ${version} (see candidates)`, candidates: [notes.notes] })
   }
   const name = prefix === undefined ? parameters.tag : `${prefix} v${version}`
   if ((parameters.name ?? parameters.tag) !== name) problems.push({ field: 'params.name', code: 'release-name', message: `the release name must be ${name}`, candidates: [name] })

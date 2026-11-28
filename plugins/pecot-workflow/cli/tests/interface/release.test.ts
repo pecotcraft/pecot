@@ -200,10 +200,10 @@ describe('release_check', () => {
 
     it('本文が CHANGELOG の節と違うと、body-mismatch の項目と節の本文の候補を返す', async (context) => {
       await verifies(context, 'PW-RELEASE-CHECK-05')
-      await explains('`release_check` の本文のテストです。CHANGELOG の節と異なる本文を渡した場合に、`body-mismatch` の項目と、節の本文を候補に返すことを確認します。')
+      await explains('`release_check` の本文のテストです。リリースノートと異なる本文を渡した場合に、`body-mismatch` の項目と、リリースノートを候補に返すことを確認します。')
       const problems = await problemsForValues({ body: '### 追加\n\n- 新機能 A' })
-      await step('body-mismatch の problem と節の本文の候補を比べる', () => {
-        expect(problems).toEqual([{ field: 'params.body', code: 'body-mismatch', message: 'body must be the CHANGELOG section of 0.2.0', candidates: [NOTES_0_2_0] }])
+      await step('body-mismatch の problem とリリースノートの候補を比べる', () => {
+        expect(problems).toEqual([{ field: 'params.body', code: 'body-mismatch', message: 'body must be the release notes of 0.2.0 (see candidates)', candidates: [NOTES_0_2_0] }])
       })
     })
 
@@ -542,7 +542,7 @@ describe('release_check', () => {
       const target = project()
       const result = await runRelease(target, { params: releaseValues(target, { body: 'x', name: 'y' }), reads: reads() })
       await step('problem の行と終了コードを比べる', () => {
-        expect(result).toEqual({ code: 0, stdout: 'params.body: body must be the CHANGELOG section of 0.2.0\nparams.name: the release name must be v0.2.0\n', stderr: '' })
+        expect(result).toEqual({ code: 0, stdout: 'params.body: body must be the release notes of 0.2.0 (see candidates)\nparams.name: the release name must be v0.2.0\n', stderr: '' })
       })
     })
 
