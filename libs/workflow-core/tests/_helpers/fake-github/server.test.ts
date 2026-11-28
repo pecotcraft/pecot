@@ -43,7 +43,7 @@ async function post(server: FakeGithub, pathname: string, body: unknown): Promis
 describe('REST', () => {
   it('上から見て、まだ使っていない最初の一致を返し、times を使い切ったら次へ進む', async () => {
     await explains('偽の GitHub サーバのREST の応答の選び方のテストです。同じ条件のルールが複数ある場合に、`times` を使い切るまで上のルールで応じ、使い切ると次のルールで応じることを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([
+    const server = await step('偽サーバを立てる', async () => await start([
       rule({ method: 'GET', path: '/repos/a/b' }, 200, { n: 1 }, 2),
       rule({ method: 'GET', path: '/repos/a/b' }, 404, { n: 2 }),
     ]))
@@ -63,7 +63,7 @@ describe('REST', () => {
 
   it('REST の要求を受けると、メソッド・パス・キー順のクエリ・本文・Authorization の種別を記録する', async () => {
     await explains('偽の GitHub サーバの要求の記録のテストです。クエリ付きの POST を受けた場合に、メソッド・パス・クエリ（キー順）・本文と、`Authorization` ヘッダの種別（`token`）だけを記録することを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([rule({ method: 'POST', path: '/repos/a/b/issues' }, 201, { number: 3 })]))
+    const server = await step('偽サーバを立てる', async () => await start([rule({ method: 'POST', path: '/repos/a/b/issues' }, 201, { number: 3 })]))
     const response = await step('偽サーバへ要求を送る', async () => await post(server, '/repos/a/b/issues?z=1&a=2', { title: 't' }))
     await step('結果を確認する', async () => {
       expect(response.status).toBe(201)
@@ -76,7 +76,7 @@ describe('REST', () => {
 
   it('query と body は、ルールに指定した項目だけが一致すれば、応答を選ぶ', async () => {
     await explains('REST のルールの一致条件のテストです。ルールに指定したクエリや本文の項目が要求に含まれていれば、ほかの項目があっても、そのルールの応答を返すことを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([
+    const server = await step('偽サーバを立てる', async () => await start([
       rule({ method: 'GET', path: '/p', query: { page: '2' } }, 200, { page: 2 }),
       rule({ method: 'POST', path: '/p', body: { title: 't' } }, 200, { ok: true }),
     ]))
@@ -92,7 +92,7 @@ describe('REST', () => {
 
   it('どの応答にも当たらない要求を受けると、500 を返し、問題として記録する', async () => {
     await explains('偽の GitHub サーバのテストです。ルールに一致しない要求を受けた場合に、ステータス 500 を返し、その要求を問題の記録に残すことを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([]))
+    const server = await step('偽サーバを立てる', async () => await start([]))
     const response = await step('偽サーバへ要求を送る', async () => await get(server, '/nothing'))
     stepSync('結果を確認する', () => {
       expect(response.status).toBe(500)
@@ -103,7 +103,7 @@ describe('REST', () => {
 
   it('使われなかったルールを、unused の一覧に返す', async () => {
     await explains('`unused` のテストです。使われていないルールと、`times` を使い切っていないルールの両方が、番号付きで一覧に含まれることを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([rule({ method: 'GET', path: '/a' }, 200, {}), rule({ method: 'GET', path: '/b' }, 200, {}, 2)]))
+    const server = await step('偽サーバを立てる', async () => await start([rule({ method: 'GET', path: '/a' }, 200, {}), rule({ method: 'GET', path: '/b' }, 200, {}, 2)]))
     await step('偽サーバへ要求を送る', async () => {
       await get(server, '/b')
     })
@@ -116,7 +116,7 @@ describe('REST', () => {
 
   it('応答の本文とヘッダの {{GITHUB_API}} を、サーバ自身の URL に置き換える。text は本文より優先する', async () => {
     await explains('応答のプレースホルダのテストです。本文とヘッダの `{{GITHUB_API}}` がサーバ自身の URL に置き換わり、`text` を指定した場合は本文より優先して返されることを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([
+    const server = await step('偽サーバを立てる', async () => await start([
       { match: { method: 'GET', path: '/a' }, respond: { status: 200, body: { next: '{{GITHUB_API}}/a?page=2' }, headers: { link: '<{{GITHUB_API}}/a?page=2>; rel="next"' } }, times: 1 },
       { match: { method: 'GET', path: '/t' }, respond: { status: 200, body: { ignored: true }, text: 'plain {{GITHUB_API}}' }, times: 1 },
     ]))
@@ -135,7 +135,7 @@ describe('REST', () => {
 describe('GraphQL', () => {
   it('名前のない query は、構造から operation 名を判定し、名前と変数を記録する', async () => {
     await explains('偽の GitHub サーバのGraphQL の判定のテストです。operation 名のない query を受けた場合に、構造から `GetIssueNodeId` と判定し、名前と変数を記録することを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([rule({ operation: 'GetIssueNodeId', variables: { number: 1 } }, 200, { data: {} })]))
+    const server = await step('偽サーバを立てる', async () => await start([rule({ operation: 'GetIssueNodeId', variables: { number: 1 } }, 200, { data: {} })]))
     const response = await step('偽サーバへ要求を送る', async () => await post(server, '/graphql', { query: ISSUE_QUERY, variables: { owner: 'a', repo: 'b', number: 1 } }))
     stepSync('結果を確認する', () => {
       expect(response.status).toBe(200)
@@ -148,7 +148,7 @@ describe('GraphQL', () => {
 
   it('名前のある operation は、query に書かれた名前を使う', async () => {
     await explains('GraphQL の判定のテストです。`mutation CreateLinkedBranch` のように名前のある operation は、その名前で応答のルールに一致することを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([rule({ operation: 'CreateLinkedBranch' }, 200, { data: {} })]))
+    const server = await step('偽サーバを立てる', async () => await start([rule({ operation: 'CreateLinkedBranch' }, 200, { data: {} })]))
     const query = 'mutation CreateLinkedBranch($input: CreateLinkedBranchInput!) { createLinkedBranch(input: $input) { linkedBranch { ref { name prefix } } } }'
     const response = await step('偽サーバへ要求を送る', async () => await post(server, '/graphql', { query, variables: {} }))
     stepSync('結果を確認する', () => {
@@ -159,7 +159,7 @@ describe('GraphQL', () => {
 
   it('対応表に存在しない operation は、問題として記録し、500 を返す', async () => {
     await explains('GraphQL の判定のテストです。対応表に存在しない operation を受けた場合に、ステータス 500 を返し、問題として記録することを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([]))
+    const server = await step('偽サーバを立てる', async () => await start([]))
     const response = await step('偽サーバへ要求を送る', async () => await post(server, '/graphql', { query: '{ viewer { login } }', variables: {} }))
     stepSync('結果を確認する', () => {
       expect(response.status).toBe(500)
@@ -169,7 +169,7 @@ describe('GraphQL', () => {
 
   it('operation が異なる場合は、ルールに一致しない', async () => {
     await explains('GraphQL の判定のテストです。ルールの operation と受けた operation が異なる場合に、一致しない要求として記録され、ルールが未使用のまま残ることを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([rule({ operation: 'GetRepositoryId' }, 200, {})]))
+    const server = await step('偽サーバを立てる', async () => await start([rule({ operation: 'GetRepositoryId' }, 200, {})]))
     await step('偽サーバへ要求を送る', async () => {
       await post(server, '/graphql', { query: ISSUE_QUERY, variables: {} })
     })
@@ -193,7 +193,7 @@ describe('ポートの選び方', () => {
   it('401 を含むポートを得た場合は、次の候補のポートを選び直す', async () => {
     await explains('偽の `listen` を指定したテストです。最初に `401` を含むポート 40199 を得た場合に、40299 を選び直してサーバの URL に使うことを確認します。')
     const candidates = [40_199, 40_299]
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([], { listen: () => Promise.resolve(candidates.shift() ?? 0) }))
+    const server = await step('偽サーバを立てる', async () => await start([], { listen: () => Promise.resolve(candidates.shift() ?? 0) }))
     stepSync('結果を確認する', () => {
       expect(server.url).toBe('http://127.0.0.1:40299')
       expect(candidates).toEqual([])
@@ -202,7 +202,7 @@ describe('ポートの選び方', () => {
 
   it('実際の listen で起動でき、選ばれたポートは 401 を含まない', async () => {
     await explains('`startFakeGithub` の起動のテストです。実際に待ち受けを開始した場合に、サーバが要求に応答し、選ばれたポートに `401` が含まれないことを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([]))
+    const server = await step('偽サーバを立てる', async () => await start([]))
     const response = await step('偽サーバへ要求を送る', async () => await get(server, '/x'))
     stepSync('結果を確認する', () => {
       expect(response.status).toBe(500)
@@ -231,7 +231,7 @@ describe('異常時', () => {
 
   it('応答の組み立てで例外が発生しても、500 を返し、問題として記録する', async () => {
     await explains('偽の GitHub サーバの異常時のテストです。応答の本文に JSON へ変換できない値（`BigInt`）を指定した場合に、ステータス 500 を返し、内部エラーを問題として記録することを確認します。')
-    const server = await step('偽サーバとクライアントを用意する', async () => await start([rule({ path: '/x' }, 200, { value: 1n })]))
+    const server = await step('偽サーバを立てる', async () => await start([rule({ path: '/x' }, 200, { value: 1n })]))
     const response = await step('偽サーバへ要求を送る', async () => await get(server, '/x'))
     stepSync('結果を確認する', () => {
       expect(response.status).toBe(500)
