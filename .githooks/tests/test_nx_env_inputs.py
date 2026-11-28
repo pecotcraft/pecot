@@ -422,12 +422,13 @@ def test_every_env_read_is_declared_or_exempt(repo_reads: dict[str, set[str]]) -
 
 @allure.title("共通の env には、すべてのプラグインが読む変数だけを置く")
 def test_common_env_is_only_what_every_plugin_reads(repo_reads: dict[str, set[str]]) -> None:
-    """`nx.json` の共通の `env` のテストです。読み取りが見える変数について、一部のプラグインしか読まないものが含まれていないことを確認します。"""
+    """`nx.json` の共通の `env` のテストです。読み取りが見える変数について、一部のプラグインしか読まないものが含まれていないことを確認します。プラグインの env を持たない project（pecot-tools・ライブラリ）が読む変数は、共通の env にしか置けないので対象から外します。"""
     with allure.step("共通の env の変数ごとに、読むプラグインを集める"):
         narrow = {
             name: sorted({_plugin_of(f) for f in repo_reads[name]} & set(_PLUGIN_ENV_INPUT))
             for name in sorted(_declared_env())
             if name in repo_reads
+            and {_plugin_of(f) for f in repo_reads[name]} <= set(_PLUGIN_ENV_INPUT)
             and len({_plugin_of(f) for f in repo_reads[name]} & set(_PLUGIN_ENV_INPUT))
             < len(_PLUGIN_ENV_INPUT)
         }
