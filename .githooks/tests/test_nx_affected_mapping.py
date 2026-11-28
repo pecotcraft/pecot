@@ -480,6 +480,7 @@ def _lanes_reading(lane_input_files: dict[str, set[str]], changed_file: str) -> 
                     "pecot-visual:test-skills",
                     "pecot-visual:test-release",
                     "pecot-tools:test-release",
+                    "pecot-workflow:test-release",
                 },
             ),
         ]
@@ -827,11 +828,15 @@ _PECOTV_TEST_LANES = {
                 _PECOTV_TEST_LANES,
             ),
             # root の package.json は pecot-visual の全レーンの Globals と、nx 本体の版を読む nx-release が読む。
-            # bats の版を持つので、bats を動かす pecot-tools:test-release も読む。
+            # bats の版を持つので、bats を動かす pecot-tools・pecot-workflow の test-release も読む。
             (
                 "package.json",
                 _PECOTV_TEST_LANES
-                | {"nx-release:test-unit", "pecot-tools:test-release"}
+                | {
+                    "nx-release:test-unit",
+                    "pecot-tools:test-release",
+                    "pecot-workflow:test-release",
+                }
                 | _GITHOOKS_GRAPH,
             ),
             # libs/text-rules のレーンは 1 本で、テストの変更は test-unit だけを選ぶ。

@@ -38,5 +38,5 @@ integration cli/tests/parity/run.test.ts
 integration cli/tests/parity/setup.test.ts
 unit cli/tests/skills/
 integration cli/tests/skills/skill-scripts.test.ts
-integration scripts/release/tests/npm-cache-opt-in.test.sh
-e2e scripts/release/tests/publish-mcp-dist.test.sh
+integration scripts/release/tests/npm-cache-opt-in.bats
+e2e scripts/release/tests/publish-mcp-dist.bats

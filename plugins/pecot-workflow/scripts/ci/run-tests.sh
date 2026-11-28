@@ -14,7 +14,7 @@ unset PLUGIN_DATA
 GATE_PLUGIN_DATA="$(mktemp -d)"
 export CLAUDE_PLUGIN_DATA="$GATE_PLUGIN_DATA"
 
-# bash のテストは bt_run_files で動かし、nx のレーンなら確かめを Allure の結果に残す。
+# bash のテストは bats/run.sh で動かし、nx のレーンなら結果を bt_results_dir の Allure の結果に残す。
 # shellcheck source=../../../../.githooks/scripts/test_report/bash-test.sh
 . "$PLUGIN_ROOT/../../.githooks/scripts/test_report/bash-test.sh"
 PECOT_REPORT_RESULTS="$(bt_results_dir "$PLUGIN_ROOT")"
@@ -168,12 +168,12 @@ if [ "$RUN_RELEASE" = true ]; then
         echo "ERROR: libs/workflow-core/dist がありません。先に build してください（nx では workflow-core:build）。" >&2
         exit 1
     fi
-    mapfile -t release_test_files < <(find "$PLUGIN_ROOT/scripts/release/tests" -name '*.test.sh' | LC_ALL=C sort)
+    mapfile -t release_test_files < <(find "$PLUGIN_ROOT/scripts/release/tests" -name '*.bats' | LC_ALL=C sort)
     if [ "${#release_test_files[@]}" -eq 0 ]; then
-        echo "ERROR: scripts/release/tests/ 配下に *.test.sh が見つかりません (消失 or find 失敗の疑い)。" >&2
+        echo "ERROR: scripts/release/tests/ 配下に *.bats が見つかりません (消失 or find 失敗の疑い)。" >&2
         exit 1
     fi
-    bt_run_files "${release_test_files[@]}"
+    PECOT_REPORT_RESULTS="$PECOT_REPORT_RESULTS" bash "$PLUGIN_ROOT/../../.githooks/scripts/test_report/bats/run.sh" "${release_test_files[@]}"
 fi
 
 echo "all checks passed"
