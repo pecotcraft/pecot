@@ -1,6 +1,5 @@
-# 試験環境（pecotcraft/pecot-sandbox とボード「pecot sandbox」）を、このリポと比べるか、確かめで作ったものを片付ける。
-# 手順は plugins/pecot-workflow/CONTRIBUTING.md の「3. 試験環境」。公式の MCP の actions_run_trigger で起動し、ログで結果を読む。
-# 検証用には pecot-agent-sandbox の App の token を使う。変数 PECOT_SANDBOX_APP_CLIENT_ID が空の間は job を飛ばす。
+# 試験環境を比べるか片付ける。手順は plugins/pecot-workflow/CONTRIBUTING.md の「3. 試験環境」。
+# 変数 PECOT_SANDBOX_APP_CLIENT_ID が空の間は job を飛ばす。
 name: sandbox-ops
 run-name: sandbox-ops ${{ inputs.operation }} ${{ inputs.request_id }}
 

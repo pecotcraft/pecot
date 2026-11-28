@@ -1,5 +1,4 @@
 // 層の規則と GitHub の I/O の規則が eslint.config.js から消えたら落とすテスト。
-// 規則: infra は commands・mcp を import しない（lib の層も同じ）。cli のどのファイルも、GitHub の client と偽の GitHub を import しない。
 // 実在するファイルのパスで、中身だけ差し替えた文字列を lintText に渡す。
 import path from 'node:path'
 
