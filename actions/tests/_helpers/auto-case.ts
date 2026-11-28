@@ -158,12 +158,20 @@ export function issueNodeId(): ResponseRule {
 }
 
 /**
+Issue の node id と、つながったブランチが無いことの応答
+*/
+export function noLinkedBranches(): ResponseRule {
+  const body = { data: { repository: { issue: { id: 'I_7', linkedBranches: { nodes: [] } } } } }
+  return { match: { operation: 'GetIssueLinkedBranches', variables: { owner: 'acme', repo: 'demo', number: 7 } }, respond: { status: 200, body }, times: 1 }
+}
+
+/**
 ブランチを作る書き込みの応答。base の先頭の commit を読み、Issue につないだブランチを作る
 */
 export function branchCreated(branch: string, base = 'main'): readonly ResponseRule[] {
   const head: ResponseRule = { match: { method: 'GET', path: `/repos/acme/demo/git/ref/heads/${base}` }, respond: { status: 200, body: { object: { sha: 'a'.repeat(40) } } }, times: 1 }
   const created: ResponseRule = { match: { operation: 'CreateLinkedBranch' }, respond: { status: 200, body: { data: { createLinkedBranch: { linkedBranch: { ref: { name: branch, prefix: 'refs/heads/' } } } } } }, times: 1 }
-  return [head, issueNodeId(), created]
+  return [head, noLinkedBranches(), created]
 }
 
 /**

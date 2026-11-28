@@ -417,6 +417,25 @@ describe('removeIssueLabel', () => {
   })
 })
 
+describe('getIssueLinkedBranches', () => {
+  it('Issue の Node ID と、Issue のリポにあるつながったブランチの名前だけを返す', async () => {
+    await explains('`getIssueLinkedBranches` のテストです。つながったブランチのうち、別のリポのものと `ref` が空のものを除き、Issue のリポのブランチの名前を返すことを確認します。')
+    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const linkedBranches = { nodes: [
+        { ref: { name: 'feat/a/1', repository: { nameWithOwner: 'Owner/Repo' } } },
+        { ref: { name: 'feat/b/1', repository: { nameWithOwner: 'owner/other' } } },
+        { ref: JSON_NULL },
+      ] }
+      const { client, server } = await startClient([graphqlData('GetIssueLinkedBranches', { repository: { issue: { id: 'I_1', linkedBranches } } })])
+      return { client, server }
+    })
+    await step('送った要求と結果を確かめる', async () => {
+      expect(await client.getIssueLinkedBranches('owner', 'repo', 1)).toEqual({ id: 'I_1', branches: ['feat/a/1'] })
+      expect(graphqlRequests(server)).toEqual([{ operation: 'GetIssueLinkedBranches', variables: { owner: 'owner', repo: 'repo', number: 1 } }])
+    })
+  })
+})
+
 describe('getIssueNodeId / getIssueNodeIdAndTitle', () => {
   it('owner・repo・番号を変数に送信し、Node ID を返す', async () => {
     await explains('`getIssueNodeId` のテストです。owner・repo・番号を変数にして GraphQL を送信し、Node ID を返すことを確認します。')

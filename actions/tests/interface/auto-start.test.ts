@@ -9,6 +9,8 @@ import { main } from '../../src/auto-start.js'
 import { useIsolatedEnvironment } from '../../../libs/workflow-core/tests/_helpers/environment.js'
 import { prerequisitesData, prerequisitesRule } from '../../../libs/workflow-core/tests/_helpers/prerequisites.js'
 import type { IssueSpec } from '../../../libs/workflow-core/tests/_helpers/prerequisites.js'
+import { JSON_NULL } from '@pecot/workflow-core/domain/json-null.js'
+import type { ResponseRule } from '../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { explains } from '../_helpers/explains.js'
 import { verifies } from '../_helpers/verifies.js'
 import { runActionCase, startGithub } from '../_helpers/action-case.js'
@@ -214,6 +216,21 @@ describe('auto start', () => {
 
       expect(outcome.code).toBe(1)
       expect(outcome.stderr).toMatch(/^error: could not create the branch for Issue acme\/demo\/7: /u)
+      expect(existsSync(contextFile(runner))).toBe(false)
+    })
+
+    it('feat/auto/<番号> と同じ名前のブランチが既にあって GitHub が作らないと、そのことと直し方で止まる', async (context) => {
+      await verifies(context, 'PA-AUTO-START-10')
+      await explains('`auto-start` の action が、作るブランチと同じ名前のブランチが存在する場合のテストです。GitHub が `linkedBranch` を `null` で返した場合に、同じ名前のブランチの存在と直し方を出力して止まることを確認します。')
+      const runner = prepareAuto()
+      const notCreated: ResponseRule = { match: { operation: 'CreateLinkedBranch' }, respond: { status: 200, body: { data: { createLinkedBranch: { linkedBranch: JSON_NULL } } } }, times: 1 }
+      const existing: ResponseRule = { match: { operation: 'GetBranchRefByNode', variables: { id: 'I_7', qualifiedName: 'refs/heads/feat/auto/7' } }, respond: { status: 200, body: { data: { node: { repository: { nameWithOwner: 'acme/demo', ref: { name: 'feat/auto/7' } } } } } }, times: 1 }
+      await startGithub([prerequisitesRule({ number: 7, column: 'Active' }), issueComments(), ...branchCreated('feat/auto/7').slice(0, 2), notCreated, existing])
+
+      const outcome = await start()
+
+      expect(outcome.code).toBe(1)
+      expect(outcome.stderr).toContain('error: could not create the branch for Issue acme/demo/7: GitHub did not create the linked branch: a branch named feat/auto/7 already exists in acme/demo. Use another branch name, or delete that branch if nothing uses it')
       expect(existsSync(contextFile(runner))).toBe(false)
     })
 

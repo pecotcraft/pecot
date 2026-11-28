@@ -328,6 +328,45 @@ export const MUTATION_CREATE_LINKED_BRANCH = `mutation CreateLinkedBranch($input
   }
 }`
 
+// リンクブランチを作れなかったときの、作り先のリポと同じ名前の ref。id は Repository か Issue の Node ID
+export const QUERY_GET_BRANCH_REF_BY_NODE = `query ($id: ID!, $qualifiedName: String!) {
+  node(id: $id) {
+    ... on Repository {
+      nameWithOwner
+      ref(qualifiedName: $qualifiedName) {
+        name
+      }
+    }
+    ... on Issue {
+      repository {
+        nameWithOwner
+        ref(qualifiedName: $qualifiedName) {
+          name
+        }
+      }
+    }
+  }
+}`
+
+// Issue の Node ID と、つながったブランチ。件数は gh issue develop の ListLinkedBranches と同じ
+export const QUERY_GET_ISSUE_LINKED_BRANCHES = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      id
+      linkedBranches(first: 30) {
+        nodes {
+          ref {
+            name
+            repository {
+              nameWithOwner
+            }
+          }
+        }
+      }
+    }
+  }
+}`
+
 // Issue番号からプロジェクトアイテム取得（高速版）
 export const QUERY_GET_ISSUE_PROJECT_ITEMS = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {

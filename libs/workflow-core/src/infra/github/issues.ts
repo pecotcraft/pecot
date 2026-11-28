@@ -21,6 +21,7 @@ import {
   QUERY_GET_ISSUE_KIND,
   QUERY_HAS_ADD_BLOCKED_BY_INPUT,
   QUERY_GET_ISSUE_KIND_PHASE1,
+  QUERY_GET_ISSUE_LINKED_BRANCHES,
   QUERY_GET_ISSUE_NODE_ID,
   QUERY_GET_ISSUE_PREREQUISITES,
   QUERY_GET_ISSUE_SLIM,
@@ -36,6 +37,11 @@ const ISSUES_PER_PAGE = 100
 export interface IssueNodeIdAndTitle {
   readonly id: string
   readonly title: string
+}
+
+export interface IssueLinkedBranches {
+  readonly id: string
+  readonly branches: readonly string[]
 }
 
 export interface SubIssueLink {
@@ -455,6 +461,20 @@ export class IssuesApi extends ProjectsApi {
       id: requireString(jsonField(issue, 'id'), 'issue.id'),
       title: stringOrEmpty(jsonField(issue, 'title')),
     }
+  }
+
+  /**
+  Issue の Node ID と、Issue のリポにある、つながったブランチの名前。見つからなければ GitHubNotFoundError
+  */
+  async getIssueLinkedBranches(owner: string, repository: string, number: number): Promise<IssueLinkedBranches> {
+    const result = await this.queryIssue(QUERY_GET_ISSUE_LINKED_BRANCHES, { owner, repo: repository, number })
+    const issue = issueNode(result, owner, repository, number)
+    const fullName = `${owner}/${repository}`.toLowerCase()
+    const branches = truthyNodes(jsonField(issue, 'linkedBranches'))
+      .map(branch => jsonField(branch, 'ref'))
+      .filter(reference => stringOrNull(jsonField(jsonField(reference, 'repository'), 'nameWithOwner'))?.toLowerCase() === fullName)
+      .map(reference => requireString(jsonField(reference, 'name'), 'linkedBranch.ref.name'))
+    return { id: requireString(jsonField(issue, 'id'), 'issue.id'), branches }
   }
 
   /**

@@ -8728,6 +8728,43 @@ const MUTATION_CREATE_LINKED_BRANCH = `mutation CreateLinkedBranch($input: Creat
     }
   }
 }`;
+// リンクブランチを作れなかったときの、作り先のリポと同じ名前の ref。id は Repository か Issue の Node ID
+const QUERY_GET_BRANCH_REF_BY_NODE = `query ($id: ID!, $qualifiedName: String!) {
+  node(id: $id) {
+    ... on Repository {
+      nameWithOwner
+      ref(qualifiedName: $qualifiedName) {
+        name
+      }
+    }
+    ... on Issue {
+      repository {
+        nameWithOwner
+        ref(qualifiedName: $qualifiedName) {
+          name
+        }
+      }
+    }
+  }
+}`;
+// Issue の Node ID と、つながったブランチ。件数は gh issue develop の ListLinkedBranches と同じ
+const QUERY_GET_ISSUE_LINKED_BRANCHES = `query ($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      id
+      linkedBranches(first: 30) {
+        nodes {
+          ref {
+            name
+            repository {
+              nameWithOwner
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
 // Issue番号からプロジェクトアイテム取得（高速版）
 const QUERY_GET_ISSUE_PROJECT_ITEMS = `query ($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
@@ -9979,6 +10016,25 @@ class ReposApi extends GitHubClientBase {
         }
         return items.map(item => jsonField(item, 'name')).filter(name => typeof name === 'string');
     }
+    // GitHub は同じ名前のブランチがあっても errors を返さず linkedBranch を null にするので、作り先のリポを読んで理由を書く
+    async linkedBranchFailure(id, name) {
+        let repository;
+        let hasBranch = false;
+        try {
+            const node = jsonField(await this.executeGraphql(QUERY_GET_BRANCH_REF_BY_NODE, { id, qualifiedName: `refs/heads/${name}` }), 'node');
+            const target = jsonField(node, 'repository') ?? node;
+            const fullName = jsonField(target, 'nameWithOwner');
+            repository = typeof fullName === 'string' ? fullName : undefined;
+            hasBranch = repository !== undefined && isTruthy(jsonField(target, 'ref'));
+        }
+        catch (error) {
+            if (!(error instanceof GitHubAPIError))
+                throw error;
+        }
+        return hasBranch
+            ? `GitHub did not create the linked branch: a branch named ${name} already exists in ${repository ?? ''}. Use another branch name, or delete that branch if nothing uses it`
+            : `GitHub did not create the linked branch ${name} and gave no reason: check the branches of ${repository ?? 'the repository'} for the same name, and that the token can write its contents`;
+    }
     /**
     Link ヘッダの next を最後まで辿る。2 ページ目以降は next の絶対 URL を使い、params を再送すると cursor と二重になる
     */
@@ -10093,8 +10149,15 @@ class ReposApi extends GitHubClientBase {
         const result = await this.executeGraphql(MUTATION_CREATE_LINKED_BRANCH, { input });
         const linkedBranch = jsonField(jsonField(result, 'createLinkedBranch'), 'linkedBranch');
         if (!isTruthy(linkedBranch))
-            throw new GitHubAPIError('failed to create the linked branch');
+            throw new GitHubAPIError(await this.linkedBranchFailure(repositoryId === undefined || repositoryId === '' ? issueId : repositoryId, name));
         return requireString(jsonField(jsonField(linkedBranch, 'ref'), 'name'), 'linkedBranch.ref.name');
+    }
+    /**
+    base と head の分かれ目の commit の SHA（REST の compare の merge_base_commit）
+    */
+    async getMergeBase(owner, repository, base, head) {
+        const comparison = await this.restJson('GET', `${repositoryPath(owner, repository)}/compare/${encodePath(base)}...${encodePath(head)}`, { params: { per_page: 1 } });
+        return requireString(jsonField(jsonField(comparison, 'merge_base_commit'), 'sha'), 'merge_base_commit.sha');
     }
     /**
     ブランチを削除する。保護されたブランチなどは GitHubAPIError
@@ -10942,6 +11005,19 @@ class IssuesApi extends ProjectsApi {
         };
     }
     /**
+    Issue の Node ID と、Issue のリポにある、つながったブランチの名前。見つからなければ GitHubNotFoundError
+    */
+    async getIssueLinkedBranches(owner, repository, number) {
+        const result = await this.queryIssue(QUERY_GET_ISSUE_LINKED_BRANCHES, { owner, repo: repository, number });
+        const issue = issueNode(result, owner, repository, number);
+        const fullName = `${owner}/${repository}`.toLowerCase();
+        const branches = truthyNodes(jsonField(issue, 'linkedBranches'))
+            .map(branch => jsonField(branch, 'ref'))
+            .filter(reference => stringOrNull(jsonField(jsonField(reference, 'repository'), 'nameWithOwner'))?.toLowerCase() === fullName)
+            .map(reference => requireString(jsonField(reference, 'name'), 'linkedBranch.ref.name'));
+        return { id: requireString(jsonField(issue, 'id'), 'issue.id'), branches };
+    }
+    /**
     サブ Issue を紐づける。紐づけ結果は親と子の Issue 番号
     */
     async addSubIssue(parentIssueId, childIssueId) {
@@ -11571,15 +11647,19 @@ function createGitHubClient(out, host) {
 }
 
 /**
-base を省くと、リポの既定のブランチから作る。ブランチ名は GitHub が付けた名前を返す
+base を省くと、リポの既定のブランチから作る。ブランチ名は GitHub が付けた名前を返す。
+gh issue develop と同じく、同じ名前のブランチが Issue につながっていれば作らずに返し、sha は base との分かれ目にする
 */
 async function linkIssueBranch(client, target) {
     const { owner, repository } = target;
     const settings = target.base === undefined ? await client.getRepositorySettings(owner, repository) : undefined;
     const base = target.base ?? settings?.defaultBranch ?? '';
+    const issue = await client.getIssueLinkedBranches(owner, repository, target.issue);
+    if (issue.branches.includes(target.branch)) {
+        return { issue: target.issue, branch: target.branch, base, sha: await client.getMergeBase(owner, repository, base, target.branch) };
+    }
     const sha = await client.getBranchSha(owner, repository, base);
-    const issueId = await client.getIssueNodeId(owner, repository, target.issue);
-    const branch = await client.createLinkedBranch(issueId, sha, target.branch);
+    const branch = await client.createLinkedBranch(issue.id, sha, target.branch);
     return { issue: target.issue, branch, base, sha };
 }
 

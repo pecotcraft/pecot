@@ -1580,10 +1580,10 @@ entries:
         statement: 'もし GitHub が操作を断るか接続が切れたなら、`ok: false` と失敗の種類と GitHub の文を入れた結果の行を出し、step を失敗にします'
       - id: PA-GITHUB-OPS-04
         pattern: event
-        statement: '`link-branch` を呼ぶと、`base` か既定のブランチの先頭から Issue につながったブランチを作り、ブランチ名・元のブランチ・commit を返します'
+        statement: '`link-branch` を呼ぶと、`base` か既定のブランチの先頭から Issue につながったブランチを作り、ブランチ名・元のブランチ・commit を返します。同じ名前のブランチが Issue につながっていれば、作らずに、その名前と `base` との分かれ目の commit を返します'
       - id: PA-GITHUB-OPS-05
         pattern: unwanted
-        statement: 'もし `link-branch` で GitHub がブランチの作成を断ったなら、GitHub の文を入れた `ok: false` の行を出します'
+        statement: 'もし `link-branch` で GitHub がブランチの作成を断ったなら、GitHub の文を入れた `ok: false` の行を出します。GitHub が理由を返さないなら、同じ名前のブランチの有無と直し方か、確かめる所を文に入れます'
       - id: PA-GITHUB-OPS-06
         pattern: event
         statement: '`stack-register` を呼ぶと、親の PR のスタックを作るか一番上に子の PR を足し、登録後の PR の並びを返します'
