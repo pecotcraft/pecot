@@ -253,5 +253,92 @@ def test_commit_workflow_creates_version_plans_before_commit() -> None:
         assert _step_index(steps, "Create version plans") < _step_index(
             steps, "Commit generated files"
         )
-        assert "git add -A -- .nx/version-plans .devcontainer/devcontainer.json" in run
+        assert (
+            "git add -A -- .nx/version-plans .devcontainer/devcontainer.json"
+            " ':(glob)actions/*/dist/**'"
+        ) in run
         assert run.index("git add -A") < run.index("git diff --cached --quiet")
+
+
+@allure.title("dependabot-commit.yml は、plan を作る前に nx を使わずに actions の dist を作り直す")
+def test_commit_workflow_rebuilds_actions_dist_before_plans_without_nx() -> None:
+    """`dependabot-commit.yml` の、`actions/<処理>/dist` を作り直す step のテストです。依存の導入の後で plan の作成より前にあり、`continue-on-error` を持ち、nx を使わずに workflow-core と actions を build することを確認します。"""
+    with allure.step("dist を作り直す step を読む"):
+        steps = _commit_steps()
+        build = _step(steps, "Build actions dist")
+
+    with allure.step("並び・失敗の扱い・build のコマンドを確かめる"):
+        assert _step_index(steps, "Install dependencies") < _step_index(steps, "Build actions dist")
+        assert _step_index(steps, "Build actions dist") < _step_index(steps, "Create version plans")
+        assert build["continue-on-error"] is True
+        assert build["run"].split("\n")[:2] == [
+            "pnpm --dir libs/workflow-core run build",
+            "pnpm --dir actions run build",
+        ]
+        assert "nx" not in build["run"].split()
+
+
+@allure.title("dependabot-commit.yml は、dist の作り直しに失敗しても push し、最後に失敗で終わる")
+def test_commit_workflow_fails_after_push_when_dist_was_not_built() -> None:
+    """`dependabot-commit.yml` の、dist の作り直しに失敗した場合のテストです。失敗を判定する step が `steps.dist.outcome` を見て、`Push generated files` より後で `exit 1` を実行することを確認します。"""
+    with allure.step("失敗の step を読む"):
+        steps = _commit_steps()
+        build = _step(steps, "Build actions dist")
+        fail = _step(steps, "Fail when actions dist was not built")
+
+    with allure.step("push の後で dist の結果を見て失敗させることを確かめる"):
+        assert f"steps.{build['id']}.outcome == 'failure'" in fail["if"]
+        assert _step_index(steps, "Push generated files") < _step_index(
+            steps, "Fail when actions dist was not built"
+        )
+        assert "exit 1" in fail["run"]
+
+
+@allure.title(
+    "dependabot-commit.yml は、PR の依存のコードが動く間、git の設定に App のトークンを置かない"
+)
+def test_commit_workflow_keeps_app_token_out_of_git_config_while_pr_code_runs() -> None:
+    """`dependabot-commit.yml` の、App のトークンの扱いのテストです。トークンを `Checkout` で受けず、commit の後に作り、push の step だけが使うことを確認します。"""
+    with allure.step("Checkout・トークン・push の step を読む"):
+        steps = _commit_steps()
+        checkout = _step(steps, "Checkout")
+        token = _step(steps, "Generate GitHub App token")
+        push = _step(steps, "Push generated files")
+
+    with allure.step("トークンが PR の依存のコードの後にだけ現れることを確かめる"):
+        assert checkout["with"]["persist-credentials"] is False
+        assert "token" not in checkout["with"]
+        assert _step_index(steps, "Build actions dist") < _step_index(
+            steps, "Commit generated files"
+        )
+        assert _step_index(steps, "Commit generated files") < _step_index(
+            steps, "Generate GitHub App token"
+        )
+        assert "steps.commit.outputs.committed == 'true'" in token["if"]
+        assert push["env"]["APP_TOKEN"] == "${{ steps.app-token.outputs.token }}"
+        assert "http.https://github.com/.extraheader" in push["run"]
+        uses_token = [
+            s.get("name")
+            for s in steps
+            if "steps.app-token.outputs.token" in str(s.get("env", "")) + str(s.get("with", ""))
+        ]
+        assert uses_token == ["Push generated files"]
+
+
+@allure.title("dependabot-commit.yml は、App のトークンが無いとき、イメージを載せる前に止まる")
+def test_commit_workflow_stops_before_image_when_app_token_is_missing() -> None:
+    """`dependabot-commit.yml` の、App のトークンが作れなかった場合のテストです。トークンの有無を判定して `exit 1` する step が、トークンの作成の後で `Log in to GHCR` より前にあることを確認します。"""
+    with allure.step("トークンが無いときの step を読む"):
+        steps = _commit_steps()
+        fail = _step(steps, "Fail when App token is missing")
+
+    with allure.step("イメージの前で、commit したときだけ止まることを確かめる"):
+        assert "steps.commit.outputs.committed == 'true'" in fail["if"]
+        assert "steps.app-token.outputs.token == ''" in fail["if"]
+        assert "exit 1" in fail["run"]
+        assert _step_index(steps, "Generate GitHub App token") < _step_index(
+            steps, "Fail when App token is missing"
+        )
+        assert _step_index(steps, "Fail when App token is missing") < _step_index(
+            steps, "Log in to GHCR"
+        )
