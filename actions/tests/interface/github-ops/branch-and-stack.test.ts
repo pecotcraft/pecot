@@ -1,16 +1,21 @@
 // github-ops の link-branch と stack-register を確かめる。
 import { describe, expect, it } from 'vitest'
 
+import { JSON_NULL } from '@pecot/workflow-core/domain/json-null.js'
 import { useIsolatedEnvironment } from '../../../../libs/workflow-core/tests/_helpers/environment.js'
 import type { ResponseRule } from '../../../../libs/workflow-core/tests/_helpers/fake-github/server.js'
 import { explains } from '../../_helpers/explains.js'
 import { verifies } from '../../_helpers/verifies.js'
 import { graphqlRule, requestLabels, restRule } from '../../_helpers/github-rules.js'
-import { runOperation, SHA, writesOf } from '../../_helpers/github-ops-case.js'
+import { REPOSITORY, runOperation, SHA, writesOf } from '../../_helpers/github-ops-case.js'
 
 useIsolatedEnvironment()
 
-const issueNode = graphqlRule('GetIssueNodeId', { repository: { issue: { id: 'I_7', title: '見本の Issue' } } }, { owner: 'acme', repo: 'demo', number: 7 })
+const linkedTo = (names: readonly string[]): ResponseRule => {
+  const nodes = names.map(name => ({ ref: { name, repository: { nameWithOwner: REPOSITORY } } }))
+  return graphqlRule('GetIssueLinkedBranches', { repository: { issue: { id: 'I_7', linkedBranches: { nodes } } } }, { owner: 'acme', repo: 'demo', number: 7 })
+}
+const issueNode = linkedTo([])
 const linkedBranch = graphqlRule('CreateLinkedBranch', { createLinkedBranch: { linkedBranch: { ref: { name: 'feat/x/7', prefix: 'refs/heads/' } } } })
 const headOf = (branch: string): ResponseRule => restRule('GET', `/repos/acme/demo/git/ref/heads/${branch}`, 200, { object: { sha: SHA } })
 
@@ -39,9 +44,30 @@ describe('github ops', () => {
     expect(requestLabels(result.github.requests())).not.toContain('GET /repos/acme/demo')
   })
 
-  it('link-branch で GitHub がブランチの作成を断ると、ok: false と GitHub の文を返す', async (context) => {
+  it('link-branch に Issue へつながった名前を渡すと、作らずにその名前と base との分かれ目を返す', async (context) => {
+    await verifies(context, 'PA-GITHUB-OPS-04')
+    await explains('`link-branch` のテストです。同じ名前のブランチが Issue につながっている場合に、`createLinkedBranch` を送信せず、その名前と `base` との分かれ目の commit を返すことを確認します。')
+    const mergeBase = restRule('GET', '/repos/acme/demo/compare/main...feat/x/7', 200, { merge_base_commit: { sha: SHA } })
+    const result = await runOperation('link-branch', { issue: 7, branch: 'feat/x/7', base: 'main' }, [linkedTo(['feat/x/7']), mergeBase])
+    expect(result.code).toBe(0)
+    expect(result.result).toEqual({ issue: 7, branch: 'feat/x/7', base: 'main', sha: SHA })
+    expect(writesOf(result.github.requests())).toEqual([])
+  })
+
+  it('link-branch で GitHub が理由を返さずに作らず、同じ名前のブランチがあると、ok: false で存在と直し方を返す', async (context) => {
     await verifies(context, 'PA-GITHUB-OPS-05')
-    await explains('`link-branch` のテストです。同じ名前のブランチが既に存在し、GitHub が `createLinkedBranch` を断った場合に、`ok: false` と GitHub のエラー文を返すことを確認します。')
+    await explains('`link-branch` のテストです。`createLinkedBranch` が `linkedBranch` を `null` で返し、同じ名前のブランチが存在する場合に、`ok: false` で、ブランチの存在と直し方の文を返すことを確認します。')
+    const notCreated = graphqlRule('CreateLinkedBranch', { createLinkedBranch: { linkedBranch: JSON_NULL } })
+    const existing = graphqlRule('GetBranchRefByNode', { node: { repository: { nameWithOwner: REPOSITORY, ref: { name: 'feat/x/7' } } } }, { id: 'I_7', qualifiedName: 'refs/heads/feat/x/7' })
+    const result = await runOperation('link-branch', { issue: 7, branch: 'feat/x/7', base: 'main' }, [headOf('main'), issueNode, notCreated, existing])
+    expect(result.code).toBe(1)
+    expect(result.line).toMatchObject({ ok: false, error: { kind: 'github-api' } })
+    expect(result.message).toBe('GitHub did not create the linked branch: a branch named feat/x/7 already exists in acme/demo. Use another branch name, or delete that branch if nothing uses it')
+  })
+
+  it('link-branch で GitHub が errors を返してブランチの作成を断ると、ok: false と GitHub の文を返す', async (context) => {
+    await verifies(context, 'PA-GITHUB-OPS-05')
+    await explains('`link-branch` のテストです。GitHub が errors を返して `createLinkedBranch` を断った場合に、`ok: false` と GitHub のエラー文を返すことを確認します。')
     const rejected: ResponseRule = { match: { operation: 'CreateLinkedBranch' }, respond: { status: 200, body: { errors: [{ type: 'UNPROCESSABLE', message: 'Ref already exists' }] } }, times: 1 }
     const result = await runOperation('link-branch', { issue: 7, branch: 'feat/x/7', base: 'main' }, [headOf('main'), issueNode, rejected])
     expect(result.code).toBe(1)

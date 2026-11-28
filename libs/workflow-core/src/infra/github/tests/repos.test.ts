@@ -156,6 +156,22 @@ describe('listWorkflowRunConclusions', () => {
   })
 })
 
+describe('getMergeBase', () => {
+  it('compare の base...head を per_page=1 で取得し、merge_base_commit の SHA を返す', async () => {
+    await explains('`getMergeBase` のテストです。`main...feat/x/1` の比較結果を `per_page=1` で要求し、`merge_base_commit.sha` を返すことを確認します。')
+    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client, server } = await startClient([
+        restResponse('GET', '/repos/owner/repo/compare/main...feat/x/1', { status: 200, body: { merge_base_commit: { sha: 'base123' } } }),
+      ])
+      return { client, server }
+    })
+    await step('送った要求と結果を確かめる', async () => {
+      expect(await client.getMergeBase('owner', 'repo', 'main', 'feat/x/1')).toBe('base123')
+      expect(restRequests(server).map(({ method, path, query }) => [method, path, query])).toEqual([['GET', '/repos/owner/repo/compare/main...feat/x/1', { per_page: '1' }]])
+    })
+  })
+})
+
 describe('countCommitsAhead', () => {
   it('compare の base...head を per_page=1 で取得し、ahead_by を返す', async () => {
     await explains('ブランチ間の先行コミット数を取得する `countCommitsAhead` のテストです。`main...develop` の比較結果を `per_page=1` で要求し、`ahead_by` の値（4）を返すことを確認します。')
@@ -262,19 +278,63 @@ describe('createLinkedBranch', () => {
     })
   })
 
-  it('linkedBranch が null の場合は、GitHubAPIError を発生させる', async () => {
-    await explains('`createLinkedBranch` のテストです。応答の `linkedBranch` が `null` の場合に、`failed to create the linked branch` を持つ `GitHubAPIError` が発生することを確認します。')
-    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
-      const { client } = await startClient([graphqlData('CreateLinkedBranch', { createLinkedBranch: { linkedBranch: JSON_NULL } })])
-      return { client }
+  const nullBranch = graphqlData('CreateLinkedBranch', { createLinkedBranch: { linkedBranch: JSON_NULL } })
+
+  it('linkedBranch が null で同じ名前のブランチがあると、そのことと直し方を持つ GitHubAPIError を発生させる', async () => {
+    await explains('`createLinkedBranch` のテストです。`linkedBranch` が `null` で作り先のリポに同じ名前のブランチが存在する場合に、リポ名と別の名前を使う直し方をエラーに表示することを確認します。')
+    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client, server } = await startClient([nullBranch, graphqlData('GetBranchRefByNode', { node: { repository: { nameWithOwner: 'owner/repo', ref: { name: 'feat/x/1' } } } })])
+      return { client, server }
     })
     await step('エラーを確かめる', async () => {
-      expect(await rejection(client.createLinkedBranch('I_1', 'abc', 'n'))).toMatchObject(failure(GitHubAPIError, 'failed to create the linked branch'))
+      expect(await rejection(client.createLinkedBranch('I_1', 'abc', 'feat/x/1'))).toMatchObject(failure(GitHubAPIError, 'GitHub did not create the linked branch: a branch named feat/x/1 already exists in owner/repo. Use another branch name, or delete that branch if nothing uses it'))
+    })
+    await step('作り先を読んだ要求を確かめる', () => {
+      expect(graphqlRequests(server)[1]).toEqual({ operation: 'GetBranchRefByNode', variables: { id: 'I_1', qualifiedName: 'refs/heads/feat/x/1' } })
     })
   })
 
-  it('同名のブランチが既に存在して GraphQL がエラーを返すと、GraphQL query error の GitHubAPIError を発生させる', async () => {
-    await explains('`createLinkedBranch` のテストです。同名のブランチが既に存在し、GraphQL がエラーを返した場合に、`GraphQL query error` で始まるメッセージの `GitHubAPIError` が発生することを確認します。')
+  it('linkedBranch が null で同じ名前のブランチが無いと、確かめる所を持つ GitHubAPIError を発生させる', async () => {
+    await explains('`createLinkedBranch` のテストです。`linkedBranch` が `null` で同じ名前のブランチが存在しない場合に、ブランチの一覧とトークンの権限を確認するよう表示することを確認します。')
+    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client } = await startClient([nullBranch, graphqlData('GetBranchRefByNode', { node: { repository: { nameWithOwner: 'owner/repo', ref: JSON_NULL } } })])
+      return { client }
+    })
+    await step('エラーを確かめる', async () => {
+      expect(await rejection(client.createLinkedBranch('I_1', 'abc', 'n'))).toMatchObject(failure(GitHubAPIError, 'GitHub did not create the linked branch n and gave no reason: check the branches of owner/repo for the same name, and that the token can write its contents'))
+    })
+  })
+
+  it('linkedBranch が null で repositoryId を指定していると、そのリポを読んで理由を書く', async () => {
+    await explains('`createLinkedBranch` のテストです。`repositoryId` を指定して `linkedBranch` が `null` の場合に、`repositoryId` のリポを読み、その名前で理由を表示することを確認します。')
+    const { client, server } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client, server } = await startClient([nullBranch, graphqlData('GetBranchRefByNode', { node: { nameWithOwner: 'owner/other', ref: { name: 'n' } } })])
+      return { client, server }
+    })
+    await step('エラーを確かめる', async () => {
+      expect(await rejection(client.createLinkedBranch('I_1', 'abc', 'n', 'R_other'))).toMatchObject(failure(GitHubAPIError, 'GitHub did not create the linked branch: a branch named n already exists in owner/other. Use another branch name, or delete that branch if nothing uses it'))
+    })
+    await step('作り先を読んだ要求を確かめる', () => {
+      expect(graphqlRequests(server)[1]).toEqual({ operation: 'GetBranchRefByNode', variables: { id: 'R_other', qualifiedName: 'refs/heads/n' } })
+    })
+  })
+
+  it.each([
+    ['作り先の Node が読めない', graphqlData('GetBranchRefByNode', { node: JSON_NULL })],
+    ['作り先を読む query が失敗する', graphqlError('GetBranchRefByNode', 'Could not resolve to a node')],
+  ])('linkedBranch が null で「%s」と、リポ名の無い確かめる所の文で GitHubAPIError を発生させる', async (_label, rule) => {
+    await explains(`\`createLinkedBranch\` のテストです。\`linkedBranch\` が \`null\` で「${_label}」場合に、リポ名の無い確認先の文をエラーに表示することを確認します。`)
+    const { client } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
+      const { client } = await startClient([nullBranch, rule])
+      return { client }
+    })
+    await step('エラーを確かめる', async () => {
+      expect(await rejection(client.createLinkedBranch('I_1', 'abc', 'n'))).toMatchObject(failure(GitHubAPIError, 'GitHub did not create the linked branch n and gave no reason: check the branches of the repository for the same name, and that the token can write its contents'))
+    })
+  })
+
+  it('GitHub が errors を返してブランチの作成を断ると、GraphQL query error の GitHubAPIError を発生させる', async () => {
+    await explains('`createLinkedBranch` のテストです。GraphQL が errors を返してブランチの作成を断った場合に、`GraphQL query error` で始まるメッセージの `GitHubAPIError` が発生することを確認します。')
     const { client, message } = await step('偽の GitHub サーバとクライアントを用意する', async () => {
       const { client } = await startClient([graphqlError('CreateLinkedBranch', 'A branch named \'feat/existing-branch\' already exists')])
       // errors[0] は辞書なので、gql は Python の str(dict) の文にする

@@ -18,14 +18,18 @@ export interface LinkedBranch {
 }
 
 /**
-base を省くと、リポの既定のブランチから作る。ブランチ名は GitHub が付けた名前を返す
+base を省くと、リポの既定のブランチから作る。ブランチ名は GitHub が付けた名前を返す。
+gh issue develop と同じく、同じ名前のブランチが Issue につながっていれば作らずに返し、sha は base との分かれ目にする
 */
 export async function linkIssueBranch(client: GitHubClient, target: Readonly<LinkBranchTarget>): Promise<LinkedBranch> {
   const { owner, repository } = target
   const settings = target.base === undefined ? await client.getRepositorySettings(owner, repository) : undefined
   const base = target.base ?? settings?.defaultBranch ?? ''
+  const issue = await client.getIssueLinkedBranches(owner, repository, target.issue)
+  if (issue.branches.includes(target.branch)) {
+    return { issue: target.issue, branch: target.branch, base, sha: await client.getMergeBase(owner, repository, base, target.branch) }
+  }
   const sha = await client.getBranchSha(owner, repository, base)
-  const issueId = await client.getIssueNodeId(owner, repository, target.issue)
-  const branch = await client.createLinkedBranch(issueId, sha, target.branch)
+  const branch = await client.createLinkedBranch(issue.id, sha, target.branch)
   return { issue: target.issue, branch, base, sha }
 }

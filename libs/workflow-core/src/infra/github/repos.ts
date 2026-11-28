@@ -6,7 +6,7 @@ import type { JsonValue } from '../../domain/python-format.js'
 import { GitHubClientBase } from './client.js'
 import { GitHubAPIError, GitHubNotFoundError, GitHubRateLimitError } from './errors.js'
 import { asArray, isTruthy, requireNumber, requireString } from './payload.js'
-import { MUTATION_CREATE_LINKED_BRANCH, QUERY_GET_REPOSITORY_ID } from './queries.js'
+import { MUTATION_CREATE_LINKED_BRANCH, QUERY_GET_BRANCH_REF_BY_NODE, QUERY_GET_REPOSITORY_ID } from './queries.js'
 import { encodePath, encodePathSegment, repositoryPath } from './rest-path.js'
 
 export interface CreateReleaseOptions {
@@ -73,6 +73,25 @@ export class ReposApi extends GitHubClientBase {
       throw error
     }
     return items.map(item => jsonField(item, 'name')).filter(name => typeof name === 'string')
+  }
+
+  // GitHub は同じ名前のブランチがあっても errors を返さず linkedBranch を null にするので、作り先のリポを読んで理由を書く
+  private async linkedBranchFailure(id: string, name: string): Promise<string> {
+    let repository: string | undefined
+    let hasBranch = false
+    try {
+      const node = jsonField(await this.executeGraphql(QUERY_GET_BRANCH_REF_BY_NODE, { id, qualifiedName: `refs/heads/${name}` }), 'node')
+      const target = jsonField(node, 'repository') ?? node
+      const fullName = jsonField(target, 'nameWithOwner')
+      repository = typeof fullName === 'string' ? fullName : undefined
+      hasBranch = repository !== undefined && isTruthy(jsonField(target, 'ref'))
+    }
+    catch (error: unknown) {
+      if (!(error instanceof GitHubAPIError)) throw error
+    }
+    return hasBranch
+      ? `GitHub did not create the linked branch: a branch named ${name} already exists in ${repository ?? ''}. Use another branch name, or delete that branch if nothing uses it`
+      : `GitHub did not create the linked branch ${name} and gave no reason: check the branches of ${repository ?? 'the repository'} for the same name, and that the token can write its contents`
   }
 
   /**
@@ -190,8 +209,16 @@ export class ReposApi extends GitHubClientBase {
     }
     const result = await this.executeGraphql(MUTATION_CREATE_LINKED_BRANCH, { input })
     const linkedBranch = jsonField(jsonField(result, 'createLinkedBranch'), 'linkedBranch')
-    if (!isTruthy(linkedBranch)) throw new GitHubAPIError('failed to create the linked branch')
+    if (!isTruthy(linkedBranch)) throw new GitHubAPIError(await this.linkedBranchFailure(repositoryId === undefined || repositoryId === '' ? issueId : repositoryId, name))
     return requireString(jsonField(jsonField(linkedBranch, 'ref'), 'name'), 'linkedBranch.ref.name')
+  }
+
+  /**
+  base と head の分かれ目の commit の SHA（REST の compare の merge_base_commit）
+  */
+  async getMergeBase(owner: string, repository: string, base: string, head: string): Promise<string> {
+    const comparison = await this.restJson('GET', `${repositoryPath(owner, repository)}/compare/${encodePath(base)}...${encodePath(head)}`, { params: { per_page: 1 } })
+    return requireString(jsonField(jsonField(comparison, 'merge_base_commit'), 'sha'), 'merge_base_commit.sha')
   }
 
   /**
