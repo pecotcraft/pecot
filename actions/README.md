@@ -44,6 +44,7 @@
 - `pr-attach` は、一時ブランチ `pecot-attach/<ID>` の画像を PR の本文に載せ（user-attachments の URL）、ブランチを消す。`GITHUB_TOKEN` と App の token では、画像を上げる endpoint が 404 になるので、`attach-token` に fine-grained PAT を渡す
   - PAT を置くのは `pecot-github-ops.yml` の `PECOT_ATTACH_TOKEN`。`pr-attach` を使うときだけ要る
   - 本文で載せる画像の `./<名前>` を指すリンクは、画像の記法（`![説明](./<名前>)`）に直してから載せる。Claude Code のクラウドのセッションで保存した本文は、画像の記法がリンクになるため
+  - 直すリンクがあれば、直した本文を `--body-file` で gh に渡す。無ければ本文の flag を渡さず、gh が今の本文を保つ
   - ブランチの読み取りと削除は `GITHUB_TOKEN` で行う。起動に失敗して残った `pecot-attach/*` は、次の `pr-attach` が 24 時間より古いものを消す
 
 inputs と outputs は、各 action の `action.yml` にあります。振る舞いの項目は `interface/authored.yaml` にあります。

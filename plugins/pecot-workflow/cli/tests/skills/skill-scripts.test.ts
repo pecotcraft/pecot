@@ -483,6 +483,17 @@ describe('w-pr の画像の一時ブランチへの送信', () => {
     })
   })
 
+  it('.gitattributes で画像に text の属性が付いていても、改行を変えずに元のバイト列のまま送る', async () => {
+    await explains('`push-attach.cjs` のテストです。`.gitattributes` が `*.png` を `text` にしている場合に、CRLF を含む画像が LF に変換されず、元のバイト列のまま origin のブランチに入ることを確認します。')
+    const { origin, repository } = prepareAttach({ '.gitattributes': '*.png text\n', 'a.png': png })
+    const result = await pushAttach(repository, ['a.png'])
+    stepSync('origin のブランチの画像のバイト列を比べる', () => {
+      expect(result.status).toBe(0)
+      const branch = /^branch=(\S+)$/mu.exec(result.stdout)?.[1] ?? ''
+      expect(gitForTest(origin, ['cat-file', 'blob', `refs/heads/${branch}:a.png`])).toBe(png)
+    })
+  })
+
   it('画像を送っても、作業ツリー・index・HEAD を変えず、一時の index を残さない', async () => {
     await explains('`push-attach.cjs` のテストです。送信の前後で `git status`・`git write-tree`・`HEAD` の結果が変わらず、git dir に一時の index のファイルが存在しないことを確認します。')
     const { repository } = prepareAttach({ '.playwright-mcp/a.png': png })

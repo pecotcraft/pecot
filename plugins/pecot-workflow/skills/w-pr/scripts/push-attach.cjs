@@ -37,7 +37,7 @@ const build = () => {
   const environment = { ...process.env, GIT_INDEX_FILE: index }
   try {
     for (const [name, file] of names) {
-      const sha = git(['hash-object', '-w', '--', file])
+      const sha = git(['hash-object', '-w', '--no-filters', '--', file])
       git(['update-index', '--add', '--cacheinfo', `100644,${sha},${name}`], environment)
     }
     return git(['commit-tree', git(['write-tree'], environment), '-m', `pecot-attach ${id} [skip ci]`])
